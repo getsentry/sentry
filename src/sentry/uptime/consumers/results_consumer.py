@@ -24,6 +24,7 @@ from sentry.remote_subscriptions.consumers.result_consumer import (
     ResultProcessor,
     ResultsStrategyFactory,
 )
+from sentry.uptime.consumers.eap_producer import produce_eap_uptime_result
 from sentry.uptime.detectors.ranking import _get_cluster
 from sentry.uptime.detectors.result_handler import handle_onboarding_result
 from sentry.uptime.grouptype import UptimePacketValue
@@ -44,11 +45,7 @@ from sentry.uptime.subscriptions.tasks import (
     send_uptime_config_deletion,
     update_remote_uptime_subscription,
 )
-from sentry.uptime.types import (
-    DATA_SOURCE_UPTIME_SUBSCRIPTION,
-    IncidentStatus,
-    ProjectUptimeSubscriptionMode,
-)
+from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION, IncidentStatus, UptimeMonitorMode
 from sentry.utils import metrics
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -86,6 +83,10 @@ _snuba_uptime_checks_producer = SingletonProducer(_get_snuba_uptime_checks_produ
 
 def build_last_update_key(detector: Detector) -> str:
     return f"project-sub-last-update:detector:{detector.id}"
+
+
+def build_last_seen_interval_key(detector: Detector) -> str:
+    return f"project-sub-last-seen-interval:detector:{detector.id}"
 
 
 def build_active_consecutive_status_key(detector: Detector, status: str) -> str:
@@ -468,7 +469,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             metrics.incr("uptime.result_processor.dropped_no_feature")
             return
 
-        mode_name = ProjectUptimeSubscriptionMode(detector.config["mode"]).name.lower()
+        mode_name = UptimeMonitorMode(detector.config["mode"]).name.lower()
 
         status_reason = "none"
         if result["status_reason"]:
@@ -504,28 +505,47 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         ) / subscription_interval_ms
 
         # If the scheduled check is two or more intervals since the last seen check, we can declare the
-        # intervening checks missed.
+        # intervening checks missed...
         if last_update_raw is not None and num_intervals > 1:
-            num_missed_checks = num_intervals - 1
-            metrics.distribution(
-                "uptime.result_processer.num_missing_check",
-                num_missed_checks,
-                tags=metric_tags,
-            )
-            logger.info(
-                "uptime.result_processor.num_missing_check",
-                extra={"num_missed_checks": num_missed_checks, **result},
-            )
-            if num_intervals != int(num_intervals):
-                logger.info(
-                    "uptime.result_processor.invalid_check_interval",
-                    extra={
-                        "last_update_ms": last_update_ms,
-                        "current_update_ms": result["scheduled_check_time_ms"],
-                        "interval_ms": subscription_interval_ms,
-                        **result,
-                    },
+            # ... but it might be the case that the user changed the frequency of the detector.  So, first
+            # verify that the interval in postgres is the same as the last-seen interval (in redis).
+            # We only store in redis when we encounter a difference like this, which means we won't be able
+            # to tell if a missed check is real with the very first missed check.  This is probably okay,
+            # and preferable to just writing the interval to redis on every check consumed.
+            last_interval_key = build_last_seen_interval_key(detector)
+
+            # If we've never set an interval before, just set this to zero, which will never compare
+            # true with any valid interval.
+            last_interval_seen: str = cluster.get(last_interval_key) or "0"
+
+            if int(last_interval_seen) == subscription_interval_ms:
+                num_missed_checks = num_intervals - 1
+                metrics.distribution(
+                    "uptime.result_processer.num_missing_check",
+                    num_missed_checks,
+                    tags=metric_tags,
                 )
+                logger.info(
+                    "uptime.result_processor.num_missing_check",
+                    extra={"num_missed_checks": num_missed_checks, **result},
+                )
+                if num_intervals != int(num_intervals):
+                    logger.info(
+                        "uptime.result_processor.invalid_check_interval",
+                        0,
+                        extra={
+                            "last_update_ms": last_update_ms,
+                            "current_update_ms": result["scheduled_check_time_ms"],
+                            "interval_ms": subscription_interval_ms,
+                            **result,
+                        },
+                    )
+            else:
+                logger.info(
+                    "uptime.result_processor.false_num_missing_check",
+                    extra={**result},
+                )
+                cluster.set(last_interval_key, subscription_interval_ms, ex=LAST_UPDATE_REDIS_TTL)
 
         if features.has("organizations:uptime-detailed-logging", organization):
             logger.info("handle_result_for_project.after_dedupe", extra=result)
@@ -544,7 +564,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         # measurement of delay/duration.
         record_check_metrics(result, detector, {"mode": mode_name, **metric_tags})
 
-        Mode = ProjectUptimeSubscriptionMode
+        Mode = UptimeMonitorMode
         try:
             match detector.config["mode"]:
                 case Mode.AUTO_DETECTED_ONBOARDING:
@@ -563,6 +583,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         # may mutate the UptimeSubscription when we determine we're in an incident
         if options.get("uptime.snuba_uptime_results.enabled"):
             produce_snuba_uptime_result(subscription, detector.project, result, metric_tags.copy())
+
+        if features.has("organizations:uptime-eap-results", detector.project.organization):
+            produce_eap_uptime_result(subscription, detector.project, result, metric_tags.copy())
 
         # Track the last update date to allow deduplication
         cluster.set(

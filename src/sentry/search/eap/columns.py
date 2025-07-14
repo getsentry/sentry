@@ -8,6 +8,7 @@ from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
 )
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
+from sentry_protos.snuba.v1.formula_pb2 import Literal as LiteralValue
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
@@ -77,6 +78,21 @@ class ResolvedColumn:
             return self.internal_type
         else:
             return constants.TYPE_MAP[self.search_type]
+
+
+@dataclass(frozen=True, kw_only=True)
+class ResolvedLiteral(ResolvedColumn):
+    value: float
+    is_aggregate: bool = False
+
+    @property
+    def proto_definition(self) -> Column.BinaryFormula:
+        """rpc doesn't understand a bare literal, so we return a no-op formula"""
+        return Column.BinaryFormula(
+            op=constants.ARITHMETIC_OPERATOR_MAP["plus"],
+            left=Column(literal=LiteralValue(val_double=self.value)),
+            right=Column(literal=LiteralValue(val_double=0)),
+        )
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -206,7 +222,6 @@ class ResolvedAggregate(ResolvedFunction):
 
 @dataclass(frozen=True, kw_only=True)
 class ResolvedConditionalAggregate(ResolvedFunction):
-
     # The internal rpc alias for this column
     internal_name: Function.ValueType
     # Whether to enable extrapolation
@@ -271,7 +286,9 @@ class FunctionDefinition:
     private: bool = False
 
     @property
-    def required_arguments(self) -> list[ValueArgumentDefinition | AttributeArgumentDefinition]:
+    def required_arguments(
+        self,
+    ) -> list[ValueArgumentDefinition | AttributeArgumentDefinition]:
         return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
 
     def resolve(
@@ -372,7 +389,9 @@ class FormulaDefinition(FunctionDefinition):
     is_aggregate: bool
 
     @property
-    def required_arguments(self) -> list[ValueArgumentDefinition | AttributeArgumentDefinition]:
+    def required_arguments(
+        self,
+    ) -> list[ValueArgumentDefinition | AttributeArgumentDefinition]:
         return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
 
     def resolve(
@@ -427,11 +446,16 @@ def simple_measurements_field(
     )
 
 
-def datetime_processor(datetime_string: str) -> str:
-    return datetime.fromisoformat(datetime_string).replace(tzinfo=tz.tzutc()).isoformat()
+def datetime_processor(datetime_value: str | float) -> str:
+    if isinstance(datetime_value, float):
+        # assumes that the timestamp is in seconds
+        return datetime.fromtimestamp(datetime_value).replace(tzinfo=tz.tzutc()).isoformat()
+    return datetime.fromisoformat(datetime_value).replace(tzinfo=tz.tzutc()).isoformat()
 
 
-def project_context_constructor(column_name: str) -> Callable[[SnubaParams], VirtualColumnContext]:
+def project_context_constructor(
+    column_name: str,
+) -> Callable[[SnubaParams], VirtualColumnContext]:
     def context_constructor(params: SnubaParams) -> VirtualColumnContext:
         return VirtualColumnContext(
             from_column_name="sentry.project_id",
@@ -454,6 +478,17 @@ def project_term_resolver(
         return int(raw_value)
 
 
+# Any of the resolved attributes, mostly to clean typing up so there's not this giant list all over the code
+AnyResolved = (
+    ResolvedAttribute
+    | ResolvedAggregate
+    | ResolvedConditionalAggregate
+    | ResolvedFormula
+    | ResolvedEquation
+    | ResolvedLiteral
+)
+
+
 @dataclass(frozen=True)
 class ColumnDefinitions:
     aggregates: dict[str, AggregateDefinition]
@@ -462,4 +497,4 @@ class ColumnDefinitions:
     columns: dict[str, ResolvedAttribute]
     contexts: dict[str, VirtualColumnDefinition]
     trace_item_type: TraceItemType.ValueType
-    filter_aliases: Mapping[str, Callable[[SnubaParams, SearchFilter], SearchFilter]]
+    filter_aliases: Mapping[str, Callable[[SnubaParams, SearchFilter], list[SearchFilter]]]

@@ -1,5 +1,5 @@
 import {useContext, useEffect, useMemo, useRef, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabListOptions} from '@react-aria/tabs';
 import {useTabList} from '@react-aria/tabs';
@@ -15,12 +15,15 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {isChonkTheme, withChonk} from 'sentry/utils/theme/withChonk';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {TabsContext} from './index';
 import type {TabListItemProps} from './item';
 import {TabListItem} from './item';
-import {type BaseTabProps, Tab} from './tab';
+import {Tab} from './tab';
+import type {BaseTabProps} from './tab.chonk';
+import {ChonkStyledTabListWrap} from './tabList.chonk';
 import {tabsShouldForwardProp} from './utils';
 
 /**
@@ -42,6 +45,7 @@ function useOverflowTabs({
   tabListRef: React.RefObject<HTMLUListElement | null>;
 }) {
   const [overflowTabs, setOverflowTabs] = useState<Array<string | number>>([]);
+  const theme = useTheme();
 
   useEffect(() => {
     if (disabled) {
@@ -50,7 +54,7 @@ function useOverflowTabs({
 
     const options = {
       root: tabListRef.current,
-      // Nagative right margin to account for overflow menu's trigger button
+      // Negative right margin to account for overflow menu's trigger button
       rootMargin: `0px -42px 1px ${space(1)}`,
       // Use 0.95 rather than 1 because of a bug in Edge (Windows) where the intersection
       // ratio may unexpectedly drop to slightly below 1 (0.999…) on page scroll.
@@ -79,20 +83,22 @@ function useOverflowTabs({
       element => element && observer.observe(element)
     );
 
-    return () => observer.disconnect();
-  }, [tabListRef, tabItemsRef, disabled]);
+    return () => {
+      observer.disconnect();
+      setOverflowTabs([]);
+    };
+  }, [tabListRef, tabItemsRef, disabled, theme]);
 
-  const tabItemKeyToHiddenMap = tabItems.reduce(
+  const tabItemKeyToHiddenMap = tabItems.reduce<Record<string | number, boolean>>(
     (acc, next) => ({
       ...acc,
-      [next.key]: next.hidden,
+      [next.key]: !!next.hidden,
     }),
     {}
   );
 
   // Tabs that are hidden will be rendered with display: none so won't intersect,
   // but we don't want to show them in the overflow menu
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return overflowTabs.filter(tabKey => !tabItemKeyToHiddenMap[tabKey]);
 }
 
@@ -124,6 +130,12 @@ function OverflowMenu({state, overflowMenuItems, disabled}: any) {
 
 export interface TabListProps {
   children: TabListStateOptions<TabListItemProps>['children'];
+  /**
+   * @deprecated
+   * With chonk, tabs never have a border.
+   * Whether to hide the bottom border of the tab list.
+   * Defaults to `false`.
+   */
   hideBorder?: boolean;
   outerWrapStyles?: React.CSSProperties;
   variant?: BaseTabProps['variant'];
@@ -148,7 +160,8 @@ function BaseTabList({
     defaultValue,
     onChange,
     disabled,
-    orientation = 'horizontal',
+    orientation,
+    size,
     keyboardActivation = 'manual',
     disableOverflow,
     ...otherRootProps
@@ -228,6 +241,7 @@ function BaseTabList({
             item={item}
             state={state}
             orientation={orientation}
+            size={size}
             overflowing={orientation === 'horizontal' && overflowTabs.includes(item.key)}
             ref={element => {
               tabItemsRef.current[item.key] = element;
@@ -293,35 +307,38 @@ const TabListOuterWrap = styled('div')`
   position: relative;
 `;
 
-const TabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
-  hideBorder: boolean;
-  orientation: Orientation;
-  variant: BaseTabProps['variant'];
-}>`
-  position: relative;
-  display: grid;
-  padding: 0;
-  margin: 0;
-  list-style-type: none;
-  flex-shrink: 0;
+const TabListWrap = withChonk(
+  styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
+    hideBorder: boolean;
+    orientation: Orientation;
+    variant: BaseTabProps['variant'];
+  }>`
+    position: relative;
+    display: grid;
+    padding: 0;
+    margin: 0;
+    list-style-type: none;
+    flex-shrink: 0;
 
-  ${p =>
-    p.orientation === 'horizontal'
-      ? css`
-          grid-auto-flow: column;
-          justify-content: start;
-          gap: ${p.variant === 'floating' ? 0 : space(2)};
-          ${!p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
-        `
-      : css`
-          height: 100%;
-          grid-auto-flow: row;
-          align-content: start;
-          gap: 1px;
-          padding-right: ${space(2)};
-          ${!p.hideBorder && `border-right: solid 1px ${p.theme.border};`}
-        `};
-`;
+    ${p =>
+      p.orientation === 'horizontal'
+        ? css`
+            grid-auto-flow: column;
+            justify-content: start;
+            gap: ${p.variant === 'floating' ? 0 : space(2)};
+            ${!p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
+          `
+        : css`
+            height: 100%;
+            grid-auto-flow: row;
+            align-content: start;
+            gap: 1px;
+            padding-right: ${space(2)};
+            ${!p.hideBorder && `border-right: solid 1px ${p.theme.border};`}
+          `};
+  `,
+  ChonkStyledTabListWrap
+);
 
 const TabListOverflowWrap = styled('div')`
   position: absolute;
@@ -331,4 +348,6 @@ const TabListOverflowWrap = styled('div')`
 const OverflowMenuTrigger = styled(DropdownButton)`
   padding-left: ${space(1)};
   padding-right: ${space(1)};
+  color: ${p =>
+    isChonkTheme(p.theme) ? p.theme.tokens.component.link.muted.default : undefined};
 `;

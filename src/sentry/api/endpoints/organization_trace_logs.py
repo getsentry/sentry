@@ -54,6 +54,7 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
         snuba_params: SnubaParams,
         trace_ids: list[str],
         orderby: list[str],
+        additional_query: str | None,
         offset: int,
         limit: int,
     ) -> EventsResponse:
@@ -73,11 +74,16 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
                 raise ParseError(
                     f"{column.lstrip('-')} must be one of {','.join(selected_columns)}"
                 )
+        base_query = (
+            f"trace:{trace_ids[0]}" if len(trace_ids) == 1 else f"trace:[{','.join(trace_ids)}]"
+        )
+        if additional_query is not None:
+            query = f"{base_query} and {additional_query}"
+        else:
+            query = base_query
         results = ourlogs.query(
             selected_columns=selected_columns,
-            query=(
-                f"trace:{trace_ids[0]}" if len(trace_ids) == 1 else f"trace:[{','.join(trace_ids)}]"
-            ),
+            query=query,
             snuba_params=snuba_params,
             orderby=orderby,
             offset=offset,
@@ -101,15 +107,18 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
             raise ParseError("Need to pass at least one traceId")
 
         orderby = request.GET.getlist("orderby", ["-timestamp"])
+        additional_query = request.GET.get("query")
 
         update_snuba_params_with_timestamp(request, snuba_params)
 
         def data_fn(offset: int, limit: int) -> EventsResponse:
             with handle_query_errors():
-                return self.query_logs_data(snuba_params, trace_ids, orderby, offset, limit)
+                return self.query_logs_data(
+                    snuba_params, trace_ids, orderby, additional_query, offset, limit
+                )
 
         return self.paginate(
             request=request,
             paginator=GenericOffsetPaginator(data_fn=data_fn),
-            max_per_page=1000,
+            max_per_page=9999,
         )

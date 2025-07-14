@@ -5,75 +5,38 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 
-import {Mode} from './mode';
-import type {Visualize} from './visualizes';
-
-export function defaultSortBys(mode: Mode, fields: string[], yAxes: string[]): Sort[] {
-  if (mode === Mode.SAMPLES) {
-    if (fields.includes('timestamp')) {
-      return [
-        {
-          field: 'timestamp',
-          kind: 'desc' as const,
-        },
-      ];
-    }
-
-    if (fields.length) {
-      return [
-        {
-          field: fields[0]!,
-          kind: 'desc' as const,
-        },
-      ];
-    }
+export function defaultSortBys(fields: string[]): Sort[] {
+  if (fields.includes('timestamp')) {
+    return [
+      {
+        field: 'timestamp',
+        kind: 'desc' as const,
+      },
+    ];
   }
 
-  if (mode === Mode.AGGREGATE) {
-    if (yAxes[0]) {
-      return [
-        {
-          field: yAxes[0],
-          kind: 'desc' as const,
-        },
-      ];
-    }
+  if (fields.length) {
+    return [
+      {
+        field: fields[0]!,
+        kind: 'desc' as const,
+      },
+    ];
   }
 
   return [];
 }
 
-export function getSortBysFromLocation(
-  location: Location,
-  mode: Mode,
-  fields: string[],
-  groupBys: string[],
-  visualizes: Visualize[]
-): Sort[] {
+export function getSortBysFromLocation(location: Location, fields: string[]): Sort[] {
   const sortBys = decodeSorts(location.query.sort);
 
   if (sortBys.length > 0) {
-    if (mode === Mode.SAMPLES && sortBys.every(sortBy => fields.includes(sortBy.field))) {
-      return sortBys;
-    }
-
-    if (
-      mode === Mode.AGGREGATE &&
-      sortBys.every(
-        sortBy =>
-          groupBys.includes(sortBy.field) ||
-          visualizes.some(visualize => visualize.yAxes.includes(sortBy.field))
-      )
-    ) {
+    if (sortBys.every(sortBy => fields.includes(sortBy.field))) {
       return sortBys;
     }
   }
 
-  return defaultSortBys(
-    mode,
-    fields,
-    visualizes.flatMap(visualize => visualize.yAxes)
-  );
+  return defaultSortBys(fields);
 }
 
 export function updateLocationWithSortBys(

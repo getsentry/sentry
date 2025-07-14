@@ -87,6 +87,12 @@ export function DataSetStep({
   if (hasDatasetSelectorFeature) {
     // TODO: Finalize description copy
     datasetChoices.set(DataSet.ERRORS, t('Errors (TypeError, InvalidSearchQuery, etc)'));
+    if (organization.features.includes('discover-saved-queries-deprecation')) {
+      disabledChoices.push([
+        DataSet.TRANSACTIONS,
+        t('This dataset is is no longer supported. Please use the Spans dataset.'),
+      ]);
+    }
     datasetChoices.set(DataSet.TRANSACTIONS, t('Transactions'));
   }
 
@@ -99,6 +105,23 @@ export function DataSetStep({
       DataSet.SPANS,
       <FeatureBadgeAlignmentWrapper aria-label={t('Spans')}>
         {t('Spans')}{' '}
+        <FeatureBadge
+          type="beta"
+          tooltipProps={{
+            title: t(
+              'This feature is available for early adopters and the UX may change'
+            ),
+          }}
+        />
+      </FeatureBadgeAlignmentWrapper>
+    );
+  }
+
+  if (organization.features.includes('ourlogs-dashboards')) {
+    datasetChoices.set(
+      DataSet.LOGS,
+      <FeatureBadgeAlignmentWrapper aria-label={t('Logs')}>
+        {t('Logs')}{' '}
         <FeatureBadge
           type="beta"
           tooltipProps={{

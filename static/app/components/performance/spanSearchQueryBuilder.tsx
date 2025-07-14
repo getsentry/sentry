@@ -24,7 +24,7 @@ import {
   TraceItemSearchQueryBuilder,
   useSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 import {SpanIndexedField} from 'sentry/views/insights/types';
@@ -155,7 +155,6 @@ function useSpanSearchQueryBuilderProps({
     disallowUnsupportedFilters: true,
     recentSearches: SavedSearchType.SPAN,
     showUnsubmittedIndicator: true,
-    searchOnChange: organization.features.includes('ui-search-on-change'),
   };
 }
 
@@ -163,7 +162,7 @@ export function SpanSearchQueryBuilder(props: SpanSearchQueryBuilderProps) {
   const {useEap} = props;
 
   if (useEap) {
-    return <EapSpanSearchQueryBuilder {...props} />;
+    return <EapSpanSearchQueryBuilderWrapper {...props} />;
   }
 
   return <IndexedSpanSearchQueryBuilder {...props} />;
@@ -191,17 +190,17 @@ function IndexedSpanSearchQueryBuilder({
   return <SearchQueryBuilder {...searchQueryBuilderProps} />;
 }
 
-function EapSpanSearchQueryBuilder(props: SpanSearchQueryBuilderProps) {
-  const {tags: numberTags} = useSpanTags('number');
-  const {tags: stringTags} = useSpanTags('string');
+export function EapSpanSearchQueryBuilderWrapper(props: SpanSearchQueryBuilderProps) {
+  const {tags: numberTags} = useTraceItemTags('number');
+  const {tags: stringTags} = useTraceItemTags('string');
 
-  const eapSearchQueryBuilderProps = useEAPSpanSearchQueryBuilderProps({
-    ...props,
-    numberTags,
-    stringTags,
-  });
-
-  return <SearchQueryBuilder {...eapSearchQueryBuilderProps} />;
+  return (
+    <EAPSpanSearchQueryBuilder
+      numberTags={numberTags}
+      stringTags={stringTags}
+      {...props}
+    />
+  );
 }
 
 export interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps {

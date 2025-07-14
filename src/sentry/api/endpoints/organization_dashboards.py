@@ -102,18 +102,23 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:dashboards-basic", organization, actor=request.user):
             return Response(status=404)
 
-        if features.has("organizations:dashboards-favourite", organization, actor=request.user):
-            filter_by = request.query_params.get("filter")
-            if filter_by == "onlyFavorites":
-                dashboards = Dashboard.objects.filter(
-                    organization_id=organization.id, dashboardfavoriteuser__user_id=request.user.id
-                )
-            elif filter_by == "excludeFavorites":
-                dashboards = Dashboard.objects.exclude(
-                    organization_id=organization.id, dashboardfavoriteuser__user_id=request.user.id
-                )
-            else:
-                dashboards = Dashboard.objects.filter(organization_id=organization.id)
+        filter_by = request.query_params.get("filter")
+        if filter_by == "onlyFavorites":
+            dashboards = Dashboard.objects.filter(
+                organization_id=organization.id, dashboardfavoriteuser__user_id=request.user.id
+            )
+        elif filter_by == "excludeFavorites":
+            dashboards = Dashboard.objects.exclude(
+                organization_id=organization.id, dashboardfavoriteuser__user_id=request.user.id
+            )
+        elif filter_by == "owned":
+            dashboards = Dashboard.objects.filter(
+                created_by_id=request.user.id, organization_id=organization.id
+            )
+        elif filter_by == "shared":
+            dashboards = Dashboard.objects.filter(organization_id=organization.id).exclude(
+                created_by_id=request.user.id
+            )
         else:
             dashboards = Dashboard.objects.filter(organization_id=organization.id)
 
@@ -148,43 +153,31 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             order_by = ["last_visited" if desc else "-last_visited"]
 
         elif sort_by == "mydashboards":
-            if features.has(
-                "organizations:dashboards-table-view", organization, actor=request.user
-            ):
-                user_name_dict = {
-                    user.id: user.name
-                    for user in user_service.get_many_by_id(
-                        ids=list(dashboards.values_list("created_by_id", flat=True))
-                    )
-                }
-                dashboards = dashboards.annotate(
-                    user_name=Case(
-                        *[
-                            When(created_by_id=user_id, then=Value(user_name))
-                            for user_id, user_name in user_name_dict.items()
-                        ],
-                        default=Value(""),
-                        output_field=CharField(),
-                    )
+            user_name_dict = {
+                user.id: user.name
+                for user in user_service.get_many_by_id(
+                    ids=list(dashboards.values_list("created_by_id", flat=True))
                 )
-                order_by = [
-                    Case(
-                        When(created_by_id=request.user.id, then=-1),
-                        default=1,
-                        output_field=IntegerField(),
-                    ),
-                    "-user_name" if desc else "user_name",
-                    "-date_added",
-                ]
-            else:
-                order_by = [
-                    Case(
-                        When(created_by_id=request.user.id, then=-1),
-                        default="created_by_id",
-                        output_field=IntegerField(),
-                    ),
-                    "-date_added",
-                ]
+            }
+            dashboards = dashboards.annotate(
+                user_name=Case(
+                    *[
+                        When(created_by_id=user_id, then=Value(user_name))
+                        for user_id, user_name in user_name_dict.items()
+                    ],
+                    default=Value(""),
+                    output_field=CharField(),
+                )
+            )
+            order_by = [
+                Case(
+                    When(created_by_id=request.user.id, then=-1),
+                    default=1,
+                    output_field=IntegerField(),
+                ),
+                "-user_name" if desc else "user_name",
+                "-date_added",
+            ]
 
         elif sort_by == "myDashboardsAndRecentlyViewed":
             order_by = [
@@ -195,23 +188,20 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         else:
             order_by = ["title"]
 
-        if features.has("organizations:dashboards-favourite", organization, actor=request.user):
-            pin_by = request.query_params.get("pin")
-            if pin_by == "favorites":
-                favorited_by_subquery = DashboardFavoriteUser.objects.filter(
-                    dashboard=OuterRef("pk"), user_id=request.user.id
-                )
+        pin_by = request.query_params.get("pin")
+        if pin_by == "favorites":
+            favorited_by_subquery = DashboardFavoriteUser.objects.filter(
+                dashboard=OuterRef("pk"), user_id=request.user.id
+            )
 
-                order_by_favorites = [
-                    Case(
-                        When(Exists(favorited_by_subquery), then=-1),
-                        default=1,
-                        output_field=IntegerField(),
-                    )
-                ]
-                dashboards = dashboards.order_by(*order_by_favorites, *order_by)
-            else:
-                dashboards = dashboards.order_by(*order_by)
+            order_by_favorites = [
+                Case(
+                    When(Exists(favorited_by_subquery), then=-1),
+                    default=1,
+                    output_field=IntegerField(),
+                )
+            ]
+            dashboards = dashboards.order_by(*order_by_favorites, *order_by)
         else:
             dashboards = dashboards.order_by(*order_by)
 
@@ -236,9 +226,13 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             return serialized
 
         render_pre_built_dashboard = True
-        if features.has("organizations:dashboards-favourite", organization, actor=request.user):
-            if filter_by and filter_by == "onlyFavorites" or pin_by and pin_by == "favorites":
-                render_pre_built_dashboard = False
+        if (
+            filter_by
+            and filter_by in {"onlyFavorites", "owned"}
+            or pin_by
+            and pin_by == "favorites"
+        ):
+            render_pre_built_dashboard = False
 
         return self.paginate(
             request=request,

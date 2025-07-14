@@ -23,7 +23,7 @@ def build_mock_message(data, topic=None):
     return message
 
 
-@override_options({"standalone-spans.process-segments-consumer.enable": True})
+@override_options({"spans.process-segments.consumer.enable": True})
 @mock.patch(
     "sentry.spans.consumers.process_segments.factory.process_segment", side_effect=lambda x: x
 )

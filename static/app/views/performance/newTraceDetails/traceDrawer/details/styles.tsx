@@ -6,6 +6,7 @@ import type {LocationDescriptor} from 'history';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   DropdownMenu,
@@ -24,12 +25,12 @@ import {
   ValueSection,
 } from 'sentry/components/keyValueData';
 import {type LazyRenderProps} from 'sentry/components/lazyRender';
-import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {StructuredData} from 'sentry/components/structuredEventData';
 import {
   IconCircleFill,
   IconEllipsis,
@@ -44,17 +45,12 @@ import type {Event, EventTransaction} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import type {Color, ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {
-  SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS,
-  SENTRY_SEARCHABLE_SPAN_STRING_TAGS,
-} from 'sentry/views/explore/constants';
 import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
 import {getIsAiNode} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
@@ -66,6 +62,7 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/traceProfilingLink';
 import {
   isEAPSpanNode,
+  isEAPTransactionNode,
   isSpanNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
@@ -78,12 +75,11 @@ import {
   useTraceState,
   useTraceStateDispatch,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
+import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 
-import {
-  getSearchInExploreTarget,
-  TraceDrawerActionKind,
-  TraceDrawerActionValueKind,
-} from './utils';
+import type {KeyValueActionParams, TraceDrawerActionKind} from './utils';
+import {getTraceKeyValueActions, TraceDrawerActionValueKind} from './utils';
 
 const BodyContainer = styled('div')`
   display: flex;
@@ -98,6 +94,7 @@ const BodyContainer = styled('div')`
 `;
 
 const DetailContainer = styled('div')`
+  ${traceGridCssVariables}
   height: 100%;
   overflow: hidden;
   padding: ${space(1)} ${space(2)};
@@ -128,7 +125,7 @@ const LegacyTitleText = styled('div')`
 `;
 
 const TitleText = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: bold;
 `;
 
@@ -164,7 +161,7 @@ const SubTitleWrapper = styled(FlexBox)`
 `;
 
 const StyledSubTitleText = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
 `;
 
@@ -192,12 +189,12 @@ function TitleOp({text}: {text: string}) {
 }
 
 const Type = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const TitleOpText = styled('div')`
   font-size: 15px;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   ${p => p.theme.overflowEllipsis}
 `;
 
@@ -418,6 +415,7 @@ type HighlightProps = {
   node: TraceTreeNode<TraceTree.NodeValue>;
   project: Project | undefined;
   transaction: EventTransaction | undefined;
+  hideNodeActions?: boolean;
   highlightedAttributes?: Array<{name: string; value: React.ReactNode}>;
 };
 
@@ -429,7 +427,9 @@ function Highlights({
   headerContent,
   bodyContent,
   highlightedAttributes,
+  hideNodeActions,
 }: HighlightProps) {
+  const location = useLocation();
   const dispatch = useTraceStateDispatch();
   const organization = useOrganization();
 
@@ -496,7 +496,27 @@ function Highlights({
               ))}
             </HighlightedAttributesWrapper>
           ) : null}
-          {isAiNode && hasAgentInsightsFeature(organization) ? null : (
+          {isAiNode && hasAgentInsightsFeature(organization) ? (
+            hideNodeActions ? null : (
+              <OpenInAIFocusButton
+                size="xs"
+                onClick={() => {
+                  trackAnalytics('agent-monitoring.view-ai-trace-click', {
+                    organization,
+                  });
+                }}
+                to={{
+                  ...location,
+                  query: {
+                    ...location.query,
+                    tab: TraceLayoutTabKeys.AI_SPANS,
+                  },
+                }}
+              >
+                {t('Open in AI View')}
+              </OpenInAIFocusButton>
+            )
+          ) : (
             <Fragment>
               <StyledPanel>
                 <StyledPanelHeader>{headerContent}</StyledPanelHeader>
@@ -658,7 +678,7 @@ const HiglightsDurationComparison = styled('div')<
   color: ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].normal]};
   background-color: ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].light]};
   border: solid 1px ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].light]};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   padding: ${space(0.25)} ${space(1)};
   display: inline-block;
   height: 21px;
@@ -676,7 +696,7 @@ const HighlightDuration = styled('div')`
 
 const HighlightOp = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: normal;
 `;
 
@@ -685,7 +705,7 @@ const HighlightedAttributesWrapper = styled('div')`
   grid-template-columns: max-content 1fr;
   column-gap: ${space(1.5)};
   row-gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   &:not(:last-child) {
     margin-bottom: ${space(1.5)};
   }
@@ -693,6 +713,10 @@ const HighlightedAttributesWrapper = styled('div')`
 
 const HighlightedAttributeName = styled('div')`
   color: ${p => p.theme.subText};
+`;
+
+const OpenInAIFocusButton = styled(LinkButton)`
+  width: max-content;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`
@@ -778,7 +802,7 @@ const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
 };
 
 const DurationContainer = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-right: ${space(1)};
 `;
 
@@ -847,117 +871,26 @@ function DropdownMenuWithPortal(props: DropdownMenuProps) {
   );
 }
 
-type KeyValueActionProps = {
-  rowKey: string;
-  rowValue: React.ReactNode;
-  kind?: TraceDrawerActionValueKind;
-  projectIds?: string | string[];
-};
-
 function KeyValueAction({
   rowKey,
   rowValue,
   projectIds,
   kind = TraceDrawerActionValueKind.SENTRY_TAG,
-}: KeyValueActionProps) {
+}: Pick<KeyValueActionParams, 'rowKey' | 'rowValue' | 'kind' | 'projectIds'>) {
   const location = useLocation();
   const organization = useOrganization();
-  const hasExploreEnabled = organization.features.includes('visibility-explore-view');
   const [isVisible, setIsVisible] = useState(false);
+  const dropdownOptions = getTraceKeyValueActions({
+    rowKey,
+    rowValue,
+    kind,
+    projectIds,
+    location,
+    organization,
+  });
 
-  if (
-    !hasExploreEnabled ||
-    !defined(rowValue) ||
-    !defined(rowKey) ||
-    !['string', 'number'].includes(typeof rowValue)
-  ) {
+  if (dropdownOptions.length === 0 || !rowValue || !rowKey) {
     return null;
-  }
-
-  // We assume that tags, measurements and additional data (span.data) are dynamic lists of searchable keys in explore.
-  // Any other key must exist in the static list of sentry tags to be deemed searchable.
-  if (
-    kind === TraceDrawerActionValueKind.SENTRY_TAG &&
-    !(
-      SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS.includes(rowKey) ||
-      SENTRY_SEARCHABLE_SPAN_STRING_TAGS.includes(rowKey)
-    )
-  ) {
-    return null;
-  }
-
-  const dropdownOptions = [
-    {
-      key: 'include',
-      label: t('Find more samples with this value'),
-      to: getSearchInExploreTarget(
-        organization,
-        location,
-        projectIds,
-        rowKey,
-        // eslint-disable-next-line @typescript-eslint/no-base-to-string
-        rowValue.toString(),
-        TraceDrawerActionKind.INCLUDE
-      ),
-    },
-    {
-      key: 'exclude',
-      label: t('Find samples excluding this value'),
-      to: getSearchInExploreTarget(
-        organization,
-        location,
-        projectIds,
-        rowKey,
-        // eslint-disable-next-line @typescript-eslint/no-base-to-string
-        rowValue.toLocaleString(),
-        TraceDrawerActionKind.EXCLUDE
-      ),
-    },
-  ];
-
-  const valueType = getFieldDefinition(rowKey, 'span')?.valueType;
-  const isNumeric =
-    typeof rowValue === 'number' ||
-    (valueType &&
-      [
-        FieldValueType.DURATION,
-        FieldValueType.NUMBER,
-        FieldValueType.INTEGER,
-        FieldValueType.PERCENTAGE,
-        FieldValueType.DATE,
-        FieldValueType.RATE,
-        FieldValueType.PERCENT_CHANGE,
-      ].includes(valueType));
-
-  if (isNumeric) {
-    dropdownOptions.push(
-      {
-        key: 'includeGreaterThan',
-        label: t('Find samples with values greater than'),
-        to: getSearchInExploreTarget(
-          organization,
-          location,
-          projectIds,
-          rowKey,
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string
-          rowValue.toString(),
-          TraceDrawerActionKind.GREATER_THAN
-        ),
-      },
-      {
-        key: 'includeLessThan',
-        label: t('Find samples with values less than'),
-        to: getSearchInExploreTarget(
-          organization,
-          location,
-          projectIds,
-          rowKey,
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string
-          rowValue.toString(),
-          TraceDrawerActionKind.LESS_THAN
-        ),
-      }
-    );
   }
 
   return (
@@ -1081,8 +1014,14 @@ function NodeActions(props: {
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
 
+  const transactionId = isTransactionNode(props.node)
+    ? props.node.value.event_id
+    : isEAPTransactionNode(props.node)
+      ? props.node.value.transaction_id
+      : '';
+
   const {data: transaction} = useTransaction({
-    event_id: props.node.value.event_id,
+    event_id: transactionId,
     project_slug: props.node.value.project_slug,
     organization,
   });
@@ -1132,11 +1071,11 @@ function NodeActions(props: {
           icon={<IconFocus />}
         />
       </Tooltip>
-      {isTransactionNode(props.node) ? (
+      {isTransactionNode(props.node) || isEAPTransactionNode(props.node) ? (
         <Tooltip title={t('JSON')} skipWrapper>
           <ActionLinkButton
             onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
-            href={`/api/0/projects/${props.organization.slug}/${props.node.value.project_slug}/events/${props.node.value.event_id}/json/`}
+            href={`/api/0/projects/${props.organization.slug}/${props.node.value.project_slug}/events/${transactionId}/json/`}
             size="zero"
             aria-label={t('JSON')}
             icon={<IconJson />}
@@ -1332,14 +1271,73 @@ const CardValueText = styled('span')`
   overflow-wrap: anywhere;
 `;
 
-const MultilineText = styled('div')`
+const MAX_TEXT_LENGTH = 300;
+const MAX_NEWLINES = 5;
+
+function MultilineText({children}: {children: string}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const newLineMatches = Array.from(children.matchAll(/\n/g));
+  const maxNewlinePosition = newLineMatches.at(MAX_NEWLINES - 1)?.index ?? Infinity;
+
+  const truncatePosition = Math.min(maxNewlinePosition, MAX_TEXT_LENGTH);
+  const needsTruncation = truncatePosition < children.length;
+
+  return (
+    <MultilineTextWrapper>
+      {isExpanded || !needsTruncation ? (
+        children
+      ) : (
+        <Fragment>{children.slice(0, truncatePosition) + '...'}</Fragment>
+      )}
+      {needsTruncation ? (
+        <Flex style={{justifyContent: 'center', paddingTop: space(1)}}>
+          <Button size="xs" onClick={() => setIsExpanded(!isExpanded)}>
+            {isExpanded ? t('Show less') : t('Show all')}
+          </Button>
+        </Flex>
+      ) : null}
+    </MultilineTextWrapper>
+  );
+}
+
+const MultilineTextWrapper = styled('div')`
   white-space: pre-wrap;
   background-color: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1)};
+  word-break: break-word;
   &:not(:last-child) {
     margin-bottom: ${space(1.5)};
   }
+`;
+
+function tryParseJson(value: string) {
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    return value;
+  }
+}
+
+function MultilineJSON({
+  value,
+  maxDefaultDepth = 2,
+}: {
+  value: any;
+  maxDefaultDepth?: number;
+}) {
+  const json = tryParseJson(value);
+  return (
+    <MultilineTextWrapperMonospace>
+      <StructuredData value={json} maxDefaultDepth={maxDefaultDepth} withAnnotatedText />
+    </MultilineTextWrapperMonospace>
+  );
+}
+
+const MultilineTextWrapperMonospace = styled(MultilineTextWrapper)`
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.codeFontSize};
 `;
 
 const MultilineTextLabel = styled('div')`
@@ -1347,7 +1345,22 @@ const MultilineTextLabel = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const TraceDrawerComponents = {
+function SectionTitleWithQuestionTooltip({
+  title,
+  tooltipText,
+}: {
+  title: string;
+  tooltipText: string;
+}) {
+  return (
+    <Flex style={{gap: space(0.5)}}>
+      <div>{title}</div>
+      <QuestionTooltip title={tooltipText} size="sm" />
+    </Flex>
+  );
+}
+
+export const TraceDrawerComponents = {
   DetailContainer,
   BodyContainer,
   FlexBox,
@@ -1361,6 +1374,7 @@ const TraceDrawerComponents = {
   NodeActions,
   KeyValueAction,
   Table,
+  SectionTitleWithQuestionTooltip,
   IconTitleWrapper,
   IconBorder,
   TitleText,
@@ -1379,7 +1393,6 @@ const TraceDrawerComponents = {
   SectionCardGroup,
   DropdownMenuWithPortal,
   MultilineText,
+  MultilineJSON,
   MultilineTextLabel,
 };
-
-export {TraceDrawerComponents};

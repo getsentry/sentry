@@ -1,20 +1,23 @@
-import {css, type Theme} from '@emotion/react';
+import {Fragment} from 'react';
+import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabProps} from '@react-aria/tabs';
 import {useTab} from '@react-aria/tabs';
 import {useObjectRef} from '@react-aria/utils';
 import type {TabListState} from '@react-stately/tabs';
-import type {
-  DOMAttributes,
-  FocusableElement,
-  Node,
-  Orientation,
-} from '@react-types/shared';
+import type {Node, Orientation} from '@react-types/shared';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import Link from 'sentry/components/links/link';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Link} from 'sentry/components/core/link';
 import {space} from 'sentry/styles/space';
+import {isChonkTheme, withChonk} from 'sentry/utils/theme/withChonk';
 
+import type {BaseTabProps} from './tab.chonk';
+import {
+  chonkInnerWrapStyles,
+  ChonkStyledTabSelectionIndicator,
+  ChonkStyledTabWrap,
+} from './tab.chonk';
 import {tabsShouldForwardProp} from './utils';
 
 interface TabProps extends AriaTabProps {
@@ -26,6 +29,7 @@ interface TabProps extends AriaTabProps {
    * menu.
    */
   overflowing: boolean;
+  size: BaseTabProps['size'];
   state: TabListState<any>;
   as?: React.ElementType;
   ref?: React.Ref<HTMLLIElement>;
@@ -44,38 +48,27 @@ function handleLinkClick(e: React.PointerEvent<HTMLAnchorElement>) {
   }
 }
 
-export interface BaseTabProps {
-  children: React.ReactNode;
-  disabled: boolean;
-  hidden: boolean;
-  isSelected: boolean;
-  orientation: Orientation;
-  overflowing: boolean;
-  tabProps: DOMAttributes<FocusableElement>;
-  as?: React.ElementType;
-  ref?: React.Ref<HTMLLIElement>;
-  to?: string;
-  variant?: 'flat' | 'floating';
-}
-
 function InnerWrap({
   children,
   to,
   disabled,
-  orientation,
-}: Pick<BaseTabProps, 'children' | 'to' | 'orientation' | 'disabled'>) {
+  ...props
+}: Pick<BaseTabProps, 'children' | 'to' | 'orientation' | 'disabled' | 'size'> & {
+  selected: boolean;
+  variant: NonNullable<BaseTabProps['variant']>;
+}) {
   return to && !disabled ? (
     <TabLink
       to={to}
       onMouseDown={handleLinkClick}
       onPointerDown={handleLinkClick}
-      orientation={orientation}
       tabIndex={-1}
+      {...props}
     >
       {children}
     </TabLink>
   ) : (
-    <TabInnerWrap orientation={orientation}>{children}</TabInnerWrap>
+    <TabInnerWrap {...props}>{children}</TabInnerWrap>
   );
 }
 
@@ -89,10 +82,12 @@ function BaseTab({
   hidden,
   disabled,
   isSelected,
+  size,
   variant = 'flat',
   as = 'li',
 }: BaseTabProps) {
-  if (variant === 'floating') {
+  const theme = useTheme();
+  if (variant === 'floating' && !theme.isChonk) {
     return (
       <FloatingTabWrap
         {...tabProps}
@@ -117,14 +112,31 @@ function BaseTab({
       ref={ref}
       as={as}
     >
-      <InnerWrap to={to} orientation={orientation} disabled={disabled}>
-        <StyledInteractionStateLayer
-          orientation={orientation}
-          higherOpacity={isSelected}
-        />
-        <FocusLayer orientation={orientation} />
+      <InnerWrap
+        to={to}
+        orientation={orientation}
+        disabled={disabled}
+        variant={variant}
+        selected={isSelected}
+        size={size}
+      >
+        {!theme.isChonk && (
+          <Fragment>
+            <StyledInteractionStateLayer
+              orientation={orientation}
+              higherOpacity={isSelected}
+            />
+            <FocusLayer
+              orientation={orientation}
+              variant={variant}
+              selected={isSelected}
+            />
+          </Fragment>
+        )}
         {children}
-        <TabSelectionIndicator orientation={orientation} selected={isSelected} />
+        {variant === 'flat' ? (
+          <TabSelectionIndicator orientation={orientation} selected={isSelected} />
+        ) : null}
       </InnerWrap>
     </TabWrap>
   );
@@ -142,6 +154,7 @@ export function Tab({
   orientation,
   overflowing,
   variant,
+  size,
   as = 'li',
 }: TabProps) {
   const objectRef = useObjectRef(ref);
@@ -166,6 +179,7 @@ export function Tab({
       ref={objectRef}
       variant={variant}
       as={as}
+      size={size}
     >
       {rendered}
     </BaseTab>
@@ -177,7 +191,7 @@ const FloatingTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})
   &[aria-selected='true'] {
     ${p => css`
       color: ${p.theme.purple400};
-      font-weight: ${p.theme.fontWeightBold};
+      font-weight: ${p.theme.fontWeight.bold};
       background-color: ${p.theme.purple100};
     `}
   }
@@ -200,35 +214,39 @@ const FloatingTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})
     `}
 `;
 
-const TabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
-  overflowing: boolean;
-  selected: boolean;
-}>`
-  color: ${p => (p.selected ? p.theme.activeText : p.theme.textColor)};
-  white-space: nowrap;
-  cursor: pointer;
+const TabWrap = withChonk(
+  styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
+    overflowing: boolean;
+    selected: boolean;
+  }>`
+    color: ${p => (p.selected ? p.theme.activeText : p.theme.textColor)};
+    white-space: nowrap;
+    cursor: pointer;
 
-  &:hover {
-    color: ${p => (p.selected ? p.theme.activeText : p.theme.headingColor)};
-  }
+    &:hover {
+      color: ${p => (p.selected ? p.theme.activeText : p.theme.headingColor)};
+    }
 
-  &:focus {
-    outline: none;
-  }
+    &:focus {
+      outline: none;
+    }
 
-  &[aria-disabled],
-  &[aria-disabled]:hover {
-    color: ${p => p.theme.subText};
-    cursor: default;
-  }
-
-  ${p =>
-    p.overflowing &&
-    css`
-      opacity: 0;
+    &[aria-disabled],
+    &[aria-disabled]:hover {
+      color: ${p => p.theme.subText};
       pointer-events: none;
-    `}
-`;
+      cursor: default;
+    }
+
+    ${p =>
+      p.overflowing &&
+      css`
+        opacity: 0;
+        pointer-events: none;
+      `}
+  `,
+  ChonkStyledTabWrap
+);
 
 const innerWrapStyles = ({
   theme,
@@ -258,8 +276,22 @@ const innerWrapStyles = ({
       `};
 `;
 
-const TabLink = styled(Link)<{orientation: Orientation}>`
-  ${innerWrapStyles}
+const TabLink = styled(Link)<{
+  orientation: Orientation;
+  selected: boolean;
+  size: BaseTabProps['size'];
+  variant: BaseTabProps['variant'];
+}>`
+  ${p =>
+    isChonkTheme(p.theme)
+      ? chonkInnerWrapStyles({
+          variant: p.variant,
+          selected: p.selected,
+          orientation: p.orientation,
+          theme: p.theme,
+          size: p.size,
+        })
+      : innerWrapStyles(p)}
 
   &,
   &:hover {
@@ -267,8 +299,22 @@ const TabLink = styled(Link)<{orientation: Orientation}>`
   }
 `;
 
-const TabInnerWrap = styled('span')<{orientation: Orientation}>`
-  ${innerWrapStyles}
+const TabInnerWrap = styled('span')<{
+  orientation: Orientation;
+  selected: boolean;
+  size: BaseTabProps['size'];
+  variant: BaseTabProps['variant'];
+}>`
+  ${p =>
+    isChonkTheme(p.theme)
+      ? chonkInnerWrapStyles({
+          variant: p.variant,
+          selected: p.selected,
+          orientation: p.orientation,
+          size: p.size,
+          theme: p.theme,
+        })
+      : innerWrapStyles(p)}
 `;
 
 const StyledInteractionStateLayer = styled(InteractionStateLayer)<{
@@ -295,7 +341,11 @@ const VariantStyledInteractionStateLayer = styled(InteractionStateLayer)`
   bottom: 0;
 `;
 
-const FocusLayer = styled('div')<{orientation: Orientation}>`
+const FocusLayer = styled('div')<{
+  orientation: Orientation;
+  selected: boolean;
+  variant: BaseTabProps['variant'];
+}>`
   position: absolute;
   left: 0;
   right: 0;
@@ -333,36 +383,39 @@ const VariantFocusLayer = styled('div')`
   }
 `;
 
-const TabSelectionIndicator = styled('div')<{
-  orientation: Orientation;
-  selected: boolean;
-}>`
-  position: absolute;
-  border-radius: 2px;
-  pointer-events: none;
-  background: ${p => (p.selected ? p.theme.active : 'transparent')};
-  transition: background 0.1s ease-out;
+const TabSelectionIndicator = withChonk(
+  styled('div')<{
+    orientation: Orientation;
+    selected: boolean;
+  }>`
+    position: absolute;
+    border-radius: 2px;
+    pointer-events: none;
+    background: ${p => (p.selected ? p.theme.active : 'transparent')};
+    transition: background 0.1s ease-out;
 
-  li[aria-disabled='true'] & {
-    background: ${p => (p.selected ? p.theme.subText : 'transparent')};
-  }
+    li[aria-disabled='true'] & {
+      background: ${p => (p.selected ? p.theme.subText : 'transparent')};
+    }
 
-  ${p =>
-    p.orientation === 'horizontal'
-      ? css`
-          width: calc(100% - ${space(2)});
-          height: 3px;
+    ${p =>
+      p.orientation === 'horizontal'
+        ? css`
+            width: calc(100% - ${space(2)});
+            height: 3px;
 
-          bottom: 0;
-          left: 50%;
-          transform: translateX(-50%);
-        `
-      : css`
-          width: 3px;
-          height: 50%;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+          `
+        : css`
+            width: 3px;
+            height: 50%;
 
-          left: 0;
-          top: 50%;
-          transform: translateY(-50%);
-        `};
-`;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+          `};
+  `,
+  ChonkStyledTabSelectionIndicator
+);

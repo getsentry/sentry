@@ -418,7 +418,9 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
             occurrence = self.build_occurrence(type=TestGroupType.type_id)
             with mock.patch("sentry.issues.ingest.metrics") as metrics:
                 assert save_issue_from_occurrence(occurrence, event, None) is None
-                metrics.incr.assert_called_once_with("issues.issue.dropped.noise_reduction")
+                metrics.incr.assert_called_once_with(
+                    "issues.issue.dropped.noise_reduction", tags={"group_type": "test"}
+                )
 
             new_event = self.store_event(data={}, project_id=self.project.id)
             new_occurrence = self.build_occurrence(type=TestGroupType.type_id)
@@ -534,14 +536,15 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
 
 class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
-        occurrence = self.build_occurrence(culprit="abcde" * 100)
+        culprit = "abcde" * 100
+        occurrence = self.build_occurrence(culprit=culprit)
         event = self.store_event(data={}, project_id=self.project.id)
         assert _create_issue_kwargs(occurrence, event, None) == {
             "platform": event.platform,
             "message": event.search_message,
             "level": LOG_LEVELS_MAP.get(occurrence.level),
             # Should truncate the culprit to max allowable length
-            "culprit": f"{occurrence.culprit[:MAX_CULPRIT_LENGTH-3]}...",
+            "culprit": f"{culprit[:MAX_CULPRIT_LENGTH-3]}...",
             "last_seen": event.datetime,
             "first_seen": event.datetime,
             "active_at": event.datetime,

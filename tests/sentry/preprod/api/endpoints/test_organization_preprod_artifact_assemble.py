@@ -148,25 +148,22 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             "sentry-api-0-assemble-preprod-artifact-files",
             args=[self.organization.slug, self.project.slug],
         )
-        # Enable the feature flag for all tests in this class
+
         self.feature_context = Feature("organizations:preprod-artifact-assemble")
         self.feature_context.__enter__()
 
     def tearDown(self):
-        # Clean up the feature flag
         self.feature_context.__exit__(None, None, None)
         super().tearDown()
 
-    def test_feature_flag_disabled_returns_404(self):
+    def test_feature_flag_disabled_returns_403(self):
         """Test that endpoint returns 404 when feature flag is disabled."""
-        # Exit the current feature context to disable the flag
         self.feature_context.__exit__(None, None, None)
 
         try:
             content = b"test content"
             total_checksum = sha1(content).hexdigest()
 
-            # Should get 404 when feature flag is disabled
             response = self.client.post(
                 self.url,
                 data={
@@ -175,21 +172,18 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
                 },
                 HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
             )
-            assert response.status_code == 404
+            assert response.status_code == 403
         finally:
-            # Re-enable the feature flag for any subsequent tests
             self.feature_context = Feature("organizations:preprod-artifact-assemble")
             self.feature_context.__enter__()
 
     def test_assemble_json_schema_integration(self):
         """Integration test for schema validation through the endpoint."""
-        # Test invalid JSON
         response = self.client.post(
             self.url, data={"lol": "test"}, HTTP_AUTHORIZATION=f"Bearer {self.token.token}"
         )
         assert response.status_code == 400
 
-        # Test valid minimal JSON
         checksum = sha1(b"1").hexdigest()
         response = self.client.post(
             self.url,
@@ -305,7 +299,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
     def test_assemble_json_schema_optional_fields(self):
         checksum = sha1(b"test content").hexdigest()
 
-        # Test with all optional fields
         response = self.client.post(
             self.url,
             data={
@@ -390,7 +383,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         content = b"test content for missing chunks"
         total_checksum = sha1(content).hexdigest()
 
-        # Try to upload with all the checksums missing
         response = self.client.post(
             self.url,
             data={
@@ -404,11 +396,9 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.data["state"] == ChunkFileState.NOT_FOUND
         assert set(response.data["missingChunks"]) == {total_checksum}
 
-        # Store the blobs into the database
         blob = FileBlob.from_file(ContentFile(content))
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
 
-        # Make the request again after the file has been uploaded
         response = self.client.post(
             self.url,
             data={
@@ -440,7 +430,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.data["state"] == ChunkFileState.CREATED
 
     def test_assemble_with_pending_deletion_project(self):
-        # Create a project with pending deletion status
         self.project.status = ObjectStatus.PENDING_DELETION
         self.project.save()
 
@@ -458,7 +447,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
 
-        # Should return 404 since the project is pending deletion
         assert response.status_code == 404
 
     def test_assemble_org_auth_token(self):
@@ -469,7 +457,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         blob = FileBlob.from_file(ContentFile(content))
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
 
-        # right org, wrong permission level
         with assume_test_silo_mode(SiloMode.CONTROL):
             bad_token_str = generate_token(self.organization.slug, "")
             OrgAuthToken.objects.create(
@@ -490,7 +477,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         )
         assert response.status_code == 403
 
-        # wrong org, right permission level
         with assume_test_silo_mode(SiloMode.CONTROL):
             bad_org_token_str = generate_token(self.organization.slug, "")
             OrgAuthToken.objects.create(
@@ -511,7 +497,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         )
         assert response.status_code == 403
 
-        # right org, right permission level
         with assume_test_silo_mode(SiloMode.CONTROL):
             good_token_str = generate_token(self.organization.slug, "")
             OrgAuthToken.objects.create(
@@ -534,14 +519,12 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             )
         assert response.status_code == 200
 
-        # Make sure org token usage was updated
         with assume_test_silo_mode(SiloMode.CONTROL):
             org_token = OrgAuthToken.objects.get(token_hashed=hash_token(good_token_str))
         assert org_token.date_last_used is not None
         assert org_token.project_last_used_id == self.project.id
 
     def test_poll_request(self):
-        # Test poll request (no chunks provided)
         checksum = sha1(b"test poll").hexdigest()
 
         response = self.client.post(
@@ -560,7 +543,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
     def test_check_existing_assembly_status(self):
         checksum = sha1(b"test existing status").hexdigest()
 
-        # Set a status manually
         set_assemble_status(
             AssembleTask.PREPROD_ARTIFACT, self.project.id, checksum, ChunkFileState.OK
         )
@@ -578,8 +560,40 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.data["state"] == ChunkFileState.OK
         assert response.data["missingChunks"] == []
 
+    def test_integration_task_sets_status_api_can_read_it(self):
+        """
+        Integration test that verifies the task and API endpoint use consistent scope.
+
+        This test reproduces the real workflow:
+        1. Task assembles artifact and sets status with project_id scope
+        2. API endpoint polls for status using project_id scope
+
+        Both should use consistent project-level scope since preprod artifacts are project-specific.
+        """
+        content = b"test integration content"
+        total_checksum = sha1(content).hexdigest()
+
+        blob = FileBlob.from_file(ContentFile(content))
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
+
+        set_assemble_status(
+            AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum, ChunkFileState.OK
+        )
+
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [],
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+
+        assert response.status_code == 200
+        assert response.data["state"] == ChunkFileState.OK
+        assert response.data["missingChunks"] == []
+
     def test_permission_required(self):
-        # Test without any authorization
         content = b"test permission content"
         total_checksum = sha1(content).hexdigest()
 

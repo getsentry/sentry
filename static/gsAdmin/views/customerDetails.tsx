@@ -1,5 +1,6 @@
 import {useEffect} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
+import some from 'lodash/some';
 import scrollToElement from 'scroll-to-element';
 
 import {
@@ -12,6 +13,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ConfigStore from 'sentry/stores/configStore';
 import type {DataCategory} from 'sentry/types/core';
+import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
@@ -49,7 +51,6 @@ import CustomerPlatforms from 'admin/components/customers/customerPlatforms';
 import CustomerPolicies from 'admin/components/customers/customerPolicies';
 import CustomerProjects from 'admin/components/customers/customerProjects';
 import {CustomerStats} from 'admin/components/customers/customerStats';
-import type {DataType} from 'admin/components/customers/customerStatsFilters';
 import {CustomerStatsFilters} from 'admin/components/customers/customerStatsFilters';
 import OrganizationStatus from 'admin/components/customers/organizationStatus';
 import PendingChanges from 'admin/components/customers/pendingChanges';
@@ -107,19 +108,19 @@ export default function CustomerDetails() {
     refetch: refetchSubscription,
     isError: isErrorSubscription,
     isPending: isPendingSubscription,
-  } = useApiQuery<Subscription>(SUBSCRIPTION_QUERY_KEY, {staleTime: 0});
+  } = useApiQuery<Subscription>(SUBSCRIPTION_QUERY_KEY, {staleTime: Infinity});
   const {
     data: organization,
     refetch: refetchOrganization,
     isError: isErrorOrganization,
     isPending: isPendingOrganization,
-  } = useApiQuery<Organization>(ORGANIZATION_QUERY_KEY, {staleTime: 0});
+  } = useApiQuery<Organization>(ORGANIZATION_QUERY_KEY, {staleTime: Infinity});
   const {
     data: billingConfig,
     refetch: refetchBillingConfig,
     isError: isErrorBillingConfig,
     isPending: isPendingBillingConfig,
-  } = useApiQuery<BillingConfig>(BILLING_CONFIG_QUERY_KEY, {staleTime: 0});
+  } = useApiQuery<BillingConfig>(BILLING_CONFIG_QUERY_KEY, {staleTime: Infinity});
 
   useEffect(() => {
     if (location.query.dataType) {
@@ -136,7 +137,8 @@ export default function CustomerDetails() {
     onMutate: () => addLoadingMessage('Saving changes\u2026'),
     onSuccess: (data, variables, _) => {
       addSuccessMessage(
-        `Customer account has been updated with ${JSON.stringify(variables)}.`
+        data.message ??
+          `Customer account has been updated with ${JSON.stringify(variables)}.`
       );
       setApiQueryData(queryClient, SUBSCRIPTION_QUERY_KEY, data);
     },
@@ -177,7 +179,8 @@ export default function CustomerDetails() {
     return null;
   }
 
-  const activeDataType = (location.query.dataType as DataType) ?? 'error';
+  const activeDataType =
+    (location.query.dataType as DataCategoryExact) ?? DataCategoryExact.ERROR;
 
   const userPermissions = ConfigStore.get('user')?.permissions;
 
@@ -233,7 +236,7 @@ export default function CustomerDetails() {
     );
   };
 
-  const handleStatsTypeChange = (dataType: DataType) => {
+  const handleStatsTypeChange = (dataType: DataCategoryExact) => {
     navigate({
       pathname: location.pathname,
       query: {...location.query, dataType},
@@ -752,7 +755,9 @@ export default function CustomerDetails() {
             key: 'addGiftBudgetAction',
             name: 'Gift to reserved budget',
             help: 'Select a reserved budget and gift it free dollars for the current billing period.',
-            visible: subscription.hasReservedBudgets,
+            visible:
+              (subscription.reservedBudgets?.length ?? 0) > 0 &&
+              some(subscription.reservedBudgets, budget => budget.reservedBudget > 0),
             skipConfirmModal: true,
             onAction: () => {
               addGiftBudgetAction({

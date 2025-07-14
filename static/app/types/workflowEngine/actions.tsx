@@ -1,13 +1,27 @@
+import type {IssueConfigField} from 'sentry/types/integrations';
+
 export interface Action {
-  config: {
-    target_type: ActionTarget;
-    target_display?: string;
-    target_identifier?: string;
-  };
-  data: Record<string, unknown>;
+  config: ActionConfig;
+  data: Record<string, any>;
   id: string;
   type: ActionType;
   integrationId?: string;
+}
+
+export interface TicketCreationAction extends Action {
+  [key: string]: any;
+  data: {
+    additional_fields?: Record<string, any>;
+    dynamic_form_fields?: IssueConfigField[];
+  };
+  integrationId: string;
+}
+
+export interface ActionConfig {
+  target_type: ActionTarget | null;
+  sentry_app_identifier?: SentryAppIdentifier;
+  target_display?: string;
+  target_identifier?: string;
 }
 
 export enum ActionTarget {
@@ -41,6 +55,11 @@ export enum ActionGroup {
   OTHER = 'other',
 }
 
+export enum SentryAppIdentifier {
+  SENTRY_APP_INSTALLATION_UUID = 'sentry_app_installation_uuid',
+  SENTRY_APP_ID = 'sentry_app_id',
+}
+
 export interface ActionHandler {
   configSchema: Record<string, any>;
   dataSchema: Record<string, any>;
@@ -50,6 +69,7 @@ export interface ActionHandler {
   sentryApp?: SentryAppContext;
   services?: PluginService[];
 }
+
 interface Integration {
   id: string;
   name: string;
@@ -62,9 +82,12 @@ interface Integration {
 interface SentryAppContext {
   id: string;
   installationId: string;
+  installationUuid: string;
   name: string;
   status: number;
   settings?: Record<string, any>;
+  // title represents the action being performed by the SentryApp
+  // e.g. "Create an issue"
   title?: string;
 }
 

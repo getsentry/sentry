@@ -263,7 +263,7 @@ describe('getFieldRenderer', function () {
 
     expect(screen.queryByRole('link')).toHaveAttribute(
       'href',
-      `/organizations/org-slug/releases/F2520C43515BD1F0E8A6BD46233324641A370BF6/`
+      '/mock-pathname/?rd=show&rdRelease=F2520C43515BD1F0E8A6BD46233324641A370BF6&rdSource=release-version-link'
     );
     expect(screen.getByText('F2520C43515B')).toBeInTheDocument();
   });
@@ -353,7 +353,7 @@ describe('getFieldRenderer', function () {
         renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
       );
 
-      expect(getWidths()).toEqual(['13.333%', '40.000%', '20.000%', '26.667%', '0.000%']);
+      expect(getWidths()).toEqual(['13.333%', '40%', '20%', '26.667%', '0%']);
     });
 
     it('renders operation breakdowns in sorted order when a sort field is provided', function () {
@@ -385,7 +385,7 @@ describe('getFieldRenderer', function () {
         }) as React.ReactElement<any, any>
       );
 
-      expect(getWidths()).toEqual(['40.000%', '13.333%', '20.000%', '26.667%', '0.000%']);
+      expect(getWidths()).toEqual(['40%', '13.333%', '20%', '26.667%', '0%']);
     });
   });
 });

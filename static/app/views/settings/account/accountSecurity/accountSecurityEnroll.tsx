@@ -32,6 +32,7 @@ import type {Authenticator} from 'sentry/types/auth';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import getPendingInvite from 'sentry/utils/getPendingInvite';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
@@ -200,6 +201,60 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
     return this.state.authenticator?.name ?? 'Authenticator';
   }
 
+  // Handler when we successfully add a 2fa device
+  async handleEnrollSuccess() {
+    // If we're pending approval of an invite, the user will have just joined
+    // the organization when completing 2fa enrollment. We should reload the
+    // organization context in that case to assign them to the org.
+    if (this.pendingInvitation) {
+      await fetchOrganizationByMember(
+        this.api,
+        this.pendingInvitation.memberId.toString(),
+        {
+          addOrg: true,
+          fetchOrgDetails: true,
+        }
+      );
+    }
+
+    this.props.router.push('/settings/account/security/');
+    openRecoveryOptions({authenticatorName: this.authenticatorName});
+
+    // The remainder of this function is included primarily to smooth out the relocation flow. The
+    // newly claimed user will have landed on `https://sentry.io/settings/account/security` to
+    // perform the 2FA registration. But now that they have in fact registered, we want to redirect
+    // them to the subdomain of the organization they are already a member of (ex:
+    // `https://my-2fa-org.sentry.io`), but did not have the ability to access due to their previous
+    // lack of 2FA enrollment.
+    let orgs = OrganizationsStore.getAll();
+    if (orgs.length === 0) {
+      // Try to load orgs post 2FA again.
+      orgs = await fetchOrganizations(this.api, {member: '1'});
+      OrganizationsStore.load(orgs);
+
+      // Still no orgs? Nowhere to redirect the user to, so just stay in place.
+      if (orgs.length === 0) {
+        return;
+      }
+    }
+
+    // If we are already in an org sub-domain, we don't need to do any redirection. If we are not
+    // (this is usually only the case for a newly claimed relocated user), we redirect to the org
+    // slug's subdomain now.
+    const isAlreadyInOrgSubDomain = orgs.some(org => {
+      return org.links.organizationUrl === new URL(window.location.href).origin;
+    });
+    if (!isAlreadyInOrgSubDomain) {
+      testableWindowLocation.assign(generateOrgSlugUrl(orgs[0]!.slug));
+    }
+  }
+
+  // Handler when we failed to add a 2fa device
+  handleEnrollError() {
+    this.setState({loading: false});
+    addErrorMessage(t('Error adding %s authenticator', this.authenticatorName));
+  }
+
   // This resets state so that user can re-enter their phone number again
   handleSmsReset = () => this.setState({hasSentCode: false}, this.remountComponent);
 
@@ -313,60 +368,6 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
       return;
     }
   };
-
-  // Handler when we successfully add a 2fa device
-  async handleEnrollSuccess() {
-    // If we're pending approval of an invite, the user will have just joined
-    // the organization when completing 2fa enrollment. We should reload the
-    // organization context in that case to assign them to the org.
-    if (this.pendingInvitation) {
-      await fetchOrganizationByMember(
-        this.api,
-        this.pendingInvitation.memberId.toString(),
-        {
-          addOrg: true,
-          fetchOrgDetails: true,
-        }
-      );
-    }
-
-    this.props.router.push('/settings/account/security/');
-    openRecoveryOptions({authenticatorName: this.authenticatorName});
-
-    // The remainder of this function is included primarily to smooth out the relocation flow. The
-    // newly claimed user will have landed on `https://sentry.io/settings/account/security` to
-    // perform the 2FA registration. But now that they have in fact registered, we want to redirect
-    // them to the subdomain of the organization they are already a member of (ex:
-    // `https://my-2fa-org.sentry.io`), but did not have the ability to access due to their previous
-    // lack of 2FA enrollment.
-    let orgs = OrganizationsStore.getAll();
-    if (orgs.length === 0) {
-      // Try to load orgs post 2FA again.
-      orgs = await fetchOrganizations(this.api, {member: '1'});
-      OrganizationsStore.load(orgs);
-
-      // Still no orgs? Nowhere to redirect the user to, so just stay in place.
-      if (orgs.length === 0) {
-        return;
-      }
-    }
-
-    // If we are already in an org sub-domain, we don't need to do any redirection. If we are not
-    // (this is usually only the case for a newly claimed relocated user), we redirect to the org
-    // slug's subdomain now.
-    const isAlreadyInOrgSubDomain = orgs.some(org => {
-      return org.links.organizationUrl === new URL(window.location.href).origin;
-    });
-    if (!isAlreadyInOrgSubDomain) {
-      window.location.assign(generateOrgSlugUrl(orgs[0]!.slug));
-    }
-  }
-
-  // Handler when we failed to add a 2fa device
-  handleEnrollError() {
-    this.setState({loading: false});
-    addErrorMessage(t('Error adding %s authenticator', this.authenticatorName));
-  }
 
   // Removes an authenticator
   handleRemove = async () => {

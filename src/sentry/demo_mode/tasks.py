@@ -1,4 +1,5 @@
-from datetime import timedelta
+import logging
+from datetime import datetime, timedelta
 
 import sentry_sdk
 from django.db import router
@@ -22,6 +23,8 @@ from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import demomode_tasks
 from sentry.utils.db import atomic_transaction
 
+logger = logging.getLogger(__name__)
+
 
 @instrumented_task(
     name="sentry.demo_mode.tasks.sync_debug_artifacts",
@@ -31,28 +34,29 @@ from sentry.utils.db import atomic_transaction
 def sync_debug_artifacts():
 
     if (
-        not options.get("sentry.demo_mode.sync_artifact_bundles.enable")
+        not options.get("sentry.demo_mode.sync_debug_artifacts.enable")
         or not is_demo_mode_enabled()
     ):
         return
 
-    source_org_id = options.get("sentry.demo_mode.sync_artifact_bundles.source_org_id")
+    source_org_id = options.get("sentry.demo_mode.sync_debug_artifacts.source_org_id")
     source_org = Organization.objects.get(id=source_org_id)
 
     target_org = get_demo_org()
 
-    lookback_days = options.get("sentry.demo_mode.sync_artifact_bundles.lookback_days")
+    lookback_days = 3
+    cutoff_date = timezone.now() - timedelta(days=lookback_days)
 
-    _sync_artifact_bundles(source_org, target_org, lookback_days)
-    _sync_project_debug_files(source_org, target_org, lookback_days)
-    _sync_proguard_artifact_releases(source_org, target_org, lookback_days)
+    _sync_artifact_bundles(source_org, target_org, cutoff_date)
+    _sync_project_debug_files(source_org, target_org, cutoff_date)
+    _sync_proguard_artifact_releases(source_org, target_org, cutoff_date)
 
 
-def _sync_artifact_bundles(source_org: Organization, target_org: Organization, lookback_days=1):
+def _sync_artifact_bundles(
+    source_org: Organization, target_org: Organization, cutoff_date: datetime
+):
     if not source_org or not target_org:
         return
-
-    cutoff_date = timezone.now() - timedelta(days=lookback_days)
 
     artifact_bundles = ArtifactBundle.objects.filter(
         Q(organization_id=source_org.id) | Q(organization_id=target_org.id),
@@ -70,23 +74,37 @@ def _sync_artifact_bundles(source_org: Organization, target_org: Organization, l
         _sync_artifact_bundle(source_artifact_bundle, target_org)
 
 
-def _sync_project_debug_files(source_org: Organization, target_org: Organization, lookback_days=1):
+def _sync_project_debug_files(
+    source_org: Organization, target_org: Organization, cutoff_date: datetime
+):
     if not source_org or not target_org:
         return
 
-    source_project_ids = Project.objects.filter(
-        organization_id=source_org.id,
-    ).values_list("id", flat=True)
+    with sentry_sdk.start_span(name="sync-project-debug-files-get-project-ids") as span:
+        source_project_ids = list(
+            Project.objects.filter(
+                organization_id=source_org.id,
+            ).values_list("id", flat=True)
+        )
 
-    target_project_ids = Project.objects.filter(
-        organization_id=target_org.id,
-    ).values_list("id", flat=True)
+        target_project_ids = list(
+            Project.objects.filter(
+                organization_id=target_org.id,
+            ).values_list("id", flat=True)
+        )
+        span.set_data("source_project_ids", source_project_ids)
+        span.set_data("target_project_ids", target_project_ids)
 
-    source_project_debug_files = ProjectDebugFile.objects.filter(
+    project_debug_files = ProjectDebugFile.objects.filter(
+        Q(project_id__in=source_project_ids) | Q(project_id__in=target_project_ids),
+        date_accessed__gte=cutoff_date,
+    )
+
+    source_project_debug_files = project_debug_files.filter(
         project_id__in=source_project_ids,
     )
 
-    target_project_debug_files = ProjectDebugFile.objects.filter(
+    target_project_debug_files = project_debug_files.filter(
         project_id__in=target_project_ids,
     )
 
@@ -95,16 +113,16 @@ def _sync_project_debug_files(source_org: Organization, target_org: Organization
     )
 
     for source_project_debug_file in different_project_debug_files:
-        _sync_project_debug_file(source_project_debug_file, target_org)
+        with sentry_sdk.start_span(name="sync-project-debug-files-sync-project-debug-file") as span:
+            span.set_data("source_project_debug_file_id", source_project_debug_file.id)
+            _sync_project_debug_file(source_project_debug_file, target_org)
 
 
 def _sync_proguard_artifact_releases(
-    source_org: Organization, target_org: Organization, lookback_days=1
+    source_org: Organization, target_org: Organization, cutoff_date: datetime
 ):
     if not source_org or not target_org:
         return
-
-    cutoff_date = timezone.now() - timedelta(days=lookback_days)
 
     proguard_artifact_releases = ProguardArtifactRelease.objects.filter(
         Q(organization_id=source_org.id) | Q(organization_id=target_org.id),
@@ -163,10 +181,13 @@ def _sync_project_artifact_bundle(
     source_artifact_bundle: ArtifactBundle,
     target_artifact_bundle: ArtifactBundle,
 ):
-    source_project_artifact_bundle = ProjectArtifactBundle.objects.get(
+    source_project_artifact_bundle = ProjectArtifactBundle.objects.filter(
         artifact_bundle_id=source_artifact_bundle.id,
         organization_id=source_artifact_bundle.organization_id,
-    )
+    ).first()
+
+    if not source_project_artifact_bundle:
+        return
 
     target_project = _find_matching_project(
         source_project_artifact_bundle.project_id,
@@ -283,4 +304,4 @@ def _find_matching_project(project_id, organization_id):
     except Project.DoesNotExist:
         sentry_sdk.set_context("project_id", project_id)
         sentry_sdk.set_context("organization_id", organization_id)
-        raise
+        return None

@@ -3,9 +3,11 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 
 import {LegacyOnboarding, Onboarding} from './onboarding';
@@ -48,6 +50,12 @@ describe('Testing new onboarding ui', function () {
       url: `/organizations/org-slug/sdks/`,
       method: 'GET',
     });
+
+    PageFiltersStore.init();
+  });
+
+  afterEach(() => {
+    PageFiltersStore.reset();
   });
 
   it('Renders updated ui', async function () {
@@ -102,7 +110,7 @@ describe('Testing new onboarding ui', function () {
     ).toBeInTheDocument();
   });
 
-  it('when the first trace is received, display the button "Take me to traces"', async function () {
+  it('when the first trace is received, display a busy button "Take me to my trace"', async function () {
     const projectMock = ProjectFixture({
       platform: 'javascript-react',
       firstTransactionEvent: true,
@@ -114,31 +122,149 @@ describe('Testing new onboarding ui', function () {
       body: projectMock,
     });
 
-    const {router} = render(
-      <Onboarding organization={organization} project={projectMock} />,
+    PageFiltersStore.onInitializeUrlState(
       {
-        initialRouterConfig: {
-          location: {
-            pathname: RouterFixture().location.pathname,
-            query: {
-              guidedStep: '4',
-            },
-          },
+        projects: [parseInt(projectMock.id, 10)],
+        environments: [],
+        datetime: {
+          period: '14d',
+          start: null,
+          end: null,
+          utc: null,
         },
-      }
+      },
+      new Set()
     );
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Take me to traces'}));
-    await waitFor(() => {
-      expect(router.location).toEqual(
-        expect.objectContaining({
-          query: {
-            guidedStep: undefined,
-            table: Tab.TRACE,
-          },
-        })
-      );
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/traces/`,
+      body: {
+        data: [],
+        meta: {},
+      },
+      match: [
+        MockApiClient.matchQuery({
+          project: [parseInt(projectMock.id, 10)],
+          environment: [],
+          statsPeriod: '14d',
+          dataset: 'spans',
+          query: undefined,
+          sort: 'timestamp',
+          per_page: 1,
+          cursor: undefined,
+          breakdownSlices: 40,
+        }),
+      ],
     });
-    expect(window.location.reload).toHaveBeenCalled();
+
+    render(<Onboarding organization={organization} project={projectMock} />, {
+      initialRouterConfig: {
+        location: {
+          pathname: RouterFixture().location.pathname,
+          query: {
+            guidedStep: '4',
+          },
+        },
+      },
+    });
+
+    expect(
+      await screen.findByRole('button', {
+        name: 'Take me to my trace',
+      })
+    ).toHaveAttribute('aria-busy', 'true');
+  });
+
+  it('when the first trace is processed, display an enabled button "Take me to my trace"', async function () {
+    const projectMock = ProjectFixture({
+      platform: 'javascript-react',
+      firstTransactionEvent: true,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project-slug/`,
+      method: 'GET',
+      body: projectMock,
+    });
+
+    PageFiltersStore.onInitializeUrlState(
+      {
+        projects: [parseInt(projectMock.id, 10)],
+        environments: [],
+        datetime: {
+          period: '14d',
+          start: null,
+          end: null,
+          utc: null,
+        },
+      },
+      new Set()
+    );
+
+    const trace = {
+      breakdowns: [],
+      duration: 333,
+      rootDuration: 333,
+      end: 456,
+      matchingSpans: 1,
+      name: 'name',
+      numErrors: 1,
+      numOccurrences: 1,
+      numSpans: 2,
+      project: 'project',
+      slices: 10,
+      start: 123,
+      trace: '00000000000000000000000000000000',
+    };
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/traces/`,
+      body: {
+        data: [trace],
+        meta: {},
+      },
+      match: [
+        MockApiClient.matchQuery({
+          project: [parseInt(projectMock.id, 10)],
+          environment: [],
+          statsPeriod: '14d',
+          dataset: 'spans',
+          query: undefined,
+          sort: 'timestamp',
+          per_page: 1,
+          cursor: undefined,
+          breakdownSlices: 40,
+        }),
+      ],
+    });
+
+    const traceHref = `/?table=${Tab.TRACE}&query=trace%3A${trace.trace}`;
+
+    render(<Onboarding organization={organization} project={projectMock} />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/onboarding/`,
+          query: {
+            guidedStep: '4',
+          },
+        },
+      },
+    });
+
+    expect(
+      await screen.findByRole('button', {
+        name: 'Take me to my trace',
+      })
+    ).toHaveAttribute('aria-busy', 'false');
+
+    expect(testableWindowLocation.assign).not.toHaveBeenCalled();
+
+    await userEvent.click(
+      await screen.findByRole('button', {
+        name: 'Take me to my trace',
+      })
+    );
+
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith(traceHref);
   });
 });

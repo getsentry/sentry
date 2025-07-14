@@ -5,7 +5,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue, KeyValue, KeyValueList
 
 from sentry.spans.consumers.process_segments.convert import convert_span_to_item
-from sentry.spans.consumers.process_segments.types import Span
+from sentry.spans.consumers.process_segments.enrichment import Span
 
 ###############################################
 # Test ported from Snuba's `eap_items_span`. #
@@ -174,3 +174,12 @@ def test_convert_span_to_item():
             )
         ),
     }
+
+
+def test_convert_falsy_fields():
+    message = {**SPAN_KAFKA_MESSAGE, "duration_ms": 0, "is_segment": False}
+
+    item = convert_span_to_item(cast(Span, message))
+
+    assert item.attributes.get("sentry.duration_ms") == AnyValue(int_value=0)
+    assert item.attributes.get("sentry.is_segment") == AnyValue(bool_value=False)

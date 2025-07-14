@@ -58,7 +58,7 @@ class OrganizationGroupSuspectFlagsTestCase(APITestCase, SnubaTestCase):
             "data": [
                 {
                     "flag": "key",
-                    "score": 2.7622287114272543,
+                    "score": 0.01634056054997356,
                     "baseline_percent": 0.5,
                     "distribution": {
                         "baseline": {
@@ -69,11 +69,12 @@ class OrganizationGroupSuspectFlagsTestCase(APITestCase, SnubaTestCase):
                             "true": 1,
                         },
                     },
+                    "is_filtered": True,
                 },
                 {
                     "flag": "other",
-                    "score": 0.0,
-                    "baseline_percent": 0.0,
+                    "score": 0.016181914331041776,
+                    "baseline_percent": 0,
                     "distribution": {
                         "baseline": {
                             "false": 2,
@@ -82,6 +83,7 @@ class OrganizationGroupSuspectFlagsTestCase(APITestCase, SnubaTestCase):
                             "false": 1,
                         },
                     },
+                    "is_filtered": True,
                 },
             ]
         }

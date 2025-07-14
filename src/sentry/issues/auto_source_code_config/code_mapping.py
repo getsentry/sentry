@@ -25,7 +25,7 @@ from .errors import (
     UnexpectedPathException,
     UnsupportedFrameInfo,
 )
-from .frame_info import FrameInfo
+from .frame_info import FrameInfo, create_frame_info
 from .integration_utils import InstallationNotFoundError, get_installation
 from .utils.misc import get_straight_path_prefix_end_index
 
@@ -40,7 +40,6 @@ class CodeMapping(NamedTuple):
 
 SLASH = "/"
 BACKSLASH = "\\"  # This is the Python representation of a single backslash
-NOT_FOUND = -1
 
 
 def derive_code_mappings(
@@ -54,7 +53,7 @@ def derive_code_mappings(
     trees = installation.get_trees_for_org()
     trees_helper = CodeMappingTreesHelper(trees)
     try:
-        frame_filename = FrameInfo(frame, platform)
+        frame_filename = create_frame_info(frame, platform)
         return trees_helper.get_file_and_repo_matches(frame_filename)
     except NeedsExtension:
         logger.warning("Needs extension: %s", frame.get("filename"))
@@ -142,7 +141,7 @@ class CodeMappingTreesHelper:
         buckets: defaultdict[str, list[FrameInfo]] = defaultdict(list)
         for frame in frames:
             try:
-                frame_filename = FrameInfo(frame, self.platform)
+                frame_filename = create_frame_info(frame, self.platform)
                 # Any files without a top directory will be grouped together
                 buckets[frame_filename.stack_root].append(frame_filename)
             except UnsupportedFrameInfo:
@@ -428,21 +427,13 @@ def find_roots(frame_filename: FrameInfo, source_path: str) -> tuple[str, str]:
         stack_path = stack_path[1:]
 
     if stack_path == source_path:
-        # e.g. stack_path: foo/foo.py -> source_path: foo/foo.py
         return (stack_root, "")
-    elif source_path.endswith(stack_path):
-        if stack_path.find("/") == NOT_FOUND:
-            # If the source path is a single file, return the source path as the source root
-            # e.g. stack_path: foo.py -> source_path: src/foo.py
-            return ("", source_path.replace(stack_path, ""))
-        else:
-            # "Packaged" logic
-            # e.g. stack_path: some_package/src/foo.py -> source_path: src/foo.py
-            source_prefix = source_path.rpartition(stack_path)[0]
-            return (
-                f"{stack_root}{frame_filename.stack_root}/".replace("//", "/"),
-                f"{source_prefix}{frame_filename.stack_root}/".replace("//", "/"),
-            )
+    elif source_path.endswith(stack_path):  # "Packaged" logic
+        source_prefix = source_path.rpartition(stack_path)[0]
+        return (
+            f"{stack_root}{frame_filename.stack_root}/".replace("//", "/"),
+            f"{source_prefix}{frame_filename.stack_root}/".replace("//", "/"),
+        )
     elif stack_path.endswith(source_path):
         stack_prefix = stack_path.rpartition(source_path)[0]
         return (f"{stack_root}{stack_prefix}", "")

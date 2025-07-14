@@ -45,8 +45,11 @@ import {
   openTrialEndingModal,
 } from 'getsentry/actionCreators/modal';
 import type {EventType} from 'getsentry/components/addEventsCTA';
-import AddEventsCTA from 'getsentry/components/addEventsCTA';
+import AddEventsCTA, {
+  getCategoryInfoFromEventType,
+} from 'getsentry/components/addEventsCTA';
 import ProductTrialAlert from 'getsentry/components/productTrial/productTrialAlert';
+import {getProductForPath} from 'getsentry/components/productTrial/productTrialPaths';
 import {makeLinkToOwnersAndBillingMembers} from 'getsentry/components/profiling/alerts';
 import withSubscription from 'getsentry/components/withSubscription';
 import ZendeskLink from 'getsentry/components/zendeskLink';
@@ -54,7 +57,6 @@ import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {
   type BilledDataCategoryInfo,
-  PlanTier,
   type Promotion,
   type PromotionClaimed,
   type Subscription,
@@ -96,7 +98,7 @@ function objectFromBilledCategories(callback: (c: BilledDataCategoryInfo) => any
   return Object.values(BILLED_DATA_CATEGORY_INFO).reduce(
     (acc, c) => {
       if (c.isBilledCategory) {
-        acc[c.name as EventType] = callback(c);
+        acc[c.singular as EventType] = callback(c);
       }
       return acc;
     },
@@ -135,7 +137,7 @@ function SuspensionModal({Header, Body, Footer, subscription}: SuspensionModalPr
       <Footer>
         <ZendeskLink
           subject="Account Suspension"
-          className="btn btn-primary"
+          Component={props => <LinkButton {...props} href={props.href ?? ''} />}
           source="account-suspension"
         >
           {t('Contact Support')}
@@ -710,8 +712,6 @@ class GSBanner extends Component<Props, State> {
             checkResults[`${snakeCase(c.plural)}_warning_alert`]!
           )
         ),
-        // TODO(data categories): We don't need to check every EventType for product trials,
-        // only the ones that are supported for product trials.
         productTrialDismissed: objectFromBilledCategories(c =>
           trialPromptIsDismissed(
             checkResults[`${snakeCase(c.plural)}_product_trial_alert`]!,
@@ -732,7 +732,7 @@ class GSBanner extends Component<Props, State> {
     }
     return objectFromBilledCategories(
       c =>
-        !this.state.overageAlertDismissed[c.name as EventType] &&
+        !this.state.overageAlertDismissed[c.singular as EventType] &&
         !!subscription.categories[c.plural]?.usageExceeded
     );
   }
@@ -748,7 +748,7 @@ class GSBanner extends Component<Props, State> {
     }
     return objectFromBilledCategories(
       c =>
-        !this.state.overageWarningDismissed[c.name as EventType] &&
+        !this.state.overageWarningDismissed[c.singular as EventType] &&
         !!subscription.categories[c.plural]?.sentUsageWarning
     );
   }
@@ -848,15 +848,18 @@ class GSBanner extends Component<Props, State> {
           clicked_event: eventType,
         });
       };
+      const categoryInfo =
+        getCategoryInfoFromEventType(eventType) ??
+        DATA_CATEGORY_INFO[DataCategoryExact.ERROR];
       return (
         <ExternalLink
           key={eventType}
-          href={getPricingDocsLinkForEventType(eventType)}
+          href={getPricingDocsLinkForEventType(categoryInfo.name)}
           onClick={onClick}
         >
           {getSingularCategoryName({
             plan,
-            category: DATA_CATEGORY_INFO[eventType].plural,
+            category: categoryInfo.plural,
             capitalize: false,
           })}
         </ExternalLink>
@@ -871,7 +874,7 @@ class GSBanner extends Component<Props, State> {
             value &&
             getActiveProductTrial(
               subscription.productTrials ?? null,
-              DATA_CATEGORY_INFO[key as DataCategoryExact].plural
+              getCategoryInfoFromEventType(key as EventType)?.plural as DataCategory
             ) === null
         )
         .map(([key, _]) => key as EventType);
@@ -893,7 +896,7 @@ class GSBanner extends Component<Props, State> {
             value &&
             getActiveProductTrial(
               subscription.productTrials ?? null,
-              DATA_CATEGORY_INFO[key as DataCategoryExact].plural
+              getCategoryInfoFromEventType(key as EventType)?.plural as DataCategory
             ) === null
         )
         .map(([key, _]) => key as EventType);
@@ -902,7 +905,10 @@ class GSBanner extends Component<Props, State> {
       strictlySeatOverage =
         eventTypes.length <= 2 &&
         every(eventTypes, eventType =>
-          [DataCategoryExact.MONITOR_SEAT, DataCategoryExact.UPTIME].includes(eventType)
+          [
+            DATA_CATEGORY_INFO.monitor_seat.singular as EventType,
+            DATA_CATEGORY_INFO.uptime.singular as EventType,
+          ].includes(eventType)
         );
 
       // Make an exception for when only crons has an overage to change the language to be more fitting and hide See Usage
@@ -913,7 +919,8 @@ class GSBanner extends Component<Props, State> {
             seatCategories: listDisplayNames({
               plan: subscription.planDetails,
               categories: eventTypes.map(
-                eventType => DATA_CATEGORY_INFO[eventType].plural as DataCategory
+                eventType =>
+                  getCategoryInfoFromEventType(eventType)?.plural as DataCategory
               ),
               shouldTitleCase: true,
             }),
@@ -1051,28 +1058,12 @@ class GSBanner extends Component<Props, State> {
       product: DataCategory.PROFILE_DURATION_UI,
       categories: [DataCategory.PROFILE_DURATION_UI],
     },
-    // TODO(Seer): add in-product links for Seer categories
   };
 
   renderProductTrialAlerts() {
     const {subscription, organization, api} = this.props;
-    if (subscription.planTier === PlanTier.AM3) {
-      this.PATHS_FOR_PRODUCT_TRIALS['/performance/'] = {
-        product: DataCategory.SPANS,
-        categories: [DataCategory.SPANS],
-      };
-      this.PATHS_FOR_PRODUCT_TRIALS['/performance/database/'] = {
-        product: DataCategory.SPANS,
-        categories: [DataCategory.SPANS],
-      };
-      this.PATHS_FOR_PRODUCT_TRIALS['/profiling/'] = {
-        product: DataCategory.PROFILES,
-        categories: [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI],
-      };
-    }
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    const productPath = this.PATHS_FOR_PRODUCT_TRIALS[window.location.pathname] || null;
 
+    const productPath = getProductForPath(subscription, window.location.pathname);
     if (!productPath) {
       return null;
     }
@@ -1082,7 +1073,7 @@ class GSBanner extends Component<Props, State> {
         const categoryInfo = getCategoryInfoFromPlural(category);
         const categorySnakeCase = snakeCase(category);
         const isDismissed =
-          this.state.productTrialDismissed[categoryInfo?.name as EventType];
+          this.state.productTrialDismissed[categoryInfo?.singular as EventType];
         const trial = getProductTrial(subscription.productTrials ?? null, category);
         return trial && !isDismissed ? (
           <ProductTrialAlert
@@ -1101,7 +1092,7 @@ class GSBanner extends Component<Props, State> {
               this.setState({
                 productTrialDismissed: {
                   ...this.state.productTrialDismissed,
-                  [categoryInfo?.name as EventType]: true,
+                  [categoryInfo?.singular as EventType]: true,
                 },
               });
             }}

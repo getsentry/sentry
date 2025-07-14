@@ -144,6 +144,8 @@ type Props = {
 };
 
 function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Props) {
+  const categoryInfo = getCategoryInfoFromPlural(category);
+
   function OutcomeTable({children}: {children: React.ReactNode}) {
     const categoryName = isEventBreakdown
       ? toTitleCase(category, {allowInnerUpperCase: true})
@@ -166,10 +168,9 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
               <TextOverflow>
                 {isEventBreakdown
                   ? tct('[singularName] Events', {
-                      singularName: toTitleCase(
-                        getCategoryInfoFromPlural(category)?.displayName ?? category,
-                        {allowInnerUpperCase: true}
-                      ),
+                      singularName: toTitleCase(categoryInfo?.displayName ?? category, {
+                        allowInnerUpperCase: true,
+                      }),
                     })
                   : categoryName}
               </TextOverflow>
@@ -189,6 +190,8 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
   const totalDropped = isContinuousProfiling(category)
     ? t('Total Dropped (estimated)')
     : t('Total Dropped');
+
+  const hasSpikeProtection = categoryInfo?.hasSpikeProtection ?? false;
 
   return (
     <UsageTableWrapper>
@@ -213,13 +216,15 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
             category={category}
             totals={totals}
           />
-          <OutcomeRow
-            indent
-            name={t('Spike Protection')}
-            quantity={totals.droppedSpikeProtection}
-            category={category}
-            totals={totals}
-          />
+          {hasSpikeProtection && (
+            <OutcomeRow
+              indent
+              name={t('Spike Protection')}
+              quantity={totals.droppedSpikeProtection}
+              category={category}
+              totals={totals}
+            />
+          )}
           <OutcomeRow
             indent
             name={t('Other')}

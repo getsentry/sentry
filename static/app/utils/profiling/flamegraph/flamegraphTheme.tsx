@@ -329,7 +329,10 @@ export const makeLightChonkFlamegraphTheme = (
 
   return {
     LCH: LCH_LIGHT_CHONK,
-    SIZES,
+    SIZES: {
+      ...SIZES,
+      TIMELINE_LABEL_HEIGHT: 26,
+    },
     FONTS: makeFlamegraphFonts(theme),
     COLORS: {
       COLOR_BUCKET: makeColorBucketTheme(LCH_LIGHT_CHONK),
@@ -357,8 +360,8 @@ export const makeLightChonkFlamegraphTheme = (
       // Preset colors
       FRAME_APPLICATION_COLOR: hexToColorChannels(theme.colors.blue400, 0.4),
       FRAME_SYSTEM_COLOR: hexToColorChannels(theme.colors.red400, 0.3),
-      DIFFERENTIAL_DECREASE: hexToColorChannels(theme.colors.yellow200, 1),
-      DIFFERENTIAL_INCREASE: hexToColorChannels(theme.colors.red300, 1),
+      DIFFERENTIAL_DECREASE: hexToColorChannels(theme.colors.blue400, 0.6),
+      DIFFERENTIAL_INCREASE: hexToColorChannels(theme.colors.red400, 0.4),
       SAMPLE_TICK_COLOR: hexToColorChannels(theme.colors.red400, 0.5),
 
       // Cursors and labels
@@ -379,8 +382,8 @@ export const makeLightChonkFlamegraphTheme = (
       SEARCH_RESULT_SPAN_COLOR: '#fdb359',
 
       // Patterns
-      SPAN_FRAME_LINE_PATTERN_BACKGROUND: theme.colors.grayTransparent100,
-      SPAN_FRAME_LINE_PATTERN: theme.colors.grayTransparent200,
+      SPAN_FRAME_LINE_PATTERN_BACKGROUND: theme.colors.gray100,
+      SPAN_FRAME_LINE_PATTERN: theme.colors.gray200,
 
       // Fallbacks
       SPAN_FALLBACK_COLOR: [0, 0, 0, 0.1],
@@ -393,7 +396,7 @@ export const makeLightChonkFlamegraphTheme = (
       MINIMAP_POSITION_OVERLAY_BORDER_COLOR: theme.colors.gray300,
       MINIMAP_POSITION_OVERLAY_COLOR: theme.colors.gray200,
 
-      SPAN_FRAME_BORDER: theme.colors.grayTransparent300,
+      SPAN_FRAME_BORDER: theme.colors.gray300,
       STACK_TO_COLOR: makeStackToColor([0, 0, 0, 0.035]),
     },
   };
@@ -419,7 +422,10 @@ export const makeDarkChonkFlamegraphTheme = (
   const chartColors = theme.chart.getColorPalette(12);
   return {
     LCH: LCH_DARK_CHONK,
-    SIZES,
+    SIZES: {
+      ...SIZES,
+      TIMELINE_LABEL_HEIGHT: 26,
+    },
     FONTS: makeFlamegraphFonts(theme),
     COLORS: {
       COLOR_BUCKET: makeColorBucketTheme(LCH_DARK_CHONK),
@@ -447,8 +453,8 @@ export const makeDarkChonkFlamegraphTheme = (
       // Preset colors
       FRAME_APPLICATION_COLOR: hexToColorChannels(theme.colors.blue400, 0.6),
       FRAME_SYSTEM_COLOR: hexToColorChannels(theme.colors.red400, 0.5),
-      DIFFERENTIAL_DECREASE: hexToColorChannels(theme.colors.yellow200, 1),
-      DIFFERENTIAL_INCREASE: hexToColorChannels(theme.colors.red300, 1),
+      DIFFERENTIAL_DECREASE: hexToColorChannels(theme.colors.blue400, 0.6),
+      DIFFERENTIAL_INCREASE: hexToColorChannels(theme.colors.red400, 0.4),
       SAMPLE_TICK_COLOR: hexToColorChannels(theme.colors.red400, 0.5),
 
       // Cursors and labels
@@ -469,8 +475,8 @@ export const makeDarkChonkFlamegraphTheme = (
       SEARCH_RESULT_SPAN_COLOR: '#fdb359',
 
       // Patterns
-      SPAN_FRAME_LINE_PATTERN: theme.colors.grayTransparent200,
-      SPAN_FRAME_LINE_PATTERN_BACKGROUND: theme.colors.grayTransparent100,
+      SPAN_FRAME_LINE_PATTERN: theme.colors.gray200,
+      SPAN_FRAME_LINE_PATTERN_BACKGROUND: theme.colors.gray100,
 
       // Fallbacks
       FRAME_FALLBACK_COLOR: [0.5, 0.5, 0.5, 0.4],
@@ -482,7 +488,7 @@ export const makeDarkChonkFlamegraphTheme = (
       MINIMAP_POSITION_OVERLAY_BORDER_COLOR: theme.colors.gray300,
       MINIMAP_POSITION_OVERLAY_COLOR: theme.colors.gray200,
 
-      SPAN_FRAME_BORDER: theme.colors.grayTransparent300,
+      SPAN_FRAME_BORDER: theme.colors.gray300,
       STACK_TO_COLOR: makeStackToColor([1, 1, 1, 0.18]),
     },
   };

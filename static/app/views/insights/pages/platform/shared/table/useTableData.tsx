@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import {useTableSortParams} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import type {EAPSpanProperty} from 'sentry/views/insights/types';
 
@@ -23,7 +23,7 @@ export function useTableData<Fields extends EAPSpanProperty>({
   const {query} = useTransactionNameQuery();
   const {sortField, sortOrder} = useTableSortParams();
 
-  return useEAPSpans(
+  return useSpans(
     {
       search: `${baseQuery ?? ''} ${query}`.trim(),
       sorts: [{field: sortField, kind: sortOrder}],
@@ -41,13 +41,11 @@ export function useTableData<Fields extends EAPSpanProperty>({
 
 export function useTableDataWithController<Fields extends EAPSpanProperty>({
   fields,
-  fetchRouteController,
   referrer,
   cursorParamName,
   query,
 }: {
   cursorParamName: string;
-  fetchRouteController: boolean;
   fields: Fields[];
   query: string;
   referrer: string;
@@ -65,7 +63,7 @@ export function useTableDataWithController<Fields extends EAPSpanProperty>({
   }, [transactionsRequest.data]);
 
   // The controller name is available in the span.description field on the `span.op:http.route` span in the same transaction
-  const routeControllersRequest = useEAPSpans(
+  const routeControllersRequest = useSpans(
     {
       search: `transaction.op:http.server span.op:http.route transaction:[${
         transactionPaths.map(transactions => `"${transactions}"`).join(',') || '""'
@@ -78,8 +76,7 @@ export function useTableDataWithController<Fields extends EAPSpanProperty>({
         'count()',
       ],
       limit: PER_PAGE,
-      enabled:
-        fetchRouteController && !!transactionsRequest.data && transactionPaths.length > 0,
+      enabled: !!transactionsRequest.data && transactionPaths.length > 0,
     },
     referrer
   );

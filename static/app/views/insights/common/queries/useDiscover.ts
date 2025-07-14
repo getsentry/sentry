@@ -60,7 +60,7 @@ export const useSpansIndexed = <Fields extends SpanIndexedProperty[]>(
   );
 };
 
-export const useEAPSpans = <Fields extends EAPSpanProperty[]>(
+export const useSpans = <Fields extends EAPSpanProperty[]>(
   options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
@@ -107,10 +107,7 @@ export const useDiscoverOrEap = <Fields extends DiscoverProperty[]>(
   );
 };
 
-export const useDiscover = <
-  T extends Array<Extract<keyof ResponseType, string>>,
-  ResponseType,
->(
+const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, ResponseType>(
   options: UseDiscoverOptions<T> = {},
   dataset: DiscoverDatasets,
   referrer: string

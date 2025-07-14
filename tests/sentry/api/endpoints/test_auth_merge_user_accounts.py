@@ -10,10 +10,10 @@ class ListUserAccountsWithSharedEmailTest(APITestCase):
     method = "get"
 
     def test_simple(self):
-        user1 = self.create_user(username="mifu1", email="mifu@email.com")
-        user2 = self.create_user(username="mifu2", email="mifu@email.com")
+        user1 = self.create_user(username="mifu1", email="mifu@example.com")
+        user2 = self.create_user(username="mifu2", email="mifu@example.com")
         # unrelated user
-        self.create_user(username="unrelated-mifu", email="michelle@email.com")
+        self.create_user(username="unrelated-mifu", email="michelle@example.com")
 
         self.login_as(user1)
         response = self.get_success_response()
@@ -22,9 +22,9 @@ class ListUserAccountsWithSharedEmailTest(APITestCase):
         assert response.data[1]["username"] == user2.username
 
     def test_with_orgs(self):
-        user1 = self.create_user(username="powerful mifu", email="mifu@email.com")
-        user2 = self.create_user(username="transcendent mifu", email="mifu@email.com")
-        self.create_user(username="garden variety mifu", email="mifu@email.com")
+        user1 = self.create_user(username="powerful mifu", email="mifu@example.com")
+        user2 = self.create_user(username="transcendent mifu", email="mifu@example.com")
+        self.create_user(username="garden variety mifu", email="mifu@example.com")
 
         org1 = self.create_organization(name="hojicha")
         org2 = self.create_organization(name="matcha")
@@ -40,7 +40,6 @@ class ListUserAccountsWithSharedEmailTest(APITestCase):
         assert response.data[0]["organizations"] == [org1.name, org2.name]
         assert response.data[1]["organizations"] == [org3.name]
         assert response.data[2]["organizations"] == []
-
 
 @control_silo_test
 class MergeUserAccountsWithSharedEmailTest(APITestCase):

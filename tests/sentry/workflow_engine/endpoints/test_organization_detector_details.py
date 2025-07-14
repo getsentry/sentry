@@ -119,7 +119,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
             "id": self.detector.id,
             "projectId": self.project.id,
             "name": "Updated Detector",
-            "detectorType": MetricIssue.slug,
+            "type": MetricIssue.slug,
             "dateCreated": self.detector.date_added,
             "dateUpdated": timezone.now(),
             "dataSource": {
@@ -127,7 +127,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                 "dataset": self.snuba_query.dataset,
                 "query": "updated query",
                 "aggregate": self.snuba_query.aggregate,
-                "timeWindow": 5,  # minutes
+                "timeWindow": 300,
                 "environment": self.environment.name,
                 "eventTypes": [event_type.name for event_type in self.snuba_query.event_types],
             },
@@ -166,7 +166,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
 
     def assert_snuba_query_updated(self, snuba_query):
         assert snuba_query.query == "updated query"
-        assert snuba_query.time_window == 300  # seconds = 5 minutes
+        assert snuba_query.time_window == 300
 
     def test_update(self):
         with self.tasks():
@@ -241,6 +241,135 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                 status_code=400,
             )
 
+    def test_update_owner_to_user(self):
+        # Initially no owner
+        assert self.detector.owner_user_id is None
+        assert self.detector.owner_team_id is None
+
+        data = {
+            **self.valid_data,
+            "owner": self.user.get_actor_identifier(),
+        }
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        detector = Detector.objects.get(id=response.data["id"])
+
+        # Verify owner is set correctly
+        assert detector.owner_user_id == self.user.id
+        assert detector.owner_team_id is None
+        assert detector.owner is not None
+        assert detector.owner.identifier == self.user.get_actor_identifier()
+
+        # Verify serialized response includes owner
+        assert response.data["owner"] == self.user.get_actor_identifier()
+
+    def test_update_owner_to_team(self):
+        # Set initial user owner
+        self.detector.owner_user_id = self.user.id
+        self.detector.save()
+
+        # Create a team
+        team = self.create_team(organization=self.organization)
+
+        data = {
+            **self.valid_data,
+            "owner": f"team:{team.id}",
+        }
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        detector = Detector.objects.get(id=response.data["id"])
+
+        # Verify owner changed to team
+        assert detector.owner_user_id is None
+        assert detector.owner_team_id == team.id
+        assert detector.owner is not None
+        assert detector.owner.identifier == f"team:{team.id}"
+
+        # Verify serialized response includes team owner
+        assert response.data["owner"] == f"team:{team.id}"
+
+    def test_update_clear_owner(self):
+        # Set initial owner
+        self.detector.owner_user_id = self.user.id
+        self.detector.save()
+
+        data = {
+            **self.valid_data,
+            "owner": None,
+        }
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        detector = Detector.objects.get(id=response.data["id"])
+
+        # Verify owner is cleared
+        assert detector.owner_user_id is None
+        assert detector.owner_team_id is None
+        assert detector.owner is None
+
+        # Verify serialized response shows no owner
+        assert response.data["owner"] is None
+
+    def test_disable_detector(self):
+        assert self.detector.enabled is True
+        assert self.detector.status == ObjectStatus.ACTIVE
+
+        data = {
+            **self.valid_data,
+            "enabled": False,
+        }
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        detector = Detector.objects.get(id=response.data["id"])
+        assert detector.enabled is False
+        assert detector.status == ObjectStatus.DISABLED
+
+    def test_enable_detector(self):
+        self.detector.update(enabled=False)
+        self.detector.update(status=ObjectStatus.DISABLED)
+
+        data = {
+            **self.valid_data,
+            "enabled": True,
+        }
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        detector = Detector.objects.get(id=response.data["id"])
+        assert detector.enabled is True
+        assert detector.status == ObjectStatus.ACTIVE
+
 
 @region_silo_test
 class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest):
@@ -269,7 +398,7 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         data_condition_group = self.create_data_condition_group()
         error_detector = self.create_detector(
             project_id=self.project.id,
-            name="Error Detector",
+            name="Error Monitor",
             type=ErrorGroupType.slug,
             workflow_condition_group=data_condition_group,
         )

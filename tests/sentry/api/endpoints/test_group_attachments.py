@@ -1,8 +1,6 @@
-from io import BytesIO
 from urllib.parse import urlencode
 
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.files.file import File
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
@@ -15,16 +13,13 @@ class GroupEventAttachmentsTest(APITestCase):
         if type is None:
             type = "event.attachment"
 
-        self.file = File.objects.create(name=file_name, type=type)
-        self.file.putfile(BytesIO(b"File contents here"))
-
         self.attachment = EventAttachment.objects.create(
             event_id=event_id or self.event.event_id,
             project_id=self.event.project_id,
             group_id=group_id or self.group.id,
-            file_id=self.file.id,
-            type=self.file.type,
+            type=type,
             name=file_name,
+            blob_path=":File contents here",
         )
 
         return self.attachment

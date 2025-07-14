@@ -2,11 +2,11 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/gridEditable/styles';
 import {HighlightComponent} from 'sentry/components/highlight';
 import {Body} from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import Panel from 'sentry/components/panels/panel';
+import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles';
 import {space} from 'sentry/styles/space';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';
@@ -53,7 +53,7 @@ export const LogTableBodyCell = styled(TableBodyCell)`
 
   padding: 2px ${space(2)};
 
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   /* Need to select the 2nd child to select the first cell
      as the first child is the interaction state layer */
@@ -149,7 +149,7 @@ export const ColoredLogText = styled('span')<{
   logColors: ReturnType<typeof getLogColors>;
 }>`
   color: ${p => p.logColors.color};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   font-family: ${p => p.theme.text.familyMono};
 `;
 
@@ -159,7 +159,7 @@ export const LogDate = styled('span')<{align?: 'left' | 'center' | 'right'}>`
 `;
 
 export const LogsHighlight = styled(HighlightComponent)`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   background-color: ${p => p.theme.gray200};
   margin-right: 2px;
   margin-left: 2px;
@@ -195,7 +195,7 @@ export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`
 
 export const FilterBarContainer = styled('div')`
   display: flex;
-  gap: ${space(2)};
+  gap: ${space(1)};
   margin-bottom: ${space(1)};
 `;
 
@@ -214,6 +214,8 @@ export const LogsItemContainer = styled('div')`
 
 export const LogsTableActionsContainer = styled(LogsItemContainer)`
   margin-bottom: 0;
+  display: flex;
+  justify-content: space-between;
 `;
 
 export const LogsGraphContainer = styled(LogsItemContainer)`
@@ -308,7 +310,7 @@ export const TopSectionBody = styled(Body)`
   padding-bottom: 0;
   flex: 0 0 auto;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding-bottom: ${space(2)};
   }
 `;
@@ -319,14 +321,17 @@ export const BottomSectionBody = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};
   border-top: 1px solid ${p => p.theme.border};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(2)} ${space(4)};
     padding-top: ${space(1)};
   }
 `;
 
 export const ToolbarAndBodyContainer = styled('div')<{sidebarOpen: boolean}>`
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  height: 100%;
+  flex: 1 1 auto;
+
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     display: grid;
     grid-template-columns: ${p => (p.sidebarOpen ? '325px minmax(100px, auto)' : 'auto')};
   }
@@ -342,7 +347,7 @@ export const LogsSidebarCollapseButton = withChonk(
     margin-left: -31px;
     display: none;
 
-    @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
       display: block;
     }
   `,
@@ -351,7 +356,7 @@ export const LogsSidebarCollapseButton = withChonk(
     display: none;
     margin-left: -31px;
 
-    @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
       display: inline-flex;
     }
 

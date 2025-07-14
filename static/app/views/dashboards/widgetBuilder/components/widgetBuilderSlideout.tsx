@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
@@ -33,7 +33,7 @@ import {
   WidgetPreviewContainer,
 } from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 import WidgetBuilderQueryFilterBuilder from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
-import SaveButton from 'sentry/views/dashboards/widgetBuilder/components/saveButton';
+import SaveButtonGroup from 'sentry/views/dashboards/widgetBuilder/components/saveButtonGroup';
 import WidgetBuilderSortBySelector from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
 import ThresholdsSection from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
 import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
@@ -114,7 +114,7 @@ function WidgetBuilderSlideout({
   const customPreviewRef = useRef<HTMLDivElement>(null);
   const templatesPreviewRef = useRef<HTMLDivElement>(null);
 
-  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   const showSortByStep =
     (isChartWidget && state.fields && state.fields.length > 0) ||
@@ -160,6 +160,15 @@ function WidgetBuilderSlideout({
     </SlideoutBreadcrumb>
   );
 
+  const onCloseWithModal = useCallback(() => {
+    openConfirmModal({
+      bypass: isEqual(initialState, state),
+      message: t('You have unsaved changes. Are you sure you want to leave?'),
+      priority: 'danger',
+      onConfirm: onClose,
+    });
+  }, [initialState, onClose, state]);
+
   const breadcrumbs = customizeFromLibrary
     ? [
         {
@@ -193,14 +202,7 @@ function WidgetBuilderSlideout({
           borderless
           aria-label={t('Close Widget Builder')}
           icon={<IconClose size="sm" />}
-          onClick={() => {
-            openConfirmModal({
-              bypass: isEqual(initialState, state),
-              message: t('You have unsaved changes. Are you sure you want to leave?'),
-              priority: 'danger',
-              onConfirm: onClose,
-            });
-          }}
+          onClick={onCloseWithModal}
         >
           {t('Close')}
         </CloseButton>
@@ -293,7 +295,12 @@ function WidgetBuilderSlideout({
                 <WidgetBuilderSortBySelector />
               </Section>
             )}
-            <SaveButton isEditing={isEditing} onSave={onSave} setError={setError} />
+            <SaveButtonGroup
+              isEditing={isEditing}
+              onSave={onSave}
+              setError={setError}
+              onClose={onCloseWithModal}
+            />
           </Fragment>
         )}
       </SlideoutBodyWrapper>

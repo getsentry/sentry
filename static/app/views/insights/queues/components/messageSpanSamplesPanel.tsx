@@ -5,7 +5,7 @@ import keyBy from 'lodash/keyBy';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
-import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {EapSpanSearchQueryBuilderWrapper} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -31,7 +31,6 @@ import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {getDurationChartTitle} from 'sentry/views/insights/common/views/spans/types';
 import {useSpanSamples} from 'sentry/views/insights/http/queries/useSpanSamples';
 import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
@@ -69,7 +68,6 @@ export function MessageSpanSamplesPanel() {
   });
   const {projects} = useProjects();
   const {selection} = usePageFilters();
-  const useEap = useInsightsEap();
 
   const project = projects.find(p => query.project === p.id);
 
@@ -130,6 +128,7 @@ export function MessageSpanSamplesPanel() {
   const timeseriesFilters = new MutableSearch(queryFilter);
   timeseriesFilters.addFilterValue('transaction', query.transaction);
   timeseriesFilters.addFilterValue('messaging.destination.name', query.destination);
+  const timeseriesReferrer = Referrer.QUEUES_SAMPLES_PANEL_DURATION_CHART;
 
   const sampleFilters = new MutableSearch(queryFilter);
   sampleFilters.addFilterValue('transaction', query.transaction);
@@ -177,7 +176,7 @@ export function MessageSpanSamplesPanel() {
       enabled: isPanelOpen,
       transformAliasToInputFormat: true,
     },
-    'api.performance.queues.avg-duration-chart'
+    timeseriesReferrer
   );
 
   const durationAxisMax = computeAxisMax([durationData?.[`avg(span.duration)`]]);
@@ -313,7 +312,7 @@ export function MessageSpanSamplesPanel() {
             <ModuleLayout.Full>
               <InsightsLineChartWidget
                 showLegend="never"
-                search={timeseriesFilters}
+                queryInfo={{search: timeseriesFilters, referrer: timeseriesReferrer}}
                 title={getDurationChartTitle('queue')}
                 isLoading={isDurationDataFetching}
                 error={durationError}
@@ -323,13 +322,12 @@ export function MessageSpanSamplesPanel() {
             </ModuleLayout.Full>
 
             <ModuleLayout.Full>
-              <SpanSearchQueryBuilder
+              <EapSpanSearchQueryBuilderWrapper
                 searchSource={`${ModuleName.QUEUE}-sample-panel`}
                 initialQuery={query.spanSearchQuery}
                 onSearch={handleSearch}
                 placeholder={t('Search for span attributes')}
                 projects={selection.projects}
-                useEap={useEap}
               />
             </ModuleLayout.Full>
 

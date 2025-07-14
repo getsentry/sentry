@@ -81,6 +81,7 @@ function DurationChart({
     ...filters,
     ...additionalFilters,
   });
+  const referrer = 'api.starfish.sidebar-span-metrics-chart';
 
   const {
     isPending,
@@ -95,7 +96,7 @@ function DurationChart({
       ),
       transformAliasToInputFormat: true,
     },
-    'api.starfish.sidebar-span-metrics-chart'
+    referrer
   );
 
   const {data, error: spanMetricsError} = useSpanMetrics(
@@ -172,7 +173,7 @@ function DurationChart({
 
   return (
     <InsightsLineChartWidget
-      search={search}
+      queryInfo={{search, referrer}}
       showLegend="never"
       title={t('Average Duration')}
       isLoading={isPending}

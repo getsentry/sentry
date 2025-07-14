@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 
+from django.contrib.auth import logout
 from django.http.request import HttpRequest
-from django.http.response import HttpResponseBase
+from django.http.response import HttpResponseBase, HttpResponseRedirect
 
-from sentry import options
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org
 from sentry.organizations.services.organization import organization_service
+
+logger = logging.getLogger(__name__)
 
 
 def _get_org(slug):
@@ -27,15 +30,15 @@ class DemoModeGuardMiddleware:
         self.get_response = get_response
 
     def __call__(self, request: HttpRequest) -> HttpResponseBase:
-        # only in "sentry.io/"
         if (
-            not request.subdomain  # TODO: what about region subdomains?
+            not request.subdomain
             and request.path in ("", "/")
             and is_demo_mode_enabled()
-            and options.get("demo-mode.disable-sandbox-redirect")
+            and (session := getattr(request, "session", None))
+            and (activeorg := session.get("activeorg"))
+            and is_demo_org(_get_org(activeorg))
         ):
-            session = getattr(request, "session", None)
-            if session and is_demo_org(_get_org(session.get("activeorg"))):
-                del session["activeorg"]
+            logout(request)
+            return HttpResponseRedirect("https://sentry.io/welcome")
 
         return self.get_response(request)

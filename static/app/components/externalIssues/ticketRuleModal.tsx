@@ -24,7 +24,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {IssueAlertRuleAction} from 'sentry/types/alerts';
+import type {TicketActionData} from 'sentry/types/alerts';
 import type {Choices} from 'sentry/types/core';
 import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integrations';
 import {defined} from 'sentry/utils';
@@ -40,7 +40,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 const IGNORED_FIELDS = ['Sprint'];
 
 interface TicketRuleModalProps extends ModalRenderProps {
-  instance: IssueAlertRuleAction;
+  instance: TicketActionData;
   link: string | null;
   onSubmitAction: (
     data: Record<string, string>,
@@ -183,12 +183,12 @@ export default function TicketRuleModal({
               integrationId: instance.integration,
               query: initialConfigQuery,
             }),
-            existingData => (data ? data : existingData)
+            (existingData: IntegrationIssueConfig | undefined) =>
+              data ? data : existingData
           );
           setIsDynamicallyRefetching(false);
         },
         error: (err: any) => {
-          // This behavior comes from the DeprecatedAsyncComponent
           if (err?.responseText) {
             Sentry.addBreadcrumb({
               message: err.responseText,

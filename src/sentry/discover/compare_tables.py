@@ -1,9 +1,10 @@
 import logging
 from enum import Enum
-from typing import TypedDict, cast
+from typing import TypedDict
 
 import sentry_sdk
 
+from sentry.constants import ObjectStatus
 from sentry.discover.arithmetic import is_equation
 from sentry.discover.dataset_split import _get_equation_list, _get_field_list
 from sentry.discover.translation.mep_to_eap import (
@@ -13,11 +14,16 @@ from sentry.discover.translation.mep_to_eap import (
 )
 from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetQuery
+from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.organizations.absolute_url import generate_organization_url
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
-from sentry.search.events.types import SAMPLING_MODES, EventsResponse, SnubaParams
+from sentry.search.events.fields import is_function, parse_arguments
+from sentry.search.events.filter import to_list
+from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba import metrics_enhanced_performance, spans_rpc
+from sentry.utils.snuba import is_measurement
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +56,7 @@ def compare_table_results(metrics_query_result: EventsResponse, eap_result: EAPR
     )
     metrics_fields = metrics_query_result["meta"]["fields"]
 
-    mismatches = []
+    mismatches: list[str] = []
     no_metrics_data = len(metrics_data_row) == 0
     no_eap_data = len(eap_data_row) == 0
 
@@ -66,14 +72,26 @@ def compare_table_results(metrics_query_result: EventsResponse, eap_result: EAPR
             if is_equation(field):
                 continue
             translated_field, *rest = translate_columns([field])
-            if data is not None and eap_data_row[translated_field] is None:
+            arg: str | None = None
+            if match := is_function(field):
+                function = match.group("function")
+                args = parse_arguments(function, match.group("columns"))
+                if args:
+                    arg = args[0]
+
+            if data is None or (
+                arg and (arg == "transaction.duration" or is_measurement(arg)) and data == 0
+            ):
+                continue
+
+            if eap_data_row[translated_field] is None:
                 logger.info("Field %s not found in EAP response", field)
                 mismatches.append(field)
 
     except KeyError:
         # if there is an error trying to access fields in the EAP data,
         # return all queried fields as mismatches
-        all_fields_mismatch = []
+        all_fields_mismatch: list[str] = []
         for field, data in metrics_fields.items():
             if is_equation(field):
                 continue
@@ -91,14 +109,34 @@ def compare_table_results(metrics_query_result: EventsResponse, eap_result: EAPR
     )
 
 
+@sentry_sdk.tracing.trace
 def compare_tables_for_dashboard_widget_queries(
     widget_query: DashboardWidgetQuery,
 ) -> CompareTableResultDict:
     widget: DashboardWidget = widget_query.widget
     dashboard: Dashboard = widget.dashboard
     organization: Organization = dashboard.organization
-    projects: list[Project] = list(dashboard.projects.all())
+    # if the dashboard has no projects, we will use all projects in the organization
+    projects = dashboard.projects.all() or Project.objects.filter(
+        organization_id=dashboard.organization.id, status=ObjectStatus.ACTIVE
+    )
+
+    widget_viewer_url = (
+        generate_organization_url(organization.slug)
+        + f"/dashboard/{dashboard.id}/widget/{widget.id}/"
+    )
+
     if len(list(projects)) == 0:
+        with sentry_sdk.isolation_scope() as scope:
+            scope.set_tag("passed", False)
+            scope.set_tag("failed_reason", CompareTableResult.NO_PROJECT.value)
+            scope.set_tag(
+                "widget_viewer_url",
+                widget_viewer_url,
+            )
+            sentry_sdk.capture_message(
+                "dashboard_widget_comparison_done", level="info", scope=scope
+            )
         return {
             "passed": False,
             "reason": CompareTableResult.NO_PROJECT,
@@ -110,6 +148,17 @@ def compare_tables_for_dashboard_widget_queries(
 
     fields = widget_query.fields
     if len(fields) == 0:
+        with sentry_sdk.isolation_scope() as scope:
+            scope.set_tag("passed", False)
+            scope.set_tag("failed_reason", CompareTableResult.NO_FIELDS.value)
+            scope.set_tag("widget_fields", fields)
+            scope.set_tag(
+                "widget_viewer_url",
+                widget_viewer_url,
+            )
+            sentry_sdk.capture_message(
+                "dashboard_widget_comparison_done", level="info", scope=scope
+            )
         return {
             "passed": False,
             "reason": CompareTableResult.NO_FIELDS,
@@ -123,7 +172,17 @@ def compare_tables_for_dashboard_widget_queries(
     equations = [equation for equation in _get_equation_list(widget_query.fields or []) if equation]
     query = widget_query.conditions
 
-    environments = dashboard.filters.get("environment", []) if dashboard.filters is not None else []
+    environment_names: str | list[str] = (
+        dashboard.filters.get("environment", []) if dashboard.filters else []
+    )
+    if environment_names:
+        environments = list(
+            Environment.objects.filter(
+                name__in=to_list(environment_names), organization_id=organization.id
+            )
+        )
+    else:
+        environments = []
 
     snuba_params = SnubaParams(
         environments=environments,
@@ -172,7 +231,7 @@ def compare_tables_for_dashboard_widget_queries(
             limit=1,
             referrer="dashboards.transactions_spans_comparison",
             config=SearchResolverConfig(),
-            sampling_mode=cast(SAMPLING_MODES, "NORMAL"),
+            sampling_mode="NORMAL",
         )
     except Exception as e:
         logger.info("EAP query failed: %s", e)
@@ -181,13 +240,16 @@ def compare_tables_for_dashboard_widget_queries(
     if has_metrics_error and has_eap_error:
         with sentry_sdk.isolation_scope() as scope:
             scope.set_tag("passed", False)
-            scope.set_tag("failed_reason", CompareTableResult.BOTH_FAILED)
+            scope.set_tag("failed_reason", CompareTableResult.BOTH_FAILED.value)
             scope.set_tag("widget_filter_query", query)
+            scope.set_tag("widget_fields", str(fields))
             scope.set_tag(
                 "widget_viewer_url",
-                f"{organization.slug}.sentry.io/dashboard/{dashboard.id}/widget/{widget.id}/",
+                widget_viewer_url,
             )
-            sentry_sdk.capture_message("dashboard_comparison_passed", level="info", scope=scope)
+            sentry_sdk.capture_message(
+                "dashboard_widget_comparison_done", level="info", scope=scope
+            )
         return {
             "passed": False,
             "reason": CompareTableResult.BOTH_FAILED,
@@ -199,13 +261,16 @@ def compare_tables_for_dashboard_widget_queries(
     elif has_metrics_error:
         with sentry_sdk.isolation_scope() as scope:
             scope.set_tag("passed", False)
-            scope.set_tag("failed_reason", CompareTableResult.METRICS_FAILED)
+            scope.set_tag("failed_reason", CompareTableResult.METRICS_FAILED.value)
             scope.set_tag("widget_filter_query", query)
+            scope.set_tag("widget_fields", str(fields))
             scope.set_tag(
                 "widget_viewer_url",
-                f"{organization.slug}.sentry.io/dashboard/{dashboard.id}/widget/{widget.id}/",
+                widget_viewer_url,
             )
-            sentry_sdk.capture_message("dashboard_comparison_passed", level="info", scope=scope)
+            sentry_sdk.capture_message(
+                "dashboard_widget_comparison_done", level="info", scope=scope
+            )
         return {
             "passed": False,
             "reason": CompareTableResult.METRICS_FAILED,
@@ -217,32 +282,27 @@ def compare_tables_for_dashboard_widget_queries(
     elif has_eap_error:
         with sentry_sdk.isolation_scope() as scope:
             scope.set_tag("passed", False)
-            scope.set_tag("failed_reason", CompareTableResult.EAP_FAILED)
+            scope.set_tag("failed_reason", CompareTableResult.EAP_FAILED.value)
             scope.set_tag("widget_filter_query", query)
+            scope.set_tag("widget_fields", str(fields))
             scope.set_tag(
                 "widget_viewer_url",
-                f"{organization.slug}.sentry.io/dashboard/{dashboard.id}/widget/{widget.id}/",
+                widget_viewer_url,
             )
-            sentry_sdk.capture_message("dashboard_comparison_passed", level="info", scope=scope)
+            sentry_sdk.capture_message(
+                "dashboard_widget_comparison_done", level="info", scope=scope
+            )
         return {
             "passed": False,
             "reason": CompareTableResult.EAP_FAILED,
             "fields": fields,
             "widget_query": widget_query,
-            "mismatches": None,
+            "mismatches": fields,
             "query": query,
         }
     else:
         passed, mismatches, reason = compare_table_results(metrics_query_result, eap_result)
         if passed:
-            with sentry_sdk.isolation_scope() as scope:
-                scope.set_tag("passed", True)
-                scope.set_tag("mismatches", mismatches)
-                scope.set_tag(
-                    "widget_viewer_url",
-                    f"{organization.slug}.sentry.io/dashboard/{dashboard.id}/widget/{widget.id}/",
-                )
-                sentry_sdk.capture_message("dashboard_comparison_passed", level="info", scope=scope)
             return {
                 "passed": True,
                 "reason": CompareTableResult.PASSED,
@@ -254,14 +314,17 @@ def compare_tables_for_dashboard_widget_queries(
         else:
             with sentry_sdk.isolation_scope() as scope:
                 scope.set_tag("passed", False)
-                scope.set_tag("failed_reason", reason)
-                scope.set_tag("mismatches", mismatches)
+                scope.set_tag("failed_reason", reason.value)
+                scope.set_tag("mismatches", str(mismatches))
                 scope.set_tag("widget_filter_query", query)
+                scope.set_tag("widget_fields", str(fields))
                 scope.set_tag(
                     "widget_viewer_url",
-                    f"{organization.slug}.sentry.io/dashboard/{dashboard.id}/widget/{widget.id}/",
+                    widget_viewer_url,
                 )
-                sentry_sdk.capture_message("dashboard_comparison_passed", level="info", scope=scope)
+                sentry_sdk.capture_message(
+                    "dashboard_widget_comparison_done", level="info", scope=scope
+                )
             return {
                 "passed": False,
                 "reason": reason,

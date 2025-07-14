@@ -19,7 +19,7 @@ type ScoreCardProps = {
   trendStatus?: 'good' | 'bad';
 };
 
-function ScoreCard({
+export function ScoreCard({
   title,
   score,
   help,
@@ -88,10 +88,10 @@ const HeaderTitle = styled('div')`
 `;
 
 export const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   color: ${p => p.theme.headingColor};
   ${p => p.theme.overflowEllipsis};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const HeaderWrapper = styled('div')`
@@ -124,5 +124,3 @@ export const Trend = styled('div')<TrendProps>`
   line-height: 1;
   overflow: hidden;
 `;
-
-export default ScoreCard;

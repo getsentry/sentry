@@ -5,19 +5,19 @@ import {Checkbox} from 'sentry/components/core/checkbox';
 import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import FeedbackListBulkSelection from 'sentry/components/feedback/list/feedbackListBulkSelection';
 import MailboxPicker from 'sentry/components/feedback/list/mailboxPicker';
-import type useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
 import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
 import useFeedbackHasNewItems from 'sentry/components/feedback/useFeedbackHasNewItems';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import useUrlParams from 'sentry/utils/useUrlParams';
+import useUrlParams from 'sentry/utils/url/useUrlParams';
 
 interface Props
   extends Pick<
-    ReturnType<typeof useListItemCheckboxState>,
+    ReturnType<typeof useListItemCheckboxContext>,
     | 'countSelected'
     | 'deselectAll'
     | 'isAllSelected'

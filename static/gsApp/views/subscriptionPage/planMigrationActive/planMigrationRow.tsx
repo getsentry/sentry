@@ -58,7 +58,10 @@ function formatCategoryRowString(
     DATA_CATEGORY_INFO[category].plural as DataCategory,
     options
   );
-  if (category === DataCategoryExact.ATTACHMENT) {
+  if (
+    category === DataCategoryExact.ATTACHMENT ||
+    category === DataCategoryExact.LOG_BYTE
+  ) {
     return reservedWithUnits;
   }
 
@@ -81,15 +84,13 @@ function PlanMigrationRow(props: Props) {
   let nextValue: React.ReactNode;
   let discountPrice: string | undefined;
   let currentTitle: React.ReactNode =
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    DATA_CATEGORY_INFO[props.type]?.productName ?? props.type;
+    DATA_CATEGORY_INFO[props.type as DataCategoryExact]?.productName ?? props.type;
   const dataTestIdSuffix: string =
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    DATA_CATEGORY_INFO[props.type]?.plural ?? props.type;
+    DATA_CATEGORY_INFO[props.type as DataCategoryExact]?.plural ?? props.type;
 
   const options = {isAbbreviated: true};
 
-  // TODO(data categories): check if this can be parsed
+  // TODO(data categories): BIL-955
   switch (props.type) {
     case 'plan':
       currentValue = tct('Legacy [currentValue]', {currentValue: props.currentValue});
@@ -99,7 +100,7 @@ function PlanMigrationRow(props: Props) {
       currentValue = props.currentValue;
       nextValue = props.nextValue;
       break;
-    case 'error':
+    case DataCategoryExact.ERROR:
       currentValue = formatCategoryRowString(props.type, props.currentValue, options);
       // eslint-disable-next-line no-case-declarations
       const formattedErrors = formatCategoryRowString(
@@ -109,15 +110,16 @@ function PlanMigrationRow(props: Props) {
       );
       nextValue = props.hasCredits ? `${formattedErrors}*` : formattedErrors;
       break;
-    case 'transaction':
-    case 'replay':
-    case 'monitorSeat':
-    case 'attachment':
-    case 'profileDuration':
+    case DataCategoryExact.TRANSACTION:
+    case DataCategoryExact.REPLAY:
+    case DataCategoryExact.MONITOR_SEAT:
+    case DataCategoryExact.ATTACHMENT:
+    case DataCategoryExact.LOG_BYTE:
+    case DataCategoryExact.PROFILE_DURATION:
       currentValue = formatCategoryRowString(props.type, props.currentValue, options);
       nextValue = formatCategoryRowString(props.type, props.nextValue, options);
       break;
-    case 'span':
+    case DataCategoryExact.SPAN:
       currentValue = formatCategoryRowString(
         DataCategoryExact.TRANSACTION,
         props.currentValue,

@@ -3,8 +3,9 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 from enum import Enum
-from typing import TYPE_CHECKING, ClassVar, Self
+from typing import TYPE_CHECKING, ClassVar, Self, override
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -21,6 +22,7 @@ from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DataSourceTypeHandler
 
 if TYPE_CHECKING:
+    from sentry.models.organization import Organization
     from sentry.workflow_engine.models.data_source import DataSource
 
 logger = logging.getLogger(__name__)
@@ -81,6 +83,8 @@ class SnubaQueryEventType(Model):
         ERROR = 0
         DEFAULT = 1
         TRANSACTION = 2
+        TRACE_ITEM_SPAN = 3
+        TRACE_ITEM_LOG = 4
 
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery")
     type = models.SmallIntegerField()
@@ -173,3 +177,20 @@ class QuerySubscriptionDataSourceHandler(DataSourceTypeHandler[QuerySubscription
     @staticmethod
     def related_model(instance) -> list[ModelRelation]:
         return [ModelRelation(QuerySubscription, {"id": instance.source_id})]
+
+    @override
+    @staticmethod
+    def get_instance_limit(org: Organization) -> int | None:
+        return settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG
+
+    @override
+    @staticmethod
+    def get_current_instance_count(org: Organization) -> int:
+        return QuerySubscription.objects.filter(
+            project__organization_id=org.id,
+            status__in=(
+                QuerySubscription.Status.ACTIVE.value,
+                QuerySubscription.Status.CREATING.value,
+                QuerySubscription.Status.UPDATING.value,
+            ),
+        ).count()

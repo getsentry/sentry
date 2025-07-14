@@ -32,7 +32,36 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
         self.dashboard = self.create_dashboard(
             organization=self.organization, filters={"environment": []}
         )
+        self.dashboard_2 = self.create_dashboard(
+            organization=self.organization, filters={"environment": []}
+        )
+        self.environment = self.create_environment(
+            organization=self.organization, project=self.project
+        )
+        self.dashboard_3 = self.create_dashboard(
+            organization=self.organization, filters={"environment": [self.environment.name]}
+        )
         self.dashboard.projects.set([self.project])
+        self.dashboard_2.projects.set([])
+        self.dashboard_3.projects.set([self.project])
+
+        self.successful_widget_2 = DashboardWidget.objects.create(
+            dashboard=self.dashboard_2,
+            title="Test Successful Widget 2",
+            order=0,
+            display_type=DashboardWidgetDisplayTypes.TABLE,
+            widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+        )
+
+        self.successful_widget_query_2 = DashboardWidgetQuery.objects.create(
+            widget=self.successful_widget_2,
+            name="Test Successful Widget Query 2",
+            order=0,
+            conditions="",
+            aggregates=["count()"],
+            columns=["count()", "transaction"],
+            fields=["count()", "transaction"],
+        )
 
         self.successful_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
@@ -49,24 +78,6 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
             aggregates=["count()"],
             columns=["count()", "transaction"],
             fields=["count()", "transaction"],
-        )
-
-        self.error_field_widget = DashboardWidget.objects.create(
-            dashboard=self.dashboard,
-            title="Test Empty Field Widget",
-            order=1,
-            display_type=DashboardWidgetDisplayTypes.TABLE,
-            widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
-        )
-
-        self.error_field_widget_query = DashboardWidgetQuery.objects.create(
-            widget=self.error_field_widget,
-            name="Test Empty Field Widget Query",
-            order=1,
-            conditions="",
-            aggregates=["apdex()"],
-            columns=["apdex()", "http.status_code"],
-            fields=["apdex()", "http.status_code"],
         )
 
         self.empty_field_widget = DashboardWidget.objects.create(
@@ -123,6 +134,25 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
             aggregates=["count()"],
             columns=["count()", "http.status_code"],
             fields=["count()", "http.status_code"],
+        )
+
+        self.widget_with_environment_filter = DashboardWidget.objects.create(
+            dashboard=self.dashboard_3,
+            title="Test Erroring Widget",
+            order=6,
+            display_type=DashboardWidgetDisplayTypes.TABLE,
+            widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+        )
+
+        self.widget_with_environment_filter_query = DashboardWidgetQuery.objects.create(
+            widget=self.widget_with_environment_filter,
+            name="Test Widget Query With Environment Filter",
+            order=6,
+            fields=["transaction", "count()"],
+            conditions="!event.type:error",
+            orderby="-count()",
+            aggregates=["count()"],
+            columns=["transaction"],
         )
 
         self.triple_write_segment(
@@ -253,14 +283,6 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
         assert comparison_result["passed"]
         assert comparison_result["mismatches"] == []
 
-    def test_compare_error_field_tables(self):
-        # testing with apdex() field, which is not supported in EAP and throw an error
-        comparison_result = compare_tables_for_dashboard_widget_queries(
-            self.error_field_widget_query
-        )
-        assert comparison_result["passed"] is False
-        assert comparison_result["reason"] == CompareTableResult.EAP_FAILED
-
     def test_compare_empty_field_tables(self):
         # testing with failure_rate() field, which is not supported in EAP
         comparison_result = compare_tables_for_dashboard_widget_queries(
@@ -299,3 +321,40 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
         assert comparison_result["passed"] is False
         assert comparison_result["reason"] == CompareTableResult.QUERY_FAILED
         assert comparison_result["mismatches"] is not None and [] == comparison_result["mismatches"]
+
+    def test_compare_widget_query_with_no_project(self):
+        comparison_result = compare_tables_for_dashboard_widget_queries(
+            self.successful_widget_query_2
+        )
+        assert comparison_result["passed"] is True
+        assert comparison_result["mismatches"] == []
+
+    def test_compare_widget_query_that_errors_out(self):
+        comparison_result = compare_tables_for_dashboard_widget_queries(
+            self.widget_with_environment_filter_query
+        )
+        assert comparison_result["passed"] is False
+        # assert that both queries don't fail due to the environment filter
+        assert comparison_result["reason"] != CompareTableResult.BOTH_FAILED
+
+    def test_compare_widget_query_with_no_metrics_data(self):
+        widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard_2,
+            title="Test No Metrics Data Widget",
+            order=1,
+            display_type=DashboardWidgetDisplayTypes.TABLE,
+            widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+        )
+
+        widget_query = DashboardWidgetQuery.objects.create(
+            widget=widget,
+            name="",
+            order=0,
+            conditions="",
+            aggregates=["p75(measurements.app_start_warm)"],
+            columns=["p75(measurements.app_start_warm)"],
+            fields=["p75(measurements.app_start_warm)"],
+        )
+
+        comparison_result = compare_tables_for_dashboard_widget_queries(widget_query)
+        assert comparison_result["passed"] is True

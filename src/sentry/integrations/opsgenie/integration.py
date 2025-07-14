@@ -14,6 +14,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
+    IntegrationDomain,
     IntegrationFeatures,
     IntegrationInstallation,
     IntegrationMetadata,
@@ -24,9 +25,14 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.on_call.metrics import OnCallIntegrationsHaltReason, OnCallInteractionType
 from sentry.integrations.opsgenie.metrics import record_event
 from sentry.integrations.opsgenie.tasks import migrate_opsgenie_plugin
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.utils.metrics import (
+    IntegrationPipelineViewEvent,
+    IntegrationPipelineViewType,
+)
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline import Pipeline, PipelineView
+from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiRateLimitedError,
@@ -103,24 +109,30 @@ class InstallationForm(forms.Form):
     )
 
 
-class InstallationConfigView(PipelineView):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
-        if request.method == "POST":
-            form = InstallationForm(request.POST)
-            if form.is_valid():
-                form_data = form.cleaned_data
-
-                pipeline.bind_state("installation_data", form_data)
-
-                return pipeline.next_step()
-        else:
-            form = InstallationForm()
-
-        return render_to_response(
-            template="sentry/integrations/opsgenie-config.html",
-            context={"form": form},
-            request=request,
+class InstallationConfigView:
+    def record_event(self, event: IntegrationPipelineViewType):
+        return IntegrationPipelineViewEvent(
+            event, IntegrationDomain.ON_CALL_SCHEDULING, OpsgenieIntegrationProvider.key
         )
+
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
+        with self.record_event(IntegrationPipelineViewType.INSTALLATION_CONFIGURATION).capture():
+            if request.method == "POST":
+                form = InstallationForm(request.POST)
+                if form.is_valid():
+                    form_data = form.cleaned_data
+
+                    pipeline.bind_state("installation_data", form_data)
+
+                    return pipeline.next_step()
+            else:
+                form = InstallationForm()
+
+            return render_to_response(
+                template="sentry/integrations/opsgenie-config.html",
+                context={"form": form},
+                request=request,
+            )
 
 
 class OpsgenieIntegration(IntegrationInstallation):
@@ -243,7 +255,7 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
         ]
     )
 
-    def get_pipeline_views(self) -> list[PipelineView]:
+    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
         return [InstallationConfigView()]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:

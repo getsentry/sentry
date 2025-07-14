@@ -89,7 +89,7 @@ class IssueArgs(TypedDict):
     platform: str | None
     message: str
     level: int | None
-    culprit: str
+    culprit: str | None
     last_seen: datetime
     first_seen: datetime
     active_at: datetime
@@ -126,7 +126,7 @@ def _create_issue_kwargs(
 
 class OccurrenceMetadata(TypedDict):
     type: str
-    culprit: str
+    culprit: str | None
     metadata: Mapping[str, Any]
     title: str
     location: str | None
@@ -199,7 +199,10 @@ def save_issue_from_occurrence(
         cluster_key = settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS.get("cluster", "default")
         client = redis.redis_clusters.get(cluster_key)
         if not should_create_group(occurrence.type, client, primary_hash, project):
-            metrics.incr("issues.issue.dropped.noise_reduction")
+            metrics.incr(
+                "issues.issue.dropped.noise_reduction",
+                tags={"group_type": occurrence.type.slug},
+            )
             return None
 
         with metrics.timer("issues.save_issue_from_occurrence.check_write_limits"):

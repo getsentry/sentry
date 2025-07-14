@@ -38,11 +38,15 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDashboardTemplates} from 'sentry/views/dashboards/data';
+import {useOwnedDashboards} from 'sentry/views/dashboards/hooks/useOwnedDashboards';
 import {
   assignDefaultLayout,
   getInitialColumnDepths,
 } from 'sentry/views/dashboards/layoutUtils';
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
+import OwnedDashboardsTable, {
+  OWNED_CURSOR_KEY,
+} from 'sentry/views/dashboards/manage/tableView/ownedDashboardsTable';
 import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
 import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
@@ -82,6 +86,13 @@ function shouldShowTemplates(): boolean {
 
 function getDashboardsOverviewLayout(): DashboardsLayout {
   const dashboardsLayout = localStorage.getItem(LAYOUT_KEY);
+
+  // There was a bug where the layout was saved as 'list' instead of 'table'
+  // this coerces it back to TABLE in case we still rely on it anywhere
+  if (dashboardsLayout === 'list') {
+    return TABLE;
+  }
+
   return dashboardsLayout === GRID || dashboardsLayout === TABLE
     ? dashboardsLayout
     : GRID;
@@ -122,16 +133,29 @@ function ManageDashboards() {
         query: {
           ...pick(location.query, ['cursor', 'query']),
           sort: getActiveSort()!.value,
-          ...(organization.features.includes('dashboards-favourite')
-            ? {pin: 'favorites'}
-            : {}),
+          pin: 'favorites',
           per_page:
             dashboardsLayout === GRID ? rowCount * columnCount : DASHBOARD_TABLE_NUM_ROWS,
         },
       },
     ],
-    {staleTime: 0}
+    {
+      staleTime: 0,
+      enabled: !(
+        organization.features.includes('dashboards-starred-reordering') &&
+        dashboardsLayout === TABLE
+      ),
+    }
   );
+
+  const ownedDashboards = useOwnedDashboards({
+    query: decodeScalar(location.query.query, ''),
+    cursor: decodeScalar(location.query[OWNED_CURSOR_KEY], ''),
+    sort: getActiveSort()!.value,
+    enabled:
+      organization.features.includes('dashboards-starred-reordering') &&
+      dashboardsLayout === TABLE,
+  });
 
   const dashboardsPageLinks = getResponseHeader?.('Link') ?? '';
 
@@ -257,40 +281,38 @@ function ManageDashboards() {
   function renderActions() {
     const activeSort = getActiveSort();
     return (
-      <StyledActions listView={organization.features.includes('dashboards-table-view')}>
+      <StyledActions>
         <SearchBar
           defaultQuery=""
           query={getQuery()}
           placeholder={t('Search Dashboards')}
           onSearch={query => handleSearch(query)}
         />
-        <Feature features={'organizations:dashboards-table-view'}>
-          <SegmentedControl<DashboardsLayout>
-            onChange={newValue => {
-              setDashboardsLayout(newValue);
-              trackAnalytics('dashboards_manage.change_view_type', {
-                organization,
-                view_type: newValue,
-              });
-            }}
-            size="md"
-            value={dashboardsLayout}
-            aria-label={t('Layout Control')}
-          >
-            <SegmentedControl.Item
-              key="grid"
-              textValue="grid"
-              aria-label={t('Grid View')}
-              icon={<IconGrid />}
-            />
-            <SegmentedControl.Item
-              key="list"
-              textValue="list"
-              aria-label={t('List View')}
-              icon={<IconList />}
-            />
-          </SegmentedControl>
-        </Feature>
+        <SegmentedControl<DashboardsLayout>
+          onChange={newValue => {
+            setDashboardsLayout(newValue);
+            trackAnalytics('dashboards_manage.change_view_type', {
+              organization,
+              view_type: newValue,
+            });
+          }}
+          size="md"
+          value={dashboardsLayout}
+          aria-label={t('Layout Control')}
+        >
+          <SegmentedControl.Item
+            key={GRID}
+            textValue={GRID}
+            aria-label={t('Grid View')}
+            icon={<IconGrid />}
+          />
+          <SegmentedControl.Item
+            key={TABLE}
+            textValue={TABLE}
+            aria-label={t('List View')}
+            icon={<IconList />}
+          />
+        </SegmentedControl>
         <CompactSelect
           triggerProps={{prefix: t('Sort By')}}
           value={activeSort!.value}
@@ -323,6 +345,12 @@ function ManageDashboards() {
         isLoading={isLoading}
         rowCount={rowCount}
         columnCount={columnCount}
+      />
+    ) : organization.features.includes('dashboards-starred-reordering') ? (
+      <OwnedDashboardsTable
+        dashboards={ownedDashboards.data ?? []}
+        isLoading={ownedDashboards.isLoading}
+        pageLinks={ownedDashboards.getResponseHeader?.('Link') ?? undefined}
       />
     ) : (
       <DashboardTable
@@ -426,7 +454,7 @@ function ManageDashboards() {
       features="dashboards-edit"
       renderDisabled={renderNoAccess}
     >
-      <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
+      <SentryDocumentTitle title={t('All Dashboards')} orgSlug={organization.slug}>
         <ErrorBoundary>
           {isError ? (
             <Layout.Page withPadding>
@@ -438,7 +466,7 @@ function ManageDashboards() {
                 <Layout.Header unified={prefersStackedNav}>
                   <Layout.HeaderContent unified={prefersStackedNav}>
                     <Layout.Title>
-                      {t('Dashboards')}
+                      {t('All Dashboards')}
                       <PageHeadingQuestionTooltip
                         docsUrl="https://docs.sentry.io/product/dashboards/"
                         title={t(
@@ -466,7 +494,7 @@ function ManageDashboards() {
                         }}
                         size="sm"
                         priority="primary"
-                        icon={<IconAdd isCircled />}
+                        icon={<IconAdd />}
                       >
                         {t('Create Dashboard')}
                       </Button>
@@ -496,7 +524,10 @@ function ManageDashboards() {
                     <div ref={dashboardGridRef} id="dashboard-list-container">
                       {renderDashboards()}
                     </div>
-                    {renderPagination()}
+                    {!(
+                      organization.features.includes('dashboards-starred-reordering') &&
+                      dashboardsLayout === TABLE
+                    ) && renderPagination()}
                   </Layout.Main>
                 </Layout.Body>
               </NoProjectMessage>
@@ -508,21 +539,20 @@ function ManageDashboards() {
   );
 }
 
-const StyledActions = styled('div')<{listView: boolean}>`
+const StyledActions = styled('div')`
   display: grid;
-  grid-template-columns: ${p =>
-    p.listView ? 'auto max-content max-content' : 'auto max-content'};
+  grid-template-columns: auto max-content max-content;
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto;
   }
 `;
 
 const TemplateSwitch = styled('label')`
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.lg};
   display: flex;
   align-items: center;
   gap: ${space(1)};
@@ -535,11 +565,11 @@ const TemplateContainer = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(0.5)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(2, minmax(200px, 1fr));
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: repeat(4, minmax(200px, 1fr));
   }
 `;

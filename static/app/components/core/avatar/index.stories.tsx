@@ -1,15 +1,15 @@
 import {Fragment} from 'react';
 
-import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
-import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
-import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import * as Storybook from 'sentry/stories';
 
-// eslint-disable-next-line import/no-webpack-loader-syntax
-import types from '!!type-loader!sentry/components/core/avatar/projectAvatar';
+import {DocIntegrationAvatar} from './docIntegrationAvatar';
+import {OrganizationAvatar} from './organizationAvatar';
+import {ProjectAvatar} from './projectAvatar';
+import {SentryAppAvatar} from './sentryAppAvatar';
+import {TeamAvatar} from './teamAvatar';
+import {UserAvatar} from './userAvatar';
+
+import types from '!!type-loader!./projectAvatar';
 
 export default Storybook.story('Avatar', (story, APIReference) => {
   APIReference(types.Avatar);
@@ -17,8 +17,8 @@ export default Storybook.story('Avatar', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          The <code>{'<Avatar user={user} />'}</code> component displays an avatar for a
-          user.
+          The <code>{'<UserAvatar user={user} />'}</code> component displays an avatar for
+          a user.
         </p>
         <UserAvatar
           user={{
@@ -41,8 +41,8 @@ export default Storybook.story('Avatar', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          The <code>{'<Avatar team={team} />'}</code> component displays an avatar for a
-          team.
+          The <code>{'<TeamAvatar team={team} />'}</code> component displays an avatar for
+          a team.
         </p>
         <TeamAvatar
           team={{
@@ -73,8 +73,8 @@ export default Storybook.story('Avatar', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          The <code>{'<Avatar project={project} />'}</code> component displays an avatar
-          for a project.
+          The <code>{'<ProjectAvatar project={project} />'}</code> component displays an
+          avatar for a project.
         </p>
         <ProjectAvatar
           project={{
@@ -89,8 +89,8 @@ export default Storybook.story('Avatar', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          The <code>{'<Avatar organization={organization} />'}</code> component displays
-          an avatar for an organization.
+          The <code>{'<OrganizationAvatar organization={organization} />'}</code>{' '}
+          component displays an avatar for an organization.
         </p>
         <OrganizationAvatar
           organization={{
@@ -131,8 +131,8 @@ export default Storybook.story('Avatar', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          The <code>{'<Avatar sentryApp={sentryApp} />'}</code> component displays an
-          avatar for a SentryApp.
+          The <code>{'<SentryAppAvatar sentryApp={sentryApp} />'}</code> component
+          displays an avatar for a SentryApp.
         </p>
         <SentryAppAvatar
           sentryApp={{
@@ -149,8 +149,8 @@ export default Storybook.story('Avatar', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          The <code>{'<Avatar docIntegration={docIntegration} />'}</code> component
-          displays an avatar for a doc integration.
+          The <code>{'<DocIntegrationAvatar docIntegration={docIntegration} />'}</code>{' '}
+          component displays an avatar for a doc integration.
         </p>
         <DocIntegrationAvatar
           docIntegration={{

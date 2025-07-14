@@ -89,7 +89,11 @@ from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.grouplink import GroupLink
-from sentry.models.groupopenperiod import create_open_period, has_initial_open_period
+from sentry.models.groupopenperiod import (
+    GroupOpenPeriod,
+    create_open_period,
+    has_initial_open_period,
+)
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
@@ -102,6 +106,8 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
+from sentry.performance_issues.performance_detection import detect_performance_problems
+from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
 from sentry.receivers.features import record_event_processed
@@ -132,8 +138,6 @@ from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, i
 from sentry.utils.eventuser import EventUser
 from sentry.utils.metrics import MutableTags
 from sentry.utils.outcomes import Outcome, track_outcome
-from sentry.utils.performance_issues.performance_detection import detect_performance_problems
-from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_span_attribute
@@ -288,6 +292,32 @@ def get_stored_crashreports(cache_key: str | None, event: Event, max_crashreport
     # the currently allowed maximum.
     query = EventAttachment.objects.filter(group_id=event.group_id, type__in=CRASH_REPORT_TYPES)
     return query[:max_crashreports].count()
+
+
+def increment_group_tombstone_hit_counter(tombstone_id: int | None, event: Event) -> None:
+    if tombstone_id is None:
+        return
+    try:
+        from sentry.models.grouptombstone import GroupTombstone
+
+        group_tombstone = GroupTombstone.objects.get(id=tombstone_id)
+        buffer_incr(
+            GroupTombstone,
+            {"times_seen": 1},
+            {"id": tombstone_id},
+            {
+                "last_seen": (
+                    max(event.datetime, group_tombstone.last_seen)
+                    if group_tombstone.last_seen
+                    else event.datetime
+                )
+            },
+        )
+    except GroupTombstone.DoesNotExist:
+        # This can happen due to a race condition with deletion.
+        pass
+    except Exception:
+        logger.exception("Failed to update GroupTombstone count for id: %s", tombstone_id)
 
 
 ProjectsMapping = Mapping[int, Project]
@@ -506,7 +536,11 @@ class EventManager:
         try:
             group_info = assign_event_to_group(event=job["event"], job=job, metric_tags=metric_tags)
 
-        except HashDiscarded:
+        except HashDiscarded as e:
+            if features.has("organizations:grouptombstones-hit-counter", project.organization):
+                increment_group_tombstone_hit_counter(
+                    getattr(e, "tombstone_id", None), job["event"]
+                )
             discard_event(job, attachments)
             raise
 
@@ -749,7 +783,7 @@ def _derive_client_error_sampling_rate(jobs: Sequence[Job], projects: ProjectsMa
                 )
 
                 if client_sample_rate is not None and isinstance(client_sample_rate, (int, float)):
-                    if 0 <= client_sample_rate <= 1:
+                    if 0 < client_sample_rate <= 1:
                         job["data"]["sample_rate"] = client_sample_rate
                     else:
                         logger.warning(
@@ -1471,6 +1505,13 @@ def _create_group(
     group_data["metadata"]["initial_priority"] = priority
     group_creation_kwargs["data"] = group_data
 
+    # Set initial times_seen
+    group_creation_kwargs["times_seen"] = 1
+
+    # If the project is in the allowlist, use the client sample rate to weight the times_seen
+    if project.id in options.get("issues.client_error_sampling.project_allowlist"):
+        group_creation_kwargs["times_seen"] = _get_error_weighted_times_seen(event)
+
     try:
         with transaction.atomic(router.db_for_write(Group)):
             # This is the 99.999% path. The rest of the function is all to handle a very rare and
@@ -1506,8 +1547,22 @@ def _create_group(
             logger.exception("Error after unsticking project counter")
             raise
 
-    create_open_period(group, group.first_seen)
+    if features.has("organizations:issue-open-periods", project.organization):
+        GroupOpenPeriod.objects.create(
+            group=group,
+            project_id=project.id,
+            date_started=group.first_seen,
+            date_ended=None,
+        )
     return group
+
+
+def _get_error_weighted_times_seen(event: BaseEvent) -> int:
+    if event.get_event_type() in ("error", "default"):
+        error_sample_rate = event.data.get("sample_rate")
+        if error_sample_rate is not None and error_sample_rate > 0:
+            return int(1 / error_sample_rate)
+    return 1
 
 
 def _is_stuck_counter_error(err: Exception, project: Project, short_id: int) -> bool:
@@ -1705,7 +1760,7 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
                 }
             )
 
-        Activity.objects.create_group_activity(
+        activity = Activity.objects.create_group_activity(
             group,
             ActivityType.SET_REGRESSION,
             data=activity_data,
@@ -1716,7 +1771,7 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
             kwargs={"project_id": group.project_id, "group_id": group.id}
         )
         if has_initial_open_period(group):
-            create_open_period(group, date)
+            create_open_period(group, activity.datetime)
 
     return is_regression
 
@@ -1821,7 +1876,11 @@ def _process_existing_aggregate(
 
     # We pass `times_seen` separately from all of the other columns so that `buffer_inr` knows to
     # increment rather than overwrite the existing value
-    buffer_incr(Group, {"times_seen": 1}, {"id": group.id}, updated_group_values)
+    times_seen = 1
+    if group.project.id in options.get("issues.client_error_sampling.project_allowlist"):
+        times_seen = _get_error_weighted_times_seen(event)
+
+    buffer_incr(Group, {"times_seen": times_seen}, {"id": group.id}, updated_group_values)
 
     return bool(is_regression)
 
@@ -2372,7 +2431,6 @@ def save_attachment(
         size=file.size,
         sha1=file.sha1,
         # storage:
-        file_id=file.file_id,
         blob_path=file.blob_path,
     )
 
@@ -2480,6 +2538,8 @@ INSIGHT_MODULE_TO_PROJECT_FLAG_NAME: dict[InsightModules, str] = {
     InsightModules.CACHE: "has_insights_caches",
     InsightModules.QUEUE: "has_insights_queues",
     InsightModules.LLM_MONITORING: "has_insights_llm_monitoring",
+    InsightModules.AGENTS: "has_insights_agent_monitoring",
+    InsightModules.MCP: "has_insights_mcp",
 }
 
 

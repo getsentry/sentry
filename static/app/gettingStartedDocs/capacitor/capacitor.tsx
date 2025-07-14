@@ -2,13 +2,13 @@ import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/bui
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
   PlatformOption,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getCrashReportJavaScriptInstallStep,
@@ -222,7 +222,7 @@ function getVueConstSetup(siblingOption: string): string {
 }
 
 const getIntegrations = (params: Params): string[] => {
-  const integrations: string[] = ['SentrySibling.browserTracingIntegration()'];
+  const integrations: string[] = ['Sentry.browserTracingIntegration()'];
 
   if (params.isPerformanceSelected) {
     integrations.push(`

@@ -7,13 +7,15 @@ import {Referrer} from 'sentry/views/insights/cache/referrers';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
-import {SpanFunction} from 'sentry/views/insights/types';
+import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
 type Props = {
   search: MutableSearch;
 };
 
 export function CacheHitMissChart({search}: Props) {
+  const referrer = Referrer.SAMPLES_CACHE_HIT_MISS_CHART;
+
   const {
     data,
     isPending: isCacheHitRateLoading,
@@ -24,12 +26,20 @@ export function CacheHitMissChart({search}: Props) {
       yAxis: [`${SpanFunction.CACHE_MISS_RATE}()`],
       transformAliasToInputFormat: true,
     },
-    Referrer.SAMPLES_CACHE_HIT_MISS_CHART
+    referrer
   );
+
+  // explore/alerts doesn't support `cache_miss_rate`, so this is used as a comparable query
+  const queryInfo = {
+    yAxis: [`${SpanFunction.COUNT}(span.duration)`],
+    search,
+    groupBy: [SpanFields.CACHE_HIT],
+    referrer,
+  };
 
   return (
     <InsightsLineChartWidget
-      search={search}
+      queryInfo={queryInfo}
       title={DataTitles[`cache_miss_rate()`]}
       series={[data[`cache_miss_rate()`]]}
       showLegend="never"

@@ -4,6 +4,8 @@ import type {KnipConfig} from 'knip';
 const productionEntryPoints = [
   // the main entry points - app, gsAdmin & gsApp
   'static/app/index.tsx',
+  // chartcuterie build script
+  'config/build-chartcuterie.ts',
   // dynamic imports _not_ recognized by knip
   'static/app/bootstrap/{index,initializeMain}.tsx',
   'static/gsApp/initializeBundleMetrics.tsx',
@@ -24,8 +26,6 @@ const productionEntryPoints = [
 ];
 
 const testingEntryPoints = [
-  // benchmarks are opt-in for development
-  'static/app/**/*.benchmark.{js,mjs,ts,tsx}',
   // jest uses this
   'tests/js/test-balancer/index.js',
 ];
@@ -59,8 +59,6 @@ const config: KnipConfig = {
   },
   ignoreDependencies: [
     'core-js',
-    '@babel/runtime', // used implicitly alongside @babel/plugin-transform-runtime
-    'tsconfig-paths', // passed as cli arg to benchmarking
     'eslint-import-resolver-typescript', // used in eslint config
     'jest-environment-jsdom', // used as testEnvironment in jest config
     'swc-plugin-component-annotate', // used in rspack config, needs better knip plugin
@@ -70,17 +68,18 @@ const config: KnipConfig = {
     '@types/webpack-env', // needed to make require.context work
     '@types/stripe-v3', // needed for global `stripe` namespace typings
     '@types/gtag.js', // needed for global `gtag` namespace typings
-    '@babel/plugin-transform-runtime', // Still used in jest
     '@babel/preset-env', // Still used in jest
     '@babel/preset-react', // Still used in jest
     '@babel/preset-typescript', // Still used in jest
     '@emotion/babel-plugin', // Still used in jest
+    'terser', // Still used in a loader
   ],
   rules: {
     binaries: 'off',
     enumMembers: 'off',
     unlisted: 'off',
   },
+  include: ['nsExports', 'nsTypes'],
 };
 
 export default config;

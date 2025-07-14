@@ -5,7 +5,13 @@ from django.urls import reverse
 from rest_framework.exceptions import ParseError
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
-from sentry.testutils.cases import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
+from sentry.testutils.cases import (
+    APITestCase,
+    MetricsEnhancedPerformanceTestCase,
+    OurLogTestCase,
+    SnubaTestCase,
+    SpanTestCase,
+)
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
@@ -16,7 +22,11 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationEventsMetaEndpoint(
-    APITestCase, MetricsEnhancedPerformanceTestCase, SearchIssueTestMixin
+    APITestCase,
+    MetricsEnhancedPerformanceTestCase,
+    SearchIssueTestMixin,
+    SpanTestCase,
+    OurLogTestCase,
 ):
     def setUp(self):
         super().setUp()
@@ -38,6 +48,35 @@ class OrganizationEventsMetaEndpoint(
 
         assert response.status_code == 200, response.content
         assert response.data["count"] == 1
+
+    def test_spans_dataset(self):
+        self.store_spans([self.create_span(start_ts=self.min_ago)], is_eap=True)
+
+        with self.feature(self.features):
+            response = self.client.get(self.url, format="json", data={"dataset": "spans"})
+
+        assert response.status_code == 200, response.content
+        assert response.data["count"] == 1
+
+    def test_logs_dataset(self):
+        self.store_ourlogs(
+            [
+                self.create_ourlog(
+                    {"body": "foo"},
+                    timestamp=self.min_ago,
+                ),
+                self.create_ourlog(
+                    {"body": "bar"},
+                    timestamp=self.min_ago,
+                ),
+            ]
+        )
+
+        with self.feature(self.features):
+            response = self.client.get(self.url, format="json", data={"dataset": "ourlogs"})
+
+        assert response.status_code == 200, response.content
+        assert response.data["count"] == 2
 
     def test_multiple_projects(self):
         project2 = self.create_project()

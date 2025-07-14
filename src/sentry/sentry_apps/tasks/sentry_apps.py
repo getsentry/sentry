@@ -11,6 +11,7 @@ from requests.exceptions import RequestException
 
 from sentry import analytics, features, nodestore
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.group import BaseGroupSerializerResponse
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models.base import Model
 from sentry.eventstore.models import BaseEvent, Event, GroupEvent
@@ -45,6 +46,7 @@ from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError,
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import sentryapp_control_tasks, sentryapp_tasks
 from sentry.taskworker.retry import Retry, retry_task
 from sentry.types.rules import RuleFuture
@@ -124,6 +126,25 @@ def _webhook_event_data(
     return event_context
 
 
+class WebhookGroupResponse(BaseGroupSerializerResponse):
+    web_url: str
+    project_url: str
+    url: str
+
+
+def _webhook_issue_data(
+    group: Group, serialized_group: BaseGroupSerializerResponse
+) -> WebhookGroupResponse:
+
+    webhook_payload = WebhookGroupResponse(
+        url=group.get_absolute_api_url(),
+        web_url=group.get_absolute_url(),
+        project_url=group.project.get_absolute_url(),
+        **serialized_group,
+    )
+    return webhook_payload
+
+
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook_v2",
     taskworker_config=TaskworkerConfig(
@@ -132,6 +153,7 @@ def _webhook_event_data(
             times=3,
             delay=60 * 5,
         ),
+        processing_deadline_duration=20,
     ),
     **TASK_OPTIONS,
 )
@@ -308,7 +330,7 @@ def _process_resource_change(
             except model.DoesNotExist as e:
                 # Explicitly requeue the task, so we don't report this to Sentry until
                 # we hit the max number of retries.
-                return retry_task(e)
+                retry_task(e)
 
         org = None
 
@@ -325,12 +347,13 @@ def _process_resource_change(
                 )
                 if event in installation.sentry_app.events
             ]
-            data = {}
+            data: dict[str, Any] = {}
             if isinstance(instance, (Event, GroupEvent)):
                 assert instance.group_id, "group id is required to create webhook event data"
                 data[name] = _webhook_event_data(instance, instance.group_id, instance.project_id)
-            else:
-                data[name] = serialize(instance)
+            elif isinstance(instance, Group):
+                serialized_group = serialize(instance)
+                data[name] = _webhook_issue_data(group=instance, serialized_group=serialized_group)
 
             # Datetimes need to be string cast for task payloads.
             for date_key in ("datetime", "firstSeen", "lastSeen"):
@@ -412,6 +435,7 @@ def _does_project_filter_allow_project(service_hook_id: int, project_id: int) ->
             times=3,
             delay=60 * 5,
         ),
+        processing_deadline_duration=150,
     ),
     **TASK_OPTIONS,
 )
@@ -466,6 +490,7 @@ def installation_webhook(installation_id: int, user_id: int, *args: Any, **kwarg
             times=3,
             delay=60 * 5,
         ),
+        processing_deadline_duration=30,
     ),
     **CONTROL_TASK_OPTIONS,
 )
@@ -630,6 +655,7 @@ def get_webhook_data(
             times=3,
             delay=60 * 5,
         ),
+        compression_type=CompressionType.ZSTD,
     ),
     **TASK_OPTIONS,
 )
@@ -757,16 +783,24 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
 
 @instrumented_task(
     "sentry.sentry_apps.tasks.sentry_apps.create_or_update_service_hooks_for_sentry_app",
-    taskworker_config=TaskworkerConfig(namespace=sentryapp_control_tasks, retry=Retry(times=3)),
+    taskworker_config=TaskworkerConfig(
+        namespace=sentryapp_control_tasks, retry=Retry(times=3), processing_deadline_duration=60
+    ),
     **CONTROL_TASK_OPTIONS,
 )
 def create_or_update_service_hooks_for_sentry_app(
     sentry_app_id: int, webhook_url: str, events: list[str], **kwargs: dict
 ) -> None:
-    installations = SentryAppInstallation.objects.filter(sentry_app_id=sentry_app_id)
-    for installation in installations:
-        create_or_update_service_hooks_for_installation(
-            installation=installation,
-            events=events,
-            webhook_url=webhook_url,
-        )
+    with SentryAppInteractionEvent(
+        operation_type=SentryAppInteractionType.MANAGEMENT,
+        event_type=SentryAppEventType.WEBHOOK_UPDATE,
+    ).capture() as lifecycle:
+        lifecycle.add_extras({"sentry_app_id": sentry_app_id, "events": events})
+        installations = SentryAppInstallation.objects.filter(sentry_app_id=sentry_app_id)
+
+        for installation in installations:
+            create_or_update_service_hooks_for_installation(
+                installation=installation,
+                events=events,
+                webhook_url=webhook_url,
+            )

@@ -1,4 +1,4 @@
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TeamParticipant, UserParticipant} from 'sentry/types/group';

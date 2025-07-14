@@ -28,12 +28,14 @@ export type Project = {
   hasCustomMetrics: boolean;
   hasFeedbacks: boolean;
   hasFlags: boolean;
+  hasInsightsAgentMonitoring: boolean;
   hasInsightsAppStart: boolean;
   hasInsightsAssets: boolean;
   hasInsightsCaches: boolean;
   hasInsightsDb: boolean;
   hasInsightsHttp: boolean;
   hasInsightsLlmMonitoring: boolean;
+  hasInsightsMCP: boolean;
   hasInsightsQueues: boolean;
   hasInsightsScreenLoad: boolean;
   hasInsightsVitals: boolean;
@@ -64,7 +66,7 @@ export type Project = {
   team: Team;
   teams: Team[];
   verifySSL: boolean;
-  autofixAutomationTuning?: 'off' | 'low' | 'medium' | 'high' | 'always';
+  autofixAutomationTuning?: 'off' | 'super_low' | 'low' | 'medium' | 'high' | 'always';
   builtinSymbolSources?: string[];
   defaultEnvironment?: string;
   eventProcessing?: {
@@ -82,6 +84,7 @@ export type Project = {
   options?: Record<string, boolean | string>;
   securityToken?: string;
   securityTokenHeader?: string;
+  seerScannerAutomation?: boolean;
   sessionStats?: {
     currentCrashFreeRate: number | null;
     hasHealthData: boolean;
@@ -109,6 +112,7 @@ export type ProjectKey = {
     crons: string;
     csp: string;
     minidump: string;
+    playstation: string;
     public: string;
     secret: string;
     security: string;
@@ -226,6 +230,7 @@ export type PlatformKey =
   | 'javascript-nextjs'
   | 'javascript-nuxt'
   | 'javascript-react'
+  | 'javascript-react-router'
   | 'javascript-remix'
   | 'javascript-solid'
   | 'javascript-solidstart'

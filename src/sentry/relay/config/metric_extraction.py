@@ -748,7 +748,7 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
             metrics.incr(
                 "on_demand_metrics.cardinality_check.query.success", tags={"low_cardinality": False}
             )
-            sentry_sdk.capture_exception(error)
+            sentry_sdk.capture_message(str(error))
             return False
 
     metrics.incr(

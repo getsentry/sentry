@@ -502,6 +502,7 @@ class PerformanceStreamedSpansGroupTypeExperimental(GroupType):
     default_priority = PriorityLevel.LOW
 
 
+# Experimental Group Type for Query Injection Vulnerability
 @dataclass(frozen=True)
 class DBQueryInjectionVulnerabilityGroupType(GroupType):
     type_id = 1020
@@ -511,6 +512,20 @@ class DBQueryInjectionVulnerabilityGroupType(GroupType):
     category_v2 = GroupCategory.DB_QUERY.value
     enable_auto_resolve = False
     enable_escalation_detection = False
+    noise_config = NoiseConfig(ignore_limit=5)
+    default_priority = PriorityLevel.MEDIUM
+
+
+@dataclass(frozen=True)
+class QueryInjectionVulnerabilityGroupType(PerformanceGroupTypeDefaults, GroupType):
+    type_id = 1021
+    slug = "query_injection_vulnerability"
+    description = "Potential Query Injection Vulnerability"
+    category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.DB_QUERY.value
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+    noise_config = NoiseConfig(ignore_limit=5)
     default_priority = PriorityLevel.MEDIUM
 
 
@@ -692,7 +707,7 @@ def should_create_group(
     )
 
     if over_threshold:
-        client.delete(grouphash)
+        client.delete(key)
         return True
     else:
         client.expire(key, noise_config.expiry_seconds)

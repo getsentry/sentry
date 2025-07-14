@@ -49,7 +49,7 @@ function StickyEventNav({event, group}: {event: Event; group: Group}) {
   const theme = useTheme();
   const [nav, setNav] = useState<HTMLDivElement | null>(null);
   const isStuck = useIsStuck(nav);
-  const isScreenMedium = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+  const isScreenMedium = useMedia(`(max-width: ${theme.breakpoints.md})`);
   const {dispatch} = useIssueDetails();
   const prefersStackedNav = usePrefersStackedNav();
   const sidebarHeight = isScreenMedium

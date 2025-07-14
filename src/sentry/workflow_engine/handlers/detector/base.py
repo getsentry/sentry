@@ -9,7 +9,7 @@ from typing import Any, Generic, TypeVar
 from sentry.issues.grouptype import GroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.types.actor import Actor
-from sentry.workflow_engine.models import Condition, DataConditionGroup, DataPacket, Detector
+from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detector
 from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
 from sentry.workflow_engine.types import (
     DetectorEvaluationResult,
@@ -29,11 +29,8 @@ EventData = dict[str, Any]
 class EvidenceData(Generic[DataPacketEvaluationType]):
     value: DataPacketEvaluationType
     detector_id: int
-    data_source_ids: list[int]
-    data_condition_ids: list[int]
-    data_condition_type: Condition
-    # Represents the actual value that we are comparing against
-    data_condition_comparison_value: DataPacketEvaluationType
+    data_packet_source_id: int
+    conditions: list[dict[str, Any]]
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)

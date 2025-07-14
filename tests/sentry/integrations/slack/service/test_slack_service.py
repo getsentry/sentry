@@ -128,7 +128,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
 
         with mock.patch.object(self.service, "_logger") as mock_logger:
             self.service.notify_all_threads_for_activity(activity=self.activity)
-            mock_logger.info.assert_called_with(
+            mock_logger.debug.assert_called_with(
                 "no group associated on the activity, nothing to do",
                 extra={
                     "activity_id": self.activity.id,
@@ -141,7 +141,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
 
         with mock.patch.object(self.service, "_logger") as mock_logger:
             self.service.notify_all_threads_for_activity(activity=self.activity)
-            mock_logger.info.assert_called_with(
+            mock_logger.debug.assert_called_with(
                 "machine/system updates are ignored at this time, nothing to do",
                 extra={
                     "activity_id": self.activity.id,

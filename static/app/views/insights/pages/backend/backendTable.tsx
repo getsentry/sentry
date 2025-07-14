@@ -2,10 +2,10 @@ import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import type {GridColumnHeader} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
+import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -221,11 +221,15 @@ function renderBodyCell(
   }
 
   if (column.key === 'transaction') {
+    // In eap, blank transaction ops are set to `default` but not in non-eap.
+    // The transaction summary is not eap yet, so we should exclude the `default` transaction.op filter
+    const spanOp =
+      row['span.op'].toLowerCase() === 'default' ? undefined : row['span.op'];
     return (
       <TransactionCell
         project={row.project}
         transaction={row.transaction}
-        transactionMethod={row['span.op']}
+        transactionMethod={spanOp}
       />
     );
   }

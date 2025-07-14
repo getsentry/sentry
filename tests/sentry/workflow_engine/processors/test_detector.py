@@ -1,17 +1,36 @@
 import unittest
+import uuid
 from datetime import UTC, datetime
 from unittest import mock
 from unittest.mock import call
 
+import pytest
+from django.utils import timezone
+
+from sentry.eventstore.models import GroupEvent
+from sentry.incidents.grouptype import MetricIssue
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.models.activity import Activity
+from sentry.models.group import GroupStatus
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.detector import DetectorStateData
 from sentry.workflow_engine.handlers.detector.stateful import get_redis_client
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
-from sentry.workflow_engine.processors.detector import process_detectors
-from sentry.workflow_engine.types import DetectorEvaluationResult, DetectorPriorityLevel
+from sentry.workflow_engine.processors.detector import (
+    get_detector_by_event,
+    get_detectors_by_groupevents_bulk,
+    process_detectors,
+)
+from sentry.workflow_engine.types import (
+    DetectorEvaluationResult,
+    DetectorPriorityLevel,
+    WorkflowEventData,
+)
 from tests.sentry.workflow_engine.handlers.detector.test_base import (
     BaseDetectorHandlerTest,
     MockDetectorStateHandler,
@@ -43,7 +62,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
 
     @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
     def test_state_results(self, mock_produce_occurrence_to_kafka):
-        detector = self.create_detector_and_conditions(type=self.handler_state_type.slug)
+        detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
         results = process_detectors(data_packet, [detector])
 
@@ -83,7 +102,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
 
     @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
     def test_state_results_multi_group(self, mock_produce_occurrence_to_kafka):
-        detector = self.create_detector_and_conditions(type=self.handler_state_type.slug)
+        detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {"group_1": 6, "group_2": 10}})
         results = process_detectors(data_packet, [detector])
 
@@ -193,17 +212,98 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
                 tags={"detector_type": detector.type},
             )
 
-    def test_sending_metric_with_results(self):
-        detector = self.create_detector(type=self.update_handler_type.slug)
-        data_packet = self.build_data_packet()
+    @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
+    @mock.patch("sentry.workflow_engine.processors.detector.metrics")
+    @mock.patch("sentry.workflow_engine.processors.detector.logger")
+    def test_metrics_and_logs_fire(
+        self, mock_logger, mock_metrics, mock_produce_occurrence_to_kafka
+    ):
+        detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
+        data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
+        results = process_detectors(data_packet, [detector])
 
-        with mock.patch("sentry.utils.metrics.incr") as mock_incr:
-            process_detectors(data_packet, [detector])
+        detector_occurrence, event_data = build_mock_occurrence_and_event(
+            detector.detector_handler, None, PriorityLevel.HIGH
+        )
 
-            mock_incr.assert_any_call(
-                "workflow_engine.process_detector.triggered",
-                tags={"detector_type": detector.type},
+        issue_occurrence, expected_event_data = self.detector_to_issue_occurrence(
+            detector_occurrence=detector_occurrence,
+            detector=detector,
+            group_key=None,
+            value=6,
+            priority=DetectorPriorityLevel.HIGH,
+            detection_time=datetime.now(UTC),
+            occurrence_id=str(self.mock_uuid4.return_value),
+        )
+
+        result = DetectorEvaluationResult(
+            group_key=None,
+            is_triggered=True,
+            priority=DetectorPriorityLevel.HIGH,
+            result=issue_occurrence,
+            event_data=expected_event_data,
+        )
+        assert results == [
+            (
+                detector,
+                {result.group_key: result},
             )
+        ]
+        mock_produce_occurrence_to_kafka.assert_called_once_with(
+            payload_type=PayloadType.OCCURRENCE,
+            occurrence=issue_occurrence,
+            status_change=None,
+            event_data=expected_event_data,
+        )
+        mock_metrics.incr.assert_has_calls(
+            [
+                call(
+                    "workflow_engine.process_detector.triggered",
+                    tags={"detector_type": detector.type},
+                ),
+            ],
+        )
+        assert mock_logger.info.call_count == 1
+        assert mock_logger.info.call_args[0][0] == "detector_triggered"
+
+    @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
+    @mock.patch("sentry.workflow_engine.processors.detector.metrics")
+    @mock.patch("sentry.workflow_engine.processors.detector.logger")
+    def test_metrics_and_logs_resolve(
+        self, mock_logger, mock_metrics, mock_produce_occurrence_to_kafka
+    ):
+        detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
+        data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
+        process_detectors(data_packet, [detector])
+
+        build_mock_occurrence_and_event(detector.detector_handler, None, PriorityLevel.HIGH)
+
+        data_packet = DataPacket("1", {"dedupe": 3, "group_vals": {None: 0}})
+        result = DetectorEvaluationResult(
+            group_key=None,
+            is_triggered=False,
+            priority=DetectorPriorityLevel.OK,
+            result=StatusChangeMessage(
+                fingerprint=[f"detector:{detector.id}"],
+                project_id=self.project.id,
+                new_status=GroupStatus.RESOLVED,
+                new_substatus=None,
+                id=str(self.mock_uuid4.return_value),
+            ),
+            event_data=None,
+        )
+        results = process_detectors(data_packet, [detector])
+        assert results == [(detector, {result.group_key: result})]
+        mock_metrics.incr.assert_has_calls(
+            [
+                call(
+                    "workflow_engine.process_detector.resolved",
+                    tags={"detector_type": detector.type},
+                ),
+            ],
+        )
+        assert mock_logger.info.call_count == 2
+        assert mock_logger.info.call_args[0][0] == "detector_resolved"
 
     def test_doesnt_send_metric(self):
         detector = self.create_detector(type=self.no_handler_type.slug)
@@ -710,3 +810,168 @@ class TestEvaluateGroupValue(BaseDetectorHandlerTest):
                 },
             )
         }
+
+
+class TestGetDetectorByEvent(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+        self.detector = self.create_detector(project=self.project, type="metric_issue")
+        self.error_detector = self.create_detector(project=self.project, type="error")
+        self.event = self.store_event(project_id=self.project.id, data={})
+        self.occurrence = IssueOccurrence(
+            id=uuid.uuid4().hex,
+            project_id=1,
+            event_id="asdf",
+            fingerprint=["asdf"],
+            issue_title="title",
+            subtitle="subtitle",
+            resource_id=None,
+            evidence_data={"detector_id": self.detector.id},
+            evidence_display=[],
+            type=MetricIssue,
+            detection_time=timezone.now(),
+            level="error",
+            culprit="",
+        )
+
+    def test_with_occurrence(self):
+        group_event = GroupEvent.from_event(self.event, self.group)
+        group_event.occurrence = self.occurrence
+
+        event_data = WorkflowEventData(event=group_event, group=self.group)
+
+        result = get_detector_by_event(event_data)
+
+        assert result == self.detector
+
+    def test_without_occurrence(self):
+        group_event = GroupEvent.from_event(self.event, self.group)
+        group_event.occurrence = None
+
+        event_data = WorkflowEventData(event=group_event, group=self.group)
+
+        result = get_detector_by_event(event_data)
+
+        assert result == self.error_detector
+
+    def test_activity_not_supported(self):
+        activity = Activity.objects.create(
+            project=self.project,
+            group=self.group,
+            type=ActivityType.SET_RESOLVED.value,
+            user_id=self.user.id,
+        )
+
+        event_data = WorkflowEventData(event=activity, group=self.group)
+
+        with pytest.raises(TypeError):
+            get_detector_by_event(event_data)
+
+    def test_no_detector_id(self):
+        occurrence = IssueOccurrence(
+            id=uuid.uuid4().hex,
+            project_id=1,
+            event_id="asdf",
+            fingerprint=["asdf"],
+            issue_title="title",
+            subtitle="subtitle",
+            resource_id=None,
+            evidence_data={},
+            evidence_display=[],
+            type=MetricIssue,
+            detection_time=timezone.now(),
+            level="error",
+            culprit="",
+        )
+
+        group_event = GroupEvent.from_event(self.event, self.group)
+        group_event.occurrence = occurrence
+
+        event_data = WorkflowEventData(event=group_event, group=self.group)
+
+        with pytest.raises(Detector.DoesNotExist):
+            get_detector_by_event(event_data)
+
+
+class TestGetDetectorsByGroupEventsBulk(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.project1 = self.create_project()
+        self.project2 = self.create_project()
+        self.group1 = self.create_group(project=self.project1)
+        self.group2 = self.create_group(project=self.project2)
+
+        self.detector1 = self.create_detector(project=self.project1, type="metric_issue")
+        self.detector2 = self.create_detector(project=self.project2, type="error")
+        self.detector3 = self.create_detector(project=self.project2, type="metric_issue")
+
+        self.event1 = self.store_event(project_id=self.project1.id, data={})
+        self.event2 = self.store_event(project_id=self.project2.id, data={})
+
+    def test_empty_list(self):
+        result = get_detectors_by_groupevents_bulk([])
+        assert result == {}
+
+    def test_mixed_occurrences(self):
+        """Test bulk fetch with mixed events (some with occurrences, some without)"""
+        occurrence = IssueOccurrence(
+            id=uuid.uuid4().hex,
+            project_id=1,
+            event_id="asdf",
+            fingerprint=["asdf"],
+            issue_title="title",
+            subtitle="subtitle",
+            resource_id=None,
+            evidence_data={"detector_id": self.detector1.id},
+            evidence_display=[],
+            type=MetricIssue,
+            detection_time=timezone.now(),
+            level="error",
+            culprit="",
+        )
+
+        group_event1 = GroupEvent.from_event(self.event1, self.group1)
+        group_event1.occurrence = occurrence
+
+        group_event2 = GroupEvent.from_event(self.event2, self.group2)
+        group_event2.occurrence = None
+
+        events = [group_event1, group_event2]
+        result = get_detectors_by_groupevents_bulk(events)
+
+        assert result[group_event1.event_id] == self.detector1
+        assert result[group_event2.event_id] == self.detector2
+        assert len(result) == 2
+
+    def test_mixed_occurrences_missing_detectors(self):
+        occurrence = IssueOccurrence(
+            id=uuid.uuid4().hex,
+            project_id=1,
+            event_id="asdf",
+            fingerprint=["asdf"],
+            issue_title="title",
+            subtitle="subtitle",
+            resource_id=None,
+            evidence_data={},
+            evidence_display=[],
+            type=MetricIssue,
+            detection_time=timezone.now(),
+            level="error",
+            culprit="",
+        )
+        self.detector2.delete()
+
+        group_event1 = GroupEvent.from_event(self.event1, self.group1)
+        group_event1.occurrence = occurrence
+
+        group_event2 = GroupEvent.from_event(self.event2, self.group2)
+        group_event2.occurrence = None
+
+        events = [group_event1, group_event2]
+
+        with mock.patch("sentry.workflow_engine.processors.detector.metrics") as mock_metrics:
+            result = get_detectors_by_groupevents_bulk(events)
+
+            assert result == {}
+            mock_metrics.incr.assert_called_with("workflow_engine.detectors.error", amount=1)

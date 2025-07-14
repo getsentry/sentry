@@ -1,7 +1,11 @@
+import {Button} from 'sentry/components/core/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {IconCopy} from 'sentry/icons/iconCopy';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getSourceMapsWizardSnippet} from 'sentry/utils/getSourceMapsWizardSnippet';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
 export function getUploadSourceMapsStep({
   guideLink,
@@ -11,11 +15,11 @@ export function getUploadSourceMapsStep({
   newOrg,
   isSelfHosted,
   description,
+  projectSlug,
 }: DocsParams & {
   description?: React.ReactNode;
   guideLink?: string;
 }) {
-  const urlParam = isSelfHosted ? '' : '--saas';
   return {
     collapsible: true,
     title: t('Upload Source Maps (Optional)'),
@@ -32,7 +36,11 @@ export function getUploadSourceMapsStep({
     configurations: [
       {
         language: 'bash',
-        code: `npx @sentry/wizard@latest -i sourcemaps ${urlParam}`,
+        code: getSourceMapsWizardSnippet({
+          isSelfHosted,
+          organization,
+          projectSlug,
+        }),
         onCopy: () => {
           if (!organization || !projectId || !platformKey) {
             return;
@@ -65,6 +73,42 @@ export function getUploadSourceMapsStep({
             }
           );
         },
+      },
+    ],
+  };
+}
+
+function CopyRulesButton({rules}: {rules: string}) {
+  const {onClick} = useCopyToClipboard({text: rules});
+  return (
+    <Button size="xs" icon={<IconCopy />} onClick={onClick}>
+      {t('Copy Rules')}
+    </Button>
+  );
+}
+
+export function getAIRulesForCodeEditorStep({rules}: {rules: string}) {
+  return {
+    collapsible: true,
+    title: t('AI Rules for Code Editors (Optional)'),
+    description: tct(
+      'Sentry provides a set of rules you can use to help your LLM use Sentry correctly. Copy this file and add it to your projects rules configuration. When created as a rules file this should be placed alongside other editor specific rule files. For example, if you are using Cursor, place this file in the [code:.cursorrules] directory.',
+      {
+        code: <code />,
+      }
+    ),
+    trailingItems: <CopyRulesButton rules={rules} />,
+    configurations: [
+      {
+        code: [
+          {
+            label: 'Markdown',
+            value: 'md',
+            language: 'md',
+            filename: 'rules.md',
+            code: rules,
+          },
+        ],
       },
     ],
   };

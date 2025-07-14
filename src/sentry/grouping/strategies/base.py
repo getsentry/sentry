@@ -75,7 +75,7 @@ def strategy(
         in the event, only exception will be used for hash
     """
 
-    name = interface.path
+    name = interface.external_type
 
     if not ids:
         raise TypeError("no ids given")
@@ -95,10 +95,11 @@ def strategy(
 
 
 class GroupingContext:
-    def __init__(self, strategy_config: StrategyConfiguration):
+    def __init__(self, strategy_config: StrategyConfiguration, event: Event):
         # The initial context is essentially the grouping config options
         self._stack = [strategy_config.initial_context]
         self.config = strategy_config
+        self.event = event
         self.push()
         self["variant"] = None
 

@@ -100,7 +100,7 @@ default_manager.add(
         event_id=36,
         name="PROJECT_ACCEPT_TRANSFER",
         api_name="project.accept-transfer",
-        template="accepted transfer of project {slug}",
+        template="accepted transfer of project {project_slug} from {old_organization_slug} to {new_organization_slug}",
     )
 )
 default_manager.add(events.ProjectEnableAuditLogEvent())
@@ -626,16 +626,6 @@ default_manager.add(
         name="MEMBER_REINVITE",
         api_name="member.reinvite",
         template="reinvited member {email}",
-    )
-)
-
-default_manager.add(events.DataSecrecyWaivedAuditLogEvent())
-
-default_manager.add(
-    AuditLogEvent(
-        event_id=1142,
-        name="DATA_SECRECY_REINSTATED",
-        api_name="data-secrecy.reinstated",
     )
 )
 

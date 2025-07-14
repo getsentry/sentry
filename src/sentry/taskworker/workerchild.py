@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import base64
 import contextlib
-import dataclasses
 import logging
 import queue
 import signal
@@ -14,6 +14,7 @@ from typing import Any
 # XXX: Don't import any modules that will import django here, do those within child_process
 import orjson
 import sentry_sdk
+import zstandard as zstd
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TASK_ACTIVATION_STATUS_COMPLETE,
     TASK_ACTIVATION_STATUS_FAILURE,
@@ -24,6 +25,10 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
 from sentry_sdk.consts import OP, SPANDATA, SPANSTATUS
 from sentry_sdk.crons import MonitorStatus, capture_checkin
 
+from sentry.taskworker.client.inflight_task_activation import InflightTaskActivation
+from sentry.taskworker.client.processing_result import ProcessingResult
+from sentry.taskworker.constants import CompressionType
+
 logger = logging.getLogger("sentry.taskworker.worker")
 
 AT_MOST_ONCE_TIMEOUT = 60 * 60 * 24  # 1 day
@@ -31,14 +36,6 @@ AT_MOST_ONCE_TIMEOUT = 60 * 60 * 24  # 1 day
 
 class ProcessingDeadlineExceeded(BaseException):
     pass
-
-
-@dataclasses.dataclass
-class ProcessingResult:
-    """Result structure from child processess to parent"""
-
-    task_id: str
-    status: TaskActivationStatus.ValueType
 
 
 def child_worker_init(process_type: str) -> None:
@@ -83,6 +80,19 @@ def get_at_most_once_key(namespace: str, taskname: str, task_id: str) -> str:
     return f"tw:amo:{namespace}:{taskname}:{task_id}"
 
 
+def load_parameters(data: str, headers: dict[str, str]) -> dict[str, Any]:
+    compression_type = headers.get("compression-type", None)
+    if not compression_type or compression_type == CompressionType.PLAINTEXT.value:
+        return orjson.loads(data)
+    elif compression_type == CompressionType.ZSTD.value:
+        return orjson.loads(zstd.decompress(base64.b64decode(data)))
+    else:
+        logger.error(
+            "Unsupported compression type: %s. Continuing with plaintext.", compression_type
+        )
+        return orjson.loads(data)
+
+
 def status_name(status: TaskActivationStatus.ValueType) -> str:
     """Convert a TaskActivationStatus to a human readable name"""
     if status == TASK_ACTIVATION_STATUS_COMPLETE:
@@ -95,7 +105,7 @@ def status_name(status: TaskActivationStatus.ValueType) -> str:
 
 
 def child_process(
-    child_tasks: queue.Queue[TaskActivation],
+    child_tasks: queue.Queue[InflightTaskActivation],
     processed_tasks: queue.Queue[ProcessingResult],
     shutdown_event: Event,
     max_task_count: int | None,
@@ -116,6 +126,7 @@ def child_process(
 
     from sentry import usage_accountant
     from sentry.taskworker.registry import taskregistry
+    from sentry.taskworker.retry import NoRetriesRemainingError
     from sentry.taskworker.state import clear_current_task, current_task, set_current_task
     from sentry.taskworker.task import Task
     from sentry.utils import metrics
@@ -139,7 +150,7 @@ def child_process(
         return namespace.get(activation.taskname)
 
     def run_worker(
-        child_tasks: queue.Queue[TaskActivation],
+        child_tasks: queue.Queue[InflightTaskActivation],
         processed_tasks: queue.Queue[ProcessingResult],
         shutdown_event: Event,
         max_task_count: int | None,
@@ -157,13 +168,16 @@ def child_process(
             """
             deadline = -1
             current = current_task()
+            taskname = "unknown"
             if current:
+                taskname = current.taskname
                 deadline = current.processing_deadline_duration
-            raise ProcessingDeadlineExceeded(f"execution deadline of {deadline} seconds exceeded")
+            raise ProcessingDeadlineExceeded(
+                f"execution deadline of {deadline} seconds exceeded by {taskname}"
+            )
 
-        while True:
+        while not shutdown_event.is_set():
             if max_task_count and processed_task_count >= max_task_count:
-
                 metrics.incr(
                     "taskworker.worker.max_task_count_reached",
                     tags={"count": processed_task_count, "processing_pool": processing_pool_name},
@@ -173,12 +187,8 @@ def child_process(
                 )
                 break
 
-            if shutdown_event.is_set():
-                logger.info("taskworker.worker.shutdown_event")
-                break
-
             try:
-                activation = child_tasks.get(timeout=1.0)
+                inflight = child_tasks.get(timeout=1.0)
             except queue.Empty:
                 metrics.incr(
                     "taskworker.worker.child_task_queue_empty",
@@ -186,29 +196,38 @@ def child_process(
                 )
                 continue
 
-            task_func = _get_known_task(activation)
+            task_func = _get_known_task(inflight.activation)
             if not task_func:
                 metrics.incr(
                     "taskworker.worker.unknown_task",
                     tags={
-                        "namespace": activation.namespace,
-                        "taskname": activation.taskname,
+                        "namespace": inflight.activation.namespace,
+                        "taskname": inflight.activation.taskname,
                         "processing_pool": processing_pool_name,
                     },
                 )
                 processed_tasks.put(
-                    ProcessingResult(task_id=activation.id, status=TASK_ACTIVATION_STATUS_FAILURE)
+                    ProcessingResult(
+                        task_id=inflight.activation.id,
+                        status=TASK_ACTIVATION_STATUS_FAILURE,
+                        host=inflight.host,
+                        receive_timestamp=inflight.receive_timestamp,
+                    )
                 )
                 continue
 
             if task_func.at_most_once:
-                key = get_at_most_once_key(activation.namespace, activation.taskname, activation.id)
+                key = get_at_most_once_key(
+                    inflight.activation.namespace,
+                    inflight.activation.taskname,
+                    inflight.activation.id,
+                )
                 if cache.add(key, "1", timeout=AT_MOST_ONCE_TIMEOUT):  # The key didn't exist
                     metrics.incr(
                         "taskworker.task.at_most_once.executed",
                         tags={
-                            "namespace": activation.namespace,
-                            "taskname": activation.taskname,
+                            "namespace": inflight.activation.namespace,
+                            "taskname": inflight.activation.taskname,
                             "processing_pool": processing_pool_name,
                         },
                     )
@@ -216,52 +235,71 @@ def child_process(
                     metrics.incr(
                         "taskworker.worker.at_most_once.skipped",
                         tags={
-                            "namespace": activation.namespace,
-                            "taskname": activation.taskname,
+                            "namespace": inflight.activation.namespace,
+                            "taskname": inflight.activation.taskname,
                             "processing_pool": processing_pool_name,
                         },
                     )
                     continue
 
-            set_current_task(activation)
+            set_current_task(inflight.activation)
 
             next_state = TASK_ACTIVATION_STATUS_FAILURE
             # Use time.time() so we can measure against activation.received_at
             execution_start_time = time.time()
             try:
-                with timeout_alarm(activation.processing_deadline_duration, handle_alarm):
-                    _execute_activation(task_func, activation)
+                with timeout_alarm(inflight.activation.processing_deadline_duration, handle_alarm):
+                    _execute_activation(task_func, inflight.activation)
                 next_state = TASK_ACTIVATION_STATUS_COMPLETE
             except ProcessingDeadlineExceeded as err:
                 with sentry_sdk.isolation_scope() as scope:
                     scope.fingerprint = [
                         "taskworker.processing_deadline_exceeded",
-                        activation.namespace,
-                        activation.taskname,
+                        inflight.activation.namespace,
+                        inflight.activation.taskname,
                     ]
+                    scope.set_transaction_name(inflight.activation.taskname)
                     sentry_sdk.capture_exception(err)
                 metrics.incr(
                     "taskworker.worker.processing_deadline_exceeded",
                     tags={
                         "processing_pool": processing_pool_name,
-                        "namespace": activation.namespace,
-                        "taskname": activation.taskname,
+                        "namespace": inflight.activation.namespace,
+                        "taskname": inflight.activation.taskname,
                     },
                 )
                 next_state = TASK_ACTIVATION_STATUS_FAILURE
             except Exception as err:
-                if task_func.should_retry(activation.retry_state, err):
-                    logger.info(
-                        "taskworker.task.retry",
-                        extra={
-                            "namespace": activation.namespace,
-                            "taskname": activation.taskname,
-                            "processing_pool": processing_pool_name,
-                        },
-                    )
-                    next_state = TASK_ACTIVATION_STATUS_RETRY
+                retry = task_func.retry
+                captured_error = False
+                if retry:
+                    if retry.should_retry(inflight.activation.retry_state, err):
+                        logger.info(
+                            "taskworker.task.retry",
+                            extra={
+                                "namespace": inflight.activation.namespace,
+                                "taskname": inflight.activation.taskname,
+                                "processing_pool": processing_pool_name,
+                                "error": str(err),
+                            },
+                        )
+                        next_state = TASK_ACTIVATION_STATUS_RETRY
+                    elif retry.max_attempts_reached(inflight.activation.retry_state):
+                        with sentry_sdk.isolation_scope() as scope:
+                            retry_error = NoRetriesRemainingError(
+                                f"{inflight.activation.taskname} has consumed all of its retries"
+                            )
+                            retry_error.__cause__ = err
+                            scope.fingerprint = [
+                                "taskworker.no_retries_remaining",
+                                inflight.activation.namespace,
+                                inflight.activation.taskname,
+                            ]
+                            scope.set_transaction_name(inflight.activation.taskname)
+                            sentry_sdk.capture_exception(retry_error)
+                            captured_error = True
 
-                if next_state != TASK_ACTIVATION_STATUS_RETRY:
+                if not captured_error and next_state != TASK_ACTIVATION_STATUS_RETRY:
                     sentry_sdk.capture_exception(err)
 
             clear_current_task()
@@ -275,10 +313,17 @@ def child_process(
                     "processing_pool": processing_pool_name,
                 },
             ):
-                processed_tasks.put(ProcessingResult(task_id=activation.id, status=next_state))
+                processed_tasks.put(
+                    ProcessingResult(
+                        task_id=inflight.activation.id,
+                        status=next_state,
+                        host=inflight.host,
+                        receive_timestamp=inflight.receive_timestamp,
+                    )
+                )
 
             record_task_execution(
-                activation,
+                inflight.activation,
                 next_state,
                 execution_start_time,
                 execution_complete_time,
@@ -287,26 +332,32 @@ def child_process(
 
     def _execute_activation(task_func: Task[Any, Any], activation: TaskActivation) -> None:
         """Invoke a task function with the activation parameters."""
-        parameters = orjson.loads(activation.parameters)
+        headers = {k: v for k, v in activation.headers.items()}
+        parameters = load_parameters(activation.parameters, headers)
+
         args = parameters.get("args", [])
         kwargs = parameters.get("kwargs", {})
-        headers = {k: v for k, v in activation.headers.items()}
 
         transaction = sentry_sdk.continue_trace(
             environ_or_headers=headers,
             op="queue.task.taskworker",
-            name=f"{activation.namespace}:{activation.taskname}",
+            name=activation.taskname,
             origin="taskworker",
         )
         with (
-            track_memory_usage("taskworker.worker.memory_change"),
+            track_memory_usage(
+                "taskworker.worker.memory_change",
+                tags={"namespace": activation.namespace, "taskname": activation.taskname},
+            ),
+            sentry_sdk.isolation_scope(),
             sentry_sdk.start_transaction(transaction),
         ):
             transaction.set_data(
                 "taskworker-task", {"args": args, "kwargs": kwargs, "id": activation.id}
             )
             task_added_time = activation.received_at.ToDatetime().timestamp()
-            latency = time.time() - task_added_time
+            # latency attribute needs to be in milliseconds
+            latency = (time.time() - task_added_time) * 1000
 
             with sentry_sdk.start_span(
                 op=OP.QUEUE_PROCESS,
@@ -321,19 +372,19 @@ def child_process(
                 )
                 span.set_data(SPANDATA.MESSAGING_SYSTEM, "taskworker")
 
-            # TODO(taskworker) remove this when doing cleanup
-            # The `__start_time` parameter is spliced into task parameters by
-            # sentry.celery.SentryTask._add_metadata and needs to be removed
-            # from kwargs like sentry.tasks.base.instrumented_task does.
-            if "__start_time" in kwargs:
-                kwargs.pop("__start_time")
+                # TODO(taskworker) remove this when doing cleanup
+                # The `__start_time` parameter is spliced into task parameters by
+                # sentry.celery.SentryTask._add_metadata and needs to be removed
+                # from kwargs like sentry.tasks.base.instrumented_task does.
+                if "__start_time" in kwargs:
+                    kwargs.pop("__start_time")
 
-            try:
-                task_func(*args, **kwargs)
-                transaction.set_status(SPANSTATUS.OK)
-            except Exception:
-                transaction.set_status(SPANSTATUS.INTERNAL_ERROR)
-                raise
+                try:
+                    task_func(*args, **kwargs)
+                    transaction.set_status(SPANSTATUS.OK)
+                except Exception:
+                    transaction.set_status(SPANSTATUS.INTERNAL_ERROR)
+                    raise
 
     def record_task_execution(
         activation: TaskActivation,

@@ -1,12 +1,10 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, memo, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
-import snakeCase from 'lodash/snakeCase';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import Legend from 'sentry/components/charts/components/legend';
@@ -16,16 +14,14 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {space} from 'sentry/styles/space';
+import type {DataCategoryExact} from 'sentry/types/core';
 import type {DataPoint} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import useApi from 'sentry/utils/useApi';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useRouter from 'sentry/utils/useRouter';
-
-import type {DataType} from 'admin/components/customers/customerStatsFilters';
 
 enum SeriesName {
   ACCEPTED = 'Accepted',
@@ -328,197 +324,183 @@ function FooterLegend({points}: LegendProps) {
 }
 
 type Props = {
-  dataType: DataType;
+  dataType: DataCategoryExact;
   orgSlug: Organization['slug'];
   onDemandPeriodEnd?: string;
   onDemandPeriodStart?: string;
   projectId?: Project['id'];
 };
 
-export function CustomerStats({
-  orgSlug,
-  projectId,
-  dataType,
-  onDemandPeriodStart,
-  onDemandPeriodEnd,
-}: Props) {
-  const api = useApi();
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<Error | null>(null);
-  const router = useRouter();
+export const CustomerStats = memo(
+  ({orgSlug, projectId, dataType, onDemandPeriodStart, onDemandPeriodEnd}: Props) => {
+    const router = useRouter();
 
-  const dataDatetime = useMemo((): DateTimeObject => {
-    const {
-      start,
-      end,
-      utc: utcString,
-      statsPeriod,
-    } = normalizeDateTimeParams(router.location.query, {
-      allowEmptyPeriod: true,
-      allowAbsoluteDatetime: true,
-      allowAbsolutePageDatetime: true,
-    });
+    const dataDatetime = useMemo((): DateTimeObject => {
+      const {
+        start,
+        end,
+        utc: utcString,
+        statsPeriod,
+      } = normalizeDateTimeParams(router.location.query, {
+        allowEmptyPeriod: true,
+        allowAbsoluteDatetime: true,
+        allowAbsolutePageDatetime: true,
+      });
 
-    const utc = utcString === 'true';
+      const utc = utcString === 'true';
 
-    if (!start && !end && !statsPeriod && onDemandPeriodStart && onDemandPeriodEnd) {
+      if (!start && !end && !statsPeriod && onDemandPeriodStart && onDemandPeriodEnd) {
+        return {
+          start: onDemandPeriodStart,
+          end: onDemandPeriodEnd,
+        };
+      }
+
+      if (start && end) {
+        return utc
+          ? {
+              start: moment.utc(start).format(),
+              end: moment.utc(end).format(),
+              utc,
+            }
+          : {
+              start: moment(start).utc().format(),
+              end: moment(end).utc().format(),
+              utc,
+            };
+      }
+
       return {
-        start: onDemandPeriodStart,
-        end: onDemandPeriodEnd,
+        period: statsPeriod ?? '90d',
       };
-    }
+    }, [router.location.query, onDemandPeriodStart, onDemandPeriodEnd]);
 
-    if (start && end) {
-      return utc
-        ? {
-            start: moment.utc(start).format(),
-            end: moment.utc(end).format(),
-            utc,
-          }
-        : {
-            start: moment(start).utc().format(),
-            end: moment(end).utc().format(),
-            utc,
-          };
-    }
-
-    return {
-      period: statsPeriod ?? '90d',
-    };
-  }, [router.location.query, onDemandPeriodStart, onDemandPeriodEnd]);
-
-  const fetchStatsRequest = useCallback(() => {
-    return api.requestPromise(`/organizations/${orgSlug}/stats_v2/`, {
-      query: {
-        start: dataDatetime.start,
-        end: dataDatetime.end,
-        utc: dataDatetime.utc,
-        statsPeriod: dataDatetime.period,
-        interval: getInterval(dataDatetime),
-        groupBy: ['outcome', 'reason'],
-        field: 'sum(quantity)',
-        category: snakeCase(dataType), // TODO(isabella): remove snakeCase when .apiName is consistent
-        ...(projectId ? {project: projectId} : {}),
-      },
-    });
-  }, [api, dataType, dataDatetime, orgSlug, projectId]);
-
-  const fetchStats = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await fetchStatsRequest();
-      setStats(response);
-    } catch (err) {
-      const message = 'Unable to load stats data';
-      handleXhrErrorResponse(message, err);
-      addErrorMessage(message);
-      setError(err);
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchStatsRequest]);
-
-  useEffect(() => {
-    fetchStats();
-  }, [dataType, dataDatetime, fetchStats]);
-
-  const theme = useTheme();
-  const series = useSeries();
-
-  if (loading) {
-    return <LoadingIndicator />;
-  }
-
-  if (error) {
-    return <LoadingError onRetry={() => fetchStats()} />;
-  }
-
-  if (stats === null) {
-    return null;
-  }
-
-  const {intervals, groups} = stats;
-
-  const zeroFillStart = Number(new Date(intervals[intervals.length - 1]!)) / 1000 + 86400;
-
-  const chartSeries = [
-    ...populateChartData(intervals, groups, series),
-    zeroFillDates(
-      zeroFillStart,
-      new Date(dataDatetime.end ?? moment().format()).valueOf() / 1000,
-      {color: theme.purple200}
-    ),
-  ];
-
-  const {legend, subLabels} = chartSeries.reduce(
-    (acc, serie) => {
-      if (!acc.legend.includes(serie.seriesName) && serie.data.length > 0) {
-        acc.legend.push(serie.seriesName);
+    const {
+      isPending: loading,
+      error,
+      data: stats,
+      refetch,
+    } = useApiQuery<Stats>(
+      [
+        `/organizations/${orgSlug}/stats_v2/`,
+        {
+          query: {
+            start: dataDatetime.start,
+            end: dataDatetime.end,
+            utc: dataDatetime.utc,
+            statsPeriod: dataDatetime.period,
+            interval: getInterval(dataDatetime),
+            groupBy: ['outcome', 'reason'],
+            field: 'sum(quantity)',
+            category: dataType,
+            ...(projectId ? {project: projectId} : {}),
+          },
+        },
+      ],
+      {
+        staleTime: Infinity,
+        retry: false,
       }
+    );
 
-      if (!serie.subSeries) {
+    const theme = useTheme();
+    const series = useSeries();
+
+    if (loading) {
+      return <LoadingIndicator />;
+    }
+
+    if (error) {
+      return <LoadingError onRetry={refetch} />;
+    }
+
+    if (!stats) {
+      return null;
+    }
+
+    const {intervals, groups} = stats;
+
+    const zeroFillStart =
+      Number(new Date(intervals[intervals.length - 1]!)) / 1000 + 86400;
+
+    const chartSeries = [
+      ...populateChartData(intervals, groups, series),
+      zeroFillDates(
+        zeroFillStart,
+        new Date(dataDatetime.end ?? moment().format()).valueOf() / 1000,
+        {color: theme.purple200}
+      ),
+    ];
+
+    const {legend, subLabels} = chartSeries.reduce(
+      (acc, serie) => {
+        if (!acc.legend.includes(serie.seriesName) && serie.data.length > 0) {
+          acc.legend.push(serie.seriesName);
+        }
+
+        if (!serie.subSeries) {
+          return acc;
+        }
+
+        for (const subSerie of serie.subSeries) {
+          acc.subLabels.push({
+            parentLabel: serie.seriesName,
+            label: subSerie.seriesName,
+            data: subSerie.data,
+          });
+        }
+
         return acc;
+      },
+      {
+        legend: [] as string[],
+        subLabels: [] as TooltipSubLabel[],
       }
+    );
 
-      for (const subSerie of serie.subSeries) {
-        acc.subLabels.push({
-          parentLabel: serie.seriesName,
-          label: subSerie.seriesName,
-          data: subSerie.data,
-        });
-      }
-
-      return acc;
-    },
-    {
-      legend: [] as string[],
-      subLabels: [] as TooltipSubLabel[],
-    }
-  );
-
-  return (
-    <Fragment>
-      {getDynamicText({
-        value: (
-          <ChartZoom
-            period={dataDatetime.period}
-            start={dataDatetime.start}
-            end={dataDatetime.end}
-            utc={dataDatetime.utc}
-          >
-            {zoomRenderProps => (
-              <Fragment>
-                <BarChart
-                  isGroupedByDate
-                  stacked
-                  animation={false}
-                  series={chartSeries}
-                  colors={Object.values(series)
-                    .map(serie => serie.color)
-                    .filter(defined)}
-                  tooltip={{subLabels}}
-                  legend={Legend({
-                    right: 10,
-                    top: 0,
-                    data: legend,
-                    theme,
-                  })}
-                  grid={{top: 30, bottom: 0, left: 0, right: 0}}
-                  {...zoomRenderProps}
-                />
-                <Footer>
-                  <FooterLegend points={stats} />
-                </Footer>
-              </Fragment>
-            )}
-          </ChartZoom>
-        ),
-        fixed: 'Customer Stats Chart',
-      })}
-    </Fragment>
-  );
-}
+    return (
+      <Fragment>
+        {getDynamicText({
+          value: (
+            <ChartZoom
+              period={dataDatetime.period}
+              start={dataDatetime.start}
+              end={dataDatetime.end}
+              utc={dataDatetime.utc}
+            >
+              {zoomRenderProps => (
+                <Fragment>
+                  <BarChart
+                    isGroupedByDate
+                    stacked
+                    animation={false}
+                    series={chartSeries}
+                    colors={Object.values(series)
+                      .map(serie => serie.color)
+                      .filter(defined)}
+                    tooltip={{subLabels}}
+                    legend={Legend({
+                      right: 10,
+                      top: 0,
+                      data: legend,
+                      theme,
+                    })}
+                    grid={{top: 30, bottom: 0, left: 0, right: 0}}
+                    {...zoomRenderProps}
+                  />
+                  <Footer>
+                    <FooterLegend points={stats} />
+                  </Footer>
+                </Fragment>
+              )}
+            </ChartZoom>
+          ),
+          fixed: 'Customer Stats Chart',
+        })}
+      </Fragment>
+    );
+  }
+);
 
 const Footer = styled('div')`
   display: flex;

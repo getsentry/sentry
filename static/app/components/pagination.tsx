@@ -7,6 +7,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -53,7 +54,7 @@ function Pagination({
     [navigate]
   );
 
-  if (!pageLinks) {
+  if (!defined(pageLinks)) {
     return null;
   }
 
@@ -103,7 +104,7 @@ const Wrapper = styled('div')`
 
 const PaginationCaption = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-right: ${space(2)};
 `;
 

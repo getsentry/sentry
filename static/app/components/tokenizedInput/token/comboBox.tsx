@@ -1,8 +1,13 @@
-import type {ChangeEventHandler, FocusEventHandler, MouseEventHandler} from 'react';
-import {useCallback, useEffect, useLayoutEffect, useRef} from 'react';
+import type {
+  ChangeEventHandler,
+  ClipboardEvent,
+  FocusEventHandler,
+  MouseEventHandler,
+  Ref,
+} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {AriaComboBoxProps} from '@react-aria/combobox';
-import {useComboBox} from '@react-aria/combobox';
 import {ariaHideOutside} from '@react-aria/overlays';
 import {mergeRefs} from '@react-aria/utils';
 import {useComboBoxState} from '@react-stately/combobox';
@@ -10,12 +15,19 @@ import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
 
 import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import type {
+  SelectKey,
   SelectOptionOrSectionWithKey,
   SelectOptionWithKey,
 } from 'sentry/components/core/compactSelect/types';
-import {itemIsSectionWithKey} from 'sentry/components/core/compactSelect/utils';
-import {GrowingInput} from 'sentry/components/growingInput';
+import {
+  getDisabledOptions,
+  getHiddenOptions,
+  itemIsSectionWithKey,
+} from 'sentry/components/core/compactSelect/utils';
+import {Input} from 'sentry/components/core/input';
+import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
 import {Overlay} from 'sentry/components/overlay';
+import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {defined} from 'sentry/utils';
 import useOverlay from 'sentry/utils/useOverlay';
 
@@ -25,10 +37,6 @@ interface ComboBoxProps {
   inputLabel: string;
   inputValue: string;
   items: Array<SelectOptionOrSectionWithKey<string>>;
-  /**
-   * Function to determine whether the menu should close when interacting with
-   * other elements.
-   */
   ['data-test-id']?: string;
   onClick?: MouseEventHandler<HTMLInputElement>;
   onInputBlur?: () => void;
@@ -41,11 +49,41 @@ interface ComboBoxProps {
   onKeyUp?: (e: KeyboardEvent) => void;
   onOpenChange?: (newOpenState: boolean) => void;
   onOptionSelected?: (option: SelectOptionWithKey<string>) => void;
-  onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
+  onPaste?: (e: ClipboardEvent<HTMLInputElement>) => void;
   placeholder?: string;
-  ref?: React.Ref<HTMLInputElement>;
+  ref?: Ref<HTMLInputElement>;
+  /**
+   * Function to determine whether the menu should close when interacting with
+   * other elements.
+   */
   shouldCloseOnInteractOutside?: (interactedElement: Element) => boolean;
   tabIndex?: number;
+}
+
+function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
+  items,
+  filterValue,
+  maxOptions,
+  shouldFilterResults,
+}: {
+  filterValue: string;
+  items: T[];
+  maxOptions?: number;
+  shouldFilterResults?: boolean;
+}) {
+  const hiddenOptions: Set<SelectKey> = useMemo(() => {
+    return getHiddenOptions(items, shouldFilterResults ? filterValue : '', maxOptions);
+  }, [items, shouldFilterResults, filterValue, maxOptions]);
+
+  const disabledKeys = useMemo(
+    () => [...getDisabledOptions(items), ...hiddenOptions],
+    [hiddenOptions, items]
+  );
+
+  return {
+    hiddenOptions,
+    disabledKeys,
+  };
 }
 
 export function ComboBox({
@@ -75,6 +113,13 @@ export function ComboBox({
   const inputRef = useRef<HTMLInputElement>(null);
   const listBoxRef = useRef<HTMLUListElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+
+  const {hiddenOptions, disabledKeys} = useHiddenItems({
+    items,
+    filterValue,
+    maxOptions: 50,
+    shouldFilterResults: true,
+  });
 
   const handleSelectionChange = useCallback(
     (key: Key | null) => {
@@ -107,8 +152,9 @@ export function ComboBox({
       inputValue: filterValue,
       onSelectionChange: handleSelectionChange,
       allowsCustomValue: true,
-      disabledKeys: [],
+      disabledKeys,
       isDisabled: false,
+      selectedKey: null,
     };
 
   const state = useComboBoxState<SelectOptionOrSectionWithKey<string>>({
@@ -146,6 +192,7 @@ export function ComboBox({
       onKeyDown?.(evt);
       switch (evt.key) {
         case 'Escape':
+          evt.stopPropagation();
           state.close();
           state.setFocused(false);
           onInputEscape?.();
@@ -172,7 +219,9 @@ export function ComboBox({
     [onKeyUp]
   );
 
-  const {inputProps, listBoxProps} = useComboBox<SelectOptionOrSectionWithKey<string>>(
+  const {inputProps, listBoxProps} = useSearchTokenCombobox<
+    SelectOptionOrSectionWithKey<string>
+  >(
     {
       ...comboBoxProps,
       'aria-label': inputLabel,
@@ -257,17 +306,24 @@ export function ComboBox({
     return () => {};
   }, [isOpen]);
 
+  const autosizeInputRef = useAutosizeInput({value: inputValue});
+
   return (
     <Wrapper>
       <UnstyledInput
         {...inputProps}
         size="md"
-        ref={mergeRefs(ref, inputRef, triggerProps.ref as React.Ref<HTMLInputElement>)}
+        ref={mergeRefs(
+          ref,
+          inputRef,
+          autosizeInputRef,
+          triggerProps.ref as React.Ref<HTMLInputElement>
+        )}
         type="text"
         placeholder={placeholder}
         onClick={handleInputClick}
         value={inputValue}
-        onChange={onInputChange}
+        onChange={onInputChange ?? (() => {})}
         tabIndex={tabIndex}
         onPaste={onPaste}
         disabled={false}
@@ -281,7 +337,7 @@ export function ComboBox({
             ref={listBoxRef}
             listState={state}
             hasSearch={!!filterValue}
-            hiddenOptions={undefined}
+            hiddenOptions={hiddenOptions}
             keyDownHandler={() => true}
             overlayIsOpen={isOpen}
             size="sm"
@@ -348,7 +404,7 @@ const Wrapper = styled('div')`
   width: 100%;
 `;
 
-const UnstyledInput = styled(GrowingInput)`
+const UnstyledInput = styled(Input)`
   background: transparent;
   border: none;
   box-shadow: none;

@@ -1,20 +1,25 @@
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import Any, ClassVar
 
-from django.db import models
+import sentry_sdk
+from django.db import models, router, transaction
 from django.db.models import UniqueConstraint
+from django.db.models.query import QuerySet
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.fields.slug import SentrySlugField
+from sentry.db.models.manager.base import BaseManager
 from sentry.models.dashboard_widget import DashboardWidgetTypes
+from sentry.models.organization import Organization
 
 
 @region_silo_model
@@ -30,15 +35,166 @@ class DashboardProject(Model):
         unique_together = (("project", "dashboard"),)
 
 
+class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
+    def get_last_position(self, organization: Organization, user_id: int) -> int:
+        """
+        Returns the last position of a user's favorited dashboards in an organization.
+        """
+        last_favorite_dashboard = (
+            self.filter(
+                organization=organization,
+                user_id=user_id,
+                position__isnull=False,
+            )
+            .order_by("-position")
+            .first()
+        )
+        if last_favorite_dashboard and last_favorite_dashboard.position is not None:
+            return last_favorite_dashboard.position
+        return 0
+
+    def get_favorite_dashboards(
+        self, organization: Organization, user_id: int
+    ) -> QuerySet[DashboardFavoriteUser]:
+        """
+        Returns all favorited dashboards for a user in an organization.
+        """
+        return self.filter(organization=organization, user_id=user_id).order_by(
+            "position", "dashboard__title"
+        )
+
+    def get_favorite_dashboard(
+        self, organization: Organization, user_id: int, dashboard: Dashboard
+    ) -> DashboardFavoriteUser | None:
+        """
+        Returns the favorite dashboard if it exists, otherwise None.
+        """
+        return self.filter(organization=organization, user_id=user_id, dashboard=dashboard).first()
+
+    def reorder_favorite_dashboards(
+        self, organization: Organization, user_id: int, new_dashboard_positions: list[int]
+    ):
+        """
+        Reorders the positions of favorited dashboards for a user in an organization.
+        Does NOT add or remove favorited dashboards.
+
+        Args:
+            organization: The organization the dashboards belong to
+            user_id: The ID of the user whose favorited dashboards are being reordered
+            new_dashboard_positions: List of dashboard IDs in their new order
+
+        Raises:
+            ValueError: If there's a mismatch between existing favorited dashboards and the provided list
+        """
+        existing_favorite_dashboards = self.filter(
+            organization=organization,
+            user_id=user_id,
+        )
+
+        existing_dashboard_ids = {
+            favorite.dashboard.id for favorite in existing_favorite_dashboards
+        }
+        new_dashboard_ids = set(new_dashboard_positions)
+
+        sentry_sdk.set_context(
+            "reorder_favorite_dashboards",
+            {
+                "organization": organization.id,
+                "user_id": user_id,
+                "existing_dashboard_ids": existing_dashboard_ids,
+                "new_dashboard_positions": new_dashboard_positions,
+            },
+        )
+
+        if existing_dashboard_ids != new_dashboard_ids:
+            raise ValueError("Mismatch between existing and provided favorited dashboards.")
+
+        position_map = {
+            dashboard_id: idx for idx, dashboard_id in enumerate(new_dashboard_positions)
+        }
+
+        favorites_to_update = list(existing_favorite_dashboards)
+
+        for favorite in favorites_to_update:
+            favorite.position = position_map[favorite.dashboard.id]
+
+        with transaction.atomic(using=router.db_for_write(DashboardFavoriteUser)):
+            if favorites_to_update:
+                self.bulk_update(favorites_to_update, ["position"])
+
+    def insert_favorite_dashboard(
+        self,
+        organization: Organization,
+        user_id: int,
+        dashboard: Dashboard,
+    ) -> bool:
+        """
+        Inserts a new favorited dashboard at the end of the list.
+
+        Args:
+            organization: The organization the dashboards belong to
+            user_id: The ID of the user whose favorited dashboards are being updated
+            dashboard: The dashboard to insert
+
+        Returns:
+            True if the dashboard was favorited, False if the dashboard was already favorited
+        """
+        with transaction.atomic(using=router.db_for_write(DashboardFavoriteUser)):
+            if self.get_favorite_dashboard(organization, user_id, dashboard):
+                return False
+
+            if self.count() == 0:
+                position = 0
+            else:
+                position = self.get_last_position(organization, user_id) + 1
+
+            self.create(
+                organization=organization,
+                user_id=user_id,
+                dashboard=dashboard,
+                position=position,
+            )
+            return True
+
+    def delete_favorite_dashboard(
+        self, organization: Organization, user_id: int, dashboard: Dashboard
+    ) -> bool:
+        """
+        Deletes a favorited dashboard from the list.
+        Decrements the position of all dashboards after the deletion point.
+
+        Args:
+            organization: The organization the dashboards belong to
+            user_id: The ID of the user whose favorited dashboards are being updated
+            dashboard: The dashboard to delete
+
+        Returns:
+            True if the dashboard was unfavorited, False if the dashboard was already unfavorited
+        """
+        with transaction.atomic(using=router.db_for_write(DashboardFavoriteUser)):
+            if not (favorite := self.get_favorite_dashboard(organization, user_id, dashboard)):
+                return False
+
+            deleted_position = favorite.position
+            favorite.delete()
+
+            self.filter(
+                organization=organization, user_id=user_id, position__gt=deleted_position
+            ).update(position=models.F("position") - 1)
+            return True
+
+
 @region_silo_model
 class DashboardFavoriteUser(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
-    organization = FlexibleForeignKey("sentry.Organization", null=True)
+    organization = FlexibleForeignKey("sentry.Organization")
     dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
 
     position = models.PositiveSmallIntegerField(null=True)
+
+    objects: ClassVar[DashboardFavoriteUserManager] = DashboardFavoriteUserManager()
 
     class Meta:
         app_label = "sentry"
@@ -48,6 +204,12 @@ class DashboardFavoriteUser(DefaultFieldsModel):
             UniqueConstraint(
                 fields=["user_id", "dashboard"],
                 name="sentry_dashboardfavoriteuser_user_id_dashboard_id_2c7267a5_uniq",
+            ),
+            # A user can only have one starred dashboard in a specific position
+            UniqueConstraint(
+                fields=["user_id", "organization_id", "position"],
+                name="sentry_dashboardfavoriteuser_user_org_position_uniq_deferred",
+                deferrable=models.Deferrable.DEFERRED,
             ),
         ]
 
@@ -80,6 +242,9 @@ class Dashboard(Model):
 
     @property
     def favorited_by(self):
+        """
+        @deprecated Use the DashboardFavoriteUser object manager instead.
+        """
         user_ids = DashboardFavoriteUser.objects.filter(dashboard=self).values_list(
             "user_id", flat=True
         )
@@ -87,6 +252,9 @@ class Dashboard(Model):
 
     @favorited_by.setter
     def favorited_by(self, user_ids):
+        """
+        @deprecated Use the DashboardFavoriteUser object manager instead.
+        """
         from django.db import router, transaction
 
         existing_user_ids = DashboardFavoriteUser.objects.filter(dashboard=self).values_list(
@@ -153,6 +321,24 @@ class Dashboard(Model):
 
         return f"{base_name} copy {next_copy_number}"
 
+    def get_filters(self) -> dict[str, Any]:
+        """
+        Returns the filters for the dashboard.
+
+        This is used to colocate any specific logic for producing dashboard filters,
+        such as handling the all_projects filter.
+        """
+        projects = (
+            [ALL_ACCESS_PROJECT_ID]
+            if self.filters and self.filters.get("all_projects")
+            else list(self.projects.values_list("id", flat=True))
+        )
+
+        return {
+            **(self.filters or {}),
+            "projects": projects,
+        }
+
 
 @region_silo_model
 class DashboardTombstone(Model):
@@ -173,6 +359,26 @@ class DashboardTombstone(Model):
         unique_together = (("organization", "slug"),)
 
     __repr__ = sane_repr("organization", "slug")
+
+
+@region_silo_model
+class DashboardLastVisited(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Organization
+
+    dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
+    member = FlexibleForeignKey("sentry.OrganizationMember", on_delete=models.CASCADE)
+
+    last_visited = models.DateTimeField(null=False, default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_dashboardlastvisited"
+        constraints = [
+            UniqueConstraint(
+                fields=["member_id", "dashboard_id"],
+                name="sentry_dashboardlastvisited_unique_last_visited_per_org_member",
+            )
+        ]
 
 
 # Prebuilt dashboards are added to API responses for all accounts that have

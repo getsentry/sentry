@@ -6,7 +6,7 @@ import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
-import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {EapSpanSearchQueryBuilderWrapper} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -41,7 +41,6 @@ import {
 } from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useTopNSpanMetricsSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {
   DataTitles,
   getDurationChartTitle,
@@ -69,7 +68,6 @@ import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHe
 export function HTTPSamplesPanel() {
   const navigate = useNavigate();
   const location = useLocation();
-  const useEap = useInsightsEap();
 
   const query = useLocationQuery({
     fields: {
@@ -419,7 +417,10 @@ export function HTTPSamplesPanel() {
                 <ModuleLayout.Full>
                   <InsightsLineChartWidget
                     showLegend="never"
-                    search={search}
+                    queryInfo={{
+                      search,
+                      referrer: Referrer.SAMPLES_PANEL_DURATION_CHART,
+                    }}
                     title={getDurationChartTitle('http')}
                     isLoading={isDurationDataFetching}
                     error={durationError}
@@ -435,6 +436,7 @@ export function HTTPSamplesPanel() {
                 <ModuleLayout.Full>
                   <ResponseCodeCountChart
                     search={search}
+                    referrer={Referrer.SAMPLES_PANEL_RESPONSE_CODE_CHART}
                     groupBy={[SpanFields.RESPONSE_CODE]}
                     series={Object.values(responseCodeData).filter(Boolean)}
                     isLoading={isResponseCodeDataLoading}
@@ -445,13 +447,12 @@ export function HTTPSamplesPanel() {
             )}
 
             <ModuleLayout.Full>
-              <SpanSearchQueryBuilder
+              <EapSpanSearchQueryBuilderWrapper
                 projects={selection.projects}
                 initialQuery={query.spanSearchQuery}
                 onSearch={handleSearch}
                 placeholder={t('Search for span attributes')}
                 searchSource={`${ModuleName.HTTP}-sample-panel`}
-                useEap={useEap}
               />
             </ModuleLayout.Full>
 

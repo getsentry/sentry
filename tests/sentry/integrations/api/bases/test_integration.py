@@ -15,7 +15,7 @@ class IntegrationEndpointTest(TestCase):
     # Since both `IntegrationEndpoint.handle_exception_with_details` and `Endpoint.handle_exception_with_details` potentially
     # run, and they both call their own module's copy of `capture_exception`, in order to prove that
     # neither one is not called, we assert on the underlying method from the SDK
-    @patch("sentry_sdk.Scope.capture_exception")
+    @patch("sentry_sdk.capture_exception")
     def test_handle_rest_framework_exception(
         self, mock_capture_exception: MagicMock, mock_stderror_write: MagicMock
     ):

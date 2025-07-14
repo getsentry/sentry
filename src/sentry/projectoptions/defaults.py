@@ -1,5 +1,6 @@
 from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT
 from sentry.projectoptions import register
+from sentry.seer.seer_utils import AutofixAutomationTuningSettings
 
 # This controls what sentry:option-epoch value is given to a project when it is created
 # The epoch of a project will determine what options are valid options for that specific project
@@ -20,14 +21,7 @@ DEFAULT_GROUPING_CONFIG = "newstyle:2023-01-11"
 # `mobile` strategy via grouping auto-updates.
 BETA_GROUPING_CONFIG = ""
 # This registers the option as a valid project option
-register(
-    key="sentry:grouping_config",
-    epoch_defaults={
-        1: LEGACY_GROUPING_CONFIG,
-        3: "newstyle:2019-05-08",
-        4: DEFAULT_GROUPING_CONFIG,
-    },
-)
+register(key="sentry:grouping_config", default=DEFAULT_GROUPING_CONFIG)
 
 register(key="sentry:grouping_enhancements", default="")
 register(key="sentry:derived_grouping_enhancements", default="")
@@ -123,7 +117,7 @@ DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "http_overhead_detection_enabled": True,
     "transaction_duration_regression_detection_enabled": True,
     "function_duration_regression_detection_enabled": True,
-    "database_query_injection_detection_enabled": True,
+    "db_query_injection_detection_enabled": True,
 }
 
 DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS = {
@@ -199,4 +193,7 @@ register(key="sentry:tempest_fetch_screenshots", default=False)
 register(key="sentry:tempest_fetch_dumps", default=False)
 
 # Should autofix run automatically on new issues
-register(key="sentry:autofix_automation_tuning", default="off")
+register(key="sentry:autofix_automation_tuning", default=AutofixAutomationTuningSettings.OFF)
+
+# Should seer scanner run automatically on new issues
+register(key="sentry:seer_scanner_automation", default=True)

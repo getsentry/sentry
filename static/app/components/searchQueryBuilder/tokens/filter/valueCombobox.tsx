@@ -362,11 +362,18 @@ function useFilterSuggestions({
     [filterValue, key, keyName]
   );
 
+  const baseQueryKey = useMemo(
+    () => ['search-query-builder-tag-values', queryParams],
+    [queryParams]
+  );
+  const queryKey = useDebouncedValue(baseQueryKey);
+  const isDebouncing = baseQueryKey !== queryKey;
+
   // TODO(malwilley): Display error states
   const {data, isFetching} = useQuery<string[]>({
-    queryKey: useDebouncedValue(
-      useMemo(() => ['search-query-builder-tag-values', queryParams], [queryParams])
-    ),
+    // disable exhaustive deps because we want to debounce the query key above
+    // eslint-disable-next-line @tanstack/query/exhaustive-deps
+    queryKey,
     queryFn: () => getTagValues(...queryParams),
     placeholderData: keepPreviousData,
     enabled: shouldFetchValues,
@@ -469,7 +476,7 @@ function useFilterSuggestions({
   return {
     items,
     suggestionSectionItems,
-    isFetching,
+    isFetching: isFetching || isDebouncing,
   };
 }
 
@@ -897,7 +904,9 @@ export function SearchQueryBuilderValueCombobox({
       ? prettifyTagKey(token.value.text)
       : canSelectMultipleValues
         ? ''
-        : formatFilterValue(token.value);
+        : formatFilterValue({
+            token: token.value,
+          });
 
   return (
     <ValueEditing ref={ref} data-test-id="filter-value-editing">

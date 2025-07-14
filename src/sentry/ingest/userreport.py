@@ -5,8 +5,7 @@ import random
 import uuid
 from datetime import datetime, timedelta
 
-from django.core.exceptions import PermissionDenied, ValidationError
-from django.core.validators import validate_email
+from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError, router
 from django.utils import timezone
 
@@ -15,12 +14,12 @@ from sentry.api.exceptions import BadRequest
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.lib.types import UserReportDict
-from sentry.feedback.usecases.create_feedback import (
+from sentry.feedback.lib.utils import (
     UNREAL_FEEDBACK_UNATTENDED_MESSAGE,
     FeedbackCreationSource,
     is_in_feedback_denylist,
-    shim_to_feedback,
 )
+from sentry.feedback.usecases.shim_to_feedback import shim_to_feedback
 from sentry.models.project import Project
 from sentry.models.userreport import UserReport
 from sentry.signals import user_feedback_received
@@ -200,13 +199,11 @@ def validate_user_report(
     source: FeedbackCreationSource = FeedbackCreationSource.USER_REPORT_ENVELOPE,
 ) -> tuple[bool, str | None, str | None]:
     """
-    Validates required fields, field lengths, and garbage messages. Also checks email format and that event_id is a UUID.
+    Validates required fields, field lengths, and garbage messages. Also checks that event_id is a valid UUID. Does not raise errors.
 
     Reformatting: strips whitespace from comments and dashes from event_id.
 
     Returns a tuple of (should_filter, metrics_reason, display_reason). XXX: ensure metrics and outcome reasons have bounded cardinality.
-
-    At the moment we do not raise validation errors.
     """
     if "comments" not in report:
         return True, "missing_comments", "Missing comments"  # type: ignore[unreachable]
@@ -258,12 +255,6 @@ def validate_user_report(
     max_email_length = UserReport._meta.get_field("email").max_length
     if max_email_length and len(email) > max_email_length:
         return True, "too_large.email", "Email Too Large"
-
-    try:
-        if email:
-            validate_email(email)
-    except ValidationError:
-        return True, "invalid_email", "Invalid Email"
 
     try:
         # Validates UUID and strips dashes.

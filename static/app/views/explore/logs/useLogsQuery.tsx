@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 
 import {type ApiResult} from 'sentry/api';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -18,14 +18,17 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
+  useLogsAggregate,
+  useLogsAggregateCursor,
+  useLogsAggregateSortBys,
   useLogsAutoRefresh,
   useLogsBaseSearch,
   useLogsCursor,
   useLogsFields,
+  useLogsGroupBy,
   useLogsIsFrozen,
   useLogsLimitToTraceId,
   useLogsProjectIds,
-  useLogsRefreshInterval,
   useLogsSearch,
   useLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
@@ -35,19 +38,23 @@ import {
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   AlwaysPresentLogFields,
-  LOG_INGEST_DELAY,
-  VIRTUAL_STREAMED_INTERVAL_MS,
+  MAX_LOG_INGEST_DELAY,
+  QUERY_PAGE_LIMIT,
+  QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH,
 } from 'sentry/views/explore/logs/constants';
 import {
   type EventsLogsResult,
+  type LogsAggregatesResult,
   OurLogKnownFieldKey,
 } from 'sentry/views/explore/logs/types';
+import {
+  isRowVisibleInVirtualStream,
+  useVirtualStreaming,
+} from 'sentry/views/explore/logs/useVirtualStreaming';
 import {getTimeBasedSortBy} from 'sentry/views/explore/logs/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
-
-const UNIQUE_ROW_ID = OurLogKnownFieldKey.ID;
 
 export function useExploreLogsTableRow(props: {
   logId: string | number;
@@ -88,6 +95,94 @@ export function usePrefetchLogTableRowOnHover({
     sharedHoverTimeoutRef,
     referrer: 'api.explore.log-item-details',
   });
+}
+
+function useLogsAggregatesQueryKey({
+  limit,
+  referrer,
+}: {
+  referrer: string;
+  limit?: number;
+}) {
+  const organization = useOrganization();
+  const _search = useLogsSearch();
+  const baseSearch = useLogsBaseSearch();
+  const {selection, isReady: pageFiltersReady} = usePageFilters();
+  const location = useLocation();
+  const projectIds = useLogsProjectIds();
+  const groupBy = useLogsGroupBy();
+  const aggregate = useLogsAggregate();
+  const aggregateSortBys = useLogsAggregateSortBys();
+  const aggregateCursor = useLogsAggregateCursor();
+  const fields: string[] = [];
+  if (groupBy) {
+    fields.push(groupBy);
+  }
+  fields.push(aggregate);
+
+  const search = baseSearch ? _search.copy() : _search;
+  if (baseSearch) {
+    search.tokens.push(...baseSearch.tokens);
+  }
+  const pageFilters = selection;
+  const dataset = DiscoverDatasets.OURLOGS;
+
+  const eventView = getEventView(
+    search,
+    fields,
+    aggregateSortBys,
+    pageFilters,
+    dataset,
+    projectIds
+  );
+  const params = {
+    query: {
+      ...eventView.getEventsAPIPayload(location),
+      per_page: limit ? limit : undefined,
+      cursor: aggregateCursor,
+      referrer,
+    },
+    pageFiltersReady,
+    eventView,
+  };
+
+  const queryKey: ApiQueryKey = [`/organizations/${organization.slug}/events/`, params];
+
+  return {
+    queryKey,
+    other: {
+      eventView,
+      pageFiltersReady,
+    },
+  };
+}
+
+/**
+ * Requires LogsParamsContext to be provided.
+ */
+export function useLogsAggregatesQuery({
+  disabled,
+  limit,
+  referrer,
+}: {
+  disabled?: boolean;
+  limit?: number;
+  referrer?: string;
+}) {
+  const _referrer = referrer ?? 'api.explore.logs-table-aggregates';
+  const {queryKey, other} = useLogsAggregatesQueryKey({limit, referrer: _referrer});
+
+  const queryResult = useApiQuery<LogsAggregatesResult>(queryKey, {
+    enabled: !disabled,
+    staleTime: getStaleTimeForEventView(other.eventView),
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+
+  return {
+    ...queryResult,
+    pageLinks: queryResult?.getResponseHeader?.('Link') ?? undefined,
+  };
 }
 
 function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) {
@@ -139,8 +234,17 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   };
 }
 
-export function useLogsQueryKeyWithInfinite({referrer}: {referrer: string}) {
-  const {queryKey, other} = useLogsQueryKey({limit: 1000, referrer});
+export function useLogsQueryKeyWithInfinite({
+  referrer,
+  autoRefresh,
+}: {
+  autoRefresh: boolean;
+  referrer: string;
+}) {
+  const {queryKey, other} = useLogsQueryKey({
+    limit: autoRefresh ? QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH : QUERY_PAGE_LIMIT,
+    referrer,
+  });
   return {
     queryKey: [...queryKey, 'infinite'] as QueryKey,
     other,
@@ -187,7 +291,11 @@ export function useLogsQuery({
  * Pages are represented by a window of time using the precise timestamp of either it's most recent or oldest row, depending on sort direction and which page we're fetching.
  * We will overlap pages on the nanosecond boundary (using => and <=) because events can happen on the same timestamp.
  */
-function getPageParam(pageDirection: 'previous' | 'next', sortBys: Sort[]) {
+function getPageParam(
+  pageDirection: 'previous' | 'next',
+  sortBys: Sort[],
+  autoRefresh: boolean
+) {
   const isGetPreviousPage = pageDirection === 'previous';
   return (
     [pageData]: ApiResult<EventsLogsResult>,
@@ -210,11 +318,11 @@ function getPageParam(pageDirection: 'previous' | 'next', sortBys: Sort[]) {
     const firstTimestamp = BigInt(firstRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
     const lastTimestamp = BigInt(lastRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
 
-    const timestampPrecise = isGetPreviousPage ? firstTimestamp : lastTimestamp;
     const logId = isGetPreviousPage
       ? firstRow[OurLogKnownFieldKey.ID]
       : lastRow[OurLogKnownFieldKey.ID];
     const isDescending = sortBy.kind === 'desc';
+    const timestampPrecise = isGetPreviousPage ? firstTimestamp : lastTimestamp;
     let querySortDirection: Sort | undefined = undefined;
     const reverseSortDirection = isDescending ? 'asc' : 'desc';
 
@@ -236,14 +344,50 @@ function getPageParam(pageDirection: 'previous' | 'next', sortBys: Sort[]) {
       querySortDirection,
       sortByDirection: sortBy.kind,
       indexFromInitialPage,
+      autoRefresh,
     };
 
     return pageParamResult;
   };
 }
 
-function getLogIngestDelay() {
-  return `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=${(Date.now() - LOG_INGEST_DELAY) * 1_000_000}`;
+/**
+ * Creates an initial page param for autoRefresh mode that enforces the MAX_LOG_INGEST_DELAY condition.
+ * This ensures the first page query filters for logs older than Date.now() - MAX_LOG_INGEST_DELAY
+ * which means the next logs page fetched will have results instead of having to wait for the MAX_LOG_INGEST_DELAY to pass.
+ */
+function getInitialPageParam(autoRefresh: boolean, sortBys: Sort[]): LogPageParam {
+  if (!autoRefresh) {
+    return null;
+  }
+
+  const sortBy = getTimeBasedSortBy(sortBys);
+  if (!sortBy) {
+    // Only sort by timestamp precise is supported for infinite queries.
+    return null;
+  }
+
+  const pageParamResult: LogPageParam = {
+    // Use an empty logId since we don't have a specific log to exclude yet
+    logId: '',
+    timestampPrecise: getMaxIngestDelayTimestamp(),
+    sortByDirection: sortBy.kind,
+    indexFromInitialPage: 0,
+    // No need to override query sort direction for initial page
+    querySortDirection: undefined,
+    autoRefresh,
+  };
+
+  return pageParamResult;
+}
+
+function getMaxIngestDelayTimestamp() {
+  return BigInt(Date.now() - MAX_LOG_INGEST_DELAY) * 1_000_000n;
+}
+
+function getIngestDelayFilter() {
+  const maxIngestDelayTimestamp = getMaxIngestDelayTimestamp();
+  return ` ${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=${maxIngestDelayTimestamp}`;
 }
 
 function getParamBasedQuery(
@@ -255,11 +399,20 @@ function getParamBasedQuery(
   }
   const comparison =
     (pageParam.querySortDirection ?? pageParam.sortByDirection === 'asc') ? '>=' : '<=';
-  const filter = `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:${comparison}${pageParam.timestampPrecise} !${OurLogKnownFieldKey.ID}:${pageParam.logId} ${getLogIngestDelay()}`;
+
+  const filter = `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:${comparison}${pageParam.timestampPrecise}`;
+
+  const ingestDelayFilter = pageParam.autoRefresh ? getIngestDelayFilter() : '';
+  // Only add the logId exclusion filter if we have a valid logId from the previous page.
+  const logIdFilter = pageParam.logId
+    ? ` !${OurLogKnownFieldKey.ID}:${pageParam.logId}`
+    : '';
 
   return {
     ...query,
-    query: [filter, query?.query].filter(Boolean).join(' AND '),
+    query: [filter + logIdFilter + ingestDelayFilter, query?.query]
+      .filter(Boolean)
+      .join(' AND '),
     sort: pageParam.querySortDirection
       ? encodeSort(pageParam.querySortDirection)
       : query?.sort,
@@ -267,6 +420,8 @@ function getParamBasedQuery(
 }
 
 interface PageParam {
+  // Whether the page param is for auto refresh mode.
+  autoRefresh: boolean;
   // The index of the page from the initial page. Useful for debugging and testing.
   indexFromInitialPage: number;
   // The id of the log row matching timestampPrecise. We use this to exclude the row from the query to avoid duplicates right on the nanosecond boundary.
@@ -290,23 +445,30 @@ export function useInfiniteLogsQuery({
   referrer?: string;
 } = {}) {
   const _referrer = referrer ?? 'api.explore.logs-table';
+  const autoRefresh = useLogsAutoRefresh();
   const {queryKey: queryKeyWithInfinite, other} = useLogsQueryKeyWithInfinite({
     referrer: _referrer,
+    autoRefresh,
   });
   const queryClient = useQueryClient();
   const sortBys = useLogsSortBys();
-  const autoRefresh = useLogsAutoRefresh();
 
   const getPreviousPageParam = useCallback(
     (data: ApiResult<EventsLogsResult>, _: unknown, pageParam: LogPageParam) =>
-      getPageParam('previous', sortBys)(data, _, pageParam),
-    [sortBys]
+      getPageParam('previous', sortBys, autoRefresh)(data, _, pageParam),
+    [sortBys, autoRefresh]
   );
   const getNextPageParam = useCallback(
     (data: ApiResult<EventsLogsResult>, _: unknown, pageParam: LogPageParam) =>
-      getPageParam('next', sortBys)(data, _, pageParam),
-    [sortBys]
+      getPageParam('next', sortBys, autoRefresh)(data, _, pageParam),
+    [sortBys, autoRefresh]
   );
+
+  const initialPageParam = useMemo(
+    () => getInitialPageParam(autoRefresh, sortBys),
+    [autoRefresh, sortBys]
+  );
+
   const queryResult = useInfiniteQuery<
     ApiResult<EventsLogsResult>,
     Error,
@@ -347,10 +509,10 @@ export function useInfiniteLogsQuery({
     },
     getPreviousPageParam,
     getNextPageParam,
-    initialPageParam: null,
+    initialPageParam,
     enabled: !disabled,
     staleTime: getStaleTimeForEventView(other.eventView),
-    maxPages: 10,
+    maxPages: 15,
   });
 
   const {
@@ -396,30 +558,27 @@ export function useInfiniteLogsQuery({
     );
   }, [queryClient, queryKeyWithInfinite, sortBys]);
 
-  const numberOfPages = data?.pages.length ?? 0;
-
-  const {virtualStreamedTimestamp} = useVirtualStreaming(numberOfPages);
+  const {virtualStreamedTimestamp} = useVirtualStreaming(data);
 
   const _data = useMemo(() => {
     const usedRowIds = new Set();
-    return (
+    const filteredData =
       data?.pages.flatMap(([pageData]) =>
         pageData.data.filter(row => {
-          if (usedRowIds.has(row[UNIQUE_ROW_ID])) {
+          if (usedRowIds.has(row[OurLogKnownFieldKey.ID])) {
             return false;
           }
-          if (virtualStreamedTimestamp) {
-            const rowTimestamp =
-              BigInt(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]) / 1_000_000n;
-            if (rowTimestamp > virtualStreamedTimestamp) {
-              return false;
-            }
+
+          if (!isRowVisibleInVirtualStream(row, virtualStreamedTimestamp)) {
+            return false;
           }
-          usedRowIds.add(row[UNIQUE_ROW_ID]);
+
+          usedRowIds.add(row[OurLogKnownFieldKey.ID]);
           return true;
         })
-      ) ?? []
-    );
+      ) ?? [];
+
+    return filteredData;
   }, [data, virtualStreamedTimestamp]);
 
   const _meta = useMemo<EventsMetaType>(() => {
@@ -437,7 +596,6 @@ export function useInfiniteLogsQuery({
   }, [data]);
 
   const _fetchPreviousPage = useCallback(() => {
-    // When auto-refresh is enabled it's possible that the previous page is empty, but we'll try to fetch it anyway.
     if (autoRefresh || hasPreviousPage) {
       return !isFetchingPreviousPage && !isError && fetchPreviousPage();
     }
@@ -460,7 +618,7 @@ export function useInfiniteLogsQuery({
   return {
     error,
     isError,
-    isFetching, // If the network is active
+    isFetching,
     isPending,
     data: _data,
     meta: _meta,
@@ -473,60 +631,6 @@ export function useInfiniteLogsQuery({
     isFetchingPreviousPage,
     lastPageLength: data?.pages?.[data.pages.length - 1]?.[0]?.data?.length ?? 0,
   };
-}
-
-function useVirtualStreaming(numberOfPages: number) {
-  const autoRefresh = useLogsAutoRefresh();
-  const refreshInterval = useLogsRefreshInterval();
-  const rafOn = useRef(false);
-  const [virtualStreamedQueryTimestamp, setVirtualStreamedQueryTimestamp] = useState(
-    Date.now()
-  );
-
-  useEffect(() => {
-    let rafId = 0;
-    rafOn.current = autoRefresh;
-    if (autoRefresh) {
-      const callback = () => {
-        if (!rafOn.current) {
-          return;
-        }
-        const targetVirtualTime = Date.now() - LOG_INGEST_DELAY;
-        setVirtualStreamedQueryTimestamp(prev => {
-          if (prev + VIRTUAL_STREAMED_INTERVAL_MS > targetVirtualTime) {
-            return prev;
-          }
-          return prev + VIRTUAL_STREAMED_INTERVAL_MS;
-        });
-        rafId = requestAnimationFrame(callback);
-      };
-
-      rafId = requestAnimationFrame(callback);
-    }
-
-    return () => {
-      rafOn.current = false;
-      if (rafId) {
-        window.cancelAnimationFrame(rafId);
-      }
-    };
-  }, [autoRefresh]);
-
-  const virtualStreamedTimestamp = useMemo(() => {
-    if (!autoRefresh || numberOfPages < 2) {
-      return undefined;
-    }
-    return virtualStreamedQueryTimestamp - refreshInterval - 1000; // We subtract the refresh interval when it comes to the UI updated virtual time
-  }, [autoRefresh, numberOfPages, refreshInterval, virtualStreamedQueryTimestamp]);
-
-  if (!autoRefresh || numberOfPages < 2) {
-    return {
-      virtualStreamedQueryTimestamp: undefined,
-      virtualStreamedTimestamp: undefined,
-    };
-  }
-
-  return {virtualStreamedQueryTimestamp, virtualStreamedTimestamp};
 }
 
 export type UseLogsQueryResult = ReturnType<typeof useLogsQuery>;

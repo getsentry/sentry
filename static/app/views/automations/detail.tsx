@@ -1,17 +1,17 @@
 /* eslint-disable no-alert */
 import {Fragment} from 'react';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {DateTime} from 'sentry/components/dateTime';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TimeSince from 'sentry/components/timeSince';
-import {ActionsProvider} from 'sentry/components/workflowEngine/layout/actions';
-import {BreadcrumbsProvider} from 'sentry/components/workflowEngine/layout/breadcrumbs';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
@@ -22,6 +22,7 @@ import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import getDuration from 'sentry/utils/duration/getDuration';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import useUserFromId from 'sentry/utils/useUserFromId';
 import AutomationHistoryList from 'sentry/views/automations/components/automationHistoryList';
 import ConditionsPanel from 'sentry/views/automations/components/conditionsPanel';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
@@ -41,6 +42,8 @@ export default function AutomationDetail() {
     refetch,
   } = useAutomationQuery(params.automationId);
 
+  const {data: createdByUser} = useUserFromId({id: Number(automation?.createdBy)});
+
   const detectorsQuery = useDetectorQueriesByIds(automation?.detectorIds || []);
   const detectors = detectorsQuery
     .map(result => result.data)
@@ -56,66 +59,87 @@ export default function AutomationDetail() {
 
   return (
     <SentryDocumentTitle title={automation.name} noSuffix>
-      <BreadcrumbsProvider
-        crumb={{
-          label: t('Automations'),
-          to: makeAutomationBasePathname(organization.slug),
-        }}
-      >
-        <ActionsProvider actions={<Actions />}>
-          <DetailLayout>
-            <DetailLayout.Main>
-              <Section title={t('History')}>
+      <DetailLayout>
+        <DetailLayout.Header>
+          <DetailLayout.HeaderContent>
+            <Breadcrumbs
+              crumbs={[
+                {
+                  label: t('Automations'),
+                  to: makeAutomationBasePathname(organization.slug),
+                },
+                {label: automation.name},
+              ]}
+            />
+            <DetailLayout.Title title={automation.name} />
+          </DetailLayout.HeaderContent>
+          <DetailLayout.Actions>
+            <Actions />
+          </DetailLayout.Actions>
+        </DetailLayout.Header>
+        <DetailLayout.Body>
+          <DetailLayout.Main>
+            <Section title={t('History')}>
+              <ErrorBoundary mini>
                 <AutomationHistoryList history={[]} />
-              </Section>
-              <Section title={t('Connected Monitors')}>
+              </ErrorBoundary>
+            </Section>
+            <Section title={t('Connected Monitors')}>
+              <ErrorBoundary mini>
                 <ConnectedMonitorsList monitors={detectors} />
-              </Section>
-            </DetailLayout.Main>
-            <DetailLayout.Sidebar>
-              <Section title={t('Last Triggered')}>
-                {automation.lastTriggered ? (
-                  <Flex gap={space(1)}>
-                    <TimeSince date={automation.lastTriggered} />
-                    <Flex>
-                      (<DateTime date={automation.lastTriggered} year timeZone />)
-                    </Flex>
+              </ErrorBoundary>
+            </Section>
+          </DetailLayout.Main>
+          <DetailLayout.Sidebar>
+            <Section title={t('Last Triggered')}>
+              {automation.lastTriggered ? (
+                <Flex gap={space(1)}>
+                  <TimeSince date={automation.lastTriggered} />
+                  <Flex>
+                    (<DateTime date={automation.lastTriggered} year timeZone />)
                   </Flex>
-                ) : (
-                  t('Never')
-                )}
-              </Section>
-              <Section title={t('Environment')}>
-                {automation.environment || t('All environments')}
-              </Section>
-              <Section title={t('Action Interval')}>
-                {tct('Every [frequency]', {
-                  frequency: getDuration((automation.config.frequency || 0) * 60),
-                })}
-              </Section>
-              <Section title={t('Conditions')}>
+                </Flex>
+              ) : (
+                t('Never')
+              )}
+            </Section>
+            <Section title={t('Environment')}>
+              {automation.environment || t('All environments')}
+            </Section>
+            <Section title={t('Action Interval')}>
+              {tct('Every [frequency]', {
+                frequency: getDuration((automation.config.frequency || 0) * 60),
+              })}
+            </Section>
+            <Section title={t('Conditions')}>
+              <ErrorBoundary mini>
                 <ConditionsPanel
                   triggers={automation.triggers}
                   actionFilters={automation.actionFilters}
                 />
-              </Section>
-              <Section title={t('Details')}>
+              </ErrorBoundary>
+            </Section>
+            <Section title={t('Details')}>
+              <ErrorBoundary mini>
                 <KeyValueTable>
                   <KeyValueTableRow
                     keyName={t('Date created')}
                     value={<DateTime date={automation.dateCreated} dateOnly year />}
                   />
-                  <KeyValueTableRow keyName={t('Created by')} value="placeholder" />
+                  <KeyValueTableRow
+                    keyName={t('Created by')}
+                    value={createdByUser?.name || createdByUser?.email || t('Unknown')}
+                  />
                   <KeyValueTableRow
                     keyName={t('Last modified')}
                     value={<TimeSince date={automation.dateUpdated} />}
                   />
                 </KeyValueTable>
-              </Section>
-            </DetailLayout.Sidebar>
-          </DetailLayout>
-        </ActionsProvider>
-      </BreadcrumbsProvider>
+              </ErrorBoundary>
+            </Section>
+          </DetailLayout.Sidebar>
+        </DetailLayout.Body>
+      </DetailLayout>
     </SentryDocumentTitle>
   );
 }

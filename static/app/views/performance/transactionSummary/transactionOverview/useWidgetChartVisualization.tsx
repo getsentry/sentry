@@ -3,13 +3,12 @@ import {useTheme} from '@emotion/react';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useEAPSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 import {
   filterToColor,
@@ -79,7 +78,6 @@ function useDurationBreakdownVisualization({
     location.query?.[SpanIndexedField.SPAN_CATEGORY]
   );
   const {selection} = usePageFilters();
-  const organization = useOrganization();
 
   const {releases: releasesWithDate} = useReleaseStats(selection);
   const releases =
@@ -102,7 +100,7 @@ function useDurationBreakdownVisualization({
     data: spanSeriesData,
     isPending: isSpanSeriesPending,
     isError: isSpanSeriesError,
-  } = useEAPSeries(
+  } = useSpanSeries(
     {
       yAxis: [
         'avg(span.duration)',
@@ -131,14 +129,11 @@ function useDurationBreakdownVisualization({
   const timeSeries = eapSeriesDataToTimeSeries(spanSeriesData);
   const plottables = timeSeries.map(series => new Line(series));
 
-  const enableReleaseBubblesProps = organization.features.includes('release-bubbles-ui')
-    ? ({releases, showReleaseAs: 'bubble'} as const)
-    : {};
-
   return (
     <TimeSeriesWidgetVisualization
       plottables={plottables}
-      {...enableReleaseBubblesProps}
+      releases={releases}
+      showReleaseAs="bubble"
     />
   );
 }
@@ -170,7 +165,7 @@ function useDurationPercentilesVisualization({
     data: durationPercentilesData,
     isPending: isDurationPercentilesPending,
     isError: isDurationPercentilesError,
-  } = useEAPSpans(
+  } = useSpans(
     {
       fields: [
         'p50(span.duration)',

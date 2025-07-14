@@ -14,7 +14,7 @@ interface WebVitalsWeightListProps {
 }
 export function WebVitalsWeightList({weights}: WebVitalsWeightListProps) {
   const theme = useTheme();
-  const segmentColors = theme.chart.getColorPalette(3);
+  const segmentColors = theme.chart.getColorPalette(4);
 
   return (
     <Content>
@@ -39,7 +39,7 @@ export function WebVitalsWeightList({weights}: WebVitalsWeightListProps) {
 }
 
 const Content = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const List = styled('ul')`

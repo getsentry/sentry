@@ -489,23 +489,23 @@ const TopRow = styled('div')`
   align-items: start;
   height: 18px;
   color: ${p => p.theme.tour.close};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
   opacity: 0.6;
 `;
 
 const TitleRow = styled('div')`
   color: ${p => p.theme.tour.header};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1.4;
   white-space: wrap;
 `;
 
 const DescriptionRow = styled('div')`
   color: ${p => p.theme.tour.text};
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.normal};
   line-height: 1.4;
   white-space: wrap;
   opacity: 0.9;
@@ -518,8 +518,6 @@ const ActionRow = styled('div')`
 `;
 
 export const TourAction = styled(Button)`
-  border: 0;
-  background: ${p => p.theme.white};
   color: ${p => p.theme.tour.next};
 
   &:hover,
@@ -527,12 +525,26 @@ export const TourAction = styled(Button)`
   &:focus {
     color: ${p => p.theme.tour.next};
   }
+
+  ${p =>
+    p.theme.isChonk
+      ? `
+    &::after {
+      background: ${p.theme.white};
+    }
+  `
+      : `
+    border: 0;
+    background: ${p.theme.white};
+  `}
 `;
 
-export const TextTourAction = styled(Button)`
-  border: 0;
+function TransparentButton(props: React.ComponentProps<typeof Button>) {
+  return <Button {...props} priority="transparent" borderless />;
+}
+
+export const TextTourAction = styled(TransparentButton)`
   box-shadow: none;
-  background: transparent;
   color: ${p => p.theme.tour.previous};
   &:hover,
   &:active,

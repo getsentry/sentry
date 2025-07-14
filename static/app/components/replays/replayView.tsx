@@ -1,6 +1,10 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {Flex} from 'sentry/components/core/layout';
+import ExternalLink from 'sentry/components/links/externalLink';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayCurrentScreen from 'sentry/components/replays/replayCurrentScreen';
@@ -9,11 +13,16 @@ import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
 import {ReplaySidebarToggleButton} from 'sentry/components/replays/replaySidebarToggleButton';
 import TextCopyInput from 'sentry/components/textCopyInput';
+import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import {
+  JetpackComposePiiNotice,
+  useNeedsJetpackComposePiiNotice,
+} from 'sentry/views/replays/jetpackComposePiiNotice';
 
 import {CanvasSupportNotice} from './canvasSupportNotice';
 
@@ -27,6 +36,9 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const {isFetching, replay} = useReplayContext();
   const isVideoReplay = replay?.isVideoReplay();
+  const needsJetpackComposePiiWarning = useNeedsJetpackComposePiiNotice({
+    replays: replay ? [replay.getReplay()] : [],
+  });
 
   return (
     <Fragment>
@@ -38,22 +50,51 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
                 {''}
               </TextCopyInput>
             ) : isVideoReplay ? (
-              <ReplayCurrentScreen />
+              <ScreenNameContainer>
+                {replay?.getReplay()?.sdk.name?.includes('flutter') ? (
+                  <QuestionTooltip
+                    isHoverable
+                    title={tct(
+                      'In order to see the correct screen name, you need to configure the [link:Sentry Routing Instrumentation].',
+                      {
+                        link: (
+                          <ExternalLink href="https://docs.sentry.io/platforms/dart/guides/flutter/integrations/routing-instrumentation/" />
+                        ),
+                      }
+                    )}
+                    size={'sm'}
+                  />
+                ) : null}
+                <ScreenNameInputContainer>
+                  <ReplayCurrentScreen />
+                </ScreenNameInputContainer>
+              </ScreenNameContainer>
             ) : (
               <ReplayCurrentUrl />
             )}
-            <BrowserOSIcons showBrowser={!isVideoReplay} isLoading={isLoading} />
-            {isFullscreen ? (
-              <ReplaySidebarToggleButton
-                isOpen={isSidebarOpen}
-                setIsOpen={setIsSidebarOpen}
-              />
-            ) : null}
+            <Flex gap={space(1)}>
+              <BrowserOSIcons showBrowser={!isVideoReplay} isLoading={isLoading} />
+              {isFullscreen ? (
+                <ReplaySidebarToggleButton
+                  isOpen={isSidebarOpen}
+                  setIsOpen={setIsSidebarOpen}
+                />
+              ) : null}
+            </Flex>
           </ContextContainer>
-          {!isFetching && replay?.hasProcessingErrors() ? (
+          {isLoading ? (
+            <FluidHeight>
+              <Panel>
+                <NegativeSpaceContainer />
+              </Panel>
+            </FluidHeight>
+          ) : !isFetching && replay?.hasProcessingErrors() ? (
             <ReplayProcessingError processingErrors={replay.processingErrors()} />
           ) : (
             <FluidHeight>
+              {isVideoReplay && needsJetpackComposePiiWarning ? (
+                <JetpackComposePiiNotice />
+              ) : null}
               <CanvasSupportNotice />
               <Panel>
                 <ReplayPlayer inspectable />
@@ -90,14 +131,27 @@ const ContextContainer = styled('div')`
   grid-auto-flow: column;
   grid-template-columns: 1fr max-content;
   align-items: center;
+  gap: ${space(1.5)};
+`;
+
+const ScreenNameContainer = styled('div')`
+  display: flex;
+  align-items: center;
   gap: ${space(1)};
+  width: 100%;
+  flex: 1;
+`;
+
+const ScreenNameInputContainer = styled('div')`
+  flex: 1;
+  width: 100%;
 `;
 
 const PlayerContainer = styled('div')`
   display: grid;
   grid-auto-flow: row;
   grid-template-rows: auto 1fr;
-  gap: 10px;
+  gap: ${space(1)};
   flex-grow: 1;
 `;
 

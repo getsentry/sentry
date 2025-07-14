@@ -13,6 +13,7 @@ import moment from 'moment-timezone';
 
 import {closeModal} from 'sentry/actionCreators/modal';
 import {isChartHovered} from 'sentry/components/charts/utils';
+import type {RawFlag} from 'sentry/components/featureFlags/utils';
 import type {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t, tn} from 'sentry/locale';
 import type {
@@ -28,7 +29,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFormat} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {
@@ -66,7 +66,6 @@ interface ReleaseBubbleSeriesProps {
   dateFormatOptions: {
     timezone: string;
   };
-  releases: ReleaseMetaBasic[];
   theme: Theme;
   yAxisIndex?: number;
 }
@@ -84,13 +83,17 @@ function ReleaseBubbleSeries({
   alignInMiddle,
   yAxisIndex,
 }: ReleaseBubbleSeriesProps): CustomSeriesOption | null {
-  const totalReleases = buckets.reduce((acc, {releases}) => acc + releases.length, 0);
+  const totalReleases = buckets.reduce(
+    (acc, {releases, flags}) => acc + flags.length + releases.length,
+    0
+  );
   const avgReleases = totalReleases / buckets.length;
-  const data = buckets.map(({start, end, releases}) => ({
+  const data = buckets.map(({start, end, releases, flags}) => ({
     value: [start, 0, end, releases.length],
     start,
     end,
     releases,
+    flags,
   }));
 
   const formatBucketTimestamp = (timestamp: number) => {
@@ -128,7 +131,7 @@ function ReleaseBubbleSeries({
       return null;
     }
 
-    const numberReleases = dataItem.releases.length;
+    const numberReleases = dataItem.releases.length + dataItem.flags.length;
 
     // Width between two timestamps for timeSeries
     const width = bubbleEndX - bubbleStartX;
@@ -223,18 +226,26 @@ function ReleaseBubbleSeries({
 
         const bucket = params.data as Bucket;
         const numberReleases = bucket.releases.length;
+        const numberFlags = bucket.flags.length;
         return `
 <div class="tooltip-series tooltip-release">
 <div>
 ${tn('%s Release', '%s Releases', numberReleases)}
 </div>
+${
+  numberFlags > 0
+    ? `<div>
+${tn('%s Flag', '%s Flags', numberFlags)}
+</div>`
+    : ''
+}
 <div class="tooltip-release-timerange">
 ${formatBucketTimestamp(bucket.start)} - ${formatBucketTimestamp(bucket.final ?? bucket.end)}
 </div>
 </div>
 
 ${
-  numberReleases > 0
+  numberReleases > 0 || numberFlags > 0
     ? `<div class="tooltip-footer tooltip-release">
 ${t('Click to expand')}
 </div>`
@@ -273,8 +284,12 @@ interface UseReleaseBubblesParams {
    */
   desiredBuckets?: number;
   environments?: readonly string[];
+  eventId?: string;
+  /**
+   * List of feature flag events to include in the bubbles
+   */
+  flags?: RawFlag[];
   legendSelected?: boolean;
-
   /**
    * The maximum/latest timestamp of the chart's timeseries
    */
@@ -296,6 +311,7 @@ interface UseReleaseBubblesParams {
 
 export function useReleaseBubbles({
   chartId,
+  eventId,
   releases,
   minTime,
   maxTime,
@@ -308,8 +324,8 @@ export function useReleaseBubbles({
   bubbleSize = 4,
   bubblePadding = 2,
   desiredBuckets = 10,
+  flags,
 }: UseReleaseBubblesParams) {
-  const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
@@ -325,7 +341,6 @@ export function useReleaseBubbles({
       ? new Date(endTimeToUse).getTime()
       : Date.now();
   const chartRef = useRef<ReactEchartsRef | null>(null);
-  const hasReleaseBubbles = organization.features.includes('release-bubbles-ui');
   const totalBubblePaddingY = bubblePadding * 2;
   const defaultBubbleXAxis = useMemo(
     () => ({
@@ -377,8 +392,7 @@ export function useReleaseBubbles({
 
   const buckets = useMemo(
     () =>
-      (hasReleaseBubbles &&
-        releases?.length &&
+      ((releases?.length || flags?.length) &&
         minTime &&
         maxTime &&
         createReleaseBuckets({
@@ -386,10 +400,11 @@ export function useReleaseBubbles({
           maxTime,
           finalTime: releasesMaxTime,
           releases,
+          flags,
           desiredBuckets,
         })) ||
       [],
-    [desiredBuckets, hasReleaseBubbles, maxTime, minTime, releases, releasesMaxTime]
+    [desiredBuckets, flags, maxTime, minTime, releases, releasesMaxTime]
   );
 
   const handleChartRef = useCallback(
@@ -474,6 +489,7 @@ export function useReleaseBubbles({
             ...cleanReleaseCursors(location.query),
             [ReleasesDrawerFields.DRAWER]: 'show',
             [ReleasesDrawerFields.CHART]: chartId,
+            [ReleasesDrawerFields.EVENT_ID]: eventId,
             [ReleasesDrawerFields.START]: new Date(data.start).toISOString(),
             [ReleasesDrawerFields.END]: new Date(data.end).toISOString(),
             [ReleasesDrawerFields.PROJECT]: projects ?? selection.projects,
@@ -611,6 +627,7 @@ export function useReleaseBubbles({
     [
       location.query,
       chartId,
+      eventId,
       navigate,
       alignInMiddle,
       buckets,
@@ -651,7 +668,6 @@ export function useReleaseBubbles({
       bubblePadding,
       chartRef,
       theme,
-      releases,
       dateFormatOptions: {
         timezone: options.timezone,
       },

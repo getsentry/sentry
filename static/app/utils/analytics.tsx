@@ -3,7 +3,6 @@ import * as Sentry from '@sentry/react';
 
 import HookStore from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
-import {agentsInsightsEventMap} from 'sentry/utils/analytics/agentsInsightsAnalyticsEvents';
 import {
   alertsEventMap,
   type AlertsEventParameters,
@@ -27,6 +26,8 @@ import {
   type StatsEventParameters,
 } from 'sentry/utils/analytics/statsAnalyticsEvents';
 
+import type {AgentMonitoringEventParameters} from './analytics/agentMonitoringAnalyticsEvents';
+import {agentMonitoringEventMap} from './analytics/agentMonitoringAnalyticsEvents';
 import type {CoreUIEventParameters} from './analytics/coreuiAnalyticsEvents';
 import {coreUIEventMap} from './analytics/coreuiAnalyticsEvents';
 import type {DashboardsEventParameters} from './analytics/dashboardsAnalyticsEvents';
@@ -81,6 +82,7 @@ import {workflowEventMap} from './analytics/workflowAnalyticsEvents';
 
 interface EventParameters
   extends GrowthEventParameters,
+    AgentMonitoringEventParameters,
     AlertsEventParameters,
     CoreUIEventParameters,
     DashboardsEventParameters,
@@ -113,6 +115,7 @@ interface EventParameters
     Record<string, Record<string, any>> {}
 
 const allEventMap: Record<string, string | null> = {
+  ...agentMonitoringEventMap,
   ...alertsEventMap,
   ...coreUIEventMap,
   ...dashboardsEventMap,
@@ -125,7 +128,6 @@ const allEventMap: Record<string, string | null> = {
   ...laravelInsightsEventMap,
   ...monitorsEventMap,
   ...nextJsInsightsEventMap,
-  ...agentsInsightsEventMap,
   ...performanceEventMap,
   ...tracingEventMap,
   ...profilingEventMap,

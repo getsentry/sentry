@@ -19,7 +19,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.groupinbox import GroupInbox
 from sentry.models.project import Project
 from sentry.signals import issue_deleted
-from sentry.tasks.delete_seer_grouping_records import call_delete_seer_grouping_records_by_hash
+from sentry.tasks.delete_seer_grouping_records import may_schedule_task_to_delete_hashes_from_seer
 from sentry.utils.audit import create_audit_entry
 
 from . import BULK_MUTATION_LIMIT, SearchFunction
@@ -68,6 +68,8 @@ def delete_group_list(
         {
             "project_id": project.id,
             "transaction_id": transaction_id,
+            "group_deletion_project_id": project.id,
+            "group_deletion_group_ids": str(group_ids),
         },
     )
 
@@ -83,7 +85,7 @@ def delete_group_list(
     create_audit_entries(request, project, group_list, delete_type, transaction_id)
 
     # Tell seer to delete grouping records for these groups
-    call_delete_seer_grouping_records_by_hash(error_ids)
+    may_schedule_task_to_delete_hashes_from_seer(error_ids)
 
     # Removing GroupHash rows prevents new events from associating to the groups
     # we just deleted.

@@ -12,7 +12,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry import options
-from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
+from sentry.feedback.lib.utils import FeedbackCreationSource
+from sentry.feedback.usecases.create_feedback import create_feedback_issue
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.issues.grouptype import (
@@ -25,7 +26,6 @@ from sentry.models.activity import Activity
 from sentry.models.apitoken import ApiToken
 from sentry.models.environment import Environment
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.files.file import File
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
@@ -72,7 +72,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.users.models.user_option import UserOption
 from sentry.utils import json
-from tests.sentry.feedback.usecases.test_create_feedback import mock_feedback_event
+from tests.sentry.feedback import mock_feedback_event
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
@@ -1979,14 +1979,12 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert "latestEventHasAttachments" not in response.data[0]
 
         # Add 1 attachment
-        file_attachment = File.objects.create(name="hello.png", type="image/png")
         EventAttachment.objects.create(
             group_id=event.group.id,
             event_id=event.event_id,
             project_id=event.project_id,
-            file_id=file_attachment.id,
-            type=file_attachment.type,
             name="hello.png",
+            content_type="image/png",
         )
 
         response = self.get_response(
@@ -4051,15 +4049,15 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
 
         with self.feature({"organizations:issue-search-snuba": False}):
-            response = self.get_success_response(query='flags["test:flag"]:true')
+            response = self.get_success_response(query="flags[test:flag]:true")
             assert len(json.loads(response.content)) == 1
-            response = self.get_success_response(query='flags["test:flag"]:false')
+            response = self.get_success_response(query="flags[test:flag]:false")
             assert len(json.loads(response.content)) == 0
 
         with self.feature({"organizations:issue-search-snuba": True}):
-            response = self.get_success_response(query='flags["test:flag"]:true')
+            response = self.get_success_response(query="flags[test:flag]:true")
             assert len(json.loads(response.content)) == 1
-            response = self.get_success_response(query='flags["test:flag"]:false')
+            response = self.get_success_response(query="flags[test:flag]:false")
             assert len(json.loads(response.content)) == 0
 
     def test_postgres_query_timeout(self, mock_query: MagicMock) -> None:

@@ -39,7 +39,7 @@ urlpatterns = [
         name="sentry-extensions-jira-issue-updated",
     ),
     re_path(
-        r"^search/(?P<organization_id_or_slug>[^\/]+)/(?P<integration_id>\d+)/$",
+        r"^search/(?P<organization_id_or_slug>[^/]+)/(?P<integration_id>\d+)/$",
         JiraSearchEndpoint.as_view(),
         name="sentry-extensions-jira-search",
     ),
@@ -49,7 +49,7 @@ urlpatterns = [
         name="sentry-extensions-jira-configuration",
     ),
     re_path(
-        r"^issue/(?P<issue_key>[^\/]+)/$",
+        r"^issue/(?P<issue_key>[^/]+)/$",
         JiraSentryIssueDetailsView.as_view(),
         name="sentry-extensions-jira-issue-hook",
     ),
