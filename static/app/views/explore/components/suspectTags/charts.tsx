@@ -31,7 +31,7 @@ export function Charts({rankedAttributes, searchQuery}: Props) {
     count: rankedAttributes.length,
     getScrollElement: () => scrollContainerRef.current,
     estimateSize: () => 200,
-    overscan: 5,
+    overscan: 10,
   });
 
   const virtualItems = virtualizer.getVirtualItems();
