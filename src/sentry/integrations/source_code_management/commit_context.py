@@ -675,11 +675,15 @@ class OpenPRCommentWorkflow(ABC):
         self, projects: list[Project], sentry_filenames: list[str], function_names: list[str]
     ) -> list[dict[str, Any]]:
         """
-        Given a list of projects, Github filenames reverse-codemapped into filenames in Sentry,
+        Given a list of projects, filenames reverse-codemapped into filenames in Sentry,
         and function names representing the list of functions changed in a PR file, return a
         sublist of the top 5 recent unhandled issues ordered by event count.
         """
         if not len(projects):
+            logger.info(
+                "open_pr_comment.no_projects",
+                extra={"sentry_filenames": sentry_filenames},
+            )
             return []
 
         patch_parsers = get_patch_parsers_for_organization(projects[0].organization)
@@ -689,6 +693,10 @@ class OpenPRCommentWorkflow(ABC):
         language_parser = patch_parsers.get(sentry_filenames[0].split(".")[-1], None)
 
         if not language_parser:
+            logger.info(
+                "open_pr_comment.no_language_parser",
+                extra={"sentry_filenames": sentry_filenames},
+            )
             return []
 
         group_ids = list(
@@ -701,6 +709,13 @@ class OpenPRCommentWorkflow(ABC):
             .order_by("-times_seen")
             .values_list("id", flat=True)
         )[:OPEN_PR_MAX_RECENT_ISSUES]
+
+        if projects[0].organization_id == 1:
+            logger.info(
+                "open_pr_comment.length_of_group_ids",
+                extra={"group_ids_length": len(group_ids)},
+            )
+
         project_ids = [p.id for p in projects]
 
         multi_if = language_parser.generate_multi_if(function_names)
@@ -800,6 +815,12 @@ class OpenPRCommentWorkflow(ABC):
             tenant_ids={"organization_id": projects[0].organization_id},
             query=query,
         )
+
+        if projects[0].organization_id == 1:
+            logger.info(
+                "open_pr_comment.snuba_query",
+                extra={"query": request.to_dict()["query"]},
+            )
 
         try:
             return raw_snql_query(request, referrer=self.referrer.value)["data"]

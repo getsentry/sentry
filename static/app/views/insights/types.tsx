@@ -14,6 +14,7 @@ export enum ModuleName {
   RESOURCE = 'resource',
   AI = 'ai',
   AGENTS = 'agents',
+  MCP = 'mcp',
   MOBILE_UI = 'mobile-ui',
   MOBILE_VITALS = 'mobile-vitals',
   SCREEN_RENDERING = 'screen-rendering',
@@ -554,7 +555,6 @@ type MetricsFunctions =
   | 'performance_score'
   | 'count_scores'
   | 'opportunity_score'
-  | 'total_opportunity_score'
   | 'p75';
 
 export enum MetricsFields {
