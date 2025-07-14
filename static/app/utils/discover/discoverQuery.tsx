@@ -20,6 +20,12 @@ export type TableData = {
   meta?: MetaType;
 };
 
+// TODO: Remove this with DAIN-746, the endpoint doesn't always return an id
+export type TableDataNoId = {
+  data: Array<Record<string, any>>;
+  meta?: MetaType;
+};
+
 /**
  * A DiscoverQuery result including rows and metadata from the events endpoint.
  */

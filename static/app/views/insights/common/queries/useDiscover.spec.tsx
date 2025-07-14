@@ -10,10 +10,7 @@ import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  useSpanMetrics,
-  useSpansIndexed,
-} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpanMetrics, useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   SpanIndexedField,
   type SpanIndexedProperty,
@@ -178,7 +175,7 @@ describe('useDiscover', () => {
       });
 
       const {result} = renderHook(
-        ({fields, enabled}) => useSpansIndexed({fields, enabled}, 'referrer'),
+        ({fields, enabled}) => useSpans({fields, enabled}, 'referrer'),
         {
           wrapper: Wrapper,
           initialProps: {
@@ -216,7 +213,7 @@ describe('useDiscover', () => {
 
       const {result} = renderHook(
         ({filters, fields, sorts, limit, cursor, referrer}) =>
-          useSpansIndexed(
+          useSpans(
             {
               search: MutableSearch.fromQueryObject(filters),
               fields,
