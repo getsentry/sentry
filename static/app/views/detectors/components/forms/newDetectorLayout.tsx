@@ -38,12 +38,14 @@ type NewDetectorLayoutProps = {
   detectorType: EditableDetectorType;
   handleSubmit?: OnSubmitCallback;
   initialFormData?: Partial<DetectorFormData>;
+  previewChart?: React.ReactNode;
 };
 
 export function NewDetectorLayout({
   children,
   handleSubmit,
   initialFormData,
+  previewChart,
   detectorType,
 }: NewDetectorLayoutProps) {
   const location = useLocation();
@@ -107,7 +109,7 @@ export function NewDetectorLayout({
         title={t('New %s Monitor', DETECTOR_TYPE_LABELS[detectorType])}
       />
       <Layout.Page>
-        <StyledLayoutHeader>
+        <StyledLayoutHeader noActionWrap>
           <Layout.HeaderContent>
             <Breadcrumbs
               crumbs={[
@@ -117,8 +119,13 @@ export function NewDetectorLayout({
                 },
               ]}
             />
-            <DetectorBaseFields />
           </Layout.HeaderContent>
+          {/* Header actions placeholder - currently unused */}
+          <div />
+          <Flex direction="column" gap={space(2)}>
+            <DetectorBaseFields />
+            {previewChart}
+          </Flex>
         </StyledLayoutHeader>
         <Layout.Body>
           <Layout.Main fullWidth>{children}</Layout.Main>

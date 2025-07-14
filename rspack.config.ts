@@ -1,6 +1,6 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
-
+import remarkCallout from '@r4ai/remark-callout';
 import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
 import type {
   Configuration,
@@ -16,6 +16,10 @@ import HtmlWebpackPlugin from 'html-webpack-plugin';
 import fs from 'node:fs';
 import {createRequire} from 'node:module';
 import path from 'node:path';
+import rehypeExpressiveCode from 'rehype-expressive-code';
+import remarkFrontmatter from 'remark-frontmatter';
+import remarkGfm from 'remark-gfm';
+import remarkMdxFrontmatter from 'remark-mdx-frontmatter';
 import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
 // @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
@@ -290,6 +294,22 @@ const appConfig: Configuration = {
           },
           {
             loader: '@mdx-js/loader',
+            options: {
+              remarkPlugins: [
+                remarkFrontmatter,
+                remarkMdxFrontmatter,
+                remarkGfm,
+                remarkCallout,
+              ],
+              rehypePlugins: [
+                [
+                  rehypeExpressiveCode,
+                  {
+                    useDarkModeMediaQuery: false,
+                  },
+                ],
+              ],
+            },
           },
         ],
       },
@@ -514,7 +534,19 @@ const appConfig: Configuration = {
     // This only runs in production mode
     minimizer: [
       new rspack.LightningCssMinimizerRspackPlugin(),
-      new rspack.SwcJsMinimizerRspackPlugin(),
+      new rspack.SwcJsMinimizerRspackPlugin({
+        minimizerOptions: {
+          compress: {
+            // We are turning off these 3 minifier options because it has caused
+            // unexpected behaviour. See the following issues for more details.
+            // - https://github.com/swc-project/swc/issues/10822
+            // - https://github.com/swc-project/swc/issues/10824
+            reduce_vars: false,
+            inline: 0,
+            collapse_vars: false,
+          },
+        },
+      }),
     ],
   },
   devtool: IS_PRODUCTION ? 'source-map' : 'eval-cheap-module-source-map',
@@ -747,9 +779,8 @@ if (IS_UI_DEV_ONLY) {
       rewrites: [{from: /^\/.*$/, to: '/_assets/index.html'}],
     },
   };
-  appConfig.optimization = {
-    runtimeChunk: 'single',
-  };
+  // Hot reloading breaks if we aren't using a single runtime chunk
+  appConfig.optimization!.runtimeChunk = 'single';
 }
 
 if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {

@@ -30,6 +30,10 @@ type Props = {
    */
   projectId?: string;
   /**
+   * Should the version be formatted or not
+   */
+  shouldFormatVersion?: boolean;
+  /**
    * Should the release text break and wrap onto the next line
    */
   shouldWrapText?: boolean;
@@ -57,10 +61,13 @@ function Version({
   truncate,
   shouldWrapText = false,
   className,
+  shouldFormatVersion = true,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
-  const versionToDisplay = formatVersion(version, withPackage);
+  const versionToDisplay = shouldFormatVersion
+    ? formatVersion(version, withPackage)
+    : version;
   const theme = useTheme();
 
   let releaseDetailProjectId: null | undefined | string | string[];

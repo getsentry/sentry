@@ -2540,6 +2540,7 @@ INSIGHT_MODULE_TO_PROJECT_FLAG_NAME: dict[InsightModules, str] = {
     InsightModules.QUEUE: "has_insights_queues",
     InsightModules.LLM_MONITORING: "has_insights_llm_monitoring",
     InsightModules.AGENTS: "has_insights_agent_monitoring",
+    InsightModules.MCP: "has_insights_mcp",
 }
 
 

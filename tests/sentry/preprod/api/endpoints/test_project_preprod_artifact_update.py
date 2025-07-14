@@ -6,7 +6,6 @@ from django.test import override_settings
 from sentry.preprod.models import PreprodArtifact
 from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
-from sentry.utils import json
 
 
 class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
@@ -175,7 +174,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert "extras" in resp_data["updated_fields"]
 
         self.preprod_artifact.refresh_from_db()
-        stored_apple_info = json.loads(self.preprod_artifact.extras or "{}")
+        stored_apple_info = self.preprod_artifact.extras or {}
         assert stored_apple_info == apple_info
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
@@ -196,7 +195,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert "extras" in resp_data["updated_fields"]
 
         self.preprod_artifact.refresh_from_db()
-        stored_apple_info = json.loads(self.preprod_artifact.extras or "{}")
+        stored_apple_info = self.preprod_artifact.extras or {}
         # Should only contain the fields that were provided
         assert stored_apple_info == apple_info
         assert "profile_name" not in stored_apple_info
