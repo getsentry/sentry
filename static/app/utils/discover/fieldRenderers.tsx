@@ -970,7 +970,7 @@ const getContextIcon = (value: string) => {
 };
 
 /**
- * Drops the last part of an operating system or browser string
+ * Drops the last part of an operating system or browser string that contains version appended at the end
  * @param value The string that contains the version to be dropped. E.g., 'Safari 9.1.2'
  * @returns E.g., 'Safari 9.1.2' -> 'Safari'
  */
@@ -985,7 +985,7 @@ const getProjectIdLink = (
   {organization}: RenderFunctionBaggage
 ) => {
   const parsedId = typeof projectId === 'string' ? parseInt(projectId, 10) : projectId;
-  if (!parsedId || isNaN(parsedId)) {
+  if (!defined(parsedId) || isNaN(parsedId)) {
     return <NumberContainer>{emptyValue}</NumberContainer>;
   }
 
