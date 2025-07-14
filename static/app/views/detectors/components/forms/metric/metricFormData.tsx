@@ -98,6 +98,7 @@ export interface MetricDetectorFormData
   name: string;
   owner: string;
   projectId: string;
+  workflowIds: string[];
 }
 
 type MetricDetectorFormFieldName = keyof MetricDetectorFormData;
@@ -112,6 +113,7 @@ export const METRIC_DETECTOR_FORM_FIELDS = {
   environment: 'environment',
   projectId: 'projectId',
   owner: 'owner',
+  workflowIds: 'workflowIds',
 
   // Snuba query fields
   dataset: 'dataset',
@@ -371,6 +373,7 @@ export function metricDetectorFormDataToEndpointPayload(
     },
     config,
     dataSource,
+    workflowIds: data.workflowIds,
   };
 }
 
@@ -468,6 +471,7 @@ export function metricSavedDetectorToFormData(
     // Core detector fields
     name: detector.name,
     projectId: detector.projectId,
+    workflowIds: detector.workflowIds,
     environment: getDetectorEnvironment(detector) || '',
     owner: detector.owner || '',
     query: snubaQuery?.query || '',
