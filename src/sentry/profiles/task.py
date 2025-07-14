@@ -254,7 +254,7 @@ def process_profile_task(
         and "profiler_id" in profile
     ) or (
         features.has("projects:transaction-profiling-vroomrs-processing", project)
-        and "profiler_id" not in profile
+        and ("event_id" in profile or "profile_id" in profile)
     ):
         if not _process_vroomrs_profile(profile, project):
             return
@@ -1319,7 +1319,7 @@ def _process_vroomrs_profile(profile: Profile, project: Project) -> bool:
     if "profiler_id" in profile:
         if _process_vroomrs_chunk_profile(profile):
             return True
-    elif "profile_id" in profile:
+    elif "event_id" in profile or "profile_id" in profile:
         if _process_vroomrs_transaction_profile(profile):
             return True
     _track_failed_outcome(profile, project, "profiling_failed_vroomrs_processing")
