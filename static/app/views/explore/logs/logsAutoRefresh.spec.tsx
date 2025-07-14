@@ -149,7 +149,7 @@ describe('LogsAutoRefresh', () => {
     jest.spyOn(logsPageParams, 'useLogsAutoRefresh').mockReturnValue(true);
     jest.spyOn(logsPageParams, 'useLogsRefreshInterval').mockReturnValue(1); // Faster interval for testing
 
-    renderWithProviders(<AutorefreshToggle />);
+    renderWithProviders(<AutorefreshToggle />, {initialRouterConfig, organization});
 
     const toggleSwitch = screen.getByRole('checkbox', {name: 'Auto-refresh'});
     expect(toggleSwitch).toBeChecked();
@@ -177,7 +177,7 @@ describe('LogsAutoRefresh', () => {
     jest.spyOn(logsPageParams, 'useLogsAutoRefresh').mockReturnValue(true);
     jest.spyOn(logsPageParams, 'useLogsRefreshInterval').mockReturnValue(1); // Faster interval for testing
 
-    renderWithProviders(<AutorefreshToggle />);
+    renderWithProviders(<AutorefreshToggle />, {initialRouterConfig, organization});
 
     const toggleSwitch = screen.getByRole('checkbox', {name: 'Auto-refresh'});
     expect(toggleSwitch).toBeChecked();
@@ -200,7 +200,7 @@ describe('LogsAutoRefresh', () => {
     jest.spyOn(logsPageParams, 'useLogsAutoRefresh').mockReturnValue(true);
     jest.spyOn(logsPageParams, 'useLogsRefreshInterval').mockReturnValue(1); // Faster interval for testing
 
-    renderWithProviders(<AutorefreshToggle />);
+    renderWithProviders(<AutorefreshToggle />, {initialRouterConfig, organization});
 
     const toggleSwitch = screen.getByRole('checkbox', {name: 'Auto-refresh'});
     expect(toggleSwitch).toBeChecked();
