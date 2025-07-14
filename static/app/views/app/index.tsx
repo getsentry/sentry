@@ -34,7 +34,6 @@ import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useUser} from 'sentry/utils/useUser';
-import type {InstallWizardProps} from 'sentry/views/admin/installWizard';
 import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKIntegrationProvider';
 import LastKnownRouteContextProvider from 'sentry/views/lastKnownRouteContextProvider';
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
@@ -44,10 +43,7 @@ type Props = {
   children: React.ReactNode;
 } & RouteComponentProps<{orgId?: string}>;
 
-const InstallWizard = lazy(
-  () => import('sentry/views/admin/installWizard')
-  // TODO(TS): DeprecatedAsyncComponent prop types are doing something weird
-) as unknown as React.ComponentType<InstallWizardProps>;
+const InstallWizard = lazy(() => import('sentry/views/admin/installWizard'));
 const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
 const BeaconConsent = lazy(() => import('sentry/views/beaconConsent'));
 
