@@ -528,6 +528,7 @@ def generate_incident_trigger_email_context(
         threshold = f"({alert_context.sensitivity} responsiveness)"
         alert_link_params["type"] = "anomaly_detection"
     else:
+        assert alert_context.alert_threshold is not None
         threshold_prefix_string = ">" if show_greater_than_string else "<"
         threshold = trigger_threshold if is_active else alert_context.resolve_threshold
         if threshold is None:
