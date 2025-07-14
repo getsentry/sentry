@@ -226,7 +226,8 @@ function Overview({location, subscription, promotionData}: Props) {
 
             const categoryTotals: BillingStatTotal =
               categoryInfo?.tallyType === 'usage'
-                ? {
+                ? usageData.totals[category]!
+                : {
                     accepted: monitor_usage ?? 0,
                     dropped: 0,
                     droppedOther: 0,
@@ -234,12 +235,11 @@ function Overview({location, subscription, promotionData}: Props) {
                     droppedSpikeProtection: 0,
                     filtered: 0,
                     projected: 0,
-                  }
-                : usageData.totals[category]!;
+                  };
             const eventTotals =
               categoryInfo?.tallyType === 'usage'
-                ? undefined
-                : usageData.eventTotals?.[category];
+                ? usageData.eventTotals?.[category]
+                : undefined;
 
             const showEventBreakdown =
               organization.features.includes('profiling-billing') &&
