@@ -360,6 +360,26 @@ class DashboardTombstone(Model):
     __repr__ = sane_repr("organization", "slug")
 
 
+@region_silo_model
+class DashboardLastVisited(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Organization
+
+    dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
+    member = FlexibleForeignKey("sentry.OrganizationMember", on_delete=models.CASCADE)
+
+    last_visited = models.DateTimeField(null=False, default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_dashboardlastvisited"
+        constraints = [
+            UniqueConstraint(
+                fields=["member_id", "dashboard_id"],
+                name="sentry_dashboardlastvisited_unique_last_visited_per_org_member",
+            )
+        ]
+
+
 # Prebuilt dashboards are added to API responses for all accounts that have
 # not added a tombstone for the id value. If you change the id of a prebuilt dashboard
 # it will invalidate all the tombstone records that already exist.
