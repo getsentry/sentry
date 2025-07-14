@@ -5,9 +5,12 @@ import {
   SubscriptionFixture,
 } from 'getsentry-test/fixtures/subscription';
 
+import {DataCategory} from 'sentry/types/core';
+
 import {OnDemandBudgetMode, type OnDemandBudgets} from 'getsentry/types';
 import {
   exceedsInvoicedBudgetLimit,
+  getOnDemandBudget,
   getTotalBudget,
   parseOnDemandBudgetsFromSubscription,
 } from 'getsentry/views/onDemandBudgets/utils';
@@ -196,6 +199,7 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
       replaysBudget: 0,
       profileDurationBudget: 0,
       profileDurationUIBudget: 0,
+      logBytesBudget: 0,
       budgets: {
         errors: 100,
         transactions: 200,
@@ -512,5 +516,71 @@ describe('exceedsInvoicedBudgetLimit', function () {
       sharedMaxBudget: 5001,
     };
     expect(exceedsInvoicedBudgetLimit(subscription, ondemandBudget)).toBe(true);
+  });
+});
+
+describe('getOnDemandBudget', function () {
+  it('returns 0 for LOG_BYTE category when in per-category mode without explicit budget', function () {
+    const budget: OnDemandBudgets = {
+      budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+      errorsBudget: 100,
+      transactionsBudget: 200,
+      attachmentsBudget: 300,
+      replaysBudget: 0,
+      monitorSeatsBudget: 0,
+      profileDurationBudget: 0,
+      profileDurationUIBudget: 0,
+      uptimeBudget: 0,
+      logBytesBudget: 0,
+      budgets: {
+        errors: 100,
+        transactions: 200,
+        attachments: 300,
+        replays: 0,
+        monitorSeats: 0,
+        profileDuration: 0,
+        profileDurationUI: 0,
+        uptime: 0,
+      },
+    };
+
+    expect(getOnDemandBudget(budget, DataCategory.LOG_BYTE)).toBe(0);
+  });
+
+  it('returns 0 for LOG_BYTE category when in per-category mode with explicit budget', function () {
+    const budget: OnDemandBudgets = {
+      budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+      errorsBudget: 100,
+      transactionsBudget: 200,
+      attachmentsBudget: 300,
+      replaysBudget: 0,
+      monitorSeatsBudget: 0,
+      profileDurationBudget: 0,
+      profileDurationUIBudget: 0,
+      uptimeBudget: 0,
+      logBytesBudget: 500,
+      budgets: {
+        errors: 100,
+        transactions: 200,
+        attachments: 300,
+        replays: 0,
+        monitorSeats: 0,
+        profileDuration: 0,
+        profileDurationUI: 0,
+        uptime: 0,
+        logBytes: 500,
+      },
+    };
+
+    expect(getOnDemandBudget(budget, DataCategory.LOG_BYTE)).toBe(500);
+  });
+
+  it('returns total budget for LOG_BYTE category when in shared mode', function () {
+    const budget: OnDemandBudgets = {
+      budgetMode: OnDemandBudgetMode.SHARED,
+      sharedMaxBudget: 1000,
+    };
+
+    expect(getOnDemandBudget(budget, DataCategory.LOG_BYTE)).toBe(1000);
   });
 });
