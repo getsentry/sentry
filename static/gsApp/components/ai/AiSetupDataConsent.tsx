@@ -12,16 +12,18 @@ import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup'
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconRefresh, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DataCategory, DataCategoryExact} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {sendAddEventsRequest} from 'getsentry/actionCreators/upsell';
+import type {EventType} from 'getsentry/components/addEventsCTA';
 import StartTrialButton from 'getsentry/components/startTrialButton';
 import useSubscription from 'getsentry/hooks/useSubscription';
 import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
@@ -218,7 +220,9 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                             await sendAddEventsRequest({
                               api,
                               organization,
-                              eventTypes: [DataCategoryExact.SEER_AUTOFIX],
+                              eventTypes: [
+                                DATA_CATEGORY_INFO.seer_autofix.singular as EventType,
+                              ],
                             });
                             autofixAcknowledgeMutation.mutate();
                           }}

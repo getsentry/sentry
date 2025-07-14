@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {StorySidebar} from 'sentry/stories/view/storySidebar';
+import {useStoryRedirect} from 'sentry/stories/view/useStoryRedirect';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import OrganizationContainer from 'sentry/views/organizationContainer';
@@ -14,20 +15,21 @@ import {StoryHeader} from './storyHeader';
 import {useStoriesLoader, useStoryBookFiles} from './useStoriesLoader';
 
 export default function Stories() {
+  useStoryRedirect();
   const location = useLocation<{name: string; query?: string}>();
   const files = useStoryBookFiles();
 
   // If no story is selected, show the landing page stories
   const storyFiles = useMemo(() => {
-    if (!location.query.name) {
+    if (!(location.state?.storyPath ?? location.query.name)) {
       return files.filter(
         file =>
           file.endsWith('styles/colors.mdx') ||
           file.endsWith('styles/typography.stories.tsx')
       );
     }
-    return [location.query.name];
-  }, [files, location.query.name]);
+    return [location.state?.storyPath ?? location.query.name];
+  }, [files, location.state?.storyPath, location.query.name]);
 
   const story = useStoriesLoader({files: storyFiles});
 
@@ -42,11 +44,11 @@ export default function Stories() {
           <StorySidebar />
 
           {story.isLoading ? (
-            <VerticalScroll style={{gridArea: 'body'}}>
+            <VerticalScroll>
               <LoadingIndicator />
             </VerticalScroll>
           ) : story.isError ? (
-            <VerticalScroll style={{gridArea: 'body'}}>
+            <VerticalScroll>
               <Alert.Container>
                 <Alert type="error">
                   <strong>{story.error.name}:</strong> {story.error.message}
@@ -60,7 +62,7 @@ export default function Stories() {
               })}
             </StoryMainContainer>
           ) : (
-            <VerticalScroll style={{gridArea: 'body'}}>
+            <VerticalScroll>
               <strong>The file you selected does not export a story.</strong>
             </VerticalScroll>
           )}
@@ -98,6 +100,10 @@ const HeaderContainer = styled('header')`
 const VerticalScroll = styled('main')`
   overflow-x: visible;
   overflow-y: auto;
+
+  grid-row: 1;
+  grid-column: 2;
+  padding: ${space(2)};
 `;
 
 const StoryMainContainer = styled('div')`

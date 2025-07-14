@@ -22,7 +22,7 @@ from sentry.seer.similarity.grouping_records import (
     BulkCreateGroupingRecordsResponse,
     CreateGroupingRecordData,
     CreateGroupingRecordsRequest,
-    delete_project_grouping_records,
+    call_seer_to_delete_project_grouping_records,
     post_bulk_grouping_records,
 )
 from sentry.seer.similarity.types import (
@@ -770,7 +770,7 @@ def delete_seer_grouping_records(
         "backfill_seer_grouping_records.delete_all_seer_records",
         extra={"project_id": project_id},
     )
-    delete_project_grouping_records(project_id)
+    call_seer_to_delete_project_grouping_records(project_id)
 
     for groups in chunked(
         RangeQuerySetWrapper(

@@ -38,9 +38,9 @@ import {
 } from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
-import types from '!!type-loader!sentry/components/core/button/index';
+import APIReference from '!!type-loader!sentry/components/core/button/index';
 
-export {types};
+export const types = {Button: APIReference.Button};
 
 To create a basic button, wrap text in a `<Button>` and pass an `onClick` callback.
 
@@ -50,7 +50,7 @@ To create a basic button, wrap text in a `<Button>` and pass an `onClick` callba
 
 ### Priorities
 
-Buttons come in a few different styles: `muted` (default), `primary`, `warning`, `danger`, and `transparent`.
+Buttons come in a few different styles: `muted` (default), `primary`, `warning`, `danger`, `transparent` and `link`.
 
 <Storybook.Demo>
   <Button priority="muted">Muted (default)</Button>
@@ -58,6 +58,9 @@ Buttons come in a few different styles: `muted` (default), `primary`, `warning`,
   <Button priority="warning">Warning</Button>
   <Button priority="danger">Danger</Button>
   <Button priority="transparent">Transparent</Button>
+  <div style={{alignSelf: 'center'}}>
+    <Button priority="link">Link</Button>
+  </div>
 </Storybook.Demo>
 ```jsx
 <Button priority="muted">Muted (default)</Button>
@@ -65,6 +68,7 @@ Buttons come in a few different styles: `muted` (default), `primary`, `warning`,
 <Button priority="warning">Warning</Button>
 <Button priority="danger">Danger</Button>
 <Button priority="transparent">Transparent</Button>
+<Button priority="link">Link</Button>
 ```
 
 ### Sizes

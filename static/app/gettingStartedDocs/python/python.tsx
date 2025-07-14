@@ -1,7 +1,7 @@
 import {Alert} from 'sentry/components/core/alert';
 import {SdkProviderEnum as FeatureFlagProviderEnum} from 'sentry/components/events/featureFlags/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   type Docs,
   type DocsParams,
