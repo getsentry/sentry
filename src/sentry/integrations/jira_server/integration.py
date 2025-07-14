@@ -563,7 +563,11 @@ class JiraServerIntegration(IssueSyncIntegration):
 
         default_comment = "Linked Sentry Issue: [{}|{}]".format(
             group.qualified_short_id,
-            absolute_uri(group.get_absolute_url(params={"referrer": "jira_server"})),
+            absolute_uri(
+                group.get_absolute_url(
+                    params={"referrer": IntegrationProviderSlug.JIRA_SERVER.value}
+                )
+            ),
         )
         fields.append(
             {
@@ -1414,7 +1418,7 @@ class JiraServerIntegrationProvider(IntegrationProvider):
 
         return {
             "name": install["consumer_key"],
-            "provider": "jira_server",
+            "provider": IntegrationProviderSlug.JIRA_SERVER.value,
             "external_id": external_id,
             "metadata": {
                 "base_url": install["url"],
@@ -1423,7 +1427,7 @@ class JiraServerIntegrationProvider(IntegrationProvider):
                 "webhook_secret": webhook_secret,
             },
             "user_identity": {
-                "type": "jira_server",
+                "type": IntegrationProviderSlug.JIRA_SERVER.value,
                 "external_id": external_id,
                 "scopes": [],
                 "data": credentials,

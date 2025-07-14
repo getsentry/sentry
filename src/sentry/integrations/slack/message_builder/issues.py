@@ -321,7 +321,7 @@ def get_suspect_commit_text(group: Group) -> str | None:
         repo_base = repo.url
         provider = repo.provider
         if repo_base and provider in SUPPORTED_COMMIT_PROVIDERS:
-            if "bitbucket" in provider:
+            if IntegrationProviderSlug.BITBUCKET.value in provider:
                 commit_link = f"<{repo_base}/commits/{commit_id}"
             else:
                 commit_link = f"<{repo_base}/commit/{commit_id}"
