@@ -5,10 +5,12 @@ from datetime import timezone
 from typing import Any, ClassVar, TypedDict
 
 from dateutil.parser import parse as parse_date
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
+from sentry.api.exceptions import SentryAPIException
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.integration import Integration
@@ -32,8 +34,20 @@ class RepositoryConfig(TypedDict):
     integration_id: int
 
 
-class RepoExistsError(Exception):
-    def __init__(self, repos: list[RepositoryConfig] | None = None):
+class RepoExistsError(SentryAPIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "repo_exists"
+    message = "A repository with that configuration already exists"
+
+    def __init__(
+        self,
+        code=None,
+        message=None,
+        detail=None,
+        repos: list[RepositoryConfig] | None = None,
+        **kwargs,
+    ):
+        super().__init__(code=code, message=message, detail=detail, **kwargs)
         self.repos = repos
 
     def __str__(self):
