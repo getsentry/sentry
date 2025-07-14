@@ -246,7 +246,6 @@ const GIGABYTE = 10 ** 9;
 export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.ERROR]: {
     name: DataCategoryExact.ERROR,
-    apiName: 'error',
     plural: DataCategory.ERRORS,
     singular: 'error',
     displayName: 'error',
@@ -262,7 +261,6 @@ export const DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.TRANSACTION]: {
     name: DataCategoryExact.TRANSACTION,
-    apiName: 'transaction',
     plural: DataCategory.TRANSACTIONS,
     singular: 'transaction',
     displayName: 'transaction',
@@ -278,7 +276,6 @@ export const DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.ATTACHMENT]: {
     name: DataCategoryExact.ATTACHMENT,
-    apiName: 'attachment',
     plural: DataCategory.ATTACHMENTS,
     singular: 'attachment',
     displayName: 'attachment',
@@ -295,7 +292,6 @@ export const DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.PROFILE]: {
     name: DataCategoryExact.PROFILE,
-    apiName: 'profile',
     plural: DataCategory.PROFILES,
     singular: 'profile',
     displayName: 'profile',
@@ -311,7 +307,6 @@ export const DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.PROFILE_INDEXED]: {
     name: DataCategoryExact.PROFILE_INDEXED,
-    apiName: 'profileIndexed',
     plural: DataCategory.PROFILES_INDEXED,
     singular: 'profileIndexed',
     displayName: 'indexed profile',
@@ -323,7 +318,6 @@ export const DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.REPLAY]: {
     name: DataCategoryExact.REPLAY,
-    apiName: 'replay',
     plural: DataCategory.REPLAYS,
     singular: 'replay',
     displayName: 'replay',
@@ -339,7 +333,6 @@ export const DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.USER_REPORT_V2]: {
     name: DataCategoryExact.USER_REPORT_V2,
-    apiName: 'feedback',
     plural: DataCategory.USER_REPORT_V2,
     singular: 'feedback',
     displayName: 'user feedback',
@@ -355,7 +348,6 @@ export const DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.TRANSACTION_PROCESSED]: {
     name: DataCategoryExact.TRANSACTION_PROCESSED,
-    apiName: 'transactions',
     plural: DataCategory.TRANSACTIONS_PROCESSED,
     singular: 'transactionProcessed',
     displayName: 'transaction',
@@ -370,7 +362,6 @@ export const DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.TRANSACTION_INDEXED]: {
     name: DataCategoryExact.TRANSACTION_INDEXED,
-    apiName: 'transactionIndexed',
     plural: DataCategory.TRANSACTIONS_INDEXED,
     singular: 'transactionIndexed',
     displayName: 'indexed transaction',
@@ -382,7 +373,6 @@ export const DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.MONITOR]: {
     name: DataCategoryExact.MONITOR,
-    apiName: 'monitor',
     plural: DataCategory.MONITOR,
     singular: 'monitor',
     displayName: 'monitor check-in',
@@ -397,7 +387,6 @@ export const DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.SPAN]: {
     name: DataCategoryExact.SPAN,
-    apiName: 'span',
     plural: DataCategory.SPANS,
     singular: 'span',
     displayName: 'span',
@@ -413,7 +402,6 @@ export const DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.MONITOR_SEAT]: {
     name: DataCategoryExact.MONITOR_SEAT,
-    apiName: 'monitorSeat',
     plural: DataCategory.MONITOR_SEATS,
     singular: 'monitorSeat',
     displayName: 'cron monitor',
@@ -429,7 +417,6 @@ export const DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.SPAN_INDEXED]: {
     name: DataCategoryExact.SPAN_INDEXED,
-    apiName: 'span_indexed',
     plural: DataCategory.SPANS_INDEXED,
     singular: 'spanIndexed',
     displayName: 'stored span',
@@ -442,7 +429,6 @@ export const DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.PROFILE_DURATION]: {
     name: DataCategoryExact.PROFILE_DURATION,
-    apiName: 'profile_duration',
     plural: DataCategory.PROFILE_DURATION,
     singular: 'profileDuration',
     displayName: 'continuous profile hour',
@@ -459,7 +445,6 @@ export const DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.PROFILE_CHUNK]: {
     name: DataCategoryExact.PROFILE_CHUNK,
-    apiName: 'profile_chunk',
     plural: DataCategory.PROFILE_CHUNKS,
     singular: 'profileChunk',
     displayName: 'profile chunk',
@@ -471,7 +456,6 @@ export const DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.PROFILE_DURATION_UI]: {
     name: DataCategoryExact.PROFILE_DURATION_UI,
-    apiName: 'profile_duration_ui',
     plural: DataCategory.PROFILE_DURATION_UI,
     singular: 'profileDurationUI',
     displayName: 'UI profile hour',
@@ -488,7 +472,6 @@ export const DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.PROFILE_CHUNK_UI]: {
     name: DataCategoryExact.PROFILE_CHUNK_UI,
-    apiName: 'profile_chunk_ui',
     plural: DataCategory.PROFILE_CHUNKS_UI,
     singular: 'profileChunkUI',
     displayName: 'UI profile chunk',
@@ -501,7 +484,6 @@ export const DATA_CATEGORY_INFO = {
 
   [DataCategoryExact.UPTIME]: {
     name: DataCategoryExact.UPTIME,
-    apiName: 'uptime',
     plural: DataCategory.UPTIME,
     singular: 'uptime',
     displayName: 'uptime monitor',
@@ -517,7 +499,6 @@ export const DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.LOG_ITEM]: {
     name: DataCategoryExact.LOG_ITEM,
-    apiName: 'log_item',
     plural: DataCategory.LOG_ITEM,
     singular: 'logItem',
     displayName: 'log',
@@ -532,7 +513,6 @@ export const DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.LOG_BYTE]: {
     name: DataCategoryExact.LOG_BYTE,
-    apiName: 'log_byte',
     plural: DataCategory.LOG_BYTE,
     singular: 'logByte',
     displayName: 'log byte',
@@ -548,7 +528,6 @@ export const DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.SEER_AUTOFIX]: {
     name: DataCategoryExact.SEER_AUTOFIX,
-    apiName: 'seer_autofix',
     plural: DataCategory.SEER_AUTOFIX,
     singular: 'seerAutofix',
     displayName: 'issue fix',
@@ -563,7 +542,6 @@ export const DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.SEER_SCANNER]: {
     name: DataCategoryExact.SEER_SCANNER,
-    apiName: 'seer_scanner',
     plural: DataCategory.SEER_SCANNER,
     singular: 'seerScanner',
     displayName: 'issue scan',
