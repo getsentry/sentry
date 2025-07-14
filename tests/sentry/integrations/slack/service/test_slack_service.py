@@ -777,18 +777,14 @@ class TestSlackServiceMethods(TestCase):
         )
 
         with mock.patch.object(self.service, "_logger") as mock_logger:
-            result = self.service.notify_all_threads_for_activity(activity=activity)
+            self.service.notify_all_threads_for_activity(activity=activity)
 
-            # Verify the debug log was called with the expected message
             mock_logger.info.assert_called_with(
                 "metric resolved notification, will be sent via action.trigger - nothing to do here",
                 extra={
                     "activity_id": activity.id,
                     "project_id": activity.project.id,
-                    "group_id": activity.group.id,
+                    "group_id": metric_group.id,
                     "organization_id": self.organization.id,
                 },
             )
-
-            # Verify the method returns None (early exit)
-            assert result is None
