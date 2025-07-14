@@ -444,7 +444,7 @@ function NewTraceDetailsContent(props: Props) {
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <ButtonBar gap={1}>
+          <ButtonBar gap="md">
             <DiscoverButton
               size="sm"
               to={traceEventView.getResultsViewUrlTarget(organization)}

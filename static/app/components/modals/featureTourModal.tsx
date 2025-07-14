@@ -173,7 +173,7 @@ class ModalContents extends Component<ContentsProps, ContentsState> {
           {step.image}
           <TourHeader>{step.title}</TourHeader>
           {step.body}
-          <TourButtonBar gap={1}>
+          <TourButtonBar gap="md">
             {step.actions && step.actions}
             {hasNext && (
               <Button priority="primary" onClick={this.handleAdvance}>

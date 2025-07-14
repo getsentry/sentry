@@ -122,7 +122,7 @@ function Screenshot({
       </StyledPanelBody>
       {!onlyRenderScreenshot && (
         <StyledPanelFooter>
-          <ButtonBar gap={1}>
+          <ButtonBar gap="md">
             <Button
               size="xs"
               onClick={() =>

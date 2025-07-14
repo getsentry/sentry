@@ -487,7 +487,7 @@ function AutofixSolutionDisplay({
               <IconChat size="xs" />
             </ChatButton>
           </HeaderText>
-          <ButtonBar gap={1}>
+          <ButtonBar gap="md">
             <ButtonBar>
               {!isEditing && (
                 <CopySolutionButton solution={solution} isEditing={isEditing} />

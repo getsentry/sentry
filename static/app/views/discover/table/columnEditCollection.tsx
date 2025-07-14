@@ -638,7 +638,7 @@ class ColumnEditCollection extends Component<Props, State> {
           });
         })}
         <RowContainer showAliasField={showAliasField} singleColumn={singleColumn}>
-          <Actions gap={1} showAliasField={showAliasField}>
+          <Actions gap="md" showAliasField={showAliasField}>
             <Button
               size="sm"
               aria-label={t('Add a Column')}

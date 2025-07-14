@@ -106,7 +106,7 @@ export default function UptimeOverview() {
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <ButtonBar gap={1}>
+          <ButtonBar gap="md">
             <FeedbackWidgetButton />
             <LinkButton
               size="sm"

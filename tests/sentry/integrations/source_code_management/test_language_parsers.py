@@ -491,7 +491,7 @@ class JavascriptParserTestCase(TestCase):
 -              })
 -            }
 -          >
-+        <ButtonBar gap={1}>
++        <ButtonBar gap="md">
 +          <Button priority="primary" size="xs" onClick={openInviteModal}>
              {t('View All')}
            </Button>

@@ -55,7 +55,7 @@ function MissingPerformanceButtons({organization}: Props) {
       features="performance-view"
       organization={organization}
     >
-      <ButtonBar gap={1}>
+      <ButtonBar gap="md">
         <Button
           size="sm"
           priority="primary"

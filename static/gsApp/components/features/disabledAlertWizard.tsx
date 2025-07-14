@@ -16,7 +16,7 @@ function DisabledAlertWizard({organization}: Props) {
   return (
     <Wrapper>
       <Description>{t('Upgrade your plan to create this type of alert')}</Description>
-      <ButtonBar gap={1}>
+      <ButtonBar gap="md">
         <Button
           onClick={() =>
             openUpsellModal({

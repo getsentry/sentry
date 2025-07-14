@@ -340,7 +340,7 @@ class OnDemandBudgetEditModal extends Component<Props, State> {
           />
         </OffsetBody>
         <Footer>
-          <ButtonBar gap={1}>
+          <ButtonBar gap="md">
             <Button
               onClick={() => {
                 this.props.closeModal();

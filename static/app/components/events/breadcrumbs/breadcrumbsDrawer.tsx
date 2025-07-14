@@ -100,7 +100,7 @@ export function BreadcrumbsDrawer({
   );
 
   const actions = (
-    <ButtonBar gap={1}>
+    <ButtonBar gap="md">
       <InputGroup>
         <SearchInput
           size="xs"

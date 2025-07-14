@@ -46,7 +46,7 @@ function CardHeader({
       <DateCreated>
         {tct('Created on [date]', {date: <DateTime date={created} />})}
       </DateCreated>
-      <StyledButtonBar gap={1}>
+      <StyledButtonBar gap="md">
         <Button size="sm" icon={<IconCopy />} onClick={onClick}>
           {t('Copy Key')}
         </Button>

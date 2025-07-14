@@ -105,7 +105,7 @@ export default function CustomIgnoreDurationModal(props: Props) {
         </Alert.Container>
       )}
       <Footer>
-        <ButtonBar gap={1}>
+        <ButtonBar gap="md">
           <Button priority="default" onClick={closeModal}>
             {t('Cancel')}
           </Button>

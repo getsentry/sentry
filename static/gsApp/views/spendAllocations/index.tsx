@@ -405,7 +405,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
 
       {canViewSpendAllocation && (
         <PageGrid data-test-id="subhead-actions">
-          <StyledButtonBar gap={1}>
+          <StyledButtonBar gap="md">
             <Dates>
               <strong>
                 {!viewNextPeriod && 'Current Period'}

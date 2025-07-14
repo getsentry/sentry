@@ -105,7 +105,7 @@ export default function FlagsDistributionDrawer({group, organization, setTab}: P
           <EventStickyControls>
             <TagFlagPicker setTab={setTab} tab={DrawerTab.FEATURE_FLAGS} />
 
-            <ButtonBar gap={1}>
+            <ButtonBar gap="md">
               <GroupDistributionsSearchInput
                 includeFeatureFlagsTab
                 search={search}

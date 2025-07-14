@@ -268,7 +268,7 @@ export function ToolbarSaveAs() {
 
   return (
     <StyledToolbarSection data-test-id="section-save-as">
-      <ButtonBar gap={1}>
+      <ButtonBar gap="md">
         <DropdownMenu
           items={items}
           trigger={triggerProps => (

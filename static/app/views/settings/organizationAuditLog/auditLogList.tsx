@@ -297,7 +297,7 @@ function AuditLogList({
   const {displayStart, displayEnd} = getDisplayValues();
 
   const headerActions = (
-    <ButtonBar gap={2}>
+    <ButtonBar gap="xl">
       <TimeRangeSelector
         start={start}
         end={end}

@@ -75,7 +75,7 @@ function GDPREditModal({
           <TextField key="email" name={`${prefix}Email`} label={t('Email')} inline />
         </FormWrapper>
         <Footer>
-          <ButtonBar gap={1}>
+          <ButtonBar gap="md">
             <Button
               type="button"
               onClick={() => {

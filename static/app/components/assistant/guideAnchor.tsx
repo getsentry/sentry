@@ -172,7 +172,7 @@ class BaseGuideAnchor extends Component<Props, State> {
         }}
         wrapperComponent={wrapperComponent ?? GuideAnchorWrapper}
         actions={
-          <ButtonBar gap={1}>
+          <ButtonBar gap="md">
             {lastStep ? (
               <TourAction size="xs" onClick={this.handleFinish}>
                 {currentStep.nextText ||

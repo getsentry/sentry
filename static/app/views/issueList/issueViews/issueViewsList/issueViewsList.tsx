@@ -374,7 +374,7 @@ export default function IssueViewsList() {
             <Layout.Title>{t('All Views')}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            <ButtonBar gap={1}>
+            <ButtonBar gap="md">
               {openFeedbackForm ? (
                 <Button
                   icon={<IconMegaphone />}

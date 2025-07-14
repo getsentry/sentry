@@ -78,7 +78,7 @@ export default function TagsDistributionDrawer({
               <div />
             )}
 
-            <ButtonBar gap={1}>
+            <ButtonBar gap="md">
               <GroupDistributionsSearchInput
                 includeFeatureFlagsTab={includeFeatureFlagsTab}
                 search={search}

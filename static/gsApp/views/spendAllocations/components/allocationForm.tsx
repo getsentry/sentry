@@ -302,7 +302,7 @@ function AllocationForm({
                 displayType: showPrice ? 'Spend' : 'Amount',
               })}
             </Title>
-            <ButtonBar gap={1}>
+            <ButtonBar gap="md">
               <Button
                 aria-label="reduce-allocation"
                 size="sm"
@@ -435,7 +435,7 @@ function AllocationForm({
         </div>
       </SubSectionBody>
       <Footer>
-        <ButtonBar gap={1}>
+        <ButtonBar gap="md">
           {((exhaustedEvents && !overBudgetedEvents) ||
             (initializedData && allocationVolume < initializedData.consumedQuantity)) && (
             // attempting to increase, but remaining available events have been exhausted (but still under budget)

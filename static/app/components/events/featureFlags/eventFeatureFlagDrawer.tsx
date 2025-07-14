@@ -69,7 +69,7 @@ export function EventFeatureFlagDrawer({
   );
 
   const actions = (
-    <ButtonBar gap={1}>
+    <ButtonBar gap="md">
       <InputGroup>
         <SearchInput
           size="xs"

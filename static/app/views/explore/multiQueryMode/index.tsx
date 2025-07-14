@@ -59,7 +59,7 @@ export default function MultiQueryMode() {
             <Layout.Title>{title ? title : t('Compare Queries')}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            <ButtonBar gap={1}>
+            <ButtonBar gap="md">
               {!prefersStackedNav && (
                 <LinkButton
                   to={`/organizations/${organization.slug}/explore/saved-queries/`}

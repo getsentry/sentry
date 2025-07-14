@@ -182,7 +182,7 @@ function AccountSecurity({
                     </AuthenticatorTitle>
                     <AuthenticatorDescription>{description}</AuthenticatorDescription>
                   </AuthenticatorDetails>
-                  <ButtonBar gap={1}>
+                  <ButtonBar gap="md">
                     {!isBackupInterface && !isEnrolled && hasVerifiedEmail && (
                       <LinkButton
                         to={`/settings/account/security/mfa/${id}/enroll/`}

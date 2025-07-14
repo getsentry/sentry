@@ -158,7 +158,7 @@ const PromotionModal = withPromotions(
       <HighlightModalContainer topWidth="200px" bottomWidth="150px">
         <Subheader>{t('Limited Time Offer')}</Subheader>
         {modalBody}
-        <StyledButtonBar gap={1}>
+        <StyledButtonBar gap="md">
           <Button size="md" priority="primary" onClick={() => handleClick()}>
             {acceptText}
           </Button>

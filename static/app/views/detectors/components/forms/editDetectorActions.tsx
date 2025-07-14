@@ -36,7 +36,7 @@ export function EditDetectorActions({detectorId}: EditDetectorActionsProps) {
 
   return (
     <div>
-      <ButtonBar gap={1}>
+      <ButtonBar gap="md">
         <Button type="button" priority="default" size="sm" onClick={() => {}}>
           {t('Disable')}
         </Button>

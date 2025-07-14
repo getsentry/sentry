@@ -395,7 +395,7 @@ class ReleaseIssues extends Component<Props, State> {
             </SegmentedControl>
           </DemoTourElement>
 
-          <OpenInButtonBar gap={1}>
+          <OpenInButtonBar gap="md">
             <LinkButton to={this.getIssuesUrl()} size="xs">
               {t('Open in Issues')}
             </LinkButton>

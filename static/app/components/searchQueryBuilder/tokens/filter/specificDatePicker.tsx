@@ -178,7 +178,7 @@ function SpecificDatePicker({
               </TimeUtcWrapper>
             </ControlsWrapper>
             <ButtonsFooter>
-              <ButtonBar gap={1}>
+              <ButtonBar gap="md">
                 <Button
                   size="xs"
                   icon={<IconArrow direction="left" />}

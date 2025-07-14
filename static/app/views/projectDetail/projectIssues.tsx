@@ -264,7 +264,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
             </SegmentedControl.Item>
           ))}
         </SegmentedControl>
-        <OpenInButtonBar gap={1}>
+        <OpenInButtonBar gap="md">
           <LinkButton
             data-test-id="issues-open"
             size="xs"

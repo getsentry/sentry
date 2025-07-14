@@ -212,7 +212,7 @@ class OwnerInput extends Component<Props, State> {
           </Panel>
           <ActionBar>
             <div>{this.parseError(error)}</div>
-            <ButtonBar gap={1}>
+            <ButtonBar gap="md">
               <Button type="button" size="sm" onClick={this.props.onCancel}>
                 {t('Cancel')}
               </Button>

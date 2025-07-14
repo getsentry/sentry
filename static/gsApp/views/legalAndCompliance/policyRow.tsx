@@ -147,7 +147,7 @@ export function PolicyRow({
                   })}
                 </small>
 
-                <ButtonBar gap={1}>
+                <ButtonBar gap="md">
                   <Button size="sm" onClick={closeModal}>
                     {t('Cancel')}
                   </Button>

@@ -29,7 +29,7 @@ function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
   const {currentTime, replay, setCurrentTime} = useReplayContext();
 
   return (
-    <ButtonBar gap={1}>
+    <ButtonBar gap="md">
       <Button
         size="sm"
         title={t('Rewind 10s')}
@@ -91,7 +91,7 @@ export default function ReplayController({
       <Container>
         <TimeAndScrubberGrid isCompact={isCompact} showZoom isLoading={isLoading} />
       </Container>
-      <ButtonBar gap={1}>
+      <ButtonBar gap="md">
         <ReplayPreferenceDropdown
           isLoading={isLoading}
           speedOptions={speedOptions}

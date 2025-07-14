@@ -290,7 +290,7 @@ export function AutofixChanges({
                 </ChatButton>
               </HeaderText>
               {!prsMade && (
-                <ButtonBar gap={1}>
+                <ButtonBar gap="md">
                   {branchesMade ? (
                     step.changes.length === 1 && step.changes[0] ? (
                       <BranchButton change={step.changes[0]} />

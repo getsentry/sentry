@@ -270,7 +270,7 @@ function StacktraceLinkModal({
         </ModalContainer>
       </Body>
       <Footer>
-        <ButtonBar gap={1}>
+        <ButtonBar gap="md">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
           <Button priority="primary" onClick={handleSubmit}>
             {t('Save')}

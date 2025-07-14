@@ -134,7 +134,7 @@ export default function StreamlinedGroupHeader({
               ]}
             />
           </Flex>
-          <ButtonBar gap={0.5}>
+          <ButtonBar gap="xs">
             {!hasOnlyOneUIOption && !isQueryInjection && (
               <LinkButton
                 size="xs"
@@ -152,7 +152,7 @@ export default function StreamlinedGroupHeader({
               </LinkButton>
             )}
             {isQueryInjection ? (
-              <ButtonBar gap={0.5}>
+              <ButtonBar gap="xs">
                 <LinkButton
                   size="xs"
                   external

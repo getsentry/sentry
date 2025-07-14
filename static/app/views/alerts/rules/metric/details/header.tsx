@@ -101,7 +101,7 @@ function DetailsHeader({
         </RuleTitle>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <ButtonBar gap={1}>
+        <ButtonBar gap="md">
           {rule && project && (
             <Access access={['alerts:write']}>
               {({hasAccess}) => (

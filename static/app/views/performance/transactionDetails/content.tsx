@@ -170,7 +170,7 @@ function EventDetailsContent(props: Props) {
                     </Layout.Title>
                   </Layout.HeaderContent>
                   <Layout.HeaderActions>
-                    <ButtonBar gap={1}>
+                    <ButtonBar gap="md">
                       <Button
                         size="sm"
                         onClick={() => setIsSidebarVisible(prev => !prev)}

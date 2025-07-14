@@ -140,7 +140,7 @@ export function ProjectInstallPlatform({
             }}
           </Feature>
         )}
-        <StyledButtonBar gap={1}>
+        <StyledButtonBar gap="md">
           <Button
             priority="primary"
             onClick={() => {

@@ -63,7 +63,7 @@ function CodecovPromotionModal(props: Props) {
           </PriceWrapper>
         </PromotionPriceComparison>
 
-        <StyledButtonBar gap={1}>
+        <StyledButtonBar gap="md">
           <Button
             size="md"
             priority="primary"

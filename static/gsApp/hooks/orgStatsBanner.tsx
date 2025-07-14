@@ -99,7 +99,7 @@ function OrgStatsBanner({organization, subscription, referrer}: Props) {
           </HeaderWrapper>
           <SubText>{subText}</SubText>
         </TextWrapper>
-        <ButtonWrapper gap={1}>
+        <ButtonWrapper gap="md">
           {!isPaidPlan && (
             <Button
               size="sm"

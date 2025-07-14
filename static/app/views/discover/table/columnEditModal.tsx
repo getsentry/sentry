@@ -151,7 +151,7 @@ function ColumnEditModal(props: Props) {
         />
       </Body>
       <Footer>
-        <ButtonBar gap={1}>
+        <ButtonBar gap="md">
           <LinkButton priority="default" href={DISCOVER2_DOCS_URL} external>
             {t('Read the Docs')}
           </LinkButton>

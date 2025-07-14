@@ -39,7 +39,7 @@ function FilterBar({
 
   return (
     <Wrapper>
-      <FilterButtons gap={1.5}>
+      <FilterButtons gap="lg">
         <TeamFilter selectedTeams={selectedTeams} handleChangeFilter={onChangeFilter} />
         <ProjectPageFilter />
         {hasTypeFilter && (
@@ -50,7 +50,7 @@ function FilterBar({
               prefix: t('Alert Type'),
             }}
             menuFooter={
-              <ButtonBar gap={1}>
+              <ButtonBar gap="md">
                 <LinkButton size="xs" icon={<IconOpen />} to="/insights/crons/">
                   {t('Crons Overview')}
                 </LinkButton>

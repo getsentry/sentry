@@ -162,7 +162,7 @@ export default function ScreenshotModal({
         </Flex>
       </Body>
       <Footer>
-        <ButtonBar gap={1}>
+        <ButtonBar gap="md">
           {onDelete && (
             <Confirm
               confirmText={t('Delete')}

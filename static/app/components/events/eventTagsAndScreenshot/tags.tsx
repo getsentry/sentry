@@ -68,7 +68,7 @@ export function EventTagsDataSection({
   }, [event.tags]);
 
   const actions = (
-    <ButtonBar gap={1}>
+    <ButtonBar gap="md">
       {additionalActions}
       <SegmentedControl
         size="xs"

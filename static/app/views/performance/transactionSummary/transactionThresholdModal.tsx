@@ -264,7 +264,7 @@ class TransactionThresholdModal extends Component<Props, State> {
           {this.renderModalFields()}
         </Body>
         <Footer>
-          <ButtonBar gap={1}>
+          <ButtonBar gap="md">
             <Button
               priority="default"
               onClick={this.handleReset}

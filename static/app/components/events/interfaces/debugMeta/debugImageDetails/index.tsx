@@ -315,7 +315,7 @@ export function DebugImageDetails({
         </Content>
       </Body>
       <Footer>
-        <StyledButtonBar gap={1}>
+        <StyledButtonBar gap="md">
           <LinkButton
             href="https://docs.sentry.io/platforms/native/data-management/debug-files/"
             external

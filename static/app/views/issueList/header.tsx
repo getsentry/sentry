@@ -120,7 +120,7 @@ function IssueListHeader({
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <ButtonBar gap={1}>
+        <ButtonBar gap="md">
           <IssueListSetAsDefault {...{sort, query, organization}} />
           <DisableInDemoMode>
             <Button
