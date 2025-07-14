@@ -12,6 +12,7 @@ from django.db.models.functions import TruncHour
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse
+from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
@@ -51,7 +52,7 @@ class ActionSerializer(Serializer):
             "type": obj.type,
             "integrationId": str(obj.integration_id) if obj.integration_id else None,
             "data": obj.data,
-            "config": obj.config,
+            "config": convert_dict_key_case(obj.config, snake_to_camel_case),
         }
 
 
@@ -353,14 +354,16 @@ class DetectorSerializer(Serializer):
             "dateUpdated": obj.date_updated,
             "dataSources": attrs.get("data_sources"),
             "conditionGroup": attrs.get("condition_group"),
-            "config": attrs.get("config"),
+            "config": convert_dict_key_case(attrs.get("config"), snake_to_camel_case),
             "enabled": obj.enabled,
         }
 
 
 @register(Workflow)
 class WorkflowSerializer(Serializer):
-    def get_attrs(self, item_list, user, **kwargs) -> MutableMapping[Workflow, dict[str, Any]]:
+    def get_attrs(
+        self, item_list: Sequence[Workflow], user, **kwargs
+    ) -> MutableMapping[Workflow, dict[str, Any]]:
         attrs: MutableMapping[Workflow, dict[str, Any]] = defaultdict(dict)
         trigger_conditions = list(
             DataConditionGroup.objects.filter(
@@ -373,6 +376,14 @@ class WorkflowSerializer(Serializer):
                 trigger_conditions, serialize(trigger_conditions, user=user)
             )
         }
+
+        last_triggered_map: dict[int, datetime] = dict(
+            WorkflowFireHistory.objects.filter(
+                workflow__in=item_list,
+            )
+            .annotate(last_triggered=Max("date_added"))
+            .values_list("workflow_id", "last_triggered")
+        )
 
         wdcg_list = list(WorkflowDataConditionGroup.objects.filter(workflow__in=item_list))
         condition_groups = {wdcg.condition_group for wdcg in wdcg_list}
@@ -400,6 +411,7 @@ class WorkflowSerializer(Serializer):
                 item.id, []
             )  # The data condition groups for filtering actions
             attrs[item]["detectorIds"] = detectors_map[item.id]
+            attrs[item]["lastTriggered"] = last_triggered_map.get(item.id)
         return attrs
 
     def serialize(self, obj: Workflow, attrs: Mapping[str, Any], user, **kwargs) -> dict[str, Any]:
@@ -413,9 +425,10 @@ class WorkflowSerializer(Serializer):
             "triggers": attrs.get("triggers"),
             "actionFilters": attrs.get("actionFilters"),
             "environment": obj.environment.name if obj.environment else None,
-            "config": obj.config,
+            "config": convert_dict_key_case(obj.config, snake_to_camel_case),
             "detectorIds": attrs.get("detectorIds"),
             "enabled": obj.enabled,
+            "lastTriggered": attrs.get("lastTriggered"),
         }
 
 

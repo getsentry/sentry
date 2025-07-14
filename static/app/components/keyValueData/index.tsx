@@ -3,10 +3,10 @@ import React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
-import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
@@ -230,7 +230,7 @@ const Title = styled('div')`
   grid-column: span 2;
   padding: ${space(0.25)} ${space(0.75)};
   color: ${p => p.theme.headingColor};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const ContentWrapper = styled('div')<{

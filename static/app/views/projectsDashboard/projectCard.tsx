@@ -5,8 +5,8 @@ import round from 'lodash/round';
 import {loadStatsForProject} from 'sentry/actionCreators/projects';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import IdBadge from 'sentry/components/idBadge';
-import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
@@ -246,7 +246,7 @@ const HeaderRow = styled('div')`
 
   /* @TODO(jonasbadalic) This should be a title component and not a div */
   font-size: 1rem;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1.2;
 `;
 
@@ -270,7 +270,7 @@ const SummaryLinks = styled('div')`
   gap: ${space(1)};
   position: relative;
   top: -${space(2)};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.sm};
@@ -334,7 +334,7 @@ const ScoreCardWrapper = styled('div')`
 
 const SubHeading = styled('div')`
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(0.5)};
 `;
 

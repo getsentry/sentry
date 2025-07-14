@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {IconSentry} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -42,7 +42,7 @@ const Name = styled('div')<{disabled: boolean}>`
 `;
 
 const NameText = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   ${p => p.theme.overflowEllipsis};
   width: auto;
 `;

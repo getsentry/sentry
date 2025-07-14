@@ -209,9 +209,9 @@ class TestAutomationRateLimiting(TestCase):
         project = self.create_project()
         organization = project.organization
 
-        mock_is_limited.return_value = (True, 45, None)
+        mock_is_limited.return_value = (True, 10, None)
 
-        with self.options({"seer.max_num_scanner_autotriggered_per_minute": 50}):
+        with self.options({"seer.max_num_scanner_autotriggered_per_ten_seconds": 15}):
             is_rate_limited = is_seer_scanner_rate_limited(project, organization)
 
         assert is_rate_limited is True

@@ -144,6 +144,8 @@ export declare namespace TraceTree {
   };
 
   type EAPOccurrence = {
+    culprit: string;
+    description: string;
     event_id: string;
     event_type: 'occurrence';
     issue_id: number;
@@ -152,7 +154,8 @@ export declare namespace TraceTree {
     project_slug: string;
     start_timestamp: number;
     transaction: string;
-    description?: string;
+    type: number;
+    short_id?: string;
   };
 
   type EAPSpan = {
@@ -162,6 +165,7 @@ export declare namespace TraceTree {
     errors: EAPError[];
     event_id: string;
     is_transaction: boolean;
+    name: string;
     occurrences: EAPOccurrence[];
     op: string;
     parent_span_id: string;
@@ -888,7 +892,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         } else {
           const childIndex = child.parent?.children.indexOf(child) ?? -1;
           if (childIndex === -1) {
-            Sentry.captureException('Detecting missing instrumentation failed');
+            Sentry.logger.error('Detecting missing instrumentation failed');
             return;
           }
 
@@ -1489,6 +1493,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       }
       if (isSpanNode(n) || isEAPSpanNode(n)) {
         const spanId = 'span_id' in n.value ? n.value.span_id : n.value.event_id;
+
         if (spanId === eventId) {
           return true;
         }

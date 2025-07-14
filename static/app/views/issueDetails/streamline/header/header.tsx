@@ -8,6 +8,7 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -15,7 +16,6 @@ import EventMessage from 'sentry/components/events/eventMessage';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import {TourElement} from 'sentry/components/tours/components';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {IconInfo, IconMegaphone} from 'sentry/icons';
@@ -151,7 +151,25 @@ export default function StreamlinedGroupHeader({
                 {showLearnMore ? t("See What's New") : null}
               </LinkButton>
             )}
-            {isQueryInjection ? feedbackButton : <NewIssueExperienceButton />}
+            {isQueryInjection ? (
+              <ButtonBar gap={0.5}>
+                <LinkButton
+                  size="xs"
+                  external
+                  title={t('Learn more about the query injection issue')}
+                  href={`https://docs.sentry.io/product/issues/issue-details/query-injection-issues/`}
+                  aria-label={t('Learn more about the query injection issue')}
+                  icon={<IconInfo />}
+                  analyticsEventKey="issue_details.query_injection_learn_more"
+                  analyticsEventName="Issue Details: Query Injection Learn More"
+                >
+                  {t('Learn more')}
+                </LinkButton>
+                {feedbackButton}
+              </ButtonBar>
+            ) : (
+              <NewIssueExperienceButton />
+            )}
           </ButtonBar>
         </Flex>
         <HeaderGrid>
@@ -300,7 +318,7 @@ const PrimaryTitle = styled('span')`
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 20px;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   flex-shrink: 0;
 `;
 
@@ -308,7 +326,7 @@ const StatTitle = styled('div')`
   display: block;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1;
   justify-self: flex-end;
 `;
@@ -371,7 +389,7 @@ const WorkflowActions = styled('div')`
   justify-content: flex-end;
   column-gap: ${space(2)};
   flex-wrap: wrap;
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     justify-content: flex-start;
   }
 `;
@@ -384,7 +402,8 @@ const Workflow = styled('div')`
 `;
 
 const Title = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: auto min-content;
   align-items: center;
   gap: ${space(0.5)};
 `;

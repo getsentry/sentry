@@ -4,7 +4,7 @@ import startCase from 'lodash/startCase';
 import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
@@ -187,7 +187,7 @@ const TagsContainer = styled('div')`
 `;
 
 const IntegrationName = styled(Link)`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const IntegrationDetails = styled('div')`
@@ -222,7 +222,7 @@ const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
     content: '|';
     color: ${p => p.theme.subText};
     margin-right: ${space(0.75)};
-    font-weight: ${p => p.theme.fontWeightNormal};
+    font-weight: ${p => p.theme.fontWeight.normal};
   }
 `;
 

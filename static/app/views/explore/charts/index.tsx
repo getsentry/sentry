@@ -11,7 +11,6 @@ import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
@@ -40,7 +39,10 @@ import {
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {CHART_HEIGHT, INGESTION_DELAY} from 'sentry/views/explore/settings';
-import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
+import {
+  combineConfidenceForSeries,
+  prettifyAggregation,
+} from 'sentry/views/explore/utils';
 import {
   ChartType,
   useSynchronizeCharts,
@@ -79,7 +81,7 @@ type NamedTimeSeries = TimeSeries & {
   seriesName?: string;
 };
 
-interface ChartInfo {
+export interface ChartInfo {
   chartIcon: ReactNode;
   chartType: ChartType;
   data: NamedTimeSeries[];
@@ -90,8 +92,7 @@ interface ChartInfo {
   yAxes: readonly string[];
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
-  formattedYAxes?: Array<string | undefined>;
-  label?: string;
+  formattedYAxes?: Array<string | null>;
   stack?: string;
 }
 
@@ -111,7 +112,7 @@ export function ExploreCharts({
   const previousTimeseriesResult = usePrevious(timeseriesResult);
 
   const getSeries = useCallback(
-    (dedupedYAxes: string[], formattedYAxes: Array<string | undefined>) => {
+    (dedupedYAxes: string[], formattedYAxes: Array<string | null>) => {
       const shouldUsePreviousResults =
         timeseriesResult.isPending &&
         canUsePreviousResults &&
@@ -155,10 +156,7 @@ export function ExploreCharts({
     (yAxis: string) => {
       const dedupedYAxes = [yAxis];
 
-      const formattedYAxes = dedupedYAxes.map(yaxis => {
-        const func = parseFunction(yaxis);
-        return func ? prettifyParsedFunction(func) : undefined;
-      });
+      const formattedYAxes = dedupedYAxes.map(prettifyAggregation);
 
       const {data, error, loading} = getSeries(dedupedYAxes, formattedYAxes);
 
@@ -180,7 +178,6 @@ export function ExploreCharts({
   );
 
   const chartInfos = useMemo(() => {
-    const shouldRenderLabel = visualizes.length > 1;
     return visualizes.map((visualize, index) => {
       const chartIcon =
         visualize.chartType === ChartType.LINE
@@ -224,7 +221,6 @@ export function ExploreCharts({
         chartIcon: <IconGraph type={chartIcon} />,
         chartType: visualize.chartType,
         stack: visualize.stack,
-        label: shouldRenderLabel ? visualize.label : undefined,
         yAxes: [visualize.yAxis],
         formattedYAxes,
         data,
@@ -335,7 +331,6 @@ function Chart({
 
   const Title = (
     <ChartTitle>
-      {defined(chartInfo.label) ? <ChartLabel>{chartInfo.label}</ChartLabel> : null}
       <Widget.WidgetTitle title={chartInfo.formattedYAxes?.filter(Boolean).join(', ')} />
     </ChartTitle>
   );
@@ -512,6 +507,7 @@ function Chart({
         }
       />
       <FloatingTrigger
+        chartInfo={chartInfo}
         boxSelectOptions={boxSelectOptions}
         triggerWrapperRef={triggerWrapperRef}
       />
@@ -528,18 +524,6 @@ const ChartList = styled('div')`
   display: grid;
   row-gap: ${space(1)};
   margin-bottom: ${space(1)};
-`;
-
-const ChartLabel = styled('div')`
-  background-color: ${p => p.theme.purple100};
-  border-radius: ${p => p.theme.borderRadius};
-  text-align: center;
-  min-width: 24px;
-  color: ${p => p.theme.purple400};
-  white-space: nowrap;
-  font-weight: ${p => p.theme.fontWeightBold};
-  align-content: center;
-  margin-right: ${space(1)};
 `;
 
 const ChartTitle = styled('div')`

@@ -8,7 +8,7 @@ import {
   SummaryEntryValue,
   SummaryEntryValueLink,
 } from 'sentry/components/codecov/summary';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -129,7 +129,7 @@ const SourceEntry = styled(SummaryEntry)`
 const SelectedCommitPanel = styled(Panel)`
   grid-column: span 12;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-column: span 9;
   }
 `;
@@ -137,7 +137,7 @@ const SelectedCommitPanel = styled(Panel)`
 const UploadsPanel = styled(Panel)`
   grid-column: span 12;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-column: span 3;
   }
 `;

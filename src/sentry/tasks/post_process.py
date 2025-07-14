@@ -40,7 +40,6 @@ from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_detection_configs
 from sentry.utils.services import build_instance_from_options_of_type
-from sentry.workflow_engine.types import WorkflowEventData
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event, GroupEvent
@@ -955,26 +954,25 @@ def process_workflow_engine(job: PostProcessJob) -> None:
     """
     metrics.incr("workflow_engine.issue_platform.payload.received.occurrence")
 
-    from sentry.workflow_engine.processors.workflow import process_workflows
+    from sentry.workflow_engine.tasks.workflows import process_workflows_event
 
-    # PostProcessJob event is optional, WorkflowEventData event is required
     if "event" not in job:
-        logger.error("Missing event to create WorkflowEventData", extra={"job": job})
+        logger.error("Missing event to schedule workflow task", extra={"job": job})
         return
 
     try:
-        workflow_event_data = WorkflowEventData(
-            event=job["event"],
-            group_state=job.get("group_state"),
-            has_reappeared=job.get("has_reappeared"),
-            has_escalated=job.get("has_escalated"),
+        process_workflows_event.delay(
+            project_id=job["event"].project_id,
+            event_id=job["event"].event_id,
+            occurrence_id=job["event"].occurrence_id,
+            group_id=job["event"].group_id,
+            group_state=job["group_state"],
+            has_reappeared=job["has_reappeared"],
+            has_escalated=job["has_escalated"],
         )
     except Exception:
-        logger.exception("Could not create WorkflowEventData", extra={"job": job})
+        logger.exception("Could not process workflow task", extra={"job": job})
         return
-
-    with sentry_sdk.start_span(op="tasks.post_process_group.workflow_engine.process_workflow"):
-        process_workflows(workflow_event_data)
 
 
 def process_workflow_engine_issue_alerts(job: PostProcessJob) -> None:
@@ -1034,10 +1032,12 @@ def process_rules(job: PostProcessJob) -> None:
         # objects back and forth isn't super efficient
         callback_and_futures = rp.apply()
 
-        # TODO(cathy): add opposite of the FF organizations:workflow-engine-trigger-actions
-        for callback, futures in callback_and_futures:
-            has_alert = True
-            safe_execute(callback, group_event, futures)
+        if not features.has(
+            "organizations:workflow-engine-trigger-actions", group_event.project.organization
+        ):
+            for callback, futures in callback_and_futures:
+                has_alert = True
+                safe_execute(callback, group_event, futures)
 
     job["has_alert"] = has_alert
     return
@@ -1324,16 +1324,14 @@ def feedback_filter_decorator(func):
 
 
 def should_postprocess_feedback(job: PostProcessJob) -> bool:
-    from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
+    from sentry.feedback.lib.utils import FeedbackCreationSource
 
     event = job["event"]
 
     if not hasattr(event, "occurrence") or event.occurrence is None:
         return False
 
-    if event.occurrence.evidence_data.get("is_spam") is True and features.has(
-        "organizations:user-feedback-spam-filter-actions", job["event"].project.organization
-    ):
+    if event.occurrence.evidence_data.get("is_spam") is True:
         metrics.incr("feedback.spam-detection-actions.dont-send-notification")
         return False
 
@@ -1409,19 +1407,15 @@ def check_has_high_priority_alerts(job: PostProcessJob) -> None:
 
 
 def link_event_to_user_report(job: PostProcessJob) -> None:
-    from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, shim_to_feedback
+    from sentry.feedback.lib.utils import FeedbackCreationSource
+    from sentry.feedback.usecases.shim_to_feedback import shim_to_feedback
     from sentry.models.userreport import UserReport
 
     event = job["event"]
     project = event.project
     group = event.group
 
-    if (
-        features.has(
-            "organizations:user-feedback-event-link-ingestion-changes", project.organization
-        )
-        and not job["is_reprocessed"]
-    ):
+    if not job["is_reprocessed"]:
         metrics.incr("event_manager.save._update_user_reports_with_event_link")
         event = job["event"]
         project = event.project
@@ -1558,22 +1552,18 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 
 
 def kick_off_seer_automation(job: PostProcessJob) -> None:
-    from sentry.seer.issue_summary import get_issue_summary_cache_key, get_issue_summary_lock_key
+    from sentry.seer.issue_summary import get_issue_summary_lock_key
     from sentry.seer.seer_setup import get_seer_org_acknowledgement
     from sentry.tasks.autofix import start_seer_automation
 
     event = job["event"]
     group = event.group
 
-    # Only run on new issues or issues with no existing summary/scan
-    if (
-        not job["group_state"]["is_new"]
-        and group.seer_fixability_score is not None
-        and cache.get(get_issue_summary_cache_key(group.id))
-    ):
+    # Only run on issues with no existing scan
+    if group.seer_fixability_score is not None:
         return
 
-    # Check if there's already a task in progress for this issue
+    # Don't run if there's already a task in progress for this issue
     lock_key, lock_name = get_issue_summary_lock_key(group.id)
     lock = locks.get(lock_key, duration=1, name=lock_name)
     if lock.locked():
@@ -1596,6 +1586,10 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if not features.has("organizations:gen-ai-features", group.organization) or not features.has(
         "organizations:trigger-autofix-on-issue-summary", group.organization
     ):
+        return
+
+    gen_ai_allowed = not group.organization.get_option("sentry:hide_ai_features")
+    if not gen_ai_allowed:
         return
 
     project = group.project

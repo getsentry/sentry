@@ -11,15 +11,16 @@ import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
 import {
   AI_TOOL_NAME_ATTRIBUTE,
   getAIToolCallsFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
+import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTopNSpanEAPSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
-import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {
@@ -29,28 +30,26 @@ import {
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
-import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 export default function ToolUsageWidget() {
   const organization = useOrganization();
-  const {query} = useTransactionNameQuery();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans-low',
   });
 
   const theme = useTheme();
 
-  const fullQuery = `${getAIToolCallsFilter()} ${query}`.trim();
+  const fullQuery = useCombinedQuery(getAIToolCallsFilter());
 
-  const toolsRequest = useEAPSpans(
+  const toolsRequest = useSpans(
     {
       fields: [AI_TOOL_NAME_ATTRIBUTE, 'count()'],
       sorts: [{field: 'count()', kind: 'desc'}],
       search: fullQuery,
       limit: 3,
     },
-    Referrer.QUERIES_CHART // TODO: add referrer
+    Referrer.TOOL_USAGE_WIDGET
   );
 
   const timeSeriesRequest = useTopNSpanEAPSeries(
@@ -63,7 +62,7 @@ export default function ToolUsageWidget() {
       topN: 3,
       enabled: !!toolsRequest.data,
     },
-    Referrer.QUERIES_CHART // TODO: add referrer
+    Referrer.TOOL_USAGE_WIDGET
   );
 
   const timeSeries = timeSeriesRequest.data;
@@ -101,8 +100,9 @@ export default function ToolUsageWidget() {
         plottables: timeSeries.map(
           (ts, index) =>
             new Bars(convertSeriesToTimeseries(ts), {
-              color: ts.seriesName === 'Other' ? theme.gray200 : colorPalette[index],
-              alias: ts.seriesName,
+              color:
+                ts.seriesName === 'Other' ? theme.chart.neutral : colorPalette[index],
+              alias: ts.seriesName, // Ensures that the tooltip shows the full series name
               stack: 'stack',
             })
         ),
@@ -141,6 +141,7 @@ export default function ToolUsageWidget() {
         hasData && (
           <Toolbar
             showCreateAlert
+            referrer={Referrer.TOOL_USAGE_WIDGET}
             exploreParams={{
               mode: Mode.AGGREGATE,
               visualize: [

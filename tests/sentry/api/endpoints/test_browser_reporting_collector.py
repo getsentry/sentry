@@ -5,6 +5,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.response import Response
 
+from sentry.issues.endpoints.browser_reporting_collector import URL_MAX_LENGTH
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 
@@ -76,7 +77,8 @@ class BrowserReportingCollectorEndpointTest(APITestCase):
     @patch("sentry.issues.endpoints.browser_reporting_collector.metrics.incr")
     def test_long_url(self, mock_metrics_incr: MagicMock) -> None:
         report = deepcopy(DEPRECATION_REPORT)
-        report["url"] = "https://sentry.io/" + "abcdefghi/" * 240  # Makes URL > 2048 characters
+        report["url"] = "https://sentry.io/" + "abcdefghi/" * 612 + "foobar"
+        assert len(str(report["url"])) == URL_MAX_LENGTH
         response = self.client.post(self.url, [report])
         assert response.status_code == status.HTTP_200_OK
         mock_metrics_incr.assert_any_call(
@@ -89,7 +91,8 @@ class BrowserReportingCollectorEndpointTest(APITestCase):
     @patch("sentry.issues.endpoints.browser_reporting_collector.metrics.incr")
     def test_too_long_url(self, mock_metrics_incr: MagicMock) -> None:
         report = deepcopy(DEPRECATION_REPORT)
-        report["url"] = "https://sentry.io/" + "abcdefghi/" * 410  # Makes URL > 4096 characters
+        report["url"] = "https://sentry.io/" + "abcdefghi/" * 612 + "foobar/"
+        assert len(str(report["url"])) > URL_MAX_LENGTH
         response = self.client.post(self.url, [report])
         self.assert_invalid_report_data(response, {"url": ["Enter a valid URL."]})
 
@@ -103,6 +106,20 @@ class BrowserReportingCollectorEndpointTest(APITestCase):
         # Check that none of the calls were for the browser_reporting.raw_report_received metric
         for call in mock_metrics_incr.call_args_list:
             assert call[0][0] != "browser_reporting.raw_report_received"
+
+    @override_options({"issues.browser_reporting.collector_endpoint_enabled": True})
+    def test_accepts_various_content_type(self) -> None:
+        """Test that the endpoint rejects invalid content type."""
+        response = self.client.post(self.url, self.report_data, content_type="application/json")
+        assert response.status_code == status.HTTP_200_OK
+
+        response = self.client.post(self.url, self.report_data)
+        assert response.status_code == status.HTTP_200_OK
+
+        response = self.client.post(
+            self.url, self.report_data, content_type="application/reports+json"
+        )
+        assert response.status_code == status.HTTP_200_OK
 
     @override_options({"issues.browser_reporting.collector_endpoint_enabled": True})
     @patch("sentry.issues.endpoints.browser_reporting_collector.metrics.incr")

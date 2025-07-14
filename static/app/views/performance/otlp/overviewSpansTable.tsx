@@ -3,8 +3,8 @@ import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import GridEditable from 'sentry/components/gridEditable';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
+import GridEditable from 'sentry/components/tables/gridEditable';
 import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -20,7 +20,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {ModuleName} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {
@@ -58,7 +58,7 @@ export function OverviewSpansTable({eventView, totalValues, transactionName}: Pr
   countQuery.addFilterValue('is_transaction', '1');
   countQuery.addFilterValue('transaction', transactionName);
 
-  const {data: numEvents, error: numEventsError} = useEAPSpans(
+  const {data: numEvents, error: numEventsError} = useSpans(
     {
       search: countQuery,
       fields: ['count()'],
@@ -150,7 +150,6 @@ function renderBodyCell(
     return (
       <SpanIdCell
         moduleName={ModuleName.OTHER}
-        projectSlug={projectSlug ?? ''}
         traceId={row.trace}
         timestamp={row.timestamp}
         transactionId={row.span_id}

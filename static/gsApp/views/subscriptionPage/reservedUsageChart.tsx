@@ -51,7 +51,11 @@ import {
   formatReservedWithUnits,
   isUnlimitedReserved,
 } from 'getsentry/utils/billing';
-import {getPlanCategoryName, hasCategoryFeature} from 'getsentry/utils/dataCategory';
+import {
+  getPlanCategoryName,
+  hasCategoryFeature,
+  isPartOfReservedBudget,
+} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {
   calculateCategoryOnDemandUsage,
@@ -61,8 +65,8 @@ import {
 const USAGE_CHART_OPTIONS_DATACATEGORY = [
   ...CHART_OPTIONS_DATACATEGORY,
   {
-    label: DATA_CATEGORY_INFO.spanIndexed.titleName,
-    value: DATA_CATEGORY_INFO.spanIndexed.plural,
+    label: DATA_CATEGORY_INFO.span_indexed.titleName,
+    value: DATA_CATEGORY_INFO.span_indexed.plural,
     yAxisMinInterval: 100,
   },
 ];
@@ -451,12 +455,14 @@ function ReservedUsageChart({
   const currentHistory: BillingMetricHistory | undefined =
     subscription.categories[category];
   const categoryStats = usageStats[category];
-  const isReservedBudgetCategory =
-    subscription.reservedBudgetCategories?.includes(category) ?? false;
+  const shouldDisplayBudgetStats = isPartOfReservedBudget(
+    category,
+    subscription.reservedBudgets ?? []
+  );
 
   // For sales-led customers (canSelfServe: false), force cost view for reserved budget categories
   // since they don't have access to the usage/cost toggle
-  if (isReservedBudgetCategory && !subscription.canSelfServe) {
+  if (shouldDisplayBudgetStats && !subscription.canSelfServe) {
     displayMode = 'cost';
   }
 
@@ -480,7 +486,7 @@ function ReservedUsageChart({
     };
 
     if (categoryStats) {
-      if (isReservedBudgetCategory && displayMode === 'cost') {
+      if (shouldDisplayBudgetStats && displayMode === 'cost') {
         const budgetType = reservedBudgetCategoryInfo[category]?.apiName;
         if (
           budgetType !== ReservedBudgetCategoryType.DYNAMIC_SAMPLING ||

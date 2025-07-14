@@ -8,7 +8,7 @@ import random
 import zipfile
 from base64 import b64encode
 from binascii import hexlify
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import UTC, datetime
 from enum import Enum
 from hashlib import sha1
@@ -30,6 +30,7 @@ from django.utils.text import slugify
 from sentry.auth.access import RpcBackedAccess
 from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
+from sentry.data_secrecy.models.data_access_grant import DataAccessGrant
 from sentry.event_manager import EventManager
 from sentry.eventstore.models import Event
 from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
@@ -159,7 +160,7 @@ from sentry.uptime.models import (
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
-from sentry.uptime.types import ProjectUptimeSubscriptionMode
+from sentry.uptime.types import UptimeMonitorMode
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
 from sentry.users.models.user_avatar import UserAvatar
@@ -339,6 +340,22 @@ def _patch_artifact_manifest(path, org=None, release=None, project=None, extra_f
     for path in extra_files or {}:
         manifest["files"][path] = {"url": path}
     return orjson.dumps(manifest).decode()
+
+
+def _set_sample_rate_from_error_sampling(normalized_data: MutableMapping[str, Any]) -> None:
+    """Set 'sample_rate' on normalized_data if contexts.error_sampling.client_sample_rate is present and valid."""
+    client_sample_rate = None
+    try:
+        client_sample_rate = (
+            normalized_data.get("contexts", {}).get("error_sampling", {}).get("client_sample_rate")
+        )
+    except Exception:
+        pass
+    if client_sample_rate:
+        try:
+            normalized_data["sample_rate"] = float(client_sample_rate)
+        except Exception:
+            pass
 
 
 # TODO(dcramer): consider moving to something more scalable like factoryboy
@@ -552,6 +569,11 @@ class Factories:
             project_template = ProjectTemplate.objects.create(organization=organization, **kwargs)
 
         return project_template
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_data_access_grant(**kwargs):
+        return DataAccessGrant.objects.create(**kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -969,6 +991,8 @@ class Factories:
             provider = "asana"
         if not uid:
             uid = "abc-123"
+        if extra_data is None:
+            extra_data = {}
         usa = UserSocialAuth(user=user, provider=provider, uid=uid, extra_data=extra_data)
         usa.save()
         return usa
@@ -1029,6 +1053,9 @@ class Factories:
             assert not errors, errors
 
         normalized_data = manager.get_data()
+
+        _set_sample_rate_from_error_sampling(normalized_data)
+
         event = None
 
         # When fingerprint is present on transaction, inject performance problems
@@ -2023,7 +2050,7 @@ class Factories:
         env: Environment | None,
         uptime_subscription: UptimeSubscription,
         status: int,
-        mode: ProjectUptimeSubscriptionMode,
+        mode: UptimeMonitorMode,
         name: str | None,
         owner: Actor | None,
         id: int | None,

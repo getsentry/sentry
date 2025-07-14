@@ -30,11 +30,13 @@ BROWSER_REPORT_TYPES = [
     "permissions-policy-violation",
 ]
 
+URL_MAX_LENGTH = 6144  # 6KB should be sufficient for most browser reporting URLs
+
 
 class LongURLValidator(URLValidator):
     """URLValidator with a higher max_length for browser reporting URLs."""
 
-    max_length = 4096  # 4KB should be sufficient for most browser reporting URLs
+    max_length = URL_MAX_LENGTH
 
 
 class LongURLField(serializers.URLField):
@@ -111,7 +113,10 @@ class BrowserReportingCollectorEndpoint(Endpoint):
         if not options.get("issues.browser_reporting.collector_endpoint_enabled"):
             return Response(status=HTTP_404_NOT_FOUND)
 
-        logger.info("browser_report_received", extra={"request_body": request.data})
+        logger.info(
+            "browser_report_received",
+            extra={"request_body": request.data, "request_headers": request.headers},
+        )
 
         # Browser Reporting API sends an array of reports
         # request.data could be any type, so we need to validate and cast

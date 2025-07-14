@@ -1,40 +1,34 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, memo, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
 import Count from 'sentry/components/count';
 import Placeholder from 'sentry/components/placeholder';
-import {IconChevron, IconCode} from 'sentry/icons';
+import {IconChevron, IconCode, IconFire} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {IconSpeechBubble} from 'sentry/icons/iconSpeechBubble';
 import {IconTool} from 'sentry/icons/iconTool';
 import {space} from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {formatLLMCosts} from 'sentry/views/insights/agentMonitoring/utils/formatLLMCosts';
+import {LLMCosts} from 'sentry/views/insights/agentMonitoring/components/llmCosts';
 import {getNodeId} from 'sentry/views/insights/agentMonitoring/utils/getNodeId';
 import {getIsAiRunNode} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
 import {
   AI_AGENT_NAME_ATTRIBUTE,
   AI_COST_ATTRIBUTE,
-  AI_GENERATION_DESCRIPTIONS,
-  AI_GENERATION_OPS,
-  AI_HANDOFF_OPS,
   AI_MODEL_ID_ATTRIBUTE,
   AI_MODEL_NAME_FALLBACK_ATTRIBUTE,
-  AI_RUN_DESCRIPTIONS,
-  AI_RUN_OPS,
-  AI_TOOL_CALL_DESCRIPTIONS,
-  AI_TOOL_CALL_OPS,
   AI_TOOL_NAME_ATTRIBUTE,
   AI_TOTAL_TOKENS_ATTRIBUTE,
-  mapMissingSpanOp,
+  getIsAiGenerationSpan,
+  getIsAiHandoffSpan,
+  getIsAiRunSpan,
+  getIsAiToolCallSpan,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import type {AITraceSpanNode} from 'sentry/views/insights/agentMonitoring/utils/types';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import type {EAPSpanProperty} from 'sentry/views/insights/types';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   isEAPSpanNode,
   isSpanNode,
@@ -84,7 +78,7 @@ export function AISpanList({
   selectedNodeKey: string | null;
 }) {
   const theme = useTheme();
-  const colors = theme.chart.getColorPalette(5);
+  const colors = [...theme.chart.getColorPalette(5), theme.red300];
 
   const spanAttributesRequest = useEAPSpanAttributes(nodes);
   let currentTransaction: TraceTreeNode<
@@ -114,12 +108,16 @@ export function AISpanList({
           }
         }
 
+        // Only indent if the node is a child of the last ai run node
+        const shouldIndent =
+          aiRunNode && !!TraceTree.ParentNode(node, n => n === aiRunNode);
+
         const uniqueKey = getNodeId(node);
         return (
           <Fragment key={uniqueKey}>
             {transactionName && <TransactionItem>{transactionName}</TransactionItem>}
             <TraceListItem
-              indent={aiRunNode === node ? 0 : 1}
+              indent={shouldIndent ? 1 : 0}
               traceBounds={getTimeBounds(currentAiRunNode)}
               key={uniqueKey}
               node={node}
@@ -142,7 +140,7 @@ export function AISpanList({
   );
 }
 
-function TraceListItem({
+const TraceListItem = memo(function TraceListItem({
   node,
   onClick,
   isSelected,
@@ -157,7 +155,7 @@ function TraceListItem({
   isSelected: boolean;
   node: AITraceSpanNode;
   onClick: () => void;
-  spanAttributes: Record<string, string> | undefined;
+  spanAttributes: Record<string, string | number> | undefined;
   traceBounds: TraceBounds;
   isLoadingAttributes?: boolean;
 }) {
@@ -167,8 +165,13 @@ function TraceListItem({
   const duration = getTimeBounds(node).duration;
 
   return (
-    <ListItemContainer isSelected={isSelected} onClick={onClick} indent={indent}>
-      <ListItemIcon color={safeColor}>{icon}</ListItemIcon>
+    <ListItemContainer
+      hasErrors={node.errors.size > 0}
+      isSelected={isSelected}
+      onClick={onClick}
+      indent={indent}
+    >
+      <ListItemIcon color={safeColor}>{icon} </ListItemIcon>
       <ListItemContent>
         <ListItemHeader align="center" gap={space(0.5)}>
           <ListItemTitle>{title}</ListItemTitle>
@@ -184,29 +187,7 @@ function TraceListItem({
       </ListItemContent>
     </ListItemContainer>
   );
-}
-
-const keyToTag = (key: string, type: 'string' | 'number') => {
-  return `tags[${key},${type}]`;
-};
-
-const TAGS_REGEX = /tags\[(.*?),.*\]/;
-function mapSpanAttributes(
-  spanAttributes: Record<string, string | number | boolean | null>
-) {
-  // Map "tags[gen_ai.request.model,string]" to "gen_ai.request.model"
-  return Object.fromEntries(
-    Object.entries(spanAttributes)
-      .map<[string, string | undefined]>(([key, value]) => {
-        const match = key.match(TAGS_REGEX);
-        if (match?.[1]) {
-          return [match[1], value?.toString()];
-        }
-        return [key, value?.toString()];
-      })
-      .filter((entry): entry is [string, string] => defined(entry[1]))
-  );
-}
+});
 
 function useEAPSpanAttributes(nodes: Array<TraceTreeNode<TraceTree.NodeValue>>) {
   const spans = useMemo(() => {
@@ -220,7 +201,7 @@ function useEAPSpanAttributes(nodes: Array<TraceTreeNode<TraceTree.NodeValue>>) 
     ...spans.map(span => new Date(span.value.end_timestamp * 1000).getTime())
   );
 
-  const spanAttributesRequest = useEAPSpans(
+  const spanAttributesRequest = useSpans(
     {
       search: `span_id:[${spans.map(span => `"${span.value.event_id}"`).join(',')}]`,
       fields: [
@@ -228,10 +209,10 @@ function useEAPSpanAttributes(nodes: Array<TraceTreeNode<TraceTree.NodeValue>>) 
         AI_AGENT_NAME_ATTRIBUTE,
         AI_MODEL_ID_ATTRIBUTE,
         AI_MODEL_NAME_FALLBACK_ATTRIBUTE,
-        keyToTag(AI_TOTAL_TOKENS_ATTRIBUTE, 'number'),
-        keyToTag(AI_COST_ATTRIBUTE, 'number'),
+        AI_TOTAL_TOKENS_ATTRIBUTE,
+        AI_COST_ATTRIBUTE,
         AI_TOOL_NAME_ATTRIBUTE,
-      ] as EAPSpanProperty[],
+      ],
       limit: 100,
       // Pass custom values as the page filters are not available in the trace view
       pageFilters: {
@@ -251,10 +232,10 @@ function useEAPSpanAttributes(nodes: Array<TraceTreeNode<TraceTree.NodeValue>>) 
   const spanAttributes = useMemo(() => {
     return spanAttributesRequest.data?.reduce(
       (acc, span) => {
-        acc[span.span_id] = mapSpanAttributes(span);
+        acc[span.span_id] = span;
         return acc;
       },
-      {} as Record<string, Record<string, string>>
+      {} as Record<string, Record<string, string | number>>
     );
   }, [spanAttributesRequest.data]);
 
@@ -311,10 +292,11 @@ interface NodeInfo {
   title: React.ReactNode;
 }
 
+// TODO: consider splitting this up
 function getNodeInfo(
   node: AITraceSpanNode,
   colors: readonly string[],
-  spanAttributes: Record<string, string>
+  spanAttributes: Record<string, string | number>
 ) {
   // Default return value
   const nodeInfo: NodeInfo = {
@@ -342,18 +324,13 @@ function getNodeInfo(
     return node.value?.data?.[key];
   };
 
-  const op = mapMissingSpanOp({
-    op: node.value?.op,
-    description: node.value?.description,
-  });
-
+  const op =
+    (isTransactionNode(node) ? node.value?.['transaction.op'] : node.value?.op) ??
+    'default';
   const truncatedOp = op.startsWith('gen_ai.') ? op.slice(7) : op;
   nodeInfo.title = truncatedOp;
 
-  if (
-    AI_RUN_OPS.includes(op) ||
-    AI_RUN_DESCRIPTIONS.includes(node.value.description ?? '')
-  ) {
+  if (getIsAiRunSpan({op})) {
     const agentName = getNodeAttribute(AI_AGENT_NAME_ATTRIBUTE) || '';
     const model =
       getNodeAttribute(AI_MODEL_ID_ATTRIBUTE) ||
@@ -371,10 +348,7 @@ function getNodeInfo(
       );
     }
     nodeInfo.color = colors[0];
-  } else if (
-    AI_GENERATION_OPS.includes(op) ||
-    AI_GENERATION_DESCRIPTIONS.includes(node.value.description ?? '')
-  ) {
+  } else if (getIsAiGenerationSpan({op})) {
     const tokens = getNodeAttribute(AI_TOTAL_TOKENS_ATTRIBUTE);
     const cost = getNodeAttribute(AI_COST_ATTRIBUTE);
     nodeInfo.icon = <IconSpeechBubble size="md" />;
@@ -389,25 +363,29 @@ function getNodeInfo(
     if (cost) {
       nodeInfo.subtitle = (
         <Fragment>
-          {nodeInfo.subtitle} ({formatLLMCosts(cost)})
+          {nodeInfo.subtitle} ({<LLMCosts cost={cost} />})
         </Fragment>
       );
     }
     nodeInfo.color = colors[2];
-  } else if (
-    AI_TOOL_CALL_OPS.includes(op) ||
-    AI_TOOL_CALL_DESCRIPTIONS.includes(node.value.description ?? '')
-  ) {
+  } else if (getIsAiToolCallSpan({op})) {
     nodeInfo.icon = <IconTool size="md" />;
     nodeInfo.subtitle = getNodeAttribute(AI_TOOL_NAME_ATTRIBUTE) || '';
     nodeInfo.color = colors[5];
-  } else if (AI_HANDOFF_OPS.includes(op)) {
+  } else if (getIsAiHandoffSpan({op})) {
     nodeInfo.icon = <IconChevron size="md" isDouble direction="right" />;
     nodeInfo.subtitle = node.value.description || '';
     nodeInfo.color = colors[4];
   } else {
     nodeInfo.subtitle = node.value.description || '';
   }
+
+  // Override the color and icon if the node has errors
+  if (node.errors.size > 0) {
+    nodeInfo.icon = <IconFire size="md" color="red300" />;
+    nodeInfo.color = colors[6];
+  }
+
   return nodeInfo;
 }
 
@@ -419,7 +397,11 @@ const TraceListContainer = styled('div')`
   overflow: hidden;
 `;
 
-const ListItemContainer = styled('div')<{indent: number; isSelected: boolean}>`
+const ListItemContainer = styled('div')<{
+  hasErrors: boolean;
+  indent: number;
+  isSelected: boolean;
+}>`
   display: flex;
   align-items: center;
   padding: ${space(1)} ${space(0.5)};
@@ -428,7 +410,12 @@ const ListItemContainer = styled('div')<{indent: number; isSelected: boolean}>`
   cursor: pointer;
   background-color: ${p =>
     p.isSelected ? p.theme.backgroundSecondary : p.theme.background};
-  outline: ${p => (p.isSelected ? `2px solid ${p.theme.purple200}` : 'none')};
+  outline: ${p =>
+    p.isSelected
+      ? p.hasErrors
+        ? `2px solid ${p.theme.red200}`
+        : `2px solid ${p.theme.purple200}`
+      : 'none'};
 
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};

@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Anchor} from 'sentry/components/core/link';
 import {DataSection} from 'sentry/components/events/styles';
-import {Anchor} from 'sentry/components/links/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconLink} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -149,7 +149,7 @@ const SectionHeader = styled('div')`
   & h3 a {
     color: ${p => p.theme.subText};
     font-size: ${p => p.theme.fontSize.md};
-    font-weight: ${p => p.theme.fontWeightBold};
+    font-weight: ${p => p.theme.fontWeight.bold};
   }
 
   & h3 {
@@ -165,10 +165,10 @@ const SectionHeader = styled('div')`
   }
   & small > span {
     color: ${p => p.theme.textColor};
-    font-weight: ${p => p.theme.fontWeightNormal};
+    font-weight: ${p => p.theme.fontWeight.normal};
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     & > small {
       margin-left: ${space(1)};
       display: inline-block;

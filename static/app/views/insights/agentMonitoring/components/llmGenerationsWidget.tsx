@@ -12,15 +12,16 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
+import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
 import {
   AI_MODEL_ID_ATTRIBUTE,
   getAIGenerationsFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
+import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTopNSpanEAPSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
-import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {
@@ -30,28 +31,25 @@ import {
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
-import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 export default function LLMGenerationsWidget() {
   const organization = useOrganization();
-  const {query} = useTransactionNameQuery();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans-low',
   });
 
   const theme = useTheme();
+  const fullQuery = useCombinedQuery(getAIGenerationsFilter());
 
-  const fullQuery = `${getAIGenerationsFilter()} ${query}`.trim();
-
-  const generationsRequest = useEAPSpans(
+  const generationsRequest = useSpans(
     {
       fields: [AI_MODEL_ID_ATTRIBUTE, 'count()'],
       sorts: [{field: 'count()', kind: 'desc'}],
       search: fullQuery,
       limit: 3,
     },
-    Referrer.QUERIES_CHART // TODO: add referrer
+    Referrer.LLM_GENERATIONS_WIDGET
   );
 
   const timeSeriesRequest = useTopNSpanEAPSeries(
@@ -64,7 +62,7 @@ export default function LLMGenerationsWidget() {
       topN: 3,
       enabled: !!generationsRequest.data,
     },
-    Referrer.QUERIES_CHART // TODO: add referrer
+    Referrer.LLM_GENERATIONS_WIDGET
   );
 
   const timeSeries = timeSeriesRequest.data;
@@ -104,8 +102,9 @@ export default function LLMGenerationsWidget() {
         plottables: timeSeries.map(
           (ts, index) =>
             new Bars(convertSeriesToTimeseries(ts), {
-              color: ts.seriesName === 'Other' ? theme.gray200 : colorPalette[index],
-              alias: ts.seriesName,
+              color:
+                ts.seriesName === 'Other' ? theme.chart.neutral : colorPalette[index],
+              alias: ts.seriesName, // Ensures that the tooltip shows the full series name
               stack: 'stack',
             })
         ),
@@ -147,6 +146,7 @@ export default function LLMGenerationsWidget() {
         hasData && (
           <Toolbar
             showCreateAlert
+            referrer={Referrer.LLM_GENERATIONS_WIDGET}
             exploreParams={{
               mode: Mode.AGGREGATE,
               visualize: [

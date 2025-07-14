@@ -611,38 +611,45 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         'alertType',
       ].includes(name)
     ) {
-      this.setState(({dataset: _dataset, aggregate, alertType}) => {
-        const dataset = this.checkOnDemandMetricsDataset(
-          name === 'dataset' ? (value as Dataset) : _dataset,
-          this.state.query
-        );
+      this.setState(
+        ({dataset: _dataset, aggregate, alertType, eventTypes: _eventTypes}) => {
+          const dataset = this.checkOnDemandMetricsDataset(
+            name === 'dataset' ? (value as Dataset) : _dataset,
+            this.state.query
+          );
 
-        if (deprecateTransactionAlerts(organization)) {
+          const eventTypes =
+            name === 'eventTypes' ? (value as EventTypes[]) : _eventTypes;
+
+          if (deprecateTransactionAlerts(organization)) {
+            const newAlertType = getAlertTypeFromAggregateDataset({
+              aggregate: name === 'aggregate' ? (value as string) : aggregate,
+              dataset,
+              organization,
+              eventTypes,
+            });
+
+            return {
+              [name]: value,
+              alertType: newAlertType,
+              dataset,
+            };
+          }
+
           const newAlertType = getAlertTypeFromAggregateDataset({
-            aggregate: name === 'aggregate' ? (value as string) : aggregate,
+            aggregate,
             dataset,
+            eventTypes,
             organization,
           });
 
           return {
             [name]: value,
-            alertType: newAlertType,
+            alertType: alertType === newAlertType ? alertType : 'custom_transactions',
             dataset,
           };
         }
-
-        const newAlertType = getAlertTypeFromAggregateDataset({
-          aggregate,
-          dataset,
-          organization,
-        });
-
-        return {
-          [name]: value,
-          alertType: alertType === newAlertType ? alertType : 'custom_transactions',
-          dataset,
-        };
-      });
+      );
     }
   };
 
@@ -1533,7 +1540,7 @@ const AlertName = styled(HeaderTitleLegend)`
 const AlertInfo = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   font-family: ${p => p.theme.text.family};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.textColor};
 `;
 

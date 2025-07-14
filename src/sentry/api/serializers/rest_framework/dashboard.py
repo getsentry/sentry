@@ -593,7 +593,7 @@ class DashboardPermissionsSerializer(CamelSnakeSerializer[Dashboard]):
         child=serializers.IntegerField(),
         help_text="List of team IDs that have edit access to a dashboard.",
         required=False,
-        default=[],
+        default=list,
     )
 
     def validate(self, data):

@@ -24,7 +24,7 @@ const Container = styled('div')`
   padding: ${space(3)};
   position: relative;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: flex;
     align-items: flex-start;
     flex-direction: row;
@@ -35,7 +35,7 @@ const Container = styled('div')`
     margin: 0 auto;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     min-height: 350px;
   }
 `;
@@ -47,7 +47,7 @@ const StyledBox = styled('div')<{centered?: boolean}>`
   ${p => (p.centered ? 'text-align: center;' : '')}
   ${p => (p.centered ? 'max-width: 600px;' : '')}
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     flex: 2;
   }
 `;
@@ -59,7 +59,7 @@ const IlloBox = styled(StyledBox)`
   min-width: 150px;
   margin: ${space(2)} auto;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     flex: 1;
     margin: 120px ${space(3)} ${space(3)} ${space(3)};
     max-width: auto;

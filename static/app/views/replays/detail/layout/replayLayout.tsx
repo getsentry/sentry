@@ -10,7 +10,6 @@ import useReplayLayout, {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLa
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useFullscreen from 'sentry/utils/window/useFullscreen';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
 import FocusArea from 'sentry/views/replays/detail/layout/focusArea';
 import FocusTabs from 'sentry/views/replays/detail/layout/focusTabs';
 import SplitPanel from 'sentry/views/replays/detail/layout/splitPanel';
@@ -74,11 +73,14 @@ export default function ReplayLayout({
     isLoading || replayRecord?.is_archived ? (
       <Placeholder width="100%" height="100%" />
     ) : (
-      <FluidPanel title={<FocusTabs isVideoReplay={isVideoReplay} />}>
-        <ErrorBoundary mini>
-          <FocusArea isVideoReplay={isVideoReplay} />
-        </ErrorBoundary>
-      </FluidPanel>
+      <FluidContainer>
+        <FocusTabs isVideoReplay={isVideoReplay} />
+        <OverflowBody>
+          <ErrorBoundary mini>
+            <FocusArea isVideoReplay={isVideoReplay} />
+          </ErrorBoundary>
+        </OverflowBody>
+      </FluidContainer>
     );
 
   const hasSize = width + height > 0;
@@ -138,6 +140,17 @@ export default function ReplayLayout({
     </BodyContent>
   );
 }
+
+const FluidContainer = styled('section')`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+`;
+
+const OverflowBody = styled('div')`
+  flex: 1 1 auto;
+  overflow: auto;
+`;
 
 const BodyContent = styled('main')`
   background: ${p => p.theme.background};

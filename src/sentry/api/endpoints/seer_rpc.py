@@ -3,6 +3,7 @@ import hashlib
 import hmac
 import logging
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 import sentry_sdk
@@ -19,12 +20,19 @@ from rest_framework.exceptions import (
 )
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
     TraceItemAttributeValuesRequest,
 )
+from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
+    AttributeDistributionsRequest,
+    StatsType,
+    TraceItemStatsRequest,
+)
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
 from sentry import options
 from sentry.api.api_owners import ApiOwner
@@ -48,9 +56,11 @@ from sentry.seer.fetch_issues.fetch_issues import (
 )
 from sentry.seer.fetch_issues.fetch_issues_given_exception_type import (
     get_issues_related_to_exception_type,
+    get_latest_issue_event,
 )
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.silo.base import SiloMode
+from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.env import in_test_environment
@@ -220,10 +230,10 @@ def get_organization_seer_consent_by_org_name(
 
 
 def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: str) -> dict:
-    field_types = [
-        AttributeKey.Type.TYPE_STRING,
-        AttributeKey.Type.TYPE_DOUBLE,
-    ]
+    type_mapping = {
+        AttributeKey.Type.TYPE_STRING: "string",
+        AttributeKey.Type.TYPE_DOUBLE: "number",
+    }
 
     period = parse_stats_period(stats_period)
     if period is None:
@@ -237,14 +247,14 @@ def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: st
     end_time_proto = ProtobufTimestamp()
     end_time_proto.FromDatetime(end)
 
-    fields = []
+    fields: dict[str, list[str]] = {type_str: [] for type_str in type_mapping.values()}
 
-    for attr_type in field_types:
+    for attr_type, type_str in type_mapping.items():
         req = TraceItemAttributeNamesRequest(
             meta=RequestMeta(
                 organization_id=org_id,
                 cogs_category="events_analytics_platform",
-                referrer="seer-rpc",
+                referrer=Referrer.SEER_RPC.value,
                 project_ids=project_ids,
                 start_timestamp=start_time_proto,
                 end_timestamp=end_time_proto,
@@ -261,67 +271,14 @@ def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: st
                 attr.name,
                 "string" if attr_type == AttributeKey.Type.TYPE_STRING else "number",
                 SupportedTraceItemType.SPANS,
-            )["key"]
+            )["name"]
             for attr in fields_resp.attributes
             if attr.name and can_expose_attribute(attr.name, SupportedTraceItemType.SPANS)
         ]
-        fields.extend(parsed_fields)
+
+        fields[type_str].extend(parsed_fields)
 
     return {"fields": fields}
-
-
-def get_attribute_values(
-    *,
-    fields: list[str],
-    org_id: int,
-    project_ids: list[int],
-    stats_period: str,
-    limit: int = 100,
-) -> dict:
-    period = parse_stats_period(stats_period)
-    if period is None:
-        period = datetime.timedelta(days=7)
-
-    end = datetime.datetime.now()
-    start = end - period
-
-    start_time_proto = ProtobufTimestamp()
-    start_time_proto.FromDatetime(start)
-    end_time_proto = ProtobufTimestamp()
-    end_time_proto.FromDatetime(end)
-
-    values = {}
-    resolver = SearchResolver(
-        params=SnubaParams(
-            start=start,
-            end=end,
-        ),
-        config=SearchResolverConfig(),
-        definitions=SPAN_DEFINITIONS,
-    )
-
-    for field in fields:
-        resolved_field, _ = resolver.resolve_attribute(field)
-        if resolved_field.proto_definition.type == AttributeKey.Type.TYPE_STRING:
-
-            req = TraceItemAttributeValuesRequest(
-                meta=RequestMeta(
-                    organization_id=org_id,
-                    cogs_category="events_analytics_platform",
-                    referrer="seer_rpc",
-                    project_ids=project_ids,
-                    start_timestamp=start_time_proto,
-                    end_timestamp=end_time_proto,
-                    trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
-                ),
-                key=resolved_field.proto_definition,
-                limit=limit,
-            )
-
-            values_response = snuba_rpc.attribute_values_rpc(req)
-            values[field] = [value for value in values_response.values]
-
-    return {"values": values}
 
 
 def get_attribute_values_with_substring(
@@ -331,14 +288,20 @@ def get_attribute_values_with_substring(
     fields_with_substrings: list[dict[str, str]],
     stats_period: str = "48h",
     limit: int = 100,
+    sampled: bool = True,
 ) -> dict:
     """
     Get attribute values with substring.
     Note: The RPC is guaranteed to not return duplicate values for the same field.
     ie: if span.description is requested with both null and "payment" substrings,
     the RPC will return the set of values for span.description to avoid duplicates.
+
+    TODO: Replace with batch attribute values RPC once available
     """
     values: dict[str, set[str]] = {}
+
+    if not fields_with_substrings:
+        return {"values": values}
 
     period = parse_stats_period(stats_period)
     if period is None:
@@ -352,6 +315,12 @@ def get_attribute_values_with_substring(
     end_time_proto = ProtobufTimestamp()
     end_time_proto.FromDatetime(end)
 
+    sampling_mode = (
+        DownsampledStorageConfig.MODE_NORMAL
+        if sampled
+        else DownsampledStorageConfig.MODE_HIGHEST_ACCURACY
+    )
+
     resolver = SearchResolver(
         params=SnubaParams(
             start=start,
@@ -361,7 +330,10 @@ def get_attribute_values_with_substring(
         definitions=SPAN_DEFINITIONS,
     )
 
-    for field_with_substring in fields_with_substrings:
+    def process_field_with_substring(
+        field_with_substring: dict[str, str],
+    ) -> tuple[str, set[str]] | None:
+        """Helper function to process a single field_with_substring request."""
         field = field_with_substring["field"]
         substring = field_with_substring["substring"]
 
@@ -371,11 +343,12 @@ def get_attribute_values_with_substring(
                 meta=RequestMeta(
                     organization_id=org_id,
                     cogs_category="events_analytics_platform",
-                    referrer="seer_rpc",
+                    referrer=Referrer.SEER_RPC.value,
                     project_ids=project_ids,
                     start_timestamp=start_time_proto,
                     end_timestamp=end_time_proto,
                     trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+                    downsampled_storage_config=DownsampledStorageConfig(mode=sampling_mode),
                 ),
                 key=resolved_field.proto_definition,
                 limit=limit,
@@ -383,12 +356,117 @@ def get_attribute_values_with_substring(
             )
 
             values_response = snuba_rpc.attribute_values_rpc(req)
-            if field in values:
-                values[field].update({value for value in values_response.values if value})
-            else:
-                values[field] = {value for value in values_response.values if value}
+            return field, {value for value in values_response.values if value}
+        return None
+
+    timeout_seconds = 1.0
+
+    with ThreadPoolExecutor(max_workers=min(len(fields_with_substrings), 10)) as executor:
+        future_to_field = {
+            executor.submit(
+                process_field_with_substring, field_with_substring
+            ): field_with_substring
+            for field_with_substring in fields_with_substrings
+        }
+
+        try:
+            for future in as_completed(future_to_field, timeout=timeout_seconds):
+                field_with_substring = future_to_field[future]
+
+                try:
+                    result = future.result()
+                    if result is not None:
+                        field, field_values = result
+                        if field in values:
+                            values[field].update(field_values)
+                        else:
+                            values[field] = field_values
+                except TimeoutError:
+                    logger.warning(
+                        "RPC call timed out after %s seconds for field %s, skipping",
+                        timeout_seconds,
+                        field_with_substring.get("field", "unknown"),
+                    )
+                except Exception as e:
+                    logger.warning(
+                        "RPC call failed for field %s: %s",
+                        field_with_substring.get("field", "unknown"),
+                        str(e),
+                    )
+        except TimeoutError:
+            for future in future_to_field:
+                future.cancel()
+            logger.warning("Overall timeout exceeded, cancelled remaining RPC calls")
 
     return {"values": values}
+
+
+def get_attributes_and_values(
+    *,
+    org_id: int,
+    project_ids: list[int],
+    stats_period: str,
+    max_values: int = 100,
+    max_attributes: int = 1000,
+    sampled: bool = True,
+) -> dict:
+    """
+    Fetches all string attributes and the corresponding values with counts for a given period.
+    """
+    period = parse_stats_period(stats_period)
+    if period is None:
+        period = datetime.timedelta(days=7)
+
+    end = datetime.datetime.now()
+    start = end - period
+
+    start_time_proto = ProtobufTimestamp()
+    start_time_proto.FromDatetime(start)
+    end_time_proto = ProtobufTimestamp()
+    end_time_proto.FromDatetime(end)
+
+    sampling_mode = (
+        DownsampledStorageConfig.MODE_NORMAL
+        if sampled
+        else DownsampledStorageConfig.MODE_HIGHEST_ACCURACY
+    )
+
+    meta = RequestMeta(
+        organization_id=org_id,
+        cogs_category="events_analytics_platform",
+        referrer=Referrer.SEER_RPC.value,
+        project_ids=project_ids,
+        start_timestamp=start_time_proto,
+        end_timestamp=end_time_proto,
+        trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+        downsampled_storage_config=DownsampledStorageConfig(mode=sampling_mode),
+    )
+    filter = TraceItemFilter()
+    stats_type = StatsType(
+        attribute_distributions=AttributeDistributionsRequest(
+            max_buckets=max_values,
+            max_attributes=max_attributes,
+        )
+    )
+    rpc_request = TraceItemStatsRequest(
+        filter=filter,
+        meta=meta,
+        stats_types=[stats_type],
+    )
+    rpc_response = snuba_rpc.trace_item_stats_rpc(rpc_request)
+
+    attributes_and_values = [
+        {
+            attribute.attribute_name: [
+                {"value": value.label, "count": value.value} for value in attribute.buckets
+            ]
+        }
+        for result in rpc_response.results
+        for attribute in result.attribute_distributions.attributes
+        if attribute.buckets
+    ]
+
+    return {"attributes_and_values": attributes_and_values}
 
 
 seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
@@ -398,11 +476,12 @@ seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_issues_related_to_file_patches": get_issues_related_to_file_patches,
     "get_issues_related_to_function_names": get_issues_related_to_function_names,
     "get_issues_related_to_exception_type": get_issues_related_to_exception_type,
+    "get_latest_issue_event": get_latest_issue_event,
     "get_error_event_details": get_error_event_details,
     "get_profile_details": get_profile_details,
     "get_attribute_names": get_attribute_names,
-    "get_attribute_values": get_attribute_values,
     "get_attribute_values_with_substring": get_attribute_values_with_substring,
+    "get_attributes_and_values": get_attributes_and_values,
 }
 
 

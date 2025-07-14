@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import {Link} from 'sentry/components/core/link';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Link from 'sentry/components/links/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -160,7 +160,7 @@ const EventItemsTitle = styled('div')`
   padding-left: ${space(1)};
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSize.xs};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.subText};
 `;
 
@@ -201,7 +201,7 @@ const EventTitleWrapper = styled('div')`
 
 const EventTitle = styled('div')`
   ${p => p.theme.overflowEllipsis};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const EventDescription = styled('div')`

@@ -15,8 +15,11 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from django.apps import apps
 from django.db import connections, router
 from django.utils import timezone
+from fido2.ctap2 import AuthenticatorData
+from fido2.utils import sha256
 from sentry_relay.auth import generate_key_pair
 
+from sentry.auth.authenticators.u2f import create_credential_object
 from sentry.backup.crypto import LocalFileDecryptor, LocalFileEncryptor, decrypt_encrypted_tarball
 from sentry.backup.dependencies import (
     NormalizedModelName,
@@ -56,7 +59,12 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.counter import Counter
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardTombstone
+from sentry.models.dashboard import (
+    Dashboard,
+    DashboardFavoriteUser,
+    DashboardLastVisited,
+    DashboardTombstone,
+)
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -372,7 +380,38 @@ class ExhaustiveFixtures(Fixtures):
             first_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=UTC),
             last_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=UTC),
         )
-        Authenticator.objects.create(user=user, type=1, config={})
+        Authenticator.objects.create(
+            user=user,
+            type=1,
+            config={
+                "devices": [
+                    {
+                        "binding": {
+                            "publicKey": "publickey",
+                            "keyHandle": "aowerkoweraowerkkro",
+                            "appId": "https://dev.getsentry.net:8000/auth/2fa/u2fappid.json",
+                        },
+                        "name": "Sentry",
+                        "ts": 1512505334,
+                    },
+                    {
+                        "name": "Alert Escargot",
+                        "ts": 1512505334,
+                        "binding": AuthenticatorData.create(
+                            sha256(b"test"),
+                            0x41,
+                            1,
+                            create_credential_object(
+                                {
+                                    "publicKey": "webauthn",
+                                    "keyHandle": "webauthn",
+                                }
+                            ),
+                        ),
+                    },
+                ]
+            },
+        )
 
         if is_admin:
             self.add_user_permission(user, "users.admin")
@@ -532,6 +571,11 @@ class ExhaustiveFixtures(Fixtures):
             dashboard=dashboard,
             user_id=owner_id,
             organization=org,
+        )
+        DashboardLastVisited.objects.create(
+            dashboard=dashboard,
+            member=invited,
+            last_visited=timezone.now(),
         )
         permissions = DashboardPermissions.objects.create(
             is_editable_by_everyone=True, dashboard=dashboard

@@ -2,91 +2,24 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
 import RadioField from 'sentry/components/forms/fields/radioField';
-import SelectField from 'sentry/components/forms/fields/selectField';
-import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
-import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types/project';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
-import useProjects from 'sentry/utils/useProjects';
-
-function getDefaultProject(projects: Project[]) {
-  return projects.find(p => p.isMember) ?? projects[0];
-}
+import {DETECTOR_TYPE_LABELS} from 'sentry/views/detectors/constants';
 
 export function DetectorTypeForm() {
   return (
     <FormContainer>
-      <div>
-        <Header>
-          <h3>{t('Monitor type')}</h3>
-          <p>
-            {t("Monitor type can't be edited once the monitor has been created.")}{' '}
-            <a href="#">{t('Learn more about monitor types.')}</a>
-          </p>
-        </Header>
-        <MonitorTypeField />
-      </div>
-      <div>
-        <Header>
-          <h3>{t('Project and Environment')}</h3>
-        </Header>
-        <Flex>
-          <ProjectField />
-          <EnvironmentField />
-        </Flex>
-      </div>
+      <Header>
+        <h3>{t('Monitor type')}</h3>
+        <p>
+          {t("Monitor type can't be edited once the monitor has been created.")}{' '}
+          <a href="#">{t('Learn more about monitor types.')}</a>
+        </p>
+      </Header>
+      <MonitorTypeField />
     </FormContainer>
-  );
-}
-
-function ProjectField() {
-  const {projects, fetching} = useProjects();
-
-  return (
-    <StyledProjectField
-      inline={false}
-      flexibleControlStateSize
-      stacked
-      projects={projects}
-      groupProjects={project => (project.isMember ? 'member' : 'all')}
-      groups={[
-        {key: 'member', label: t('My Projects')},
-        {key: 'all', label: t('All Projects')},
-      ]}
-      name="project"
-      placeholder={t('Project')}
-      aria-label={t('Select Project')}
-      disabled={fetching}
-    />
-  );
-}
-
-function EnvironmentField() {
-  const {projects} = useProjects();
-  const projectId = useFormField<string>('project');
-  const currentProject = projectId
-    ? projects.find(p => p.id === projectId)
-    : getDefaultProject(projects);
-
-  const environments = currentProject?.environments ?? [];
-
-  return (
-    <StyledEnvironmentField
-      choices={[
-        ['', t('All Environments')],
-        ...(environments?.map(environment => [environment, environment]) ?? []),
-      ]}
-      inline={false}
-      flexibleControlStateSize
-      stacked
-      name="environment"
-      placeholder={t('Environment')}
-      aria-label={t('Select Environment')}
-    />
   );
 }
 
@@ -100,7 +33,7 @@ function MonitorTypeField() {
         [
           [
             'metric_issue',
-            t('Metric'),
+            DETECTOR_TYPE_LABELS.metric_issue,
             <Description
               key="description"
               text={t('Monitor error counts, transaction duration, and more!')}
@@ -109,7 +42,7 @@ function MonitorTypeField() {
           ],
           [
             'uptime_subscription',
-            t('Crons'),
+            DETECTOR_TYPE_LABELS.uptime_subscription,
             <Description
               key="description"
               text={t(
@@ -120,7 +53,7 @@ function MonitorTypeField() {
           ],
           [
             'uptime_domain_failure',
-            t('Uptime'),
+            DETECTOR_TYPE_LABELS.uptime_domain_failure,
             <Description
               key="description"
               text={t('Monitor the uptime of specific endpoint in your applications.')}
@@ -137,19 +70,7 @@ function MonitorTypeField() {
 const FormContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  max-width: ${p => p.theme.breakpoints.xlarge};
-`;
-
-const StyledProjectField = styled(SentryProjectSelectorField)`
-  flex-grow: 1;
-  max-width: 360px;
-  padding-left: 0;
-`;
-
-const StyledEnvironmentField = styled(SelectField)`
-  flex-grow: 1;
-  max-width: 360px;
-  padding-left: 0;
+  max-width: ${p => p.theme.breakpoints.xl};
 `;
 
 const StyledRadioField = styled(RadioField)`
@@ -178,7 +99,7 @@ const StyledRadioField = styled(RadioField)`
 
     /* Markup for choice name and description is all divs :( */
     div:nth-child(2) {
-      font-weight: ${p => p.theme.fontWeightBold};
+      font-weight: ${p => p.theme.fontWeight.bold};
     }
 
     &[aria-checked='true'] {
@@ -239,7 +160,7 @@ const Visualization = styled('div')`
   right: ${space(2)};
   margin-block: auto;
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     display: block;
   }
 `;

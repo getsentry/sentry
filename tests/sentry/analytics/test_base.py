@@ -19,7 +19,7 @@ class AnalyticsTest(TestCase):
         assert len(provider.events) == 1
         event = provider.events.pop(0)
         assert event.type == "organization.created"
-        assert event.datetime
+        assert event.datetime_
         assert event.data["slug"] == organization.slug
         assert not event.data["actor_id"]
 
@@ -30,6 +30,6 @@ class AnalyticsTest(TestCase):
         assert len(provider.events) == 1
         event = provider.events.pop(0)
         assert event.type == "organization.created"
-        assert event.datetime
+        assert event.datetime_
         assert event.data["slug"] == organization.slug
         assert event.data["actor_id"] == "1"

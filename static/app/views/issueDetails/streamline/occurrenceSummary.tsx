@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Flex} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import {DowntimeDuration} from 'sentry/components/events/interfaces/uptime/uptimeDataSection';
-import Link from 'sentry/components/links/link';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
@@ -156,12 +156,12 @@ export function OccurrenceSummary({group, event, className}: OccurrenceSummaryPr
 const ItemTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const ItemValue = styled('div')`
   font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   max-width: 400px;
 `;
 

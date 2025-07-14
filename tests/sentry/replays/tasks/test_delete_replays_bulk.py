@@ -4,7 +4,7 @@ import datetime
 import uuid
 from unittest.mock import patch
 
-from sentry.replays.models import ReplayDeletionJobModel
+from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel
 from sentry.replays.tasks import run_bulk_replay_delete_job
 from sentry.replays.testutils import mock_replay
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
@@ -42,13 +42,11 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                     "retention_days": 90,
                     "replay_id": "a",
                     "max_segment_id": 1,
-                    "platform": "javascript",
                 },
                 {
                     "retention_days": 90,
                     "replay_id": "b",
                     "max_segment_id": 0,
-                    "platform": "javascript",
                 },
             ],
             "has_more": True,
@@ -89,13 +87,11 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                     "retention_days": 90,
                     "replay_id": "a",
                     "max_segment_id": 1,
-                    "platform": "javascript",
                 },
                 {
                     "retention_days": 90,
                     "replay_id": "b",
                     "max_segment_id": None,
-                    "platform": "javascript",
                 },
             ],
             "has_more": False,
@@ -183,6 +179,24 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         self.job.refresh_from_db()
         assert self.job.status == "completed"
         assert self.job.offset == 2
+
+    def test_run_bulk_replay_delete_job_already_failed(self):
+        t1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        replay_id1 = uuid.uuid4().hex
+        self.store_replays(
+            mock_replay(t1, self.project.id, replay_id1, segment_id=0, environment="prod")
+        )
+
+        self.job.status = DeletionJobStatus.FAILED
+        self.job.save()
+
+        with TaskRunner():
+            run_bulk_replay_delete_job.delay(self.job.id, offset=0, limit=0)
+
+        # Runs were chained.
+        self.job.refresh_from_db()
+        assert self.job.status == "failed"
+        assert self.job.offset == 0
 
     def test_run_bulk_replay_delete_job_no_matches(self):
         with TaskRunner():

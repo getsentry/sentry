@@ -37,7 +37,7 @@ from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.errors import MODAL_NOT_FOUND, unpack_slack_api_error
-from sentry.integrations.types import ExternalProviderEnum
+from sentry.integrations.types import ExternalProviderEnum, IntegrationProviderSlug
 from sentry.integrations.utils.scope import bind_org_context_from_integration
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
@@ -702,7 +702,9 @@ class SlackActionEndpoint(Endpoint):
         original_status = InviteStatus(member.invite_status)
         try:
             if action == "approve_member":
-                member.approve_member_invitation(identity_user, referrer="slack")
+                member.approve_member_invitation(
+                    identity_user, referrer=IntegrationProviderSlug.SLACK.value
+                )
             else:
                 member.reject_member_invitation(identity_user)
         except Exception:

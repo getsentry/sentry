@@ -10,7 +10,6 @@ from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
     filestore,
     make_recording_filename,
-    make_video_filename,
     storage,
     storage_kv,
 )
@@ -101,13 +100,10 @@ def delete_replays_script_async(
     ]
 
     rrweb_filenames = []
-    video_filenames = []
     for segment in segments:
-        video_filenames.append(make_video_filename(segment))
         rrweb_filenames.append(make_recording_filename(segment))
 
     with cf.ThreadPoolExecutor(max_workers=100) as pool:
-        pool.map(_delete_if_exists, video_filenames)
         pool.map(_delete_if_exists, rrweb_filenames)
 
     # Backwards compatibility. Should be deleted one day.
@@ -131,9 +127,7 @@ def delete_replay_recording(project_id: int, replay_id: str) -> None:
     # Filestore and direct storage segments are split into two different delete operations.
     direct_storage_segments = []
     filestore_segments = []
-    video_filenames = []
     for segment in segments_from_metadata:
-        video_filenames.append(make_video_filename(segment))
         if segment.file_id:
             filestore_segments.append(segment)
         else:
@@ -141,7 +135,6 @@ def delete_replay_recording(project_id: int, replay_id: str) -> None:
 
     # Issue concurrent delete requests when interacting with a remote service provider.
     with cf.ThreadPoolExecutor(max_workers=100) as pool:
-        pool.map(_delete_if_exists, video_filenames)
         if direct_storage_segments:
             pool.map(storage.delete, direct_storage_segments)
 
@@ -193,25 +186,34 @@ def run_bulk_replay_delete_job(replay_delete_job_id: int, offset: int, limit: in
     job = ReplayDeletionJobModel.objects.get(id=replay_delete_job_id)
 
     # If this is the first run of the task we set the model to in-progress.
-    if offset == 0:
+    if job.status == DeletionJobStatus.PENDING:
         job.status = DeletionJobStatus.IN_PROGRESS
         job.save()
 
-    # Delete the replays within a limited range. If more replays exist an incremented offset value
-    # is returned.
-    results = fetch_rows_matching_pattern(
-        project_id=job.project_id,
-        start=job.range_start,
-        end=job.range_end,
-        query=job.query,
-        environment=job.environments,
-        limit=limit,
-        offset=offset,
-    )
+    # Exit if the job status is failed or completed.
+    if job.status != DeletionJobStatus.IN_PROGRESS:
+        return None
 
-    # Delete the matched rows if any rows were returned.
-    if len(results["rows"]) > 0:
-        delete_matched_rows(job.project_id, results["rows"])
+    try:
+        # Delete the replays within a limited range. If more replays exist an incremented offset value
+        # is returned.
+        results = fetch_rows_matching_pattern(
+            project_id=job.project_id,
+            start=job.range_start,
+            end=job.range_end,
+            query=job.query,
+            environment=job.environments,
+            limit=limit,
+            offset=offset,
+        )
+
+        # Delete the matched rows if any rows were returned.
+        if len(results["rows"]) > 0:
+            delete_matched_rows(job.project_id, results["rows"])
+    except Exception:
+        job.status = DeletionJobStatus.FAILED
+        job.save()
+        raise
 
     # Compute the next offset to start from. If no further processing is required then this serves
     # as a count of replays deleted.
@@ -249,7 +251,6 @@ def delete_replay(
     project_id: int,
     replay_id: str,
     max_segment_id: int,
-    platform: str,
 ) -> None:
     """Single replay deletion task."""
     delete_matched_rows(
@@ -257,7 +258,6 @@ def delete_replay(
         rows=[
             {
                 "max_segment_id": max_segment_id,
-                "platform": platform,
                 "replay_id": replay_id,
                 "retention_days": retention_days,
             }

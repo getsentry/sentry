@@ -4,8 +4,8 @@ import pick from 'lodash/pick';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
+import {Link} from 'sentry/components/core/link';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
@@ -231,7 +231,7 @@ const AlertDetails = styled('div')`
 `;
 
 const AlertTitle = styled('div')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   overflow: hidden;
   text-overflow: ellipsis;
 `;

@@ -20,7 +20,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useFetchInfiniteListData from 'sentry/utils/api/useFetchInfiniteListData';
 import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
-import useListItemCheckboxState from 'sentry/utils/list/useListItemCheckboxState';
+import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
 // Ensure this object is created once as it is an input to
@@ -57,7 +57,7 @@ export default function FeedbackList() {
     enabled: Boolean(listQueryKey),
   });
 
-  const checkboxState = useListItemCheckboxState({
+  const checkboxState = useListItemCheckboxContext({
     hits,
     knownIds: issues.map(issue => issue.id),
     queryKey: listQueryKey,
@@ -172,7 +172,7 @@ const Wrapper = styled('div')`
   text-align: center;
   color: ${p => p.theme.subText};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     font-size: ${p => p.theme.fontSize.md};
   }
   position: relative;
@@ -181,10 +181,10 @@ const Wrapper = styled('div')`
 `;
 
 const EmptyMessage = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.gray400};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     font-size: ${p => p.theme.fontSize.xl};
   }
 `;

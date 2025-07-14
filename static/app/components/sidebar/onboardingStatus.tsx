@@ -1,4 +1,4 @@
-import {useCallback, useContext, useEffect, useMemo} from 'react';
+import {useCallback, useContext, useEffect} from 'react';
 import type {Theme} from '@emotion/react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -18,11 +18,8 @@ import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useUser} from 'sentry/utils/useUser';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import type {CommonSidebarProps} from './types';
 import {SidebarPanelKey} from './types';
@@ -36,10 +33,7 @@ export function OnboardingStatus({
   hidePanel,
   onShowPanel,
 }: OnboardingStatusProps) {
-  const user = useUser();
   const theme = useTheme();
-  const {mutate: mutateUserOptions} = useMutateUserOptions();
-  const {activateSidebar} = useOnboardingSidebar();
   const organization = useOrganization();
   const hasStreamlinedUI = useHasStreamlinedUI();
   const {shouldAccordionFloat} = useContext(ExpandedContext);
@@ -70,14 +64,6 @@ export function OnboardingStatus({
   const skipQuickStart =
     (!demoMode && !organization.features?.includes('onboarding')) ||
     (allTasksCompleted && !isActive);
-
-  const orgId = organization.id;
-
-  const quickStartDisplay = useMemo(() => {
-    return user?.options?.quickStartDisplay ?? {};
-  }, [user?.options?.quickStartDisplay]);
-
-  const quickStartDisplayStatus = quickStartDisplay[orgId] ?? 0;
 
   const handleShowPanel = useCallback(() => {
     if (!demoMode && isActive !== true) {
@@ -115,26 +101,6 @@ export function OnboardingStatus({
     allTasksCompleted,
   ]);
 
-  useEffect(() => {
-    if (skipQuickStart || quickStartDisplayStatus > 1 || demoMode) {
-      return;
-    }
-
-    const newQuickStartDisplay = {...quickStartDisplay};
-    newQuickStartDisplay[orgId] = quickStartDisplayStatus + 1;
-
-    mutateUserOptions({['quickStartDisplay']: newQuickStartDisplay});
-
-    if (quickStartDisplayStatus === 1) {
-      activateSidebar({
-        userClicked: false,
-        source: 'onboarding_sidebar_user_second_visit',
-      });
-    }
-    // be careful when adding dependencies here as it can cause side-effects, e.g activateSidebar
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mutateUserOptions, orgId, skipQuickStart]);
-
   if (skipQuickStart) {
     return null;
   }
@@ -155,7 +121,7 @@ export function OnboardingStatus({
           animate
           textCss={() => css`
             font-size: ${theme.fontSize.md};
-            font-weight: ${theme.fontWeightBold};
+            font-weight: ${theme.fontWeight.bold};
           `}
           text={
             doneTasks.length === allTasks.length ? <IconCheckmark /> : doneTasks.length

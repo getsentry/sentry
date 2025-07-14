@@ -134,6 +134,11 @@ describe('SearchQueryBuilder', function () {
     destroyAnnouncer();
 
     MockApiClient.clearMockResponses();
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'POST',
+    });
   });
 
   afterEach(function () {
@@ -173,6 +178,10 @@ describe('SearchQueryBuilder', function () {
       );
 
       await userEvent.click(getLastInput());
+
+      expect(mockOnChange).not.toHaveBeenCalled();
+      expect(mockOnSearch).not.toHaveBeenCalled();
+
       await userEvent.keyboard('b{enter}');
 
       const expectedQueryState = expect.objectContaining({
@@ -936,6 +945,19 @@ describe('SearchQueryBuilder', function () {
 
       // Should have a filter token "browser.name:foo"
       expect(screen.getByRole('row', {name: 'browser.name:foo'})).toBeInTheDocument();
+    });
+
+    it('displays ask seer button when searching free text', async function () {
+      const mockOnSearch = jest.fn();
+      render(
+        <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
+        {organization: {features: ['gen-ai-features', 'gen-ai-explore-traces']}}
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.type(screen.getByRole('combobox'), 'some free text');
+
+      expect(screen.getByRole('option', {name: 'Ask Seer'})).toBeInTheDocument();
     });
 
     it('can add parens by typing', async function () {
@@ -3505,6 +3527,30 @@ describe('SearchQueryBuilder', function () {
         await screen.findByText('Invalid key. "foo" is not a supported search key.')
       ).toBeInTheDocument();
     });
+
+    describe('secondary aliases provided', function () {
+      it('should not mark secondary aliases as invalid', async function () {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            disallowUnsupportedFilters
+            initialQuery="foo:bar"
+            filterKeyAliases={{foo: {key: 'foo', name: 'foo'}}}
+          />
+        );
+
+        expect(screen.getByRole('row', {name: 'foo:bar'})).toHaveAttribute(
+          'aria-invalid',
+          'false'
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.keyboard('{ArrowLeft}');
+        expect(
+          screen.queryByText('Invalid key. "foo" is not a supported search key.')
+        ).not.toBeInTheDocument();
+      });
+    });
   });
 
   describe('invalidMessages', function () {
@@ -4343,6 +4389,58 @@ describe('SearchQueryBuilder', function () {
           });
         });
       });
+    });
+  });
+
+  describe('replaceRawSearchKeys', function () {
+    it('should replace raw search keys with defined key:value', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery=""
+          replaceRawSearchKeys={['span.description']}
+        />,
+        {organization: {features: ['search-query-builder-raw-search-replacement']}}
+      );
+
+      await userEvent.type(screen.getByRole('textbox'), 'randomValue');
+
+      expect(
+        within(screen.getByRole('listbox')).getByText('span.description')
+      ).toBeInTheDocument();
+
+      await userEvent.click(
+        within(screen.getByRole('listbox')).getByText('span.description')
+      );
+
+      expect(
+        screen.getByRole('row', {name: 'span.description:randomValue'})
+      ).toBeInTheDocument();
+    });
+
+    it('can handle values with spaces', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery=""
+          replaceRawSearchKeys={['span.description']}
+        />,
+        {organization: {features: ['search-query-builder-raw-search-replacement']}}
+      );
+
+      await userEvent.type(screen.getByRole('textbox'), 'random value');
+
+      expect(
+        within(screen.getByRole('listbox')).getByText('span.description')
+      ).toBeInTheDocument();
+
+      await userEvent.click(
+        within(screen.getByRole('listbox')).getByText('span.description')
+      );
+
+      expect(
+        screen.getByRole('row', {name: 'span.description:"random value"'})
+      ).toBeInTheDocument();
     });
   });
 });

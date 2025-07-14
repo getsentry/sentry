@@ -86,7 +86,7 @@ const StyledButton = styled(Button)<StyledButtonProps>`
   ${p =>
     p.hasPrefix &&
     css`
-      font-weight: ${p.theme.fontWeightNormal};
+      font-weight: ${p.theme.fontWeight.normal};
     `}
 `;
 
@@ -95,7 +95,7 @@ const LabelText = styled('span')`
     content: ':';
   }
 
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   padding-right: ${space(0.75)};
 `;
 

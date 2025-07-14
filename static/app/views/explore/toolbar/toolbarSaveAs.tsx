@@ -17,6 +17,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
@@ -58,7 +59,13 @@ export function ToolbarSaveAs() {
   const sortBys = useExploreSortBys();
   const mode = useExploreMode();
   const id = useExploreId();
-  const visualizeYAxes = visualizes.map(v => v.yAxis);
+  const visualizeYAxes = useMemo(
+    () =>
+      dedupeArray(
+        visualizes.filter(visualize => !visualize.isEquation).map(v => v.yAxis)
+      ),
+    [visualizes]
+  );
 
   const [interval] = useChartInterval();
 
@@ -149,30 +156,33 @@ export function ToolbarSaveAs() {
 
   const disableAddToDashboard = !organization.features.includes('dashboards-edit');
 
-  const chartOptions = visualizes.map((chart, index) => {
-    const dedupedYAxes = [chart.yAxis];
-    const formattedYAxes = dedupedYAxes.map(yaxis => {
-      const func = parseFunction(yaxis);
-      return func ? prettifyParsedFunction(func) : undefined;
+  const chartOptions = useMemo(() => {
+    return visualizeYAxes.map((yAxis, index) => {
+      const dedupedYAxes = [yAxis];
+      const formattedYAxes = dedupedYAxes.map(yaxis => {
+        const func = parseFunction(yaxis);
+        return func ? prettifyParsedFunction(func) : undefined;
+      });
+
+      return {
+        key: String(index),
+        label: formattedYAxes.filter(Boolean).join(', '),
+        onAction: () => {
+          if (disableAddToDashboard) {
+            return undefined;
+          }
+
+          trackAnalytics('trace_explorer.save_as', {
+            save_type: 'dashboard',
+            ui_source: 'toolbar',
+            organization,
+          });
+          return addToDashboard(index);
+        },
+      };
     });
+  }, [addToDashboard, disableAddToDashboard, organization, visualizeYAxes]);
 
-    return {
-      key: chart.label,
-      label: t('%s - %s', chart.label, formattedYAxes.filter(Boolean).join(', ')),
-      onAction: () => {
-        if (disableAddToDashboard) {
-          return undefined;
-        }
-
-        trackAnalytics('trace_explorer.save_as', {
-          save_type: 'dashboard',
-          ui_source: 'toolbar',
-          organization,
-        });
-        return addToDashboard(index);
-      },
-    };
-  });
   items.push({
     key: 'add-to-dashboard',
     textValue: t('A Dashboard widget'),

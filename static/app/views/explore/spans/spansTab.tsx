@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -31,9 +31,12 @@ import {
   type AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
 } from 'sentry/utils/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -61,6 +64,7 @@ import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTa
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
 import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
+import {useTraceExploreAiQuerySetup} from 'sentry/views/explore/hooks/useTraceExploreAiQuerySetup';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {ExploreTables} from 'sentry/views/explore/tables';
@@ -100,6 +104,27 @@ export function SpansTabOnboarding({
   );
 }
 
+function useControlSectionExpanded() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const controlSectionExpanded = decodeScalar(location.query.toolbar);
+  const setControlSectionExpanded = useCallback(
+    (expanded: boolean) => {
+      const newControlSectionExpanded = expanded ? undefined : 'collapsed';
+      navigate({
+        ...location,
+        query: {
+          ...location.query,
+          toolbar: newControlSectionExpanded,
+        },
+      });
+    },
+    [location, navigate]
+  );
+
+  return [controlSectionExpanded !== 'collapsed', setControlSectionExpanded] as const;
+}
+
 interface SpanTabProps {
   datePageFilterProps: PickableDays;
 }
@@ -108,7 +133,7 @@ export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
   useVisitExplore();
 
   const organization = useOrganization();
-  const [controlSectionExpanded, setControlSectionExpanded] = useState(true);
+  const [controlSectionExpanded, setControlSectionExpanded] = useControlSectionExpanded();
 
   return (
     <Fragment>
@@ -164,6 +189,12 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
   const query = useExploreQuery();
   const setExplorePageParams = useSetExplorePageParams();
 
+  const organization = useOrganization();
+  const areAiFeaturesAllowed =
+    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
+
+  useTraceExploreAiQuerySetup({enableAISearch: areAiFeaturesAllowed});
+
   const {tags: numberTags, isLoading: numberTagsLoading} = useTraceItemTags('number');
   const {tags: stringTags, isLoading: stringTagsLoading} = useTraceItemTags('string');
 
@@ -204,6 +235,7 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
         mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
       numberTags,
       stringTags,
+      replaceRawSearchKeys: ['span.description'],
     }),
     [fields, mode, query, setExplorePageParams, numberTags, stringTags, oldSearch]
   );
@@ -214,7 +246,10 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
 
   return (
     <Layout.Main fullWidth>
-      <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
+      <SearchQueryBuilderProvider
+        enableAISearch={areAiFeaturesAllowed}
+        {...eapSpanSearchQueryProviderProps}
+      >
         <TourElement<ExploreSpansTour>
           tourContext={ExploreSpansTourContext}
           id={ExploreSpansTour.SEARCH_BAR}
@@ -462,7 +497,7 @@ const BodySearch = styled(Layout.Body)`
   border-bottom: 1px solid ${p => p.theme.border};
   padding-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding-bottom: ${space(2)};
   }
 `;
@@ -475,7 +510,7 @@ const BodyContent = styled('div')`
   flex-direction: column;
   padding: 0px;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     display: flex;
     flex-direction: row;
     padding: 0px;
@@ -487,7 +522,7 @@ const ControlSection = styled('aside')<{expanded: boolean}>`
   padding: ${space(1)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     border-bottom: none;
     ${p =>
       p.expanded
@@ -512,7 +547,7 @@ const ContentSection = styled('section')<{expanded: boolean}>`
 
   padding: ${space(1)} ${space(2)} ${space(3)} ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     ${p =>
       p.expanded
         ? css`
@@ -528,7 +563,7 @@ const FilterSection = styled('div')`
   display: grid;
   gap: ${space(1)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: minmax(300px, auto) 1fr;
   }
 `;
@@ -550,7 +585,7 @@ const ChevronButton = withChonk(
     margin-bottom: ${space(1)};
     display: none;
 
-    @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
       display: block;
     }
 
@@ -568,7 +603,7 @@ const ChevronButton = withChonk(
     display: none;
     margin-left: ${p => (p.expanded ? '-13px' : '-31px')};
 
-    @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
       display: inline-flex;
     }
 
@@ -584,7 +619,7 @@ const StyledSchemaHintsSection = styled(SchemaHintsSection)`
   margin-top: ${space(1)};
   margin-bottom: 0px;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     margin-top: ${space(1)};
     margin-bottom: 0px;
   }

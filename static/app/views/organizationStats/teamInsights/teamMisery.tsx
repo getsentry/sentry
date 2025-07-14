@@ -7,7 +7,7 @@ import type {DateTimeObject} from 'sentry/components/charts/utils';
 import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconStar} from 'sentry/icons';
@@ -20,7 +20,6 @@ import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
-import type {ColorOrAlias} from 'sentry/utils/theme';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
@@ -162,7 +161,7 @@ function TeamMisery({
                         {t('change')}
                       </SubText>
                     ) : (
-                      <TrendText color={trend >= 0 ? 'successText' : 'errorText'}>
+                      <TrendText color={trend >= 0 ? theme.successText : theme.errorText}>
                         {`${trendValue}\u0025 `}
                         {trend >= 0 ? t('better') : t('worse')}
                       </TrendText>
@@ -326,6 +325,6 @@ const SubText = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-const TrendText = styled('div')<{color: ColorOrAlias}>`
-  color: ${p => p.theme[p.color]};
+const TrendText = styled('div')<{color: string}>`
+  color: ${p => p.color};
 `;

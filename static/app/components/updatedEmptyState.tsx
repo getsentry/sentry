@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
@@ -7,9 +7,15 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
-import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  OnboardingCodeSnippet,
+  TabbedCodeSnippet,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
+import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {
+  Configuration,
+  DocsParams,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import platforms from 'sentry/data/platforms';
@@ -37,6 +43,34 @@ export function SetupTitle({project}: {project: Project}) {
         ),
       })}
     </BodyTitle>
+  );
+}
+
+function ConfigurationRenderer({configuration}: {configuration: Configuration}) {
+  const subConfigurations = configuration.configurations ?? [];
+
+  return (
+    <ConfigurationWrapper>
+      {configuration.description && (
+        <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
+      )}
+      {typeof configuration.code === 'string' ||
+      (Array.isArray(configuration.code) && configuration.code.length > 0) ? (
+        Array.isArray(configuration.code) ? (
+          <TabbedCodeSnippet tabs={configuration.code} />
+        ) : (
+          <OnboardingCodeSnippet language={configuration.language}>
+            {configuration.code}
+          </OnboardingCodeSnippet>
+        )
+      ) : null}
+      {subConfigurations.map((subConfiguration, index) => (
+        <ConfigurationRenderer key={index} configuration={subConfiguration} />
+      ))}
+      {configuration.additionalInfo && (
+        <AdditionalInfo>{configuration.additionalInfo}</AdditionalInfo>
+      )}
+    </ConfigurationWrapper>
   );
 }
 
@@ -111,23 +145,12 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     };
   }
 
-  const install = loadGettingStarted.docs.onboarding.install(docParams)[0]!;
+  const install = loadGettingStarted.docs.onboarding.install(docParams);
   const configure = loadGettingStarted.docs.onboarding.configure(docParams);
   const verify = loadGettingStarted.docs.onboarding.verify(docParams);
 
-  const {description: installDescription, additionalInfo: installInfo} = install;
-
-  const installConfigurations = install.configurations ?? [];
-
-  const {configurations, description: configureDescription} = configure[0] ?? {};
-  const {
-    configurations: extraConfigurations,
-    description: extraConfigDescription,
-    title: extraConfigTitle,
-  } = configure[1] ?? {};
-
-  const {description: verifyDescription, configurations: verifyConfigurations} =
-    verify[0] ?? {};
+  // TODO: Is there a reason why we are only selecting a few steps?
+  const steps = [install[0], configure[0], configure[1], verify[0]].filter(Boolean);
 
   return (
     <AuthTokenGeneratorProvider projectSlug={project?.slug}>
@@ -155,201 +178,49 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                 });
               }}
             >
-              <GuidedSteps.Step stepKey="install-sentry" title={t('Install Sentry')}>
-                <div>
-                  <div>
-                    <DescriptionWrapper>{installDescription}</DescriptionWrapper>
-                    {installConfigurations.map((configuration, index) => (
-                      <div key={index}>
-                        <DescriptionWrapper>
-                          {configuration.description}
-                        </DescriptionWrapper>
-                        <CodeSnippetWrapper>
-                          {configuration.code ? (
-                            Array.isArray(configuration.code) ? (
-                              <TabbedCodeSnippet tabs={configuration.code} />
-                            ) : (
-                              <OnboardingCodeSnippet language={configuration.language}>
-                                {configuration.code}
-                              </OnboardingCodeSnippet>
-                            )
-                          ) : null}
-                        </CodeSnippetWrapper>
-                      </div>
-                    ))}
-                    <DescriptionWrapper>{installInfo}</DescriptionWrapper>
-                    {!configurations &&
-                      !extraConfigDescription &&
-                      !verifyConfigurations && (
-                        <FirstEventIndicator
-                          organization={organization}
-                          project={project}
-                          eventType="error"
-                        >
-                          {({indicator, firstEventButton}) => (
-                            <FirstEventWrapper>
-                              <IndicatorWrapper>{indicator}</IndicatorWrapper>
-                              <StyledButtonBar gap={1}>
-                                <GuidedSteps.BackButton size="md" />
-                                {firstEventButton}
-                              </StyledButtonBar>
-                            </FirstEventWrapper>
-                          )}
-                        </FirstEventIndicator>
-                      )}
-                  </div>
-                  <GuidedSteps.ButtonWrapper>
-                    <GuidedSteps.BackButton size="md" />
-                    <GuidedSteps.NextButton size="md" />
-                  </GuidedSteps.ButtonWrapper>
-                </div>
-              </GuidedSteps.Step>
-              {configurations ? (
-                <GuidedSteps.Step
-                  stepKey="configure-sentry"
-                  title={t('Configure Sentry')}
-                >
-                  <div>
+              {steps.map((step, index) => {
+                const title = step?.title ?? StepTitles[step?.type ?? 'install'];
+                return (
+                  <GuidedSteps.Step key={index} stepKey={title} title={title}>
                     <div>
-                      <DescriptionWrapper>{configureDescription}</DescriptionWrapper>
-                      {configurations.map((configuration, index) => (
-                        <div key={index}>
-                          <DescriptionWrapper>
-                            {configuration.description}
-                          </DescriptionWrapper>
-                          <CodeSnippetWrapper>
-                            {configuration.code ? (
-                              Array.isArray(configuration.code) ? (
-                                <TabbedCodeSnippet tabs={configuration.code} />
-                              ) : (
-                                <OnboardingCodeSnippet language={configuration.language}>
-                                  {configuration.code}
-                                </OnboardingCodeSnippet>
-                              )
-                            ) : null}
-                          </CodeSnippetWrapper>
-                          <CodeSnippetWrapper>
-                            {configuration.configurations &&
-                            configuration.configurations.length > 0 ? (
-                              Array.isArray(configuration.configurations[0]!.code) ? (
-                                <TabbedCodeSnippet
-                                  tabs={configuration.configurations[0]!.code}
-                                />
-                              ) : null
-                            ) : null}
-                          </CodeSnippetWrapper>
-                          <DescriptionWrapper>
-                            {configuration.additionalInfo}
-                          </DescriptionWrapper>
-                        </div>
+                      {step?.description ? (
+                        <DescriptionWrapper>{step.description}</DescriptionWrapper>
+                      ) : null}
+                      {step?.configurations?.map((configuration, configIndex) => (
+                        <ConfigurationRenderer
+                          key={configIndex}
+                          configuration={configuration}
+                        />
                       ))}
+                      {step?.additionalInfo ? (
+                        <AdditionalInfo>{step.additionalInfo}</AdditionalInfo>
+                      ) : null}
                     </div>
-                    <GuidedSteps.ButtonWrapper>
-                      <GuidedSteps.BackButton size="md" />
-                      <GuidedSteps.NextButton size="md" />
-                    </GuidedSteps.ButtonWrapper>
-                  </div>
-                </GuidedSteps.Step>
-              ) : (
-                <Fragment />
-              )}
-              {extraConfigDescription ? (
-                <GuidedSteps.Step
-                  stepKey="extra-configuration-sentry"
-                  title={extraConfigTitle || t('Upload Source Maps')}
-                >
-                  <div>
-                    <div>
-                      <DescriptionWrapper>{extraConfigDescription}</DescriptionWrapper>
-                      {extraConfigurations?.map((configuration, index) => (
-                        <div key={index}>
-                          <DescriptionWrapper>
-                            {configuration.description}
-                          </DescriptionWrapper>
-                          <CodeSnippetWrapper>
-                            {configuration.code ? (
-                              Array.isArray(configuration.code) ? (
-                                <TabbedCodeSnippet tabs={configuration.code} />
-                              ) : (
-                                <OnboardingCodeSnippet language={configuration.language}>
-                                  {configuration.code}
-                                </OnboardingCodeSnippet>
-                              )
-                            ) : null}
-                          </CodeSnippetWrapper>
-                        </div>
-                      ))}
-                      {!verifyConfigurations && !verifyDescription && (
-                        <FirstEventIndicator
-                          organization={organization}
-                          project={project}
-                          eventType="error"
-                        >
-                          {({indicator, firstEventButton}) => (
-                            <div>
-                              <IndicatorWrapper>{indicator}</IndicatorWrapper>
-                              <StyledButtonBar gap={1}>
-                                <GuidedSteps.BackButton size="md" />
-                                {firstEventButton}
-                              </StyledButtonBar>
-                            </div>
-                          )}
-                        </FirstEventIndicator>
-                      )}
-                    </div>
-                    {(verifyConfigurations || verifyDescription) && (
+                    {index === steps.length - 1 ? (
+                      <FirstEventIndicator
+                        organization={organization}
+                        project={project}
+                        eventType="error"
+                      >
+                        {({indicator, firstEventButton}) => (
+                          <FirstEventWrapper>
+                            <IndicatorWrapper>{indicator}</IndicatorWrapper>
+                            <StyledButtonBar gap={1}>
+                              <GuidedSteps.BackButton size="md" />
+                              {firstEventButton}
+                            </StyledButtonBar>
+                          </FirstEventWrapper>
+                        )}
+                      </FirstEventIndicator>
+                    ) : (
                       <GuidedSteps.ButtonWrapper>
                         <GuidedSteps.BackButton size="md" />
                         <GuidedSteps.NextButton size="md" />
                       </GuidedSteps.ButtonWrapper>
                     )}
-                  </div>
-                </GuidedSteps.Step>
-              ) : (
-                <Fragment />
-              )}
-              {verifyConfigurations || verifyDescription ? (
-                <GuidedSteps.Step stepKey="verify-sentry" title={t('Verify')}>
-                  <div>
-                    <DescriptionWrapper>{verifyDescription}</DescriptionWrapper>
-                    {verifyConfigurations?.map((configuration, index) => (
-                      <div key={index}>
-                        <DescriptionWrapper>
-                          {configuration.description}
-                        </DescriptionWrapper>
-                        <CodeSnippetWrapper>
-                          {configuration.code ? (
-                            Array.isArray(configuration.code) ? (
-                              <TabbedCodeSnippet tabs={configuration.code} />
-                            ) : (
-                              <OnboardingCodeSnippet language={configuration.language}>
-                                {configuration.code}
-                              </OnboardingCodeSnippet>
-                            )
-                          ) : null}
-                        </CodeSnippetWrapper>
-                      </div>
-                    ))}
-                    <FirstEventIndicator
-                      organization={organization}
-                      project={project}
-                      eventType="error"
-                    >
-                      {({indicator, firstEventButton}) => (
-                        <FirstEventWrapper>
-                          <IndicatorWrapper>{indicator}</IndicatorWrapper>
-                          <StyledButtonBar gap={1}>
-                            <GuidedSteps.BackButton size="md" />
-                            {firstEventButton}
-                          </StyledButtonBar>
-                        </FirstEventWrapper>
-                      )}
-                    </FirstEventIndicator>
-                  </div>
-                </GuidedSteps.Step>
-              ) : (
-                <Fragment />
-              )}
+                  </GuidedSteps.Step>
+                );
+              })}
             </GuidedSteps>
           </Setup>
           <Preview>
@@ -376,7 +247,7 @@ const ProjectBadgeWrapper = styled('div')`
 
 const Title = styled('div')`
   font-size: 26px;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const Description = styled('div')`
@@ -407,7 +278,7 @@ const Setup = styled('div')`
 
 export const BodyTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(1)};
 `;
 
@@ -434,7 +305,7 @@ const Image = styled('img')`
   height: 120px;
   overflow: hidden;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;
@@ -466,12 +337,16 @@ const IndicatorWrapper = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const CodeSnippetWrapper = styled('div')`
+const ConfigurationWrapper = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
 const DescriptionWrapper = styled('div')`
   margin-bottom: ${space(1)};
+`;
+
+const AdditionalInfo = styled(DescriptionWrapper)`
+  margin-top: ${space(2)};
 `;
 
 const FirstEventWrapper = styled('div')`

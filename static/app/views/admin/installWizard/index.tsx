@@ -14,7 +14,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import type {Field} from 'sentry/views/admin/options';
 import {getForm, getOptionDefault, getOptionField} from 'sentry/views/admin/options';
 
-export type InstallWizardProps = {
+type InstallWizardProps = {
   onConfigured: () => void;
 };
 
@@ -186,8 +186,8 @@ const SetupWizard = styled('div')`
   background: ${p => p.theme.background};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
-  margin-top: 40px;
   padding: 40px 40px 20px;
-  width: 600px;
+  max-width: 1000px;
+  margin: ${space(3)};
   z-index: ${p => p.theme.zIndex.initial};
 `;

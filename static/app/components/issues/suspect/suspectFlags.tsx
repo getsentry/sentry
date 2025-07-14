@@ -2,9 +2,9 @@ import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import type useSuspectFlags from 'sentry/components/issues/suspect/useSuspectFlags';
-import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import toRoundedPercent from 'sentry/utils/number/toRoundedPercent';
@@ -102,7 +102,7 @@ const TagHeader = styled('h4')`
 
   margin-bottom: ${space(0.5)};
   font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const TagValueGrid = styled('ul')`
