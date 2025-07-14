@@ -167,7 +167,7 @@ function menuIsOpen({
 
   // When a custom menu is not being displayed and we aren't loading anything,
   // only show when there is something to select from.
-  return openState && totalOptions >= hiddenOptions.size;
+  return openState && totalOptions > hiddenOptions.size;
 }
 
 function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
@@ -183,6 +183,7 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
   maxOptions?: number;
   shouldFilterResults?: boolean;
 }) {
+  const {gaveSeerConsentRef} = useSearchQueryBuilder();
   const hiddenOptions: Set<SelectKey> = useMemo(() => {
     const options = getHiddenOptions(
       items,
@@ -191,12 +192,22 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
     );
 
     if (showAskSeerOption) {
-      options.add(ASK_SEER_ITEM_KEY);
-      options.add(ASK_SEER_CONSENT_ITEM_KEY);
+      if (gaveSeerConsentRef.current) {
+        options.add(ASK_SEER_ITEM_KEY);
+      } else {
+        options.add(ASK_SEER_CONSENT_ITEM_KEY);
+      }
     }
 
     return options;
-  }, [items, shouldFilterResults, filterValue, maxOptions, showAskSeerOption]);
+  }, [
+    filterValue,
+    gaveSeerConsentRef,
+    items,
+    maxOptions,
+    shouldFilterResults,
+    showAskSeerOption,
+  ]);
 
   const disabledKeys = useMemo(() => {
     const baseDisabledKeys = [...getDisabledOptions(items), ...hiddenOptions];
