@@ -124,7 +124,7 @@ def data_access_grant_exists(organization_id: int) -> bool:
     if grant_status:
         # Cache the grant status for the duration of the grant
         # This is ok since we invalidate the cache when the grant is revoked, updated, etc.
-        ttl_seconds = int((grant_status.access_end - grant_status.access_start).total_seconds())
+        ttl_seconds = int((grant_status.access_end - datetime.now(timezone.utc)).total_seconds())
 
         serialized_grant_status = grant_status.dict()
 
