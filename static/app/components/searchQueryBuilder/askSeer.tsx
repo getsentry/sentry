@@ -6,7 +6,7 @@ import type {ComboBoxState} from '@react-stately/combobox';
 import {promptsUpdate} from 'sentry/actionCreators/prompts';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
+import {makeOrganizationSeerSetupQueryKey} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
@@ -14,7 +14,12 @@ import {IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useIsMutating, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {
+  useIsFetching,
+  useIsMutating,
+  useMutation,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -149,7 +154,10 @@ export function AskSeer<T>({state}: {state: ComboBoxState<T>}) {
     mutationKey: [setupCheckQueryKey(organization.slug)],
   });
 
-  const {isPending: isPendingSetupCheck} = useOrganizationSeerSetup();
+  const isPendingSetupCheck =
+    useIsFetching({
+      queryKey: [makeOrganizationSeerSetupQueryKey(organization.slug)],
+    }) > 0;
 
   if (isPendingSetupCheck || isMutating) {
     return (
