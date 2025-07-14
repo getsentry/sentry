@@ -61,10 +61,9 @@ function useLocalAiSummary() {
   const {replay} = useReplayContext();
   const replayRecord = replay?.getReplay();
 
-  // Combine and sort all events chronologically
-  const allEvents = [
-    ...(replay?.getChapterFrames() ?? []), // inclues all errors
-  ].sort((a, b) => a.timestampMs - b.timestampMs);
+  // Sort all events chronologically
+  const allEvents =
+    replay?.getChapterFrames()?.sort((a, b) => a.timestampMs - b.timestampMs) ?? []; // inclues all errors & feedback
 
   const allData =
     allEvents
@@ -158,8 +157,6 @@ function which(payload: SpanFrame | BreadcrumbFrame): EventType {
         const isRage = (payload.data?.clickCount || payload.data?.clickcount || 0) >= 5;
         return isRage ? EventType.RAGE_CLICK : EventType.DEAD_CLICK;
       }
-    } else if (category === 'navigation') {
-      return EventType.NAVIGATION;
     } else if (category === 'console') {
       return EventType.CONSOLE;
     } else if (category === 'ui.blur') {
@@ -170,7 +167,7 @@ function which(payload: SpanFrame | BreadcrumbFrame): EventType {
       return EventType.HYDRATION_ERROR;
     } else if (category === 'replay.mutations') {
       return EventType.MUTATIONS;
-    } else if (category === 'sentry.feedback') {
+    } else if (category === 'feedback') {
       return EventType.FEEDBACK;
     }
   }
@@ -219,6 +216,12 @@ function asLogMessage(payload: BreadcrumbFrame | SpanFrame): string | null {
         return `User looked away from the tab at ${timestamp}.`;
       case EventType.UI_FOCUS:
         return `User returned to tab at ${timestamp}.`;
+      case EventType.FEEDBACK:
+        return 'User submitted feedback:';
+      case EventType.MUTATIONS:
+        return null;
+      case EventType.HYDRATION_ERROR:
+        return `There was a hydration error on the page at ${timestamp}.`;
       default:
         return '';
     }
@@ -248,19 +251,7 @@ function asLogMessage(payload: BreadcrumbFrame | SpanFrame): string | null {
         const rating = (payload.data as any)?.rating;
         return `Application first contentful paint: ${duration} ms and has a ${rating} rating at ${timestamp}`;
       }
-      case EventType.HYDRATION_ERROR:
-        return `There was a hydration error on the page at ${timestamp}.`;
       case EventType.RESOURCE_XHR:
-        return null;
-      case EventType.MUTATIONS:
-        return null;
-      case EventType.UNKNOWN:
-        return null;
-      case EventType.FEEDBACK:
-        return 'User submitted feedback:';
-      case EventType.CANVAS:
-        return null;
-      case EventType.OPTIONS:
         return null;
       default:
         return '';
