@@ -4,10 +4,10 @@ from sentry import analytics
 @analytics.eventclass("integration.added")
 class IntegrationAddedEvent(analytics.Event):
     provider: str
-    id: str
-    organization_id: str
-    user_id: str | None = None
-    default_user_id: str
+    id: int
+    organization_id: int
+    user_id: int | None = None
+    default_user_id: int
 
 
 @analytics.eventclass("integration.disabled.notified")
@@ -40,14 +40,14 @@ class IntegrationIssueLinkedEvent(analytics.Event):
 @analytics.eventclass("integration.issue.status.synced")
 class IntegrationIssueStatusSyncedEvent(analytics.Event):
     provider: str
-    id: str
+    id: int
     organization_id: str
 
 
 @analytics.eventclass("integration.issue.assignee.synced")
 class IntegrationIssueAssigneeSyncedEvent(analytics.Event):
     provider: str
-    id: str
+    id: int
     organization_id: str
 
 
@@ -67,14 +67,14 @@ class IntegrationRepoAddedEvent(analytics.Event):
 
 @analytics.eventclass("integration.resolve.commit")
 class IntegrationResolveCommitEvent(analytics.Event):
-    provider: str
+    provider: str | None
     id: str
     organization_id: str
 
 
 @analytics.eventclass("integration.resolve.pr")
 class IntegrationResolvePREvent(analytics.Event):
-    provider: str
+    provider: str | None
     id: str
     organization_id: str
 
@@ -83,11 +83,11 @@ class IntegrationResolvePREvent(analytics.Event):
 class IntegrationStacktraceLinkEvent(analytics.Event):
     provider: str
     config_id: str
-    project_id: str
+    project_id: int
     organization_id: str
     filepath: str
     status: str
-    link_fetch_iterations: str
+    link_fetch_iterations: int
     platform: str | None = None
 
 
