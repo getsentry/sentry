@@ -1030,4 +1030,8 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    * The tooltip text for the checkout page
    */
   reservedVolumeTooltip: string | null;
+  /**
+   * How usage is tallied for the category
+   */
+  tallyType: 'usage' | 'seat';
 }
