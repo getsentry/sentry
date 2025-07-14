@@ -89,6 +89,29 @@ class DatabaseBackedRepositoryService(RepositoryService):
 
             repository.save()
 
+    def update_repositories(self, *, organization_id: int, updates: list[RpcRepository]) -> None:
+        with transaction.atomic(router.db_for_write(Repository)):
+            update_mapping: dict[int, dict[str, Any]] = {}
+
+            updated_fields: set[str] = set()
+            for update in updates:
+                update_dict = update.dict()
+                update_dict.pop("id", None)  # Remove id field
+                update_mapping[update.id] = update_dict
+                updated_fields.update(update_dict.keys())
+
+            repositories = Repository.objects.filter(
+                organization_id=organization_id, id__in=update_mapping.keys()
+            )
+
+            # Apply updates to each repository object
+            for repository in repositories:
+                if repo_update := update_mapping.get(repository.id):
+                    for field_name, field_value in repo_update.items():
+                        setattr(repository, field_name, field_value)
+
+            Repository.objects.bulk_update(repositories, fields=list(updated_fields))
+
     def disable_repositories_for_integration(
         self, *, organization_id: int, integration_id: int, provider: str
     ) -> None:
