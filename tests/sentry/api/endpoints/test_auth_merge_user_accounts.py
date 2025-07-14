@@ -1,6 +1,7 @@
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.user import User
+from sentry.users.models.user_merge_verification_code import UserMergeVerificationCode
 from sentry.users.models.useremail import UserEmail
 
 
@@ -64,17 +65,34 @@ class MergeUserAccountsWithSharedEmailTest(APITestCase):
 
         self.login_as(self.user1)
 
+        self.verification_code = UserMergeVerificationCode.objects.create(user_id=self.user1.id)
+
     def test_simple(self):
-        data = {"ids_to_delete": [self.user3.id], "ids_to_merge": [self.user2.id]}
+        data = {
+            "ids_to_merge": [self.user2.id],
+            "verification_code": self.verification_code.token,
+        }
         self.get_success_response(**data)
 
         assert not User.objects.filter(id=self.user2.id).exists()
         assert not User.objects.filter(id=self.user3.id).exists()
 
+    def test_incorrect_code(self):
+        data = {
+            "ids_to_merge": [self.user2.id],
+            "verification_code": "hello",
+        }
+        response = self.get_error_response(**data)
+        assert response.status_code == 403
+        assert response.data == {"error": "Incorrect verification code"}
+
     def test_primary_email_unverified(self):
         user_email = UserEmail.objects.get(user_id=self.user1.id, email="mifu@email.com")
         user_email.update(is_verified=False)
-        data = {"ids_to_delete": [self.user3.id], "ids_to_merge": [self.user2.id]}
+        data = {
+            "ids_to_merge": [self.user2.id],
+            "verification_code": self.verification_code.token,
+        }
         response = self.get_error_response(**data)
         assert response.status_code == 403
         assert response.data == {
@@ -82,15 +100,10 @@ class MergeUserAccountsWithSharedEmailTest(APITestCase):
         }
 
     def test_merge_unrelated_account(self):
-        data = {"ids_to_merge": [self.unrelated_user.id]}
-        response = self.get_error_response(**data)
-        assert response.status_code == 403
-        assert response.data == {
-            "error": "One or more of the accounts in your request does not share your primary email address"
+        data = {
+            "ids_to_merge": [self.unrelated_user.id],
+            "verification_code": self.verification_code.token,
         }
-
-    def test_delete_unrelated_account(self):
-        data = {"ids_to_delete": [self.unrelated_user.id]}
         response = self.get_error_response(**data)
         assert response.status_code == 403
         assert response.data == {
@@ -99,8 +112,8 @@ class MergeUserAccountsWithSharedEmailTest(APITestCase):
 
     def test_related_and_unrelated_accounts(self):
         data = {
-            "ids_to_delete": [self.user3.id, self.unrelated_user.id],
-            "ids_to_merge": [self.user2.id],
+            "ids_to_merge": [self.user2.id, self.unrelated_user.id],
+            "verification_code": self.verification_code.token,
         }
         response = self.get_error_response(**data)
         assert response.status_code == 403
@@ -109,9 +122,9 @@ class MergeUserAccountsWithSharedEmailTest(APITestCase):
         }
 
     def test_pass_current_user_id(self):
-        data = {"ids_to_delete": [self.user1.id]}
+        data = {"ids_to_merge": [self.user1.id], "verification_code": self.verification_code.token}
         response = self.get_error_response(**data)
         assert response.status_code == 400
         assert response.data == {
-            "error": "You may not merge or delete the user attached to your current session"
+            "error": "You may not merge the user attached to your current session"
         }
