@@ -96,7 +96,7 @@ function TableHeader() {
     (query: string) => {
       navigate({
         pathname: location.pathname,
-        query: {...location.query, query},
+        query: {...location.query, query, cursor: undefined},
       });
     },
     [location.pathname, location.query, navigate]

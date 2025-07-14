@@ -52,13 +52,14 @@ function AllAutomations({
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const onSearch = useCallback((query: string) => {
+    setSearchQuery(query);
+    setCursor(undefined);
+  }, []);
 
   return (
     <Section title={t('All Automations')}>
-      <AutomationSearch
-        initialQuery={searchQuery}
-        onSearch={query => setSearchQuery(query)}
-      />
+      <AutomationSearch initialQuery={searchQuery} onSearch={onSearch} />
       <ConnectedAutomationsList
         data-test-id="drawer-all-automations-list"
         automationIds={null}
