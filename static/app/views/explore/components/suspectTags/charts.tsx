@@ -233,6 +233,7 @@ function Chart({
           autoHeightResize
           isGroupedByDate={false}
           tooltip={{
+            appendToBody: true,
             renderMode: 'html',
             valueFormatter,
             formatAxisLabel,
@@ -318,11 +319,8 @@ const ChartWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   height: 200px;
-  padding-top: ${space(2)};
-
-  &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
-  }
+  padding-top: ${space(1.5)};
+  border-top: 1px solid ${p => p.theme.border};
 `;
 
 const ChartTitle = styled('div')`
