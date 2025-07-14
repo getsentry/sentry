@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import Hook from 'sentry/components/hook';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {IconSentry, IconSentryPrideLogo} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';

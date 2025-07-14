@@ -1,5 +1,5 @@
 import {Button} from 'sentry/components/core/button';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {IconCopy} from 'sentry/icons/iconCopy';
 import {t, tct} from 'sentry/locale';

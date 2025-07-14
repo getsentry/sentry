@@ -1,6 +1,6 @@
 import type {Location, LocationDescriptorObject} from 'history';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {DEFAULT_QUERY} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
