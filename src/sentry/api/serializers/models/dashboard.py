@@ -212,6 +212,7 @@ class _Widget(TypedDict):
     projects: list[int]
     environment: list[str]
     filters: DashboardFilters
+    last_visited: datetime | None
 
 
 class PageFiltersOptional(TypedDict, total=False):
