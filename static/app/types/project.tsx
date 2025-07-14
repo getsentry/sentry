@@ -263,6 +263,7 @@ export type PlatformKey =
   | 'objc'
   | 'other'
   | 'perl'
+  | 'playstation'
   | 'php'
   | 'PHP'
   | 'php-laravel'
