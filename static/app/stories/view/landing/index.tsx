@@ -118,12 +118,25 @@ function AlwaysDarkThemeProvider(props: PropsWithChildren) {
 
 const Hero = styled('div')`
   width: 100vw;
-  padding: 48px 92px;
+  padding: 48px 16px;
   gap: ${space(4)};
   display: flex;
   align-items: center;
   background: ${p => p.theme.tokens.background.tertiary};
   color: ${p => p.theme.tokens.content.primary};
+
+  p {
+    text-wrap: balance;
+  }
+
+  img {
+    min-width: 320px;
+    height: auto;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    padding: 48px 92px;
+  }
 `;
 
 const Container = styled('div')`
@@ -131,11 +144,16 @@ const Container = styled('div')`
   width: calc(100vw - 32px);
   margin-inline: auto;
   display: flex;
+  flex-direction: column;
   gap: ${space(4)};
   padding-inline: ${space(2)};
   padding-block: ${space(4)};
   align-items: center;
   justify-content: center;
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    flex-direction: row;
+  }
 `;
 
 const CardGrid = styled('div')`
