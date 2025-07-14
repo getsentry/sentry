@@ -357,7 +357,7 @@ class DashboardLastVisited(DefaultFieldsModel):
         constraints = [
             UniqueConstraint(
                 fields=["member_id", "dashboard_id"],
-                name="sentry_dashboardlastvisited_unique_last_visited_per_org_member_view",
+                name="sentry_dashboardlastvisited_unique_last_visited_per_org_member",
             )
         ]
 
