@@ -101,7 +101,7 @@ describe('CronsOnDemandStepWarning', function () {
 
     expect(
       screen.queryByText(
-        "These changes will take effect at the start of your next billing cycle. Heads up that you're currently using $4.00 of Cron Monitors. These monitors will be turned off at the start of your next billing cycle unless you increase your on-demand budget."
+        "These changes will take effect at the start of your next billing cycle. Heads up that you're currently using $4 of Cron Monitors. These monitors will be turned off at the start of your next billing cycle unless you increase your on-demand budget."
       )
     ).not.toBeInTheDocument();
   });
