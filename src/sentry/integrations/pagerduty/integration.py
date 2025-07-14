@@ -230,10 +230,11 @@ class PagerDutyInstallationRedirect:
         return f"https://{account_name}.pagerduty.com/install/integration?app_id={app_id}&redirect_url={setup_url}&version=2"
 
     def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        if "config" in request.GET:
-            pipeline.bind_state("config", request.GET["config"])
-            return pipeline.next_step()
+        with record_event(OnCallInteractionType.INSTALLATION_REDIRECT).capture():
+            if "config" in request.GET:
+                pipeline.bind_state("config", request.GET["config"])
+                return pipeline.next_step()
 
-        account_name = request.GET.get("account", None)
+            account_name = request.GET.get("account", None)
 
-        return HttpResponseRedirect(self.get_app_url(account_name))
+            return HttpResponseRedirect(self.get_app_url(account_name))

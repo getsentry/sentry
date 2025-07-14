@@ -711,6 +711,8 @@ export const getTooltipStyles = (p: {theme: Theme}) => css`
     font-variant-numeric: tabular-nums;
     padding: ${space(1)} ${space(2)};
     border-radius: ${p.theme.borderRadius} ${p.theme.borderRadius} 0 0;
+    cursor: pointer;
+    font-size: ${p.theme.fontSize.sm};
   }
   .tooltip-release.tooltip-series > div,
   .tooltip-release.tooltip-footer {

@@ -1,6 +1,8 @@
 import math
 
 from sentry.seer.math import (
+    boxcox_transform,
+    calculate_z_scores,
     entropy,
     kl_divergence,
     laplace_smooth,
@@ -90,3 +92,64 @@ def test_rrf_score():
 def test_rank_min():
     assert rank_min(xs=[1, 2, 2, 2, 3], ascending=False) == [3, 2, 2, 2, 1]
     assert rank_min(xs=[1, 2, 2, 2, 3], ascending=True) == [1, 2, 2, 2, 3]
+
+
+def test_boxcox_transform():
+    # Test with lambda = 0 (log transformation)
+    values = [1.0, 2.0, 4.0, 8.0]
+    transformed, lambda_used = boxcox_transform(values, lambda_param=0.0)
+    expected = [math.log(v) for v in values]
+    assert lambda_used == 0.0
+    for t, e in zip(transformed, expected):
+        assert math.isclose(t, e, rel_tol=1e-9)
+
+    # Test with lambda = 1 (no transformation, just (x-1)/1 = x-1)
+    transformed, lambda_used = boxcox_transform(values, lambda_param=1.0)
+    expected = [v - 1.0 for v in values]
+    assert lambda_used == 1.0
+    for t, e in zip(transformed, expected):
+        assert math.isclose(t, e, rel_tol=1e-9)
+
+    # Test with lambda = 0.5 (square root transformation)
+    transformed, lambda_used = boxcox_transform(values, lambda_param=0.5)
+    expected = [(math.sqrt(v) - 1.0) / 0.5 for v in values]
+    assert lambda_used == 0.5
+    for t, e in zip(transformed, expected):
+        assert math.isclose(t, e, rel_tol=1e-9)
+
+    # Test auto lambda detection
+    transformed, lambda_used = boxcox_transform(values, lambda_param=None)
+    assert isinstance(lambda_used, float)
+    assert len(transformed) == len(values)
+
+    # Test empty input
+    transformed, lambda_used = boxcox_transform([], lambda_param=0.0)
+    assert transformed == []
+    assert lambda_used == 0.0
+
+
+def test_calculate_z_scores():
+    values = [1.0, 2.0, 3.0, 4.0, 5.0]
+    z_scores = calculate_z_scores(values)
+
+    expected_mean = 3.0
+    expected_std = math.sqrt(2.0)
+    expected = [(v - expected_mean) / expected_std for v in values]
+
+    assert len(z_scores) == len(values)
+    for z, e in zip(z_scores, expected):
+        assert math.isclose(z, e, rel_tol=1e-9)
+
+    same_values = [5.0, 5.0, 5.0, 5.0]
+    z_scores = calculate_z_scores(same_values)
+    assert all(z == 0.0 for z in z_scores)
+
+    assert calculate_z_scores([]) == []
+
+    single_z = calculate_z_scores([42.0])
+    assert single_z == [0.0]
+
+    simple_values = [0.0, 10.0]
+    z_scores = calculate_z_scores(simple_values)
+    assert math.isclose(z_scores[0], -1.0, rel_tol=1e-9)
+    assert math.isclose(z_scores[1], 1.0, rel_tol=1e-9)

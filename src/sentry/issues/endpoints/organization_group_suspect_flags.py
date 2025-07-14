@@ -21,6 +21,7 @@ class ResponseDataItem(TypedDict):
     score: float
     baseline_percent: float
     distribution: Distribution
+    is_filtered: bool
 
 
 class ResponseData(TypedDict):
@@ -78,6 +79,7 @@ class OrganizationGroupSuspectFlagsEndpoint(GroupEndpoint):
                         "flag": item["flag"],
                         "score": item["score"],
                         "issue_id": group.id,
+                        "is_filtered": item["is_filtered"],
                     },
                 )
 

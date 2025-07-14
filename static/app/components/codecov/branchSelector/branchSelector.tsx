@@ -15,7 +15,7 @@ import {IconBranch} from './iconBranch';
 const SAMPLE_BRANCH_ITEMS = ['main', 'master'];
 
 export function BranchSelector() {
-  const {branch, changeContextValue} = useCodecovContext();
+  const {branch, repository, changeContextValue} = useCodecovContext();
 
   // TODO: create endpoint that exposes repository's default branch
   const defaultBranch = 'main';
@@ -66,12 +66,18 @@ export function BranchSelector() {
     [branch, changeContextValue]
   );
 
+  const disabled = !repository;
+
   return (
     <CompactSelect
+      searchable
+      searchPlaceholder={t('search by branch name')}
       options={options}
       value={branch ?? ''}
       onChange={handleChange}
       menuHeaderTrailingItems={branchResetButton}
+      disabled={disabled}
+      emptyMessage={'No branches found'}
       closeOnSelect
       trigger={(triggerProps, isOpen) => {
         return (

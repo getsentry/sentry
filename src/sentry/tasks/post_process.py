@@ -956,7 +956,7 @@ def process_workflow_engine(job: PostProcessJob) -> None:
     metrics.incr("workflow_engine.issue_platform.payload.received.occurrence")
 
     from sentry.workflow_engine.processors.workflow import process_workflows
-    from sentry.workflow_engine.tasks import process_workflows_event
+    from sentry.workflow_engine.tasks.workflows import process_workflows_event
 
     # PostProcessJob event is optional, WorkflowEventData event is required
     if "event" not in job:
@@ -1344,16 +1344,14 @@ def feedback_filter_decorator(func):
 
 
 def should_postprocess_feedback(job: PostProcessJob) -> bool:
-    from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
+    from sentry.feedback.lib.utils import FeedbackCreationSource
 
     event = job["event"]
 
     if not hasattr(event, "occurrence") or event.occurrence is None:
         return False
 
-    if event.occurrence.evidence_data.get("is_spam") is True and features.has(
-        "organizations:user-feedback-spam-filter-actions", job["event"].project.organization
-    ):
+    if event.occurrence.evidence_data.get("is_spam") is True:
         metrics.incr("feedback.spam-detection-actions.dont-send-notification")
         return False
 
@@ -1429,19 +1427,15 @@ def check_has_high_priority_alerts(job: PostProcessJob) -> None:
 
 
 def link_event_to_user_report(job: PostProcessJob) -> None:
-    from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, shim_to_feedback
+    from sentry.feedback.lib.utils import FeedbackCreationSource
+    from sentry.feedback.usecases.shim_to_feedback import shim_to_feedback
     from sentry.models.userreport import UserReport
 
     event = job["event"]
     project = event.project
     group = event.group
 
-    if (
-        features.has(
-            "organizations:user-feedback-event-link-ingestion-changes", project.organization
-        )
-        and not job["is_reprocessed"]
-    ):
+    if not job["is_reprocessed"]:
         metrics.incr("event_manager.save._update_user_reports_with_event_link")
         event = job["event"]
         project = event.project

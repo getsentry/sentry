@@ -7,6 +7,7 @@ export function TagsField() {
   return (
     <AutomationBuilderInput
       name={`${actionId}.data.tags`}
+      aria-label={t('Tags')}
       placeholder={t('example tags')}
       value={action.data.tags}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {

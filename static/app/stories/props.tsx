@@ -112,4 +112,5 @@ const Grid = styled('section')`
   gap: ${space(1)};
   align-items: center;
   padding: var(--stories-grid-space);
+  overflow-x: auto;
 `;

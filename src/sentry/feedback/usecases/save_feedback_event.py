@@ -3,7 +3,8 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
 
-from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
+from sentry.feedback.lib.utils import FeedbackCreationSource
+from sentry.feedback.usecases.create_feedback import create_feedback_issue
 from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.models.environment import Environment
 from sentry.models.project import Project

@@ -16,7 +16,12 @@ from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_
 from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
-from sentry.models.release import Release, ReleaseStatus, follows_semver_versioning_scheme
+from sentry.models.release import (
+    Release,
+    ReleaseStatus,
+    follows_semver_versioning_scheme,
+    get_previous_release,
+)
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
@@ -724,6 +729,23 @@ class SetRefsTest(SetRefsTestCase):
 
         version = "\\ hello world again"
         assert not Release.is_valid_version(version)
+
+    def test_get_previous_release(self):
+        project = self.create_project()
+        release1 = Release.objects.create(version="1", organization=self.org)
+        release1.add_project(project)
+
+        # Other release is assigned to a different project.
+        release = get_previous_release(self.release)
+        assert release is None
+
+        release2 = Release.objects.create(version="2", organization=self.org)
+        release2.add_project(self.project)
+
+        # Other release is assigned to a matching project.
+        release = get_previous_release(self.release)
+        assert release is not None
+        assert release.id == release2.id
 
 
 class SemverReleaseParseTestCase(TestCase):

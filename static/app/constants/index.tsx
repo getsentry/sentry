@@ -114,7 +114,7 @@ export const ORG_ROLES: OrgRole[] = [
   },
 ];
 
-export type PermissionChoice = {
+type PermissionChoice = {
   label: 'No Access' | 'Read' | 'Read & Write' | 'Admin';
   scopes: Scope[];
 };
@@ -215,17 +215,6 @@ export const DEFAULT_DEBOUNCE_DURATION = 300;
 
 export const ALL_ENVIRONMENTS_KEY = '__all_environments__';
 
-// Maps a `type: string` -> `url-prefix: string`
-export const AVATAR_URL_MAP = {
-  team: 'team-avatar',
-  organization: 'organization-avatar',
-  project: 'project-avatar',
-  user: 'avatar',
-  sentryAppColor: 'sentry-app-avatar',
-  sentryAppSimple: 'sentry-app-avatar',
-  docIntegration: 'doc-integration-avatar',
-};
-
 export const MENU_CLOSE_DELAY = 200;
 
 export const SLOW_TOOLTIP_DELAY = 1000;
@@ -237,8 +226,6 @@ export const DEFAULT_STATS_PERIOD = '14d';
 export const DEFAULT_QUERY = 'is:unresolved issue.priority:[high, medium]';
 export const TAXONOMY_DEFAULT_QUERY = 'is:unresolved';
 
-export const DEFAULT_USE_UTC = true;
-
 export const DEFAULT_RELATIVE_PERIODS = {
   '1h': t('Last hour'),
   '24h': t('Last 24 hours'),
@@ -246,14 +233,6 @@ export const DEFAULT_RELATIVE_PERIODS = {
   '14d': t('Last 14 days'),
   '30d': t('Last 30 days'),
   '90d': t('Last 90 days'),
-};
-
-export const DEFAULT_RELATIVE_PERIODS_PAGE_FILTER = {
-  '1h': t('1H'),
-  '24h': t('24H'),
-  '7d': t('7D'),
-  '14d': t('14D'),
-  '30d': t('30D'),
 };
 
 const DEFAULT_STATS_INFO = {
@@ -269,6 +248,7 @@ export const DATA_CATEGORY_INFO = {
     name: DataCategoryExact.ERROR,
     apiName: 'error',
     plural: DataCategory.ERRORS,
+    singular: 'error',
     displayName: 'error',
     titleName: t('Errors'),
     productName: t('Error Monitoring'),
@@ -284,6 +264,7 @@ export const DATA_CATEGORY_INFO = {
     name: DataCategoryExact.TRANSACTION,
     apiName: 'transaction',
     plural: DataCategory.TRANSACTIONS,
+    singular: 'transaction',
     displayName: 'transaction',
     titleName: t('Transactions'),
     productName: t('Performance Monitoring'),
@@ -299,6 +280,7 @@ export const DATA_CATEGORY_INFO = {
     name: DataCategoryExact.ATTACHMENT,
     apiName: 'attachment',
     plural: DataCategory.ATTACHMENTS,
+    singular: 'attachment',
     displayName: 'attachment',
     titleName: t('Attachments'),
     productName: t('Attachments'),
@@ -315,6 +297,7 @@ export const DATA_CATEGORY_INFO = {
     name: DataCategoryExact.PROFILE,
     apiName: 'profile',
     plural: DataCategory.PROFILES,
+    singular: 'profile',
     displayName: 'profile',
     titleName: t('Profiles'),
     productName: t('Continuous Profiling'),
@@ -330,6 +313,7 @@ export const DATA_CATEGORY_INFO = {
     name: DataCategoryExact.PROFILE_INDEXED,
     apiName: 'profileIndexed',
     plural: DataCategory.PROFILES_INDEXED,
+    singular: 'profileIndexed',
     displayName: 'indexed profile',
     titleName: t('Indexed Profiles'),
     productName: t('Continuous Profiling'),
@@ -341,6 +325,7 @@ export const DATA_CATEGORY_INFO = {
     name: DataCategoryExact.REPLAY,
     apiName: 'replay',
     plural: DataCategory.REPLAYS,
+    singular: 'replay',
     displayName: 'replay',
     titleName: t('Session Replays'),
     productName: t('Session Replay'),
@@ -356,6 +341,7 @@ export const DATA_CATEGORY_INFO = {
     name: DataCategoryExact.USER_REPORT_V2,
     apiName: 'feedback',
     plural: DataCategory.USER_REPORT_V2,
+    singular: 'feedback',
     displayName: 'user feedback',
     titleName: t('User Feedback'),
     productName: t('User Feedback'),
@@ -371,6 +357,7 @@ export const DATA_CATEGORY_INFO = {
     name: DataCategoryExact.TRANSACTION_PROCESSED,
     apiName: 'transactions',
     plural: DataCategory.TRANSACTIONS_PROCESSED,
+    singular: 'transactionProcessed',
     displayName: 'transaction',
     titleName: t('Transactions'),
     productName: t('Performance Monitoring'),
@@ -385,6 +372,7 @@ export const DATA_CATEGORY_INFO = {
     name: DataCategoryExact.TRANSACTION_INDEXED,
     apiName: 'transactionIndexed',
     plural: DataCategory.TRANSACTIONS_INDEXED,
+    singular: 'transactionIndexed',
     displayName: 'indexed transaction',
     titleName: t('Indexed Transactions'),
     productName: t('Performance Monitoring'),
@@ -396,6 +384,7 @@ export const DATA_CATEGORY_INFO = {
     name: DataCategoryExact.MONITOR,
     apiName: 'monitor',
     plural: DataCategory.MONITOR,
+    singular: 'monitor',
     displayName: 'monitor check-in',
     titleName: t('Monitor Check-Ins'),
     productName: t('Cron Monitoring'),
@@ -410,6 +399,7 @@ export const DATA_CATEGORY_INFO = {
     name: DataCategoryExact.SPAN,
     apiName: 'span',
     plural: DataCategory.SPANS,
+    singular: 'span',
     displayName: 'span',
     titleName: t('Spans'), // TODO(DS Spans): Update name
     productName: t('Tracing'),
@@ -425,6 +415,7 @@ export const DATA_CATEGORY_INFO = {
     name: DataCategoryExact.MONITOR_SEAT,
     apiName: 'monitorSeat',
     plural: DataCategory.MONITOR_SEATS,
+    singular: 'monitorSeat',
     displayName: 'cron monitor',
     titleName: t('Cron Monitors'),
     productName: t('Cron Monitoring'),
@@ -440,6 +431,7 @@ export const DATA_CATEGORY_INFO = {
     name: DataCategoryExact.SPAN_INDEXED,
     apiName: 'span_indexed',
     plural: DataCategory.SPANS_INDEXED,
+    singular: 'spanIndexed',
     displayName: 'stored span',
     titleName: t('Stored Spans'),
     productName: t('Tracing'),
@@ -452,6 +444,7 @@ export const DATA_CATEGORY_INFO = {
     name: DataCategoryExact.PROFILE_DURATION,
     apiName: 'profile_duration',
     plural: DataCategory.PROFILE_DURATION,
+    singular: 'profileDuration',
     displayName: 'continuous profile hour',
     titleName: t('Continuous Profile Hours'),
     productName: t('Continuous Profiling'),
@@ -468,6 +461,7 @@ export const DATA_CATEGORY_INFO = {
     name: DataCategoryExact.PROFILE_CHUNK,
     apiName: 'profile_chunk',
     plural: DataCategory.PROFILE_CHUNKS,
+    singular: 'profileChunk',
     displayName: 'profile chunk',
     titleName: t('Profile Chunks'),
     productName: t('Continuous Profiling'),
@@ -479,6 +473,7 @@ export const DATA_CATEGORY_INFO = {
     name: DataCategoryExact.PROFILE_DURATION_UI,
     apiName: 'profile_duration_ui',
     plural: DataCategory.PROFILE_DURATION_UI,
+    singular: 'profileDurationUI',
     displayName: 'UI profile hour',
     titleName: t('UI Profile Hours'),
     productName: t('UI Profiling'),
@@ -495,6 +490,7 @@ export const DATA_CATEGORY_INFO = {
     name: DataCategoryExact.PROFILE_CHUNK_UI,
     apiName: 'profile_chunk_ui',
     plural: DataCategory.PROFILE_CHUNKS_UI,
+    singular: 'profileChunkUI',
     displayName: 'UI profile chunk',
     titleName: t('UI Profile Chunks'),
     productName: t('UI Profiling'),
@@ -507,6 +503,7 @@ export const DATA_CATEGORY_INFO = {
     name: DataCategoryExact.UPTIME,
     apiName: 'uptime',
     plural: DataCategory.UPTIME,
+    singular: 'uptime',
     displayName: 'uptime monitor',
     titleName: t('Uptime Monitors'),
     productName: t('Uptime Monitoring'),
@@ -522,6 +519,7 @@ export const DATA_CATEGORY_INFO = {
     name: DataCategoryExact.LOG_ITEM,
     apiName: 'log_item',
     plural: DataCategory.LOG_ITEM,
+    singular: 'logItem',
     displayName: 'log',
     titleName: t('Log Counts'), // Only currently visible internally, this name should change if we expose this to users.
     productName: t('Logging'),
@@ -536,6 +534,7 @@ export const DATA_CATEGORY_INFO = {
     name: DataCategoryExact.LOG_BYTE,
     apiName: 'log_byte',
     plural: DataCategory.LOG_BYTE,
+    singular: 'logByte',
     displayName: 'log byte',
     titleName: t('Logs'),
     productName: t('Logging'),
@@ -551,6 +550,7 @@ export const DATA_CATEGORY_INFO = {
     name: DataCategoryExact.SEER_AUTOFIX,
     apiName: 'seer_autofix',
     plural: DataCategory.SEER_AUTOFIX,
+    singular: 'seerAutofix',
     displayName: 'issue fix',
     titleName: t('Issue Fixes'),
     productName: t('Seer'),
@@ -565,6 +565,7 @@ export const DATA_CATEGORY_INFO = {
     name: DataCategoryExact.SEER_SCANNER,
     apiName: 'seer_scanner',
     plural: DataCategory.SEER_SCANNER,
+    singular: 'seerScanner',
     displayName: 'issue scan',
     titleName: t('Issue Scans'),
     productName: t('Seer'),
@@ -586,10 +587,6 @@ export const MAX_AUTOCOMPLETE_RECENT_SEARCHES = 3;
 export const MAX_AUTOCOMPLETE_RELEASES = 5;
 
 export const DEFAULT_PER_PAGE = 50;
-
-// Limit query length so paginated response headers don't
-// go over HTTP header size limits (4Kb)
-export const MAX_QUERY_LENGTH = 400;
 
 // Webpack configures DEPLOY_PREVIEW_CONFIG for deploy preview builds.
 export const DEPLOY_PREVIEW_CONFIG = process.env.DEPLOY_PREVIEW_CONFIG as unknown as
@@ -622,8 +619,6 @@ export const CONFIG_DOCS_URL = 'https://develop.sentry.dev/config/';
 export const DISCOVER2_DOCS_URL = 'https://docs.sentry.io/product/discover-queries/';
 export const SPAN_PROPS_DOCS_URL =
   'https://docs.sentry.io/concepts/search/searchable-properties/spans/';
-export const LOGS_PROPS_DOCS_URL =
-  'https://docs.sentry.io/concepts/search/searchable-properties/logs/';
 
 export const IS_ACCEPTANCE_TEST = !!process.env.IS_ACCEPTANCE_TEST;
 export const NODE_ENV = process.env.NODE_ENV;

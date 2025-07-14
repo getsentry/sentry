@@ -11,6 +11,8 @@ import {
   MODEL_AGE_CHOICES,
   type ModelAge,
 } from 'sentry/views/automations/components/actionFilters/constants';
+import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 export function LatestAdoptedReleaseDetails({condition}: {condition: DataCondition}) {
@@ -73,6 +75,7 @@ function AgeComparisonField() {
 
 function EnvironmentField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
+  const {removeError} = useAutomationBuilderErrorContext();
 
   const {environments} = useOrganizationEnvironments();
   const environmentOptions = environments.map(({id, name}) => ({
@@ -89,6 +92,9 @@ function EnvironmentField() {
       placeholder={t('environment')}
       onChange={(option: SelectValue<string>) => {
         onUpdate({comparison: {...condition.comparison, environment: option.value}});
+        // We only remove the error when `environment` is changed since
+        // other fields have default values and should not trigger an error
+        removeError(condition.id);
       }}
     />
   );
@@ -106,4 +112,17 @@ function useOrganizationEnvironments() {
     }
   );
   return {environments, isLoading};
+}
+
+export function validateLatestAdoptedReleaseCondition({
+  condition,
+}: ValidateDataConditionProps): string | undefined {
+  if (
+    !condition.comparison.release_age_type ||
+    !condition.comparison.age_comparison ||
+    !condition.comparison.environment
+  ) {
+    return t('Ensure all fields are filled in.');
+  }
+  return undefined;
 }

@@ -880,7 +880,7 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
     def do_request(self, trace_id, query, features=None, **kwargs):
         if features is None:
             features = [
-                "organizations:visibility-explore-view",
+                "organizations:performance-trace-explorer",
                 "organizations:global-views",
             ]
 

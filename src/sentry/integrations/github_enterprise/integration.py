@@ -406,7 +406,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
 
         return NestedPipelineView(
             bind_key="identity",
-            provider_key="github_enterprise",
+            provider_key=IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
             pipeline_cls=IdentityPipeline,
             config=identity_pipeline_config,
         )
@@ -502,7 +502,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
                 "installation": installation_data,
             },
             "user_identity": {
-                "type": "github_enterprise",
+                "type": IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
                 "external_id": user["id"],
                 "scopes": [],  # GitHub apps do not have user scopes
                 "data": {"access_token": identity["access_token"]},

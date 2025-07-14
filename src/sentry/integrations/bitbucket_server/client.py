@@ -11,6 +11,7 @@ from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.source_code_management.repository import RepositoryClient
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -95,7 +96,7 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
     https://developer.atlassian.com/server/bitbucket/reference/rest-api/
     """
 
-    integration_name = "bitbucket_server"
+    integration_name = IntegrationProviderSlug.BITBUCKET_SERVER.value
 
     def __init__(
         self,

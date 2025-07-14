@@ -1,12 +1,15 @@
 import {AutomationBuilderInput} from 'sentry/components/workflowEngine/form/automationBuilderInput';
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {t, tct} from 'sentry/locale';
+import type {SelectValue} from 'sentry/types/core';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {
   Attributes,
   MATCH_CHOICES,
   type MatchType,
 } from 'sentry/views/automations/components/actionFilters/constants';
+import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 export function EventAttributeDetails({condition}: {condition: DataCondition}) {
@@ -39,8 +42,8 @@ function AttributeField() {
         value: attribute,
         label: attribute,
       }))}
-      onChange={(value: Attributes) => {
-        onUpdate({comparison: {...condition.comparison, attribute: value}});
+      onChange={(option: SelectValue<Attributes>) => {
+        onUpdate({comparison: {...condition.comparison, attribute: option.value}});
       }}
     />
   );
@@ -54,8 +57,8 @@ function MatchField() {
       aria-label={t('Match type')}
       value={condition.comparison.match}
       options={MATCH_CHOICES}
-      onChange={(value: MatchType) => {
-        onUpdate({comparison: {...condition.comparison, match: value}});
+      onChange={(option: SelectValue<MatchType>) => {
+        onUpdate({comparison: {...condition.comparison, match: option.value}});
       }}
     />
   );
@@ -63,6 +66,8 @@ function MatchField() {
 
 function ValueField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
+  const {removeError} = useAutomationBuilderErrorContext();
+
   return (
     <AutomationBuilderInput
       name={`${condition_id}.comparison.value`}
@@ -71,7 +76,21 @@ function ValueField() {
       value={condition.comparison.value}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({comparison: {...condition.comparison, value: e.target.value}});
+        removeError(condition.id);
       }}
     />
   );
+}
+
+export function validateEventAttributeCondition({
+  condition,
+}: ValidateDataConditionProps): string | undefined {
+  if (
+    !condition.comparison.attribute ||
+    !condition.comparison.match ||
+    !condition.comparison.value
+  ) {
+    return t('Ensure all fields are filled in.');
+  }
+  return undefined;
 }

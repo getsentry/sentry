@@ -18,7 +18,8 @@ from sentry import buffer
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventstream.types import EventStreamEventType
-from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
+from sentry.feedback.lib.utils import FeedbackCreationSource
+from sentry.feedback.usecases.create_feedback import get_feedback_title
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.commit_context import CommitInfo, FileBlameInfo
 from sentry.issues.auto_source_code_config.utils.platform import get_supported_platforms
@@ -1997,25 +1998,24 @@ class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
         assert UserReport.objects.get(event_id=event_id).environment_id == environment.id
 
     def test_user_report_gets_environment_with_new_link_features(self):
-        with self.feature("organizations:user-feedback-event-link-ingestion-changes"):
-            project = self.create_project()
-            environment = Environment.objects.create(
-                organization_id=project.organization_id, name="production"
-            )
-            environment.add_project(project)
+        project = self.create_project()
+        environment = Environment.objects.create(
+            organization_id=project.organization_id, name="production"
+        )
+        environment.add_project(project)
 
-            event_id = "a" * 32
-            event = self.store_event(
-                data={"environment": environment.name, "event_id": event_id},
-                project_id=project.id,
-            )
-            UserReport.objects.create(
-                project_id=project.id,
-                event_id=event_id,
-                name="foo",
-                email="bar@example.com",
-                comments="It Broke!!!",
-            )
+        event_id = "a" * 32
+        event = self.store_event(
+            data={"environment": environment.name, "event_id": event_id},
+            project_id=project.id,
+        )
+        UserReport.objects.create(
+            project_id=project.id,
+            event_id=event_id,
+            name="foo",
+            email="bar@example.com",
+            comments="It Broke!!!",
+        )
 
         self.call_post_process_group(
             is_new=True,
@@ -2028,91 +2028,94 @@ class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
 
     @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
     def test_user_report_shims_to_feedback(self, mock_produce_occurrence_to_kafka):
-        with self.feature("organizations:user-feedback-event-link-ingestion-changes"):
-            project = self.create_project()
-            environment = Environment.objects.create(
-                organization_id=project.organization_id, name="production"
-            )
-            environment.add_project(project)
+        project = self.create_project()
+        environment = Environment.objects.create(
+            organization_id=project.organization_id, name="production"
+        )
+        environment.add_project(project)
 
-            event_id = "a" * 32
+        event_id = "a" * 32
 
-            UserReport.objects.create(
-                project_id=project.id,
-                event_id=event_id,
-                name="Foo Bar",
-                email="bar@example.com",
-                comments="It Broke!!!",
-            )
+        UserReport.objects.create(
+            project_id=project.id,
+            event_id=event_id,
+            name="Foo Bar",
+            email="bar@example.com",
+            comments="It Broke!!!",
+        )
 
-            event = self.store_event(
-                data={"environment": environment.name, "event_id": event_id},
-                project_id=project.id,
-            )
+        event = self.store_event(
+            data={"environment": environment.name, "event_id": event_id},
+            project_id=project.id,
+        )
 
-            self.call_post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=True,
-                event=event,
-            )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
 
-            report1 = UserReport.objects.get(project_id=project.id, event_id=event.event_id)
-            assert report1.group_id == event.group_id
-            assert report1.environment_id == event.get_environment().id
+        report1 = UserReport.objects.get(project_id=project.id, event_id=event.event_id)
+        assert report1.group_id == event.group_id
+        assert report1.environment_id == event.get_environment().id
 
-            assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
-            mock_event_data = mock_produce_occurrence_to_kafka.call_args_list[0][1]["event_data"]
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
+        mock_event_data = mock_produce_occurrence_to_kafka.call_args_list[0][1]["event_data"]
 
-            assert mock_event_data["contexts"]["feedback"]["contact_email"] == "bar@example.com"
-            assert mock_event_data["contexts"]["feedback"]["message"] == "It Broke!!!"
-            assert mock_event_data["contexts"]["feedback"]["name"] == "Foo Bar"
-            assert mock_event_data["environment"] == environment.name
-            assert mock_event_data["tags"]["environment"] == environment.name
-            assert mock_event_data["tags"]["level"] == "error"
-            assert mock_event_data["tags"]["user.email"] == "bar@example.com"
+        assert mock_event_data["contexts"]["feedback"]["contact_email"] == "bar@example.com"
+        assert mock_event_data["contexts"]["feedback"]["message"] == "It Broke!!!"
+        assert mock_event_data["contexts"]["feedback"]["name"] == "Foo Bar"
+        assert mock_event_data["environment"] == environment.name
+        assert mock_event_data["tags"]["environment"] == environment.name
+        assert mock_event_data["tags"]["level"] == "error"
+        assert mock_event_data["tags"]["user.email"] == "bar@example.com"
 
-            assert mock_event_data["platform"] == "other"
-            assert mock_event_data["contexts"]["feedback"]["associated_event_id"] == event.event_id
-            assert mock_event_data["level"] == "error"
+        assert mock_event_data["platform"] == "other"
+        assert mock_event_data["contexts"]["feedback"]["associated_event_id"] == event.event_id
+        assert mock_event_data["level"] == "error"
+
+        occurrence = mock_produce_occurrence_to_kafka.call_args_list[0][1]["occurrence"]
+        assert occurrence.issue_title == get_feedback_title(
+            mock_event_data["contexts"]["feedback"]["message"]
+        )
 
     @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
     def test_user_reports_no_shim_if_group_exists_on_report(self, mock_produce_occurrence_to_kafka):
-        with self.feature("organizations:user-feedback-event-link-ingestion-changes"):
-            project = self.create_project()
-            environment = Environment.objects.create(
-                organization_id=project.organization_id, name="production"
-            )
-            environment.add_project(project)
+        project = self.create_project()
+        environment = Environment.objects.create(
+            organization_id=project.organization_id, name="production"
+        )
+        environment.add_project(project)
 
-            event_id = "a" * 32
+        event_id = "a" * 32
 
-            UserReport.objects.create(
-                project_id=project.id,
-                event_id=event_id,
-                name="Foo Bar",
-                email="bar@example.com",
-                comments="It Broke!!!",
-                environment_id=environment.id,
-            )
+        UserReport.objects.create(
+            project_id=project.id,
+            event_id=event_id,
+            name="Foo Bar",
+            email="bar@example.com",
+            comments="It Broke!!!",
+            environment_id=environment.id,
+        )
 
-            event = self.store_event(
-                data={"environment": environment.name, "event_id": event_id},
-                project_id=project.id,
-            )
+        event = self.store_event(
+            data={"environment": environment.name, "event_id": event_id},
+            project_id=project.id,
+        )
 
-            self.call_post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=True,
-                event=event,
-            )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
 
-            # since the environment already exists on this user report, we know that
-            # the report and the event have already been linked, so no feedback shim should be produced
-            report1 = UserReport.objects.get(project_id=project.id, event_id=event.event_id)
-            assert report1.environment_id == event.get_environment().id
-            assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
+        # since the environment already exists on this user report, we know that
+        # the report and the event have already been linked, so no feedback shim should be produced
+        report1 = UserReport.objects.get(project_id=project.id, event_id=event.event_id)
+        assert report1.environment_id == event.get_environment().id
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
 
 
 class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
@@ -3190,6 +3193,9 @@ class PostProcessGroupFeedbackTest(
         is_spam=False,
     ):
         data["type"] = "generic"
+        if "message" not in data:
+            data["message"] = "It Broke!!!"
+
         event = self.store_event(
             data=data, project_id=project_id, assert_no_errors=assert_no_errors
         )
@@ -3211,7 +3217,7 @@ class PostProcessGroupFeedbackTest(
             **{
                 "id": uuid.uuid4().hex,
                 "fingerprint": ["c" * 32],
-                "issue_title": "User Feedback",
+                "issue_title": get_feedback_title(data["message"]),
                 "subtitle": "it was bad",
                 "culprit": "api/123",
                 "resource_id": "1234",
@@ -3232,10 +3238,7 @@ class PostProcessGroupFeedbackTest(
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
-        with (
-            self.feature(FeedbackGroup.build_post_process_group_feature_name()),
-            self.feature("organizations:user-feedback-spam-filter-actions"),
-        ):
+        with self.feature(FeedbackGroup.build_post_process_group_feature_name()):
             post_process_group(
                 is_new=is_new,
                 is_regression=is_regression,
@@ -3351,7 +3354,7 @@ class PostProcessGroupFeedbackTest(
 
     def test_ran_if_default_on_new_projects(self):
         event = self.create_event(
-            data={},
+            data={"message": "It Broke!!!"},
             project_id=self.project.id,
             feedback_type=FeedbackCreationSource.CRASH_REPORT_EMBED_FORM,
         )
@@ -3372,10 +3375,11 @@ class PostProcessGroupFeedbackTest(
                 cache_key="total_rubbish",
             )
         assert mock_process_func.call_count == 1
+        assert event.occurrence.issue_title == "User Feedback: It Broke!!!"
 
     def test_ran_if_crash_feedback_envelope(self):
         event = self.create_event(
-            data={},
+            data={"message": "It Broke!!!"},
             project_id=self.project.id,
             feedback_type=FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
         )
@@ -3396,6 +3400,7 @@ class PostProcessGroupFeedbackTest(
                 cache_key="total_rubbish",
             )
         assert mock_process_func.call_count == 1
+        assert event.occurrence.issue_title == "User Feedback: It Broke!!!"
 
     def test_logs_if_source_missing(self):
         event = self.create_event(

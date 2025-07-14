@@ -231,6 +231,14 @@ export function isTraceOccurence(
   return 'issue_id' in issue && issue.event_type !== 'error';
 }
 
+export function isEAPTraceOccurrence(
+  issue: TraceTree.TraceIssue
+): issue is TraceTree.EAPOccurrence {
+  return (
+    isTraceOccurence(issue) && 'event_type' in issue && issue.event_type === 'occurrence'
+  );
+}
+
 export function isEAPMeasurementValue(
   value: number | Measurement | undefined
 ): value is number {
@@ -245,4 +253,19 @@ export function isEAPMeasurements(
   }
 
   return Object.values(value).every(isEAPMeasurementValue);
+}
+
+export function isStandaloneSpanMeasurementNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+) {
+  if (node.value && 'op' in node.value && node.value.op) {
+    if (
+      node.value.op.startsWith('ui.webvital.') ||
+      node.value.op.startsWith('ui.interaction.')
+    ) {
+      return true;
+    }
+  }
+
+  return false;
 }

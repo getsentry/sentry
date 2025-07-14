@@ -4,7 +4,7 @@ import type {MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
 import getDuration from 'sentry/utils/duration/getDuration';
 
 interface BaseDetectionParams {
-  detectionType: MetricDetectorConfig['detection_type'];
+  detectionType: MetricDetectorConfig['detectionType'];
   /**
    * Formatting units for the condition value.
    */

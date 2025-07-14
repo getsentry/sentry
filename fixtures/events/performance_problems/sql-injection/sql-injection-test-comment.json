@@ -1,0 +1,158 @@
+{
+  "event_id": "5d6401994d7949d2ac3474f472564370",
+  "platform": "node",
+  "message": "",
+  "datetime": "2025-05-12T22:42:38.642986+00:00",
+  "breakdowns": {
+    "span_ops": {
+      "ops.db": {
+        "value": 65.715075,
+        "unit": "millisecond"
+      },
+      "total.time": {
+        "value": 67.105293,
+        "unit": "millisecond"
+      }
+    }
+  },
+  "request": {
+    "url": "http://localhost:3001/vulnerable-login",
+    "method": "GET",
+    "query_string": [["username", "hello"]]
+  },
+  "spans": [
+    {
+      "timestamp": 1747089758.567536,
+      "start_timestamp": 1747089758.567,
+      "exclusive_time": 0.536203,
+      "op": "middleware.express",
+      "span_id": "4a06692f4abc8dbe",
+      "parent_span_id": "91fa92ff0205967d",
+      "trace_id": "375a86eca09a4a4e91903838dd771f50",
+      "status": "ok",
+      "description": "corsMiddleware",
+      "origin": "auto.http.otel.express",
+      "data": {
+        "express.name": "corsMiddleware",
+        "express.type": "middleware",
+        "sentry.op": "middleware.express",
+        "sentry.origin": "auto.http.otel.express"
+      },
+      "sentry_tags": {
+        "user": "ip:::1",
+        "user.ip": "::1",
+        "environment": "production",
+        "transaction": "GET /vulnerable-login",
+        "transaction.method": "GET",
+        "transaction.op": "http.server",
+        "browser.name": "Chrome",
+        "sdk.name": "sentry.javascript.node",
+        "sdk.version": "9.17.0",
+        "platform": "node",
+        "os.name": "macOS",
+        "category": "middleware",
+        "op": "middleware.express",
+        "status": "ok",
+        "trace.status": "ok"
+      },
+      "hash": "e6088cf8b370ed60"
+    },
+    {
+      "timestamp": 1747089758.568761,
+      "start_timestamp": 1747089758.568,
+      "exclusive_time": 0.761032,
+      "op": "middleware.express",
+      "span_id": "92553d2584d250b8",
+      "parent_span_id": "91fa92ff0205967d",
+      "trace_id": "375a86eca09a4a4e91903838dd771f50",
+      "status": "ok",
+      "description": "jsonParser",
+      "origin": "auto.http.otel.express",
+      "data": {
+        "express.name": "jsonParser",
+        "express.type": "middleware",
+        "sentry.op": "middleware.express",
+        "sentry.origin": "auto.http.otel.express"
+      },
+      "sentry_tags": {
+        "user": "ip:::1",
+        "user.ip": "::1",
+        "environment": "production",
+        "transaction": "GET /vulnerable-login",
+        "transaction.method": "GET",
+        "transaction.op": "http.server",
+        "browser.name": "Chrome",
+        "sdk.name": "sentry.javascript.node",
+        "sdk.version": "9.17.0",
+        "platform": "node",
+        "os.name": "macOS",
+        "category": "middleware",
+        "op": "middleware.express",
+        "status": "ok",
+        "trace.status": "ok"
+      },
+      "hash": "c81e963dad9ebc6c"
+    },
+    {
+      "timestamp": 1747089758.569093,
+      "start_timestamp": 1747089758.569,
+      "exclusive_time": 0.092983,
+      "op": "request_handler.express",
+      "span_id": "435146ab0909419d",
+      "parent_span_id": "91fa92ff0205967d",
+      "trace_id": "375a86eca09a4a4e91903838dd771f50",
+      "status": "ok",
+      "description": "/vulnerable-login",
+      "origin": "auto.http.otel.express",
+      "data": {
+        "express.name": "/vulnerable-login",
+        "express.type": "request_handler",
+        "http.route": "/vulnerable-login",
+        "sentry.op": "request_handler.express",
+        "sentry.origin": "auto.http.otel.express"
+      },
+      "sentry_tags": {
+        "user": "ip:::1",
+        "user.ip": "::1",
+        "environment": "production",
+        "transaction": "GET /vulnerable-login",
+        "transaction.method": "GET",
+        "transaction.op": "http.server",
+        "browser.name": "Chrome",
+        "sdk.name": "sentry.javascript.node",
+        "sdk.version": "9.17.0",
+        "platform": "node",
+        "os.name": "macOS",
+        "op": "request_handler.express",
+        "status": "ok",
+        "trace.status": "ok"
+      },
+      "hash": "872b0c84a6f1c590"
+    },
+    {
+      "timestamp": 1747089758.637715,
+      "start_timestamp": 1747089758.572,
+      "exclusive_time": 65.715075,
+      "op": "db",
+      "span_id": "4703181ac343f71a",
+      "parent_span_id": "91fa92ff0205967d",
+      "trace_id": "375a86eca09a4a4e91903838dd771f50",
+      "status": "ok",
+      "description": "SELECT * FROM users WHERE username = ? --hello",
+      "origin": "auto.db.otel.mysql2",
+      "data": {
+        "db.system": "mysql",
+        "db.connection_string": "jdbc:mysql://localhost:3306/injection_test",
+        "db.name": "injection_test",
+        "db.statement": "SELECT * FROM users WHERE username = ? --hello",
+        "db.user": "root",
+        "net.peer.name": "localhost",
+        "net.peer.port": 3306,
+        "otel.kind": "CLIENT",
+        "sentry.op": "db",
+        "sentry.origin": "auto.db.otel.mysql2"
+      },
+      "hash": "45330ba0cafa5997"
+    }
+  ]
+}

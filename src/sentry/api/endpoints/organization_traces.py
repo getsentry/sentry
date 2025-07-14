@@ -211,15 +211,9 @@ class OrganizationTraceSpansSerializer(serializers.Serializer):
 @region_silo_endpoint
 class OrganizationTraceSpansEndpoint(OrganizationTracesEndpointBase):
     def get(self, request: Request, organization: Organization, trace_id: str) -> Response:
-        performance_trace_explorer = features.has(
+        if not features.has(
             "organizations:performance-trace-explorer", organization, actor=request.user
-        )
-
-        visibility_explore_view = features.has(
-            "organizations:visibility-explore-view", organization, actor=request.user
-        )
-
-        if not performance_trace_explorer and not visibility_explore_view:
+        ):
             return Response(status=404)
 
         try:

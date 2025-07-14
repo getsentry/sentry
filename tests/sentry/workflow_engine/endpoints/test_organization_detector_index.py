@@ -309,8 +309,8 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
                 ],
             },
             "config": {
-                "threshold_period": 1,
-                "detection_type": AlertRuleDetectionType.STATIC.value,
+                "thresholdPeriod": 1,
+                "detectionType": AlertRuleDetectionType.STATIC.value,
             },
         }
 

@@ -12,7 +12,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.hybridcloud.outbox.base import ReplicatedRegionModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.services.replica import control_replica_service
-from sentry.integrations.types import ExternalProviders
+from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.notifications.services import notifications_service
 
 logger = logging.getLogger(__name__)
@@ -34,13 +34,13 @@ class ExternalActor(ReplicatedRegionModel):
     provider = BoundedPositiveIntegerField(
         choices=(
             (ExternalProviders.EMAIL, "email"),
-            (ExternalProviders.SLACK, "slack"),
-            (ExternalProviders.MSTEAMS, "msteams"),
-            (ExternalProviders.PAGERDUTY, "pagerduty"),
-            (ExternalProviders.GITHUB, "github"),
-            (ExternalProviders.GITHUB_ENTERPRISE, "github_enterprise"),
-            (ExternalProviders.GITLAB, "gitlab"),
-            (ExternalProviders.JIRA_SERVER, "jira_server"),
+            (ExternalProviders.SLACK, IntegrationProviderSlug.SLACK.value),
+            (ExternalProviders.MSTEAMS, IntegrationProviderSlug.MSTEAMS.value),
+            (ExternalProviders.PAGERDUTY, IntegrationProviderSlug.PAGERDUTY.value),
+            (ExternalProviders.GITHUB, IntegrationProviderSlug.GITHUB.value),
+            (ExternalProviders.GITHUB_ENTERPRISE, IntegrationProviderSlug.GITHUB_ENTERPRISE.value),
+            (ExternalProviders.GITLAB, IntegrationProviderSlug.GITLAB.value),
+            (ExternalProviders.JIRA_SERVER, IntegrationProviderSlug.JIRA_SERVER.value),
             # TODO: do migration to delete this from database
             (ExternalProviders.CUSTOM, "custom_scm"),
         ),

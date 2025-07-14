@@ -38,7 +38,7 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
 
         # Assert only 1 Group object in the database
         assert Group.objects.count() == 1
-        group = Group.objects.first()
+        group = Group.objects.get()
 
         # Assert that KeyError matched the exception type
         group_ids = get_issues_related_to_exception_type(
@@ -187,7 +187,7 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
 
         # Assert only 1 Group object in the database
         assert Group.objects.count() == 1
-        group = Group.objects.first()
+        group = Group.objects.get()
 
         # Assert that KeyError matched the exception type
         group_ids = get_issues_related_to_exception_type(

@@ -33,6 +33,7 @@ from sentry.utils import outcomes, snuba
 from sentry.utils.dates import to_datetime
 from sentry.utils.snuba import (
     get_snuba_translators,
+    get_upsampled_count_snql_with_alias,
     infer_project_ids_from_related_models,
     nest_groups,
     raw_snql_query,
@@ -378,13 +379,18 @@ class SnubaTSDB(BaseTSDB):
             model_aggregate = None
 
         aggregated_as = "aggregate"
-        aggregations: list[SelectableExpression] = [
-            Function(
-                aggregation,
-                [Column(model_aggregate)] if model_aggregate else [],
-                aggregated_as,
-            )
-        ]
+        if aggregation == "upsampled_count":
+            aggregations: list[SelectableExpression] = [
+                get_upsampled_count_snql_with_alias(aggregated_as)
+            ]
+        else:
+            aggregations = [
+                Function(
+                    function=aggregation,
+                    parameters=[Column(model_aggregate)] if model_aggregate else [],
+                    alias=aggregated_as,
+                )
+            ]
 
         if group_on_time and manual_group_on_time:
             aggregations.append(manual_group_on_time_aggregation(rollup, "time"))
@@ -761,6 +767,7 @@ class SnubaTSDB(BaseTSDB):
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
         group_on_time: bool = True,
+        aggregation_override: str | None = None,
     ) -> dict[TSDBKey, list[tuple[int, int]]]:
         result = self.get_data(
             model,
@@ -769,7 +776,7 @@ class SnubaTSDB(BaseTSDB):
             end,
             rollup,
             environment_ids,
-            aggregation=self.get_aggregate_function(model),
+            aggregation=aggregation_override or self.get_aggregate_function(model),
             group_on_time=True,
             conditions=conditions,
             use_cache=use_cache,

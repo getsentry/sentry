@@ -35,6 +35,7 @@ import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {MetricDetectorPreviewChart} from 'sentry/views/detectors/components/forms/metric/previewChart';
 import {Visualize} from 'sentry/views/detectors/components/forms/metric/visualize';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
@@ -56,7 +57,11 @@ function MetricDetectorForm() {
 
 export function EditExistingMetricDetectorForm({detector}: {detector: Detector}) {
   return (
-    <EditDetectorLayout detector={detector} detectorType="metric_issue">
+    <EditDetectorLayout
+      detectorType="metric_issue"
+      detector={detector}
+      previewChart={<MetricDetectorPreviewChart />}
+    >
       <MetricDetectorForm />
     </EditDetectorLayout>
   );
@@ -64,7 +69,10 @@ export function EditExistingMetricDetectorForm({detector}: {detector: Detector})
 
 export function NewMetricDetectorForm() {
   return (
-    <NewDetectorLayout detectorType="metric_issue">
+    <NewDetectorLayout
+      detectorType="metric_issue"
+      previewChart={<MetricDetectorPreviewChart />}
+    >
       <MetricDetectorForm />
     </NewDetectorLayout>
   );

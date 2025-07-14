@@ -40,10 +40,6 @@ export function PlaceHolder({
             })}
           />
           <ButtonBar gap={1}>
-            <TraceHeaderComponents.ToggleTraceFormatButton
-              location={location}
-              organization={organization}
-            />
             <TraceHeaderComponents.FeedbackButton />
           </ButtonBar>
         </TraceHeaderComponents.HeaderRow>

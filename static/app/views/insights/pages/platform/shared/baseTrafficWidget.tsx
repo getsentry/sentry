@@ -61,14 +61,14 @@ export function BaseTrafficWidget({
     return [
       new Bars(convertSeriesToTimeseries(data['count(span.duration)']), {
         alias: trafficSeriesName,
-        color: theme.gray200,
+        color: theme.chart.neutral,
       }),
       new Line(convertSeriesToTimeseries(data['trace_status_rate(internal_error)']), {
         alias: t('Error Rate'),
         color: theme.error,
       }),
     ];
-  }, [data, theme.error, theme.gray200, trafficSeriesName]);
+  }, [data, theme.error, theme.chart.neutral, trafficSeriesName]);
 
   const isEmpty = useMemo(
     () =>

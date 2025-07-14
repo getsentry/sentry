@@ -1,6 +1,6 @@
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {ActionMetadata} from 'sentry/components/workflowEngine/ui/actionMetadata';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
@@ -50,6 +50,7 @@ function SeverityField() {
   return (
     <AutomationBuilderSelect
       name={`${actionId}.data.priority`}
+      aria-label={t('Severity')}
       value={action.data.priority}
       options={PAGERDUTY_SEVERITIES.map(severity => ({
         label: severity,
@@ -62,4 +63,17 @@ function SeverityField() {
       }}
     />
   );
+}
+
+export function validatePagerdutyAction(action: Action): string | undefined {
+  if (!action.integrationId) {
+    return t('You must specify a PagerDuty integration.');
+  }
+  if (!action.config.target_identifier) {
+    return t('You must specify a service.');
+  }
+  if (!action.data.priority) {
+    return t('You must specify a severity.');
+  }
+  return undefined;
 }

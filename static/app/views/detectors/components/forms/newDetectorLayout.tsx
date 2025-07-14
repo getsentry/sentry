@@ -38,12 +38,14 @@ type NewDetectorLayoutProps = {
   detectorType: EditableDetectorType;
   handleSubmit?: OnSubmitCallback;
   initialFormData?: Partial<DetectorFormData>;
+  previewChart?: React.ReactNode;
 };
 
 export function NewDetectorLayout({
   children,
   handleSubmit,
   initialFormData,
+  previewChart,
   detectorType,
 }: NewDetectorLayoutProps) {
   const location = useLocation();
@@ -117,7 +119,10 @@ export function NewDetectorLayout({
                 },
               ]}
             />
-            <DetectorBaseFields />
+            <Flex direction="column" gap={space(2)}>
+              <DetectorBaseFields />
+              {previewChart}
+            </Flex>
           </Layout.HeaderContent>
         </StyledLayoutHeader>
         <Layout.Body>

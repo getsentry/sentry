@@ -66,7 +66,7 @@ describe('Dashboards > Detail', function () {
       organization: mockAuthorizedOrg,
     });
 
-    expect(await screen.findByText('Dashboards')).toBeInTheDocument();
+    expect(await screen.findByText('All Dashboards')).toBeInTheDocument();
 
     expect(await screen.findByText('Test Dashboard')).toBeInTheDocument();
 
@@ -229,10 +229,10 @@ describe('Dashboards > Detail', function () {
       },
     });
 
-    expect(await screen.findByTestId('list')).toBeInTheDocument();
-    await userEvent.click(await screen.findByTestId('list'));
+    expect(await screen.findByTestId('table')).toBeInTheDocument();
+    await userEvent.click(await screen.findByTestId('table'));
 
-    expect(localStorage.setItem).toHaveBeenCalledWith(LAYOUT_KEY, '"list"');
+    expect(localStorage.setItem).toHaveBeenCalledWith(LAYOUT_KEY, '"table"');
     expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
 
     expect(await screen.findByTestId('grid')).toBeInTheDocument();

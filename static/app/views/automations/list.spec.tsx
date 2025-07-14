@@ -1,5 +1,5 @@
 import {AutomationFixture} from 'sentry-fixture/automations';
-import {DetectorFixture} from 'sentry-fixture/detectors';
+import {MetricDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -32,7 +32,7 @@ describe('AutomationsList', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/1/',
-      body: [DetectorFixture({name: 'Detector 1'})],
+      body: [MetricDetectorFixture({name: 'Detector 1'})],
     });
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}), new Set());
   });
@@ -59,7 +59,7 @@ describe('AutomationsList', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
       body: [
-        DetectorFixture({
+        MetricDetectorFixture({
           id: '1',
           name: 'Detector 1',
           workflowIds: ['100'],

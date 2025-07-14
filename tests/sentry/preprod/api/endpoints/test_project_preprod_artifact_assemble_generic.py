@@ -84,6 +84,33 @@ class ProjectPreprodArtifactAssembleGenericEndpointTest(TestCase):
         )
         self._assert_task_called_with(mock_task, checksum, [b.checksum for b in blobs])
 
+    @patch("sentry.analytics.record")
+    def test_assemble_installable_app_success(self, mock_analytics):
+        blobs = self._create_blobs()
+        checksum = "a" * 40
+        data = {
+            "checksum": checksum,
+            "chunks": [b.checksum for b in blobs],
+            "assemble_type": "installable_app",
+        }
+
+        with patch(
+            "sentry.preprod.api.endpoints.project_preprod_artifact_assemble_generic.assemble_preprod_artifact_installable_app.apply_async"
+        ) as mock_task:
+            response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["state"] == ChunkFileState.CREATED
+        assert resp_data["missingChunks"] == []
+
+        mock_analytics.assert_called_once_with(
+            "preprod_artifact.api.assemble_generic",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+        )
+        self._assert_task_called_with(mock_task, checksum, [b.checksum for b in blobs])
+
     def test_unsupported_assemble_type(self):
         data = {
             "checksum": "b" * 40,
