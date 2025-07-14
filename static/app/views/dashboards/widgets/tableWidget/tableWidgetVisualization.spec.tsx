@@ -26,11 +26,9 @@ describe('TableWidgetVisualization', function () {
   const columns: Array<Partial<TabularColumn>> = [
     {
       key: 'count(span.duration)',
-      name: 'Count of Span Duration',
     },
     {
       key: 'http.request_method',
-      name: 'HTTP Request Method',
     },
   ];
   const sortableColumns = columns.map(column => ({...column, sortable: true}));
@@ -54,8 +52,8 @@ describe('TableWidgetVisualization', function () {
       );
 
       const $headers = screen.getAllByRole('columnheader');
-      expect($headers[0]).toHaveTextContent(columns[0]!.name!);
-      expect($headers[1]).toHaveTextContent(columns[1]!.name!);
+      expect($headers[0]).toHaveTextContent(columns[0]!.key!);
+      expect($headers[1]).toHaveTextContent(columns[1]!.key!);
     });
 
     it('Renders unique number fields correctly', async function () {
@@ -250,13 +248,11 @@ describe('TableWidgetVisualization', function () {
         expect(onResizeColumnMock).toHaveBeenCalledWith([
           {
             key: 'http.request_method',
-            name: 'http.request_method',
             type: 'string',
             width: 100,
           },
           {
             key: 'count(span.duration)',
-            name: 'count(span.duration)',
             type: 'integer',
             width: -1,
           },

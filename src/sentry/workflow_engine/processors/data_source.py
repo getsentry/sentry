@@ -9,30 +9,51 @@ from sentry.workflow_engine.models import DataPacket, DataSource, Detector
 logger = logging.getLogger("sentry.workflow_engine.process_data_source")
 
 
-# TODO - @saponifi3d - change the text choices to an enum
+def bulk_fetch_enabled_detectors(
+    source_ids: set[str], query_type: str
+) -> dict[str, list[Detector]]:
+    """
+    Get all of the enabled detectors for a list of detector source ids and types.
+    This will also prefetch all the subsequent data models for evaluating the detector.
+    """
+    data_sources = (
+        DataSource.objects.filter(
+            source_id__in=source_ids,
+            type=query_type,
+            detectors__enabled=True,
+        )
+        .prefetch_related(
+            Prefetch(
+                "detectors",
+                queryset=Detector.objects.filter(enabled=True)
+                .select_related("workflow_condition_group")
+                .prefetch_related("workflow_condition_group__conditions"),
+            )
+        )
+        .distinct()
+    )
+
+    result: dict[str, list[Detector]] = {}
+    for data_source in data_sources:
+        result[data_source.source_id] = list(data_source.detectors.all())
+
+    return result
+
+
 # TODO - @saponifi3d - make query_type optional override, otherwise infer from the data packet.
 def process_data_sources[
     T
 ](data_packets: list[DataPacket[T]], query_type: str) -> list[tuple[DataPacket[T], list[Detector]]]:
     metrics.incr("workflow_engine.process_data_sources", tags={"query_type": query_type})
 
-    data_packet_ids = {packet.source_id for packet in data_packets}
-
-    # Fetch all data sources and associated detectors for the given data packets
-    with sentry_sdk.start_span(op="workflow_engine.process_data_sources.fetch_data_sources"):
-        data_sources = DataSource.objects.filter(
-            source_id__in=data_packet_ids,
-            type=query_type,
-            detectors__enabled=True,
-        ).prefetch_related(Prefetch("detectors"))
-
-    # Build a lookup dict for source_id to detectors
-    source_id_to_detectors = {ds.source_id: list(ds.detectors.all()) for ds in data_sources}
+    with sentry_sdk.start_span(op="workflow_engine.process_data_sources.get_enabled_detectors"):
+        packet_source_ids = {packet.source_id for packet in data_packets}
+        source_to_detector = bulk_fetch_enabled_detectors(packet_source_ids, query_type)
 
     # Create the result tuples
     result = []
     for packet in data_packets:
-        detectors = source_id_to_detectors.get(packet.source_id)
+        detectors: list[Detector] = source_to_detector.get(packet.source_id, [])
 
         if detectors:
             data_packet_tuple = (packet, detectors)

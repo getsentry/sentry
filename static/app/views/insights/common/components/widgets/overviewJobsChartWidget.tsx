@@ -60,14 +60,14 @@ export default function OverviewJobsChartWidget(props: LoadableChartWidgetProps)
     return [
       new Bars(convertSeriesToTimeseries(data['count(span.duration)']), {
         alias: ALIASES['count(span.duration)'],
-        color: theme.gray200,
+        color: theme.chart.neutral,
       }),
       new Line(convertSeriesToTimeseries(data['trace_status_rate(internal_error)']), {
         alias: ALIASES['trace_status_rate(internal_error)'],
         color: theme.error,
       }),
     ];
-  }, [data, theme.error, theme.gray200]);
+  }, [data, theme.error, theme.chart.neutral]);
 
   const isEmpty = useMemo(
     () =>
