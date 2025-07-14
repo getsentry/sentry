@@ -4153,15 +4153,15 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
     def test_limit_number_of_fields(self):
         self.create_project()
-        for i in range(1, 25):
+        for i in range(1, 60, 10):
             response = self.do_request({"field": ["id"] * i})
-            if i <= 20:
+            if i <= 50:
                 assert response.status_code == 200
             else:
                 assert response.status_code == 400
                 assert (
                     response.data["detail"]
-                    == "You can view up to 20 fields at a time. Please delete some and try again."
+                    == "You can view up to 50 fields at a time. Please delete some and try again."
                 )
 
     def test_percentile_function_meta_types(self):

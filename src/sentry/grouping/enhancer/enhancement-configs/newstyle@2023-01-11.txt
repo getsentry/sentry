@@ -92,6 +92,8 @@ family:native stack.package:/data/app/** stack.abs_path:**/*.dart +app
 family:javascript stack.abs_path:org-dartlang-sdk:///** -app -group
 family:javascript module:**/packages/flutter/** -app
 family:native stack.abs_path:**/packages/flutter/** -app
+family:native stack.abs_path:lib/ui/hooks.dart -app
+family:native stack.abs_path:lib/ui/platform_dispatcher.dart -app
 # sentry-dart SDK frames are not in app
 stack.abs_path:package:sentry/** -app -group
 stack.abs_path:package:sentry_flutter/** -app -group
