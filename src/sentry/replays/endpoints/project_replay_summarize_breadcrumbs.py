@@ -52,8 +52,8 @@ class GroupEvent(TypedDict):
 
 
 CACHE_TIMEOUT = 7 * 24 * 60 * 60  # 7d if not regenerated
-SKIP_CACHE_QUERY_PARAM = "regenerate"  # true or false
-ENABLE_ERROR_FETCH_QUERY_PARAM = "enable_error_context"  # true or false
+REFRESH_CACHE_QPARAM = "regenerate"  # true or false
+ENABLE_ERROR_FETCH_QPARAM = "enable_error_context"  # true or false
 
 
 @region_silo_endpoint
@@ -98,7 +98,7 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
         num_segments = seg_count_response["data"][0]["segment_count"]
 
         disable_error_fetching = (
-            request.query_params.get(ENABLE_ERROR_FETCH_QUERY_PARAM, "true").lower() == "false"
+            request.query_params.get(ENABLE_ERROR_FETCH_QPARAM, "true").lower() == "false"
         )
 
         per_page = self.get_per_page(request)
@@ -106,7 +106,7 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
         cache_key = f"replay_summarize_breadcrumbs:{project.id}:{replay_id}:{per_page}:{cursor}:{disable_error_fetching}"
 
         # TODO: refactor to be neater?
-        if not request.query_params.get(SKIP_CACHE_QUERY_PARAM, "false").lower() == "true":
+        if not request.query_params.get(REFRESH_CACHE_QPARAM, "false").lower() == "true":
             cache_lookup_result: tuple[Response, int] | None = cache.get(cache_key)
             if cache_lookup_result:
                 cached_response, prev_num_segments = cache_lookup_result
