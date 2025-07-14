@@ -1,7 +1,17 @@
 from __future__ import annotations
 
 from django.db import IntegrityError, router, transaction
-from django.db.models import Case, DateTimeField, Exists, F, IntegerField, OuterRef, Value, When
+from django.db.models import (
+    Case,
+    DateTimeField,
+    Exists,
+    F,
+    IntegerField,
+    OrderBy,
+    OuterRef,
+    Value,
+    When,
+)
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -133,7 +143,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         else:
             desc = False
 
-        order_by: list[Case | str]
+        order_by: list[Case | str | OrderBy]
         if sort_by == "title":
             order_by = [
                 "-title" if desc else "title",
