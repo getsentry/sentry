@@ -1,10 +1,17 @@
+import {useLayoutEffect, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {space} from 'sentry/styles/space';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {SuspectAttributesResult} from 'sentry/views/explore/hooks/useSuspectAttributes';
+
+const MAX_BAR_WIDTH = 20;
+
+const SELECTED_SERIES_NAME = 'selected';
+const BASELINE_SERIES_NAME = 'baseline';
 
 type Props = {
   rankedAttributes: SuspectAttributesResult['rankedAttributes'];
@@ -29,13 +36,36 @@ function Chart({
   attribute: SuspectAttributesResult['rankedAttributes'][number];
   theme: Theme;
 }) {
+  const chartRef = useRef<ReactEchartsRef>(null);
+  const [hideLabels, setHideLabels] = useState(false);
+
   const cohort1Color = theme.chart.getColorPalette(0)?.[0];
   const cohort2Color = '#dddddd';
+
+  useLayoutEffect(() => {
+    const chartContainer = chartRef.current?.getEchartsInstance().getDom();
+    if (!chartContainer) return;
+
+    const labels = chartContainer.querySelectorAll('.echarts-for-react text');
+
+    for (const label of labels) {
+      const labelRect = (label as SVGGraphicsElement).getBoundingClientRect();
+      const containerRect = chartContainer.getBoundingClientRect();
+
+      // If there are any labels exceeding the boundaries of the chart container, we hide
+      // hide all labels.
+      if (labelRect.left < containerRect.left || labelRect.right > containerRect.right) {
+        setHideLabels(true);
+        break;
+      }
+    }
+  }, [attribute]);
 
   return (
     <ChartWrapper>
       <ChartTitle>{attribute.attributeName}</ChartTitle>
       <BaseChart
+        ref={chartRef}
         autoHeightResize
         isGroupedByDate={false}
         tooltip={{
@@ -52,14 +82,16 @@ function Chart({
           type: 'category',
           data: attribute.cohort1.map(cohort => cohort.label),
           truncate: 14,
-          axisLabel: {
-            hideOverlap: true,
-            showMaxLabel: false,
-            showMinLabel: false,
-            color: '#000',
-            interval: 0,
-            formatter: (value: string) => value,
-          },
+          axisLabel: hideLabels
+            ? {show: false}
+            : {
+                hideOverlap: true,
+                showMaxLabel: false,
+                showMinLabel: false,
+                color: '#000',
+                interval: 0,
+                formatter: (value: string) => value,
+              },
         }}
         yAxis={{
           type: 'value',
@@ -72,18 +104,22 @@ function Chart({
           {
             type: 'bar',
             data: attribute.cohort1.map(cohort => cohort.value),
-            name: 'Selected',
+            name: SELECTED_SERIES_NAME,
             itemStyle: {
               color: cohort1Color,
             },
+            barMaxWidth: MAX_BAR_WIDTH,
+            animation: false,
           },
           {
             type: 'bar',
             data: attribute.cohort2.map(cohort => cohort.value),
-            name: 'Baseline',
+            name: BASELINE_SERIES_NAME,
             itemStyle: {
               color: cohort2Color,
             },
+            barMaxWidth: MAX_BAR_WIDTH,
+            animation: false,
           },
         ]}
       />
