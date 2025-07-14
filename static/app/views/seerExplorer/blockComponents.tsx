@@ -24,15 +24,15 @@ function BlockComponent({block, isLast, isFocused, onClick, ref}: BlockProps) {
           animate={{opacity: 1, y: 0}}
           exit={{opacity: 0, y: 10}}
         >
-          {block.type === 'user-input' ? (
+          {block.message.role === 'user' ? (
             <BlockRow>
               <BlockChevronIcon direction="right" size="sm" />
-              <UserBlockContent>{block.content}</UserBlockContent>
+              <UserBlockContent>{block.message.content}</UserBlockContent>
             </BlockRow>
           ) : (
             <BlockRow>
               <ResponseDot isLoading={block.loading} />
-              <BlockContent text={block.content} />
+              <BlockContent text={block.message.content} />
             </BlockRow>
           )}
           {isFocused && <FocusIndicator />}

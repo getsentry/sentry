@@ -8,22 +8,28 @@ describe('useBlockNavigation', () => {
   const mockBlocks: Block[] = [
     {
       id: 'block-1',
-      type: 'user-input',
-      content: 'First message',
+      message: {
+        role: 'user',
+        content: 'First message',
+      },
       timestamp: '2024-01-01T00:00:00Z',
       loading: false,
     },
     {
       id: 'block-2',
-      type: 'response',
-      content: 'First response',
+      message: {
+        role: 'assistant',
+        content: 'First response',
+      },
       timestamp: '2024-01-01T00:01:00Z',
       loading: false,
     },
     {
       id: 'block-3',
-      type: 'user-input',
-      content: 'Second message',
+      message: {
+        role: 'user',
+        content: 'Second message',
+      },
       timestamp: '2024-01-01T00:02:00Z',
       loading: false,
     },

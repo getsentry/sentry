@@ -1,9 +1,13 @@
 export interface Block {
-  content: string;
   id: string;
+  message: Message;
   timestamp: string;
-  type: 'message' | 'user-input' | 'response';
   loading?: boolean;
+}
+
+export interface Message {
+  content: string;
+  role: 'user' | 'assistant';
 }
 
 export type PanelSize = 'max' | 'med' | 'min';

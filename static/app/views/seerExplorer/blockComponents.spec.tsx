@@ -9,8 +9,10 @@ describe('BlockComponent', () => {
 
   const createUserInputBlock = (overrides?: Partial<Block>): Block => ({
     id: 'user-1',
-    type: 'user-input',
-    content: 'What is this error about?',
+    message: {
+      role: 'user',
+      content: 'What is this error about?',
+    },
     timestamp: '2024-01-01T00:00:00Z',
     loading: false,
     ...overrides,
@@ -18,8 +20,10 @@ describe('BlockComponent', () => {
 
   const createResponseBlock = (overrides?: Partial<Block>): Block => ({
     id: 'response-1',
-    type: 'response',
-    content: 'This error indicates a null pointer exception.',
+    message: {
+      role: 'assistant',
+      content: 'This error indicates a null pointer exception.',
+    },
     timestamp: '2024-01-01T00:01:00Z',
     loading: false,
     ...overrides,
@@ -57,7 +61,13 @@ describe('BlockComponent', () => {
     });
 
     it('renders response block with loading state', () => {
-      const block = createResponseBlock({loading: true, content: 'Thinking...'});
+      const block = createResponseBlock({
+        loading: true,
+        message: {
+          role: 'assistant',
+          content: 'Thinking...',
+        },
+      });
       render(<BlockComponent block={block} onClick={mockOnClick} />);
 
       expect(screen.getByText('Thinking...')).toBeInTheDocument();
@@ -97,7 +107,11 @@ describe('BlockComponent', () => {
   describe('Markdown Content', () => {
     it('renders markdown content in response blocks', () => {
       const block = createResponseBlock({
-        content: '# Heading\n\nThis is **bold** text with a [link](https://example.com)',
+        message: {
+          role: 'assistant',
+          content:
+            '# Heading\n\nThis is **bold** text with a [link](https://example.com)',
+        },
       });
       render(<BlockComponent block={block} onClick={mockOnClick} />);
 

@@ -14,7 +14,7 @@ import type {Block} from 'sentry/views/seerExplorer/types';
 
 export type SeerExplorerResponse = {
   session: {
-    messages: Block[];
+    blocks: Block[];
     status: 'processing' | 'completed' | 'error';
     updated_at: string;
     run_id?: number;
@@ -43,11 +43,13 @@ const makeInitialSeerExplorerData = (): SeerExplorerResponse => ({
 const makeErrorSeerExplorerData = (errorMessage: string): SeerExplorerResponse => ({
   session: {
     run_id: undefined,
-    messages: [
+    blocks: [
       {
         id: 'error',
-        type: 'response',
-        content: `Error: ${errorMessage}`,
+        message: {
+          role: 'assistant',
+          content: `Error: ${errorMessage}`,
+        },
         timestamp: new Date().toISOString(),
         loading: false,
       },
@@ -70,7 +72,7 @@ const isPolling = (sessionData: SeerExplorerResponse['session'], runStarted: boo
   // Poll if status is processing or if any message is loading
   return (
     sessionData.status === 'processing' ||
-    sessionData.messages.some(message => message.loading)
+    sessionData.blocks.some(message => message.loading)
   );
 };
 
@@ -113,7 +115,7 @@ export const useSeerExplorer = () => {
       // Calculate insert index first
       const wasDeleted = deletedFromIndex !== null;
       const effectiveMessageLength =
-        deletedFromIndex ?? (apiData?.session?.messages.length || 0);
+        deletedFromIndex ?? (apiData?.session?.blocks.length || 0);
       const calculatedInsertIndex = insertIndex ?? effectiveMessageLength;
 
       // Generate timestamp in seconds to match backend format
@@ -123,28 +125,32 @@ export const useSeerExplorer = () => {
       if (currentRunId && apiData?.session) {
         const userMessage: Block = {
           id: `user-${timestamp}`,
-          type: 'user-input',
-          content: query,
+          message: {
+            role: 'user',
+            content: query,
+          },
           timestamp: new Date().toISOString(),
           loading: false,
         };
 
         const loadingMessage: Block = {
           id: `loading-${timestamp}`,
-          type: 'response',
-          content: 'Thinking...',
+          message: {
+            role: 'assistant',
+            content: 'Thinking...',
+          },
           timestamp: new Date().toISOString(),
           loading: true,
         };
 
         // Use the effective message list (considering deletions) for optimistic update
         const effectiveMessages = wasDeleted
-          ? apiData.session.messages.slice(0, calculatedInsertIndex)
-          : apiData.session.messages;
+          ? apiData.session.blocks.slice(0, calculatedInsertIndex)
+          : apiData.session.blocks;
 
         const updatedSession = {
           ...apiData.session,
-          messages: [...effectiveMessages, userMessage, loadingMessage],
+          blocks: [...effectiveMessages, userMessage, loadingMessage],
           status: 'processing' as const,
         };
 
@@ -219,12 +225,12 @@ export const useSeerExplorer = () => {
 
   // Always filter messages based on deletedFromIndex before any other processing
   let sessionData = apiData?.session ?? null;
-  if (sessionData?.messages && deletedFromIndex !== null) {
+  if (sessionData?.blocks && deletedFromIndex !== null) {
     // Separate optimistic messages from real messages
-    const optimisticMessages = sessionData.messages.filter(msg =>
+    const optimisticMessages = sessionData.blocks.filter(msg =>
       optimisticMessageIds.has(msg.id)
     );
-    const realMessages = sessionData.messages.filter(
+    const realMessages = sessionData.blocks.filter(
       msg => !optimisticMessageIds.has(msg.id)
     );
 
@@ -233,13 +239,13 @@ export const useSeerExplorer = () => {
 
     sessionData = {
       ...sessionData,
-      messages: [...filteredRealMessages, ...optimisticMessages],
+      blocks: [...filteredRealMessages, ...optimisticMessages],
     };
   }
 
-  if (waitingForResponse && sessionData?.messages) {
+  if (waitingForResponse && sessionData?.blocks) {
     // Stop waiting once we see the response is no longer loading
-    const hasLoadingMessage = sessionData.messages.some(message => message.loading);
+    const hasLoadingMessage = sessionData.blocks.some(block => block.loading);
 
     if (!hasLoadingMessage && sessionData.status !== 'processing') {
       setWaitingForResponse(false);

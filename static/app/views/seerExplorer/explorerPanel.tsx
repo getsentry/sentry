@@ -31,7 +31,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     useSeerExplorer();
 
   // Get blocks from session data or empty array
-  const blocks = useMemo(() => sessionData?.messages || [], [sessionData]);
+  const blocks = useMemo(() => sessionData?.blocks || [], [sessionData]);
 
   useBlockNavigation({
     isOpen,

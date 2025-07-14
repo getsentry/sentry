@@ -57,8 +57,10 @@ describe('useSeerExplorer', () => {
           run_id: 123,
           message: {
             id: 'msg-1',
-            type: 'response',
-            content: 'Response content',
+            message: {
+              role: 'assistant',
+              content: 'Response content',
+            },
             timestamp: '2024-01-01T00:00:00Z',
             loading: false,
           },
@@ -67,15 +69,17 @@ describe('useSeerExplorer', () => {
 
       // Mock the GET request that happens after POST to fetch session state
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/seer/explorer-chat/new-run-123/`,
+        url: `/organizations/${organization.slug}/seer/explorer-chat/123/`,
         method: 'GET',
         body: {
           session: {
-            messages: [
+            blocks: [
               {
                 id: 'msg-1',
-                type: 'response',
-                content: 'Response content',
+                message: {
+                  role: 'assistant',
+                  content: 'Response content',
+                },
                 timestamp: '2024-01-01T00:00:00Z',
                 loading: false,
               },

@@ -99,36 +99,41 @@ describe('ExplorerPanel', () => {
       });
 
       const mockSessionData = {
-        messages: [
+        blocks: [
           {
             id: 'msg-1',
-            type: 'user-input' as const,
-            content: 'What is this error?',
+            message: {
+              role: 'user',
+              content: 'What is this error?',
+            },
             timestamp: '2024-01-01T00:00:00Z',
             loading: false,
           },
           {
             id: 'msg-2',
-            type: 'response' as const,
-            content: 'This error indicates a null pointer exception.',
+            message: {
+              role: 'assistant',
+              content: 'This error indicates a null pointer exception.',
+            },
             timestamp: '2024-01-01T00:01:00Z',
             loading: false,
           },
         ],
-        run_id: 'test-run',
+        run_id: 123,
         status: 'completed' as const,
         updated_at: '2024-01-01T00:01:00Z',
       };
 
       // Mock the hook to return our test data
       jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
-        sessionData: mockSessionData,
+        sessionData:
+          mockSessionData as useSeerExplorerModule.SeerExplorerResponse['session'],
         sendMessage: jest.fn(),
         deleteFromIndex: jest.fn(),
         startNewSession: jest.fn(),
         isPolling: false,
         isPending: false,
-        runId: 'test-run',
+        runId: 123,
         deletedFromIndex: null,
       });
 
