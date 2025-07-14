@@ -11,7 +11,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
@@ -93,6 +93,13 @@ def _call_seer_explorer_state(organization: Organization, run_id: int):
     return response.json()
 
 
+class OrganizationSeerExplorerChatPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read"],
+        "POST": ["org:read"],
+    }
+
+
 @region_silo_endpoint
 class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
     publish_status = {
@@ -113,6 +120,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
             RateLimitCategory.ORGANIZATION: RateLimit(limit=1000, window=60),
         },
     }
+    permission_classes = (OrganizationSeerExplorerChatPermission,)
 
     def get(
         self, request: Request, organization: Organization, run_id: int | None = None
