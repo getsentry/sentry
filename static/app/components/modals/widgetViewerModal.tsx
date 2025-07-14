@@ -54,8 +54,8 @@ import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhan
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
@@ -502,6 +502,9 @@ function WidgetViewerModal(props: Props) {
         tableWidget,
         setChartUnmodified,
         widths,
+        location,
+        organization,
+        navigate,
       });
     }
 
@@ -592,6 +595,9 @@ function WidgetViewerModal(props: Props) {
         tableWidget,
         setChartUnmodified,
         widths,
+        location,
+        organization,
+        navigate,
       });
     }
     const links = parseLinkHeader(pageLinks ?? null);
@@ -681,6 +687,9 @@ function WidgetViewerModal(props: Props) {
         tableWidget,
         setChartUnmodified,
         widths,
+        location,
+        organization,
+        navigate,
       });
     }
     const links = parseLinkHeader(pageLinks ?? null);
@@ -1241,6 +1250,9 @@ function renderTotalResults(totalResults?: string, widgetType?: WidgetType) {
 interface ViewerTableV2Props {
   columnOrder: Array<TableColumn<string>>;
   loading: boolean;
+  location: Location;
+  navigate: ReactRouter3Navigate;
+  organization: Organization;
   setChartUnmodified: React.Dispatch<React.SetStateAction<boolean>>;
   tableWidget: Widget;
   widget: Widget;
@@ -1260,11 +1272,10 @@ function ViewerTableV2({
   columnSortBy,
   setChartUnmodified,
   tableWidget,
+  location,
+  organization,
+  navigate,
 }: ViewerTableV2Props) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const organization = useOrganization();
-
   const page = decodeInteger(location.query[WidgetViewerQueryField.PAGE]) ?? 0;
   const links = parseLinkHeader(pageLinks ?? null);
 
@@ -1279,16 +1290,14 @@ function ViewerTableV2({
   }
 
   const tableColumns = columnOrder.map((column, index) => ({
-    key: isAggregateField(column.key) ? getAggregateAlias(column.key) : column.key,
+    key: column.key,
     type: column.type === 'never' ? null : column.type,
     sortable: sortable(column.key),
     width: widths[index] ? parseInt(widths[index], 10) || -1 : -1,
   }));
   const aliases = decodeColumnAliases(
     tableColumns,
-    columnOrder.map(
-      (column, index) => tableWidget.queries[0]?.fieldAliases?.[index] ?? column.key
-    ),
+    tableWidget.queries[0]?.fieldAliases ?? [],
     tableWidget.widgetType === WidgetType.ISSUE
       ? getDatasetConfig(tableWidget.widgetType).getFieldHeaderMap?.()
       : {}

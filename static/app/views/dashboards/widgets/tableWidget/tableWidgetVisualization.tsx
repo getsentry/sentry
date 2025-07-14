@@ -10,7 +10,7 @@ import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {ColumnValueType, Sort} from 'sentry/utils/discover/fields';
-import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -199,11 +199,17 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
           const align = fieldAlignment(column.key, column.type as ColumnValueType);
           const name = aliases?.[column.key] || column.key;
           const sortColumn = getSortField(column.key) ?? column.key;
+          // Older tables that use eventView assign an alias to aggregate column keys
+          const possibleSortColumns = [sortColumn, getAggregateAlias(column.key)];
 
           let direction = undefined;
-          if (sort?.field === sortColumn) {
+          if (sort && possibleSortColumns.includes(sort.field)) {
             direction = sort.kind;
-          } else if (locationSort?.field === sortColumn && !sort) {
+          } else if (
+            locationSort &&
+            !sort &&
+            possibleSortColumns.includes(locationSort.field)
+          ) {
             direction = locationSort.kind;
           }
 
