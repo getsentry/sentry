@@ -6,7 +6,6 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {ActionsProvider} from 'sentry/components/workflowEngine/layout/actions';
 import ListLayout from 'sentry/components/workflowEngine/layout/list';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {IconAdd} from 'sentry/icons';
@@ -61,29 +60,27 @@ export default function AutomationsList() {
   return (
     <SentryDocumentTitle title={t('Automations')} noSuffix>
       <PageFiltersContainer>
-        <ActionsProvider actions={<Actions />}>
-          <ListLayout>
-            <TableHeader />
-            <div>
-              <AutomationListTable
-                automations={automations ?? []}
-                isPending={isPending}
-                isError={isError}
-                isSuccess={isSuccess}
-                sort={sort}
-              />
-              <Pagination
-                pageLinks={getResponseHeader?.('Link')}
-                onCursor={newCursor => {
-                  navigate({
-                    pathname: location.pathname,
-                    query: {...location.query, cursor: newCursor},
-                  });
-                }}
-              />
-            </div>
-          </ListLayout>
-        </ActionsProvider>
+        <ListLayout actions={<Actions />}>
+          <TableHeader />
+          <div>
+            <AutomationListTable
+              automations={automations ?? []}
+              isPending={isPending}
+              isError={isError}
+              isSuccess={isSuccess}
+              sort={sort}
+            />
+            <Pagination
+              pageLinks={getResponseHeader?.('Link')}
+              onCursor={newCursor => {
+                navigate({
+                  pathname: location.pathname,
+                  query: {...location.query, cursor: newCursor},
+                });
+              }}
+            />
+          </div>
+        </ListLayout>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );
