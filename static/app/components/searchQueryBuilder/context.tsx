@@ -82,7 +82,7 @@ export function SearchQueryBuilderProvider({
   disallowFreeText,
   disallowUnsupportedFilters,
   disallowWildcard,
-  enableAISearch,
+  enableAISearch: enableAISearchProp,
   invalidMessages,
   initialQuery,
   fieldDefinitionGetter = getFieldDefinition,
@@ -103,7 +103,9 @@ export function SearchQueryBuilderProvider({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
   const organization = useOrganization();
-  const {setupAcknowledgement} = useOrganizationSeerSetup();
+
+  const enableAISearch = Boolean(enableAISearchProp) && !organization.hideAiFeatures;
+  const {setupAcknowledgement} = useOrganizationSeerSetup({enabled: enableAISearch});
 
   const [displaySeerResults, setDisplaySeerResults] = useState(false);
 
@@ -169,7 +171,7 @@ export function SearchQueryBuilderProvider({
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
       disallowWildcard: Boolean(disallowWildcard),
-      enableAISearch: Boolean(enableAISearch) && !organization.hideAiFeatures,
+      enableAISearch,
       parseQuery,
       parsedQuery,
       filterKeySections: filterKeySections ?? [],
@@ -205,7 +207,6 @@ export function SearchQueryBuilderProvider({
     filterKeySections,
     getTagValues,
     handleSearch,
-    organization.hideAiFeatures,
     parseQuery,
     parsedQuery,
     placeholder,
