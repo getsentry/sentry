@@ -3,6 +3,7 @@ import type {
   Detector,
   UptimeDetectorUpdatePayload,
 } from 'sentry/types/workflowEngine/detectors';
+import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
 
 export interface UptimeDetectorFormData {
   body: string;
@@ -76,7 +77,7 @@ export function uptimeSavedDetectorToFormData(
   }
 
   const dataSource = detector.dataSources?.[0];
-  const environment = 'environment' in detector.config ? detector.config.environment : '';
+  const environment = getDetectorEnvironment(detector);
 
   const common = {
     name: detector.name,
