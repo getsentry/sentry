@@ -24,7 +24,13 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.dashboard_examples import DashboardExamples
 from sentry.apidocs.parameters import DashboardParams, GlobalParams
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardTombstone
+from sentry.models.dashboard import (
+    Dashboard,
+    DashboardFavoriteUser,
+    DashboardLastVisited,
+    DashboardTombstone,
+)
+from sentry.models.organizationmember import OrganizationMember
 
 EDIT_FEATURE = "organizations:dashboards-edit"
 READ_FEATURE = "organizations:dashboards-basic"
@@ -195,6 +201,18 @@ class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
         dashboard.visits = F("visits") + 1
         dashboard.last_visited = timezone.now()
         dashboard.save(update_fields=["visits", "last_visited"])
+
+        org_member = OrganizationMember.objects.filter(
+            user_id=request.user.pk, organization_id=organization.id
+        ).first()
+        if not org_member:
+            return Response(status=403)
+
+        DashboardLastVisited.objects.create_or_update(
+            dashboard=dashboard,
+            member=org_member,
+            values={"last_visited": timezone.now()},
+        )
 
         return Response(status=204)
 
