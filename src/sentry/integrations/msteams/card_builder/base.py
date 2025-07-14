@@ -9,7 +9,6 @@ from sentry.integrations.msteams.card_builder.block import (
     Block,
     create_text_block,
 )
-from sentry.integrations.types import IntegrationProviderSlug
 
 
 class MSTeamsMessageBuilder:
@@ -50,5 +49,5 @@ class MSTeamsMessageBuilder:
             "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
             "version": "1.2",
             "actions": actions or [],
-            IntegrationProviderSlug.MSTEAMS.value: {"width": "Full"},
+            "msteams": {"width": "Full"},
         }
