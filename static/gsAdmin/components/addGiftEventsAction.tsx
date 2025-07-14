@@ -9,7 +9,11 @@ import type {
   AdminConfirmRenderProps,
 } from 'admin/components/adminConfirmationModal';
 import type {BilledDataCategoryInfo, Subscription} from 'getsentry/types';
-import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
+import {
+  getPlanCategoryName,
+  isByteCategory,
+  isContinuousProfiling,
+} from 'getsentry/utils/dataCategory';
 
 /** @internal exported for tests only */
 export function getFreeEventsKey(dataCategory: DataCategory) {
@@ -93,6 +97,9 @@ class AddGiftEventsAction extends Component<Props, State> {
       if (dataCategory === DataCategory.ATTACHMENTS) {
         return 'How many attachments in GB?';
       }
+      if (dataCategory === DataCategory.LOG_BYTE) {
+        return 'How many log bytes in GB?';
+      }
       if (
         dataCategory === DataCategory.PROFILE_DURATION ||
         dataCategory === DataCategory.PROFILE_DURATION_UI
@@ -115,17 +122,14 @@ class AddGiftEventsAction extends Component<Props, State> {
     const total = this.calculatedTotal.toLocaleString();
     function getHelp() {
       let postFix = '';
-      if (
-        dataCategory === DataCategory.PROFILE_DURATION ||
-        dataCategory === DataCategory.PROFILE_DURATION_UI
-      ) {
+      if (isContinuousProfiling(dataCategory)) {
         if (total === '1') {
           postFix = ' hour';
         } else {
           postFix = ' hours';
         }
       }
-      if (dataCategory === DataCategory.ATTACHMENTS) {
+      if (isByteCategory(dataCategory)) {
         postFix = ' GB';
       }
       return `Total: ${total}${postFix}`;
