@@ -149,7 +149,7 @@ function Chart({
       seriesParamsOrParam: TooltipComponentFormatterCallbackParams
     ) => {
       if (!Array.isArray(seriesParamsOrParam)) {
-        throw new Error('seriesParamsOrParam is not an array in formatAxisLabel');
+        return '\u2014';
       }
 
       const selectedParam = seriesParamsOrParam[0];
