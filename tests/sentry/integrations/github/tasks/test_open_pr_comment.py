@@ -6,6 +6,7 @@ import pytest
 import responses
 from django.utils import timezone
 
+from sentry.analytics.events.open_pr_comment import OpenPRCommentCreatedEvent
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegration, GitHubIntegrationProvider
 from sentry.integrations.github.tasks.open_pr_comment import open_pr_comment_workflow
@@ -20,6 +21,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComment
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import IntegrationTestCase, TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
@@ -1104,12 +1106,14 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         assert comment.comment_type == CommentType.OPEN_PR
 
         mock_metrics.incr.assert_called_with("github.open_pr_comment.comment_created")
-        mock_analytics.assert_any_call(
-            "open_pr_comment.created",
-            comment_id=comment.id,
-            org_id=self.organization.id,
-            pr_id=comment.pull_request.id,
-            language="python",
+        assert_last_analytics_event(
+            mock_analytics,
+            OpenPRCommentCreatedEvent(
+                comment_id=comment.id,
+                org_id=self.organization.id,
+                pr_id=comment.pull_request.id,
+                language="python",
+            ),
         )
 
     @responses.activate

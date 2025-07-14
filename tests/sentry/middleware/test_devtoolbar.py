@@ -8,6 +8,7 @@ from sentry.api import DevToolbarApiRequestEvent
 from sentry.middleware.devtoolbar import DevToolbarAnalyticsMiddleware
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers.analytics import assert_last_analytics_event, get_last_analytics_event
 from sentry.types.group import GroupSubStatus
 
 
@@ -27,10 +28,13 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
     @patch("sentry.analytics.record")
     def test_basic(self, mock_record: MagicMock):
         request = self.factory.get("/?queryReferrer=devtoolbar")
-        request.resolver_match = MagicMock()
+        view_name = "my-endpoint"
+        route = "/issues/(?P<issue_id>)/"
+        request.resolver_match = MagicMock(view_name=view_name, route=route)
         self.middleware(request)
-        mock_record.assert_called()
-        assert mock_record.call_args[0][0] == self.analytics_event_name
+
+        event = get_last_analytics_event(mock_record)
+        assert event.type == self.analytics_event_name
 
     @override_options({"devtoolbar.analytics.enabled": True})
     @patch("sentry.analytics.record")
@@ -70,10 +74,10 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
         request.resolver_match = MagicMock(view_name=view_name, route=route)
         self.middleware(request)
 
-        mock_record.assert_called()
-        assert mock_record.call_args[0][0] == self.analytics_event_name
-        assert mock_record.call_args[1].get("view_name") == view_name
-        assert mock_record.call_args[1].get("route") == route
+        event = get_last_analytics_event(mock_record)
+        assert event.type == self.analytics_event_name
+        assert event.view_name == view_name
+        assert event.route == route
 
     @override_options({"devtoolbar.analytics.enabled": True})
     @patch("sentry.analytics.record")
@@ -81,11 +85,13 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
         query = "?a=b&statsPeriod=14d&queryReferrer=devtoolbar"
         request = self.factory.get("/" + query)
         request.resolver_match = MagicMock()
+        request.resolver_match.view_name = "my-endpoint"
+        request.resolver_match.route = "/issues/(?P<issue_id>)/"
         self.middleware(request)
 
-        mock_record.assert_called()
-        assert mock_record.call_args[0][0] == self.analytics_event_name
-        assert mock_record.call_args[1].get("query_string") == query
+        event = get_last_analytics_event(mock_record)
+        assert event.type == self.analytics_event_name
+        assert event.query_string == query
 
     @override_options({"devtoolbar.analytics.enabled": True})
     @patch("sentry.analytics.record")
@@ -94,12 +100,12 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
         request = self.factory.get(
             f"{origin}/?queryReferrer=devtoolbar", headers={"Origin": origin}
         )
-        request.resolver_match = MagicMock()
+        request.resolver_match = MagicMock(view_name="my-endpoint", route="/issues/(?P<issue_id>)/")
         self.middleware(request)
 
-        mock_record.assert_called()
-        assert mock_record.call_args[0][0] == self.analytics_event_name
-        assert mock_record.call_args[1].get("origin") == origin
+        event = get_last_analytics_event(mock_record)
+        assert event.type == self.analytics_event_name
+        assert event.origin == origin
 
     @override_options({"devtoolbar.analytics.enabled": True})
     @patch("sentry.analytics.record")
@@ -107,36 +113,38 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
         origin = "https://potato.com"
         url = origin + "/issues/?a=b&queryReferrer=devtoolbar"
         request = self.factory.get(url, headers={"Referer": url})
-        request.resolver_match = MagicMock()
+        request.resolver_match = MagicMock(view_name="my-endpoint", route="/issues/(?P<issue_id>)/")
         self.middleware(request)
 
-        mock_record.assert_called()
-        assert mock_record.call_args[0][0] == self.analytics_event_name
-        assert mock_record.call_args[1].get("origin") == origin
+        event = get_last_analytics_event(mock_record)
+        assert event.type == self.analytics_event_name
+        assert event.origin == origin
 
     @override_options({"devtoolbar.analytics.enabled": True})
     @patch("sentry.analytics.record")
     def test_response_status_code(self, mock_record: MagicMock):
         request = self.factory.get("/?queryReferrer=devtoolbar")
-        request.resolver_match = MagicMock()
+        request.resolver_match = MagicMock(view_name="my-endpoint", route="/issues/(?P<issue_id>)/")
         self.middleware.get_response.return_value = HttpResponse(status=420)
         self.middleware(request)
 
-        mock_record.assert_called()
-        assert mock_record.call_args[0][0] == self.analytics_event_name
-        assert mock_record.call_args[1].get("status_code") == 420
+        event = get_last_analytics_event(mock_record)
+        assert event.type == self.analytics_event_name
+        assert event.status_code == 420
 
     @override_options({"devtoolbar.analytics.enabled": True})
     @patch("sentry.analytics.record")
     def test_methods(self, mock_record: MagicMock):
         for method in ["GET", "POST", "PUT", "DELETE"]:
             request = getattr(self.factory, method.lower())("/?queryReferrer=devtoolbar")
-            request.resolver_match = MagicMock()
+            request.resolver_match = MagicMock(
+                view_name="my-endpoint", route="/issues/(?P<issue_id>)/"
+            )
             self.middleware(request)
 
-            mock_record.assert_called()
-            assert mock_record.call_args[0][0] == self.analytics_event_name
-            assert mock_record.call_args[1].get("method") == method
+            event = get_last_analytics_event(mock_record)
+            assert event.type == self.analytics_event_name
+            assert event.method == method
 
 
 TEST_MIDDLEWARE = (
@@ -178,19 +186,21 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
             },
         )
 
-        mock_record.assert_any_call(
-            "devtoolbar.api_request",
-            view_name=expected_view_name,
-            route=expected_route,
-            query_string=query_string,
-            origin=self.origin,
-            method=method,
-            status_code=response.status_code,
-            organization_id=expected_org_id,
-            organization_slug=expected_org_slug,
-            project_id=expected_proj_id,
-            project_slug=expected_proj_slug,
-            user_id=self.user.id,
+        assert_last_analytics_event(
+            mock_record,
+            DevToolbarApiRequestEvent(
+                view_name=expected_view_name,
+                route=expected_route,
+                query_string=query_string,
+                origin=self.origin,
+                method=method,
+                status_code=response.status_code,
+                organization_id=expected_org_id,
+                organization_slug=expected_org_slug,
+                project_id=expected_proj_id,
+                project_slug=expected_proj_slug,
+                user_id=self.user.id,
+            ),
         )
 
     def test_organization_replays(self):
