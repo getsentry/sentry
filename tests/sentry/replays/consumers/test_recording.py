@@ -16,6 +16,7 @@ from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFac
 from sentry.replays.lib.storage import _make_recording_filename, storage_kv
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.usecases.pack import unpack
+from sentry.testutils import thread_leaks
 from sentry.testutils.cases import TransactionTestCase
 
 
@@ -442,5 +443,6 @@ class RecordingTestCase(TransactionTestCase):
         # assert not mock_record.called
 
 
+@thread_leaks.allowlist(issue=-5, reason="Django test server")
 class ThreadedRecordingTestCase(RecordingTestCase):
     force_synchronous = False

@@ -4,6 +4,7 @@ from rest_framework import status
 from sentry.api.serializers import serialize
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
+from sentry.testutils import thread_leaks
 from sentry.testutils.cases import APITestCase
 
 
@@ -97,6 +98,7 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
         assert resp.data["id"] == str(self.config.id)
         assert resp.data["sourceRoot"] == "newRoot"
 
+    @thread_leaks.allowlist(issue=-5, reason="Django test server")
     def test_basic_edit_from_member_permissions(self):
         self.login_as(user=self.user2)
         resp = self.make_put({"sourceRoot": "newRoot"})

@@ -15,6 +15,7 @@ from django.test import override_settings
 
 from sentry.consumers import get_stream_processor
 from sentry.eventstream.types import EventStreamEventType
+from sentry.testutils import thread_leaks
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_kafka
 from sentry.utils import json, kafka_config
@@ -159,5 +160,6 @@ class PostProcessForwarderTest(TestCase):
     def test_multithreaded_post_process_forwarder(self) -> None:
         self.run_post_process_forwarder_streaming_consumer(ppf_mode="multithreaded")
 
+    @thread_leaks.allowlist(issue=-11, reason="Arroyo concurrent execution")
     def test_multiprocess_post_process_forwarder(self) -> None:
         self.run_post_process_forwarder_streaming_consumer(ppf_mode="multiprocess")
