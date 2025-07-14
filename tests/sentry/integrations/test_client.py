@@ -1,9 +1,10 @@
 import errno
 import os
-from unittest import TestCase, mock
+from unittest import mock
 
 import pytest
 import responses
+from django.test import TestCase
 from requests import Response
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 from requests.sessions import Session
