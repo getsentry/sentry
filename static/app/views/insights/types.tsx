@@ -209,7 +209,7 @@ export type SpanStringFields =
   | 'profile.id'
   | 'profiler.id'
   | 'thread.id'
-  | 'span.domain'; // TODO: With `useInsightsEap` we get a string, without it we get an array
+  | 'span.domain';
 
 export type SpanMetricsQueryFilters = Partial<Record<SpanStringFields, string>> & {
   [SpanMetricsField.PROJECT_ID]?: string;
@@ -219,8 +219,6 @@ export type SpanMetricsQueryFilters = Partial<Record<SpanStringFields, string>> 
 export type SpanIndexedQueryFilters = Partial<Record<SpanStringFields, string>> & {
   [SpanIndexedField.PROJECT_ID]?: string;
 };
-
-type SpanStringArrayFields = 'span.domain';
 
 export const COUNTER_AGGREGATES = ['sum', 'avg', 'min', 'max', 'p100'] as const;
 export const DISTRIBUTION_AGGREGATES = ['p50', 'p75', 'p90', 'p95', 'p99'] as const;

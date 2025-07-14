@@ -1,13 +1,10 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 
 import {useMetrics} from './useDiscover';
 
 export function useTTFDConfigured(additionalFilters?: string[]) {
-  const useEap = useInsightsEap();
-
   const {
     primaryRelease,
     secondaryRelease,
@@ -15,7 +12,7 @@ export function useTTFDConfigured(additionalFilters?: string[]) {
   } = useReleaseSelection();
 
   const query = new MutableSearch([
-    useEap ? 'is_transaction:true' : 'event.type:transaction',
+    'is_transaction:true',
     'transaction.op:[ui.load,navigation]',
     ...(additionalFilters ?? []),
   ]);
