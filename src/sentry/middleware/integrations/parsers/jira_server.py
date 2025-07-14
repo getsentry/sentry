@@ -14,12 +14,13 @@ from sentry.integrations.jira_server.webhooks import (
     get_integration_from_token,
 )
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
+from sentry.integrations.types import IntegrationProviderSlug
 
 logger = logging.getLogger(__name__)
 
 
 class JiraServerRequestParser(BaseRequestParser):
-    provider = "jira_server"
+    provider = IntegrationProviderSlug.JIRA_SERVER.value
     webhook_identifier = WebhookProviderIdentifier.JIRA_SERVER
 
     def get_response_from_issue_update_webhook(self):
