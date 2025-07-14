@@ -2607,14 +2607,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rate at which to run split enhancements and compare the results to the default enhancements
-register(
-    "grouping.split_enhancements.sample_rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 register(
     "metrics.sample-list.sample-rate",
     type=Float,
@@ -3186,32 +3178,24 @@ register(
 
 # Taskbroker flags
 register(
-    "taskworker.try_compress.profile_metrics",
-    default=0.0,
-    type=Float,
+    "taskworker.route.overrides",
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-register(
-    "taskworker.try_compress.profile_metrics.rollout",
-    default=0.0,
-    type=Float,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Taskbroker flags
 register(
     "taskworker.try_compress.profile_metrics.level",
     default=6,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
 register(
-    "taskworker.route.overrides",
-    default={},
+    "taskworker.fetch_next.disabled_pools",
+    default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+
+# Taskbroker rollout flags
 register(
     "taskworker.deletions.rollout",
     default={},
@@ -3457,6 +3441,14 @@ register(
 register(
     "taskworker.scheduler.rollout",
     default=["sync_options_trial"],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Taskbroker compression flag
+register(
+    "taskworker.enable_compression.rollout",
+    default=0.0,
+    type=Float,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

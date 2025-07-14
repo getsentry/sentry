@@ -6,7 +6,7 @@ from typing import DefaultDict
 
 import sentry_sdk
 from django.db import router, transaction
-from django.db.models import F, Q
+from django.db.models import Q
 from django.utils import timezone
 
 from sentry import buffer, features
@@ -21,6 +21,7 @@ from sentry.workflow_engine.models import (
     Detector,
     Workflow,
 )
+from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
 from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (
     WorkflowEventContext,
@@ -29,6 +30,7 @@ from sentry.workflow_engine.processors.contexts.workflow_event_context import (
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
+from sentry.workflow_engine.tasks.actions import build_trigger_action_task_params, trigger_action
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.utils import log_context
 from sentry.workflow_engine.utils.metrics import metrics_incr
@@ -191,23 +193,22 @@ def evaluate_workflow_triggers(
     return triggered_workflows
 
 
-@sentry_sdk.trace
-def evaluate_workflows_action_filters(
-    workflows: set[Workflow],
+def evaluate_action_filters(
     event_data: WorkflowEventData,
+    dcg_to_workflow: dict[DataConditionGroup, Workflow],
 ) -> set[DataConditionGroup]:
+    """
+    Evaluate the action filters for the given mapping of DataConditionGroup to Workflow. (dcg_to_workflow_id)
+    Returns a set of DataConditionGroups that were evaluated to True.
+
+    Use this function if you are repeatedly evaluating action filters in a loop --
+    query for all the DataConditionGroups in a single query before using this function to avoid N+1s queries.
+    """
     filtered_action_groups: set[DataConditionGroup] = set()
-    action_conditions = (
-        DataConditionGroup.objects.filter(workflowdataconditiongroup__workflow__in=workflows)
-        .annotate(workflow_id=F("workflowdataconditiongroup__workflow_id"))
-        .distinct()
-    )
-    workflows_by_id = {workflow.id: workflow for workflow in workflows}
     queue_items_by_project_id = DefaultDict[int, list[DelayedWorkflowItem]](list)
     current_time = timezone.now()
 
-    for action_condition in action_conditions:
-        workflow = workflows_by_id[action_condition.workflow_id]
+    for action_condition, workflow in dcg_to_workflow.items():
         env = (
             Environment.objects.get_from_cache(id=workflow.environment_id)
             if workflow.environment_id
@@ -263,13 +264,36 @@ def evaluate_workflows_action_filters(
         extra={
             "group_id": event_data.group.id,
             "event_id": event_id,
-            "workflow_ids": [workflow.id for workflow in workflows],
-            "action_conditions": [action_condition.id for action_condition in action_conditions],
+            "workflow_ids": [workflow.id for workflow in dcg_to_workflow.values()],
+            "action_conditions": [
+                action_condition.id for action_condition in dcg_to_workflow.keys()
+            ],
             "filtered_action_groups": [action_group.id for action_group in filtered_action_groups],
         },
     )
 
     return filtered_action_groups
+
+
+@sentry_sdk.trace
+def evaluate_workflows_action_filters(
+    workflows: set[Workflow],
+    event_data: WorkflowEventData,
+) -> set[DataConditionGroup]:
+    """
+    Evaluate the action filters for the given workflows.
+    Returns a set of DataConditionGroups that were evaluated to True.
+
+    Use this function if you only have a set of workflows to evaluate and will not repeatedly evaluate action filters in a loop.
+    """
+    action_conditions_to_workflow = {
+        wdcg.condition_group: wdcg.workflow
+        for wdcg in WorkflowDataConditionGroup.objects.select_related(
+            "workflow", "condition_group"
+        ).filter(workflow__in=workflows)
+    }
+
+    return evaluate_action_filters(event_data, action_conditions_to_workflow)
 
 
 def get_environment_by_event(event_data: WorkflowEventData) -> Environment | None:
@@ -414,19 +438,14 @@ def process_workflows(
             organization,
         ):
             for action in actions:
-                action.trigger(event_data, detector)
-                metrics_incr(
-                    "action.trigger",
-                    tags={"action_type": action.type},
-                )
-
-                logger.info(
-                    "workflow_engine.action.trigger",
-                    extra={
-                        "action_id": action.id,
-                        "event_data": asdict(event_data),
-                    },
-                )
+                if features.has(
+                    "organizations:workflow-engine-action-trigger-async",
+                    organization,
+                ):
+                    task_params = build_trigger_action_task_params(action, detector, event_data)
+                    trigger_action.delay(**task_params)
+                else:
+                    action.trigger(event_data, detector)
         else:
             logger.info(
                 "workflow_engine.triggered_actions",
