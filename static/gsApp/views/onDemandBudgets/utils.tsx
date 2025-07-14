@@ -151,10 +151,7 @@ function getBudgetMode(budget: OnDemandBudgets) {
 }
 
 export function getOnDemandBudget(budget: OnDemandBudgets, dataCategory: DataCategory) {
-  if (
-    budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY &&
-    dataCategory in budget.budgets
-  ) {
+  if (budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
     return budget.budgets[dataCategory] ?? 0;
   }
   return getTotalBudget(budget);
