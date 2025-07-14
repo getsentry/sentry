@@ -89,8 +89,12 @@ interface TextProps {
   wrap?: 'nowrap' | 'normal' | 'pre' | 'pre-line' | 'pre-wrap';
 }
 
+type ExclusiveEllipsisProps =
+  | {ellipsis: true; wrap?: never}
+  | {wrap: TextProps['wrap']; ellipsis?: false};
+
 export const Text = styled(
-  (props: TextProps) => {
+  (props: TextProps & ExclusiveEllipsisProps) => {
     const {children, ...rest} = props;
     const Component = props.as || 'span';
     return <Component {...rest}>{children}</Component>;
@@ -148,7 +152,7 @@ interface HeadingProps extends Omit<TextProps, 'as'> {
 }
 
 export const Heading = styled(
-  (props: HeadingProps) => {
+  (props: HeadingProps & ExclusiveEllipsisProps) => {
     const {children, as, ...rest} = props;
     const HeadingComponent = as;
 
