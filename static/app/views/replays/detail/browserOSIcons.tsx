@@ -28,7 +28,7 @@ export default function BrowserOSIcons({
   );
 
   return isLoading ? (
-    <Placeholder width="50px" height="32px" />
+    <Placeholder width="34px" height="20px" />
   ) : (
     <Flex direction="row-reverse">
       <Tooltip title={`${replayRecord?.os.name ?? ''} ${replayRecord?.os.version ?? ''}`}>
