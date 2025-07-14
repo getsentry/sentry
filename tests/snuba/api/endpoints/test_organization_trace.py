@@ -1,4 +1,5 @@
 import logging
+from unittest import mock
 from uuid import uuid4
 
 from django.urls import reverse
@@ -232,3 +233,37 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         data = response.data
         assert len(data) == 1
         assert data[0]["event_id"] == error.event_id
+
+    def test_with_target_error(self):
+        start, _ = self.get_start_end_from_day_ago(1000)
+        error_data = load_data(
+            "javascript",
+            timestamp=start,
+        )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": "a" * 16,
+        }
+        error_data["tags"] = [["transaction", "/transaction/gen1-0"]]
+        error = self.store_event(error_data, project_id=self.project.id)
+        for _ in range(5):
+            self.store_event(error_data, project_id=self.project.id)
+
+        with mock.patch("sentry.api.endpoints.organization_trace.ERROR_LIMIT", 1):
+            with self.feature(self.FEATURES):
+                response = self.client_get(
+                    data={"timestamp": self.day_ago, "errorId": error.event_id},
+                )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert len(data) == 1
+        assert data[0]["event_id"] == error.event_id
+
+    def test_with_invalid_error_id(self):
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"timestamp": self.day_ago, "errorId": ",blah blah,"},
+            )
+
+        assert response.status_code == 400, response.content

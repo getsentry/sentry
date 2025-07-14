@@ -11,6 +11,10 @@ export function hasAgentInsightsFeature(organization: Organization) {
   return organization.features.includes('agents-insights');
 }
 
+export function hasMCPInsightsFeature(organization: Organization) {
+  return organization.features.includes('mcp-insights');
+}
+
 export function usePreferedAiModule() {
   const organization = useOrganization();
   const user = useUser();

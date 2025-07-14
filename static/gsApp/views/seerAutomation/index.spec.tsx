@@ -65,13 +65,17 @@ describe('SeerAutomation', function () {
     render(<SeerAutomationRoot />, {organization});
 
     // Project details populate the project list
-    const projectItem = await screen.findByRole('link', {name: project.slug});
+    const projectItem = await screen.findByText(project.slug);
     expect(projectItem).toBeInTheDocument();
-    expect(projectItem.parentElement!.parentElement).toHaveTextContent('Off');
+
+    // Find the panel item containing the project
+    const panelItem = projectItem.closest('[class*="PanelItem"]');
+    expect(panelItem).toBeInTheDocument();
+    expect(panelItem).toHaveTextContent('Off');
 
     // Find the select menu
     const select = await screen.findByRole('textbox', {
-      name: /Default for Automatic Issue Fixes/i,
+      name: /Default for Auto-Triggered Fixes/i,
     });
 
     act(() => {
@@ -124,9 +128,9 @@ describe('SeerAutomation', function () {
 
     render(<SeerAutomationRoot />, {organization});
 
-    // Find the toggle for Default for Automatic Issue Scans
+    // Find the toggle for Default for Issue Scans
     const toggle = await screen.findByRole('checkbox', {
-      name: /Default for Automatic Issue Scans/i,
+      name: /Default for Issue Scans/i,
     });
     expect(toggle).toBeInTheDocument();
     expect(toggle).not.toBeChecked();

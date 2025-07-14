@@ -41,6 +41,7 @@ logger = log_context.get_logger(__name__)
         ),
     ),
 )
+@retry
 def process_workflow_activity(activity_id: int, group_id: int, detector_id: int) -> None:
     """
     Process a workflow task identified by the given activity, group, and detector.

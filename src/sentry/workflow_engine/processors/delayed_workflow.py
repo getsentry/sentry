@@ -32,11 +32,12 @@ from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.post_process import should_retry_fetch
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
-from sentry.taskworker.retry import Retry
+from sentry.taskworker.retry import Retry, retry_task
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
+from sentry.utils.snuba import SnubaError
 from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
     BaseEventFrequencyQueryHandler,
     GroupValues,
@@ -628,6 +629,14 @@ def fire_actions_for_groups(
         ).filter(workflow__in=workflows)
     }
 
+    # Feature check caching to keep us within the trace budget.
+    should_trigger_actions = features.has(
+        "organizations:workflow-engine-trigger-actions", organization
+    )
+    should_trigger_actions_async = features.has(
+        "organizations:workflow-engine-action-trigger-async", organization
+    )
+
     total_actions = 0
     with track_batch_performance(
         "workflow_engine.delayed_workflow.fire_actions_for_groups.loop",
@@ -701,15 +710,9 @@ def fire_actions_for_groups(
                 )
                 total_actions += len(filtered_actions)
 
-                if features.has(
-                    "organizations:workflow-engine-trigger-actions",
-                    organization,
-                ):
+                if should_trigger_actions:
                     for action in filtered_actions:
-                        if features.has(
-                            "organizations:workflow-engine-action-trigger-async",
-                            organization,
-                        ):
+                        if should_trigger_actions_async:
                             task_params = build_trigger_action_task_params(
                                 action, detector, workflow_event_data
                             )
@@ -815,7 +818,12 @@ def process_delayed_workflows(
         },
     )
 
-    condition_group_results = get_condition_group_results(condition_groups)
+    try:
+        condition_group_results = get_condition_group_results(condition_groups)
+    except SnubaError:
+        # We expect occasional errors, so we report as warning and retry.
+        logger.warning("delayed_workflow.snuba_error", exc_info=True)
+        retry_task()
 
     logger.info(
         "delayed_workflow.condition_group_results",

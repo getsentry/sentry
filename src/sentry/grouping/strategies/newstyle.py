@@ -35,6 +35,7 @@ from sentry.interfaces.exception import Mechanism, SingleException
 from sentry.interfaces.stacktrace import Frame, Stacktrace
 from sentry.interfaces.threads import Threads
 from sentry.stacktraces.platform import get_behavior_family_for_platform
+from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
@@ -677,6 +678,17 @@ def filter_exceptions_for_exception_groups(
 ) -> list[SingleException]:
     # This function only filters exceptions if there are at least two exceptions.
     if len(exceptions) <= 1:
+        return exceptions
+
+    # TODO: Get rid of this hack!
+    #
+    # A change in the python SDK between version 2 and version 3 means that suddenly this function
+    # applies where it didn't used to, which in turn changes how some exception groups are hashed.
+    # As a temporary stopgap, until we can build a system akin to the grouping config transition
+    # system to compensate for the change, we're just emulating the old behavior.
+    if event.platform == "python" and get_path(event.data, "sdk", "version", default="").startswith(
+        "3"
+    ):
         return exceptions
 
     # Reconstruct the tree of exceptions if the required data is present.

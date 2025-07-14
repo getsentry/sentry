@@ -8,11 +8,11 @@ import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {GroupStatus} from 'sentry/types/group';
-import type useListItemCheckboxState from 'sentry/utils/list/useListItemCheckboxState';
+import type {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 
 interface Props
   extends Pick<
-    ReturnType<typeof useListItemCheckboxState>,
+    ReturnType<typeof useListItemCheckboxContext>,
     'countSelected' | 'deselectAll' | 'selectedIds'
   > {
   mailbox: ReturnType<typeof decodeMailbox>;
