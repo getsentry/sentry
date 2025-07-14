@@ -6,6 +6,8 @@ from django.utils import timezone
 
 from sentry import onboarding_tasks
 from sentry.analytics import record
+from sentry.analytics.events.first_replay_sent import FirstReplaySentEvent
+from sentry.integrations.analytics import IntegrationAddedEvent
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationonboardingtask import (
     OnboardingTask,
@@ -30,6 +32,7 @@ from sentry.signals import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
@@ -745,13 +748,15 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-        record_analytics.assert_called_with(
-            "integration.added",
-            user_id=self.user.id,
-            default_user_id=self.organization.default_owner_id,
-            organization_id=self.organization.id,
-            id=integration_id,
-            provider="slack",
+        assert_last_analytics_event(
+            record_analytics,
+            IntegrationAddedEvent(
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                id=integration_id,
+                provider="slack",
+            ),
         )
 
     @patch("sentry.analytics.record", wraps=record)
@@ -770,13 +775,15 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-        record_analytics.assert_called_with(
-            "integration.added",
-            user_id=self.user.id,
-            default_user_id=self.organization.default_owner_id,
-            organization_id=self.organization.id,
-            id=integration_id,
-            provider="github",
+        assert_last_analytics_event(
+            record_analytics,
+            IntegrationAddedEvent(
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                id=integration_id,
+                provider="github",
+            ),
         )
 
     def test_second_platform_complete(self):
@@ -985,13 +992,15 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
-        record_analytics.assert_called_with(
-            "integration.added",
-            user_id=self.user.id,
-            default_user_id=self.organization.default_owner_id,
-            organization_id=self.organization.id,
-            provider=github_integration.provider,
-            id=github_integration.id,
+        assert_last_analytics_event(
+            record_analytics,
+            IntegrationAddedEvent(
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                provider=github_integration.provider,
+                id=github_integration.id,
+            ),
         )
 
         # Invite your team
@@ -1040,12 +1049,14 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
-        record_analytics.assert_called_with(
-            "first_replay.sent",
-            user_id=self.user.id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=project.platform,
+        assert_last_analytics_event(
+            record_analytics,
+            FirstReplaySentEvent(
+                user_id=self.user.id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=project.platform,
+            ),
         )
 
         # Get real time notifications
@@ -1064,13 +1075,15 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
-        record_analytics.assert_called_with(
-            "integration.added",
-            user_id=self.user.id,
-            default_user_id=self.organization.default_owner_id,
-            organization_id=self.organization.id,
-            provider=slack_integration.provider,
-            id=slack_integration.id,
+        assert_last_analytics_event(
+            record_analytics,
+            IntegrationAddedEvent(
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                provider=slack_integration.provider,
+                id=slack_integration.id,
+            ),
         )
 
         # Add Sentry to other parts app
