@@ -5,7 +5,7 @@ export interface Block {
   loading?: boolean;
 }
 
-export interface Message {
+interface Message {
   content: string;
   role: 'user' | 'assistant';
 }
