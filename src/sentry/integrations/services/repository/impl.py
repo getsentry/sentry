@@ -106,7 +106,6 @@ class DatabaseBackedRepositoryService(RepositoryService):
         fields_to_update = set(list(update_mapping.values())[0].keys())
 
         with transaction.atomic(router.db_for_write(Repository)):
-
             repositories = Repository.objects.filter(
                 organization_id=organization_id, id__in=update_mapping.keys()
             )
