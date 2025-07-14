@@ -56,6 +56,10 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
                     "description": f"GET gen1-{i}",
                     "span_id": root_span_id,
                     "trace_id": self.trace_id,
+                    "data": {
+                        "gen_ai.request.model": "gpt-4o",
+                        "gen_ai.usage.total_tokens": 100,
+                    },
                 }
                 for i, root_span_id in enumerate(self.root_span_ids)
             ],
