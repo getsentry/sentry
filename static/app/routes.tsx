@@ -1696,6 +1696,11 @@ function buildRoutes() {
           component={make(() => import('sentry/views/insights/sessions/views/overview'))}
         />
       </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.MCP]}/`}>
+        <IndexRoute
+          component={make(() => import('sentry/views/insights/mcp/views/overview'))}
+        />
+      </Route>
     </Fragment>
   );
 
