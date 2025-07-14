@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from django.http import QueryDict
 
+from sentry.analytics.events.advanced_search_feature_gated import AdvancedSearchFeatureGateEvent
 from sentry.api.helpers.group_index import update_groups, validate_search_filter_permissions
 from sentry.api.helpers.group_index.delete import delete_groups
 from sentry.api.helpers.group_index.update import (
@@ -30,6 +31,7 @@ from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -44,11 +46,13 @@ class ValidateSearchFilterPermissionsTest(TestCase):
         validate_search_filter_permissions(self.organization, parse_search_query(query), self.user)
 
     def assert_analytics_recorded(self, mock_record: Mock) -> None:
-        mock_record.assert_called_with(
-            "advanced_search.feature_gated",
-            user_id=self.user.id,
-            default_user_id=self.user.id,
-            organization_id=self.organization.id,
+        assert_last_analytics_event(
+            mock_record,
+            AdvancedSearchFeatureGateEvent(
+                user_id=self.user.id,
+                default_user_id=self.user.id,
+                organization_id=self.organization.id,
+            ),
         )
 
     @patch("sentry.analytics.record")

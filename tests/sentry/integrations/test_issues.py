@@ -573,7 +573,6 @@ class IssueSyncIntegrationWebhookTest(TestCase):
                     organization_id=self.group.organization.id,
                     group_id=self.group.id,
                     resolution_type="with_third_party_app",
-                    provider="example",
                     issue_type=self.group.issue_type.slug,
                     issue_category=self.group.issue_category.name.lower(),
                 ),
