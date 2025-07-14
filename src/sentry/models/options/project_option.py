@@ -116,7 +116,7 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
 
     def unset_value(self, project: Project, key: str) -> None:
         self.filter(project=project, key=key).delete()
-        self.reload_cache(project.id, "projectoption.unset_value")
+        self.reload_cache(project.id, "projectoption.unset_value", key)
 
     def set_value(self, project: int | Project, key: str, value: Any) -> bool:
         if isinstance(project, models.Model):
@@ -127,7 +127,7 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
         inst, created = self.create_or_update(
             project_id=project_id, key=key, values={"value": value}
         )
-        self.reload_cache(project_id, "projectoption.set_value")
+        self.reload_cache(project_id, "projectoption.set_value", key)
 
         return created or inst > 0
 
@@ -147,11 +147,15 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
 
         return self._option_cache.get(cache_key, {})
 
-    def reload_cache(self, project_id: int, update_reason: str) -> Mapping[str, Any]:
+    def reload_cache(
+        self, project_id: int, update_reason: str, option_key: str | None = None
+    ) -> Mapping[str, Any]:
         from sentry.tasks.relay import schedule_invalidate_project_config
 
         if update_reason != "projectoption.get_all_values":
-            schedule_invalidate_project_config(project_id=project_id, trigger=update_reason)
+            schedule_invalidate_project_config(
+                project_id=project_id, trigger=update_reason, project_option_key=option_key
+            )
         cache_key = self._make_key(project_id)
         result = {i.key: i.value for i in self.filter(project=project_id)}
         cache.set(cache_key, result)
@@ -159,10 +163,10 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
         return result
 
     def post_save(self, *, instance: ProjectOption, created: bool, **kwargs: object) -> None:
-        self.reload_cache(instance.project_id, "projectoption.post_save")
+        self.reload_cache(instance.project_id, "projectoption.post_save", option_key=instance.key)
 
     def post_delete(self, instance: ProjectOption, **kwargs: Any) -> None:
-        self.reload_cache(instance.project_id, "projectoption.post_delete")
+        self.reload_cache(instance.project_id, "projectoption.post_delete", option_key=instance.key)
 
     def isset(self, project: Project, key: str) -> bool:
         return self.get_value(project, key, default=Ellipsis) is not Ellipsis
