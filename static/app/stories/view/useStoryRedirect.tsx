@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useLayoutEffect} from 'react';
 import kebabCase from 'lodash/kebabCase';
 
 import {useStoryBookFilesByCategory} from 'sentry/stories/view/storySidebar';
@@ -23,9 +23,9 @@ export function useStoryRedirect() {
   const navigate = useNavigate();
   const stories = useStoryBookFilesByCategory();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     // If we already have a `storyPath` in state, bail out
-    if (location.state?.storyPath ?? location.query.name) {
+    if (location.state?.storyPath) {
       return;
     }
     if (!location.pathname.startsWith('/stories')) {
