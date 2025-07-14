@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useOption} from '@react-aria/listbox';
 import type {ComboBoxState} from '@react-stately/combobox';
@@ -51,25 +51,8 @@ export function useSeerAcknowledgeMutation() {
 function AskSeerConsentOption<T>({state}: {state: ComboBoxState<T>}) {
   const organization = useOrganization();
   const itemRef = useRef<HTMLDivElement>(null);
-  const linkRef = useRef<HTMLAnchorElement>(null);
   const [optionDisableOverride, setOptionDisableOverride] = useState(false);
   const {mutate: seerAcknowledgeMutate} = useSeerAcknowledgeMutation();
-
-  useEffect(() => {
-    const link = linkRef.current;
-    if (!link) return undefined;
-
-    const disableOption = () => setOptionDisableOverride(true);
-    const enableOption = () => setOptionDisableOverride(false);
-
-    link.addEventListener('mouseover', disableOption);
-    link.addEventListener('mouseout', enableOption);
-
-    return () => {
-      link.removeEventListener('mouseover', disableOption);
-      link.removeEventListener('mouseout', enableOption);
-    };
-  }, []);
 
   const {optionProps, labelProps, isFocused, isPressed} = useOption(
     {
@@ -111,7 +94,8 @@ function AskSeerConsentOption<T>({state}: {state: ComboBoxState<T>}) {
           {
             dataProcessingPolicy: (
               <TooltipSubExternalLink
-                ref={linkRef}
+                onMouseOver={() => setOptionDisableOverride(true)}
+                onMouseOut={() => setOptionDisableOverride(false)}
                 href="https://docs.sentry.io/product/security/ai-ml-policy/#use-of-identifying-data-for-generative-ai-features"
               />
             ),
