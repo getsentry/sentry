@@ -115,7 +115,7 @@ class RepositoriesEndpointTest(APITestCase):
         url = self.reverse_url()
         query_params = {
             "term": "search-term",
-            "first": 3,
+            "first": "3",
         }
         response = self.client.get(url, query_params)
 

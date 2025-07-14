@@ -19,7 +19,7 @@ class RepositoryNodeSerializer(serializers.Serializer):
     defaultBranch = serializers.CharField()
 
 
-class PageInfoSerializer(serializers.Serializer):
+class PageInfoTempSerializer(serializers.Serializer):
     """
     Serializer for pagination information
     """
@@ -38,7 +38,7 @@ class RepositoriesSerializer(serializers.Serializer):
     __test__ = False
 
     results = RepositoryNodeSerializer(many=True)
-    pageInfo = PageInfoSerializer()
+    pageInfo = PageInfoTempSerializer()
     totalCount = serializers.IntegerField()
 
     def to_representation(self, graphql_response):
