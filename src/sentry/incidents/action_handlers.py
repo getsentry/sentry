@@ -674,9 +674,6 @@ def email_users(
     sent_to_users = []
     for index, (user_id, email) in enumerate(targets):
         user = users[index]
-        # TODO(iamrajjoshi): Temporarily assert that alert_threshold is not None
-        # This should be removed when we update the typing and fetch the trigger_threshold in the new system
-        assert alert_context.alert_threshold is not None
 
         email_context = generate_incident_trigger_email_context(
             project=project,
