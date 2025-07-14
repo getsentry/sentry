@@ -39,7 +39,7 @@ export function PlaceHolder({
               view,
             })}
           />
-          <ButtonBar gap="md">
+          <ButtonBar>
             <TraceHeaderComponents.FeedbackButton />
           </ButtonBar>
         </TraceHeaderComponents.HeaderRow>

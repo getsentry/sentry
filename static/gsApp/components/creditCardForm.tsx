@@ -262,7 +262,7 @@ function CreditCardForm({
         </Info>
 
         <div className={footerClassName}>
-          <StyledButtonBar gap="md">
+          <StyledButtonBar>
             {onCancel && (
               <Button
                 data-test-id="cancel"

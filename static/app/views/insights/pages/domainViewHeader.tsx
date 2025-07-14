@@ -127,7 +127,7 @@ export function DomainViewHeader({
           <Layout.Title>{headerTitle || domainTitle}</Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <ButtonBar gap="md">
+          <ButtonBar>
             {selectedModule === ModuleName.SESSIONS ? (
               <FeedbackButtonTour />
             ) : (

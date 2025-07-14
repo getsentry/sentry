@@ -352,7 +352,7 @@ export function TraceEventDataSection({
       disableCollapsePersistence
       actions={
         !stackTraceNotFound && (
-          <ButtonBar gap="md">
+          <ButtonBar>
             {!displayOptions.includes('raw-stack-trace') && (
               <Tooltip
                 title={t('Only full version available')}

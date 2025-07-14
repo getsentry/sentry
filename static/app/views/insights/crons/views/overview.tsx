@@ -115,7 +115,7 @@ function CronsOverview() {
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <ButtonBar gap="md">
+          <ButtonBar>
             <FeedbackWidgetButton />
             <Button
               icon={<IconList />}

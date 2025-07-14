@@ -83,7 +83,7 @@ export default function LogsContent() {
               </Layout.Title>
             </Layout.HeaderContent>
             <Layout.HeaderActions>
-              <ButtonBar gap="md">
+              <ButtonBar>
                 <FeedbackButton />
                 <LinkButton
                   icon={<IconOpen />}

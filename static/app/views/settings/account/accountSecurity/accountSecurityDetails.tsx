@@ -154,7 +154,7 @@ function AccountSecurityDetails({deleteDisabled, onRegenerateBackupCodes}: Props
           />
         }
         action={
-          <ButtonBar gap="md">
+          <ButtonBar>
             {authenticator.isEnrolled && authenticator.allowRotationInPlace && (
               <LinkButton
                 to={`/settings/account/security/mfa/${authenticator.id}/enroll/`}

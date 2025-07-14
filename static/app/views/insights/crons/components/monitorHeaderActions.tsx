@@ -72,7 +72,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
   }
 
   return (
-    <ButtonBar gap="md">
+    <ButtonBar>
       <FeedbackWidgetButton />
       <Button
         size="sm"

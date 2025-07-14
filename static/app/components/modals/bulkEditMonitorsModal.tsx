@@ -127,7 +127,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
       </Header>
       <Body>
         <Actions>
-          <ActionButtons gap="md">
+          <ActionButtons>
             {[disableEnableBtnParams, muteUnmuteBtnParams].map(
               ({operation, actionText, ...analyticsProps}, i) => (
                 <Button
@@ -153,7 +153,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
               )
             )}
           </ActionButtons>
-          <ButtonBar gap="md">
+          <ButtonBar>
             <SearchBar
               size="sm"
               placeholder={t('Search Monitors')}

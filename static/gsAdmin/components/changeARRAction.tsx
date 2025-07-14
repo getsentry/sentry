@@ -73,7 +73,7 @@ class ChangeARRModal extends Component<ModalProps, ModalState> {
           />
         </Body>
         <Footer>
-          <ButtonBar gap="md">
+          <ButtonBar>
             <Button onClick={closeModal}>Cancel</Button>
             <Button
               priority="primary"

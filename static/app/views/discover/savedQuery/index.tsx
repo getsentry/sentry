@@ -697,7 +697,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     );
 
     return (
-      <ResponsiveButtonBar gap="md">
+      <ResponsiveButtonBar>
         {this.renderQueryButton(disabled => this.renderSaveAsHomepage(disabled))}
         {this.renderQueryButton(disabled => this.renderButtonSave(disabled))}
         <Feature organization={organization} features="incidents">

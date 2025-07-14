@@ -155,7 +155,7 @@ export function AggregateColumnEditorModal({
             </RowContainer>
           </Body>
           <Footer data-test-id="editor-footer">
-            <ButtonBar gap="md">
+            <ButtonBar>
               <LinkButton priority="default" href={SPAN_PROPS_DOCS_URL} external>
                 {t('Read the Docs')}
               </LinkButton>

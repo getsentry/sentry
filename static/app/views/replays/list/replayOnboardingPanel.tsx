@@ -277,7 +277,7 @@ export function SetupReplaysCTA({
           'See a video-like reproduction of your user sessions so you can see what happened before, during, and after an error or latency issue occurred.'
         )}
       </p>
-      <ButtonList gap="md">
+      <ButtonList>
         {renderCTA()}
         <LinkButton
           href={

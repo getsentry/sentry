@@ -33,7 +33,7 @@ export function Header({orgSlug, goBackLocation, dashboardTitle}: Props) {
       </Layout.HeaderContent>
 
       <Layout.HeaderActions>
-        <ButtonBar gap="md">
+        <ButtonBar>
           <FeedbackWidgetButton />
           <LinkButton
             external

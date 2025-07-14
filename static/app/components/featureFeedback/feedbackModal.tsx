@@ -219,7 +219,7 @@ export function FeedbackModal<T extends Data>({
               <Button onClick={onBack}>{t('Back')}</Button>
             </BackButtonWrapper>
           )}
-          <ButtonBar gap="md">
+          <ButtonBar>
             <Button onClick={closeModal}>{t('Cancel')}</Button>
             <Button
               priority="primary"

@@ -50,7 +50,7 @@ function FilterBar({
               prefix: t('Alert Type'),
             }}
             menuFooter={
-              <ButtonBar gap="md">
+              <ButtonBar>
                 <LinkButton size="xs" icon={<IconOpen />} to="/insights/crons/">
                   {t('Crons Overview')}
                 </LinkButton>

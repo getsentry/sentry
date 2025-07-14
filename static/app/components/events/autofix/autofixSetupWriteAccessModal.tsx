@@ -116,7 +116,7 @@ export function AutofixSetupWriteAccessModal({
       </Body>
       {!canCreatePullRequests && (
         <Footer>
-          <ButtonBar gap="md">
+          <ButtonBar>
             <Button onClick={closeModal}>{t('Later')}</Button>
             <LinkButton
               href="https://github.com/apps/seer-by-sentry/installations/new"

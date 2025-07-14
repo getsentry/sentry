@@ -268,7 +268,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
             </Fragment>
           )}
           {isListView && (
-            <ButtonBar gap="md">
+            <ButtonBar>
               {issueTypeConfig.discover.enabled && currentTab === Tab.EVENTS && (
                 <LinkButton
                   to={discoverUrl}

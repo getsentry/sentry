@@ -80,7 +80,7 @@ function ActionButtons({
   ) : null;
 
   return (
-    <ButtonBar gap="md">
+    <ButtonBar>
       {appDashboardButton}
       {publishRequestButton}
       {deleteButton}

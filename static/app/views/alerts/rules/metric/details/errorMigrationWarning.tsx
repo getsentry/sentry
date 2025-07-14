@@ -103,7 +103,7 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
         type="warning"
         showIcon
         trailingItems={
-          <ButtonBar gap="md">
+          <ButtonBar>
             <LinkButton
               to={{
                 pathname: `/organizations/${organization.slug}/alerts/metric-rules/${

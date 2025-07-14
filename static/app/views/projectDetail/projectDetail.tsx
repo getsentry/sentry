@@ -180,7 +180,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
               </Layout.HeaderContent>
 
               <Layout.HeaderActions>
-                <ButtonBar gap="md">
+                <ButtonBar>
                   <FeedbackWidgetButton />
                   <LinkButton
                     size="sm"

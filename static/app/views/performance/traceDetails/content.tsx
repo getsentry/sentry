@@ -408,7 +408,7 @@ class TraceDetailsContent extends Component<Props, State> {
             </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            <ButtonBar gap="md">
+            <ButtonBar>
               <DiscoverButton
                 size="sm"
                 to={traceEventView.getResultsViewUrlTarget(

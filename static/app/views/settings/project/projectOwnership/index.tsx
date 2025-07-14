@@ -119,7 +119,7 @@ export default function ProjectOwnership({project}: {project: Project}) {
       <SettingsPageHeader
         title={t('Ownership Rules')}
         action={
-          <ButtonBar gap="md">
+          <ButtonBar>
             {hasCodeowners && (
               <Access access={['org:integrations']} project={project}>
                 {({hasAccess}) => (

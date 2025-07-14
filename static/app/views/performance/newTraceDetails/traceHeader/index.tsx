@@ -81,7 +81,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
               view,
             })}
           />
-          <ButtonBar gap="md">
+          <ButtonBar>
             <TraceHeaderComponents.FeedbackButton />
           </ButtonBar>
         </TraceHeaderComponents.HeaderRow>

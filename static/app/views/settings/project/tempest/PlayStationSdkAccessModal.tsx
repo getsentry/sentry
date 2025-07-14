@@ -144,7 +144,7 @@ export default function PlayStationSdkAccessModal({
         />
       </Body>
       <Footer>
-        <ButtonBar gap="md">
+        <ButtonBar>
           <Button onClick={closeModal}>{t('Cancel')}</Button>
           <Button
             priority="primary"

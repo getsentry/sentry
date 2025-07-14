@@ -355,7 +355,7 @@ function TransactionHeader({
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <ButtonBar gap="md">
+        <ButtonBar>
           <Feature organization={organization} features="incidents">
             {({hasFeature}) =>
               hasFeature &&

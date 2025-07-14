@@ -293,7 +293,7 @@ export function GroupTagValues() {
       <Layout.Main fullWidth>
         <TitleWrapper>
           <Title>{t('Tag Details')}</Title>
-          <ButtonBar gap="md">
+          <ButtonBar>
             <LinkButton
               size="sm"
               priority="default"

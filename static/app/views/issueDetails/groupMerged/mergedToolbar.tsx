@@ -76,7 +76,7 @@ export function MergedToolbar({
 
   return (
     <PanelHeader hasButtons>
-      <ButtonBar gap="md">
+      <ButtonBar>
         <Confirm
           disabled={unmergeDisabled}
           onConfirm={onUnmerge}

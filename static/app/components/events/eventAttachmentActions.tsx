@@ -32,7 +32,7 @@ function EventAttachmentActions({
   const hasPreview = hasInlineAttachmentRenderer(attachment);
 
   return (
-    <ButtonBar gap="md">
+    <ButtonBar>
       {withPreviewButton && (
         <Button
           size="xs"

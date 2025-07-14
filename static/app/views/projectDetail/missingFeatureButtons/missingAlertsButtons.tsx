@@ -13,7 +13,7 @@ type Props = {
 
 function MissingAlertsButtons({organization, projectSlug}: Props) {
   return (
-    <ButtonBar gap="md">
+    <ButtonBar>
       <CreateAlertButton
         organization={organization}
         iconProps={{size: 'xs'}}

@@ -155,7 +155,7 @@ export function ColumnEditorModal({
               );
             })}
             <RowContainer>
-              <ButtonBar gap="md">
+              <ButtonBar>
                 <Button
                   size="sm"
                   aria-label={t('Add a Column')}
@@ -168,7 +168,7 @@ export function ColumnEditorModal({
             </RowContainer>
           </Body>
           <Footer data-test-id="editor-footer">
-            <ButtonBar gap="md">
+            <ButtonBar>
               {!isDocsButtonHidden && (
                 <LinkButton priority="default" href={SPAN_PROPS_DOCS_URL} external>
                   {t('Read the Docs')}

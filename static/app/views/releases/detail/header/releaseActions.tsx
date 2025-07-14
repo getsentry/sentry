@@ -187,7 +187,7 @@ function ReleaseActions({
   const hasNext = !!release.currentProjectMeta.nextReleaseVersion;
 
   return (
-    <ButtonBar gap="md">
+    <ButtonBar>
       <ButtonBar merged gap="none">
         <LinkButton
           size="sm"

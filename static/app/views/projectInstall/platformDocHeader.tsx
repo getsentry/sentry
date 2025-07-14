@@ -91,7 +91,7 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
       <h2>
         {title ?? t('Configure %(platform)s SDK', {platform: platform.name ?? 'other'})}
       </h2>
-      <ButtonBar gap="md">
+      <ButtonBar>
         <Button
           size="sm"
           icon={<IconChevron direction="left" size="xs" />}
