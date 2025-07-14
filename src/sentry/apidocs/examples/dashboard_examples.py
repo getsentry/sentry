@@ -4,7 +4,6 @@ DASHBOARD_OBJECT = {
     "id": "1",
     "title": "Dashboard",
     "dateCreated": "2024-06-20T14:38:03.498574Z",
-    "lastVisited": "2024-06-20T14:38:03.498574Z",
     "createdBy": {
         "id": "1",
         "name": "Admin",
@@ -123,6 +122,7 @@ DASHBOARDS_OBJECT = [
         "id": "2",
         "title": "Dashboard",
         "dateCreated": "2024-06-20T14:38:03.498574Z",
+        "lastVisited": "2024-06-20T14:38:03.498574Z",
         "projects": [],
         "environment": ["alpha"],
         "filters": {
