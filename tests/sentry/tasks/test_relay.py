@@ -473,6 +473,7 @@ class TestInvalidationTask:
         assert schedule_inner.call_count == 1
         assert schedule_inner.call_args == call(
             trigger="test",
+            project_option_key=None,
             organization_id=None,
             project_id=default_project.id,
             public_key=None,
