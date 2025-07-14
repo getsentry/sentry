@@ -246,7 +246,7 @@ ORG_OPTIONS = (
     (
         "ingestThroughTrustedRelaysOnly",
         "sentry:ingest-through-trusted-relays-only",
-        bool,
+        str,
         INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
     ),
 )
@@ -317,7 +317,9 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         help_text="The default automation tuning setting for new projects.",
     )
     defaultSeerScannerAutomation = serializers.BooleanField(required=False)
-    ingestThroughTrustedRelaysOnly = serializers.BooleanField(required=False)
+    ingestThroughTrustedRelaysOnly = serializers.ChoiceField(
+        choices=[("enabled", "enabled"), ("disabled", "disabled")], required=False
+    )
 
     @cached_property
     def _has_legacy_rate_limits(self):
