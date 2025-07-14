@@ -169,7 +169,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                         if desc
                         else F("user_last_visited").desc(nulls_last=True)
                     ),
-                    "title",
+                    "-date_added",
                 ]
             else:
                 order_by = ["last_visited" if desc else "-last_visited"]

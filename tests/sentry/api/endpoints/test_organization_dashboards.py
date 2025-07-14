@@ -210,8 +210,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 expected = list(reversed(expected))
 
             # Only A, B are sorted by their last visited entry, Dashboard 1
-            # and Dashboard 2 are by default sorted by their title
-            assert values == ["General"] + expected + ["Dashboard 1", "Dashboard 2"]
+            # and Dashboard 2 are by default sorted by their date created
+            assert values == ["General"] + expected + ["Dashboard 2", "Dashboard 1"]
 
     def test_get_sortby_mydashboards(self):
         user_1 = self.create_user(username="user_1")
