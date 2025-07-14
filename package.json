@@ -297,7 +297,7 @@
       "current node"
     ]
   },
-  "packageManager": "pnpm@10.10.0",
+  "packageManager": "pnpm@10.13.1",
   "prettier": {
     "bracketSpacing": false,
     "bracketSameLine": false,
