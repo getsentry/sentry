@@ -547,7 +547,7 @@ describe('getOnDemandBudget', function () {
     expect(getOnDemandBudget(budget, DataCategory.LOG_BYTE)).toBe(0);
   });
 
-  it('returns 0 for LOG_BYTE category when in per-category mode with explicit budget', function () {
+  it('returns correct value for LOG_BYTE category when in per-category mode with explicit budget', function () {
     const budget: OnDemandBudgets = {
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
       errorsBudget: 100,
