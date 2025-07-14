@@ -33,7 +33,7 @@ function ProjectDetails() {
   }>();
   const {data, isPending, isError} = useApiQuery<Project>(
     [`/projects/${orgId}/${projectId}/`],
-    {staleTime: 0}
+    {staleTime: Infinity}
   );
   const api = useApi();
   const location = useLocation();

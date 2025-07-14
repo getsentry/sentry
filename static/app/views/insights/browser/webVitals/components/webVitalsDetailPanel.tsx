@@ -33,7 +33,6 @@ import type {
 } from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {
   ModuleName,
@@ -63,8 +62,6 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
   const subregions = decodeList(
     location.query[SpanIndexedField.USER_GEO_SUBREGION]
   ) as SubregionCode[];
-
-  const useEap = useInsightsEap();
 
   const {data: projectData} = useProjectRawWebVitalsQuery({browserTypes, subregions});
   const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
@@ -96,11 +93,8 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
     if (!data) {
       return [];
     }
-    const sumWeights = useEap
-      ? 1
-      : webVital
-        ? projectScoresData?.[0]?.[`sum(measurements.score.weight.${webVital})`] || 0
-        : 0;
+    const sumWeights = 1;
+
     return data
       .map(row => ({
         ...row,
@@ -116,7 +110,7 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
         return b.opportunity - a.opportunity;
       })
       .slice(0, MAX_ROWS);
-  }, [data, projectScoresData, webVital, useEap]);
+  }, [data]);
 
   useEffect(() => {
     if (webVital !== null) {

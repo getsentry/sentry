@@ -1,5 +1,5 @@
 import {ExternalLink} from 'sentry/components/core/link';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   type Docs,
   type DocsParams,

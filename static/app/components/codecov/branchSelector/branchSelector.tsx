@@ -2,6 +2,7 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
+import {Button} from 'sentry/components/core/button';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
@@ -14,7 +15,10 @@ import {IconBranch} from './iconBranch';
 const SAMPLE_BRANCH_ITEMS = ['main', 'master'];
 
 export function BranchSelector() {
-  const {branch, changeContextValue} = useCodecovContext();
+  const {branch, repository, changeContextValue} = useCodecovContext();
+
+  // TODO: create endpoint that exposes repository's default branch
+  const defaultBranch = 'main';
 
   const handleChange = useCallback(
     (selectedOption: SelectOption<string>) => {
@@ -40,11 +44,40 @@ export function BranchSelector() {
     return [...optionSet].map(makeOption);
   }, [branch]);
 
+  const branchResetButton = useCallback(
+    ({closeOverlay}: any) => {
+      if (!branch || branch === defaultBranch) {
+        return null;
+      }
+
+      return (
+        <ResetButton
+          onClick={() => {
+            changeContextValue({branch: defaultBranch});
+            closeOverlay();
+          }}
+          size="zero"
+          borderless
+        >
+          {t('Reset to default')}
+        </ResetButton>
+      );
+    },
+    [branch, changeContextValue]
+  );
+
+  const disabled = !repository;
+
   return (
     <CompactSelect
+      searchable
+      searchPlaceholder={t('search by branch name')}
       options={options}
       value={branch ?? ''}
       onChange={handleChange}
+      menuHeaderTrailingItems={branchResetButton}
+      disabled={disabled}
+      emptyMessage={'No branches found'}
       closeOnSelect
       trigger={(triggerProps, isOpen) => {
         return (
@@ -92,4 +125,15 @@ const OptionLabel = styled('span')`
 const IconContainer = styled('div')`
   flex: 1 0 14px;
   height: 14px;
+`;
+
+const ResetButton = styled(Button)`
+  font-size: inherit; /* Inherit font size from MenuHeader */
+  font-weight: ${p => p.theme.fontWeight.normal};
+  color: ${p => p.theme.subText};
+  padding: 0 ${space(0.5)};
+  margin: ${p =>
+    p.theme.isChonk
+      ? `-${space(0.5)} -${space(0.5)}`
+      : `-${space(0.25)} -${space(0.25)}`};
 `;

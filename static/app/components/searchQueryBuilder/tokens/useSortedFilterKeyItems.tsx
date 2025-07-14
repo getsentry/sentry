@@ -7,6 +7,7 @@ import type {
   SearchKeyItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {
+  createAskSeerItem,
   createFilterValueItem,
   createItem,
   createRawSearchFilterValueItem,
@@ -135,8 +136,11 @@ export function useSortedFilterKeyItems({
     filterKeySections,
     disallowFreeText,
     replaceRawSearchKeys,
+    enableAISearch,
   } = useSearchQueryBuilder();
-  const hasRawSearchReplacement = useOrganization().features.includes(
+  const organization = useOrganization();
+
+  const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
   );
 
@@ -250,21 +254,23 @@ export function useSortedFilterKeyItems({
         ...(shouldIncludeRawSearch ? [rawSearchSection] : []),
         keyItemsSection,
         ...(!shouldShowAtTop && suggestedFiltersSection ? [suggestedFiltersSection] : []),
+        ...(enableAISearch ? [createAskSeerItem()] : []),
       ];
     }
 
     return keyItems;
   }, [
-    filterValue,
-    search,
-    includeSuggestions,
+    disallowFreeText,
+    enableAISearch,
     filterKeySections,
+    filterKeys,
+    filterValue,
     flatKeys,
     getFieldDefinition,
-    filterKeys,
-    inputValue,
-    disallowFreeText,
-    replaceRawSearchKeys,
     hasRawSearchReplacement,
+    includeSuggestions,
+    inputValue,
+    replaceRawSearchKeys,
+    search,
   ]);
 }

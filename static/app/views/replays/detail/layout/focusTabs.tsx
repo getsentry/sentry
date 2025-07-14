@@ -1,7 +1,11 @@
-import type {ReactNode} from 'react';
+import {type ReactNode} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import {IconLab} from 'sentry/icons/iconLab';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -18,7 +22,14 @@ function getReplayTabs({
 }): Record<TabKey, ReactNode> {
   // For video replays, we hide the memory tab (not applicable for mobile)
   return {
-    [TabKey.AI]: organization.features.includes('replay-ai-summaries') ? t('AI') : null,
+    [TabKey.AI]: organization.features.includes('replay-ai-summaries') ? (
+      <Flex align="center" gap={space(0.75)}>
+        {t('Summary')}
+        <Tooltip title={t('experimental')}>
+          <IconLab isSolid />
+        </Tooltip>
+      </Flex>
+    ) : null,
     [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
     [TabKey.CONSOLE]: t('Console'),
     [TabKey.NETWORK]: t('Network'),
@@ -45,6 +56,7 @@ export default function FocusTabs({isVideoReplay}: Props) {
   return (
     <TabContainer>
       <Tabs
+        size="xs"
         value={activeTab}
         onChange={tab => {
           // Navigation is handled by setActiveTab
@@ -69,6 +81,12 @@ export default function FocusTabs({isVideoReplay}: Props) {
 }
 
 const TabContainer = styled('div')`
-  ${p => (p.theme.isChonk ? '' : `padding-inline: ${space(1)};`)}
-  border-bottom: 1px solid ${p => p.theme.border};
+  ${p =>
+    p.theme.isChonk
+      ? ''
+      : css`
+          padding-inline: ${space(1)};
+          border-bottom: 1px solid ${p.theme.border};
+          margin-bottom: -1px;
+        `}
 `;

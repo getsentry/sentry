@@ -4,7 +4,7 @@ import omit from 'lodash/omit';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -17,6 +17,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {
@@ -280,41 +281,43 @@ function ScreensLandingPage() {
                   </PageFilterBar>
                 </Container>
                 <PageAlert />
-                <ErrorBoundary mini>
-                  <Container>
-                    <Flex data-test-id="mobile-vitals-top-metrics">
-                      {vitalItems.map(item => {
-                        const metricValue: MetricValue = {
-                          type: metaFields?.[item.field],
-                          value: metricsData?.[item.field],
-                          unit: metaUnits?.[item.field],
-                        };
+                <ModulesOnboarding moduleName={moduleName}>
+                  <ErrorBoundary mini>
+                    <Container>
+                      <Flex data-test-id="mobile-vitals-top-metrics">
+                        {vitalItems.map(item => {
+                          const metricValue: MetricValue = {
+                            type: metaFields?.[item.field],
+                            value: metricsData?.[item.field],
+                            unit: metaUnits?.[item.field],
+                          };
 
-                        const status =
-                          (metricValue && item.getStatus(metricValue, item.field)) ??
-                          STATUS_UNKNOWN;
+                          const status =
+                            (metricValue && item.getStatus(metricValue, item.field)) ??
+                            STATUS_UNKNOWN;
 
-                        return (
-                          <VitalCard
-                            onClick={() => {
-                              setState({
-                                vital: item,
-                                status,
-                              });
-                            }}
-                            key={item.field}
-                            title={item.title}
-                            description={item.description}
-                            statusLabel={status.description}
-                            status={status.score}
-                            formattedValue={status.formattedValue}
-                          />
-                        );
-                      })}
-                    </Flex>
-                    <ScreensOverview />
-                  </Container>
-                </ErrorBoundary>
+                          return (
+                            <VitalCard
+                              onClick={() => {
+                                setState({
+                                  vital: item,
+                                  status,
+                                });
+                              }}
+                              key={item.field}
+                              title={item.title}
+                              description={item.description}
+                              statusLabel={status.description}
+                              status={status.score}
+                              formattedValue={status.formattedValue}
+                            />
+                          );
+                        })}
+                      </Flex>
+                      <ScreensOverview />
+                    </Container>
+                  </ErrorBoundary>
+                </ModulesOnboarding>
               </Layout.Main>
             </Layout.Body>
           </ModuleBodyUpsellHook>

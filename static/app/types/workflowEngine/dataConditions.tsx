@@ -30,6 +30,7 @@ export enum DataConditionType {
   TAGGED_EVENT = 'tagged_event',
   ISSUE_PRIORITY_EQUALS = 'issue_priority_equals',
   ISSUE_PRIORITY_GREATER_OR_EQUAL = 'issue_priority_greater_or_equal',
+  ISSUE_PRIORITY_DEESCALATING = 'issue_priority_deescalating',
 
   // frequency
   EVENT_FREQUENCY_COUNT = 'event_frequency_count',
@@ -102,12 +103,6 @@ export enum DataConditionHandlerSubgroupType {
 export interface DataConditionHandler {
   comparisonJsonSchema: Record<string, any>;
   handlerGroup: DataConditionHandlerGroupType;
-  handlerSubgroup: DataConditionHandlerSubgroupType;
   type: DataConditionType;
-}
-
-// for keeping track of conflicting condition ids in the UI
-export interface ConflictingConditions {
-  conflictingActionFilters: Record<string, string[]>;
-  conflictingTriggers: string[];
+  handlerSubgroup?: DataConditionHandlerSubgroupType;
 }

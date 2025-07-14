@@ -1104,15 +1104,15 @@ const TraceStylingWrapper = styled('div')`
   &.light {
     .TracePattern {
       &.info {
-        --pattern-odd: #d1dff9;
+        --pattern-odd: ${p => p.theme.blue400};
         --pattern-even: ${p => p.theme.blue300};
       }
       &.warning {
-        --pattern-odd: #a5752c;
+        --pattern-odd: ${p => p.theme.yellow400};
         --pattern-even: ${p => p.theme.yellow300};
       }
       &.occurence {
-        --pattern-odd: #063690;
+        --pattern-odd: ${p => p.theme.blue400};
         --pattern-even: ${p => p.theme.blue300};
       }
 
@@ -1122,13 +1122,13 @@ const TraceStylingWrapper = styled('div')`
       }
 
       &.missing_instrumentation {
-        --pattern-odd: #dedae3;
-        --pattern-even: #f4f2f7;
+        --pattern-odd: ${p => p.theme.gray200};
+        --pattern-even: ${p => p.theme.gray100};
       }
 
       &.error,
       &.fatal {
-        --pattern-odd: #872d32;
+        --pattern-odd: ${p => p.theme.red400};
         --pattern-even: ${p => p.theme.red300};
       }
 
@@ -1145,15 +1145,15 @@ const TraceStylingWrapper = styled('div')`
   &.dark {
     .TracePattern {
       &.info {
-        --pattern-odd: #d1dff9;
+        --pattern-odd: ${p => p.theme.blue400};
         --pattern-even: ${p => p.theme.blue300};
       }
       &.warning {
-        --pattern-odd: #a5752c;
+        --pattern-odd: ${p => p.theme.yellow400};
         --pattern-even: ${p => p.theme.yellow300};
       }
       &.occurence {
-        --pattern-odd: #063690;
+        --pattern-odd: ${p => p.theme.blue400};
         --pattern-even: ${p => p.theme.blue300};
       }
 
@@ -1163,13 +1163,13 @@ const TraceStylingWrapper = styled('div')`
       }
 
       &.missing_instrumentation {
-        --pattern-odd: #4b4550;
-        --pattern-even: #1c1521;
+        --pattern-odd: ${p => p.theme.gray200};
+        --pattern-even: ${p => p.theme.gray100};
       }
 
       &.error,
       &.fatal {
-        --pattern-odd: #510d10;
+        --pattern-odd: ${p => p.theme.red400};
         --pattern-even: ${p => p.theme.red300};
       }
       /* stylelint-disable */
@@ -1701,6 +1701,12 @@ const TraceStylingWrapper = styled('div')`
     text-overflow: ellipsis;
     white-space: nowrap;
     font-weight: ${p => p.theme.fontWeight.bold};
+  }
+
+  .TraceName {
+    margin-left: 4px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .TraceEmDash {

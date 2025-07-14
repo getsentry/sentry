@@ -1,5 +1,5 @@
 import {AutomationFixture} from 'sentry-fixture/automations';
-import {DetectorFixture} from 'sentry-fixture/detectors';
+import {ErrorDetectorFixture, MetricDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {UserFixture} from 'sentry-fixture/user';
@@ -18,6 +18,7 @@ import {
   DataConditionType,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
+import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import DetectorsList from 'sentry/views/detectors/list';
 
 describe('DetectorsList', function () {
@@ -31,7 +32,7 @@ describe('DetectorsList', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
-      body: [DetectorFixture({name: 'Detector 1'})],
+      body: [MetricDetectorFixture({name: 'Detector 1'})],
     });
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}), new Set());
   });
@@ -40,14 +41,14 @@ describe('DetectorsList', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
       body: [
-        DetectorFixture({
+        MetricDetectorFixture({
           name: 'Detector 1',
           owner: null,
           type: 'metric_issue',
           config: {
-            detection_type: 'percent',
-            comparison_delta: 10,
-            threshold_period: 10,
+            detectionType: 'percent',
+            comparisonDelta: 10,
+            thresholdPeriod: 10,
           },
           conditionGroup: {
             id: '1',
@@ -71,10 +72,11 @@ describe('DetectorsList', function () {
                 snubaQuery: {
                   environment: 'production',
                   aggregate: 'count()',
-                  dataset: 'events',
+                  dataset: Dataset.ERRORS,
                   id: '1',
                   query: 'event.type:error',
                   timeWindow: 3600,
+                  eventTypes: [EventTypes.ERROR],
                 },
                 id: '1',
                 status: 200,
@@ -106,7 +108,7 @@ describe('DetectorsList', function () {
   it('displays connected automations', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
-      body: [DetectorFixture({id: '1', name: 'Detector 1', workflowIds: ['100']})],
+      body: [MetricDetectorFixture({id: '1', name: 'Detector 1', workflowIds: ['100']})],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
@@ -126,7 +128,7 @@ describe('DetectorsList', function () {
   it('can filter by project', async function () {
     const mockDetectorsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
-      body: [DetectorFixture({name: 'Detector 1'})],
+      body: [MetricDetectorFixture({name: 'Detector 1'})],
     });
 
     render(<DetectorsList />, {organization});
@@ -147,7 +149,7 @@ describe('DetectorsList', function () {
     it('can filter by type', async function () {
       const mockDetectorsRequestErrorType = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/detectors/',
-        body: [DetectorFixture({type: 'error', name: 'Error Detector'})],
+        body: [ErrorDetectorFixture({name: 'Error Detector'})],
         match: [MockApiClient.matchQuery({query: 'type:error'})],
       });
 
@@ -172,7 +174,7 @@ describe('DetectorsList', function () {
     it('can sort the table', async function () {
       const mockDetectorsRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/detectors/',
-        body: [DetectorFixture({name: 'Detector 1'})],
+        body: [MetricDetectorFixture({name: 'Detector 1'})],
       });
       const {router} = render(<DetectorsList />, {organization});
       await screen.findByText('Detector 1');

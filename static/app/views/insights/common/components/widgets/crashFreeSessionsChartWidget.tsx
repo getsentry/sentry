@@ -1,6 +1,6 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import {tct} from 'sentry/locale';
-import {formatSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatSeriesName';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
@@ -16,7 +16,7 @@ export default function CrashFreeSessionsChartWidget(props: LoadableChartWidgetP
   const aliases = Object.fromEntries(
     releases?.map(release => [
       `crash_free_session_rate_${release}`,
-      formatSeriesName(release),
+      formatVersion(release),
     ]) ?? []
   );
 

@@ -188,7 +188,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   }
 
   const showWelcomeScreen =
-    aiConfig.needsGenAiAcknowledgement ||
+    aiConfig.orgNeedsGenAiAcknowledgement ||
     (!aiConfig.hasAutofixQuota && organization.features.includes('seer-billing'));
 
   return (
@@ -244,7 +244,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
               size="sm"
             />
           </Flex>
-          {!aiConfig.needsGenAiAcknowledgement && (
+          {!aiConfig.orgNeedsGenAiAcknowledgement && (
             <ButtonBarWrapper data-test-id="seer-button-bar">
               <ButtonBar gap={1}>
                 <Feature features={['organizations:autofix-seer-preferences']}>

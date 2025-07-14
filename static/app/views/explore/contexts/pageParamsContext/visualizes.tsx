@@ -3,7 +3,11 @@ import type {Location} from 'history';
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {isEquation, parseFunction} from 'sentry/utils/discover/fields';
+import {
+  isEquation,
+  parseFunction,
+  stripEquationPrefix,
+} from 'sentry/utils/discover/fields';
 import {
   AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
@@ -50,7 +54,7 @@ export class Visualize {
 
   isValid(): boolean {
     if (this.isEquation) {
-      const expression = new Expression(this.yAxis);
+      const expression = new Expression(stripEquationPrefix(this.yAxis));
       return expression.isValid;
     }
     return defined(parseFunction(this.yAxis));

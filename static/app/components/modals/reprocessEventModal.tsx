@@ -13,6 +13,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 export type ReprocessEventModalOptions = {
   groupId: Group['id'];
@@ -30,7 +31,7 @@ export function ReprocessingEventModal({
 
   function handleSuccess() {
     closeModal();
-    window.location.reload();
+    testableWindowLocation.reload();
   }
 
   return (

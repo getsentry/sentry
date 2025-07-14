@@ -27,15 +27,15 @@ import FeatureTourModal, {
   TourText,
 } from 'sentry/components/modals/featureTourModal';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {
-  type Configuration,
+  OnboardingCodeSnippet,
   TabbedCodeSnippet,
-} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
-  type DocsParams,
-  ProductSolution,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
+import type {
+  Configuration,
+  DocsParams,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import LegacyOnboardingPanel from 'sentry/components/onboardingPanel';
@@ -62,6 +62,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import {decodeInteger} from 'sentry/utils/queryString';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -168,7 +169,6 @@ function SampleButton({
             generateLinkToEventInTraceView({
               eventId: eventData.eventID,
               location,
-              projectSlug: project.slug,
               organization,
               timestamp: eventData.endTimestamp,
               traceSlug,
@@ -759,7 +759,9 @@ export function Onboarding({organization, project}: OnboardingProps) {
                     params.set('table', Tab.TRACE);
                     params.set('query', `trace:${traceId}`);
                     params.delete('guidedStep');
-                    window.location.href = `${window.location.pathname}?${params.toString()}`;
+                    testableWindowLocation.assign(
+                      `${window.location.pathname}?${params.toString()}`
+                    );
                   }}
                 >
                   {t('Take me to my trace')}

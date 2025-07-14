@@ -19,7 +19,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import SearchBar from 'sentry/components/searchBar';
-import Version from 'sentry/components/version';
 import {IconDelete, IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -27,7 +26,7 @@ import type {KeyValueListData} from 'sentry/types/group';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {SourceMapsArchive} from 'sentry/types/release';
+import type {Release, SourceMapsArchive} from 'sentry/types/release';
 import type {DebugIdBundle, DebugIdBundleAssociation} from 'sentry/types/sourceMaps';
 import {defined} from 'sentry/utils';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
@@ -35,6 +34,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {AssociatedReleases} from 'sentry/views/settings/projectSourceMaps/associatedReleases';
 import {useDeleteDebugIdBundle} from 'sentry/views/settings/projectSourceMaps/useDeleteDebugIdBundle';
 
 type Props = RouteComponentProps<{
@@ -126,8 +126,40 @@ function useSourceMapUploads({
     }
   );
 
+  const mergedData = mergeReleaseAndDebugIdBundles(archivesData, debugIdBundlesData);
+  const releaseVersions = mergedData.flatMap(data =>
+    data.associations.map(association => `"${association.release}"`)
+  );
+
+  const {data: releasesData, isPending: releasesLoading} = useApiQuery<Release[]>(
+    [
+      `/organizations/${organization.slug}/releases/`,
+      {
+        query: {
+          project: [project.id],
+          query: `release:[${releaseVersions.join(',')}]`,
+        },
+      },
+    ],
+    {
+      staleTime: Infinity,
+      retry: false,
+      enabled: !debugIdBundlesLoading && !archivesLoading,
+    }
+  );
+
+  const existingReleaseNames = new Set((releasesData ?? []).map(r => r.version));
+
   return {
-    data: mergeReleaseAndDebugIdBundles(archivesData, debugIdBundlesData),
+    data: releasesLoading
+      ? mergedData
+      : mergedData.map(data => ({
+          ...data,
+          associations: data.associations.map(association => ({
+            ...association,
+            exists: existingReleaseNames.has(association.release),
+          })),
+        })),
     headers: (header: string) => {
       return debugIdBundlesHeaders?.(header) ?? archivesHeaders?.(header);
     },
@@ -359,7 +391,10 @@ function SourceMapUploadsList({
               />
             </ItemHeader>
             <ItemContent>
-              <SourceMapUploadDetails sourceMapUpload={sourceMapUpload} />
+              <SourceMapUploadDetails
+                sourceMapUpload={sourceMapUpload}
+                projectId={project.id}
+              />
             </ItemContent>
           </Item>
         ))}
@@ -369,7 +404,13 @@ function SourceMapUploadsList({
   );
 }
 
-function SourceMapUploadDetails({sourceMapUpload}: {sourceMapUpload: SourceMapUpload}) {
+function SourceMapUploadDetails({
+  sourceMapUpload,
+  projectId,
+}: {
+  projectId: string;
+  sourceMapUpload: SourceMapUpload;
+}) {
   const [showAll, setShowAll] = useState(false);
   const detailsData = useMemo<KeyValueListData>(() => {
     const rows = sourceMapUpload.associations;
@@ -389,35 +430,15 @@ function SourceMapUploadDetails({sourceMapUpload}: {sourceMapUpload: SourceMapUp
             {showAll ? t('Show Less') : t('Show All')}
           </Button>
         ),
-        value:
-          rows.length > 0 ? (
-            <ReleasesWrapper className="val-string-multiline">
-              {visibleAssociations.map(association => (
-                <Fragment key={association.release}>
-                  <Version version={association.release ?? association.dist} />
-                  {association.dist && `(Dist: ${formatDist(association.dist)})`}
-                </Fragment>
-              ))}
-            </ReleasesWrapper>
-          ) : (
-            t('No releases associated with this upload.')
-          ),
+        value: (
+          <AssociatedReleases associations={visibleAssociations} projectId={projectId} />
+        ),
       },
     ];
-  }, [sourceMapUpload, showAll]);
+  }, [sourceMapUpload, showAll, projectId]);
 
   return <StyledKeyValueList data={detailsData} shouldSort={false} />;
 }
-
-const formatDist = (dist: string | string[] | null) => {
-  if (Array.isArray(dist)) {
-    return dist.join(', ');
-  }
-  if (dist === null) {
-    return t('none');
-  }
-  return dist;
-};
 
 interface SourceMapUploadDeleteButtonProps {
   onDelete?: () => void;
@@ -456,10 +477,6 @@ function SourceMapUploadDeleteButton({onDelete}: SourceMapUploadDeleteButtonProp
     </Access>
   );
 }
-
-const ReleasesWrapper = styled('pre')`
-  max-height: 200px;
-`;
 
 const StyledKeyValueList = styled(KeyValueList)`
   && {

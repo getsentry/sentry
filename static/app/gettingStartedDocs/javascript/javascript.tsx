@@ -1,18 +1,19 @@
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {SdkProviderEnum as FeatureFlagProviderEnum} from 'sentry/components/events/featureFlags/utils';
 import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getAIRulesForCodeEditorStep,
   getUploadSourceMapsStep,
@@ -488,6 +489,41 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
           ],
         },
       ],
+      additionalInfo: (
+        <Fragment>
+          <h5>{t('Default Configuration')}</h5>
+          <p>
+            {t(
+              'The Loader Script settings are automatically updated based on the product selection above. Toggling products will dynamically configure the SDK defaults.'
+            )}
+          </p>
+          <p>
+            {tct(
+              'For Tracing, the SDK is initialized with [code:tracesSampleRate: 1], meaning all traces will be captured.',
+              {
+                code: <code />,
+              }
+            )}
+          </p>
+          <p>
+            {tct(
+              'For Session Replay, the default rates are [code:replaysSessionSampleRate: 0.1] and [code:replaysOnErrorSampleRate: 1]. This captures 10% of regular sessions and 100% of sessions with an error.',
+              {
+                code: <code />,
+              }
+            )}
+          </p>
+          <p>
+            {tct('You can review or change these settings in [link:Project Settings].', {
+              link: (
+                <Link
+                  to={`/settings/${params.organization.slug}/projects/${params.projectSlug}/loader-script/`}
+                />
+              ),
+            })}
+          </p>
+        </Fragment>
+      ),
     },
   ],
   configure: params => [
@@ -574,11 +610,12 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
     };
   },
   onProductSelectionChange: params => {
-    return products => {
+    return ({previousProducts, products}) => {
       updateDynamicSdkLoaderOptions({
         orgSlug: params.organization.slug,
         projectSlug: params.projectSlug,
         products,
+        previousProducts,
         projectKey: params.projectKeyId,
         api: params.api,
       });
@@ -654,7 +691,7 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
     };
   },
   onProductSelectionChange: params => {
-    return products => {
+    return ({products}) => {
       updateDynamicSdkLoaderOptions({
         orgSlug: params.organization.slug,
         projectSlug: params.projectSlug,

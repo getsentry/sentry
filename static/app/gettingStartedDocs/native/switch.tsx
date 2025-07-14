@@ -1,9 +1,9 @@
 import {ExternalLink} from 'sentry/components/core/link';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {tct} from 'sentry/locale';
 
 const onboarding: OnboardingConfig = {

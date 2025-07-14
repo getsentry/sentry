@@ -470,7 +470,11 @@ export default function getFrameDetails(frame: ReplayFrame): Details {
 
 export function defaultTitle(frame: ReplayFrame | RawBreadcrumbFrame) {
   // Override title for User Feedback frames
-  if ('message' in frame && frame.message === 'User Feedback') {
+  if (
+    'message' in frame &&
+    typeof frame.message === 'string' &&
+    frame.message.includes('User Feedback')
+  ) {
     return t('User Feedback');
   }
   if ('category' in frame && frame.category) {

@@ -8,12 +8,19 @@ import {
   DataConditionType,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
-import type {Detector, DetectorConfig} from 'sentry/types/workflowEngine/detectors';
+import type {
+  Detector,
+  MetricDetector,
+  MetricDetectorConfig,
+  MetricDetectorUpdatePayload,
+} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
+import {unreachable} from 'sentry/utils/unreachable';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
   Dataset,
+  EventTypes,
 } from 'sentry/views/alerts/rules/metric/types';
 
 /**
@@ -24,6 +31,7 @@ export const enum DetectorDataset {
   TRANSACTIONS = 'transactions',
   SPANS = 'spans',
   RELEASES = 'releases',
+  LOGS = 'logs',
 }
 
 /**
@@ -144,13 +152,7 @@ export const DEFAULT_THRESHOLD_METRIC_FORM_DATA = {
   aggregateFunction: 'avg(span.duration)',
   interval: 60 * 60, // One hour in seconds
   query: '',
-
-  // Passed in from step 1
-  environment: '',
-  projectId: '',
-  name: '',
-  owner: '',
-} satisfies MetricDetectorFormData;
+} satisfies Partial<MetricDetectorFormData>;
 
 /**
  * Small helper to automatically get the type of the form field.
@@ -175,16 +177,6 @@ interface NewDataSource {
   query: string;
   queryType: number;
   timeWindow: number;
-}
-
-export interface NewMetricDetector {
-  conditionGroup: NewConditionGroup;
-  config: DetectorConfig;
-  dataSource: NewDataSource; // Single data source object (not array)
-  name: string;
-  owner: Detector['owner'];
-  projectId: Detector['projectId'];
-  type: Detector['type'];
 }
 
 /**
@@ -223,18 +215,33 @@ function createConditions(data: MetricDetectorFormData): NewConditionGroup['cond
 /**
  * Convert backend dataset to our form dataset
  */
-const getDetectorDataset = (backendDataset: string): DetectorDataset => {
+const getDetectorDataset = (
+  backendDataset: Dataset,
+  eventTypes: EventTypes[]
+): DetectorDataset => {
   switch (backendDataset) {
+    case Dataset.REPLAYS:
+      throw new Error('Unsupported dataset');
     case Dataset.ERRORS:
+    case Dataset.ISSUE_PLATFORM:
       return DetectorDataset.ERRORS;
     case Dataset.TRANSACTIONS:
     case Dataset.GENERIC_METRICS:
       return DetectorDataset.TRANSACTIONS;
     case Dataset.EVENTS_ANALYTICS_PLATFORM:
-      return DetectorDataset.SPANS;
+      // Spans and logs use the same dataset
+      if (eventTypes.includes(EventTypes.TRACE_ITEM_SPAN)) {
+        return DetectorDataset.SPANS;
+      }
+      if (eventTypes.includes(EventTypes.TRACE_ITEM_LOG)) {
+        return DetectorDataset.LOGS;
+      }
+      throw new Error('Unsupported event types');
     case Dataset.METRICS:
+    case Dataset.SESSIONS:
       return DetectorDataset.RELEASES; // Maps metrics dataset to releases for crash rate
     default:
+      unreachable(backendDataset);
       return DetectorDataset.ERRORS;
   }
 };
@@ -252,7 +259,10 @@ const getBackendDataset = (dataset: DetectorDataset): string => {
       return Dataset.EVENTS_ANALYTICS_PLATFORM;
     case DetectorDataset.RELEASES:
       return Dataset.METRICS; // Maps to metrics dataset for crash rate queries
+    case DetectorDataset.LOGS:
+      return Dataset.EVENTS_ANALYTICS_PLATFORM;
     default:
+      unreachable(dataset);
       return Dataset.ERRORS;
   }
 };
@@ -271,7 +281,10 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
         return ['trace_item_span'];
       case DetectorDataset.RELEASES:
         return []; // Crash rate queries don't have event types
+      case DetectorDataset.LOGS:
+        return ['trace_item_log'];
       default:
+        unreachable(dataset);
         return ['error'];
     }
   };
@@ -285,10 +298,12 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
         return SnubaQueryType.ERROR;
       case DetectorDataset.TRANSACTIONS:
       case DetectorDataset.SPANS:
+      case DetectorDataset.LOGS:
         return SnubaQueryType.PERFORMANCE;
       case DetectorDataset.RELEASES:
         return SnubaQueryType.CRASH_RATE; // Maps to crash rate for metrics dataset
       default:
+        unreachable(dataset);
         return SnubaQueryType.ERROR;
     }
   };
@@ -304,34 +319,34 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
   };
 }
 
-export function getNewMetricDetectorData(
+export function metricDetectorFormDataToEndpointPayload(
   data: MetricDetectorFormData
-): NewMetricDetector {
+): MetricDetectorUpdatePayload {
   const conditions = createConditions(data);
   const dataSource = createDataSource(data);
 
   // Create config based on detection type
-  let config: DetectorConfig;
+  let config: MetricDetectorConfig;
   switch (data.kind) {
     case 'percent':
       config = {
-        threshold_period: 1,
-        detection_type: 'percent',
-        comparison_delta: data.conditionComparisonAgo || 3600,
+        thresholdPeriod: 1,
+        detectionType: 'percent',
+        comparisonDelta: data.conditionComparisonAgo || 3600,
       };
       break;
     case 'dynamic':
       config = {
-        threshold_period: 1,
-        detection_type: 'dynamic',
+        thresholdPeriod: 1,
+        detectionType: 'dynamic',
         sensitivity: data.sensitivity,
       };
       break;
     case 'static':
     default:
       config = {
-        threshold_period: 1,
-        detection_type: 'static',
+        thresholdPeriod: 1,
+        detectionType: 'static',
       };
       break;
   }
@@ -354,7 +369,7 @@ export function getNewMetricDetectorData(
  * Convert the detector conditions array to the flattened form data
  */
 function processDetectorConditions(
-  detector: Detector
+  detector: MetricDetector
 ): PrioritizeLevelFormData &
   Pick<MetricDetectorFormData, 'conditionValue' | 'conditionType'> {
   // Get conditions from the condition group
@@ -405,7 +420,14 @@ function processDetectorConditions(
 /**
  * Converts a Detector to MetricDetectorFormData for editing
  */
-export function getMetricDetectorFormData(detector: Detector): MetricDetectorFormData {
+export function metricSavedDetectorToFormData(
+  detector: Detector
+): MetricDetectorFormData {
+  if (detector.type !== 'metric_issue') {
+    // This should never happen
+    throw new Error('Detector type mismatch');
+  }
+
   // Get the first data source (assuming metric detectors have one)
   const dataSource = detector.dataSources?.[0];
 
@@ -422,8 +444,16 @@ export function getMetricDetectorFormData(detector: Detector): MetricDetectorFor
   const conditionData = processDetectorConditions(detector);
 
   const dataset = snubaQuery?.dataset
-    ? getDetectorDataset(snubaQuery.dataset)
+    ? getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes)
     : DetectorDataset.SPANS;
+
+  const metricDetectorConfig =
+    'detectionType' in detector.config
+      ? detector.config
+      : {
+          detectionType: 'static' as const,
+          thresholdPeriod: 1,
+        };
 
   return {
     // Core detector fields
@@ -438,22 +468,22 @@ export function getMetricDetectorFormData(detector: Detector): MetricDetectorFor
 
     // Priority level and condition fields from processed conditions
     ...conditionData,
-    kind: detector.config.detection_type || 'static',
+    kind: metricDetectorConfig.detectionType,
 
     // Condition fields - get comparison delta from detector config (already in seconds)
     conditionComparisonAgo:
-      (detector.config?.detection_type === 'percent'
-        ? detector.config.comparison_delta
+      (metricDetectorConfig.detectionType === 'percent'
+        ? metricDetectorConfig.comparisonDelta
         : null) || 3600,
 
     // Dynamic fields - extract from config for dynamic detectors
     sensitivity:
-      detector.config?.detection_type === 'dynamic'
-        ? detector.config.sensitivity || AlertRuleSensitivity.LOW
+      metricDetectorConfig.detectionType === 'dynamic'
+        ? metricDetectorConfig.sensitivity || AlertRuleSensitivity.LOW
         : AlertRuleSensitivity.LOW,
     thresholdType:
-      detector.config?.detection_type === 'dynamic'
-        ? (detector.config as any).threshold_type || AlertRuleThresholdType.ABOVE
+      metricDetectorConfig.detectionType === 'dynamic'
+        ? metricDetectorConfig.thresholdType || AlertRuleThresholdType.ABOVE
         : AlertRuleThresholdType.ABOVE,
   };
 }

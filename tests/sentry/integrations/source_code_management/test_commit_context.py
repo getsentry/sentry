@@ -9,7 +9,7 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, ApiHostError
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric, assert_slo_metric
 from sentry.testutils.cases import TestCase
 from sentry.users.models.identity import Identity
@@ -127,6 +127,23 @@ class TestCommitContextIntegrationSLO(TestCase):
         assert result == []
         assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
         assert_halt_metric(mock_record, ApiInvalidRequestError(text="Invalid request"))
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_get_blame_for_files_api_host_error_gitlab(self, mock_record):
+        class MockGitlabIntegration(MockCommitContextIntegration):
+            integration_name = "gitlab"
+
+        self.integration = MockGitlabIntegration()
+
+        self.integration.client.get_blame_for_files = Mock(
+            side_effect=ApiHostError(text="retried too many times")
+        )
+
+        result = self.integration.get_blame_for_files([self.source_line], {})
+
+        assert result == []
+        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
+        assert_halt_metric(mock_record, ApiHostError(text="retried too many times"))
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_get_blame_for_files_retry_error(self, mock_record):

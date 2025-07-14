@@ -139,4 +139,106 @@ describe('LogsAutoRefresh', () => {
       expect(mockApi).toHaveBeenCalledTimes(5);
     });
   });
+
+  it('disables auto-refresh after 3 consecutive requests with more data', async () => {
+    const mockApi = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: mockLogsData},
+      headers: {
+        Link: '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:5000:0>; rel="next"; results="true"',
+      },
+    });
+
+    jest.spyOn(logsPageParams, 'useLogsAutoRefresh').mockReturnValue(true);
+    jest.spyOn(logsPageParams, 'useLogsRefreshInterval').mockReturnValue(1); // Faster interval for testing
+
+    renderWithProviders(<AutorefreshToggle />);
+
+    const toggleSwitch = screen.getByRole('checkbox', {name: 'Auto-refresh'});
+    expect(toggleSwitch).toBeChecked();
+
+    await waitFor(() => {
+      expect(mockApi).toHaveBeenCalledTimes(3);
+    });
+
+    // After 3 consecutive requests with more data, auto-refresh should be disabled
+    await waitFor(() => {
+      expect(setAutoRefresh).toHaveBeenCalledWith(false);
+    });
+  });
+
+  it('continues auto-refresh when there is no more data', async () => {
+    const mockApi = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: mockLogsData},
+      headers: {
+        Link: '', // No Link header means no more data
+      },
+    });
+
+    jest.spyOn(logsPageParams, 'useLogsAutoRefresh').mockReturnValue(true);
+    jest.spyOn(logsPageParams, 'useLogsRefreshInterval').mockReturnValue(1); // Faster interval for testing
+
+    renderWithProviders(<AutorefreshToggle />);
+
+    const toggleSwitch = screen.getByRole('checkbox', {name: 'Auto-refresh'});
+    expect(toggleSwitch).toBeChecked();
+
+    await waitFor(() => {
+      expect(mockApi).toHaveBeenCalledTimes(5);
+    });
+
+    // Auto-refresh should NOT be disabled
+    expect(setAutoRefresh).not.toHaveBeenCalledWith(false);
+  });
+
+  it('disables auto-refresh when API request fails', async () => {
+    const initialMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: mockLogsData},
+    });
+
+    jest.spyOn(logsPageParams, 'useLogsAutoRefresh').mockReturnValue(true);
+    jest.spyOn(logsPageParams, 'useLogsRefreshInterval').mockReturnValue(1); // Faster interval for testing
+
+    renderWithProviders(<AutorefreshToggle />);
+
+    const toggleSwitch = screen.getByRole('checkbox', {name: 'Auto-refresh'});
+    expect(toggleSwitch).toBeChecked();
+
+    await waitFor(() => {
+      expect(initialMock).toHaveBeenCalled();
+    });
+
+    expect(setAutoRefresh).not.toHaveBeenCalled();
+
+    initialMock.mockClear();
+    const errorMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      statusCode: 500,
+      body: {
+        detail: 'Internal Server Error',
+      },
+    });
+
+    await waitFor(() => {
+      expect(errorMock).toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      expect(setAutoRefresh).toHaveBeenCalledWith(false);
+    });
+
+    await userEvent.hover(toggleSwitch);
+
+    expect(
+      await screen.findByText(
+        'Auto-refresh was disabled due to an error fetching logs. If the issue persists, please contact support.'
+      )
+    ).toBeInTheDocument();
+  });
 });

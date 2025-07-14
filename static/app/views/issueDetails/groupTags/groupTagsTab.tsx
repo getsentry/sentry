@@ -187,7 +187,7 @@ const TagBarBackground = styled('div')<{widthPercent: string}>`
   top: 0;
   bottom: 0;
   left: 0;
-  background: ${p => p.theme.tagBar};
+  background: ${p => p.theme.surface100};
   border-radius: ${p => p.theme.borderRadius};
   width: ${p => p.widthPercent};
 `;
@@ -207,7 +207,7 @@ const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
     color: ${p => p.theme.textColor};
     text-decoration: underline;
     ${TagBarBackground} {
-      background: ${p => p.theme.tagBarHover};
+      background: ${p => (p.theme.isChonk ? p.theme.blue300 : p.theme.purple200)};
     }
   }
 `;

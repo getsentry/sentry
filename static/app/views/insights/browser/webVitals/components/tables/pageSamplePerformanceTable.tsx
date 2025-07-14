@@ -494,7 +494,6 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
 
     if (key === 'id' || key === SpanIndexedField.SPAN_DESCRIPTION) {
       const traceViewLink = generateLinkToEventInTraceView({
-        projectSlug: row.project,
         traceSlug: row.trace,
         eventId: row.id,
         timestamp: row.timestamp,

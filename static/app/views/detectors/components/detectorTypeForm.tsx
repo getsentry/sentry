@@ -6,6 +6,7 @@ import RadioField from 'sentry/components/forms/fields/radioField';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
+import {DETECTOR_TYPE_LABELS} from 'sentry/views/detectors/constants';
 
 export function DetectorTypeForm() {
   return (
@@ -32,7 +33,7 @@ function MonitorTypeField() {
         [
           [
             'metric_issue',
-            t('Metric'),
+            DETECTOR_TYPE_LABELS.metric_issue,
             <Description
               key="description"
               text={t('Monitor error counts, transaction duration, and more!')}
@@ -41,7 +42,7 @@ function MonitorTypeField() {
           ],
           [
             'uptime_subscription',
-            t('Crons'),
+            DETECTOR_TYPE_LABELS.uptime_subscription,
             <Description
               key="description"
               text={t(
@@ -52,7 +53,7 @@ function MonitorTypeField() {
           ],
           [
             'uptime_domain_failure',
-            t('Uptime'),
+            DETECTOR_TYPE_LABELS.uptime_domain_failure,
             <Description
               key="description"
               text={t('Monitor the uptime of specific endpoint in your applications.')}

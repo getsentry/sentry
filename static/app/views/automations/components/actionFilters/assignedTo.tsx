@@ -13,6 +13,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import useUserFromId from 'sentry/utils/useUserFromId';
 import {TargetType} from 'sentry/views/automations/components/actionFilters/constants';
+import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 const TARGET_TYPE_CHOICES = [
@@ -56,10 +58,17 @@ function TargetTypeField() {
   return (
     <AutomationBuilderSelect
       name={`${condition_id}.comparison.targetType`}
+      aria-label={t('Assignee type')}
       value={condition.comparison.targetType}
       options={TARGET_TYPE_CHOICES}
       onChange={(option: SelectValue<string>) =>
-        onUpdate({targetType: option.value, targetIdentifier: ''})
+        onUpdate({
+          comparison: {
+            ...condition.comparison,
+            targetType: option.value,
+            targetIdentifier: '',
+          },
+        })
       }
     />
   );
@@ -67,6 +76,7 @@ function TargetTypeField() {
 
 function IdentifierField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
+  const {removeError} = useAutomationBuilderErrorContext();
   const organization = useOrganization();
 
   if (condition.comparison.targetType === TargetType.TEAM) {
@@ -74,8 +84,14 @@ function IdentifierField() {
       <SelectWrapper>
         <TeamSelector
           name={`${condition_id}.data.targetIdentifier`}
+          aria-label={t('Team')}
           value={condition.comparison.targetIdentifier}
-          onChange={(value: SelectValue<string>) => onUpdate({targetIdentifier: value})}
+          onChange={(option: SelectValue<string>) => {
+            onUpdate({
+              comparison: {...condition.comparison, targetIdentifier: option.value},
+            });
+            removeError(condition.id);
+          }}
           useId
           styles={selectControlStyles}
         />
@@ -89,8 +105,14 @@ function IdentifierField() {
         <SelectMembers
           organization={organization}
           key={`${condition_id}.data.targetIdentifier`}
+          aria-label={t('Member')}
           value={condition.comparison.targetIdentifier}
-          onChange={(value: any) => onUpdate({targetIdentifier: value.actor.id})}
+          onChange={(value: any) => {
+            onUpdate({
+              comparison: {...condition.comparison, targetIdentifier: value.actor.id},
+            });
+            removeError(condition.id);
+          }}
           styles={selectControlStyles}
         />
       </SelectWrapper>
@@ -98,6 +120,27 @@ function IdentifierField() {
   }
 
   return null;
+}
+
+export function validateAssignedToCondition({
+  condition,
+}: ValidateDataConditionProps): string | undefined {
+  if (!condition.comparison.targetType) {
+    return t('You must specify an assignee type.');
+  }
+  if (
+    condition.comparison.targetType === TargetType.TEAM &&
+    !condition.comparison.targetIdentifier
+  ) {
+    return t('You must specify a team.');
+  }
+  if (
+    condition.comparison.targetType === TargetType.MEMBER &&
+    !condition.comparison.targetIdentifier
+  ) {
+    return t('You must specify a member.');
+  }
+  return undefined;
 }
 
 const SelectWrapper = styled('div')`
