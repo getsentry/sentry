@@ -104,7 +104,7 @@ export default function LLMGenerationsWidget() {
             new Bars(convertSeriesToTimeseries(ts), {
               color:
                 ts.seriesName === 'Other' ? theme.chart.neutral : colorPalette[index],
-              alias: ts.seriesName,
+              alias: ts.seriesName, // Ensures that the tooltip shows the full series name
               stack: 'stack',
             })
         ),
