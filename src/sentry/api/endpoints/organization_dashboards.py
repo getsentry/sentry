@@ -156,7 +156,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 dashboards = dashboards.annotate(
                     user_last_visited=Case(
                         When(
-                            dashboardlastvisited__member_id=request.user.id,
+                            dashboardlastvisited__member__user_id=request.user.id,
                             then=F("dashboardlastvisited__last_visited"),
                         ),
                         default=None,
