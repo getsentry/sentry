@@ -87,7 +87,16 @@ export function DataSetStep({
   if (hasDatasetSelectorFeature) {
     // TODO: Finalize description copy
     datasetChoices.set(DataSet.ERRORS, t('Errors (TypeError, InvalidSearchQuery, etc)'));
-    datasetChoices.set(DataSet.TRANSACTIONS, t('Transactions'));
+    if (organization.features.includes('discover-saved-queries-deprecation')) {
+      disabledChoices.push([
+        DataSet.TRANSACTIONS,
+        t(
+          'This dataset is is no longer supported. Please use the Spans dataset with filter is_transaction:True to make transaction queries.'
+        ),
+      ]);
+    } else {
+      datasetChoices.set(DataSet.TRANSACTIONS, t('Transactions'));
+    }
   }
 
   if (!hasDatasetSelectorFeature) {
