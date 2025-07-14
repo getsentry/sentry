@@ -40,7 +40,7 @@ export function Drawer({boxSelectOptions, chartInfo}: Props) {
   }, [searchQuery, data?.rankedAttributes]);
 
   // We use the search query as a key to virtual list items, to correctly re-mount
-  // charts the were invisible before the user searched for it. Debouncing the search
+  // charts that were invisible before the user searched for it. Debouncing the search
   // query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
   const debouncedSearchQuery = useDebouncedValue(searchQuery, 100);
 

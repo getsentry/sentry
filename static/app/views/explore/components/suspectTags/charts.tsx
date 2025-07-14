@@ -198,7 +198,7 @@ function Chart({
         ? {adjective: 'different', message: 'This is suspicious.'}
         : {adjective: 'similar', message: 'Nothing unusual here.'};
 
-      const name = selectedParam?.name ?? baselineParam?.name;
+      const name = selectedParam?.name ?? baselineParam?.name ?? '';
       const truncatedName = name.length > 300 ? `${name.slice(0, 300)}...` : name;
 
       return `<div style="max-width: 200px; white-space: normal; word-wrap: break-word; line-height: 1.2;">${truncatedName} <span style="color: ${theme.textColor};">is <strong>${status.adjective}</strong> ${isDifferent ? 'between' : 'across'} selected and baseline data. ${status.message}</span></div>`;
