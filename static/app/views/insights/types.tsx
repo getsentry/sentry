@@ -112,6 +112,9 @@ export enum SpanFields {
   GEN_AI_USAGE_TOTAL_COST = 'gen_ai.usage.total_cost',
   GEN_AI_USAGE_TOTAL_TOKENS = 'gen_ai.usage.total_tokens',
   MCP_TRANSPORT = 'mcp.transport',
+  MCP_TOOL_NAME = 'mcp.tool.name',
+  MCP_RESOURCE_URI = 'mcp.resource.uri',
+  MCP_PROMPT_NAME = 'mcp.prompt.name',
 }
 
 type WebVitalsMeasurements =
@@ -157,7 +160,7 @@ type SpanNumberFields =
   | SpanFields.GEN_AI_USAGE_TOTAL_COST
   | DiscoverNumberFields;
 
-type SpanStringFields =
+export type SpanStringFields =
   | SpanMetricsField.RESOURCE_RENDER_BLOCKING_STATUS
   | SpanFields.RAW_DOMAIN
   | SpanFields.ID
@@ -170,6 +173,9 @@ type SpanStringFields =
   | SpanFields.GEN_AI_RESPONSE_MODEL
   | SpanFields.GEN_AI_TOOL_NAME
   | SpanFields.MCP_TRANSPORT
+  | SpanFields.MCP_TOOL_NAME
+  | SpanFields.MCP_RESOURCE_URI
+  | SpanFields.MCP_PROMPT_NAME
   | 'span_id'
   | 'span.op'
   | 'span.description'
