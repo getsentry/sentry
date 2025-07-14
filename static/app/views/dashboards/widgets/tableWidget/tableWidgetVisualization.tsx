@@ -206,12 +206,12 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
           const possibleSortColumns = [sortColumn, getAggregateAlias(column.key)];
 
           let direction = undefined;
-          if (sort && possibleSortColumns.includes(sort?.field ?? '')) {
+          if (sort && possibleSortColumns.includes(sort.field)) {
             direction = sort.kind;
           } else if (
             locationSort &&
             !sort &&
-            possibleSortColumns.includes(locationSort?.field ?? '')
+            possibleSortColumns.includes(locationSort.field)
           ) {
             direction = locationSort.kind;
           }
