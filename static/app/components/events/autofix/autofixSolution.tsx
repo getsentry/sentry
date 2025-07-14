@@ -488,12 +488,12 @@ function AutofixSolutionDisplay({
             </ChatButton>
           </HeaderText>
           <ButtonBar gap="md">
-            <ButtonBar>
+            <ButtonBar gap="none">
               {!isEditing && (
                 <CopySolutionButton solution={solution} isEditing={isEditing} />
               )}
             </ButtonBar>
-            <ButtonBar>
+            <ButtonBar gap="none">
               <Tooltip
                 isHoverable
                 title={

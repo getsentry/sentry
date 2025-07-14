@@ -188,7 +188,7 @@ function ReleaseActions({
 
   return (
     <ButtonBar gap="md">
-      <ButtonBar merged>
+      <ButtonBar merged gap="none">
         <LinkButton
           size="sm"
           to={replaceReleaseUrl(release.currentProjectMeta.firstReleaseVersion)}
