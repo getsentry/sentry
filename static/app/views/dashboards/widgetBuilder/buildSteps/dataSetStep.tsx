@@ -94,9 +94,8 @@ export function DataSetStep({
           'This dataset is is no longer supported. Please use the Spans dataset with filter is_transaction:True to make transaction queries.'
         ),
       ]);
-    } else {
-      datasetChoices.set(DataSet.TRANSACTIONS, t('Transactions'));
     }
+    datasetChoices.set(DataSet.TRANSACTIONS, t('Transactions'));
   }
 
   if (!hasDatasetSelectorFeature) {
