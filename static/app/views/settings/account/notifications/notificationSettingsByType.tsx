@@ -235,7 +235,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       if (field.name.startsWith('quotaSeer') && !includeSeer) {
         return false;
       }
-      if (field.name.startsWith('quotaLogs') && !includeLogs) {
+      if (field.name.startsWith('quotaLogBytes') && !includeLogs) {
         return false;
       }
       return true;
