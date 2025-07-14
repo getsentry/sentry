@@ -157,12 +157,6 @@ export function getOnDemandBudget(budget: OnDemandBudgets, dataCategory: DataCat
   ) {
     return budget.budgets[dataCategory] ?? 0;
   }
-  if (
-    budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY &&
-    dataCategory === DataCategory.LOG_BYTE
-  ) {
-    return 0;
-  }
   return getTotalBudget(budget);
 }
 
