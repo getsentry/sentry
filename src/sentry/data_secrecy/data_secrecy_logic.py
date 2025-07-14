@@ -128,13 +128,26 @@ def data_access_grant_exists(organization_id: int) -> bool:
 
         serialized_grant_status = grant_status.dict()
 
-        cache.set(
-            CACHE_KEY_PATTERN.format(organization_id=organization_id),
-            serialized_grant_status,
-            timeout=ttl_seconds,
-        )
+        # We need to do this check because of concurrency issues.
+        # If a request comes in at the same time as the grant is revoked,
+        # we need to ensure that we don't store the expired grant status (accounting for the delay induced by RPC)
+        if ttl_seconds > 0:
+            cache.set(
+                CACHE_KEY_PATTERN.format(organization_id=organization_id),
+                serialized_grant_status,
+                timeout=ttl_seconds,
+            )
+            return True
 
-        return True
+        else:
+            # If the grant is expired, cache the negative result for 15 minutes
+            cache.set(
+                CACHE_KEY_PATTERN.format(organization_id=organization_id),
+                NEGATIVE_CACHE_VALUE,
+                timeout=NEGATIVE_CACHE_TTL,
+            )
+            return False
+
     else:
         # Cache the negative result for 15 minutes
         cache.set(
