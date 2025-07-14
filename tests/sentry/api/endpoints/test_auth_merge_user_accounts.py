@@ -41,6 +41,7 @@ class ListUserAccountsWithSharedEmailTest(APITestCase):
         assert response.data[1]["organizations"] == [org3.name]
         assert response.data[2]["organizations"] == []
 
+
 @control_silo_test
 class MergeUserAccountsWithSharedEmailTest(APITestCase):
     endpoint = "sentry-api-0-auth-merge-accounts"
