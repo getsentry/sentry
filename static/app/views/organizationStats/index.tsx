@@ -342,8 +342,8 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
 
   renderEstimationDisclaimer() {
     if (
-      this.dataCategory === DATA_CATEGORY_INFO.profileDuration.plural ||
-      this.dataCategory === DATA_CATEGORY_INFO.profileDurationUI.plural
+      this.dataCategory === DATA_CATEGORY_INFO.profile_duration.plural ||
+      this.dataCategory === DATA_CATEGORY_INFO.profile_duration_ui.plural
     ) {
       return (
         <EstimationText data-test-id="estimation-text">

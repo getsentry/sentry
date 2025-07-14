@@ -10,7 +10,6 @@ from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     ResolvedAttribute,
     VirtualColumnDefinition,
-    datetime_processor,
     project_context_constructor,
     project_term_resolver,
     simple_measurements_field,
@@ -235,13 +234,6 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="sampling_rate",
             internal_name="sentry.sampling_factor",
             search_type="percentage",
-        ),
-        ResolvedAttribute(
-            public_alias="timestamp",
-            internal_name="sentry.timestamp",
-            internal_type=constants.DOUBLE,
-            search_type="string",
-            processor=datetime_processor,
         ),
         ResolvedAttribute(
             public_alias="cache.hit",

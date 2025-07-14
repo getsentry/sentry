@@ -14,6 +14,7 @@ export enum ModuleName {
   RESOURCE = 'resource',
   AI = 'ai',
   AGENTS = 'agents',
+  MCP = 'mcp',
   MOBILE_UI = 'mobile-ui',
   MOBILE_VITALS = 'mobile-vitals',
   SCREEN_RENDERING = 'screen-rendering',

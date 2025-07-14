@@ -314,6 +314,19 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     valuePropPoints: [],
     imageSrc: screenLoadsPreviewImg,
   },
+  mcp: {
+    heading: t('Model Context Providers'),
+    description: t(
+      'Monitor your MCP servers to ensure your AI applications have reliable access to tools, resources, and data sources they depend on.'
+    ),
+    imageSrc: llmPreviewImg,
+    valuePropDescription: t('MCP monitoring gives you visibility into:'),
+    valuePropPoints: [
+      t('Tool execution success rates and failure patterns.'),
+      t('Resource access performance and availability.'),
+      t('Usage patterns across different tools and prompts.'),
+    ],
+  },
   'mobile-ui': {
     heading: t('TODO'),
     description: t('TODO'),

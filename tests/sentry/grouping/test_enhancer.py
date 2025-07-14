@@ -104,7 +104,7 @@ def assert_no_matching_frame_found(
     assert not bool(get_matching_frame_actions(rule, frames, platform, exception_data, cache))
 
 
-@pytest.mark.parametrize("version", [2, 3])
+@pytest.mark.parametrize("version", [3])
 def test_basic_parsing(insta_snapshot, version):
     enhancements = Enhancements.from_rules_text(
         """

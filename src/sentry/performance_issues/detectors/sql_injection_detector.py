@@ -91,6 +91,9 @@ class SQLInjectionDetector(PerformanceDetector):
             request_data.extend(self.request_body.items())
 
         for query_pair in request_data:
+            # Skip None values or pairs that don't have at least 2 elements
+            if not query_pair or not isinstance(query_pair, Sequence) or len(query_pair) < 2:
+                continue
             query_value = query_pair[1]
             query_key = query_pair[0]
 
@@ -126,11 +129,22 @@ class SQLInjectionDetector(PerformanceDetector):
             regex_key = rf'(?<![\w.$])"?{re.escape(key)}"?(?![\w.$"])'
             regex_value = rf"(?<![\w.$])(['\"]?){re.escape(value)}\1(?![\w.$'\"])"
             where_index = description.upper().find("WHERE")
-            if re.search(regex_key, description[where_index:]) and re.search(
-                regex_value, description[where_index:]
+            # Search for comments only in the portion after WHERE clause
+            description_after_where = description[where_index:]
+            comment_index = description_after_where.find("--")
+            if comment_index != -1:
+                description_to_search = description_after_where[:comment_index]
+                description_after_comment = description_after_where[comment_index:]
+            else:
+                description_to_search = description_after_where
+                description_after_comment = ""
+            if re.search(regex_key, description_to_search) and re.search(
+                regex_value, description_to_search
             ):
-                description = description[:where_index] + re.sub(
-                    regex_value, "[UNTRUSTED_INPUT]", description[where_index:]
+                description = (
+                    description[:where_index]
+                    + re.sub(regex_value, "[UNTRUSTED_INPUT]", description_to_search)
+                    + description_after_comment
                 )
                 vulnerable_parameters.append((key, value))
 
