@@ -1563,12 +1563,6 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if group.seer_fixability_score is not None:
         return
 
-    # Don't run if there's already a task in progress for this issue
-    lock_key, lock_name = get_issue_summary_lock_key(group.id)
-    lock = locks.get(lock_key, duration=1, name=lock_name)
-    if lock.locked():
-        return
-
     # check currently supported issue categories for Seer
     if group.issue_category not in [
         GroupCategory.ERROR,
@@ -1612,6 +1606,12 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     from sentry.autofix.utils import is_seer_scanner_rate_limited
 
     if is_seer_scanner_rate_limited(project, group.organization):
+        return
+
+    # Don't run if there's already a task in progress for this issue
+    lock_key, lock_name = get_issue_summary_lock_key(group.id)
+    lock = locks.get(lock_key, duration=1, name=lock_name)
+    if lock.locked():
         return
 
     start_seer_automation.delay(group.id)
