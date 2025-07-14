@@ -704,6 +704,187 @@ def test_generate_rules_return_boost_replay_id(get_blended_sample_rate, default_
 
 @django_db_all
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
+def test_generate_rules_return_minimum_sample_rate_when_enabled(
+    get_blended_sample_rate, default_old_project
+):
+    get_blended_sample_rate.return_value = 0.3
+    default_old_project.update_option(
+        "sentry:dynamic_sampling_biases",
+        [
+            {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+            {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+            {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
+            {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": True},
+        ],
+    )
+
+    with Feature({"organizations:dynamic-sampling-minimum-sample-rate": True}):
+        assert generate_rules(default_old_project) == [
+            {
+                "condition": {"inner": [], "op": "and"},
+                "id": 1006,
+                "samplingValue": {"type": "minimumSampleRate", "value": 0.3},
+                "type": "trace",
+            },
+            {
+                "condition": {"inner": [], "op": "and"},
+                "id": 1000,
+                "samplingValue": {"type": "sampleRate", "value": 0.3},
+                "type": "trace",
+            },
+        ]
+
+        _validate_rules(default_old_project)
+
+    assert generate_rules(default_old_project) == [
+        {
+            "condition": {"inner": [], "op": "and"},
+            "id": 1000,
+            "samplingValue": {"type": "sampleRate", "value": 0.3},
+            "type": "trace",
+        },
+    ]
+
+    _validate_rules(default_old_project)
+
+
+@django_db_all
+@patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
+def test_generate_rules_minimum_sample_rate_not_included_when_disabled(
+    get_blended_sample_rate, default_old_project
+):
+    get_blended_sample_rate.return_value = 0.3
+    default_old_project.update_option(
+        "sentry:dynamic_sampling_biases",
+        [
+            {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+            {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+            {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
+            {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": False},
+        ],
+    )
+
+    rules = generate_rules(default_old_project)
+    # Should only have the uniform rule, not the minimum sample rate rule
+    assert len(rules) == 1
+    assert rules[0]["id"] == 1000
+    assert rules[0]["samplingValue"]["value"] == 0.3
+
+    _validate_rules(default_old_project)
+
+
+@django_db_all
+@patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
+def test_generate_rules_minimum_sample_rate_not_included_by_default(
+    get_blended_sample_rate, default_old_project
+):
+    get_blended_sample_rate.return_value = 0.3
+    default_old_project.update_option(
+        "sentry:dynamic_sampling_biases",
+        [
+            {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+            {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+            {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
+            # Note: MINIMUM_SAMPLE_RATE_RULE is not mentioned at all (default behavior)
+        ],
+    )
+
+    rules = generate_rules(default_old_project)
+    # Should only have the uniform rule, not the minimum sample rate rule
+    assert len(rules) == 1
+    assert rules[0]["id"] == 1000
+    assert rules[0]["samplingValue"]["value"] == 0.3
+
+    _validate_rules(default_old_project)
+
+
+@django_db_all
+@patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
+def test_generate_rules_minimum_sample_rate_correct_order(
+    get_blended_sample_rate, default_old_project
+):
+    with Feature({"organizations:dynamic-sampling-minimum-sample-rate": True}):
+
+        get_blended_sample_rate.return_value = 0.4
+        default_old_project.update_option(
+            "sentry:dynamic_sampling_biases",
+            [
+                {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+                {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": True},
+                {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+                {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": False},
+                {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": False},
+                {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
+                {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": True},
+            ],
+        )
+
+        rules = generate_rules(default_old_project)
+
+        # Verify order: health checks, replay ID, minimum sample rate, uniform
+        assert len(rules) == 4
+
+        # Health checks rule should be first (lowest sample rate)
+        assert rules[0]["id"] == 1002
+        assert rules[0]["samplingValue"]["value"] == 0.4 / 5  # IGNORE_HEALTH_CHECKS_FACTOR = 5
+
+        # Replay ID rule should be second
+        assert rules[1]["id"] == 1005
+        assert rules[1]["samplingValue"]["value"] == 1.0
+
+        # Minimum sample rate rule should be third
+        assert rules[2]["id"] == 1006
+        assert rules[2]["samplingValue"]["type"] == "minimumSampleRate"
+        assert rules[2]["samplingValue"]["value"] == 0.4
+
+        # Uniform rule should be last
+        assert rules[3]["id"] == 1000
+        assert rules[3]["samplingValue"]["value"] == 0.4
+
+        _validate_rules(default_old_project)
+
+
+@django_db_all
+@patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
+def test_generate_rules_minimum_sample_rate_with_100_percent_sample_rate(
+    get_blended_sample_rate, default_old_project
+):
+    get_blended_sample_rate.return_value = 1.0
+    default_old_project.update_option(
+        "sentry:dynamic_sampling_biases",
+        [
+            {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": True},
+        ],
+    )
+    with Feature({"organizations:dynamic-sampling-minimum-sample-rate": True}):
+        rules = generate_rules(default_old_project)
+        assert len(rules) == 2
+        assert rules[0]["id"] == 1006
+        assert rules[0]["samplingValue"]["value"] == 1.0
+        assert rules[1]["id"] == 1000
+        assert rules[1]["samplingValue"]["value"] == 1.0
+
+        _validate_rules(default_old_project)
+
+    rules = generate_rules(default_old_project)
+    assert len(rules) == 1
+    assert rules[0]["id"] == 1000
+    assert rules[0]["samplingValue"]["value"] == 1.0
+
+    _validate_rules(default_old_project)
+
+
+@django_db_all
+@patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
 def test_generate_rules_return_custom_rules(get_blended_sample_rate, default_old_project):
     """
     Tests the generation of custom rules ( from CustomDynamicSamplingRule models )
