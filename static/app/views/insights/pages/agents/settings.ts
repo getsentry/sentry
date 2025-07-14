@@ -14,5 +14,4 @@ export const getAgentsSidebarLabel = (organization: Organization) => {
   }
   return AGENTS_SIDEBAR_LABEL;
 };
-
-export const MODULES = [ModuleName.AGENTS];
+export const MODULES = [ModuleName.AGENTS, ModuleName.MCP];
