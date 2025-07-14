@@ -335,7 +335,10 @@ function ProjectPerformance() {
         getData: getRetentionPrioritiesData,
       },
     ];
-    if (hasDynamicSamplingCustomFeature(organization)) {
+    if (
+      hasDynamicSamplingCustomFeature(organization) &&
+      organization.features.includes('organizations:dynamic-sampling-minimum-sample-rate')
+    ) {
       fields.push({
         name: 'minimumSampleRate',
         type: 'boolean',
