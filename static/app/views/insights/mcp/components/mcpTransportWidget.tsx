@@ -8,7 +8,7 @@ export default function McpTransportWidget() {
     <GroupedTrafficWidget
       groupBy={SpanFields.MCP_TRANSPORT}
       referrer={MCPReferrer.MCP_TRANSPORT_WIDGET}
-      query={`has:${SpanFields.MCP_TRANSPORT}`}
+      query={`span.op:mcp.server has:${SpanFields.MCP_TRANSPORT}`}
       title={t('Transport Distribution')}
     />
   );

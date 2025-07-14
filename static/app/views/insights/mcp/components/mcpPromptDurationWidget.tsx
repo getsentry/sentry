@@ -7,7 +7,7 @@ export default function McpPromptDurationWidget() {
   return (
     <GroupedDurationWidget
       groupBy={SpanFields.MCP_PROMPT_NAME}
-      referrer={MCPReferrer.MCP_PROMPT_TRAFFIC_WIDGET}
+      referrer={MCPReferrer.MCP_PROMPT_DURATION_WIDGET}
       query={`span.op:mcp.server has:${SpanFields.MCP_PROMPT_NAME}`}
       title={t('Slowest Prompts')}
     />
