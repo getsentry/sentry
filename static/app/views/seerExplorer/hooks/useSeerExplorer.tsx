@@ -21,17 +21,14 @@ export type SeerExplorerResponse = {
   } | null;
 };
 
-export type SeerExplorerChatResponse = {
+type SeerExplorerChatResponse = {
   message: Block;
   run_id: number;
 };
 
 const POLL_INTERVAL = 500; // Poll every 500ms
 
-export const makeSeerExplorerQueryKey = (
-  orgSlug: string,
-  runId?: number
-): ApiQueryKey => [
+const makeSeerExplorerQueryKey = (orgSlug: string, runId?: number): ApiQueryKey => [
   `/organizations/${orgSlug}/seer/explorer-chat/${runId ? `${runId}/` : ''}`,
   {},
 ];
