@@ -164,7 +164,8 @@ function SearchComboBox(props: SearchComboBoxProps) {
       if (!node) {
         return;
       }
-      navigate({...node.location}, {replace: true, state: node.location.state});
+      const {state, ...to} = node.location;
+      navigate(to, {replace: true, state});
     },
     [navigate, props]
   );
