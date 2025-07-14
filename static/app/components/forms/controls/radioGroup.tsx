@@ -31,6 +31,7 @@ interface BaseRadioGroupProps<C extends string> {
    * Switch the radio items to flow left to right, instead of vertically.
    */
   orientInline?: boolean;
+  tooltipIsHoverable?: boolean;
   tooltipPosition?: PopperProps<any>['placement'];
 }
 
@@ -59,6 +60,7 @@ function RadioGroup<C extends string>({
   onChange,
   orientInline,
   tooltipPosition,
+  tooltipIsHoverable,
   ...props
 }: RadioGroupProps<C>) {
   return (
@@ -84,6 +86,7 @@ function RadioGroup<C extends string>({
             disabled={!disabledChoiceReason}
             title={disabledChoiceReason}
             position={tooltipPosition}
+            isHoverable={tooltipIsHoverable}
           >
             <RadioLineItem index={index} aria-checked={value === id} disabled={disabled}>
               <Radio
