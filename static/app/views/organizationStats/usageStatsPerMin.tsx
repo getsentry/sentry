@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import {DataCategory, DataCategoryExact, Outcome} from 'sentry/types/core';
+import type {DataCategory} from 'sentry/types/core';
+import {DataCategoryExact, Outcome} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -67,7 +68,7 @@ function UsageStatsPerMin({
       const {category, outcome} = group.by;
 
       if (dataCategoryApiName === DataCategoryExact.SPAN_INDEXED) {
-        if (category !== DataCategory.SPANS_INDEXED || outcome !== Outcome.ACCEPTED) {
+        if (category !== DataCategoryExact.SPAN_INDEXED || outcome !== Outcome.ACCEPTED) {
           return count;
         }
       } else {
