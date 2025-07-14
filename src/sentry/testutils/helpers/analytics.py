@@ -52,23 +52,15 @@ def assert_last_analytics_event(
     expected_event: Event,
     check_uuid: bool = False,
     check_datetime: bool = False,
+    exclude_fields: list[str] | None = None,
 ):
     assert_event_equal(
         expected_event,
         get_last_analytics_event(mock_record),
         check_uuid,
         check_datetime,
+        exclude_fields,
     )
-
-
-def assert_last_analytics_event(
-    mock_record: MagicMock,
-    expected_event: Event,
-    check_uuid: bool = False,
-    check_datetime: bool = False,
-):
-    recorded_event = mock_record.call_args_list[-1].args[0]
-    assert_event_equal(expected_event, recorded_event, check_uuid, check_datetime)
 
 
 @contextlib.contextmanager
