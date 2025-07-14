@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -17,22 +18,13 @@ import {useStoriesLoader} from './useStoriesLoader';
 export default function Stories() {
   useStoryRedirect();
   const location = useLocation<{name: string; query?: string}>();
-  const files = useStoryBookFiles();
+  const files = useMemo(
+    () => [location.state?.storyPath ?? location.query.name],
+    [location]
+  );
+  const story = useStoriesLoader({files});
 
-  // If no story is selected, show the landing page stories
-  const storyFiles = useMemo(() => {
-    if (!(location.state?.storyPath ?? location.query.name)) {
-      return files.filter(
-        file =>
-          file.endsWith('styles/index.mdx')
-      );
-    }
-    return [location.state?.storyPath ?? location.query.name];
-  }, [files, location.state?.storyPath, location.query.name]);
-
-  const story = useStoriesLoader({files: storyFiles});
-
-  if (!location.query.name) {
+  if (!files[0]) {
     return (
       <RouteAnalyticsContextProvider>
         <OrganizationContainer>
