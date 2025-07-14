@@ -421,7 +421,9 @@ export const ReplaySelectColumn: ReplayTableColumn = {
 
 export const ReplaySessionColumn: ReplayTableColumn = {
   Header: () => (
-    <Tooltip title={t('By default, replays are sorted by time sent.')}>{t('Replay')}</Tooltip>
+    <Tooltip title={t('By default, replays are sorted by time sent.')}>
+      {t('Replay')}
+    </Tooltip>
   ),
   sortKey: 'started_at',
   width: 'minmax(150px, 1fr)',
