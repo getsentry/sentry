@@ -94,13 +94,17 @@ class DatabaseBackedRepositoryService(RepositoryService):
             return
 
         with transaction.atomic(router.db_for_write(Repository)):
-            update_mapping: dict[int, RpcRepository] = {update.id: update for update in updates}
+            update_mapping: dict[int, dict[str, Any]] = {}
+            for update in updates:
+                update_dict = update.dict()
+                del update_dict["id"]  # don't update the repo ID
+                update_mapping[update.id] = update_dict
 
             if len(update_mapping.keys()) != len(updates):
                 raise Exception("Multiple updates for the same repository are not allowed.")
 
-            updated_fields = set(updates[0].dict().keys())
-            updated_fields.discard("id")
+            # we could be updating everything except the repo IDs, so we need to collect the fields
+            updated_fields = set(list(update_mapping.values())[0].keys())
 
             repositories = Repository.objects.filter(
                 organization_id=organization_id, id__in=update_mapping.keys()
@@ -108,7 +112,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
 
             # Apply updates to each repository object
             for repository in repositories:
-                repo_update = update_mapping[repository.id].dict()
+                repo_update = update_mapping[repository.id]
                 for field_name, field_value in repo_update.items():
                     setattr(repository, field_name, field_value)
 
