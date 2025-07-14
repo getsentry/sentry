@@ -46,7 +46,7 @@ const formGroups: JsonFormObject[] = [
       },
       {
         name: 'enablePrReviewTestGeneration',
-        type: 'blank',
+        type: 'boolean',
         label: tct('Enable PR Review and Test Generation [badge]', {
           badge: <FeatureBadge type="beta" />,
         }),

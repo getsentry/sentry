@@ -728,6 +728,7 @@ SAMPLING_MODE_DEFAULT = "organization"
 ROLLBACK_ENABLED_DEFAULT = True
 DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT = AutofixAutomationTuningSettings.OFF
 DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT = True
+ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT = True
 INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT = False
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope

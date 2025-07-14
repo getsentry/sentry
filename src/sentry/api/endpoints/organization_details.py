@@ -47,6 +47,7 @@ from sentry.constants import (
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
+    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
     GITLAB_COMMENT_BOT_DEFAULT,
@@ -249,6 +250,12 @@ ORG_OPTIONS = (
         bool,
         INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
     ),
+    (
+        "enablePrReviewTestGeneration",
+        "sentry:enable_pr_review_test_generation",
+        bool,
+        ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+    ),
 )
 
 DELETION_STATUSES = frozenset(
@@ -318,6 +325,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     )
     defaultSeerScannerAutomation = serializers.BooleanField(required=False)
     ingestThroughTrustedRelaysOnly = serializers.BooleanField(required=False)
+    enablePrReviewTestGeneration = serializers.BooleanField(required=False)
 
     @cached_property
     def _has_legacy_rate_limits(self):

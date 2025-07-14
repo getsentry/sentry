@@ -1369,6 +1369,48 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_success_response(self.organization.slug, **data)
         assert self.organization.get_option("sentry:default_seer_scanner_automation") is True
 
+    def test_enable_pr_review_test_generation_default_true(self):
+        """Test that enablePrReviewTestGeneration defaults to True"""
+        response = self.get_success_response(self.organization.slug)
+        assert response.data["enablePrReviewTestGeneration"] is True
+
+    def test_enable_pr_review_test_generation_can_be_disabled(self):
+        """Test that enablePrReviewTestGeneration can be set to False"""
+        response = self.get_success_response(
+            self.organization.slug, method="put", enablePrReviewTestGeneration=False
+        )
+        assert response.data["enablePrReviewTestGeneration"] is False
+
+        # Verify it persists
+        response = self.get_success_response(self.organization.slug)
+        assert response.data["enablePrReviewTestGeneration"] is False
+
+    def test_enable_pr_review_test_generation_can_be_enabled(self):
+        """Test that enablePrReviewTestGeneration can be set to True"""
+        # First disable it
+        self.organization.update_option("sentry:enable_pr_review_test_generation", False)
+
+        response = self.get_success_response(
+            self.organization.slug, method="put", enablePrReviewTestGeneration=True
+        )
+        assert response.data["enablePrReviewTestGeneration"] is True
+
+        # Verify it persists
+        response = self.get_success_response(self.organization.slug)
+        assert response.data["enablePrReviewTestGeneration"] is True
+
+    def test_enable_pr_review_test_generation_preserves_existing_value(self):
+        """Test that not passing the field preserves existing value"""
+        # Set to False
+        self.organization.update_option("sentry:enable_pr_review_test_generation", False)
+
+        # Update something else without touching the PR review setting
+        response = self.get_success_response(
+            self.organization.slug, method="put", name="Updated Name"
+        )
+        assert response.data["enablePrReviewTestGeneration"] is False
+        assert response.data["name"] == "Updated Name"
+
 
 class OrganizationDeleteTest(OrganizationDetailsTestBase):
     method = "delete"
