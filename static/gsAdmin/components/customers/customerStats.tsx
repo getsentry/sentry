@@ -2,7 +2,6 @@ import {Fragment, memo, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
-import snakeCase from 'lodash/snakeCase';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
@@ -394,7 +393,7 @@ export const CustomerStats = memo(
             interval: getInterval(dataDatetime),
             groupBy: ['outcome', 'reason'],
             field: 'sum(quantity)',
-            category: snakeCase(dataType), // TODO(isabella): remove snakeCase when .apiName is consistent
+            category: dataType,
             ...(projectId ? {project: projectId} : {}),
           },
         },

@@ -110,7 +110,7 @@ export function CustomerStatsFilters({
         options={Object.entries(DATA_CATEGORY_INFO)
           .filter(([_, categoryInfo]) => categoryInfo.statsInfo.showInternalStats)
           .map(([category, categoryInfo]) => ({
-            value: categoryInfo.apiName,
+            value: categoryInfo.name,
             label:
               category === DataCategoryExact.SPAN
                 ? 'Accepted Spans'
