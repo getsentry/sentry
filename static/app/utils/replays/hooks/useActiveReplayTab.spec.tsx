@@ -54,7 +54,7 @@ describe('useActiveReplayTab', () => {
       const {result} = renderHook(useActiveReplayTab, {
         initialProps: {},
         wrapper: ({children}) => (
-          <OrganizationContext value={OrganizationFixture({features: ['']})}>
+          <OrganizationContext value={OrganizationFixture({features: []})}>
             {children}
           </OrganizationContext>
         ),
