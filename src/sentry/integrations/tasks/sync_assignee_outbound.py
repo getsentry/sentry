@@ -3,6 +3,7 @@ from typing import Any
 from sentry import analytics, features
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidConfiguration
+from sentry.integrations.analytics import IntegrationIssueAssigneeSyncedEvent
 from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
@@ -93,10 +94,11 @@ def sync_assignee_outbound(
                     external_issue, user, assign=assign, assignment_source=parsed_assignment_source
                 )
                 analytics.record(
-                    "integration.issue.assignee.synced",
-                    provider=integration.provider,
-                    id=integration.id,
-                    organization_id=external_issue.organization_id,
+                    IntegrationIssueAssigneeSyncedEvent(
+                        provider=integration.provider,
+                        id=integration.id,
+                        organization_id=external_issue.organization_id,
+                    )
                 )
         except (OrganizationIntegrationNotFound, ApiUnauthorized, InvalidConfiguration) as e:
             lifecycle.record_halt(halt_reason=e)

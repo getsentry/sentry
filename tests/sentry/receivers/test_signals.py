@@ -2,6 +2,8 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
+from sentry.analytics.events.issue_assigned import IssueAssignedEvent
+from sentry.analytics.events.issue_resolved import IssueResolvedEvent
 from sentry.models.groupassignee import GroupAssignee
 from sentry.signals import (
     issue_assigned,
@@ -12,6 +14,7 @@ from sentry.signals import (
     issue_update_priority,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 
 
 class SignalsTest(TestCase, SnubaTestCase):
@@ -88,16 +91,18 @@ class SignalsTest(TestCase, SnubaTestCase):
             resolution_type="now",
             sender=type(self.project),
         )
-        mock_record.assert_called_once_with(
-            "issue.resolved",
-            user_id=None,
-            project_id=self.project.id,
-            default_user_id=self.organization.default_owner_id,
-            organization_id=self.organization.id,
-            group_id=self.group.id,
-            resolution_type="now",
-            issue_type="error",
-            issue_category="error",
+        assert_last_analytics_event(
+            mock_record,
+            IssueResolvedEvent(
+                user_id=None,
+                project_id=self.project.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                group_id=self.group.id,
+                resolution_type="now",
+                issue_type="error",
+                issue_category="error",
+            ),
         )
 
     @patch("sentry.analytics.record")
@@ -115,16 +120,18 @@ class SignalsTest(TestCase, SnubaTestCase):
             resolution_type="now",
             sender=type(project),
         )
-        mock_record.assert_called_once_with(
-            "issue.resolved",
-            user_id=None,
-            project_id=project.id,
-            default_user_id="unknown",
-            organization_id=organization.id,
-            group_id=group.id,
-            resolution_type="now",
-            issue_type="error",
-            issue_category="error",
+        assert_last_analytics_event(
+            mock_record,
+            IssueResolvedEvent(
+                user_id=None,
+                project_id=project.id,
+                default_user_id="unknown",
+                organization_id=organization.id,
+                group_id=group.id,
+                resolution_type="now",
+                issue_type="error",
+                issue_category="error",
+            ),
         )
 
     @patch("sentry.analytics.record")
@@ -182,12 +189,14 @@ class SignalsTest(TestCase, SnubaTestCase):
             transition_type="manual",
             sender=type(self.project),
         )
-        mock_record.assert_called_once_with(
-            "issue.assigned",
-            user_id=None,
-            default_user_id=self.organization.default_owner_id,
-            organization_id=self.organization.id,
-            group_id=self.group.id,
+        assert_last_analytics_event(
+            mock_record,
+            IssueAssignedEvent(
+                user_id=None,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                group_id=self.group.id,
+            ),
         )
 
     @patch("sentry.analytics.record")
@@ -207,10 +216,12 @@ class SignalsTest(TestCase, SnubaTestCase):
             transition_type="manual",
             sender=type(project),
         )
-        mock_record.assert_called_once_with(
-            "issue.assigned",
-            user_id=None,
-            default_user_id="unknown",
-            organization_id=organization.id,
-            group_id=group.id,
+        assert_last_analytics_event(
+            mock_record,
+            IssueAssignedEvent(
+                user_id=None,
+                default_user_id="unknown",
+                organization_id=organization.id,
+                group_id=group.id,
+            ),
         )

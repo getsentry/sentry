@@ -7,6 +7,8 @@ import sentry_sdk
 from django.db.models import F
 
 from sentry import analytics
+from sentry.analytics.events.first_new_feedback_sent import FirstNewFeedbackSentEvent
+from sentry.analytics.events.first_sourcemaps_sent import FirstSourcemapsSentEvent
 from sentry.integrations.base import IntegrationDomain, get_integration_types
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.organization import Organization
@@ -237,11 +239,12 @@ def record_first_feedback(project, **kwargs):
 )
 def record_first_new_feedback(project, **kwargs):
     analytics.record(
-        "first_new_feedback.sent",
-        user_id=get_owner_id(project),
-        organization_id=project.organization_id,
-        project_id=project.id,
-        platform=project.platform,
+        FirstNewFeedbackSentEvent(
+            user_id=get_owner_id(project),
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=project.platform,
+        )
     )
 
 
@@ -386,13 +389,14 @@ def record_sourcemaps_received(project, event, **kwargs):
             )
             return
         analytics.record(
-            "first_sourcemaps.sent",
-            user_id=owner_id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=event.platform,
-            project_platform=project.platform,
-            url=dict(event.tags).get("url", None),
+            FirstSourcemapsSentEvent(
+                user_id=owner_id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=event.platform,
+                project_platform=project.platform,
+                url=dict(event.tags).get("url", None),
+            )
         )
 
 
