@@ -515,7 +515,7 @@ function WidgetViewerModal(props: Props) {
     }
 
     const tableSort =
-      columnSortBy[0] && typeof columnSortBy[0].key !== 'number'
+      columnSortBy[0] && typeof columnSortBy[0].key === 'string'
         ? {
             field: columnSortBy[0].key,
             kind: columnSortBy[0].order,
@@ -526,7 +526,8 @@ function WidgetViewerModal(props: Props) {
     function onChangeSort(newSort: Sort) {
       if (
         [DisplayType.TOP_N, DisplayType.TABLE].includes(widget.displayType) ||
-        defined(widget.limit)
+        defined(widget.limit) ||
+        tableWidget.widgetType === WidgetType.ISSUE
       ) {
         setChartUnmodified(false);
       }
@@ -544,7 +545,7 @@ function WidgetViewerModal(props: Props) {
           ...location,
           query: {
             ...location.query,
-            sort: `${newSort.kind === 'desc' ? '' : '-'}${newSort.field}`,
+            sort: `${newSort.kind === 'desc' ? '-' : ''}${newSort.field}`,
           },
         },
         {replace: true, preventScrollReset: true}

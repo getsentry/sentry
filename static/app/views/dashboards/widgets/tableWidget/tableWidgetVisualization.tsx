@@ -3,7 +3,10 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import {IconArrow} from 'sentry/icons';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {getSortField} from 'sentry/utils/dashboards/issueFieldRenderers';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -21,7 +24,6 @@ import type {
   TabularMeta,
   TabularRow,
 } from 'sentry/views/dashboards/widgets/common/types';
-import {ColumnHeader} from 'sentry/views/dashboards/widgets/tableWidget/columnHeader/columnHeader';
 
 type FieldRendererGetter = (
   field: string,
@@ -208,18 +210,35 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
             direction = locationSort.kind;
           }
 
+          // Need this separate because onChangeSort may also affect the location query and SortLink overrides the location query since it's fundementally an <a> tag
+          if (column.sortable && onChangeSort) {
+            return (
+              <StyledSortAction
+                align={align}
+                title={name}
+                onClick={() => {
+                  const nextDirection = direction === 'desc' ? 'asc' : 'desc';
+                  onChangeSort?.({
+                    field: sortColumn,
+                    kind: nextDirection,
+                  });
+                }}
+              >
+                {name}
+                {direction ? (
+                  <StyledIconArrow
+                    size="xs"
+                    direction={direction === 'desc' ? 'down' : 'up'}
+                  />
+                ) : null}
+              </StyledSortAction>
+            );
+          }
+
           return (
-            <ColumnHeader
+            <SortLink
               align={align}
               canSort={column.sortable ?? false}
-              onClick={() => {
-                const nextDirection = direction === 'desc' ? 'asc' : 'desc';
-
-                onChangeSort?.({
-                  field: sortColumn,
-                  kind: nextDirection,
-                });
-              }}
               title={<StyledTooltip title={name}>{name}</StyledTooltip>}
               direction={direction}
               generateSortLink={() => {
@@ -318,4 +337,18 @@ TableWidgetVisualization.LoadingPlaceholder = function ({
 
 const StyledTooltip = styled(Tooltip)`
   display: initial;
+`;
+
+const StyledSortAction = styled('div')<{align: Alignments}>`
+  display: block;
+  width: 100%;
+  :hover {
+    cursor: pointer;
+  }
+  ${(p: {align: Alignments}) => (p.align ? `text-align: ${p.align};` : '')}
+`;
+
+const StyledIconArrow = styled(IconArrow)`
+  vertical-align: top;
+  margin-left: ${space(0.25)};
 `;
