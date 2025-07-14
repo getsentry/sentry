@@ -59,8 +59,6 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
       plan: 'am1_business',
       planTier: 'am1',
       reservedEvents: 200000,
-      reservedTransactions: 250000,
-      reservedAttachments: 25,
       onDemandMaxSpend: 123,
       onDemandBudgets: {
         enabled: true,
@@ -84,8 +82,6 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
       plan: 'am1_business',
       planTier: 'am1',
       reservedEvents: 200000,
-      reservedTransactions: 250000,
-      reservedAttachments: 25,
       onDemandMaxSpend: 0,
       onDemandBudgets: {
         enabled: false,
@@ -107,8 +103,6 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
       plan: 'am1_business',
       planTier: 'am1',
       reservedEvents: 200000,
-      reservedTransactions: 250000,
-      reservedAttachments: 25,
       onDemandMaxSpend: 0,
     });
 
@@ -124,8 +118,6 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
       plan: 'am1_business',
       planTier: 'am1',
       reservedEvents: 200000,
-      reservedTransactions: 250000,
-      reservedAttachments: 25,
     });
 
     ondemandBudgets = parseOnDemandBudgetsFromSubscription(subscription);
@@ -142,8 +134,6 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
       plan: 'am1_business',
       planTier: 'am1',
       reservedEvents: 200000,
-      reservedTransactions: 250000,
-      reservedAttachments: 25,
       onDemandMaxSpend: 100 + 200 + 300,
       onDemandBudgets: {
         enabled: true,
@@ -216,8 +206,6 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
       plan: 'am1_business',
       planTier: 'am1',
       reservedEvents: 200000,
-      reservedTransactions: 250000,
-      reservedAttachments: 25,
       onDemandMaxSpend: 123,
     });
     subscription.categories.errors!.reserved = 200000;
@@ -276,8 +264,6 @@ describe('getTotalBudget', function () {
       plan: 'am1_business',
       planTier: 'am1',
       reservedEvents: 200000,
-      reservedTransactions: 250000,
-      reservedAttachments: 25,
       onDemandMaxSpend: 100 + 200 + 300,
       onDemandBudgets: {
         enabled: true,
@@ -300,8 +286,6 @@ describe('getTotalBudget', function () {
       plan: 'am1_business',
       planTier: 'am1',
       reservedEvents: 200000,
-      reservedTransactions: 250000,
-      reservedAttachments: 25,
       onDemandMaxSpend: 0,
       onDemandBudgets: {
         enabled: false,
@@ -322,8 +306,6 @@ describe('getTotalBudget', function () {
       plan: 'am1_business',
       planTier: 'am1',
       reservedEvents: 200000,
-      reservedTransactions: 250000,
-      reservedAttachments: 25,
       onDemandMaxSpend: 0,
     });
 
@@ -338,8 +320,6 @@ describe('getTotalBudget', function () {
       plan: 'am1_business',
       planTier: 'am1',
       reservedEvents: 200000,
-      reservedTransactions: 250000,
-      reservedAttachments: 25,
     });
 
     actualTotalBudget = getTotalBudget(
@@ -355,8 +335,6 @@ describe('getTotalBudget', function () {
       plan: 'am1_business',
       planTier: 'am1',
       reservedEvents: 200000,
-      reservedTransactions: 250000,
-      reservedAttachments: 25,
       onDemandMaxSpend: 100 + 200 + 300,
       onDemandBudgets: {
         enabled: true,
@@ -389,8 +367,6 @@ describe('getTotalBudget', function () {
       plan: 'am1_business',
       planTier: 'am1',
       reservedEvents: 200000,
-      reservedTransactions: 250000,
-      reservedAttachments: 25,
       onDemandMaxSpend: 123,
     });
 

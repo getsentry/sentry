@@ -555,7 +555,6 @@ describe('PlanMigrationActive cohort 8', function () {
     plan: 'am2_business',
     organization,
     reservedEvents: 100_000,
-    reservedErrors: 100_000,
   });
   subscription.categories.errors!.reserved = 100_000; // test that it renders the correct next reserved values even if it's not the base volume
 
