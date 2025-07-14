@@ -11,11 +11,15 @@ export interface SeerPreferencesResponse {
   preference?: ProjectSeerPreferences | null;
 }
 
+export function makeProjectSeerPreferencesQueryKey(orgSlug: string, projectSlug: string) {
+  return `/projects/${orgSlug}/${projectSlug}/seer/preferences/`;
+}
+
 export function useProjectSeerPreferences(project: Project) {
   const organization = useOrganization();
 
   const {data, ...rest} = useApiQuery<SeerPreferencesResponse>(
-    [`/projects/${organization.slug}/${project.slug}/seer/preferences/`],
+    [makeProjectSeerPreferencesQueryKey(organization.slug, project.slug)],
     {
       staleTime: 60000, // 1 minute
     }
