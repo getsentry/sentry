@@ -485,7 +485,16 @@ export const ReplaySessionColumn: ReplayTableColumn = {
 
     return (
       <Flex key="session" align="center" gap={space(1)}>
-        <UserAvatar user={getUserBadgeUser(replay)} size={24} />
+        <UserAvatar
+          user={{
+            username: replay.user?.display_name || '',
+            email: replay.user?.email || '',
+            id: replay.user?.id || '',
+            ip_address: replay.user?.ip || '',
+            name: replay.user?.username || '',
+          }}
+          size={24}
+        />
         <SubText>
           <Flex gap={space(0.5)} align="flex-start">
             <DisplayNameLink
@@ -551,24 +560,6 @@ export const ReplaySlowestTransactionColumn: ReplayTableColumn = {
     );
   },
 };
-
-function getUserBadgeUser(replay: ListRecord) {
-  return replay.is_archived
-    ? {
-        username: '',
-        email: '',
-        id: '',
-        ip_address: '',
-        name: '',
-      }
-    : {
-        username: replay.user?.display_name || '',
-        email: replay.user?.email || '',
-        id: replay.user?.id || '',
-        ip_address: replay.user?.ip || '',
-        name: replay.user?.username || '',
-      };
-}
 
 const DropdownContainer = styled(Flex)`
   flex-direction: column;
