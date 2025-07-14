@@ -53,7 +53,7 @@ export const makeHidePRReviewTestGenField = (organization: Organization): FieldO
         link: <ExternalLink href="https://github.com/apps/seer-by-sentry/" />,
       }
     ),
-    defaultValue: defaultEnablePRReviewTestGenValue(organization),
+    defaultValue: defaultEnableSeerFeaturesValue(organization),
     disabled: ({access}) => !access.has('org:write'),
     getValue: value => {
       return value;
@@ -65,7 +65,3 @@ export const makeHidePRReviewTestGenField = (organization: Organization): FieldO
       : null,
   };
 };
-
-function defaultEnablePRReviewTestGenValue(_organization: Organization): unknown {
-  throw new Error('Function not implemented.');
-}
