@@ -2,6 +2,8 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
+from sentry.analytics.events.issue_priority import IssuePriorityUpdatedEvent
+from sentry.analytics.events.issue_unresolved import IssueUnresolvedEvent
 from sentry.models.groupassignee import GroupAssignee
 from sentry.signals import (
     issue_assigned,
@@ -12,6 +14,7 @@ from sentry.signals import (
     issue_update_priority,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 
 
 class SignalsTest(TestCase, SnubaTestCase):
@@ -63,17 +66,19 @@ class SignalsTest(TestCase, SnubaTestCase):
             sender="test_update_priority",
             reason="reason",
         )
-        mock_record.assert_called_once_with(
-            "issue.priority_updated",
-            group_id=self.group.id,
-            new_priority="high",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            user_id=2,
-            previous_priority="low",
-            reason="reason",
-            issue_category="error",
-            issue_type="error",
+        assert_last_analytics_event(
+            mock_record,
+            IssuePriorityUpdatedEvent(
+                group_id=self.group.id,
+                new_priority="high",
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                user_id=2,
+                previous_priority="low",
+                reason="reason",
+                issue_category="error",
+                issue_type="error",
+            ),
         )
 
     @patch("sentry.analytics.record")
@@ -137,13 +142,15 @@ class SignalsTest(TestCase, SnubaTestCase):
             transition_type="manual",
             sender=type(self.project),
         )
-        mock_record.assert_called_once_with(
-            "issue.unresolved",
-            user_id=None,
-            default_user_id=self.organization.default_owner_id,
-            organization_id=self.organization.id,
-            group_id=self.group.id,
-            transition_type="manual",
+        assert_last_analytics_event(
+            mock_record,
+            IssueUnresolvedEvent(
+                user_id=None,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                group_id=self.group.id,
+                transition_type="manual",
+            ),
         )
 
     @patch("sentry.analytics.record")
@@ -160,13 +167,15 @@ class SignalsTest(TestCase, SnubaTestCase):
             transition_type="manual",
             sender=type(project),
         )
-        mock_record.assert_called_once_with(
-            "issue.unresolved",
-            user_id=None,
-            default_user_id="unknown",
-            organization_id=organization.id,
-            group_id=group.id,
-            transition_type="manual",
+        assert_last_analytics_event(
+            mock_record,
+            IssueUnresolvedEvent(
+                user_id=None,
+                default_user_id="unknown",
+                organization_id=organization.id,
+                group_id=group.id,
+                transition_type="manual",
+            ),
         )
 
     @patch("sentry.analytics.record")
