@@ -499,7 +499,7 @@ def generate_incident_trigger_email_context(
     alert_context: AlertContext,
     open_period_context: OpenPeriodContext,
     trigger_status: TriggerStatus,
-    trigger_threshold: float,
+    trigger_threshold: float | None,
     user: User | RpcUser | None = None,
     notification_uuid: str | None = None,
 ):
