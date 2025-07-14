@@ -16,30 +16,39 @@ import {StoryHeader} from './storyHeader';
 import {useStoriesLoader} from './useStoriesLoader';
 
 export default function Stories() {
+  const location = useLocation();
+  return isLandingPage(location) ? <StoriesLanding /> : <StoryDetail />;
+}
+
+function isLandingPage(location: ReturnType<typeof useLocation>) {
+  return /\/stories\/?$/.test(location.pathname) && !location.query.name;
+}
+
+function StoriesLanding() {
+  return (
+    <RouteAnalyticsContextProvider>
+      <OrganizationContainer>
+        <Layout style={{gridTemplateColumns: 'auto'}}>
+          <HeaderContainer>
+            <StoryHeader />
+          </HeaderContainer>
+          <StoryMainContainer style={{gridColumn: '1 / -1'}}>
+            <StoryLanding />
+          </StoryMainContainer>
+        </Layout>
+      </OrganizationContainer>
+    </RouteAnalyticsContextProvider>
+  );
+}
+
+function StoryDetail() {
   useStoryRedirect();
   const location = useLocation<{name: string; query?: string}>();
   const files = useMemo(
     () => [location.state?.storyPath ?? location.query.name],
-    [location]
+    [location.state?.storyPath, location.query.name]
   );
   const story = useStoriesLoader({files});
-
-  if (!files[0]) {
-    return (
-      <RouteAnalyticsContextProvider>
-        <OrganizationContainer>
-          <Layout style={{gridTemplateColumns: 'auto'}}>
-            <HeaderContainer>
-              <StoryHeader />
-            </HeaderContainer>
-            <StoryMainContainer style={{gridColumn: '1 / -1'}}>
-              <StoryLanding />
-            </StoryMainContainer>
-          </Layout>
-        </OrganizationContainer>
-      </RouteAnalyticsContextProvider>
-    );
-  }
 
   return (
     <RouteAnalyticsContextProvider>
