@@ -112,10 +112,16 @@ export function LogsTabContent({
       : 'logs'
   );
 
-  const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
-    useTraceItemAttributes('string');
-  const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
-    useTraceItemAttributes('number');
+  const {
+    attributes: stringAttributes,
+    isLoading: stringAttributesLoading,
+    secondaryAliases: stringSecondaryAliases,
+  } = useTraceItemAttributes('string');
+  const {
+    attributes: numberAttributes,
+    isLoading: numberAttributesLoading,
+    secondaryAliases: numberSecondaryAliases,
+  } = useTraceItemAttributes('number');
 
   useLogAnalytics({
     logsTableResult: tableData,
@@ -148,6 +154,8 @@ export function LogsTabContent({
     numberAttributes,
     stringAttributes,
     itemType: TraceItemDataset.LOGS as TraceItemDataset.LOGS,
+    numberSecondaryAliases,
+    stringSecondaryAliases,
   };
 
   const supportedAggregates = useMemo(() => {
