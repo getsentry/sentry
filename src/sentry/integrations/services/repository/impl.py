@@ -99,8 +99,8 @@ class DatabaseBackedRepositoryService(RepositoryService):
             if len(update_mapping.keys()) != len(updates):
                 raise Exception("Multiple updates for the same repository are not allowed.")
 
-            updated_fields = updates[0].dict().keys()
-            updated_fields.pop("id", None)
+            updated_fields = set(updates[0].dict().keys())
+            updated_fields.discard("id")
 
             repositories = Repository.objects.filter(
                 organization_id=organization_id, id__in=update_mapping.keys()
