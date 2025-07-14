@@ -221,7 +221,6 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
             return (
               <StyledSortAction
                 align={align}
-                title={name}
                 onClick={() => {
                   const nextDirection = direction === 'desc' ? 'asc' : 'desc';
                   onChangeSort?.({
@@ -230,7 +229,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
                   });
                 }}
               >
-                {name}
+                {<StyledTooltip title={name}>{name}</StyledTooltip>}
                 {direction ? (
                   <StyledIconArrow
                     size="xs"

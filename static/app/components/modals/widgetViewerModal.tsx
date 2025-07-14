@@ -563,6 +563,7 @@ function WidgetViewerModal(props: Props) {
         <TableWidgetVisualization
           tableData={data}
           columns={tableColumns}
+          aliases={aliases}
           sort={tableSort}
           onChangeSort={onChangeSort}
         />
