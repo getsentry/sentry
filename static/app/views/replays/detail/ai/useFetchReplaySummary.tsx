@@ -1,6 +1,6 @@
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {useApiQuery, useQuery} from 'sentry/utils/queryClient';
+import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {useQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {
   type BreadcrumbFrame,
@@ -10,50 +10,63 @@ import {
   type SpanFrame,
 } from 'sentry/utils/replays/types';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 export interface SummaryResponse {
   data: {
     summary: string;
-    time_ranges: Array<{period_end: number; period_start: number; period_title: string}>;
+    time_ranges: Array<{
+      error: boolean;
+      feedback: boolean;
+      period_end: number;
+      period_start: number;
+      period_title: string;
+    }>;
     title: string;
   };
 }
 
-function createAISummaryQueryKey(
-  orgSlug: string,
-  projectSlug: string | undefined,
-  replayId: string
-): ApiQueryKey {
-  return [
-    `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/summarize/breadcrumbs/`,
-  ];
+interface ReplayPrompt {
+  body: {logs: string[]};
+  signature: string;
 }
 
-export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryResponse>) {
-  return useLocalAiSummary();
-  const organization = useOrganization();
-  const {replay} = useReplayContext();
-  const replayRecord = replay?.getReplay();
-  const project = useProjectFromId({project_id: replayRecord?.project_id});
-  return useApiQuery<SummaryResponse>(
-    createAISummaryQueryKey(organization.slug, project?.slug, replayRecord?.id ?? ''),
-    {
-      staleTime: 0,
-      ...options,
-    }
-  );
+enum EventType {
+  CLICK = 0,
+  DEAD_CLICK = 1,
+  RAGE_CLICK = 2,
+  NAVIGATION = 3,
+  CONSOLE = 4,
+  UI_BLUR = 5,
+  UI_FOCUS = 6,
+  RESOURCE_FETCH = 7,
+  RESOURCE_XHR = 8,
+  LCP = 9,
+  FCP = 10,
+  HYDRATION_ERROR = 11,
+  MUTATIONS = 12,
+  UNKNOWN = 13,
+  CANVAS = 14,
+  OPTIONS = 15,
+  FEEDBACK = 16,
+  ISSUE = 17,
 }
+
+export function useFetchReplaySummary(_options?: UseApiQueryOptions<SummaryResponse>) {
+  return useLocalAiSummary();
+}
+
 export function useLocalAiSummary() {
   const {replay} = useReplayContext();
   const replayRecord = replay?.getReplay();
   // const {data: summaryData, isPending, isRefetching, refetch, isError} = useAiSummary(replayRecord);
   const replayData =
-    [...replay?.getChapterFrames(), ...replay?.getErrorFrames()]
+    [...(replay?.getChapterFrames() ?? []), ...(replay?.getErrorFrames() ?? [])]
       .sort((a, b) => a.timestampMs - b.timestampMs)
       .map(asLogMessage)
       .filter(Boolean) ?? [];
+
   // const replayData = replay?._attachments
   // ?.filter(({type}) => type === 5)
   // .filter(
@@ -93,9 +106,9 @@ export function useLocalAiSummary() {
   //       ...ev.data.payload,
   //     };
   // });
+
   const logs = [JSON.stringify(replayData)];
   const {data} = useReplayPrompt(replayRecord, logs);
-  console.log({logs});
 
   return useQuery<SummaryResponse | null>({
     queryKey: ['ai-summary-seer', replayRecord?.id, data],
@@ -116,14 +129,9 @@ export function useLocalAiSummary() {
       const json = await response.json();
       return json;
     },
-    enabled: Boolean(replay?._attachments),
+    enabled: Boolean(replay?.getAttachments()),
     retry: false,
   });
-}
-
-interface ReplayPrompt {
-  body: {logs: string[]};
-  signature: string;
 }
 
 function useReplayPrompt(replayRecord: ReplayRecord | undefined, logs: string[]) {
@@ -165,30 +173,6 @@ function useReplayPrompt(replayRecord: ReplayRecord | undefined, logs: string[])
   });
 }
 
-enum EventType {
-  CLICK = 0,
-  DEAD_CLICK = 1,
-  RAGE_CLICK = 2,
-  NAVIGATION = 3,
-  CONSOLE = 4,
-  UI_BLUR = 5,
-  UI_FOCUS = 6,
-  RESOURCE_FETCH = 7,
-  RESOURCE_XHR = 8,
-  LCP = 9,
-  FCP = 10,
-  HYDRATION_ERROR = 11,
-  MUTATIONS = 12,
-  UNKNOWN = 13,
-  FEEDBACK = 14,
-  ISSUE = 15,
-}
-
-/**
- * Identity the passed event.
- * This function helpfully hides the dirty data munging necessary to identify an event type and
- * helpfully reduces the number of operations required by reusing context from previous branches.
- */
 export function which(payload: SpanFrame | BreadcrumbFrame): EventType {
   if (isErrorFrame(payload)) {
     return EventType.ISSUE;
@@ -249,16 +233,9 @@ export function which(payload: SpanFrame | BreadcrumbFrame): EventType {
   return EventType.UNKNOWN;
 }
 
-/**
- * Return an event as a log message.
- * Useful in AI contexts where the event's structure is an impediment to the AI's understanding
- * of the interaction log. Not every event produces a log message. This function is overly coupled
- * to the AI use case. In later iterations, if more or all log messages are desired, this function
- * should be forked.
- */
 export function asLogMessage(payload: BreadcrumbFrame | SpanFrame): string | null {
   const eventType = which(payload);
-  const timestamp = payload.timestampMs || 0.0;
+  const timestamp = Number(payload.timestampMs || 0);
   if (isErrorFrame(payload)) {
     return `User experienced an error: ${payload.message} at ${timestamp}`;
   }
@@ -288,22 +265,23 @@ export function asLogMessage(payload: BreadcrumbFrame | SpanFrame): string | nul
       case EventType.RESOURCE_FETCH: {
         const parsedUrl = new URL(payload.description || '');
         const path = `${parsedUrl.pathname}?${parsedUrl.search}`;
-        const size = payload.data?.response?.size;
-        const statusCode = payload.data?.statusCode;
-        const duration = (payload.endTimestamp || 0) - (payload.startTimestamp || 0);
-        const method = payload.data?.method;
+        const size = (payload.data as any)?.response?.size;
+        const statusCode = (payload.data as any)?.statusCode;
+        const duration =
+          Number(payload.endTimestamp || 0) - Number(payload.startTimestamp || 0);
+        const method = (payload.data as any)?.method;
         return `Application initiated request: "${method} ${path} HTTP/2.0" ${statusCode} ${size}; took ${duration} milliseconds at ${timestamp}`;
       }
       case EventType.RESOURCE_XHR:
         return null;
       case EventType.LCP: {
-        const duration = payload.data?.size;
-        const rating = payload.data?.rating;
+        const duration = (payload.data as any)?.size;
+        const rating = (payload.data as any)?.rating;
         return `Application largest contentful paint: ${duration} ms and has a ${rating} rating`;
       }
       case EventType.FCP: {
-        const duration = payload.data?.size;
-        const rating = payload.data?.rating;
+        const duration = (payload.data as any)?.size;
+        const rating = (payload.data as any)?.rating;
         return `Application first contentful paint: ${duration} ms and has a ${rating} rating`;
       }
       case EventType.HYDRATION_ERROR:
