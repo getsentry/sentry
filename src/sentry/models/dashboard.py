@@ -10,6 +10,7 @@ from django.db.models.query import QuerySet
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
@@ -319,6 +320,23 @@ class Dashboard(Model):
             return f"{base_name} copy"
 
         return f"{base_name} copy {next_copy_number}"
+
+    def get_filters(self) -> dict[str, Any]:
+        """
+        Returns the filters for the dashboard.
+
+        This is used to colocate any specific logic for producing dashboard filters,
+        such as handling the all_projects filter.
+        """
+        projects = (
+            [ALL_ACCESS_PROJECT_ID]
+            if self.filters and self.filters.get("all_projects")
+            else list(self.projects.values_list("id", flat=True))
+        )
+
+        return {
+            "projects": projects,
+        }
 
 
 @region_silo_model
