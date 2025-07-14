@@ -52,7 +52,7 @@ ROUND_DOWN = object()
 
 # We limit the number of fields an user can ask for
 # in a single query to lessen the load on snuba
-MAX_FIELDS = 20
+MAX_FIELDS = 50
 
 SAFE_FUNCTIONS = frozenset(["NOT IN"])
 SAFE_FUNCTION_RE = re.compile(r"-?[a-zA-Z_][a-zA-Z0-9_]*$")
