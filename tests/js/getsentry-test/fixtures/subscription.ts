@@ -41,7 +41,6 @@ export function SubscriptionFixture(props: Props): TSubscription {
 
   // Create a safe default for planCategories if it doesn't exist
   const safeCategories = planDetails?.planCategories || {};
-  const defaultErrorEvents = safeCategories.errors?.[0]?.events || 5000;
 
   const isTrial = isTrialPlan(planDetails.id);
   const reservedBudgets = [];
@@ -115,14 +114,12 @@ export function SubscriptionFixture(props: Props): TSubscription {
     usedLicenses: 1,
     membersDeactivatedFromLimit: 0,
     type: BillingType.CREDIT_CARD,
-    reservedEvents: defaultErrorEvents,
     hasSoftCap: false,
     isPastDue: false,
     onDemandDisabled: false,
     onDemandInvoiced: false,
     gracePeriodEnd: null,
     contractPeriodStart: '2018-09-25',
-    prepaidEventsAllowed: 5000,
     onDemandMaxSpend: 0,
     productTrials: [],
     isManaged: false,

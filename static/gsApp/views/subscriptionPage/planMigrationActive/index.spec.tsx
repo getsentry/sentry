@@ -14,7 +14,6 @@ describe('PlanMigrationActive cohort 2', function () {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     plan: 'mm2_b_100k',
-    reservedEvents: 100000,
     organization,
   });
   const renewalDate = moment(subscription.contractPeriodEnd).add(1, 'days').format('ll');
@@ -115,7 +114,6 @@ describe('PlanMigrationActive cohort 3', function () {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     plan: 'mm2_b_100k_ac',
-    reservedEvents: 100000,
     organization,
   });
   const renewalDate = moment(subscription.contractPeriodEnd).add(1, 'days').format('ll');
@@ -213,7 +211,6 @@ describe('PlanMigrationActive cohort 4', function () {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     plan: 'mm2_b_100k_auf',
-    reservedEvents: 100000,
     billingInterval: 'annual',
     organization,
   });
@@ -300,7 +297,6 @@ describe('PlanMigrationActive cohort 5', function () {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     plan: 'm1',
-    reservedEvents: 1_000_000,
     organization,
   });
   const renewalDate = moment(subscription.contractPeriodEnd).add(1, 'days').format('ll');
@@ -383,7 +379,6 @@ describe('PlanMigrationActive cohort 6', function () {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     plan: 's1_ac',
-    reservedEvents: 100000,
     organization,
   });
   const renewalDate = moment(subscription.contractPeriodEnd).add(1, 'days').format('ll');
@@ -463,7 +458,6 @@ describe('PlanMigrationActive cohort 7', function () {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     plan: 'm1_auf',
-    reservedEvents: 1_000_000,
     billingInterval: 'annual',
     organization,
   });
@@ -554,7 +548,6 @@ describe('PlanMigrationActive cohort 8', function () {
     planDetails: am2BusinessPlan,
     plan: 'am2_business',
     organization,
-    reservedEvents: 100_000,
   });
   subscription.categories.errors!.reserved = 100_000; // test that it renders the correct next reserved values even if it's not the base volume
 

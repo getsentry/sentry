@@ -58,7 +58,6 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
       organization,
       plan: 'am1_business',
       planTier: 'am1',
-      reservedEvents: 200000,
       onDemandMaxSpend: 123,
       onDemandBudgets: {
         enabled: true,
@@ -81,7 +80,6 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
       organization,
       plan: 'am1_business',
       planTier: 'am1',
-      reservedEvents: 200000,
       onDemandMaxSpend: 0,
       onDemandBudgets: {
         enabled: false,
@@ -102,7 +100,6 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
       organization,
       plan: 'am1_business',
       planTier: 'am1',
-      reservedEvents: 200000,
       onDemandMaxSpend: 0,
     });
 
@@ -117,7 +114,6 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
       organization,
       plan: 'am1_business',
       planTier: 'am1',
-      reservedEvents: 200000,
     });
 
     ondemandBudgets = parseOnDemandBudgetsFromSubscription(subscription);
@@ -133,7 +129,6 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
       organization,
       plan: 'am1_business',
       planTier: 'am1',
-      reservedEvents: 200000,
       onDemandMaxSpend: 100 + 200 + 300,
       onDemandBudgets: {
         enabled: true,
@@ -205,7 +200,6 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
       organization,
       plan: 'am1_business',
       planTier: 'am1',
-      reservedEvents: 200000,
       onDemandMaxSpend: 123,
     });
     subscription.categories.errors!.reserved = 200000;
@@ -263,7 +257,6 @@ describe('getTotalBudget', function () {
       organization,
       plan: 'am1_business',
       planTier: 'am1',
-      reservedEvents: 200000,
       onDemandMaxSpend: 100 + 200 + 300,
       onDemandBudgets: {
         enabled: true,
@@ -285,7 +278,6 @@ describe('getTotalBudget', function () {
       organization,
       plan: 'am1_business',
       planTier: 'am1',
-      reservedEvents: 200000,
       onDemandMaxSpend: 0,
       onDemandBudgets: {
         enabled: false,
@@ -305,7 +297,6 @@ describe('getTotalBudget', function () {
       organization,
       plan: 'am1_business',
       planTier: 'am1',
-      reservedEvents: 200000,
       onDemandMaxSpend: 0,
     });
 
@@ -319,7 +310,6 @@ describe('getTotalBudget', function () {
       organization,
       plan: 'am1_business',
       planTier: 'am1',
-      reservedEvents: 200000,
     });
 
     actualTotalBudget = getTotalBudget(
@@ -334,7 +324,6 @@ describe('getTotalBudget', function () {
       organization,
       plan: 'am1_business',
       planTier: 'am1',
-      reservedEvents: 200000,
       onDemandMaxSpend: 100 + 200 + 300,
       onDemandBudgets: {
         enabled: true,
@@ -366,7 +355,6 @@ describe('getTotalBudget', function () {
       organization,
       plan: 'am1_business',
       planTier: 'am1',
-      reservedEvents: 200000,
       onDemandMaxSpend: 123,
     });
 

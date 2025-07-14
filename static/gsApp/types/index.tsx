@@ -368,13 +368,7 @@ export type Subscription = {
   /**
    * Total events allowed for the current usage period including gifted
    */
-  prepaidEventsAllowed: number | null;
   renewalDate: string;
-  /**
-   * Reserved events on a recurring subscription
-   * For plan tiers previous to am1
-   */
-  reservedEvents: number;
   slug: string;
   spendAllocationEnabled: boolean;
   sponsoredType: string | null;

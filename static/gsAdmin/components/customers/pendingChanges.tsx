@@ -119,7 +119,7 @@ function getRegularChanges(subscription: Subscription) {
 
   if (pendingChanges.reserved.errors !== subscription.categories.errors?.reserved) {
     const old = formatReservedWithUnits(
-      subscription.reservedEvents || (subscription.categories.errors?.reserved ?? null),
+      subscription.categories.errors?.reserved ?? null,
       DataCategory.ERRORS
     );
     const change = formatReservedWithUnits(
