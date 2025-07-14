@@ -18,9 +18,6 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import ReplaysFilters from 'sentry/views/replays/list/filters';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
-import {useLocalStorageFlows} from './hooks/useLocalStorageFlows';
-import type {Flow} from './types';
-
 interface CreateFlowModalProps extends ModalRenderProps {
   onReplaySelected?: (replaySlug: string) => void;
 }
@@ -156,7 +153,13 @@ export default function CreateFlowModal({
                       <div style={{flex: 1}}>
                         <div style={{fontWeight: 600, marginBottom: '4px'}}>
                           {replay.urls?.[0]
-                            ? new URL(replay.urls[0]).pathname
+                            ? (() => {
+                                try {
+                                  return new URL(replay.urls[0]).pathname;
+                                } catch {
+                                  return replay.urls[0] || t('Unknown URL');
+                                }
+                              })()
                             : t('Unknown URL')}
                         </div>
                         <div

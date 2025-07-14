@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import Link from 'sentry/components/links/link';
-import {SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
+import ListLink from 'sentry/components/links/listLink';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 
 import type {Flow} from './types';
@@ -47,7 +47,7 @@ export default function FlowsTable({response, onDeleteFlow}: Props) {
       {data.map((row, index) => (
         <SimpleTable.Row key={row.id || index} data-test-id={`row-${index}`}>
           <SimpleTable.RowCell name="name">
-            <Link to={`/codecov/flows/${row.id}/`}>{row.name}</Link>
+            <ListLink to={`/codecov/flows/${row.id}/`}>{row.name}</ListLink>
           </SimpleTable.RowCell>
           <SimpleTable.RowCell name="createdBy">{row.createdBy}</SimpleTable.RowCell>
           <SimpleTable.RowCell name="status">{row.status}</SimpleTable.RowCell>

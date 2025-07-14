@@ -178,7 +178,7 @@ function BreadcrumbsWithFlowButtons({
                       frames.findIndex((_, i) => `${_.offsetMs}-${i}` === endBreadcrumbId)
                   }
                 >
-                  {startBreadcrumbId === frameId ? '✓' : 'S'}
+                  {startBreadcrumbId === frameId ? '✓' : 'Start'}
                 </FlowButton>
                 <FlowButton
                   size="xs"
@@ -192,7 +192,7 @@ function BreadcrumbsWithFlowButtons({
                       )
                   }
                 >
-                  {endBreadcrumbId === frameId ? '✓' : 'E'}
+                  {endBreadcrumbId === frameId ? '✓' : 'End'}
                 </FlowButton>
               </FlowButtonContainer>
             );
@@ -377,7 +377,7 @@ export default function New() {
 
         <LayoutContainer>
           <div style={{display: 'flex', flexDirection: 'row', gap: '20px', flex: 1}}>
-            <div style={{display: 'flex', flexDirection: 'column', gap: '20px', flex: 2}}>
+            <div style={{display: 'flex', flexDirection: 'column', gap: '20px', flex: 1}}>
               <Header>
                 <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
               </Header>
@@ -399,12 +399,21 @@ export default function New() {
               >
                 Create New Flow
               </div>
+              <div style={{fontSize: '14px', fontWeight: 'bold', marginBottom: '10px'}}>
+                Step 1: Add Flow Name
+              </div>
               <TextField
                 name="name"
                 label={t('Flow Name')}
                 required
                 help={t('A name to help you identify this flow.')}
               />
+              <hr
+                style={{margin: '20px 0', border: 'none', borderTop: '5px solid #e5e7eb'}}
+              />
+              <div style={{fontSize: '14px', fontWeight: 'bold', marginBottom: '1px'}}>
+                Step 2: Assign Start and End State
+              </div>
               <BreadcrumbsWithFlowButtons
                 startBreadcrumbId={startBreadcrumbId}
                 endBreadcrumbId={endBreadcrumbId}
