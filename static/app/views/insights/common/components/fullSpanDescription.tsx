@@ -28,7 +28,7 @@ interface Props {
 export function FullSpanDescription({
   group,
   shortDescription,
-  filters,
+  filters = {},
   moduleName,
 }: Props) {
   const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useSpansIndexed(
