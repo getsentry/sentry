@@ -32,6 +32,7 @@ from sentry.spans.consumers.process_segments.enrichment import (
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
+from sentry.utils.outcomes import DataCategory, Outcome, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 
 logger = logging.getLogger(__name__)
@@ -64,6 +65,7 @@ def process_segment(unprocessed_spans: list[SegmentSpan]) -> list[Span]:
     _create_models(segment_span, project)
     _detect_performance_problems(segment_span, spans, project)
     _record_signals(segment_span, spans, project)
+    _track_outcomes(segment_span, spans)
 
     return spans
 
@@ -260,3 +262,22 @@ def _record_signals(segment_span: Span, spans: list[Span], project: Project) -> 
                 first_insight_span_received,
                 module=module,
             )
+
+
+@metrics.wraps("spans.consumers.process_segments.record_outcomes")
+def _track_outcomes(segment_span: Span, spans: list[Span]) -> None:
+    """
+    Record outcomes for all spans in the segment.
+    """
+
+    track_outcome(
+        org_id=segment_span["organization_id"],
+        project_id=segment_span["project_id"],
+        key_id=segment_span.get("key_id", None),
+        outcome=Outcome.ACCEPTED,
+        reason=None,
+        timestamp=to_datetime(segment_span["received"]),
+        event_id=None,
+        category=DataCategory.SPAN_INDEXED,
+        quantity=len(spans),
+    )
