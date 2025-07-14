@@ -40,7 +40,6 @@ from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_detection_configs
 from sentry.utils.services import build_instance_from_options_of_type
-from sentry.workflow_engine.types import WorkflowEventData
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event, GroupEvent
@@ -955,44 +954,25 @@ def process_workflow_engine(job: PostProcessJob) -> None:
     """
     metrics.incr("workflow_engine.issue_platform.payload.received.occurrence")
 
-    from sentry.workflow_engine.processors.workflow import process_workflows
     from sentry.workflow_engine.tasks.workflows import process_workflows_event
 
-    # PostProcessJob event is optional, WorkflowEventData event is required
     if "event" not in job:
-        logger.error("Missing event to create WorkflowEventData", extra={"job": job})
+        logger.error("Missing event to schedule workflow task", extra={"job": job})
         return
 
     try:
-        workflow_event_data = WorkflowEventData(
-            event=job["event"],
-            group=job["event"].group,
-            group_state=job.get("group_state"),
-            has_reappeared=job.get("has_reappeared"),
-            has_escalated=job.get("has_escalated"),
+        process_workflows_event.delay(
+            project_id=job["event"].project_id,
+            event_id=job["event"].event_id,
+            occurrence_id=job["event"].occurrence_id,
+            group_id=job["event"].group_id,
+            group_state=job["group_state"],
+            has_reappeared=job["has_reappeared"],
+            has_escalated=job["has_escalated"],
         )
     except Exception:
-        logger.exception("Could not create WorkflowEventData", extra={"job": job})
+        logger.exception("Could not process workflow task", extra={"job": job})
         return
-
-    org = job["event"].project.organization
-    if not features.has("organizations:workflow-engine-post-process-async", org):
-        with sentry_sdk.start_span(op="tasks.post_process_group.workflow_engine.process_workflow"):
-            process_workflows(workflow_event_data)
-    else:
-        try:
-            process_workflows_event.delay(
-                project_id=job["event"].project_id,
-                event_id=job["event"].event_id,
-                occurrence_id=job["event"].occurrence_id,
-                group_id=job["event"].group_id,
-                group_state=job["group_state"],
-                has_reappeared=job["has_reappeared"],
-                has_escalated=job["has_escalated"],
-            )
-        except Exception:
-            logger.exception("Could not process workflow task", extra={"job": job})
-            return
 
 
 def process_workflow_engine_issue_alerts(job: PostProcessJob) -> None:

@@ -70,7 +70,7 @@ class TestMetricDetectorPostProcess(BaseWorkflowTest):
     @with_feature("organizations:issue-metric-issue-post-process-group")
     @with_feature("organizations:workflow-engine-metric-alert-processing")
     @with_feature("organizations:workflow-engine-process-metric-issue-workflows")
-    @patch("sentry.workflow_engine.processors.workflow.process_workflows")
+    @patch("sentry.workflow_engine.tasks.workflows.process_workflows_event.delay")
     def test_occurrence_post_process(self, mock_process_workflows):
         value = self.critical_detector_trigger.comparison + 1
         packet = QuerySubscriptionUpdate(
