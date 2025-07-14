@@ -1149,9 +1149,9 @@ class JiraIntegrationProvider(IntegrationProvider):
         # yet, we can't make API calls for more details like the server name or
         # Icon.
         # two ways build_integration can be called
-        if state.get("jira"):
-            metadata = state["jira"]["metadata"]
-            external_id = state["jira"]["external_id"]
+        if state.get(IntegrationProviderSlug.JIRA.value):
+            metadata = state[IntegrationProviderSlug.JIRA.value]["metadata"]
+            external_id = state[IntegrationProviderSlug.JIRA.value]["external_id"]
         else:
             external_id = state["clientKey"]
             metadata = {
@@ -1164,7 +1164,7 @@ class JiraIntegrationProvider(IntegrationProvider):
             }
         return {
             "external_id": external_id,
-            "provider": "jira",
+            "provider": IntegrationProviderSlug.JIRA.value,
             "name": "JIRA",
             "metadata": metadata,
         }
