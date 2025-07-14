@@ -707,7 +707,7 @@ def _set_project_platform_if_needed(project: Project, event: Event) -> None:
 
     # Use a lock to prevent race conditions when multiple events are processed
     # concurrently for a project with no initial platform
-    cache_key = f"project-platform-cache:{project.id}:{event.platform}"
+    cache_key = f"project-platform-cache:{project.id}"
     lock_key = f"project-platform-lock:{project.id}"
     if cache.get(cache_key) is not None:
         return
