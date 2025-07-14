@@ -218,6 +218,7 @@ const ChapterWrapper = styled('details')`
 
   &:last-child summary::after {
     bottom: 0;
+    display: none; /* hide the vertical line for the last chapter */
   }
 
   &.activeChapter .beforeCurrentTime:last-child {
