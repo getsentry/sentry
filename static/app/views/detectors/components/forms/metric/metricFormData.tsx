@@ -22,6 +22,7 @@ import {
   Dataset,
   EventTypes,
 } from 'sentry/views/alerts/rules/metric/types';
+import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
 
 /**
  * Dataset types for detectors
@@ -184,7 +185,12 @@ interface NewDataSource {
 /**
  * Creates escalation conditions based on priority level and available thresholds
  */
-function createConditions(data: MetricDetectorFormData): NewConditionGroup['conditions'] {
+export function createConditions(
+  data: Pick<
+    MetricDetectorFormData,
+    'conditionType' | 'conditionValue' | 'initialPriorityLevel' | 'highThreshold'
+  >
+): NewConditionGroup['conditions'] {
   if (!defined(data.conditionType) || !defined(data.conditionValue)) {
     return [];
   }
@@ -238,7 +244,10 @@ const getDetectorDataset = (
       if (eventTypes.includes(EventTypes.TRACE_ITEM_LOG)) {
         return DetectorDataset.LOGS;
       }
-      throw new Error('Unsupported event types');
+      if (eventTypes.includes(EventTypes.TRANSACTION)) {
+        return DetectorDataset.TRANSACTIONS;
+      }
+      throw new Error(`Unsupported event types`);
     case Dataset.METRICS:
     case Dataset.SESSIONS:
       return DetectorDataset.RELEASES; // Maps metrics dataset to releases for crash rate
@@ -256,11 +265,11 @@ const getBackendDataset = (dataset: DetectorDataset): string => {
     case DetectorDataset.ERRORS:
       return Dataset.ERRORS;
     case DetectorDataset.TRANSACTIONS:
-      return Dataset.GENERIC_METRICS;
+      return Dataset.EVENTS_ANALYTICS_PLATFORM;
     case DetectorDataset.SPANS:
       return Dataset.EVENTS_ANALYTICS_PLATFORM;
     case DetectorDataset.RELEASES:
-      return Dataset.METRICS; // Maps to metrics dataset for crash rate queries
+      return Dataset.METRICS;
     case DetectorDataset.LOGS:
       return Dataset.EVENTS_ANALYTICS_PLATFORM;
     default:
@@ -463,7 +472,7 @@ export function metricSavedDetectorToFormData(
     name: detector.name,
     projectId: detector.projectId,
     workflowIds: detector.workflowIds,
-    environment: snubaQuery?.environment || '',
+    environment: getDetectorEnvironment(detector) || '',
     owner: detector.owner || '',
     query: snubaQuery?.query || '',
     aggregateFunction,

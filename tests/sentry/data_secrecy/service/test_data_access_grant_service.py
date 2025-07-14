@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
-from sentry.data_secrecy.data_access_grant_service.service import data_access_grant_service
 from sentry.data_secrecy.models.data_access_grant import DataAccessGrant
+from sentry.data_secrecy.service.service import data_access_grant_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import all_silo_test, create_test_regions

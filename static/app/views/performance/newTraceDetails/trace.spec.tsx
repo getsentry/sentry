@@ -10,6 +10,7 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {setWindowLocation} from 'sentry-test/utils';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -62,12 +63,9 @@ class MockResizeObserver {
 
 type ResponseType = Parameters<typeof MockApiClient.addMockResponse>[0];
 
-function mockQueryString(queryString: string) {
-  Object.defineProperty(window, 'location', {
-    value: {
-      search: queryString,
-    },
-  });
+function mockQueryString(queryString: `?${string}` | '') {
+  setWindowLocation(`http://localhost/${queryString}`);
+  expect(window.location.search).toBe(queryString);
 }
 
 function mockTracePreferences(preferences: Partial<StoredTracePreferences>) {
@@ -1002,7 +1000,7 @@ describe('trace view', () => {
     mockTraceTagsResponse();
     mockEventsResponse();
 
-    window.location.search = `?timestamp=${twelveMinutesAgoInSeconds.toString()}`;
+    mockQueryString(`?timestamp=${twelveMinutesAgoInSeconds.toString()}`);
     render(<TraceView />, {
       router,
       deprecatedRouterMocks: true,
@@ -1031,7 +1029,7 @@ describe('trace view', () => {
     mockTraceTagsResponse();
     mockEventsResponse();
 
-    window.location.search = `?timestamp=${oneMinuteAgoInSeconds.toString()}`;
+    mockQueryString(`?timestamp=${oneMinuteAgoInSeconds.toString()}`);
     render(<TraceView />, {
       router,
       deprecatedRouterMocks: true,
@@ -1190,7 +1188,7 @@ describe('trace view', () => {
       '?node=txn-doesnotexist',
       // Invalid path
       '?node=span-does-notexist',
-    ])('logs if path is not found: %s', async path => {
+    ] as Array<`?${string}`>)('logs if path is not found: %s', async path => {
       mockQueryString(path);
 
       const sentryScopeMock = {
