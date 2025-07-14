@@ -127,6 +127,11 @@ function Chart({
     (_value: number, label?: string, seriesParams?: CallbackDataParams) => {
       const data = Number(seriesParams?.data);
       const total = seriesTotals[label as keyof typeof seriesTotals];
+
+      if (total === 0) {
+        return '\u2014';
+      }
+
       const percentage = (data / total) * 100;
       return `${percentage.toFixed(1)}%`;
     },
@@ -157,12 +162,14 @@ function Chart({
       const selectedTotal =
         seriesTotals[selectedParam?.seriesName as keyof typeof seriesTotals];
       const selectedData = Number(selectedParam?.data);
-      const selectedPercentage = (selectedData / selectedTotal) * 100;
+      const selectedPercentage =
+        selectedTotal === 0 ? 0 : (selectedData / selectedTotal) * 100;
 
       const baselineTotal =
         seriesTotals[baselineParam?.seriesName as keyof typeof seriesTotals];
       const baselineData = Number(baselineParam?.data);
-      const baselinePercentage = (baselineData / baselineTotal) * 100;
+      const baselinePercentage =
+        baselineTotal === 0 ? 0 : (baselineData / baselineTotal) * 100;
 
       const isDifferent = selectedPercentage.toFixed(1) !== baselinePercentage.toFixed(1);
 
