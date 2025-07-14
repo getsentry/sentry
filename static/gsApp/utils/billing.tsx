@@ -104,13 +104,6 @@ export const getSlot = (
   return Math.min(s, slots.length - 1);
 };
 
-type ReservedSku =
-  | Subscription['reservedErrors']
-  | Subscription['reservedTransactions']
-  | Subscription['reservedAttachments']
-  | number
-  | null;
-
 /**
  * isAbbreviated: Shortens the number using K for thousand, M for million, etc
  *                Useful for Errors/Transactions but not recommended to be used
@@ -133,7 +126,7 @@ type FormatOptions = {
  * If isReservedBudget is true, the reservedQuantity is in cents
  */
 export function formatReservedWithUnits(
-  reservedQuantity: ReservedSku,
+  reservedQuantity: number | null,
   dataCategory: DataCategory,
   options: FormatOptions = {
     isAbbreviated: false,
@@ -207,7 +200,7 @@ export function formatUsageWithUnits(
  * Helper method for formatReservedWithUnits
  */
 function formatReservedNumberToString(
-  reservedQuantity: ReservedSku,
+  reservedQuantity: number | null,
   options: FormatOptions = {
     isAbbreviated: false,
     isGifted: false,

@@ -305,11 +305,7 @@ export type Subscription = {
   contractPeriodEnd: string;
   contractPeriodStart: string;
   customPrice: number | null;
-  // TODO(data categories): BIL-960
-  customPriceAttachments: number | null;
-  customPriceErrors: number | null;
   customPricePcss: number | null;
-  customPriceTransactions: number | null;
   dataRetention: string | null;
   // Event details
   dateJoined: string;
@@ -374,18 +370,11 @@ export type Subscription = {
    */
   prepaidEventsAllowed: number | null;
   renewalDate: string;
-  // TODO(data categories): BIL-960
-  reservedAttachments: number | null;
-  /**
-   * For AM plan tier, null for previous tiers
-   */
-  reservedErrors: number | null;
   /**
    * Reserved events on a recurring subscription
    * For plan tiers previous to am1
    */
   reservedEvents: number;
-  reservedTransactions: number | null;
   slug: string;
   spendAllocationEnabled: boolean;
   sponsoredType: string | null;
@@ -441,9 +430,6 @@ export type Subscription = {
     eventsPrev30d: number;
   };
   stripeCustomerID?: string;
-
-  // TODO(data categories): BIL-960
-  trueForward?: {attachment: boolean; error: boolean; transaction: boolean};
 
   /**
    * Optional without access, and possibly null with access

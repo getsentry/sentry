@@ -55,10 +55,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
 
   return {
     customPrice: null,
-    customPriceAttachments: null,
-    customPriceErrors: null,
     customPricePcss: null,
-    customPriceTransactions: null,
     hasDismissedForcedTrialNotice: false,
     hasDismissedTrialEndingNotice: false,
     hasOverageNotificationsDisabled: false,
@@ -143,9 +140,6 @@ export function SubscriptionFixture(props: Props): TSubscription {
     isGracePeriod: false,
     onDemandPeriodEnd: '2018-10-24',
     vatID: null,
-    reservedErrors: 5_000,
-    reservedTransactions: 10_000,
-    reservedAttachments: 1,
     msaUpdatedForDataConsent: false,
     dataRetention: null,
     reservedBudgets,
