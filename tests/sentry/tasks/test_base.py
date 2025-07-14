@@ -160,12 +160,17 @@ def test_validate_parameters_call():
     assert "region_task was called with a parameter that cannot be JSON encoded" in str(err)
 
 
+@override_settings(SILO_MODE=SiloMode.CONTROL)
 @patch("sentry.taskworker.retry.current_task")
 @patch("sentry_sdk.capture_exception")
 def test_retry_on(capture_exception, current_task):
+    class ExpectedException(Exception):
+        pass
 
-    # In reality current_task.retry will cause the given exception to be re-raised but we patch it here so no need to .raises :bufo-shrug:
-    retry_on_task("bruh")
+    current_task.retry.side_effect = ExpectedException("some exception")
+
+    with pytest.raises(ExpectedException):
+        retry_on_task("bruh")
 
     assert capture_exception.call_count == 1
     assert current_task.retry.call_count == 1
