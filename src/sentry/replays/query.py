@@ -239,7 +239,7 @@ def query_replays_segment_count(
     return bulk_snuba_queries(
         requests=[snuba_request],
         referrer="replays.query.query_replays_segment_count",
-        use_cache=True,
+        use_cache=False,
         query_source=None,
     )[0]
 
