@@ -181,6 +181,18 @@ function PlanMigrationTable({subscription, migration}: Props) {
               )}
             />
           )}
+          {nextPlan.reserved.logBytes && (
+            <PlanMigrationRow
+              type={DataCategoryExact.LOG_BYTE}
+              currentValue={subscription.categories.logBytes?.reserved ?? null}
+              nextValue={getNextDataCategoryValue(
+                nextPlan,
+                isAM3Migration,
+                DataCategoryExact.LOG_BYTE,
+                subscription
+              )}
+            />
+          )}
         </tbody>
       </AlertStripedTable>
       {hasMonthlyDiscount && (
