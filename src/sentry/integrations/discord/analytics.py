@@ -37,13 +37,13 @@ class DiscordIntegrationMessageInteractionReceived(analytics.Event):
 
 @analytics.eventclass("integrations.discord.assign")
 class DiscordIntegrationAssign(analytics.Event):
-    actor_id: str
+    actor_id: int
 
 
 @analytics.eventclass("integrations.discord.status")
 class DiscordIntegrationStatus(analytics.Event):
     organization_id: str
-    user_id: str
+    user_id: int
     status: str
 
 

@@ -246,7 +246,7 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
                 DiscordIntegrationStatus(
                     organization_id=self.group.organization.id,
                     user_id=self.user.id,
-                    status=data,
+                    status=str(data),
                 )
             )
             update_groups(
