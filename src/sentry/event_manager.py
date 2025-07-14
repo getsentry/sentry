@@ -140,6 +140,7 @@ from sentry.utils.dates import to_datetime
 from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, is_handled
 from sentry.utils.eventuser import EventUser
 from sentry.utils.metrics import MutableTags
+from sentry.utils.options import sample_modulo
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
@@ -469,7 +470,8 @@ class EventManager:
 
         # Sometimes projects get created without a platform (e.g. through the API), in which case we
         # attempt to set it based on the first event
-        _set_project_platform_if_needed(project, job["event"])
+        if sample_modulo("sentry:infer_project_platform", project.id):
+            _set_project_platform_if_needed(project, job["event"])
 
         event_type = self._data.get("type")
         if event_type == "transaction":
@@ -698,23 +700,30 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
 
 
 def _set_project_platform_if_needed(project: Project, event: Event) -> None:
-    # Only infer the platform if it's useful - if the event platform is "other" or null, there's
-    # no useful information for us to set the project platform
-    if not event.platform or event.platform == "other":
+    # Only infer the platform if it's useful - if the event platform is "other", null or a sample
+    # event, there's no useful information for us to set the project platform
+    if not event.platform or event.platform == "other" or event.get_tag("sample_event") == "yes":
         return
 
     # Use a lock to prevent race conditions when multiple events are processed
     # concurrently for a project with no initial platform
+    cache_key = f"project-platform-cache:{project.id}:{event.platform}"
     lock_key = f"project-platform-lock:{project.id}"
+    if cache.get(cache_key) is not None:
+        return
 
     try:
         with locks.get(lock_key, duration=60, name="project-platform-lock").acquire():
+            if cache.get(cache_key) is not None:
+                return
+            else:
+                cache.set(cache_key, "1", 60 * 5)
+
             project.refresh_from_db(fields=["platform"])
 
             if not project.platform:
                 with transaction.atomic(router.db_for_write(Project)):
                     project.update(platform=event.platform)
-                    project.update_option("sentry:project_platform_inferred", event.platform)
 
                     create_system_audit_entry(
                         organization=project.organization,
@@ -722,30 +731,9 @@ def _set_project_platform_if_needed(project: Project, event: Event) -> None:
                         event=audit_log.get_event_id("PROJECT_EDIT"),
                         data={**project.get_audit_log_data(), "platform": event.platform},
                     )
-                return
-
-            if project.platform != event.platform:
-                inferred_platform = project.get_option("sentry:project_platform_inferred")
-
-                # If current platform matches what we inferred, we can safely continue inferring it
-                # since it hasn't been manually changed
-                if inferred_platform and project.platform == inferred_platform:
-                    with transaction.atomic(router.db_for_write(Project)):
-                        project.update(platform="other")
-                        project.update_option("sentry:project_platform_inferred", "other")
-                        create_system_audit_entry(
-                            organization=project.organization,
-                            target_object=project.id,
-                            event=audit_log.get_event_id("PROJECT_EDIT"),
-                            data={**project.get_audit_log_data(), "platform": "other"},
-                        )
-
-                # Otherwise, we need to mark that we should stop inferring platform (unless it becomes null again)
-                else:
-                    project.update_option("sentry:project_platform_inferred", None)
 
     except Exception:
-        return
+        logger.exception("Failed to infer and set project platform")
 
 
 @sentry_sdk.tracing.trace

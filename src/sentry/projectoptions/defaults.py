@@ -197,6 +197,3 @@ register(key="sentry:autofix_automation_tuning", default=AutofixAutomationTuning
 
 # Should seer scanner run automatically on new issues
 register(key="sentry:seer_scanner_automation", default=True)
-
-# Track the platform that was inferred from the events received
-register(key="sentry:project_platform_inferred", default=None)
