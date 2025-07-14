@@ -3,12 +3,40 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
+import type {StoryTreeNode} from './storyTree';
 import {StoryTree, useStoryTree} from './storyTree';
 import {useStoryBookFiles} from './useStoriesLoader';
 
 export function StorySidebar() {
+  const {foundations, core, shared} = useStoryBookFilesByCategory();
+
+  return (
+    <SidebarContainer>
+      <ul>
+        <li>
+          <h3>Foundations</h3>
+          <StoryTree nodes={foundations} />
+        </li>
+        <li>
+          <h3>Components</h3>
+          <StoryTree nodes={core} />
+        </li>
+        <li>
+          <h3>Shared</h3>
+          <StoryTree nodes={shared} />
+        </li>
+      </ul>
+    </SidebarContainer>
+  );
+}
+
+export function useStoryBookFilesByCategory(): Record<
+  'foundations' | 'core' | 'shared',
+  StoryTreeNode[]
+> {
   const files = useStoryBookFiles();
   const filesByOwner = useMemo(() => {
+    // The order of keys here is important and used by the pagination in storyFooter
     const map: Record<'foundations' | 'core' | 'shared', string[]> = {
       foundations: [],
       core: [],
@@ -26,38 +54,25 @@ export function StorySidebar() {
     return map;
   }, [files]);
 
-  const foundationsTree = useStoryTree(filesByOwner.foundations, {
+  const foundations = useStoryTree(filesByOwner.foundations, {
     query: '',
     representation: 'category',
   });
-  const coreTree = useStoryTree(filesByOwner.core, {
+  const core = useStoryTree(filesByOwner.core, {
     query: '',
     representation: 'category',
     type: 'flat',
   });
-  const sharedTree = useStoryTree(filesByOwner.shared, {
+  const shared = useStoryTree(filesByOwner.shared, {
     query: '',
     representation: 'category',
   });
 
-  return (
-    <SidebarContainer>
-      <ul>
-        <li>
-          <h3>Foundations</h3>
-          <StoryTree nodes={foundationsTree} />
-        </li>
-        <li>
-          <h3>Components</h3>
-          <StoryTree nodes={coreTree} />
-        </li>
-        <li>
-          <h3>Shared</h3>
-          <StoryTree nodes={sharedTree} />
-        </li>
-      </ul>
-    </SidebarContainer>
-  );
+  return {
+    foundations,
+    core,
+    shared,
+  };
 }
 
 function isCoreFile(file: string) {
@@ -83,6 +98,8 @@ const SidebarContainer = styled('nav')`
   width: 256px;
   background: ${p => p.theme.tokens.background.primary};
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: ${p => p.theme.tokens.border.primary} ${p => p.theme.background};
   ul,
   li {
     list-style: none;

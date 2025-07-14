@@ -9,7 +9,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import type {QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
+import {parseQueryKey} from 'sentry/utils/queryClient';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 interface Props {
@@ -24,10 +24,8 @@ export default function ReplayTableHeaderActions({
   const {countSelected, isAllSelected, selectAll, queryKey, selectedIds} =
     listItemCheckboxState;
 
-  const queryOptions = queryKey?.at(-1) as QueryKeyEndpointOptions;
-  const queryString =
-    typeof queryOptions === 'string' ? undefined : queryOptions?.query?.query;
-
+  const queryOptions = parseQueryKey(queryKey).options;
+  const queryString = queryOptions?.query?.query;
   return (
     <Fragment>
       <SimpleTable.Header>

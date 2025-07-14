@@ -28,7 +28,7 @@ import useProjectFromId from 'sentry/utils/useProjectFromId';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 interface Props {
-  queryOptions: QueryKeyEndpointOptions;
+  queryOptions: QueryKeyEndpointOptions | undefined;
   replays: ReplayListRecord[];
   selectedIds: 'all' | string[];
 }
@@ -46,9 +46,8 @@ export default function DeleteReplays({selectedIds, replays, queryOptions}: Prop
 
   const {bulkDelete, canDelete, queryOptionsToPayload} = useDeleteReplays({
     projectIdOrSlug: project?.slug ?? '',
-    queryOptions,
   });
-  const deletePayload = queryOptionsToPayload(selectedIds, queryOptions);
+  const deletePayload = queryOptionsToPayload(selectedIds, queryOptions ?? {});
 
   const settingsPath = `/settings/projects/${project?.slug}/replays/?replaySettingsTab=bulk-delete`;
 

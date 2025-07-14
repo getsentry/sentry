@@ -11,12 +11,6 @@ resources:
     WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
     WCAG 2.5.8: https://www.w3.org/TR/WCAG22/#target-size-minimum
     WAI-ARIA Button Practices: https://www.w3.org/WAI/ARIA/apg/patterns/button/
-next:
-  link: '/stories/?name=app%2Fcomponents%2Fcore%2Fbutton%2FbuttonBar.stories.tsx'
-  label: ButtonBar
-prev:
-  link: '?name=app%2Fcomponents%2Fcore%2Fbadge%2Ftag.stories.tsx'
-  label: Tag
 ---
 
 import {Button} from 'sentry/components/core/button';
@@ -38,9 +32,9 @@ import {
 } from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
-import types from '!!type-loader!sentry/components/core/button/index';
+import APIReference from '!!type-loader!sentry/components/core/button/index';
 
-export {types};
+export const types = {Button: APIReference.Button};
 
 To create a basic button, wrap text in a `<Button>` and pass an `onClick` callback.
 
@@ -50,7 +44,7 @@ To create a basic button, wrap text in a `<Button>` and pass an `onClick` callba
 
 ### Priorities
 
-Buttons come in a few different styles: `muted` (default), `primary`, `warning`, `danger`, and `transparent`.
+Buttons come in a few different styles: `muted` (default), `primary`, `warning`, `danger`, `transparent` and `link`.
 
 <Storybook.Demo>
   <Button priority="muted">Muted (default)</Button>
@@ -58,6 +52,9 @@ Buttons come in a few different styles: `muted` (default), `primary`, `warning`,
   <Button priority="warning">Warning</Button>
   <Button priority="danger">Danger</Button>
   <Button priority="transparent">Transparent</Button>
+  <div style={{alignSelf: 'center'}}>
+    <Button priority="link">Link</Button>
+  </div>
 </Storybook.Demo>
 ```jsx
 <Button priority="muted">Muted (default)</Button>
@@ -65,6 +62,7 @@ Buttons come in a few different styles: `muted` (default), `primary`, `warning`,
 <Button priority="warning">Warning</Button>
 <Button priority="danger">Danger</Button>
 <Button priority="transparent">Transparent</Button>
+<Button priority="link">Link</Button>
 ```
 
 ### Sizes
@@ -135,13 +133,13 @@ We have standardized call to action copy and specific icon pairings. When creati
 In scenarios where high information density is critical, buttons may be displayed without text.
 
 > [!WARNING]
-> Buttons with icons and no `children` **must** include a `label` for screen readers!
+> Buttons with icons and no `children` **must** include a `aria-label` for screen readers!
 
 <Storybook.Demo>
-  <Button icon={<IconAdd />} label="Add" />
+  <Button icon={<IconAdd />} aria-label="Add" />
 </Storybook.Demo>
 ```jsx
-<Button icon={<IconAdd />} label="Add" />
+<Button icon={<IconAdd />} aria-label="Add" />
 ```
 
 ### Accessibility

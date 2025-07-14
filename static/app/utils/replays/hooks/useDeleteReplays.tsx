@@ -10,7 +10,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
   projectIdOrSlug: string;
-  queryOptions: QueryKeyEndpointOptions | undefined;
 }
 
 export type ReplayBulkDeletePayload = {
