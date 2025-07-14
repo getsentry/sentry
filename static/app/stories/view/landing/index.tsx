@@ -3,7 +3,8 @@ import {Fragment, useMemo} from 'react';
 import {ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import heroImg from 'sentry-images/stories/hero.png';
+import performanceWaitingForSpan from 'sentry-images/spot/performance-waiting-for-span.svg';
+import heroImg from 'sentry-images/stories/landing/hero.png';
 
 import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -16,6 +17,8 @@ import type {Theme} from 'sentry/utils/theme';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme} from 'sentry/utils/theme';
 import {DO_NOT_USE_darkChonkTheme} from 'sentry/utils/theme/theme.chonk';
+
+import {Colors, Icons, Typography} from './figures';
 
 const frontmatter = {
   title: 'Sentry UI',
@@ -80,23 +83,28 @@ export function StoryLanding() {
             </p>
           </Flex>
           <CardGrid>
-            <Card href="stories?name=app/styles/accessibility.mdx" title="Accessibility">
-              <CardFigure />
+            <Card href="/stories?name=app/styles/colors.mdx" title="Color">
+              <CardFigure>
+                <Colors />
+              </CardFigure>
             </Card>
-            <Card href="stories?name=app/styles/colors.mdx" title="Color">
-              <CardFigure />
+            <Card href="/stories/?name=app%2Ficons%2Ficons.stories.tsx" title="Icons">
+              <CardFigure>
+                <Icons />
+              </CardFigure>
             </Card>
-            <Card href="stories?name=app/styles/content.mdx" title="Content">
-              <CardFigure />
+            <Card
+              href="/stories/?name=app%2Fstyles%2Ftypography.stories.tsx"
+              title="Typography"
+            >
+              <CardFigure>
+                <Typography />
+              </CardFigure>
             </Card>
-            <Card href="stories?name=app/styles/graphics.mdx" title="Graphics">
-              <CardFigure />
-            </Card>
-            <Card href="stories?name=app/styles/typography.mdx" title="Typography">
-              <CardFigure />
-            </Card>
-            <Card href="stories?name=app/styles/motion.mdx" title="Motion">
-              <CardFigure />
+            <Card href="/stories/?name=app%2Fstyles%2Fimages.stories.tsx" title="Images">
+              <CardFigure>
+                <img src={performanceWaitingForSpan} />
+              </CardFigure>
             </Card>
           </CardGrid>
         </Flex>
@@ -158,8 +166,12 @@ const Container = styled('div')`
 
 const CardGrid = styled('div')`
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 `;
 
 interface CardProps {
@@ -168,7 +180,12 @@ interface CardProps {
   title: string;
 }
 function Card(props: CardProps) {
-  return <CardLink to={props.href}>{props.children}</CardLink>;
+  return (
+    <CardLink to={props.href}>
+      {props.children}
+      <CardTitle>{props.title}</CardTitle>
+    </CardLink>
+  );
 }
 const CardLink = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
@@ -176,9 +193,36 @@ const CardLink = styled(Link)`
   flex-direction: column;
   width: 100%;
   height: 256px;
-  padding: ${space(2)} calc(${space(2)}*2);
+  padding: ${space(2)};
   border: 1px solid ${p => p.theme.tokens.border.muted};
   border-radius: ${p => p.theme.borderRadius};
+  transition: initial 80ms ease-out;
+  transition-property: background-color, color, border-color;
+
+  &:hover,
+  &:focus {
+    background: ${p => p.theme.tokens.background.secondary};
+    color: ${p => p.theme.tokens.content.accent};
+    border-color: ${p => p.theme.tokens.border.primary};
+  }
+
+  img {
+    width: 100%;
+    height: auto;
+    max-width: 509px;
+    max-height: 170px;
+  }
+`;
+
+const CardTitle = styled('span')`
+  margin: 0;
+  margin-top: ${space(1)};
+  width: 100%;
+  height: 24px;
+  font-size: 24px;
+  padding: ${space(1)} ${space(2)};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  color: currentColor;
 `;
 
 function CardFigure(props: PropsWithChildren) {
