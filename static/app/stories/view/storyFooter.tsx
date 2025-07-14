@@ -59,30 +59,20 @@ function findPreviousAndNextStory(
   next: {category: string; story: StoryTreeNode} | undefined;
   prev: {category: string; story: StoryTreeNode} | undefined;
 } | null {
-  let prev: {category: string; story: StoryTreeNode} | undefined;
-  let next: {category: string; story: StoryTreeNode} | undefined;
+  const stories = Object.entries(categories).flatMap(([key, category]) =>
+    category.map(s => ({category: key, story: s}))
+  );
 
-  const stories: Array<{category: string; story: StoryTreeNode}> = [];
+  const currentIndex = stories.findIndex(s => s.story.filesystemPath === story.filename);
 
-  // Flatten into a single list so we don't have to deal with overflowing index
-  // categories and can simplify the search procedure.
-  for (const key in categories) {
-    const category = categories[key as keyof typeof categories];
-    for (const s of category) {
-      stories.push({category: key, story: s});
-    }
+  if (currentIndex === -1) {
+    return null;
   }
 
-  for (let i = 0; i < stories.length; i++) {
-    const s = stories[i]!;
-    if (s.story.filesystemPath === story.filename) {
-      prev = stories[i - 1];
-      next = stories[i + 1];
-      return {prev, next};
-    }
-  }
-
-  return null;
+  return {
+    prev: stories[currentIndex - 1] ?? undefined,
+    next: stories[currentIndex + 1] ?? undefined,
+  };
 }
 
 const Card = styled(LinkButton)`
