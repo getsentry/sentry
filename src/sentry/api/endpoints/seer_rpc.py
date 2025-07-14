@@ -208,6 +208,7 @@ def get_organization_autofix_consent(*, org_id: int) -> dict:
     }
 
 
+# Used by the seer GH app to check for permissions before posting to an org
 def get_organization_seer_consent_by_org_name(
     *, org_name: str, provider: str = "github"
 ) -> dict[str, bool]:
