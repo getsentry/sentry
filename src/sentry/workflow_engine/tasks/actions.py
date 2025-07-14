@@ -4,7 +4,7 @@ from sentry.eventstore.models import GroupEvent
 from sentry.eventstream.base import GroupState
 from sentry.models.activity import Activity
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task
+from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker import config, namespaces
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
@@ -61,6 +61,7 @@ def build_trigger_action_task_params(action, detector, event_data: WorkflowEvent
         ),
     ),
 )
+@retry
 def trigger_action(
     action_id: int,
     detector_id: int,
