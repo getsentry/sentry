@@ -38,9 +38,9 @@ import {
 } from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
-import types from '!!type-loader!sentry/components/core/button/index';
+import APIReference from '!!type-loader!sentry/components/core/button/index';
 
-export {types};
+export const types = {Button: APIReference.Button};
 
 To create a basic button, wrap text in a `<Button>` and pass an `onClick` callback.
 

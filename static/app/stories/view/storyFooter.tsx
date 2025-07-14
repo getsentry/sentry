@@ -3,22 +3,24 @@ import styled from '@emotion/styled';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {IconArrow} from 'sentry/icons';
+import {isMDXStory} from 'sentry/stories/view/useStoriesLoader';
 import {useStory} from 'sentry/stories/view/useStory';
 import {space} from 'sentry/styles/space';
 
 export function StoryFooter() {
   const {story} = useStory();
-  if (!story.filename.endsWith('.mdx')) return null;
+  if (!isMDXStory(story)) return null;
   const {prev, next} = story.exports.frontmatter ?? {};
+
   return (
     <Flex align="center" justify="space-between" gap={space(2)}>
-      {prev && (
+      {typeof prev === 'object' && 'link' in prev && (
         <Card to={prev.link} icon={<IconArrow direction="left" />}>
           <CardLabel>Previous</CardLabel>
           <CardTitle>{prev.label}</CardTitle>
         </Card>
       )}
-      {next && (
+      {typeof next === 'object' && 'link' in next && (
         <Card data-flip to={next.link} icon={<IconArrow direction="right" />}>
           <CardLabel>Next</CardLabel>
           <CardTitle>{next.label}</CardTitle>
