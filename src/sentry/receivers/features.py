@@ -798,7 +798,7 @@ def record_monitor_failure(monitor_environment, **kwargs):
     analytics.record(
         MonitorEnvironmentMarkFailed(
             organization_id=monitor_environment.monitor.organization_id,
-            monitor_id=monitor_environment.monitor.guid,
+            monitor_id=str(monitor_environment.monitor.guid),
             project_id=monitor_environment.monitor.project_id,
             environment_id=monitor_environment.environment_id,
         )
