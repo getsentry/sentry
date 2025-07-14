@@ -156,7 +156,7 @@ export function AskSeer<T>({state}: {state: ComboBoxState<T>}) {
 
   const isPendingSetupCheck =
     useIsFetching({
-      queryKey: [makeOrganizationSeerSetupQueryKey(organization.slug)],
+      queryKey: makeOrganizationSeerSetupQueryKey(organization.slug),
     }) > 0;
 
   if (isPendingSetupCheck || isMutating) {
