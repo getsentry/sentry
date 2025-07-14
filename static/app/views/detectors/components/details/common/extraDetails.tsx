@@ -10,6 +10,7 @@ import Section from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import useUserFromId from 'sentry/utils/useUserFromId';
+import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
 
 type Props = {
   children: React.ReactNode;
@@ -97,19 +98,7 @@ DetectorExtraDetails.Environment = function DetectorExtraDetailsEnvironment({
 }: {
   detector: Detector;
 }) {
-  // TODO: Add common function for getting environment from a detector
-  const getEnvironment = () => {
-    if (detector.type !== 'metric_issue') {
-      return '<placeholder>';
-    }
-
-    return (
-      detector.dataSources?.find(ds => ds.type === 'snuba_query_subscription')?.queryObj
-        ?.snubaQuery.environment ?? t('All environments')
-    );
-  };
-
-  const environment = getEnvironment();
+  const environment = getDetectorEnvironment(detector);
 
   return (
     <KeyValueTableRow
