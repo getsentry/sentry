@@ -176,6 +176,7 @@ export interface BaseDetectorUpdatePayload {
   name: string;
   owner: Detector['owner'];
   projectId: Detector['projectId'];
+  workflowIds: string[];
 }
 
 export interface UptimeDetectorUpdatePayload extends BaseDetectorUpdatePayload {
