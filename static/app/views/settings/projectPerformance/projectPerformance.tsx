@@ -526,7 +526,7 @@ function ProjectPerformance() {
         );
       },
       visible: organization.features.includes(
-        'issue-db-query-injection-vulnerability-visible'
+        'issue-query-injection-vulnerability-visible'
       ),
     },
   };
