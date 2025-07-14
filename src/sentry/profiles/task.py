@@ -1319,7 +1319,7 @@ def _process_vroomrs_profile(profile: Profile, project: Project) -> bool:
     if "profiler_id" in profile:
         if _process_vroomrs_chunk_profile(profile):
             return True
-    else:
+    elif "profile_id" in profile:
         if _process_vroomrs_transaction_profile(profile):
             return True
     _track_failed_outcome(profile, project, "profiling_failed_vroomrs_processing")
