@@ -1645,6 +1645,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 {"id": "boostLowVolumeTransactions", "active": True},
                 {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
                 {"id": RuleType.RECALIBRATION_RULE.value, "active": True},
+                {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": False},
             ]
 
     def test_get_dynamic_sampling_biases_with_previously_assigned_biases(self):
@@ -1672,6 +1673,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 {"id": "boostLowVolumeTransactions", "active": True},
                 {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
                 {"id": RuleType.RECALIBRATION_RULE.value, "active": True},
+                {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": False},
             ]
 
     def test_dynamic_sampling_bias_activation(self):
@@ -1795,6 +1797,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             {"id": "boostLowVolumeTransactions", "active": False},
             {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
             {"id": RuleType.RECALIBRATION_RULE.value, "active": False},
+            {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": False},
         ]
         with Feature(
             {
@@ -1873,130 +1876,6 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             assert response.json()["dynamicSamplingBiases"][0]["non_field_errors"] == [
                 "Error: Only 'id' and 'active' fields are allowed for bias."
             ]
-
-    @with_feature(
-        {
-            "organizations:dynamic-sampling-minimum-sample-rate": True,
-            "organizations:dynamic-sampling-custom": True,
-        }
-    )
-    def test_dynamic_sampling_minimum_sample_rate_with_feature(self):
-        """Test setting and getting dynamicSamplingMinimumSampleRate with feature flag enabled"""
-        # Test setting to True
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            method="put",
-            dynamicSamplingMinimumSampleRate=True,
-        )
-        assert response.data["dynamicSamplingMinimumSampleRate"] is True
-        assert self.project.get_option("sentry:dynamic_sampling_minimum_sample_rate") is True
-
-        # Test getting the field after setting it
-        get_response = self.get_success_response(
-            self.organization.slug, self.project.slug, method="get"
-        )
-        assert "dynamicSamplingMinimumSampleRate" in get_response.data
-        assert get_response.data["dynamicSamplingMinimumSampleRate"] is True
-
-        # Test setting to False
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            method="put",
-            dynamicSamplingMinimumSampleRate=False,
-        )
-        assert response.data["dynamicSamplingMinimumSampleRate"] is False
-        assert self.project.get_option("sentry:dynamic_sampling_minimum_sample_rate") is False
-
-        # Test getting the field after setting it to False
-        get_response = self.get_success_response(
-            self.organization.slug, self.project.slug, method="get"
-        )
-        assert "dynamicSamplingMinimumSampleRate" in get_response.data
-        assert get_response.data["dynamicSamplingMinimumSampleRate"] is False
-
-    def test_dynamic_sampling_minimum_sample_rate_without_feature(self):
-        """Test setting and getting dynamicSamplingMinimumSampleRate without feature flag"""
-        # Test setting the field without feature flag - should fail
-        self.get_error_response(
-            self.organization.slug,
-            self.project.slug,
-            method="put",
-            dynamicSamplingMinimumSampleRate=True,
-            status_code=400,
-        )
-
-        # Test that the field is not present in GET response without feature flag
-        get_response = self.get_success_response(
-            self.organization.slug, self.project.slug, method="get"
-        )
-        assert not get_response.data["dynamicSamplingMinimumSampleRate"]
-
-    @with_feature(
-        {
-            "organizations:dynamic-sampling-minimum-sample-rate": True,
-            "organizations:dynamic-sampling-custom": True,
-        }
-    )
-    def test_dynamic_sampling_minimum_sample_rate_validation(self):
-        """Test validation of dynamicSamplingMinimumSampleRate parameter types"""
-        # Ensure initial state is False
-        assert self.project.get_option("sentry:dynamic_sampling_minimum_sample_rate") is False
-
-        # Test with valid boolean value
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            method="put",
-            dynamicSamplingMinimumSampleRate=True,
-        )
-        assert response.data["dynamicSamplingMinimumSampleRate"] is True
-        assert self.project.get_option("sentry:dynamic_sampling_minimum_sample_rate") is True
-
-        # Test with valid string value
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            method="put",
-            dynamicSamplingMinimumSampleRate="true",
-        )
-        assert response.data["dynamicSamplingMinimumSampleRate"] is True
-        assert self.project.get_option("sentry:dynamic_sampling_minimum_sample_rate") is True
-
-        # Test with valid number value
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            method="put",
-            dynamicSamplingMinimumSampleRate=1,
-        )
-        assert response.data["dynamicSamplingMinimumSampleRate"] is True
-        assert self.project.get_option("sentry:dynamic_sampling_minimum_sample_rate") is True
-
-        # Test with invalid float value
-        response = self.get_error_response(
-            self.organization.slug,
-            self.project.slug,
-            method="put",
-            dynamicSamplingMinimumSampleRate=0.5,
-            status_code=400,
-        )
-        assert "Must be a valid boolean." in response.data["dynamicSamplingMinimumSampleRate"][0]
-        # Ensure the project option wasn't changed by invalid request
-        assert self.project.get_option("sentry:dynamic_sampling_minimum_sample_rate") is True
-
-        # Test with null/None value
-        response = self.get_error_response(
-            self.organization.slug,
-            self.project.slug,
-            method="put",
-            dynamicSamplingMinimumSampleRate=None,
-            status_code=400,
-        )
-        assert "This field may not be null." in response.data["dynamicSamplingMinimumSampleRate"][0]
-        # Ensure the project option wasn't changed by invalid request
-        assert self.project.get_option("sentry:dynamic_sampling_minimum_sample_rate") is True
 
     @with_feature("organizations:tempest-access")
     def test_put_tempest_fetch_screenshots(self):

@@ -16,6 +16,7 @@ from sentry.search.eap.constants import SAMPLING_MODE_MAP
 from sentry.search.eap.ourlogs.attributes import (
     LOGS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
     LOGS_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
+    LOGS_PRIVATE_ATTRIBUTE_PREFIXES,
     LOGS_PRIVATE_ATTRIBUTES,
     LOGS_REPLACEMENT_ATTRIBUTES,
     LOGS_REPLACEMENT_MAP,
@@ -23,6 +24,7 @@ from sentry.search.eap.ourlogs.attributes import (
 from sentry.search.eap.spans.attributes import (
     SPAN_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
     SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
+    SPANS_PRIVATE_ATTRIBUTE_PREFIXES,
     SPANS_PRIVATE_ATTRIBUTES,
     SPANS_REPLACEMENT_ATTRIBUTES,
     SPANS_REPLACEMENT_MAP,
@@ -128,6 +130,11 @@ PRIVATE_ATTRIBUTES: dict[SupportedTraceItemType, set[str]] = {
     SupportedTraceItemType.LOGS: LOGS_PRIVATE_ATTRIBUTES,
 }
 
+PRIVATE_ATTRIBUTE_PREFIXES: dict[SupportedTraceItemType, set[str]] = {
+    SupportedTraceItemType.SPANS: SPANS_PRIVATE_ATTRIBUTE_PREFIXES,
+    SupportedTraceItemType.LOGS: LOGS_PRIVATE_ATTRIBUTE_PREFIXES,
+}
+
 SENTRY_CONVENTIONS_REPLACEMENT_ATTRIBUTES: dict[SupportedTraceItemType, set[str]] = {
     SupportedTraceItemType.SPANS: SPANS_REPLACEMENT_ATTRIBUTES,
     SupportedTraceItemType.LOGS: LOGS_REPLACEMENT_ATTRIBUTES,
@@ -162,7 +169,10 @@ def get_secondary_aliases(
 
 
 def can_expose_attribute(attribute: str, item_type: SupportedTraceItemType) -> bool:
-    return attribute not in PRIVATE_ATTRIBUTES.get(item_type, {})
+    return attribute not in PRIVATE_ATTRIBUTES.get(item_type, {}) and not any(
+        attribute.lower().startswith(prefix.lower())
+        for prefix in PRIVATE_ATTRIBUTE_PREFIXES.get(item_type, {})
+    )
 
 
 def handle_downsample_meta(meta: DownsampledStorageMeta) -> bool:

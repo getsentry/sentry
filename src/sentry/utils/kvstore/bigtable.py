@@ -15,6 +15,7 @@ from google.cloud.bigtable.row_data import DEFAULT_RETRY_READ_ROWS
 from google.cloud.bigtable.row_set import RowSet
 from google.cloud.bigtable.table import Table
 
+from sentry.utils import metrics
 from sentry.utils.codecs import Codec, ZlibCodec, ZstdCodec
 from sentry.utils.kvstore.abstract import KVStorage
 
@@ -235,10 +236,23 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         # tracking now is whether compression is on or not for the data column.
         flags = self.Flags(0)
 
+        metrics.distribution(
+            "storage.put.size",
+            len(value),
+            tags={"usecase": "nodestore", "compression": "none"},
+            unit="byte",
+        )
         if self.compression:
             compression_flag, strategy = self.compression_strategies[self.compression]
             flags |= compression_flag
             value = strategy.encode(value)
+
+            metrics.distribution(
+                "storage.put.size",
+                len(value),
+                tags={"usecase": "nodestore", "compression": self.compression},
+                unit="byte",
+            )
 
         # Only need to write the column at all if any flags are enabled. And if
         # so, pack it into a single byte.

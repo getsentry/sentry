@@ -153,8 +153,8 @@ describe('formatUsageWithUnits', function () {
   it('should format continuous profiling correctly', function () {
     const hourInMs = 1000 * 60 * 60;
     [
-      DATA_CATEGORY_INFO.profileDuration.plural,
-      DATA_CATEGORY_INFO.profileDurationUI.plural,
+      DATA_CATEGORY_INFO.profile_duration.plural,
+      DATA_CATEGORY_INFO.profile_duration_ui.plural,
     ].forEach(dataCategory => {
       expect(formatUsageWithUnits(0, dataCategory)).toBe('0');
       expect(formatUsageWithUnits(7.6 * hourInMs, dataCategory)).toBe('7.6');

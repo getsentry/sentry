@@ -453,6 +453,14 @@ class SubscriptionProcessor:
                         raise ResourceDoesNotExist("Detector not found, cannot evaluate anomaly")
 
                     is_anomalous = get_anomaly_evaluation_from_workflow_engine(detector, results)
+                    logger.info(
+                        "dual processing anomaly detection alert",
+                        extra={
+                            "rule_id": self.alert_rule.id,
+                            "detector_id": detector.id,
+                            "anomaly_evaluation": is_anomalous,
+                        },
+                    )
                     if is_anomalous is None:
                         # we only care about True and False — None indicates no change
                         continue

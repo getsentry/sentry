@@ -34,7 +34,7 @@ export function formatUsageWithUnits(
 ): string {
   if (
     dataCategory === DATA_CATEGORY_INFO.attachment.plural ||
-    dataCategory === DATA_CATEGORY_INFO.logByte.plural
+    dataCategory === DATA_CATEGORY_INFO.log_byte.plural
   ) {
     if (options.useUnitScaling) {
       return formatBytesBase10(usageQuantity);
@@ -47,8 +47,8 @@ export function formatUsageWithUnits(
   }
 
   if (
-    (dataCategory === DATA_CATEGORY_INFO.profileDuration.plural ||
-      dataCategory === DATA_CATEGORY_INFO.profileDurationUI.plural) &&
+    (dataCategory === DATA_CATEGORY_INFO.profile_duration.plural ||
+      dataCategory === DATA_CATEGORY_INFO.profile_duration_ui.plural) &&
     Number.isFinite(usageQuantity)
   ) {
     // Profile duration is in milliseconds, convert to hours
@@ -70,10 +70,10 @@ export function getFormatUsageOptions(dataCategory: DataCategory): FormatOptions
   return {
     isAbbreviated:
       dataCategory !== DATA_CATEGORY_INFO.attachment.plural &&
-      dataCategory !== DATA_CATEGORY_INFO.logByte.plural,
+      dataCategory !== DATA_CATEGORY_INFO.log_byte.plural,
     useUnitScaling:
       dataCategory === DATA_CATEGORY_INFO.attachment.plural ||
-      dataCategory === DATA_CATEGORY_INFO.logByte.plural,
+      dataCategory === DATA_CATEGORY_INFO.log_byte.plural,
   };
 }
 

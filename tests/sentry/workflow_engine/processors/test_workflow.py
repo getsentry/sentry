@@ -23,7 +23,6 @@ from sentry.workflow_engine.models import (
     AlertRuleWorkflow,
     DataConditionGroup,
     DataConditionGroupAction,
-    Detector,
     Workflow,
 )
 from sentry.workflow_engine.models.data_condition import Condition
@@ -37,7 +36,7 @@ from sentry.workflow_engine.processors.workflow import (
     evaluate_workflows_action_filters,
     process_workflows,
 )
-from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
+from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
@@ -297,40 +296,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
             1,
             tags={"detector_type": self.error_detector.type},
         )
-
-    @with_feature("organizations:workflow-engine-process-workflows")
-    @with_feature("organizations:workflow-engine-trigger-actions")
-    @patch("sentry.utils.metrics.incr")
-    def test_metrics_triggered_actions(self, mock_incr):
-        # add actions to the workflow
-        self.action_group, self.action = self.create_workflow_action(
-            workflow=self.error_workflow,
-        )
-
-        # mock the handler to get a fake noop handler
-        with patch(
-            "sentry.workflow_engine.models.action.action_handler_registry.get"
-        ) as mock_handler:
-
-            class MockHandler(ActionHandler):
-                @staticmethod
-                def execute(
-                    event_data: WorkflowEventData, action: Action, detector: Detector
-                ) -> None:
-                    return None
-
-            mock_handler.return_value = MockHandler
-
-            # process the workflows
-            process_workflows(self.event_data)
-            mock_incr.assert_any_call(
-                "workflow_engine.action.trigger",
-                1,
-                tags={
-                    "detector_type": self.error_detector.type,
-                    "action_type": self.action.type,
-                },
-            )
 
 
 @mock_redis_buffer()
@@ -612,11 +577,10 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         )
 
     def test_basic__no_filter(self) -> None:
-        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.event_data)
-        assert set(triggered_actions) == {self.action_group}
-        assert {getattr(action, "workflow_id") for action in triggered_actions} == {
-            self.workflow.id
-        }
+        triggered_action_filters = evaluate_workflows_action_filters(
+            {self.workflow}, self.event_data
+        )
+        assert set(triggered_action_filters) == {self.action_group}
 
     def test_basic__with_filter__passes(self):
         self.create_data_condition(
@@ -626,11 +590,10 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
             condition_result=True,
         )
 
-        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.event_data)
-        assert set(triggered_actions) == {self.action_group}
-        assert {getattr(action, "workflow_id") for action in triggered_actions} == {
-            self.workflow.id
-        }
+        triggered_action_filters = evaluate_workflows_action_filters(
+            {self.workflow}, self.event_data
+        )
+        assert set(triggered_action_filters) == {self.action_group}
 
     def test_basic__with_filter__filtered(self):
         # Add a filter to the action's group
@@ -640,8 +603,10 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
             comparison=self.detector.id + 1,
         )
 
-        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.event_data)
-        assert not triggered_actions
+        triggered_action_filters = evaluate_workflows_action_filters(
+            {self.workflow}, self.event_data
+        )
+        assert not triggered_action_filters
 
     def test_with_slow_conditions(self):
         self.action_group.logic_type = DataConditionGroup.Type.ALL
@@ -660,14 +625,16 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         )
         self.action_group.save()
 
-        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.event_data)
+        triggered_action_filters = evaluate_workflows_action_filters(
+            {self.workflow}, self.event_data
+        )
 
         assert self.action_group.conditions.count() == 2
 
         # The first condition passes, but the second is enqueued for later evaluation
-        assert not triggered_actions
+        assert not triggered_action_filters
 
-    def test_activty__with_slow_conditions(self):
+    def test_activity__with_slow_conditions(self):
         # Create a condition group with fast and slow conditions
         self.action_group.logic_type = DataConditionGroup.Type.ALL
 

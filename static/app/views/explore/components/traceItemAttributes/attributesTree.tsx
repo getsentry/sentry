@@ -1,11 +1,10 @@
 import {Fragment, useMemo, useRef, useState} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -15,11 +14,10 @@ import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import {
-  getAttributeItem,
-  prettifyAttributeName,
-} from 'sentry/views/explore/components/traceItemAttributes/utils';
+import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+
+import {AttributesTreeValue} from './attributesTreeValue';
 
 const MAX_TREE_DEPTH = 4;
 const INVALID_BRANCH_REGEX = /\.{2,}/;
@@ -59,7 +57,7 @@ export type AttributesFieldRendererProps<RendererExtra extends RenderFunctionBag
   meta?: EventsMetaType;
 };
 
-interface AttributesFieldRender<RendererExtra extends RenderFunctionBaggage> {
+export interface AttributesFieldRender<RendererExtra extends RenderFunctionBaggage> {
   /**
    * Extra data that gets passed to the renderer function for every attribute in the tree. If any of your field renderers rely on data that isn't related to the attributes (e.g., the current theme or location) or data that lives in another attribute (e.g., using the log level attribute to render the log text attribute) you should pass that data as here.
    */
@@ -88,7 +86,7 @@ interface AttributesTreeColumnsProps<RendererExtra extends RenderFunctionBaggage
   columnCount: number;
 }
 
-interface AttributesTreeRowConfig {
+export interface AttributesTreeRowConfig {
   // Omits the dropdown of actions applicable to this attribute
   disableActions?: boolean;
   // Omit error styling from being displayed, even if context is invalid
@@ -444,54 +442,6 @@ function AttributesTreeRowDropdown({
   );
 }
 
-function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>({
-  config,
-  content,
-  renderers = {},
-  rendererExtra: renderExtra,
-}: {
-  content: AttributesTreeContent;
-  config?: AttributesTreeRowConfig;
-} & AttributesFieldRender<RendererExtra> & {theme: Theme}) {
-  const {originalAttribute} = content;
-  if (!originalAttribute) {
-    return null;
-  }
-
-  // Check if we have a custom renderer for this attribute
-  const attributeKey = originalAttribute.original_attribute_key;
-  const renderer = renderers[attributeKey];
-
-  const defaultValue = <span>{String(content.value)}</span>;
-
-  if (config?.disableRichValue) {
-    return String(content.value);
-  }
-
-  if (renderer) {
-    return renderer({
-      item: getAttributeItem(attributeKey, content.value),
-      basicRendered: defaultValue,
-      extra: renderExtra,
-    });
-  }
-
-  return isUrl(String(content.value)) ? (
-    <AttributeLinkText>
-      <ExternalLink
-        onClick={e => {
-          e.preventDefault();
-          openNavigateToExternalLinkModal({linkText: String(content.value)});
-        }}
-      >
-        {defaultValue}
-      </ExternalLink>
-    </AttributeLinkText>
-  ) : (
-    defaultValue
-  );
-}
-
 /**
  * Replaces sentry. prefixed keys, and simplifies the value
  */
@@ -638,19 +588,5 @@ const TreeValueDropdown = styled(DropdownMenu)`
     padding: 0 ${space(0.75)};
     border-radius: ${space(0.5)};
     z-index: 0;
-  }
-`;
-
-const AttributeLinkText = styled('span')`
-  color: ${p => p.theme.linkColor};
-  text-decoration: ${p => p.theme.linkUnderline} underline dotted;
-  margin: 0;
-  &:hover,
-  &:focus {
-    text-decoration: none;
-  }
-
-  div {
-    white-space: normal;
   }
 `;
