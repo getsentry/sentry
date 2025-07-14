@@ -1,9 +1,11 @@
 import {useLayoutEffect} from 'react';
 import kebabCase from 'lodash/kebabCase';
 
-import {useStoryBookFilesByCategory} from 'sentry/stories/view/storySidebar';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+
+import {useStoryBookFilesByCategory} from './storySidebar';
+import type {StoryCategory} from './storyTree';
 
 type LegacyStoryQuery = {
   name: string;
@@ -49,7 +51,6 @@ export function useStoryRedirect() {
   }, [location, navigate, stories]);
 }
 
-type StoryCategory = keyof ReturnType<typeof useStoryBookFilesByCategory>;
 interface StoryMeta {
   category: StoryCategory;
   label: string;

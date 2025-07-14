@@ -135,10 +135,10 @@ function SearchInput(
 
 type SearchComboBoxItem<T extends StoryTreeNode> = T | StorySection;
 
-interface SearchComboBoxProps<T extends StoryTreeNode>
-  extends Omit<AriaComboBoxProps<SearchComboBoxItem<T>>, 'children'> {
-  children: CollectionChildren<SearchComboBoxItem<T>>;
-  defaultItems: Array<SearchComboBoxItem<T>>;
+interface SearchComboBoxProps
+  extends Omit<AriaComboBoxProps<SearchComboBoxItem<StoryTreeNode>>, 'children'> {
+  children: CollectionChildren<SearchComboBoxItem<StoryTreeNode>>;
+  defaultItems: Array<SearchComboBoxItem<StoryTreeNode>>;
   inputRef: React.RefObject<HTMLInputElement | null>;
   description?: string | null;
   label?: string;
@@ -149,7 +149,7 @@ function filter(textValue: string, inputValue: string): boolean {
   return match.score > 0;
 }
 
-function SearchComboBox<T extends StoryTreeNode>(props: SearchComboBoxProps<T>) {
+function SearchComboBox(props: SearchComboBoxProps) {
   const [inputValue, setInputValue] = useState('');
   const {inputRef} = props;
   const listBoxRef = useRef<HTMLUListElement | null>(null);
@@ -157,11 +157,16 @@ function SearchComboBox<T extends StoryTreeNode>(props: SearchComboBoxProps<T>) 
   const navigate = useNavigate();
   const handleSelectionChange = useCallback(
     (key: Key | null) => {
-      if (key) {
-        navigate(`/stories?name=${key}`, {replace: true});
+      if (!key) {
+        return;
       }
+      const node = getStoryTreeNodeFromKey(key, props);
+      if (!node) {
+        return;
+      }
+      navigate({...node.location}, {replace: true, state: node.location.state});
     },
-    [navigate]
+    [navigate, props]
   );
 
   const state = useComboBoxState({
@@ -175,7 +180,7 @@ function SearchComboBox<T extends StoryTreeNode>(props: SearchComboBoxProps<T>) 
   });
 
   const {inputProps, listBoxProps, labelProps} = useSearchTokenCombobox<
-    SearchComboBoxItem<T>
+    SearchComboBoxItem<StoryTreeNode>
   >(
     {
       ...props,
@@ -242,3 +247,20 @@ const SectionTitle = styled('span')`
   font-weight: 600;
   text-transform: uppercase;
 `;
+
+function getStoryTreeNodeFromKey(
+  key: Key,
+  props: SearchComboBoxProps
+): StoryTreeNode | undefined {
+  for (const category of props.defaultItems) {
+    if (isStorySection(category)) {
+      for (const node of category.options) {
+        const match = node.find(item => item.filesystemPath === key);
+        if (match) {
+          return match;
+        }
+      }
+    }
+  }
+  return undefined;
+}
