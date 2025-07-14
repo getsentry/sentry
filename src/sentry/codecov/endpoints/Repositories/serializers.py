@@ -60,8 +60,8 @@ class RepositoriesSerializer(serializers.Serializer):
                 "pageInfo": repository_data.get(
                     "pageInfo",
                     {
-                        "hasNextPage": page_info.get("hasNextPage"),
-                        "hasPreviousPage": page_info.get("hasPreviousPage"),
+                        "hasNextPage": page_info.get("hasNextPage", False),
+                        "hasPreviousPage": page_info.get("hasPreviousPage", False),
                         "startCursor": page_info.get("startCursor"),
                         "endCursor": page_info.get("endCursor"),
                     },
