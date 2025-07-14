@@ -82,7 +82,6 @@ export function DatabaseSpanSummaryPage({params}: Props) {
         sorts: [{field: SpanIndexedField.CODE_FILEPATH, kind: 'desc'}],
         fields: [
           SpanIndexedField.PROJECT_ID,
-          SpanIndexedField.TRANSACTION_ID, // TODO: remove this with `useInsightsEap`, it's only needed to get the full event when eap is off
           SpanIndexedField.SPAN_DESCRIPTION,
           SpanIndexedField.DB_SYSTEM,
           SpanIndexedField.CODE_FILEPATH,
