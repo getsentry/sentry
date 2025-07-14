@@ -51,6 +51,11 @@ class GroupEvent(TypedDict):
     category: str
 
 
+CACHE_TIMEOUT = 7 * 24 * 60 * 60  # 7d if not regenerated
+SKIP_CACHE_QUERY_PARAM = "regenerate"  # true or false
+ENABLE_ERROR_FETCH_QUERY_PARAM = "enable_error_context"  # true or false
+
+
 @region_silo_endpoint
 @extend_schema(tags=["Replays"])
 class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
@@ -93,15 +98,15 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
         num_segments = seg_count_response["data"][0]["segment_count"]
 
         disable_error_fetching = (
-            request.query_params.get("enable_error_context", "true").lower() == "false"
+            request.query_params.get(ENABLE_ERROR_FETCH_QUERY_PARAM, "true").lower() == "false"
         )
 
         per_page = self.get_per_page(request)
-        cursor = request.GET.get(self.cursor_name) or ""
+        cursor = request.GET.get(self.cursor_name, "")
         cache_key = f"replay_summarize_breadcrumbs:{project.id}:{replay_id}:{per_page}:{cursor}:{disable_error_fetching}"
 
         # TODO: refactor to be neater?
-        if not request.query_params.get("regenerate", "false").lower() == "true":
+        if not request.query_params.get(SKIP_CACHE_QUERY_PARAM, "false").lower() == "true":
             cache_lookup_result: tuple[Response, int] | None = cache.get(cache_key)
             if cache_lookup_result:
                 cached_response, prev_num_segments = cache_lookup_result
@@ -149,7 +154,7 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
                 analyze_recording_segments, error_events, replay_id, project.id
             ),
         )
-        cache.set(cache_key, (response, num_segments), timeout=7 * 24 * 60 * 60)
+        cache.set(cache_key, (response, num_segments), timeout=CACHE_TIMEOUT)
         return response
 
 
