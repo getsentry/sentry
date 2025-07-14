@@ -397,12 +397,14 @@ class TestInvalidationTask:
                 "organization_id": None,
                 "public_key": None,
                 "trigger": "test",
+                "project_option_key": None,
             },
             {
                 "project_id": None,
                 "organization_id": default_organization.id,
                 "public_key": None,
                 "trigger": "test",
+                "project_option_key": None,
             },
         ]
 
