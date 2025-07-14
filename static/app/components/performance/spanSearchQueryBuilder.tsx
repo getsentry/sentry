@@ -155,7 +155,6 @@ function useSpanSearchQueryBuilderProps({
     disallowUnsupportedFilters: true,
     recentSearches: SavedSearchType.SPAN,
     showUnsubmittedIndicator: true,
-    searchOnChange: organization.features.includes('ui-search-on-change'),
   };
 }
 
@@ -191,7 +190,7 @@ function IndexedSpanSearchQueryBuilder({
   return <SearchQueryBuilder {...searchQueryBuilderProps} />;
 }
 
-function EapSpanSearchQueryBuilderWrapper(props: SpanSearchQueryBuilderProps) {
+export function EapSpanSearchQueryBuilderWrapper(props: SpanSearchQueryBuilderProps) {
   const {tags: numberTags} = useTraceItemTags('number');
   const {tags: stringTags} = useTraceItemTags('string');
 

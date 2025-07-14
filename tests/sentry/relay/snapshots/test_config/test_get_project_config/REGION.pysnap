@@ -1,5 +1,5 @@
 ---
-created: '2025-05-23T05:31:14.868491+00:00'
+created: '2025-05-27T19:29:15.718683+00:00'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -154,7 +154,7 @@ config:
       - '*/ping{/,}'
       - '*/up{/,}'
   groupingConfig:
-    enhancements: KLUv_SAYwQAAkwKRs25ld3N0eWxlOjIwMjMtMDEtMTGQ#KLUv_SAYwQAAkwKRs25ld3N0eWxlOjIwMjMtMDEtMTGQ#KLUv_SAYwQAAkwKRs25ld3N0eWxlOjIwMjMtMDEtMTGQ
+    enhancements: KLUv_SAYwQAAkwORs25ld3N0eWxlOjIwMjMtMDEtMTGQ#KLUv_SAYwQAAkwORs25ld3N0eWxlOjIwMjMtMDEtMTGQ#KLUv_SAYwQAAkwORs25ld3N0eWxlOjIwMjMtMDEtMTGQ
     id: newstyle:2023-01-11
   performanceScore:
     profiles:

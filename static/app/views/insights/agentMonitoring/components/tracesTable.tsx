@@ -26,6 +26,7 @@ import {
   AI_COST_ATTRIBUTE_SUM,
   AI_GENERATION_OPS,
   AI_TOKEN_USAGE_ATTRIBUTE_SUM,
+  getAgentRunsFilter,
   getAITracesFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
@@ -33,7 +34,7 @@ import {
   OverflowEllipsisTextContainer,
   TextAlignRight,
 } from 'sentry/views/insights/common/components/textAlign';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 
@@ -43,7 +44,7 @@ interface TableData {
   llmCalls: number;
   timestamp: number;
   toolCalls: number;
-  totalCost: number;
+  totalCost: number | null;
   totalTokens: number;
   traceId: string;
   transaction: string;
@@ -95,9 +96,10 @@ export function TracesTable() {
 
   const pageLinks = tracesRequest.getResponseHeader?.('Link') ?? undefined;
 
-  const spansRequest = useEAPSpans(
+  const spansRequest = useSpans(
     {
-      search: `trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
+      // Exclude agent runs as they include aggregated data which would lead to double counting e.g. token usage
+      search: `${getAgentRunsFilter({negated: true})} trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
       fields: [
         'trace',
         ...GENERATION_COUNTS,
@@ -162,7 +164,7 @@ export function TracesTable() {
       llmCalls: spanDataMap[span.trace]?.llmCalls ?? 0,
       toolCalls: spanDataMap[span.trace]?.toolCalls ?? 0,
       totalTokens: spanDataMap[span.trace]?.totalTokens ?? 0,
-      totalCost: spanDataMap[span.trace]?.totalCost ?? 0,
+      totalCost: spanDataMap[span.trace]?.totalCost ?? null,
       timestamp: span.start,
       isSpanDataLoading: spansRequest.isLoading,
     }));
@@ -221,9 +223,12 @@ const BodyCell = memo(function BodyCell({
     case 'traceId':
       return (
         <span>
-          <Button priority="link" onClick={() => openTraceViewDrawer(dataRow.traceId)}>
+          <TraceIdButton
+            priority="link"
+            onClick={() => openTraceViewDrawer(dataRow.traceId)}
+          >
             {dataRow.traceId.slice(0, 8)}
-          </Button>
+          </TraceIdButton>
         </span>
       );
     case 'transaction':
@@ -299,4 +304,8 @@ const HeadCell = styled('div')<{align: 'left' | 'right'}>`
   align-items: center;
   gap: ${space(0.5)};
   justify-content: ${p => (p.align === 'right' ? 'flex-end' : 'flex-start')};
+`;
+
+const TraceIdButton = styled(Button)`
+  font-weight: normal;
 `;

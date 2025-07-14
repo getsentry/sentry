@@ -2,6 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {Flex} from 'sentry/components/core/layout';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -71,13 +72,15 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
             ) : (
               <ReplayCurrentUrl />
             )}
-            <BrowserOSIcons showBrowser={!isVideoReplay} isLoading={isLoading} />
-            {isFullscreen ? (
-              <ReplaySidebarToggleButton
-                isOpen={isSidebarOpen}
-                setIsOpen={setIsSidebarOpen}
-              />
-            ) : null}
+            <Flex gap={space(1)}>
+              <BrowserOSIcons showBrowser={!isVideoReplay} isLoading={isLoading} />
+              {isFullscreen ? (
+                <ReplaySidebarToggleButton
+                  isOpen={isSidebarOpen}
+                  setIsOpen={setIsSidebarOpen}
+                />
+              ) : null}
+            </Flex>
           </ContextContainer>
           {isLoading ? (
             <FluidHeight>
@@ -128,7 +131,7 @@ const ContextContainer = styled('div')`
   grid-auto-flow: column;
   grid-template-columns: 1fr max-content;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${space(1.5)};
 `;
 
 const ScreenNameContainer = styled('div')`
@@ -148,7 +151,7 @@ const PlayerContainer = styled('div')`
   display: grid;
   grid-auto-flow: row;
   grid-template-rows: auto 1fr;
-  gap: 10px;
+  gap: ${space(1)};
   flex-grow: 1;
 `;
 

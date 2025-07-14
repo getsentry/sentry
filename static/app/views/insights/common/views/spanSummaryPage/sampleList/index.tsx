@@ -2,7 +2,7 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
-import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {EapSpanSearchQueryBuilderWrapper} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -25,7 +25,6 @@ import type {
   NonDefaultSpanSampleFields,
   SpanSample,
 } from 'sentry/views/insights/common/queries/useSpanSamples';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
 import SampleInfo from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleInfo';
 import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
@@ -50,7 +49,6 @@ type Props = {
 export function SampleList({groupId, moduleName, transactionRoute, referrer}: Props) {
   const organization = useOrganization();
   const {view} = useDomainViewFilters();
-  const useEap = useInsightsEap();
 
   const {
     transaction: transactionName,
@@ -131,7 +129,6 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
       router.push(
         generateLinkToEventInTraceView({
           targetId: span['transaction.span_id'],
-          projectSlug: span.project,
           spanId: span.span_id,
           location,
           organization,
@@ -185,13 +182,12 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
           />
 
           <StyledSearchBar>
-            <SpanSearchQueryBuilder
+            <EapSpanSearchQueryBuilderWrapper
               projects={selection.projects}
               initialQuery={spanSearchQuery ?? ''}
               onSearch={handleSearch}
               placeholder={t('Search for span attributes')}
               searchSource={`${moduleName}-sample-panel`}
-              useEap={useEap}
             />
           </StyledSearchBar>
 

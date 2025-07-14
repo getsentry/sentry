@@ -3,6 +3,7 @@ import type {
   Detector,
   UptimeDetectorUpdatePayload,
 } from 'sentry/types/workflowEngine/detectors';
+import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
 
 export interface UptimeDetectorFormData {
   body: string;
@@ -70,8 +71,13 @@ export function uptimeFormDataToEndpointPayload(
 export function uptimeSavedDetectorToFormData(
   detector: Detector
 ): UptimeDetectorFormData {
+  if (detector.type !== 'uptime_domain_failure') {
+    // This should never happen
+    throw new Error('Detector type mismatch');
+  }
+
   const dataSource = detector.dataSources?.[0];
-  const environment = 'environment' in detector.config ? detector.config.environment : '';
+  const environment = getDetectorEnvironment(detector);
 
   const common = {
     name: detector.name,

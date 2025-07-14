@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
+from sentry.api.endpoints.auth_merge_user_accounts import AuthMergeUserAccountsEndpoint
 from sentry.api.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.api.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.api.endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
@@ -36,6 +37,9 @@ from sentry.api.endpoints.organization_projects_experiment import (
 )
 from sentry.api.endpoints.organization_sampling_project_span_counts import (
     OrganizationSamplingProjectSpanCountsEndpoint,
+)
+from sentry.api.endpoints.organization_seer_explorer_chat import (
+    OrganizationSeerExplorerChatEndpoint,
 )
 from sentry.api.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheck
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
@@ -74,13 +78,13 @@ from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
 )
 from sentry.api.endpoints.trace_explorer_ai_setup import TraceExplorerAISetup
 from sentry.auth_v2.urls import AUTH_V2_URLS
+from sentry.codecov.endpoints.Repositories.repositories import RepositoriesEndpoint
 from sentry.codecov.endpoints.TestResults.test_results import TestResultsEndpoint
 from sentry.codecov.endpoints.TestResultsAggregates.test_results_aggregates import (
     TestResultsAggregatesEndpoint,
 )
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
-from sentry.data_secrecy.api.waive_data_secrecy import WaiveDataSecrecyEndpoint
 from sentry.discover.endpoints.discover_homepage_query import DiscoverHomepageQueryEndpoint
 from sentry.discover.endpoints.discover_key_transactions import (
     KeyTransactionEndpoint,
@@ -671,7 +675,6 @@ from .endpoints.project_performance_issue_settings import ProjectPerformanceIssu
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
 from .endpoints.project_plugins import ProjectPluginsEndpoint
 from .endpoints.project_profiling_profile import (
-    ProjectProfilingEventEndpoint,
     ProjectProfilingProfileEndpoint,
     ProjectProfilingRawChunkEndpoint,
     ProjectProfilingRawProfileEndpoint,
@@ -929,6 +932,11 @@ AUTH_URLS = [
         AuthValidateEndpoint.as_view(),
         name="sentry-api-0-auth-test",
     ),
+    re_path(
+        r"^merge-accounts/$",
+        AuthMergeUserAccountsEndpoint.as_view(),
+        name="sentry-api-0-auth-merge-accounts",
+    ),
 ]
 
 BROADCAST_URLS = [
@@ -1047,6 +1055,25 @@ RELAY_URLS = [
         name="sentry-api-0-relays-details",
     ),
 ]
+
+PREVENT_URLS = [
+    re_path(
+        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-results/$",
+        TestResultsEndpoint.as_view(),
+        name="sentry-api-0-test-results",
+    ),
+    re_path(
+        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-results-aggregates/$",
+        TestResultsAggregatesEndpoint.as_view(),
+        name="sentry-api-0-test-results-aggregates",
+    ),
+    re_path(
+        r"^owner/(?P<owner>[^/]+)/repositories/$",
+        RepositoriesEndpoint.as_view(),
+        name="sentry-api-0-repositories",
+    ),
+]
+
 
 USER_URLS = [
     re_path(
@@ -1260,12 +1287,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/data-export/(?P<data_export_id>[^/]+)/$",
         DataExportDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-data-export-details",
-    ),
-    # Data Secrecy
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/data-secrecy/$",
-        WaiveDataSecrecyEndpoint.as_view(),
-        name="sentry-api-0-data-secrecy",
     ),
     # Incidents
     re_path(
@@ -2121,6 +2142,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-trace-explorer-ai-query",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-chat/(?:(?P<run_id>[^/]+)/)?$",
+        OrganizationSeerExplorerChatEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-explorer-chat",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/setup-check/$",
         OrganizationSeerSetupCheck.as_view(),
         name="sentry-api-0-organization-seer-setup-check",
@@ -2388,6 +2414,10 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/insights/tree/$",
         OrganizationInsightsTreeEndpoint.as_view(),
         name="sentry-api-0-organization-insights-tree",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/prevent/",
+        include(PREVENT_URLS),
     ),
     *workflow_urls.organization_urlpatterns,
 ]
@@ -3290,19 +3320,6 @@ INTERNAL_URLS = [
     *preprod_urls.preprod_internal_urlpatterns,
 ]
 
-PREVENT_URLS = [
-    re_path(
-        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-results/$",
-        TestResultsEndpoint.as_view(),
-        name="sentry-api-0-test-results",
-    ),
-    re_path(
-        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-results-aggregates/$",
-        TestResultsAggregatesEndpoint.as_view(),
-        name="sentry-api-0-test-results-aggregates",
-    ),
-]
-
 urlpatterns = [
     # Relay
     re_path(
@@ -3367,11 +3384,6 @@ urlpatterns = [
     re_path(
         r"^broadcasts/",
         include(BROADCAST_URLS),
-    ),
-    # Prevent
-    re_path(
-        r"^prevent/",
-        include(PREVENT_URLS),
     ),
     #
     #
@@ -3438,13 +3450,6 @@ urlpatterns = [
         r"^accept-invite/(?P<member_id>[^/]+)/(?P<token>[^/]+)/$",
         AcceptOrganizationInvite.as_view(),
         name="sentry-api-0-accept-organization-invite",
-    ),
-    # Profiling - This is a temporary endpoint to easily go from a project id + profile id to a flamechart.
-    # It will be removed in the near future.
-    re_path(
-        r"^profiling/projects/(?P<project_id>[^/]+)/profile/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/",
-        ProjectProfilingEventEndpoint.as_view(),
-        name="sentry-api-0-profiling-project-profile",
     ),
     re_path(
         r"^notification-defaults/$",

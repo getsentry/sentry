@@ -36,7 +36,7 @@ import {
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 // import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
@@ -95,7 +95,7 @@ export function ModelsTable() {
 
   const {sortField, sortOrder} = useTableSortParams();
 
-  const modelsRequest = useEAPSpans(
+  const modelsRequest = useSpans(
     {
       fields: [
         AI_MODEL_ID_ATTRIBUTE,
@@ -210,6 +210,10 @@ const BodyCell = memo(function BodyCell({
       {
         chartType: ChartType.BAR,
         yAxes: ['count(span.duration)'],
+      },
+      {
+        chartType: ChartType.LINE,
+        yAxes: ['avg(span.duration)'],
       },
     ],
     query: `${AI_MODEL_ID_ATTRIBUTE}:${dataRow.model}`,

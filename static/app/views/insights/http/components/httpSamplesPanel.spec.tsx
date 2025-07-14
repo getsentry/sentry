@@ -111,7 +111,6 @@ describe('HTTPSamplesPanel', () => {
   describe('Status panel', () => {
     let eventsStatsRequestMock: jest.Mock;
     let samplesRequestMock: jest.Mock;
-    let spanFieldTagsMock: jest.Mock;
 
     beforeEach(() => {
       jest.mocked(useLocation).mockReturnValue({
@@ -195,21 +194,6 @@ describe('HTTPSamplesPanel', () => {
           meta: {},
         },
       });
-
-      spanFieldTagsMock = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/spans/fields/`,
-        method: 'GET',
-        body: [
-          {
-            key: 'api_key',
-            name: 'Api Key',
-          },
-          {
-            key: 'bytes.size',
-            name: 'Bytes.Size',
-          },
-        ],
-      });
     });
 
     it('fetches panel data', async () => {
@@ -292,19 +276,6 @@ describe('HTTPSamplesPanel', () => {
         })
       );
 
-      expect(spanFieldTagsMock).toHaveBeenNthCalledWith(
-        1,
-        `/organizations/${organization.slug}/spans/fields/`,
-        expect.objectContaining({
-          method: 'GET',
-          query: {
-            project: [],
-            environment: [],
-            statsPeriod: '1h',
-          },
-        })
-      );
-
       await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     });
 
@@ -338,7 +309,6 @@ describe('HTTPSamplesPanel', () => {
   describe('Duration panel', () => {
     let chartRequestMock: jest.Mock;
     let samplesRequestMock: jest.Mock;
-    let spanFieldTagsMock: jest.Mock;
 
     beforeEach(() => {
       jest.mocked(useLocation).mockReturnValue({
@@ -390,21 +360,6 @@ describe('HTTPSamplesPanel', () => {
             units: {},
           },
         },
-      });
-
-      spanFieldTagsMock = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/spans/fields/`,
-        method: 'GET',
-        body: [
-          {
-            key: 'api_key',
-            name: 'Api Key',
-          },
-          {
-            key: 'bytes.size',
-            name: 'Bytes.Size',
-          },
-        ],
       });
     });
 
@@ -458,19 +413,6 @@ describe('HTTPSamplesPanel', () => {
           }),
         })
       );
-
-      expect(spanFieldTagsMock).toHaveBeenNthCalledWith(
-        1,
-        `/organizations/${organization.slug}/spans/fields/`,
-        expect.objectContaining({
-          method: 'GET',
-          query: {
-            project: [],
-            environment: [],
-            statsPeriod: '1h',
-          },
-        })
-      );
     });
 
     it('show basic transaction info', async () => {
@@ -509,7 +451,7 @@ describe('HTTPSamplesPanel', () => {
 
       expect(screen.getByRole('link', {name: 'b1bf1acde131623a'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/insights/backend/javascript:11c910c9c10b3ec4ecf8f209b8c6ce48/?domain=%2A.sentry.dev&panel=duration&statsPeriod=10d&transactionMethod=GET#span-b1bf1acde131623a'
+        '/organizations/org-slug/traces/trace/2b60b2eb415c4bfba3efeaf65c21c605/?domain=%2A.sentry.dev&eventId=11c910c9c10b3ec4ecf8f209b8c6ce48&node=span-b1bf1acde131623a&node=txn-11c910c9c10b3ec4ecf8f209b8c6ce48&panel=duration&source=requests_module&statsPeriod=10d&timestamp=1711398696&transaction=%2Fapi%2F0%2Fusers&transactionMethod=GET'
       );
 
       expect(screen.getByRole('cell', {name: '200'})).toBeInTheDocument();

@@ -32,7 +32,7 @@ import {
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 // import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
@@ -86,7 +86,7 @@ export function ToolsTable() {
 
   const {sortField, sortOrder} = useTableSortParams();
 
-  const toolsRequest = useEAPSpans(
+  const toolsRequest = useSpans(
     {
       fields: [
         AI_TOOL_NAME_ATTRIBUTE,
@@ -197,6 +197,10 @@ const BodyCell = memo(function BodyCell({
       {
         chartType: ChartType.BAR,
         yAxes: ['count(span.duration)'],
+      },
+      {
+        chartType: ChartType.LINE,
+        yAxes: ['avg(span.duration)'],
       },
     ],
     query: `${AI_TOOL_NAME_ATTRIBUTE}:${dataRow.tool}`,

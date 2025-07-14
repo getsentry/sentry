@@ -7,7 +7,7 @@ from django.conf import settings
 from sentry.metrics.base import MetricsBackend, MutableTags, Tags, TagValue
 
 _BAD_TAGS = frozenset(["event", "project", "group"])
-_NOT_BAD_TAGS = frozenset(["use_case_id", "consumer_member_id", "broker_id"])
+_NOT_BAD_TAGS = frozenset(["use_case_id", "consumer_member_id", "broker_id", "kafka_slice_id"])
 _METRICS_THAT_CAN_HAVE_BAD_TAGS = frozenset(
     [
         # snuba related tags

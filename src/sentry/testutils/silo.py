@@ -519,7 +519,7 @@ def validate_protected_queries(queries: Sequence[Mapping[str, str | None]]) -> N
                     "operation that generates this query with the `unguarded_write()` ",
                     "context manager to resolve this failure. For example:",
                     "",
-                    "with unguarded_write(using=router.db_for_write(OrganizationMembership):",
+                    "with unguarded_write(using=router.db_for_write(OrganizationMembership)):",
                     "    member.delete()",
                     "",
                     "Query logs:",
