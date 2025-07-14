@@ -3,7 +3,7 @@ import GroupedTrafficWidget from 'sentry/views/insights/mcp/components/groupedTr
 import {MCPReferrer} from 'sentry/views/insights/mcp/utils/referrer';
 import {SpanFields} from 'sentry/views/insights/types';
 
-export default function McpResourceTrafficWidget() {
+export default function McpPromptTrafficWidget() {
   return (
     <GroupedTrafficWidget
       groupBy={SpanFields.MCP_PROMPT_NAME}
