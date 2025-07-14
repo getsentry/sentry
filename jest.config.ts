@@ -6,6 +6,7 @@ import type {Config as SwcConfig} from '@swc/core';
 
 const swcConfig: SwcConfig = {
   jsc: {
+    target: 'es5',
     experimental: {
       plugins: [
         [
@@ -38,6 +39,11 @@ const swcConfig: SwcConfig = {
         importSource: '@emotion/react',
       },
     },
+  },
+  module: {
+    // In order to stop testing in commonjs, we would need to fix a number of module mocks and spyOns
+    // that break when using esm style modules.
+    type: 'commonjs',
   },
 };
 
