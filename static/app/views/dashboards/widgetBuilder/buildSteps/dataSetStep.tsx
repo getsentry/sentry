@@ -90,9 +90,7 @@ export function DataSetStep({
     if (organization.features.includes('discover-saved-queries-deprecation')) {
       disabledChoices.push([
         DataSet.TRANSACTIONS,
-        t(
-          'This dataset is is no longer supported. Please use the Spans dataset with filter is_transaction:True to make transaction queries.'
-        ),
+        t('This dataset is is no longer supported. Please use the Spans dataset.'),
       ]);
     }
     datasetChoices.set(DataSet.TRANSACTIONS, t('Transactions'));
