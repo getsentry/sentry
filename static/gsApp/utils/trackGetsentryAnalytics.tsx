@@ -28,8 +28,10 @@ type OnDemandBudgetStrategy = 'per_category' | 'shared';
 type OnDemandBudgetUpdate = {
   attachment_budget: number;
   error_budget: number;
+  log_byte_budget: number;
   previous_attachment_budget: number;
   previous_error_budget: number;
+  previous_log_byte_budget: number;
   previous_strategy: OnDemandBudgetStrategy;
   previous_total_budget: number;
   previous_transaction_budget: number;

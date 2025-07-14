@@ -209,6 +209,7 @@ export function trackOnDemandBudgetAnalytics(
       error_budget: getOnDemandBudget(newBudget, DataCategory.ERRORS),
       transaction_budget: getOnDemandBudget(newBudget, DataCategory.TRANSACTIONS),
       attachment_budget: getOnDemandBudget(newBudget, DataCategory.ATTACHMENTS),
+      log_byte_budget: getOnDemandBudget(newBudget, DataCategory.LOG_BYTE),
 
       // previous budget
       previous_strategy: getBudgetMode(previousBudget),
@@ -222,6 +223,7 @@ export function trackOnDemandBudgetAnalytics(
         previousBudget,
         DataCategory.ATTACHMENTS
       ),
+      previous_log_byte_budget: getOnDemandBudget(previousBudget, DataCategory.LOG_BYTE),
     });
     return;
   }
