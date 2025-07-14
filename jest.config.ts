@@ -4,9 +4,12 @@ import process from 'node:process';
 import {execFileSync} from 'node:child_process';
 import type {Config as SwcConfig} from '@swc/core';
 
+// Get major version of node 22.10.0 to 22
+const NODE_VERSION = process.versions.node.split('.')[0];
+
 const swcConfig: SwcConfig = {
   jsc: {
-    target: 'es5',
+    externalHelpers: true,
     experimental: {
       plugins: [
         [
@@ -39,6 +42,9 @@ const swcConfig: SwcConfig = {
         importSource: '@emotion/react',
       },
     },
+  },
+  env: {
+    targets: `node ${NODE_VERSION}`,
   },
   module: {
     // In order to stop testing in commonjs, we would need to fix a number of module mocks and spyOns
