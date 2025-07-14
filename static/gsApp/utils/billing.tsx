@@ -26,7 +26,7 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {OnDemandBudgetMode, PlanName, PlanTier} from 'getsentry/types';
-import {isContinuousProfiling} from 'getsentry/utils/dataCategory';
+import {isByteCategory, isContinuousProfiling} from 'getsentry/utils/dataCategory';
 import titleCase from 'getsentry/utils/titleCase';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
@@ -145,10 +145,7 @@ export function formatReservedWithUnits(
   if (isReservedBudget) {
     return displayPriceWithCents({cents: reservedQuantity ?? 0});
   }
-  if (
-    dataCategory !== DataCategory.ATTACHMENTS &&
-    dataCategory !== DataCategory.LOG_BYTE
-  ) {
+  if (!isByteCategory(dataCategory)) {
     return formatReservedNumberToString(reservedQuantity, options);
   }
   // convert reservedQuantity to BYTES to check for unlimited
@@ -175,10 +172,7 @@ export function formatUsageWithUnits(
   dataCategory: DataCategory,
   options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
 ) {
-  if (
-    dataCategory === DataCategory.ATTACHMENTS ||
-    dataCategory === DataCategory.LOG_BYTE
-  ) {
+  if (isByteCategory(dataCategory)) {
     if (options.useUnitScaling) {
       return formatByteUnits(usageQuantity);
     }

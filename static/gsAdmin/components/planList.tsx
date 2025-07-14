@@ -15,7 +15,7 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {ANNUAL} from 'getsentry/constants';
 import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
-import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
+import {getPlanCategoryName, isByteCategory} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 
 type Props = {
@@ -58,7 +58,7 @@ function PlanList({
         return (
           <CurrentValueText>
             Current: {reservedValue.toLocaleString()}{' '}
-            {category === DataCategory.ATTACHMENTS ? 'GB' : ''}
+            {isByteCategory(category) ? 'GB' : ''}
           </CurrentValueText>
         );
       }
@@ -147,10 +147,9 @@ function PlanList({
               const reservedKey = `reserved${toTitleCase(category, {
                 allowInnerUpperCase: true,
               })}`;
-              const label =
-                category === DataCategory.ATTACHMENTS
-                  ? `${titleCategory} (GB)`
-                  : titleCategory;
+              const label = isByteCategory(category)
+                ? `${titleCategory} (GB)`
+                : titleCategory;
               const fieldValue = formModel.getValue(reservedKey);
               const currentValueDisplay = getCurrentValueDisplay(category);
               return (
