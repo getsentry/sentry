@@ -1,5 +1,8 @@
 import {AutomationFixture} from 'sentry-fixture/automations';
-import {DetectorFixture, SnubaQueryDataSourceFixture} from 'sentry-fixture/detectors';
+import {
+  MetricDetectorFixture,
+  SnubaQueryDataSourceFixture,
+} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
@@ -26,7 +29,7 @@ describe('DetectorDetails', function () {
       },
     },
   });
-  const snubaQueryDetector = DetectorFixture({
+  const snubaQueryDetector = MetricDetectorFixture({
     projectId: project.id,
     dataSources: [dataSource],
     owner: `team:${ownerTeam.id}`,
