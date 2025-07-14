@@ -82,7 +82,7 @@ export function uptimeSavedDetectorToFormData(
   }
 
   const dataSource = detector.dataSources?.[0];
-  const environment = getDetectorEnvironment(detector);
+  const environment = getDetectorEnvironment(detector) ?? '';
 
   const common = {
     name: detector.name,
