@@ -15,7 +15,7 @@ interface ButtonBarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'cla
 export function ButtonBar({
   children,
   merged = false,
-  gap = 'none',
+  gap = 'md',
   ...props
 }: ButtonBarProps) {
   return (
