@@ -9,7 +9,7 @@ import Form from 'sentry/components/forms/form';
 import type FormModel from 'sentry/components/forms/model';
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import {space} from 'sentry/styles/space';
-import {DataCategory} from 'sentry/types/core';
+import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
