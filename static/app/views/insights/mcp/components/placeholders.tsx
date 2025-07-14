@@ -94,7 +94,6 @@ export function GroupedErrorRateWidget({
   );
 }
 
-// Tools table
 export function ToolsTable() {
   return (
     <TableContainer>
@@ -110,7 +109,6 @@ export function ToolsTable() {
   );
 }
 
-// Resources table
 export function ResourcesTable() {
   return (
     <TableContainer>
@@ -122,7 +120,6 @@ export function ResourcesTable() {
   );
 }
 
-// Prompts table
 export function PromptsTable() {
   return (
     <TableContainer>
