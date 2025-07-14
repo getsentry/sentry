@@ -7,6 +7,7 @@ import pytest
 from django.utils import timezone
 from slack_sdk.errors import SlackApiError
 
+from sentry.incidents.grouptype import MetricIssue
 from sentry.integrations.repository.issue_alert import IssueAlertNotificationMessage
 from sentry.integrations.repository.notification_action import NotificationActionNotificationMessage
 from sentry.integrations.slack.sdk_client import SlackSdkClient
@@ -762,3 +763,32 @@ class TestSlackServiceMethods(TestCase):
             self.service._get_channel_id_from_parent_notification_notification_action(
                 parent_notification=parent_notification,
             )
+
+    def test_none_user_id_metric_resolved(self):
+        """Test that metric resolved notifications are ignored when user_id is None"""
+        metric_group = self.create_group(type=MetricIssue.type_id)
+
+        activity = Activity.objects.create(
+            group=metric_group,
+            project=self.project,
+            type=ActivityType.SET_RESOLVED.value,
+            user_id=None,
+            data={},
+        )
+
+        with mock.patch.object(self.service, "_logger") as mock_logger:
+            result = self.service.notify_all_threads_for_activity(activity=activity)
+
+            # Verify the debug log was called with the expected message
+            mock_logger.info.assert_called_with(
+                "metric resolved notification, will be sent via action.trigger - nothing to do here",
+                extra={
+                    "activity_id": activity.id,
+                    "project_id": activity.project.id,
+                    "group_id": activity.group.id,
+                    "organization_id": self.organization.id,
+                },
+            )
+
+            # Verify the method returns None (early exit)
+            assert result is None
