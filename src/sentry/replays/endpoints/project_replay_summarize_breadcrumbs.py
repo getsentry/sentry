@@ -18,12 +18,13 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.utils import default_start_end_dates
 from sentry.constants import ObjectStatus
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, storage
 from sentry.replays.post_process import process_raw_response
-from sentry.replays.query import query_replay_instance
+from sentry.replays.query import query_replay_instance, query_replays_segment_count
 from sentry.replays.usecases.ingest.event_parser import (
     EventType,
     parse_network_content_lengths,
@@ -36,6 +37,7 @@ from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json
+from sentry.utils.cache import cache
 from sentry.utils.snuba import bulk_snuba_queries
 
 logger = logging.getLogger(__name__)
@@ -76,29 +78,55 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
         ):
             return self.respond(status=404)
 
-        filter_params = self.get_filter_params(request, project)
+        start, end = default_start_end_dates()
+
+        seg_count_response = query_replays_segment_count(
+            project_ids=[project.id],
+            start=start,
+            end=end,
+            replay_ids=[replay_id],
+            tenant_ids={"organization_id": project.organization_id},
+        )
+        if not seg_count_response["data"] or seg_count_response["data"][0]["is_archived"]:
+            # TODO: delete cache key. Should this be done in delete endpoint?
+            return self.respond(status=404)
+        num_segments = seg_count_response["data"][0]["segment_count"]
+
+        disable_error_fetching = (
+            request.query_params.get("enable_error_context", "true").lower() == "false"
+        )
+
+        per_page = self.get_per_page(request)
+        cursor = request.GET.get(self.cursor_name) or ""
+        cache_key = f"replay_summarize_breadcrumbs:{project.id}:{replay_id}:{per_page}:{cursor}:{disable_error_fetching}"
+
+        # TODO: refactor to be neater?
+        if not request.query_params.get("regenerate", "false").lower() == "true":
+            cache_lookup_result: tuple[Response, int] | None = cache.get(cache_key)
+            if cache_lookup_result:
+                cached_response, prev_num_segments = cache_lookup_result
+                if num_segments == prev_num_segments:
+                    return cached_response
 
         # Fetch the replay's error IDs from the replay_id.
         snuba_response = query_replay_instance(
             project_id=project.id,
             replay_id=replay_id,
-            start=filter_params["start"],
-            end=filter_params["end"],
+            start=start,
+            end=end,
             organization=project.organization,
             request_user_id=request.user.id,
         )
-
-        response = process_raw_response(
+        replay_details_response = process_raw_response(
             snuba_response,
             fields=request.query_params.getlist("field"),
         )
 
-        error_ids = response[0].get("error_ids", []) if response else []
-        trace_ids = response[0].get("trace_ids", []) if response else []
-
-        # Check if error fetching should be disabled
-        disable_error_fetching = (
-            request.query_params.get("enable_error_context", "true").lower() == "false"
+        error_ids = (
+            replay_details_response[0].get("error_ids", []) if replay_details_response else []
+        )
+        trace_ids = (
+            replay_details_response[0].get("trace_ids", []) if replay_details_response else []
         )
 
         if disable_error_fetching:
@@ -108,11 +136,12 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
             trace_connected_errors = fetch_trace_connected_errors(
                 project=project,
                 trace_ids=trace_ids,
-                start=filter_params["start"],
-                end=filter_params["end"],
+                start=start,
+                end=end,
             )
             error_events = replay_errors + trace_connected_errors
-        return self.paginate(
+
+        response = self.paginate(
             request=request,
             paginator_cls=GenericOffsetPaginator,
             data_fn=functools.partial(fetch_segments_metadata, project.id, replay_id),
@@ -120,6 +149,8 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
                 analyze_recording_segments, error_events, replay_id, project.id
             ),
         )
+        cache.set(cache_key, (response, num_segments), timeout=7 * 24 * 60 * 60)
+        return response
 
 
 def fetch_error_details(project_id: int, error_ids: list[str]) -> list[GroupEvent]:
@@ -147,21 +178,19 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[GroupEven
         return []
 
 
-def parse_timestamp(timestamp_value: Any, unit: str) -> float:
-    """Parse a timestamp input to a float value.
-    The argument timestamp value can be string, float, or None.
-    The returned unit will be the same as the input unit.
+def parse_timestamp_ms(value: str | float | None) -> float:
     """
-    if timestamp_value is not None:
-        if isinstance(timestamp_value, str):
-            try:
-                dt = datetime.fromisoformat(timestamp_value.replace("Z", "+00:00"))
-                return dt.timestamp() * 1000 if unit == "ms" else dt.timestamp()
-            except (ValueError, AttributeError):
-                return 0.0
-        else:
-            return float(timestamp_value)
-    return 0.0
+    Parse a str or float timestamp to milliseconds.
+    None and ill-formatted date strings default to 0.0.
+    """
+    if isinstance(value, str):
+        try:
+            dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            return dt.timestamp() * 1000
+        except (ValueError, AttributeError):
+            return 0.0
+
+    return value or 0.0
 
 
 def fetch_trace_connected_errors(
@@ -225,9 +254,9 @@ def fetch_trace_connected_errors(
             error_data = query.process_results(result)["data"]
 
             for event in error_data:
-                timestamp_ms = parse_timestamp(event.get("timestamp_ms"), "ms")
-                timestamp_s = parse_timestamp(event.get("timestamp"), "s")
-                timestamp = timestamp_ms or timestamp_s * 1000
+                timestamp = parse_timestamp_ms(event.get("timestamp_ms")) or parse_timestamp_ms(
+                    event.get("timestamp")
+                )
 
                 if timestamp:
                     error_events.append(

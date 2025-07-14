@@ -913,6 +913,7 @@ class Referrer(StrEnum):
         "release_monitor.fetch_projects_with_recent_sessions"
     )
     REPLAYS_QUERY_QUERY_REPLAYS_COUNT = "replays.query.query_replays_count"
+    REPLAYS_QUERY_QUERY_REPLAYS_SEGMENT_COUNT = "replays.query.query_replays_segment_count"
     REPLAYS_QUERY_QUERY_REPLAYS_DATASET = "replays.query.query_replays_dataset"
     REPLAYS_QUERY_QUERY_REPLAYS_DATASET_SUBQUERY = "replays.query.query_replays_dataset_subquery"
     REPLAYS_QUERY_BROWSE_SIMPLE_AGGREGATION = "replays.query.browse_simple_aggregation"

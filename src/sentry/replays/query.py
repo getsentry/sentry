@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Generator, Sequence
+from collections.abc import Generator, Mapping, Sequence
 from datetime import datetime
 from typing import Any
 
@@ -34,7 +34,7 @@ from sentry.replays.usecases.query import (
     make_full_aggregation_query,
     query_using_optimized_search,
 )
-from sentry.utils.snuba import raw_snql_query
+from sentry.utils.snuba import bulk_snuba_queries, raw_snql_query
 
 MAX_PAGE_SIZE = 100
 DEFAULT_PAGE_SIZE = 10
@@ -191,6 +191,57 @@ def query_replays_count(
     return raw_snql_query(
         snuba_request, referrer="replays.query.query_replays_count", use_cache=True
     )
+
+
+def query_replays_segment_count(
+    project_ids: list[int],
+    start: datetime,
+    end: datetime,
+    replay_ids: list[str],
+    tenant_ids: dict[str, Any],
+) -> Mapping[str, Any]:
+    snuba_request = Request(
+        dataset="replays",
+        app_id="replay-backend-web",
+        query=Query(
+            match=Entity("replays"),
+            select=[
+                Column("replay_id"),
+                Function("max", parameters=[Column("segment_id")], alias="segment_count"),
+                Function(
+                    "ifNull",
+                    parameters=[
+                        Function(
+                            "max",
+                            parameters=[Column("is_archived")],
+                        ),
+                        0,
+                    ],
+                    alias="is_archived",
+                ),
+            ],
+            where=[
+                Condition(Column("project_id"), Op.IN, project_ids),
+                Condition(Column("timestamp"), Op.LT, end),
+                Condition(Column("timestamp"), Op.GTE, start),
+                Condition(Column("replay_id"), Op.IN, replay_ids),
+            ],
+            having=[
+                # Must include the first sequence otherwise the replay is too old.
+                Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
+            ],
+            orderby=[],
+            groupby=[Column("replay_id")],
+            granularity=Granularity(3600),
+        ),
+        tenant_ids=tenant_ids,
+    )
+    return bulk_snuba_queries(
+        requests=[snuba_request],
+        referrer="replays.query.query_replays_segment_count",
+        use_cache=True,
+        query_source=None,
+    )[0]
 
 
 def query_replays_dataset_tagkey_values(
