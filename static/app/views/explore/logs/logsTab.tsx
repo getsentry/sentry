@@ -61,6 +61,7 @@ import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregate
 import {LogsInfiniteTable as LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
+import {useStreamingTimeseriesResult} from 'sentry/views/explore/logs/useStreamingTimeseriesResult';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {PickableDays} from 'sentry/views/explore/utils';
@@ -95,7 +96,7 @@ export function LogsTabContent({
   const [sidebarOpen, setSidebarOpen] = useState(
     !!((aggregateFunction && aggregateFunction !== 'count') || groupBy)
   );
-  const timeseriesResult = useSortedTimeSeries(
+  const _timeseriesResult = useSortedTimeSeries(
     {
       search: logsSearch,
       yAxis: [aggregate],
@@ -106,6 +107,7 @@ export function LogsTabContent({
     'explore.ourlogs.main-chart',
     DiscoverDatasets.OURLOGS
   );
+  const timeseriesResult = useStreamingTimeseriesResult(tableData, _timeseriesResult);
   const [tableTab, setTableTab] = useState<'aggregates' | 'logs'>(
     (aggregateFunction && aggregateFunction !== 'count') || groupBy
       ? 'aggregates'
@@ -245,7 +247,7 @@ export function LogsTabContent({
               </Feature>
               <TableActionsContainer>
                 <Feature features="organizations:ourlogs-live-refresh">
-                  <AutorefreshToggle />
+                  <AutorefreshToggle disabled={tableTab === 'aggregates'} />
                 </Feature>
                 <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
                   {t('Edit Table')}

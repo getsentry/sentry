@@ -240,7 +240,15 @@ function setLogsPageParams(location: Location, pageParams: LogPageParamsUpdate) 
   updateNullableLocation(target, LOGS_AGGREGATE_PARAM_KEY, pageParams.aggregateParam);
   if (!pageParams.isTableFrozen) {
     updateLocationWithLogSortBys(target, pageParams.sortBys);
-    updateLocationWithAggregateSortBys(target, pageParams.aggregateSortBys);
+    if (
+      pageParams.sortBys ||
+      pageParams.search ||
+      pageParams.aggregateFn ||
+      pageParams.aggregateParam ||
+      pageParams.groupBy
+    ) {
+      updateLocationWithAggregateSortBys(target, pageParams.aggregateSortBys);
+    }
     if (pageParams.sortBys || pageParams.aggregateSortBys || pageParams.search) {
       // make sure to clear the cursor every time the query is updated
       delete target.query[LOGS_CURSOR_KEY];
@@ -523,6 +531,8 @@ export function useSetLogsAutoRefresh() {
     (autoRefresh: boolean) => {
       if (autoRefresh) {
         queryClient.removeQueries({queryKey});
+        // Until we change our timeseries hooks to be build their query keys separately, we need to remove the query via the route.
+        queryClient.removeQueries({queryKey: ['events-stats']});
       }
       setPageParams({autoRefresh});
     },
