@@ -28,28 +28,10 @@ function PlaceholderText() {
   return <PlaceholderContent>{t('Placeholder')}</PlaceholderContent>;
 }
 
-export function McpTrafficWidget() {
-  return (
-    <Widget
-      Title={<Widget.WidgetTitle title={t('Traffic + Error rate')} />}
-      Visualization={<PlaceholderText />}
-    />
-  );
-}
-
 export function RequestsBySourceWidget() {
   return (
     <Widget
       Title={<Widget.WidgetTitle title={t('Requests by source')} />}
-      Visualization={<PlaceholderText />}
-    />
-  );
-}
-
-export function TransportDistributionWidget() {
-  return (
-    <Widget
-      Title={<Widget.WidgetTitle title={t('Transport distribution')} />}
       Visualization={<PlaceholderText />}
     />
   );
