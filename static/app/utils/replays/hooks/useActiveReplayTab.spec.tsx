@@ -17,7 +17,7 @@ describe('useActiveReplayTab', () => {
     setWindowLocation('http://localhost/');
   });
 
-  describe('without replay-ai-summaries and gen-ai-features feature flags', () => {
+  describe('without both replay-ai-summaries and gen-ai-features feature flags', () => {
     it('should use Breadcrumbs as a default when only gen-ai-features is enabled', () => {
       const {result} = renderHook(useActiveReplayTab, {
         initialProps: {},
