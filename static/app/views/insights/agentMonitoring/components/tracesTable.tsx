@@ -44,7 +44,7 @@ interface TableData {
   llmCalls: number;
   timestamp: number;
   toolCalls: number;
-  totalCost: number;
+  totalCost: number | null;
   totalTokens: number;
   traceId: string;
   transaction: string;
@@ -164,7 +164,7 @@ export function TracesTable() {
       llmCalls: spanDataMap[span.trace]?.llmCalls ?? 0,
       toolCalls: spanDataMap[span.trace]?.toolCalls ?? 0,
       totalTokens: spanDataMap[span.trace]?.totalTokens ?? 0,
-      totalCost: spanDataMap[span.trace]?.totalCost ?? 0,
+      totalCost: spanDataMap[span.trace]?.totalCost ?? null,
       timestamp: span.start,
       isSpanDataLoading: spansRequest.isLoading,
     }));

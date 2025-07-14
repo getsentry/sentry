@@ -21,14 +21,7 @@ DEFAULT_GROUPING_CONFIG = "newstyle:2023-01-11"
 # `mobile` strategy via grouping auto-updates.
 BETA_GROUPING_CONFIG = ""
 # This registers the option as a valid project option
-register(
-    key="sentry:grouping_config",
-    epoch_defaults={
-        1: LEGACY_GROUPING_CONFIG,
-        3: "newstyle:2019-05-08",
-        4: DEFAULT_GROUPING_CONFIG,
-    },
-)
+register(key="sentry:grouping_config", default=DEFAULT_GROUPING_CONFIG)
 
 register(key="sentry:grouping_enhancements", default="")
 register(key="sentry:derived_grouping_enhancements", default="")
@@ -192,9 +185,6 @@ register(
 
 # Dynamic sampling rate in project-level "manual" configuration mode
 register(key="sentry:target_sample_rate", default=TARGET_SAMPLE_RATE_DEFAULT)
-
-# Dynamic sampling minimum sample rate
-register(key="sentry:dynamic_sampling_minimum_sample_rate", default=False)
 
 # Should tempest fetch screenshots for this project
 register(key="sentry:tempest_fetch_screenshots", default=False)

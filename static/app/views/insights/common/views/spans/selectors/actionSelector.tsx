@@ -131,5 +131,6 @@ const LABEL_FOR_MODULE_NAME: Record<ModuleName, ReactNode> = {
   'screen-rendering': t('Action'),
   ai: 'Action',
   agents: t('Action'),
+  mcp: t('Action'),
   sessions: t('Action'),
 };
