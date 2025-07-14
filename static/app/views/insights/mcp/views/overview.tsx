@@ -25,6 +25,7 @@ import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {McpInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ModulesOnboardingPanel} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
@@ -32,7 +33,6 @@ import {
   GroupedDurationWidget,
   GroupedErrorRateWidget,
   GroupedTrafficWidget,
-  McpOnboarding,
   McpTrafficWidget,
   PromptsTable,
   RequestsBySourceWidget,
@@ -48,7 +48,7 @@ import {ModuleName} from 'sentry/views/insights/types';
 const TableControl = SegmentedControl<ViewType>;
 const TableControlItem = SegmentedControl.Item<ViewType>;
 
-export enum ViewType {
+enum ViewType {
   TOOL = 'tool',
   RESOURCE = 'resource',
   PROMPT = 'prompt',
@@ -131,7 +131,7 @@ function McpOverviewPage() {
 
               <ModuleLayout.Full>
                 {showOnboarding ? (
-                  <McpOnboarding />
+                  <ModulesOnboardingPanel moduleName={ModuleName.MCP} />
                 ) : (
                   <Fragment>
                     <WidgetGrid>
