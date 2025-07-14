@@ -138,7 +138,7 @@ export function useSortedFilterKeyItems({
     disallowFreeText,
     replaceRawSearchKeys,
     enableAISearch,
-    gaveSeerConsentRef,
+    gaveSeerConsent,
   } = useSearchQueryBuilder();
   const organization = useOrganization();
 
@@ -250,7 +250,7 @@ export function useSortedFilterKeyItems({
       const askSeerItem = [];
       if (enableAISearch) {
         askSeerItem.push(
-          gaveSeerConsentRef.current ? createAskSeerItem() : createAskSeerConsentItem()
+          gaveSeerConsent ? createAskSeerItem() : createAskSeerConsentItem()
         );
       }
 
@@ -275,8 +275,8 @@ export function useSortedFilterKeyItems({
     filterKeys,
     filterValue,
     flatKeys,
+    gaveSeerConsent,
     getFieldDefinition,
-    gaveSeerConsentRef,
     hasRawSearchReplacement,
     includeSuggestions,
     inputValue,

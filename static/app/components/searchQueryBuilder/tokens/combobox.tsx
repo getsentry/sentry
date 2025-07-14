@@ -183,7 +183,7 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
   maxOptions?: number;
   shouldFilterResults?: boolean;
 }) {
-  const {gaveSeerConsentRef} = useSearchQueryBuilder();
+  const {gaveSeerConsent} = useSearchQueryBuilder();
   const hiddenOptions: Set<SelectKey> = useMemo(() => {
     const options = getHiddenOptions(
       items,
@@ -192,7 +192,7 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
     );
 
     if (showAskSeerOption) {
-      if (gaveSeerConsentRef.current) {
+      if (gaveSeerConsent) {
         options.add(ASK_SEER_ITEM_KEY);
       } else {
         options.add(ASK_SEER_CONSENT_ITEM_KEY);
@@ -202,7 +202,7 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
     return options;
   }, [
     filterValue,
-    gaveSeerConsentRef,
+    gaveSeerConsent,
     items,
     maxOptions,
     shouldFilterResults,

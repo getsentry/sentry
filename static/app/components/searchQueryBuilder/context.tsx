@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import type {SearchQueryBuilderProps} from 'sentry/components/searchQueryBuilder';
 import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
 import {
@@ -39,7 +40,7 @@ interface SearchQueryBuilderContextData {
   filterKeySections: FilterKeySection[];
   filterKeys: TagCollection;
   focusOverride: FocusOverride | null;
-  gaveSeerConsentRef: React.RefObject<boolean>;
+  gaveSeerConsent: boolean;
   getFieldDefinition: (key: string, kind?: FieldKind) => FieldDefinition | null;
   getSuggestedFilterKey: (key: string) => string | null;
   getTagValues: (tag: Tag, query: string) => Promise<string[]>;
@@ -102,9 +103,9 @@ export function SearchQueryBuilderProvider({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
   const organization = useOrganization();
+  const {setupAcknowledgement} = useOrganizationSeerSetup();
 
   const [displaySeerResults, setDisplaySeerResults] = useState(false);
-  const gaveSeerConsentRef = useRef(false);
 
   const {state, dispatch} = useQueryBuilderState({
     initialQuery,
@@ -190,7 +191,7 @@ export function SearchQueryBuilderProvider({
       setDisplaySeerResults,
       replaceRawSearchKeys,
       filterKeyAliases,
-      gaveSeerConsentRef,
+      gaveSeerConsent: setupAcknowledgement.orgHasAcknowledged,
     };
   }, [
     disabled,
@@ -212,6 +213,7 @@ export function SearchQueryBuilderProvider({
     recentSearches,
     replaceRawSearchKeys,
     searchSource,
+    setupAcknowledgement.orgHasAcknowledged,
     size,
     stableFieldDefinitionGetter,
     stableFilterKeys,

@@ -160,18 +160,12 @@ function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
 
 export function AskSeer<T>({state}: {state: ComboBoxState<T>}) {
   const organization = useOrganization();
-  const {gaveSeerConsentRef} = useSearchQueryBuilder();
+  const {gaveSeerConsent} = useSearchQueryBuilder();
   const isMutating = useIsMutating({
     mutationKey: [setupCheckQueryKey(organization.slug)],
   });
 
-  const {setupAcknowledgement, isPending: isPendingSetupCheck} =
-    useOrganizationSeerSetup();
-  const orgHasAcknowledged = setupAcknowledgement.orgHasAcknowledged;
-
-  if (!gaveSeerConsentRef.current && orgHasAcknowledged && !isPendingSetupCheck) {
-    gaveSeerConsentRef.current = true;
-  }
+  const {isPending: isPendingSetupCheck} = useOrganizationSeerSetup();
 
   if (isPendingSetupCheck || isMutating) {
     return (
@@ -184,7 +178,7 @@ export function AskSeer<T>({state}: {state: ComboBoxState<T>}) {
     );
   }
 
-  if (orgHasAcknowledged) {
+  if (gaveSeerConsent) {
     return (
       <AskSeerPane>
         <AskSeerOption state={state} />

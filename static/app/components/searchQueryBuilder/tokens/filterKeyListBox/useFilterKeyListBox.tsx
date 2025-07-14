@@ -169,7 +169,7 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
     getFieldDefinition,
     setDisplaySeerResults,
     enableAISearch,
-    gaveSeerConsentRef,
+    gaveSeerConsent,
   } = useSearchQueryBuilder();
   const {sectionedItems} = useFilterKeyItems();
   const recentFilters = useRecentSearchFilters();
@@ -186,7 +186,7 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
     const askSeerItem = [];
     if (enableAISearch) {
       askSeerItem.push(
-        gaveSeerConsentRef.current ? createAskSeerItem() : createAskSeerConsentItem()
+        gaveSeerConsent ? createAskSeerItem() : createAskSeerConsentItem()
       );
     }
 
@@ -217,8 +217,8 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
   }, [
     enableAISearch,
     filterKeys,
+    gaveSeerConsent,
     getFieldDefinition,
-    gaveSeerConsentRef,
     recentFilters,
     recentSearches,
     sectionedItems,
