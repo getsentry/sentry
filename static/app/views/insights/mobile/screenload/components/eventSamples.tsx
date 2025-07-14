@@ -15,7 +15,6 @@ import {
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {useDiscoverOrEap} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {EventSamplesTable} from 'sentry/views/insights/mobile/screenload/components/tables/eventSamplesTable';
 import {SpanMetricsField} from 'sentry/views/insights/types';
@@ -41,7 +40,6 @@ export function ScreenLoadEventSamples({
   showDeviceClassSelector,
 }: Props) {
   const location = useLocation();
-  const useEap = useInsightsEap();
   const {selection} = usePageFilters();
   const {primaryRelease} = useReleaseSelection();
   const cursor = decodeScalar(location.query?.[cursorName]);
@@ -51,18 +49,12 @@ export function ScreenLoadEventSamples({
   const subregions = decodeList(location.query[SpanMetricsField.USER_GEO_SUBREGION]);
 
   const searchQuery = useMemo(() => {
-    const mutableQuery = useEap
-      ? new MutableSearch([
-          'span.op:[ui.load,navigation]',
-          `is_transaction:true`,
-          `transaction:${transaction}`,
-          `release:${release}`,
-        ])
-      : new MutableSearch([
-          'transaction.op:[ui.load,navigation]',
-          `transaction:${transaction}`,
-          `release:${release}`,
-        ]);
+    const mutableQuery = new MutableSearch([
+      'span.op:[ui.load,navigation]',
+      `is_transaction:true`,
+      `transaction:${transaction}`,
+      `release:${release}`,
+    ]);
 
     if (subregions.length > 0) {
       mutableQuery.addDisjunctionFilterValues(
@@ -84,15 +76,7 @@ export function ScreenLoadEventSamples({
     }
 
     return mutableQuery;
-  }, [
-    deviceClass,
-    isProjectCrossPlatform,
-    platform,
-    release,
-    transaction,
-    subregions,
-    useEap,
-  ]);
+  }, [deviceClass, isProjectCrossPlatform, platform, release, transaction, subregions]);
 
   const sort = decodeSorts(location.query[sortKey])[0] ?? DEFAULT_SORT;
 
