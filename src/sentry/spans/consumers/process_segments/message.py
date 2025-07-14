@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan
 
 from sentry import options
-from sentry.constants import INSIGHT_MODULE_FILTERS
+from sentry.constants import INSIGHT_MODULE_FILTERS, DataCategory
 from sentry.dynamic_sampling.rules.helpers.latest_releases import record_latest_release
 from sentry.event_manager import INSIGHT_MODULE_TO_PROJECT_FLAG_NAME
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
@@ -32,7 +32,7 @@ from sentry.spans.consumers.process_segments.enrichment import (
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
-from sentry.utils.outcomes import DataCategory, Outcome, track_outcome
+from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 
 logger = logging.getLogger(__name__)
@@ -273,7 +273,7 @@ def _track_outcomes(segment_span: Span, spans: list[Span]) -> None:
     track_outcome(
         org_id=segment_span["organization_id"],
         project_id=segment_span["project_id"],
-        key_id=segment_span.get("key_id", None),
+        key_id=cast(int | None, segment_span.get("key_id", None)),
         outcome=Outcome.ACCEPTED,
         reason=None,
         timestamp=to_datetime(segment_span["received"]),
