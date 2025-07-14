@@ -206,7 +206,14 @@ class SimpleStorageBlob:
     def set(self, key: str, value: bytes) -> None:
         storage = get_storage(self._make_storage_options())
         try:
-            storage.save(key, BytesIO(value))
+            metrics.distribution(
+                "storage.put.size",
+                len(value),
+                tags={"usecase": "replays", "compression": "gzip"},
+                unit="byte",
+            )
+            with metrics.timer("storage.put.latency", tags={"usecase": "replays"}):
+                storage.save(key, BytesIO(value))
         except TooManyRequests:
             # if we 429 because of a dupe segment problem, ignore it
             metrics.incr("replays.lib.storage.TooManyRequests")
