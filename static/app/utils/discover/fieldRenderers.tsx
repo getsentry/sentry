@@ -959,9 +959,9 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
 };
 
 /**
- * Returns an icon component for fields that use logo icons
- * @param value the text to map to an icon
- * @param dropVersion drops the last part of the value (the version)
+ * Returns a logo icon component for operating system (OS) and browser related fields
+ * @param value OS or browser string that may include the version appended at the end. E.g., 'Safari 9.1.2', 'Mac OS X'
+ * @param dropVersion drops the last part of the value. E.g., 'Safari 9.1.2' would drop '9.1.2' before mapping to an icon
  */
 const getContextIcon = (value: string, dropVersion?: boolean) => {
   const valueArray = value.split(' ');
