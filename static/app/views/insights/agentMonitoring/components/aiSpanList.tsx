@@ -28,7 +28,7 @@ import {
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import type {AITraceSpanNode} from 'sentry/views/insights/agentMonitoring/utils/types';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   isEAPSpanNode,
   isSpanNode,
@@ -201,7 +201,7 @@ function useEAPSpanAttributes(nodes: Array<TraceTreeNode<TraceTree.NodeValue>>) 
     ...spans.map(span => new Date(span.value.end_timestamp * 1000).getTime())
   );
 
-  const spanAttributesRequest = useEAPSpans(
+  const spanAttributesRequest = useSpans(
     {
       search: `span_id:[${spans.map(span => `"${span.value.event_id}"`).join(',')}]`,
       fields: [

@@ -31,8 +31,8 @@ import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDr
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
 import {
   useDiscoverOrEap,
-  useEAPSpans,
   useSpanMetrics,
+  useSpans,
   useSpansIndexed,
 } from 'sentry/views/insights/common/queries/useDiscover';
 import {
@@ -115,7 +115,7 @@ export function CacheSamplePanel() {
     );
 
   const {data: transactionDurationData, isPending: isTransactionDurationLoading} =
-    useEAPSpans(
+    useSpans(
       {
         search: MutableSearch.fromQueryObject({
           transaction: query.transaction,

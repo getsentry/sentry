@@ -57,7 +57,7 @@ export const useSpanMetricsSeries = <Fields extends SpanMetricsProperty[]>(
   );
 };
 
-export const useEAPSeries = <
+export const useSpanSeries = <
   Fields extends
     | MetricsProperty[]
     | SpanMetricsProperty[]

@@ -7,7 +7,7 @@ import {Referrer} from 'sentry/views/insights/cache/referrers';
 // TODO(release-drawer): Only used in cache/components/samplePanel
 // eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
-import {useEAPSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import type {SpanQueryFilters} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -29,7 +29,7 @@ export function TransactionDurationChartWithSamples({samples}: Props) {
   } satisfies SpanQueryFilters);
   const referrer = Referrer.SAMPLES_CACHE_TRANSACTION_DURATION_CHART;
 
-  const {data, isPending, error} = useEAPSeries(
+  const {data, isPending, error} = useSpanSeries(
     {
       search,
       yAxis: [`avg(${SpanFields.SPAN_DURATION})`],

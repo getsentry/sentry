@@ -60,7 +60,7 @@ export const useSpansIndexed = <Fields extends SpanIndexedProperty[]>(
   );
 };
 
-export const useEAPSpans = <Fields extends EAPSpanProperty[]>(
+export const useSpans = <Fields extends EAPSpanProperty[]>(
   options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
