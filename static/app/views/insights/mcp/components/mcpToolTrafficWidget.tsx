@@ -3,13 +3,13 @@ import GroupedTrafficWidget from 'sentry/views/insights/mcp/components/groupedTr
 import {MCPReferrer} from 'sentry/views/insights/mcp/utils/referrer';
 import {SpanFields} from 'sentry/views/insights/types';
 
-export default function McpTransportWidget() {
+export default function McpToolTrafficWidget() {
   return (
     <GroupedTrafficWidget
-      groupBy={SpanFields.MCP_TRANSPORT}
-      referrer={MCPReferrer.MCP_TRANSPORT_WIDGET}
-      query={`span.op:mcp.server has:${SpanFields.MCP_TRANSPORT}`}
-      title={t('Transport Distribution')}
+      groupBy={SpanFields.MCP_TOOL_NAME}
+      referrer={MCPReferrer.MCP_TOOL_TRAFFIC_WIDGET}
+      query={`span.op:mcp.server has:${SpanFields.MCP_TOOL_NAME}`}
+      title={t('Most Used Tools')}
     />
   );
 }

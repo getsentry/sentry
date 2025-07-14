@@ -37,45 +37,6 @@ export function RequestsBySourceWidget() {
   );
 }
 
-export function GroupedTrafficWidget({
-  groupBy,
-}: {
-  groupBy: 'tool' | 'resource' | 'prompt';
-}) {
-  return (
-    <Widget
-      Title={<Widget.WidgetTitle title={`Traffic by ${groupBy}`} />}
-      Visualization={<PlaceholderText />}
-    />
-  );
-}
-
-export function GroupedDurationWidget({
-  groupBy,
-}: {
-  groupBy: 'tool' | 'resource' | 'prompt';
-}) {
-  return (
-    <Widget
-      Title={<Widget.WidgetTitle title={`Duration by ${groupBy}`} />}
-      Visualization={<PlaceholderText />}
-    />
-  );
-}
-
-export function GroupedErrorRateWidget({
-  groupBy,
-}: {
-  groupBy: 'tool' | 'resource' | 'prompt';
-}) {
-  return (
-    <Widget
-      Title={<Widget.WidgetTitle title={`Error rate by ${groupBy}`} />}
-      Visualization={<PlaceholderText />}
-    />
-  );
-}
-
 export function ToolsTable() {
   return (
     <TableContainer>
