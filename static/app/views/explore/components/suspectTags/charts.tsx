@@ -152,8 +152,12 @@ function Chart({
         return '\u2014';
       }
 
-      const selectedParam = seriesParamsOrParam[0];
-      const baselineParam = seriesParamsOrParam[1];
+      const selectedParam = seriesParamsOrParam.find(
+        s => s.seriesName === SELECTED_SERIES_NAME
+      );
+      const baselineParam = seriesParamsOrParam.find(
+        s => s.seriesName === BASELINE_SERIES_NAME
+      );
 
       if (!selectedParam || !baselineParam) {
         throw new Error('selectedParam or baselineParam is not defined');
