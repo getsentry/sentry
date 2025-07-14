@@ -2,6 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,7 +22,7 @@ function ArrayLinks({items}: ArrayLinksProps) {
   const firstItem = items[0];
 
   return (
-    <ArrayContainer expanded={expanded}>
+    <Flex direction={expanded ? 'column' : 'row'}>
       {firstItem && <LinkedItem item={firstItem} />}
       {items.length > 1 &&
         expanded &&
@@ -35,7 +36,7 @@ function ArrayLinks({items}: ArrayLinksProps) {
           </button>
         </ButtonContainer>
       ) : null}
-    </ArrayContainer>
+    </Flex>
   );
 }
 
@@ -48,11 +49,6 @@ function LinkedItem({item}: {item: Item}) {
     </ArrayItem>
   );
 }
-
-const ArrayContainer = styled('div')<{expanded: boolean}>`
-  display: flex;
-  flex-direction: ${p => (p.expanded ? 'column' : 'row')};
-`;
 
 const ArrayItem = styled('span')`
   flex-shrink: 1;

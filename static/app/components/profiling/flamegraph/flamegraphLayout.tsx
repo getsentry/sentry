@@ -1,6 +1,7 @@
 import {cloneElement, useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
@@ -173,7 +174,7 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
     ) + flamegraphTheme.SIZES.TIMELINE_LABEL_HEIGHT;
 
   return (
-    <FlamegraphLayoutContainer>
+    <FlamegraphLayoutContainer flex="1 1 100%">
       <FlamegraphGrid layout={layout}>
         <MinimapContainer
           containerHeight={
@@ -315,10 +316,7 @@ const ProfileLabel = styled(CollapsibleTimelineLabel)`
   transform: translateY(1px);
 `;
 
-const FlamegraphLayoutContainer = styled('div')`
-  display: flex;
-  flex: 1 1 100%;
-`;
+const FlamegraphLayoutContainer = Flex;
 
 const FlamegraphGrid = styled('div')<{
   layout?: FlamegraphPreferences['layout'];
