@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from sentry import audit_log, eventstream
 from sentry.api.base import audit_logger
 from sentry.deletions.tasks.groups import delete_groups as delete_groups_task
-from sentry.models.group import Group, GroupStatus
+from sentry.models.group import Group, GroupInbox, GroupStatus
 from sentry.models.project import Project
 from sentry.signals import issue_deleted
 from sentry.utils.audit import create_audit_entry
@@ -74,6 +74,10 @@ def delete_group_list(
     # so that we can see who requested the deletion. Even if anything after this point
     # fails, we will still have a record of who requested the deletion.
     create_audit_entries(request, project, group_list, delete_type, transaction_id)
+
+    # We remove `GroupInbox` rows here so that they don't end up influencing queries for
+    # `Group` instances that are pending deletion
+    GroupInbox.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
 
     delete_groups_task.apply_async(
         kwargs={
