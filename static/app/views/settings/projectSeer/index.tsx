@@ -4,7 +4,6 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Alert} from 'sentry/components/core/alert';
 import {Link} from 'sentry/components/core/link';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
@@ -30,6 +29,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 import {AutofixRepositories} from './autofixRepositories';
+import {SEER_THRESHOLD_OPTIONS} from './constants';
 
 const AiSetupDataConsent = HookOrDefault({
   hookName: 'component:ai-setup-data-consent',
@@ -55,10 +55,10 @@ const SeerSelectLabel = styled('div')`
 
 export const seerScannerAutomationField = {
   name: 'seerScannerAutomation',
-  label: t('Automate Issue Scans'),
+  label: t('Scan Issues'),
   help: () =>
     t(
-      'Seer will scan all new issues in your project, helping you focus on the most actionable and quick-to-fix ones, giving more context in Slack alerts, and enabling automatic Issue Fixes.'
+      'Seer will scan all new and ongoing issues in your project, flagging the most actionable issues, giving more context in Slack alerts, and enabling Issue Fixes to be triggered automatically.'
     ),
   type: 'boolean',
   saveOnBlur: true,
@@ -66,52 +66,17 @@ export const seerScannerAutomationField = {
 
 export const autofixAutomatingTuningField = {
   name: 'autofixAutomationTuning',
-  label: t('Automate Issue Fixes'),
+  label: t('Auto-Trigger Fixes'),
   help: () =>
     t(
-      "Seer will automatically find a root cause and solution for incoming issues if it thinks the issue is actionable enough. By default, it won't open PRs without your approval."
+      'If Seer detects that an issue is actionable enough, it will automatically analyze it in the background. By the time you see it, the root cause and solution will already be there for you.'
     ),
   type: 'choice',
-  options: [
-    {
-      value: 'off',
-      label: <SeerSelectLabel>{t('Off')}</SeerSelectLabel>,
-      details: t('Seer will never analyze any issues without manually clicking Start.'),
-    },
-    {
-      value: 'super_low',
-      label: <SeerSelectLabel>{t('Only the Most Actionable Issues')}</SeerSelectLabel>,
-      details: t(
-        'Seer will automatically run on issues that it thinks have an actionability of "super high." This targets around 2% of issues, but may vary by project.'
-      ),
-    },
-    {
-      value: 'low',
-      label: <SeerSelectLabel>{t('Highly Actionable and Above')}</SeerSelectLabel>,
-      details: t(
-        'Seer will automatically run on issues that it thinks have an actionability of "high" or above. This targets around 10% of issues, but may vary by project.'
-      ),
-    },
-    {
-      value: 'medium',
-      label: <SeerSelectLabel>{t('Moderately Actionable and Above')}</SeerSelectLabel>,
-      details: t(
-        'Seer will automatically run on issues that it thinks have an actionability of "medium" or above. This targets around 30% of issues, but may vary by project.'
-      ),
-    },
-    {
-      value: 'high',
-      label: <SeerSelectLabel>{t('Minimally Actionable and Above')}</SeerSelectLabel>,
-      details: t(
-        'Seer will automatically run on issues that it thinks have an actionability of "low" or above. This targets around 70% of issues, but may vary by project.'
-      ),
-    },
-    {
-      value: 'always',
-      label: <SeerSelectLabel>{t('All Issues')}</SeerSelectLabel>,
-      details: t('Seer will automatically run on all new issues.'),
-    },
-  ],
+  options: SEER_THRESHOLD_OPTIONS.map(option => ({
+    value: option.value,
+    label: <SeerSelectLabel>{option.label}</SeerSelectLabel>,
+    details: option.details,
+  })),
   saveOnBlur: true,
   saveMessage: t('Automatic Seer settings updated'),
   visible: ({model}) => model?.getValue('seerScannerAutomation') === true,
@@ -123,7 +88,7 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
   const {preference} = useProjectSeerPreferences(project);
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
 
-  const canWriteProject = hasEveryAccess(['project:write'], {organization, project});
+  const canWriteProject = hasEveryAccess(['project:read'], {organization, project});
 
   const handleSubmitSuccess = useCallback(
     (resp: Project) => {
@@ -150,10 +115,10 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
 
   const automatedRunStoppingPointField = {
     name: 'automated_run_stopping_point',
-    label: t('Stopping Point for Automatic Fixes'),
+    label: t('Stopping Point for Auto-Triggered Fixes'),
     help: () =>
       t(
-        'Choose how far Seer should go without your approval when running automatically. This does not affect Issue Fixes that you manually start.'
+        'Choose how far Seer should go before stopping for your approval. This does not affect Issue Fixes that you manually start.'
       ),
     type: 'choice',
     options: [
@@ -183,7 +148,25 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
 
   const seerFormGroups: JsonFormObject[] = [
     {
-      title: t('Automation'),
+      title: (
+        <div>
+          {t('Automation')}
+          <Subheading>
+            {tct(
+              "Choose how Seer automatically triages and root-causes incoming issues, before you even notice them. This analysis is billed at the [link:standard rates] for Seer's Issue Scan and Issue Fix. See [spendlink:docs] on how to manage your Seer spend. You can also [bulklink:configure automation for other projects].",
+              {
+                link: <Link to={'https://docs.sentry.io/pricing/#seer-pricing'} />,
+                spendlink: (
+                  <Link
+                    to={getPricingDocsLinkForEventType(DataCategoryExact.SEER_AUTOFIX)}
+                  />
+                ),
+                bulklink: <Link to={`/settings/${organization.slug}/seer/`} />,
+              }
+            )}
+          </Subheading>
+        </div>
+      ),
       fields: [
         seerScannerAutomationField,
         autofixAutomatingTuningField,
@@ -214,24 +197,7 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
           disabled={!canWriteProject}
           renderHeader={() => (
             <Fragment>
-              <Alert type="info" system>
-                {tct(
-                  "Choose how Seer automates analysis of incoming issues. Automated scans and fixes are charged at the [link:standard billing rates] for Seer's Issue Scan and Issue Fix. See [spendlink:docs] on how to manage your Seer spend.[break][break]You can also [bulklink:configure automation for other projects].",
-                  {
-                    link: <Link to={'https://docs.sentry.io/pricing/#seer-pricing'} />,
-                    spendlink: (
-                      <Link
-                        to={getPricingDocsLinkForEventType(
-                          DataCategoryExact.SEER_AUTOFIX
-                        )}
-                      />
-                    ),
-                    break: <br />,
-                    bulklink: <Link to={`/settings/${organization.slug}/seer/`} />,
-                  }
-                )}
-              </Alert>
-              <ProjectPermissionAlert project={project} system />
+              {!canWriteProject && <ProjectPermissionAlert project={project} system />}
             </Fragment>
           )}
         />
@@ -321,3 +287,12 @@ export default function ProjectSeerContainer({project}: ProjectSeerProps) {
 
   return <ProjectSeer project={project} />;
 }
+
+const Subheading = styled('div')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  text-transform: none;
+  margin-top: ${space(1)};
+  line-height: 1.4;
+`;
