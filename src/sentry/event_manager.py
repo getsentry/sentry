@@ -719,10 +719,9 @@ def _set_project_platform_if_needed(project: Project, event: Event) -> None:
             else:
                 cache.set(cache_key, "1", 60 * 5)
 
-            project.refresh_from_db(fields=["platform"])
-
-            if not project.platform:
-                with transaction.atomic(router.db_for_write(Project)):
+            with transaction.atomic(router.db_for_write(Project)):
+                project.refresh_from_db(fields=["platform"])
+                if not project.platform:
                     project.update(platform=event.platform)
 
                     create_system_audit_entry(
