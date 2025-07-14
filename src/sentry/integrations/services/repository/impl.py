@@ -93,18 +93,19 @@ class DatabaseBackedRepositoryService(RepositoryService):
         if not updates:
             return
 
+        update_mapping: dict[int, dict[str, Any]] = {}
+        for update in updates:
+            update_dict = update.dict()
+            del update_dict["id"]  # don't update the repo ID
+            update_mapping[update.id] = update_dict
+
+        if len(update_mapping.keys()) != len(updates):
+            raise Exception("Multiple updates for the same repository are not allowed.")
+
+        # we could be updating everything except the repo IDs, so we need to collect the fields
+        fields_to_update = set(list(update_mapping.values())[0].keys())
+
         with transaction.atomic(router.db_for_write(Repository)):
-            update_mapping: dict[int, dict[str, Any]] = {}
-            for update in updates:
-                update_dict = update.dict()
-                del update_dict["id"]  # don't update the repo ID
-                update_mapping[update.id] = update_dict
-
-            if len(update_mapping.keys()) != len(updates):
-                raise Exception("Multiple updates for the same repository are not allowed.")
-
-            # we could be updating everything except the repo IDs, so we need to collect the fields
-            updated_fields = set(list(update_mapping.values())[0].keys())
 
             repositories = Repository.objects.filter(
                 organization_id=organization_id, id__in=update_mapping.keys()
@@ -116,7 +117,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
                 for field_name, field_value in repo_update.items():
                     setattr(repository, field_name, field_value)
 
-            Repository.objects.bulk_update(repositories, fields=list(updated_fields))
+            Repository.objects.bulk_update(repositories, fields=list(fields_to_update))
 
     def disable_repositories_for_integration(
         self, *, organization_id: int, integration_id: int, provider: str
