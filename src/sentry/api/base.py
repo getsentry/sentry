@@ -316,18 +316,15 @@ class Endpoint(APIView):
             # and caught below.
             response = self.handle_exception(exc)
         except Exception as err:
-            import sys
-            import traceback
-
-            sys.stderr.write(traceback.format_exc())
-
-            scope = scope or sentry_sdk.Scope()
-            if handler_context:
-                merge_context_into_scope("Request Handler Data", handler_context, scope)
-            event_id = capture_exception(err, scope=scope)
-
-            response_body = {"detail": "Internal Error", "errorId": event_id}
-            response = Response(response_body, status=500)
+            from sentry.utils.error_handling import handle_api_error
+            
+            # Use the enhanced error handling utility
+            response = handle_api_error(
+                exc=err,
+                request=request,
+                handler_context=handler_context,
+                status_code=500
+            )
             response.exception = True
 
         return response
