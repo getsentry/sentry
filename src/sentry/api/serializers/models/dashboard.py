@@ -6,8 +6,9 @@ from typing import Any, NotRequired, TypedDict
 
 from django.db.models import prefetch_related_objects
 
+from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardLastVisited
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -17,6 +18,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
     DatasetSourcesTypes,
 )
+from sentry.models.organizationmember import OrganizationMember
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.services.user.service import user_service
@@ -189,6 +191,7 @@ class DashboardListResponse(TypedDict):
     createdBy: UserSerializerResponse
     environment: list[str]
     filters: DashboardFilters
+    lastVisited: str | None
     widgetDisplay: list[str]
     widgetPreview: list[dict[str, str]]
     permissions: DashboardPermissionsResponse | None
@@ -262,8 +265,9 @@ class DashboardFiltersMixin:
 
 class DashboardListSerializer(Serializer, DashboardFiltersMixin):
     def get_attrs(self, item_list, user, **kwargs):
+        organization = kwargs.get("context", {}).get("organization")
         item_dict = {i.id: i for i in item_list}
-        prefetch_related_objects(item_list, "projects")
+        prefetch_related_objects(item_list, "projects", "dashboardlastvisited_set")
 
         widgets = DashboardWidget.objects.filter(dashboard_id__in=item_dict.keys()).order_by(
             "order"
@@ -286,6 +290,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
                 "projects": [],
                 "environment": [],
                 "filters": {},
+                "last_visited": None,
             }
         )
         for widget in widgets:
@@ -323,7 +328,21 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
             dashboard = item_dict[permission.dashboard_id]
             result[dashboard]["permissions"] = serialize(permission)
 
+        if features.has("organizations:dashboards-starred-reordering", organization, user):
+            org_member = OrganizationMember.objects.get(organization=organization, user_id=user.id)
+
         for dashboard in item_dict.values():
+            if features.has(
+                "organizations:dashboards-starred-reordering",
+                organization,
+                user,
+            ):
+                visit = DashboardLastVisited.objects.filter(
+                    dashboard=dashboard,
+                    member=org_member,
+                ).first()
+                result[dashboard]["last_visited"] = visit.last_visited if visit else None
+
             result[dashboard]["created_by"] = serialized_users.get(str(dashboard.created_by_id))
             result[dashboard]["is_favorited"] = dashboard.id in favorited_dashboard_ids
 
@@ -347,6 +366,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
             "projects": attrs.get("projects", []),
             "environment": attrs.get("environment", []),
             "filters": attrs.get("filters", {}),
+            "lastVisited": attrs.get("last_visited", None),
         }
 
 

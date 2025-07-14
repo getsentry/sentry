@@ -738,6 +738,45 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.data[0].get("environment") == ["alpha"]
         assert response.data[0].get("filters") == {"release": ["v1"]}
 
+    def test_get_with_last_visited(self):
+        # Clean up existing dashboards setup for this test.
+        Dashboard.objects.all().delete()
+
+        Dashboard.objects.create(
+            title="Dashboard without last visited",
+            organization=self.organization,
+            created_by_id=self.user.id,
+        )
+        dashboard_2 = Dashboard.objects.create(
+            title="Dashboard with last visited",
+            organization=self.organization,
+            created_by_id=self.user.id,
+        )
+        now = before_now(minutes=0)
+        DashboardLastVisited.objects.create(
+            dashboard=dashboard_2,
+            member=OrganizationMember.objects.get(
+                organization=self.organization, user_id=self.user.id
+            ),
+            last_visited=now,
+        )
+
+        with self.feature("organizations:dashboards-starred-reordering"):
+            response = self.client.get(self.url, data={"sort": "recentlyViewed"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+
+        titles = [row["title"] for row in response.data]
+        assert titles == [
+            "General",
+            "Dashboard with last visited",
+            "Dashboard without last visited",
+        ]
+
+        # Only "Dashboard with last visited" has a last visited timestamp.
+        visited_at = [row.get("lastVisited") for row in response.data]
+        assert visited_at == [None, now, None]
+
     def test_post(self):
         response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})
         assert response.status_code == 201
