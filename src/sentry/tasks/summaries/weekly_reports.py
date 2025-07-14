@@ -130,6 +130,7 @@ def schedule_organizations(
         processing_deadline_duration=60 * 10,
         retry=Retry(
             times=5,
+            delay=5,
         ),
     ),
 )

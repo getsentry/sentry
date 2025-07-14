@@ -1,10 +1,11 @@
 import logging
+from smtplib import SMTPDataError
 from typing import Any
 
 from sentry.auth import access
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task
+from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import notifications_control_tasks, notifications_tasks
 from sentry.taskworker.retry import Retry
@@ -48,6 +49,17 @@ def process_inbound_email(mailfrom: str, group_id: int, payload: str) -> None:
         form.save(group, user)
 
 
+class TemporaryEmailError(Exception):
+    """
+    SMTPDataError with a 4xx code, and thus is temporary and retriable.
+    """
+
+    def __init__(self, code: int, msg: str | bytes) -> None:
+        self.smtp_code = code
+        self.smtp_error = msg
+        self.args = (code, msg)
+
+
 @instrumented_task(
     name="sentry.tasks.email.send_email",
     queue="email",
@@ -58,13 +70,21 @@ def process_inbound_email(mailfrom: str, group_id: int, payload: str) -> None:
         namespace=notifications_tasks,
         processing_deadline_duration=30,
         retry=Retry(
+            times=2,
             delay=60 * 5,
         ),
     ),
 )
+@retry(on=(TemporaryEmailError,))
 def send_email(message: dict[str, Any]) -> None:
     django_message = message_from_dict(message)
-    send_messages([django_message])
+    try:
+        send_messages([django_message])
+    except SMTPDataError as e:
+        # 4xx means temporary and retriable; See RFC 5321, §4.2.1
+        if 400 <= e.smtp_code < 500:
+            raise TemporaryEmailError(e.smtp_code, e.smtp_error)
+        raise
 
 
 @instrumented_task(
