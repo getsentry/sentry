@@ -55,6 +55,7 @@ import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString'
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
@@ -102,6 +103,7 @@ import {
   convertTableDataToTabularData,
   decodeColumnAliases,
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
+import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
@@ -480,135 +482,6 @@ function WidgetViewerModal(props: Props) {
     });
   }
 
-  function TableV2({
-    tableResults,
-    loading,
-    pageLinks,
-  }: GenericWidgetQueriesChildrenProps) {
-    function sortable(key: string) {
-      if (tableWidget.widgetType === WidgetType.ISSUE) {
-        return false;
-      }
-      if (tableWidget.widgetType === WidgetType.RELEASE) {
-        return isAggregateField(key);
-      }
-      return true;
-    }
-
-    const tableColumns = columnOrder.map((column, index) => ({
-      key: column.key,
-      type: column.type === 'never' ? null : column.type,
-      sortable: sortable(column.key),
-      width: widths[index] ? parseInt(widths[index], 10) || -1 : -1,
-    }));
-    const aliases = decodeColumnAliases(
-      tableColumns,
-      tableWidget.queries[0]?.fieldAliases ?? [],
-      tableWidget.widgetType === WidgetType.ISSUE
-        ? getDatasetConfig(tableWidget.widgetType).getFieldHeaderMap?.()
-        : {}
-    );
-
-    if (loading) {
-      return (
-        <TableWidgetVisualization.LoadingPlaceholder
-          columns={tableColumns}
-          aliases={aliases}
-        />
-      );
-    }
-
-    const tableSort =
-      columnSortBy[0] && typeof columnSortBy[0].key === 'string'
-        ? {
-            field: columnSortBy[0].key,
-            kind: columnSortBy[0].order,
-          }
-        : undefined;
-    const data = convertTableDataToTabularData(tableResults?.[0]);
-
-    function onChangeSort(newSort: Sort) {
-      if (
-        [DisplayType.TOP_N, DisplayType.TABLE].includes(widget.displayType) ||
-        defined(widget.limit) ||
-        tableWidget.widgetType === WidgetType.ISSUE
-      ) {
-        setChartUnmodified(false);
-      }
-
-      trackAnalytics('dashboards_views.widget_viewer.sort', {
-        organization,
-        widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-        display_type: widget.displayType,
-        column: newSort.field,
-        order: newSort.kind,
-      });
-
-      navigate(
-        {
-          ...location,
-          query: {
-            ...location.query,
-            sort: `${newSort.kind === 'desc' ? '-' : ''}${newSort.field}`,
-          },
-        },
-        {replace: true, preventScrollReset: true}
-      );
-    }
-
-    const links = parseLinkHeader(pageLinks ?? null);
-
-    return (
-      <Fragment>
-        <TableWidgetVisualization
-          tableData={data}
-          columns={tableColumns}
-          aliases={aliases}
-          sort={tableSort}
-          onChangeSort={onChangeSort}
-        />
-        {!tableWidget.queries[0]!.orderby.match(/^-?release$/) &&
-          (links?.previous?.results || links?.next?.results) && (
-            <Pagination
-              pageLinks={pageLinks}
-              onCursor={(nextCursor, _path, _query, delta) => {
-                let nextPage = isNaN(page) ? delta : page + delta;
-                let newCursor = nextCursor;
-                // unset cursor and page when we navigate back to the first page
-                // also reset cursor if somehow the previous button is enabled on
-                // first page and user attempts to go backwards
-                if (nextPage <= 0) {
-                  newCursor = undefined;
-                  nextPage = 0;
-                }
-                navigate(
-                  {
-                    pathname: location.pathname,
-                    query: {
-                      ...location.query,
-                      [WidgetViewerQueryField.CURSOR]: newCursor,
-                      [WidgetViewerQueryField.PAGE]: nextPage,
-                    },
-                  },
-                  {replace: true, preventScrollReset: true}
-                );
-
-                if (widget.displayType === DisplayType.TABLE) {
-                  setChartUnmodified(false);
-                }
-
-                trackAnalytics('dashboards_views.widget_viewer.paginate', {
-                  organization,
-                  widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                  display_type: widget.displayType,
-                });
-              }}
-            />
-          )}
-      </Fragment>
-    );
-  }
-
   function DiscoverTable({
     tableResults,
     loading,
@@ -619,7 +492,17 @@ function WidgetViewerModal(props: Props) {
     const isFirstPage = links.previous?.results === false;
 
     if (organization.features.includes('dashboards-use-widget-table-visualization')) {
-      return TableV2({tableResults, loading, pageLinks});
+      return ViewerTableV2({
+        tableResults,
+        loading,
+        pageLinks,
+        columnOrder,
+        columnSortBy: columnSortBy[0],
+        widget,
+        tableWidget,
+        setChartUnmodified,
+        widths,
+      });
     }
 
     return (
@@ -699,7 +582,17 @@ function WidgetViewerModal(props: Props) {
       setTotalResults(totalCount);
     }
     if (organization.features.includes('dashboards-use-widget-table-visualization')) {
-      return TableV2({tableResults, loading, pageLinks});
+      return ViewerTableV2({
+        tableResults,
+        loading,
+        pageLinks,
+        columnOrder,
+        columnSortBy: columnSortBy[0],
+        widget,
+        tableWidget,
+        setChartUnmodified,
+        widths,
+      });
     }
     const links = parseLinkHeader(pageLinks ?? null);
     return (
@@ -778,7 +671,17 @@ function WidgetViewerModal(props: Props) {
     pageLinks,
   }) => {
     if (organization.features.includes('dashboards-use-widget-table-visualization')) {
-      return TableV2({tableResults, loading, pageLinks});
+      return ViewerTableV2({
+        tableResults,
+        loading,
+        pageLinks,
+        columnOrder,
+        columnSortBy: columnSortBy[0],
+        widget,
+        tableWidget,
+        setChartUnmodified,
+        widths,
+      });
     }
     const links = parseLinkHeader(pageLinks ?? null);
     const isFirstPage = links.previous?.results === false;
@@ -1333,6 +1236,161 @@ function renderTotalResults(totalResults?: string, widgetType?: WidgetType) {
     default:
       return <span />;
   }
+}
+
+interface ViewerTableV2Props {
+  columnOrder: Array<TableColumn<string>>;
+  loading: boolean;
+  setChartUnmodified: React.Dispatch<React.SetStateAction<boolean>>;
+  tableWidget: Widget;
+  widget: Widget;
+  widths: string[];
+  columnSortBy?: TableColumnSort<string | number>;
+  pageLinks?: string;
+  tableResults?: TableDataWithTitle[];
+}
+
+function ViewerTableV2({
+  widget,
+  tableResults,
+  loading,
+  pageLinks,
+  columnOrder,
+  widths,
+  columnSortBy,
+  setChartUnmodified,
+  tableWidget,
+}: ViewerTableV2Props) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const organization = useOrganization();
+
+  const page = decodeInteger(location.query[WidgetViewerQueryField.PAGE]) ?? 0;
+  const links = parseLinkHeader(pageLinks ?? null);
+
+  function sortable(key: string) {
+    if (tableWidget.widgetType === WidgetType.ISSUE) {
+      return false;
+    }
+    if (tableWidget.widgetType === WidgetType.RELEASE) {
+      return isAggregateField(key);
+    }
+    return true;
+  }
+
+  const tableColumns = columnOrder.map((column, index) => ({
+    key: column.key,
+    type: column.type === 'never' ? null : column.type,
+    sortable: sortable(column.key),
+    width: widths[index] ? parseInt(widths[index], 10) || -1 : -1,
+  }));
+  const aliases = decodeColumnAliases(
+    tableColumns,
+    tableWidget.queries[0]?.fieldAliases ?? [],
+    tableWidget.widgetType === WidgetType.ISSUE
+      ? getDatasetConfig(tableWidget.widgetType).getFieldHeaderMap?.()
+      : {}
+  );
+
+  if (loading) {
+    return (
+      <TableWidgetVisualization.LoadingPlaceholder
+        columns={tableColumns}
+        aliases={aliases}
+      />
+    );
+  }
+
+  const tableSort =
+    columnSortBy && typeof columnSortBy.key === 'string'
+      ? {
+          field: columnSortBy.key,
+          kind: columnSortBy.order,
+        }
+      : undefined;
+  const data = convertTableDataToTabularData(tableResults?.[0]);
+
+  function onChangeSort(newSort: Sort) {
+    if (
+      [DisplayType.TOP_N, DisplayType.TABLE].includes(widget.displayType) ||
+      defined(widget.limit) ||
+      tableWidget.widgetType === WidgetType.ISSUE
+    ) {
+      setChartUnmodified(false);
+    }
+
+    trackAnalytics('dashboards_views.widget_viewer.sort', {
+      organization,
+      widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+      display_type: widget.displayType,
+      column: newSort.field,
+      order: newSort.kind,
+    });
+
+    navigate(
+      {
+        ...location,
+        query: {
+          ...location.query,
+          sort: `${newSort.kind === 'desc' ? '-' : ''}${newSort.field}`,
+        },
+      },
+      {replace: true, preventScrollReset: true}
+    );
+  }
+
+  return (
+    <Fragment>
+      <TableWidgetVisualization
+        tableData={data}
+        columns={tableColumns}
+        aliases={aliases}
+        sort={tableSort}
+        onChangeSort={onChangeSort}
+      />
+      {!(
+        tableWidget.queries[0]!.orderby.match(/^-?release$/) &&
+        tableWidget.widgetType === WidgetType.RELEASE
+      ) &&
+        (links?.previous?.results || links?.next?.results) && (
+          <Pagination
+            pageLinks={pageLinks}
+            onCursor={(nextCursor, _path, _query, delta) => {
+              let nextPage = isNaN(page) ? delta : page + delta;
+              let newCursor = nextCursor;
+              // unset cursor and page when we navigate back to the first page
+              // also reset cursor if somehow the previous button is enabled on
+              // first page and user attempts to go backwards
+              if (nextPage <= 0) {
+                newCursor = undefined;
+                nextPage = 0;
+              }
+              navigate(
+                {
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    [WidgetViewerQueryField.CURSOR]: newCursor,
+                    [WidgetViewerQueryField.PAGE]: nextPage,
+                  },
+                },
+                {replace: true, preventScrollReset: true}
+              );
+
+              if (widget.displayType === DisplayType.TABLE) {
+                setChartUnmodified(false);
+              }
+
+              trackAnalytics('dashboards_views.widget_viewer.paginate', {
+                organization,
+                widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                display_type: widget.displayType,
+              });
+            }}
+          />
+        )}
+    </Fragment>
+  );
 }
 
 export const modalCss = css`
