@@ -27,6 +27,7 @@ BUILTIN_MEASUREMENTS: Sequence[BuiltinMeasurementKey] = [
     {"name": "app_start_cold", "unit": "millisecond"},
     {"name": "app_start_warm", "unit": "millisecond"},
     {"name": "cls", "unit": "none"},
+    {"name": "connection.rtt", "unit": "millisecond"},
     {"name": "fcp", "unit": "millisecond"},
     {"name": "fid", "unit": "millisecond"},
     {"name": "fp", "unit": "millisecond"},
