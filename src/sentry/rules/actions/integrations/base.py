@@ -124,7 +124,7 @@ class IntegrationEventAction(EventAction, abc.ABC):
         analytics.record(
             AlertSentEvent(
                 provider=self.provider,
-                alert_id=rule.id if rule else "",
+                alert_id=str(rule.id) if rule else "",
                 alert_type="issue_alert",
                 organization_id=event.organization.id,
                 project_id=event.project_id,

@@ -3,9 +3,9 @@ from sentry import analytics
 
 @analytics.eventclass("project.transferred")
 class ProjectTransferredEvent(analytics.Event):
-    old_organization_id: str
-    new_organization_id: str
-    project_id: str
+    old_organization_id: int
+    new_organization_id: int
+    project_id: int
     platform: str | None = None
 
 

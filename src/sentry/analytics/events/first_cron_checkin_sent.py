@@ -6,7 +6,7 @@ class FirstCronCheckinSent(analytics.Event):
     organization_id: str
     project_id: str
     monitor_id: str
-    user_id: str | None = None
+    user_id: int | None = None
 
 
 analytics.register(FirstCronCheckinSent)

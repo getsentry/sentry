@@ -97,7 +97,7 @@ class EmailActionHandlerTest(FireTest):
                 organization_id=self.organization.id,
                 project_id=self.project.id,
                 provider="email",
-                alert_id=self.alert_rule.id,
+                alert_id=str(self.alert_rule.id),
                 alert_type="metric_alert",
                 external_id=str(self.user.id),
                 notification_uuid="",

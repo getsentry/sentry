@@ -5,8 +5,8 @@ from sentry import analytics
 class CodeownersCreated(analytics.Event):
     user_id: str | None = None
     organization_id: str
-    project_id: str
-    codeowners_id: str
+    project_id: int
+    codeowners_id: int
 
 
 analytics.register(CodeownersCreated)

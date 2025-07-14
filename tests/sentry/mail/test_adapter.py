@@ -201,7 +201,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
                 organization_id=self.organization.id,
                 project_id=self.project.id,
                 provider="email",
-                alert_id=rule.id,
+                alert_id=str(rule.id),
                 alert_type="issue_alert",
                 external_id="ANY",
                 notification_uuid="ANY",

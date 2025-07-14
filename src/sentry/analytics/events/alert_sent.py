@@ -3,8 +3,8 @@ from sentry import analytics
 
 @analytics.eventclass("alert.sent")
 class AlertSentEvent(analytics.Event):
-    organization_id: str
-    project_id: str
+    organization_id: int
+    project_id: int
     # The id of the Alert or AlertRule
     alert_id: str
     # "issue_alert" or "metric_alert"

@@ -311,7 +311,7 @@ class SentryAppAlertRuleUIComponentActionHandlerTest(FireTest):
                 organization_id=self.organization.id,
                 project_id=self.project.id,
                 provider="sentry_app",
-                alert_id=self.alert_rule.id,
+                alert_id=str(self.alert_rule.id),
                 alert_type="metric_alert",
                 external_id=str(self.action.sentry_app_id),
                 notification_uuid="",

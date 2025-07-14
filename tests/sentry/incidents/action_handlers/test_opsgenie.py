@@ -326,7 +326,7 @@ class OpsgenieActionHandlerTest(FireTest):
                 organization_id=self.organization.id,
                 project_id=self.project.id,
                 provider="opsgenie",
-                alert_id=self.alert_rule.id,
+                alert_id=str(self.alert_rule.id),
                 alert_type="metric_alert",
                 external_id=str(self.action.target_identifier),
                 notification_uuid="",
