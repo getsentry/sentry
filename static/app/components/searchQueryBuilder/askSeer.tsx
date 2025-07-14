@@ -24,13 +24,36 @@ export const ASK_SEER_CONSENT_ITEM_KEY = 'ask_seer_consent';
 const setupCheckQueryKey = (orgSlug: string) =>
   `/organizations/${orgSlug}/seer/setup-check/`;
 
-function AskSeerConsentOption<T>({state}: {state: ComboBoxState<T>}) {
+export function useSeerAcknowledgeMutation() {
   const api = useApi();
   const queryClient = useQueryClient();
+  const organization = useOrganization();
+
+  const {mutate} = useMutation({
+    mutationKey: [setupCheckQueryKey(organization.slug)],
+    mutationFn: () => {
+      return promptsUpdate(api, {
+        organization,
+        feature: 'seer_autofix_setup_acknowledged',
+        status: 'dismissed',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [setupCheckQueryKey(organization.slug)],
+      });
+    },
+  });
+
+  return {mutate};
+}
+
+function AskSeerConsentOption<T>({state}: {state: ComboBoxState<T>}) {
   const organization = useOrganization();
   const itemRef = useRef<HTMLDivElement>(null);
   const linkRef = useRef<HTMLAnchorElement>(null);
   const [optionDisableOverride, setOptionDisableOverride] = useState(false);
+  const {mutate: seerAcknowledgeMutate} = useSeerAcknowledgeMutation();
 
   useEffect(() => {
     const link = linkRef.current;
@@ -47,22 +70,6 @@ function AskSeerConsentOption<T>({state}: {state: ComboBoxState<T>}) {
       link.removeEventListener('mouseout', enableOption);
     };
   }, []);
-
-  const seerAcknowledgeMutation = useMutation({
-    mutationKey: [setupCheckQueryKey(organization.slug)],
-    mutationFn: () => {
-      return promptsUpdate(api, {
-        organization,
-        feature: 'seer_autofix_setup_acknowledged',
-        status: 'dismissed',
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: [setupCheckQueryKey(organization.slug)],
-      });
-    },
-  });
 
   const {optionProps, labelProps, isFocused, isPressed} = useOption(
     {
@@ -81,7 +88,7 @@ function AskSeerConsentOption<T>({state}: {state: ComboBoxState<T>}) {
       organization,
       action: 'consent_accepted',
     });
-    seerAcknowledgeMutation.mutate();
+    seerAcknowledgeMutate();
   };
 
   return (
