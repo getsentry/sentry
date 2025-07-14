@@ -3,7 +3,7 @@ from sentry import analytics
 
 @analytics.eventclass("alert.created")
 class AlertCreatedEvent(analytics.Event):
-    user_id: str | None = None
+    user_id: int | None = None
     default_user_id: str
     organization_id: str
     rule_id: int
