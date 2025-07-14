@@ -388,8 +388,12 @@ class TestInvalidationTask:
         invalidation_debounce_cache.mark_task_done(
             public_key=None, project_id=None, organization_id=default_organization.id
         )
-        schedule_invalidate_project_config(organization_id=default_organization.id, trigger="test")
-        schedule_invalidate_project_config(organization_id=default_organization.id, trigger="test")
+        schedule_invalidate_project_config(
+            organization_id=default_organization.id, trigger="test", trigger_details="more test"
+        )
+        schedule_invalidate_project_config(
+            organization_id=default_organization.id, trigger="test", trigger_details="more test"
+        )
 
         assert tasks == [
             {
@@ -397,14 +401,14 @@ class TestInvalidationTask:
                 "organization_id": None,
                 "public_key": None,
                 "trigger": "test",
-                "project_option_key": None,
+                "trigger_details": None,
             },
             {
                 "project_id": None,
                 "organization_id": default_organization.id,
                 "public_key": None,
                 "trigger": "test",
-                "project_option_key": None,
+                "trigger_details": "more test",
             },
         ]
 
@@ -475,7 +479,7 @@ class TestInvalidationTask:
         assert schedule_inner.call_count == 1
         assert schedule_inner.call_args == call(
             trigger="test",
-            project_option_key=None,
+            trigger_details=None,
             organization_id=None,
             project_id=default_project.id,
             public_key=None,

@@ -154,7 +154,7 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
 
         if update_reason != "projectoption.get_all_values":
             schedule_invalidate_project_config(
-                project_id=project_id, trigger=update_reason, project_option_key=option_key
+                project_id=project_id, trigger=update_reason, trigger_details=option_key
             )
         cache_key = self._make_key(project_id)
         result = {i.key: i.value for i in self.filter(project=project_id)}
