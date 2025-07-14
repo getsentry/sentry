@@ -17,7 +17,7 @@ type Props = {
   showVersion?: boolean;
 };
 
-const iconSize = '16px';
+const iconSize = '20px';
 const iconStyle = (theme: Theme) => ({
   border: '1px solid ' + theme.translucentGray100,
 });

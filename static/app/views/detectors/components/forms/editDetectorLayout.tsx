@@ -103,12 +103,14 @@ export function EditDetectorLayout({
         <StyledLayoutHeader>
           <Layout.HeaderContent>
             <DetectorBreadcrumbs detector={detector} />
-            <Flex direction="column" gap={space(2)}>
-              <DetectorBaseFields />
-              {previewChart}
-            </Flex>
           </Layout.HeaderContent>
-          <EditDetectorActions detectorId={detector.id} />
+          <Flex>
+            <EditDetectorActions detectorId={detector.id} />
+          </Flex>
+          <FullWidthContent>
+            <DetectorBaseFields />
+            {previewChart}
+          </FullWidthContent>
         </StyledLayoutHeader>
         <Layout.Body>
           <Layout.Main fullWidth>{children}</Layout.Main>
@@ -133,4 +135,11 @@ export function EditDetectorLayout({
 
 const StyledLayoutHeader = styled(Layout.Header)`
   background-color: ${p => p.theme.background};
+`;
+
+const FullWidthContent = styled('div')`
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
 `;

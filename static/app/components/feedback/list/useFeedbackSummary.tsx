@@ -12,6 +12,7 @@ type FeedbackSummaryResponse = {
 export default function useFeedbackSummary(): {
   isError: boolean;
   isPending: boolean;
+  numFeedbacksUsed: number;
   summary: string | null;
   tooFewFeedbacks: boolean;
 } {
@@ -46,6 +47,7 @@ export default function useFeedbackSummary(): {
       isPending: true,
       isError: false,
       tooFewFeedbacks: false,
+      numFeedbacksUsed: 0,
     };
   }
 
@@ -55,6 +57,7 @@ export default function useFeedbackSummary(): {
       isPending: false,
       isError: true,
       tooFewFeedbacks: false,
+      numFeedbacksUsed: 0,
     };
   }
 
@@ -63,5 +66,6 @@ export default function useFeedbackSummary(): {
     isPending: false,
     isError: false,
     tooFewFeedbacks: data.numFeedbacksUsed === 0 && !data.success,
+    numFeedbacksUsed: data.numFeedbacksUsed,
   };
 }
