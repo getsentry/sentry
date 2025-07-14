@@ -13,6 +13,10 @@ from sentry import features, options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.helpers.error_upsampling import (
+    are_all_projects_error_upsampled,
+    transform_query_columns_for_error_upsampling,
+)
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
@@ -315,9 +319,16 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             limit: int,
             query: str | None,
         ):
+            transform_alias_to_input_format = True
+            selected_columns = self.get_field_list(organization, request)
+            if are_all_projects_error_upsampled(snuba_params.project_ids):
+                selected_columns = transform_query_columns_for_error_upsampling(
+                    selected_columns, True
+                )
+                transform_alias_to_input_format = False
             query_source = self.get_request_source(request)
             return dataset_query(
-                selected_columns=self.get_field_list(organization, request),
+                selected_columns=selected_columns,
                 query=query or "",
                 snuba_params=snuba_params,
                 equations=self.get_equation_list(organization, request),
@@ -329,7 +340,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 auto_aggregations=True,
                 allow_metric_aggregates=allow_metric_aggregates,
                 use_aggregate_conditions=use_aggregate_conditions,
-                transform_alias_to_input_format=True,
+                transform_alias_to_input_format=transform_alias_to_input_format,
                 # Whether the flag is enabled or not, regardless of the referrer
                 has_metrics=use_metrics,
                 use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),

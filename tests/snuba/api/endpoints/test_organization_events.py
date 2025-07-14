@@ -6592,6 +6592,179 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
+    def test_error_upsampling_with_allowlisted_project(self):
+        """Test that count() is upsampled for allowlisted projects when querying error events."""
+        # Set up allowlisted project
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Store error event with error_sampling context
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "message": "Error event for upsampling",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+
+            # Test with errors dataset
+            query = {
+                "field": ["count()"],
+                "statsPeriod": "2h",
+                "query": "event.type:error",
+                "dataset": "errors",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            # Expect the count to be upsampled (1 event / 0.1 = 10)
+            assert response.data["data"][0]["count()"] == 10
+
+    def test_error_upsampling_eps_with_allowlisted_project(self):
+        """Test that eps() is upsampled for allowlisted projects when querying error events."""
+        # Set up allowlisted project
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Store error event with error_sampling context
+            self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "message": "Error event for eps upsampling",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group2"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+
+            # Test with errors dataset - eps() should be upsampled
+            query = {
+                "field": ["eps()"],
+                "statsPeriod": "2h",
+                "query": "event.type:error",
+                "dataset": "errors",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            # Expect eps to be upsampled (10 events / 7200 seconds = ~0.00139)
+            # Since we have 1 event upsampled to 10 over 2 hour period
+            expected_eps = 10 / 7200
+            actual_eps = response.data["data"][0]["eps()"]
+            assert abs(actual_eps - expected_eps) < 0.0001  # Allow small rounding differences
+
+    def test_error_upsampling_epm_with_allowlisted_project(self):
+        """Test that epm() is upsampled for allowlisted projects when querying error events."""
+        # Set up allowlisted project
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Store error event with error_sampling context
+            self.store_event(
+                data={
+                    "event_id": "c" * 32,
+                    "message": "Error event for epm upsampling",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group3"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+
+            # Test with errors dataset - epm() should be upsampled
+            query = {
+                "field": ["epm()"],
+                "statsPeriod": "2h",
+                "query": "event.type:error",
+                "dataset": "errors",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            # Expect epm to be upsampled (10 events / 120 minutes = ~0.0833)
+            # Since we have 1 event upsampled to 10 over 2 hour period
+            expected_epm = 10 / 120
+            actual_epm = response.data["data"][0]["epm()"]
+            assert abs(actual_epm - expected_epm) < 0.01  # Allow small rounding differences
+
+    def test_error_upsampling_with_no_allowlist(self):
+        """Test that count() is not upsampled when project is not allowlisted."""
+        # No allowlisted projects
+        with self.options({"issues.client_error_sampling.project_allowlist": []}):
+            # Store error event with error_sampling context
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "message": "Error event for upsampling",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+
+            # Test with errors dataset
+            query = {
+                "field": ["count()"],
+                "statsPeriod": "2h",
+                "query": "event.type:error",
+                "dataset": "errors",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            # Expect the count to remain as-is (no upsampling)
+            assert response.data["data"][0]["count()"] == 1
+
+    def test_error_upsampling_with_partial_allowlist(self):
+        """Test that count() is not upsampled when only some projects are allowlisted."""
+        # Create a second project
+        project2 = self.create_project(organization=self.organization)
+
+        # Only allowlist the first project
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Store error events in both projects
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "message": "Error event for upsampling",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "message": "Error event for upsampling",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group2"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=project2.id,
+            )
+
+            # Test with errors dataset, querying both projects
+            query = {
+                "field": ["count()"],
+                "statsPeriod": "2h",
+                "query": "event.type:error",
+                "dataset": "errors",
+                "project": [self.project.id, project2.id],
+            }
+            features = {"organizations:discover-basic": True, "organizations:global-views": True}
+            response = self.do_request(query, features=features)
+            assert response.status_code == 200, response.content
+            # Expect no upsampling since not all projects are allowlisted
+            assert response.data["data"][0]["count()"] == 2
+
     def test_is_status(self):
         self.store_event(
             data={

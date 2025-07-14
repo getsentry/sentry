@@ -1042,11 +1042,25 @@ class DiscoverDatasetConfig(DatasetConfig):
                     "upsampled_count",
                     required_args=[],
                     snql_aggregate=lambda args, alias: Function(
-                        "toInt64",
-                        [Function("sum", [Function("ifNull", [Column("sample_weight"), 1])])],
-                        alias,
+                        "sum", [Function("ifNull", [Column("sample_weight"), 1])], alias
                     ),
-                    default_result_type="number",
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "upsampled_eps",
+                    snql_aggregate=lambda args, alias: function_aliases.resolve_upsampled_eps(
+                        args, alias, self.builder
+                    ),
+                    optional_args=[IntervalDefault("interval", 1, None)],
+                    default_result_type="rate",
+                ),
+                SnQLFunction(
+                    "upsampled_epm",
+                    snql_aggregate=lambda args, alias: function_aliases.resolve_upsampled_epm(
+                        args, alias, self.builder
+                    ),
+                    optional_args=[IntervalDefault("interval", 1, None)],
+                    default_result_type="rate",
                 ),
             ]
         }

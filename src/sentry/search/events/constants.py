@@ -125,16 +125,16 @@ TYPED_TAG_KEY_RE = re.compile(
 # Based on general/src/protocol/tags.rs in relay
 VALID_FIELD_PATTERN = re.compile(r"^[a-zA-Z0-9_.:-]*$")
 
-# The regex for alias here is to match any word, but exclude anything that is only digits
-# eg. 123 doesn't match, but test_123 will match
-ALIAS_REGEX = r"(\w+)?(?!\d+)\w+"
+# The regex for alias here is to match any word characters and parentheses, but exclude anything that is only digits
+# eg. 123 doesn't match, but test_123 will match, and count() will match
+ALIAS_REGEX = r"(?=.*[a-zA-Z_])[\w()]+"
 
 MISERY_ALPHA = 5.8875
 MISERY_BETA = 111.8625
 
 ALIAS_PATTERN = re.compile(rf"{ALIAS_REGEX}$")
 FUNCTION_PATTERN = re.compile(
-    rf"^(?P<function>[^\(]+)\((?P<columns>.*)\)( (as|AS) (?P<alias>{ALIAS_REGEX}))?$"
+    rf"^(?P<function>[^\(]+)\((?P<columns>.*?)\)( (as|AS) (?P<alias>{ALIAS_REGEX}))?$"
 )
 
 DURATION_PATTERN = re.compile(r"(\d+\.?\d?)(\D{1,3})")
