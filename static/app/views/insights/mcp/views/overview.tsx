@@ -30,11 +30,17 @@ import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/modu
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import McpTrafficWidget from 'sentry/views/insights/common/components/widgets/mcpTrafficWidget';
+import McpPromptDurationWidget from 'sentry/views/insights/mcp/components/mcpPromptDurationWidget';
+import McpPromptErrorRateWidget from 'sentry/views/insights/mcp/components/mcpPromptErrorRateWidget';
+import McpPromptTrafficWidget from 'sentry/views/insights/mcp/components/mcpPromptTrafficWidget';
+import McpResourceDurationWidget from 'sentry/views/insights/mcp/components/mcpResourceDurationWidget';
+import McpResourceErrorRateWidget from 'sentry/views/insights/mcp/components/mcpResourceErrorRateWidget';
+import McpResourceTrafficWidget from 'sentry/views/insights/mcp/components/mcpResourceTrafficWidget';
+import McpToolDurationWidget from 'sentry/views/insights/mcp/components/mcpToolDurationWidget';
+import McpToolErrorRateWidget from 'sentry/views/insights/mcp/components/mcpToolErrorRateWidget';
+import McpToolTrafficWidget from 'sentry/views/insights/mcp/components/mcpToolTrafficWidget';
 import McpTransportWidget from 'sentry/views/insights/mcp/components/mcpTransportWidget';
 import {
-  GroupedDurationWidget,
-  GroupedErrorRateWidget,
-  GroupedTrafficWidget,
   PromptsTable,
   RequestsBySourceWidget,
   ResourcesTable,
@@ -53,6 +59,24 @@ enum ViewType {
   RESOURCE = 'resource',
   PROMPT = 'prompt',
 }
+
+const viewTrafficWidgets: Record<ViewType, React.ComponentType> = {
+  [ViewType.TOOL]: McpToolTrafficWidget,
+  [ViewType.RESOURCE]: McpResourceTrafficWidget,
+  [ViewType.PROMPT]: McpPromptTrafficWidget,
+};
+
+const viewDurationWidgets: Record<ViewType, React.ComponentType> = {
+  [ViewType.TOOL]: McpToolDurationWidget,
+  [ViewType.RESOURCE]: McpResourceDurationWidget,
+  [ViewType.PROMPT]: McpPromptDurationWidget,
+};
+
+const viewErrorRateWidgets: Record<ViewType, React.ComponentType> = {
+  [ViewType.TOOL]: McpToolErrorRateWidget,
+  [ViewType.RESOURCE]: McpResourceErrorRateWidget,
+  [ViewType.PROMPT]: McpPromptErrorRateWidget,
+};
 
 function useShowOnboarding() {
   const {projects} = useProjects();
@@ -98,6 +122,10 @@ function McpOverviewPage() {
   const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(
     eapSpanSearchQueryBuilderProps
   );
+
+  const ViewTrafficWidget = viewTrafficWidgets[activeTable];
+  const ViewDurationWidget = viewDurationWidgets[activeTable];
+  const ViewErrorRateWidget = viewErrorRateWidgets[activeTable];
 
   return (
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
@@ -164,13 +192,13 @@ function McpOverviewPage() {
                     </ControlsWrapper>
                     <WidgetGrid>
                       <WidgetGrid.Position1>
-                        <GroupedTrafficWidget groupBy={activeTable} />
+                        <ViewTrafficWidget />
                       </WidgetGrid.Position1>
                       <WidgetGrid.Position2>
-                        <GroupedDurationWidget groupBy={activeTable} />
+                        <ViewDurationWidget />
                       </WidgetGrid.Position2>
                       <WidgetGrid.Position3>
-                        <GroupedErrorRateWidget groupBy={activeTable} />
+                        <ViewErrorRateWidget />
                       </WidgetGrid.Position3>
                     </WidgetGrid>
                     {activeTable === ViewType.TOOL && <ToolsTable />}
