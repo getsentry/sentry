@@ -25,14 +25,14 @@ export function CronsOnDemandStepWarning({
 }: Props) {
   const cronCategoryName = DATA_CATEGORY_INFO[DataCategoryExact.MONITOR_SEAT].plural;
   const cronsBucket = activePlan.planCategories[cronCategoryName]?.[0];
-  let reserved: number | undefined;
-  let cronsPrice: number | undefined;
+  let reserved: number | null | undefined;
+  let cronsPrice: number | null | undefined;
   if (isEnterprise(activePlan.id)) {
     // this can only be reached for enterprise customers with invoiced on-demand
     // we want to make sure we use their actual reserved amount and not the minimum
     // for enterprise plans
-    reserved = subscription.categories[cronCategoryName]?.reserved ?? 0;
-    cronsPrice = subscription.categories[cronCategoryName]?.paygCpe ?? 0;
+    reserved = subscription.categories[cronCategoryName]?.reserved;
+    cronsPrice = subscription.categories[cronCategoryName]?.paygCpe;
   } else {
     reserved = cronsBucket?.events;
     cronsPrice = cronsBucket?.onDemandPrice;
@@ -43,7 +43,7 @@ export function CronsOnDemandStepWarning({
     staleTime: 0,
   });
 
-  if (isPending || !data || !cronsPrice || !reserved) {
+  if (isPending || !data || !cronsPrice || reserved === undefined || reserved === null) {
     return null;
   }
 
