@@ -28,10 +28,10 @@ export function AgentsPageHeader({
   tabs,
   hideDefaultTabs,
 }: Props) {
-  const {slug} = useOrganization();
+  const organization = useOrganization();
 
   const agentsBaseUrl = normalizeUrl(
-    `/organizations/${slug}/${DOMAIN_VIEW_BASE_URL}/${AGENTS_LANDING_SUB_PATH}`
+    `/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${AGENTS_LANDING_SUB_PATH}`
   );
 
   return (
