@@ -22,7 +22,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 jest.mock('sentry/utils/useLocation');
 const mockUseLocation = jest.mocked(useLocation);
 
-function bigIntTimestamp(timestamp: number) {
+function preciseTimestampFromMillis(timestamp: number) {
   return String(BigInt(timestamp) * 1_000_000n);
 }
 
@@ -270,16 +270,16 @@ describe('useStreamingTimeseriesResult', () => {
 
       const mockTableData = createMockTableData([
         LogFixture({
-          [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: bigIntTimestamp(9000),
+          [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(9000),
         }),
         LogFixture({
-          [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: bigIntTimestamp(8200),
+          [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8200),
         }),
         LogFixture({
-          [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: bigIntTimestamp(8100),
+          [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8100),
         }),
         LogFixture({
-          [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: bigIntTimestamp(8000),
+          [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8000),
         }),
       ]);
 
@@ -360,23 +360,23 @@ describe('useStreamingTimeseriesResult', () => {
 
       const initialTableFixtures = [
         LogFixture({
-          [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: bigIntTimestamp(9000),
+          [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(9000),
           [OurLogKnownFieldKey.SEVERITY]: 'brand_new_severity',
         }),
         LogFixture({
-          [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: bigIntTimestamp(8001),
+          [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8001),
           [OurLogKnownFieldKey.SEVERITY]: 'error',
         }),
         LogFixture({
-          [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: bigIntTimestamp(8001),
+          [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8001),
           [OurLogKnownFieldKey.SEVERITY]: 'warn',
         }),
         LogFixture({
-          [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: bigIntTimestamp(8000),
+          [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8000),
           [OurLogKnownFieldKey.SEVERITY]: 'warn',
         }),
         LogFixture({
-          [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: bigIntTimestamp(7000),
+          [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(7000),
           [OurLogKnownFieldKey.SEVERITY]: 'warn',
         }),
       ];
@@ -444,7 +444,7 @@ describe('useStreamingTimeseriesResult', () => {
       rerender(
         createMockTableData([
           LogFixture({
-            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: bigIntTimestamp(12000),
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(12000),
             [OurLogKnownFieldKey.SEVERITY]: 'yet_another_severity',
           }),
           ...initialTableFixtures,
