@@ -29,16 +29,16 @@ import {ModulesOnboardingPanel} from 'sentry/views/insights/common/components/mo
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import McpTrafficWidget from 'sentry/views/insights/common/components/widgets/mcpTrafficWidget';
+import McpTransportWidget from 'sentry/views/insights/mcp/components/mcpTransportWidget';
 import {
   GroupedDurationWidget,
   GroupedErrorRateWidget,
   GroupedTrafficWidget,
-  McpTrafficWidget,
   PromptsTable,
   RequestsBySourceWidget,
   ResourcesTable,
   ToolsTable,
-  TransportDistributionWidget,
 } from 'sentry/views/insights/mcp/components/placeholders';
 import {WidgetGrid} from 'sentry/views/insights/mcp/components/styles';
 import {MODULE_TITLE} from 'sentry/views/insights/mcp/settings';
@@ -142,7 +142,7 @@ function McpOverviewPage() {
                         <RequestsBySourceWidget />
                       </WidgetGrid.Position2>
                       <WidgetGrid.Position3>
-                        <TransportDistributionWidget />
+                        <McpTransportWidget />
                       </WidgetGrid.Position3>
                     </WidgetGrid>
                     <ControlsWrapper>
