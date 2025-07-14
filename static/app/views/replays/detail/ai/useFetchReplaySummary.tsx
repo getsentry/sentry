@@ -57,7 +57,7 @@ export function useFetchReplaySummary(_options?: UseApiQueryOptions<SummaryRespo
   return useLocalAiSummary();
 }
 
-export function useLocalAiSummary() {
+function useLocalAiSummary() {
   const {replay} = useReplayContext();
   const replayRecord = replay?.getReplay();
   // const {data: summaryData, isPending, isRefetching, refetch, isError} = useAiSummary(replayRecord);
@@ -173,7 +173,7 @@ function useReplayPrompt(replayRecord: ReplayRecord | undefined, logs: string[])
   });
 }
 
-export function which(payload: SpanFrame | BreadcrumbFrame): EventType {
+function which(payload: SpanFrame | BreadcrumbFrame): EventType {
   if (isErrorFrame(payload)) {
     return EventType.ISSUE;
   }
@@ -233,7 +233,7 @@ export function which(payload: SpanFrame | BreadcrumbFrame): EventType {
   return EventType.UNKNOWN;
 }
 
-export function asLogMessage(payload: BreadcrumbFrame | SpanFrame): string | null {
+function asLogMessage(payload: BreadcrumbFrame | SpanFrame): string | null {
   const eventType = which(payload);
   const timestamp = Number(payload.timestampMs || 0);
   if (isErrorFrame(payload)) {
