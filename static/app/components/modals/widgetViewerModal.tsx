@@ -51,7 +51,12 @@ import {
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {
+  decodeInteger,
+  decodeList,
+  decodeScalar,
+  decodeSorts,
+} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
@@ -103,7 +108,7 @@ import {
   convertTableDataToTabularData,
   decodeColumnAliases,
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
-import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
+import type {TableColumn} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
@@ -497,7 +502,6 @@ function WidgetViewerModal(props: Props) {
         loading,
         pageLinks,
         columnOrder,
-        columnSortBy: columnSortBy[0],
         widget,
         tableWidget,
         setChartUnmodified,
@@ -590,7 +594,6 @@ function WidgetViewerModal(props: Props) {
         loading,
         pageLinks,
         columnOrder,
-        columnSortBy: columnSortBy[0],
         widget,
         tableWidget,
         setChartUnmodified,
@@ -682,7 +685,6 @@ function WidgetViewerModal(props: Props) {
         loading,
         pageLinks,
         columnOrder,
-        columnSortBy: columnSortBy[0],
         widget,
         tableWidget,
         setChartUnmodified,
@@ -1257,7 +1259,6 @@ interface ViewerTableV2Props {
   tableWidget: Widget;
   widget: Widget;
   widths: string[];
-  columnSortBy?: TableColumnSort<string | number>;
   pageLinks?: string;
   tableResults?: TableDataWithTitle[];
 }
@@ -1269,7 +1270,6 @@ function ViewerTableV2({
   pageLinks,
   columnOrder,
   widths,
-  columnSortBy,
   setChartUnmodified,
   tableWidget,
   location,
@@ -1312,13 +1312,7 @@ function ViewerTableV2({
     );
   }
 
-  const tableSort =
-    columnSortBy && typeof columnSortBy.key === 'string'
-      ? {
-          field: columnSortBy.key,
-          kind: columnSortBy.order,
-        }
-      : undefined;
+  const tableSort = decodeSorts(tableWidget.queries[0]?.orderby)[0];
   const data = convertTableDataToTabularData(tableResults?.[0]);
 
   function onChangeSort(newSort: Sort) {
