@@ -234,6 +234,7 @@ function Chart({
           autoHeightResize
           isGroupedByDate={false}
           tooltip={{
+            trigger: 'axis',
             appendToBody: true,
             renderMode: 'html',
             valueFormatter,
