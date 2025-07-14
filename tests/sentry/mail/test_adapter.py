@@ -13,6 +13,7 @@ from django.core.mail.message import EmailMultiAlternatives
 from django.db.models import F
 from django.utils import timezone
 
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
@@ -42,6 +43,7 @@ from sentry.plugins.base import Notification
 from sentry.replays.testutils import mock_replay
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, ReplaysSnubaTestCase, TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
@@ -193,15 +195,18 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             notification_uuid=ANY,
             alert_id=rule.id,
         )
-        mock_record.assert_called_with(
-            "alert.sent",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            provider="email",
-            alert_id=rule.id,
-            alert_type="issue_alert",
-            external_id=ANY,
-            notification_uuid=ANY,
+        assert_last_analytics_event(
+            mock_record,
+            AlertSentEvent(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                provider="email",
+                alert_id=rule.id,
+                alert_type="issue_alert",
+                external_id="ANY",
+                notification_uuid="ANY",
+            ),
+            exclude_fields=["external_id", "notification_uuid"],
         )
 
     @mock.patch("sentry.mail.notifications.get_context")

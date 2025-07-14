@@ -5,6 +5,7 @@ import orjson
 import responses
 from django.core.exceptions import ValidationError
 
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifyServiceForm
 from sentry.integrations.discord.actions.issue_alert.notification import DiscordNotifyServiceAction
 from sentry.integrations.discord.client import DISCORD_BASE_URL, MESSAGE_URL
@@ -22,6 +23,7 @@ from sentry.models.release import Release
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, ApiTimeoutError
 from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import RuleTestCase, TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 
@@ -165,15 +167,17 @@ class DiscordIssueAlertTest(RuleTestCase):
             notification_uuid=notification_uuid,
             alert_id=None,
         )
-        mock_record.assert_called_with(
-            "alert.sent",
-            provider="discord",
-            alert_id="",
-            alert_type="issue_alert",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            external_id=self.channel_id,
-            notification_uuid=notification_uuid,
+        assert_last_analytics_event(
+            mock_record,
+            AlertSentEvent(
+                provider="discord",
+                alert_id="",
+                alert_type="issue_alert",
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                external_id=self.channel_id,
+                notification_uuid=notification_uuid,
+            ),
         )
 
     @responses.activate

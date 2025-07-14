@@ -7,6 +7,7 @@ from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 
 import sentry
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.digests.backends.base import Backend
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
@@ -14,6 +15,7 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rule import Rule
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest, TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -118,15 +120,18 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             group_id=None,
             user_id=ANY,
         )
-        mock_record.assert_called_with(
-            "alert.sent",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            provider="email",
-            alert_id=self.rule.id,
-            alert_type="issue_alert",
-            external_id=ANY,
-            notification_uuid=ANY,
+        assert_last_analytics_event(
+            mock_record,
+            AlertSentEvent(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                provider="email",
+                alert_id=self.rule.id,
+                alert_type="issue_alert",
+                external_id="ANY",
+                notification_uuid="ANY",
+            ),
+            exclude_fields=["external_id", "notification_uuid"],
         )
         mock_logger.info.assert_called_with(
             "mail.adapter.notify_digest",

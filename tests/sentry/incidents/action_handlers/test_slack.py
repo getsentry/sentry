@@ -6,6 +6,7 @@ import responses
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.constants import ObjectStatus
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
@@ -18,6 +19,7 @@ from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.testutils.asserts import assert_failure_metric
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.utils import json
@@ -316,15 +318,17 @@ class SlackActionHandlerTest(FireTest):
             "status": 200,
         }
         self.run_fire_test()
-        mock_record.assert_called_with(
-            "alert.sent",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            provider="slack",
-            alert_id=self.alert_rule.id,
-            alert_type="metric_alert",
-            external_id=str(self.action.target_identifier),
-            notification_uuid="",
+        assert_last_analytics_event(
+            mock_record,
+            AlertSentEvent(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                provider="slack",
+                alert_id=self.alert_rule.id,
+                alert_type="metric_alert",
+                external_id=str(self.action.target_identifier),
+                notification_uuid="",
+            ),
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")

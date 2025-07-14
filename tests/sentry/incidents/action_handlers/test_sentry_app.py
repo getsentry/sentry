@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import responses
 
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.api.serializers import serialize
 from sentry.incidents.action_handlers import SentryAppActionHandler
 from sentry.incidents.endpoints.serializers.incident import IncidentSerializer
@@ -15,6 +16,7 @@ from sentry.testutils.asserts import (
     assert_halt_metric,
     assert_success_metric,
 )
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
 
@@ -303,15 +305,17 @@ class SentryAppAlertRuleUIComponentActionHandlerTest(FireTest):
     @patch("sentry.analytics.record")
     def test_alert_sent_recorded(self, mock_record, mock_record_event):
         self.run_fire_test()
-        mock_record.assert_called_with(
-            "alert.sent",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            provider="sentry_app",
-            alert_id=self.alert_rule.id,
-            alert_type="metric_alert",
-            external_id=str(self.action.sentry_app_id),
-            notification_uuid="",
+        assert_last_analytics_event(
+            mock_record,
+            AlertSentEvent(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                provider="sentry_app",
+                alert_id=self.alert_rule.id,
+                alert_type="metric_alert",
+                external_id=str(self.action.sentry_app_id),
+                notification_uuid="",
+            ),
         )
 
         # SLO asserts

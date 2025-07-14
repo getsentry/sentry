@@ -6,6 +6,7 @@ import orjson
 import responses
 from urllib3.response import HTTPResponse
 
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
@@ -28,6 +29,7 @@ from sentry.integrations.types import EventLifecycleOutcome
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_slo_metric
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
@@ -211,15 +213,17 @@ class MsTeamsActionHandlerTest(FireTest):
     @patch("sentry.analytics.record")
     def test_alert_sent_recorded(self, mock_record):
         self.run_fire_test()
-        mock_record.assert_called_with(
-            "alert.sent",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            provider="msteams",
-            alert_id=self.alert_rule.id,
-            alert_type="metric_alert",
-            external_id=str(self.action.target_identifier),
-            notification_uuid="",
+        assert_last_analytics_event(
+            mock_record,
+            AlertSentEvent(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                provider="msteams",
+                alert_id=self.alert_rule.id,
+                alert_type="metric_alert",
+                external_id=str(self.action.target_identifier),
+                notification_uuid="",
+            ),
         )
 
     @responses.activate

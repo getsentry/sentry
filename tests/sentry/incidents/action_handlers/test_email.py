@@ -10,6 +10,7 @@ from django.urls import reverse
 from django.utils import timezone
 from urllib3.response import HTTPResponse
 
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.api.serializers import serialize
 from sentry.incidents.action_handlers import (
     EmailActionHandler,
@@ -46,6 +47,7 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
@@ -89,15 +91,17 @@ class EmailActionHandlerTest(FireTest):
     @patch("sentry.analytics.record")
     def test_alert_sent_recorded(self, mock_record):
         self.run_fire_test()
-        mock_record.assert_called_with(
-            "alert.sent",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            provider="email",
-            alert_id=self.alert_rule.id,
-            alert_type="metric_alert",
-            external_id=str(self.user.id),
-            notification_uuid="",
+        assert_last_analytics_event(
+            mock_record,
+            AlertSentEvent(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                provider="email",
+                alert_id=self.alert_rule.id,
+                alert_type="metric_alert",
+                external_id=str(self.user.id),
+                notification_uuid="",
+            ),
         )
 
 
