@@ -95,6 +95,31 @@ export interface UseApiQueryOptions<TApiResponse, TError = RequestError>
   staleTime: number;
 }
 
+function isInfiniteQueryKey(
+  queryKey: ApiQueryKey | InfiniteApiQueryKey
+): queryKey is InfiniteApiQueryKey {
+  return queryKey[0] === 'infinite';
+}
+
+export function parseQueryKey(queryKey: undefined | ApiQueryKey | InfiniteApiQueryKey) {
+  if (!queryKey) {
+    return {isInfinite: false, url: undefined, options: undefined};
+  }
+
+  if (isInfiniteQueryKey(queryKey)) {
+    return {
+      isInfinite: true,
+      url: queryKey[1],
+      options: queryKey[2],
+    };
+  }
+  return {
+    isInfinite: false,
+    url: queryKey[0],
+    options: queryKey[1],
+  };
+}
+
 export type UseApiQueryResult<TData, TError> = UseQueryResult<TData, TError> & {
   /**
    * Get a header value from the response
