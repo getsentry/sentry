@@ -721,13 +721,25 @@ def test_generate_rules_return_minimum_sample_rate_when_enabled(
         ],
     )
 
+    with Feature({"organizations:dynamic-sampling-minimum-sample-rate": True}):
+        assert generate_rules(default_old_project) == [
+            {
+                "condition": {"inner": [], "op": "and"},
+                "id": 1006,
+                "samplingValue": {"type": "minimumSampleRate", "value": 0.3},
+                "type": "trace",
+            },
+            {
+                "condition": {"inner": [], "op": "and"},
+                "id": 1000,
+                "samplingValue": {"type": "sampleRate", "value": 0.3},
+                "type": "trace",
+            },
+        ]
+
+        _validate_rules(default_old_project)
+
     assert generate_rules(default_old_project) == [
-        {
-            "condition": {"inner": [], "op": "and"},
-            "id": 1006,
-            "samplingValue": {"type": "minimumSampleRate", "value": 0.3},
-            "type": "trace",
-        },
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -800,43 +812,45 @@ def test_generate_rules_minimum_sample_rate_not_included_by_default(
 def test_generate_rules_minimum_sample_rate_correct_order(
     get_blended_sample_rate, default_old_project
 ):
-    get_blended_sample_rate.return_value = 0.4
-    default_old_project.update_option(
-        "sentry:dynamic_sampling_biases",
-        [
-            {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
-            {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": True},
-            {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
-            {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": False},
-            {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": False},
-            {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
-            {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": True},
-        ],
-    )
+    with Feature({"organizations:dynamic-sampling-minimum-sample-rate": True}):
 
-    rules = generate_rules(default_old_project)
+        get_blended_sample_rate.return_value = 0.4
+        default_old_project.update_option(
+            "sentry:dynamic_sampling_biases",
+            [
+                {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+                {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": True},
+                {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+                {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": False},
+                {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": False},
+                {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
+                {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": True},
+            ],
+        )
 
-    # Verify order: health checks, replay ID, minimum sample rate, uniform
-    assert len(rules) == 4
+        rules = generate_rules(default_old_project)
 
-    # Health checks rule should be first (lowest sample rate)
-    assert rules[0]["id"] == 1002
-    assert rules[0]["samplingValue"]["value"] == 0.4 / 5  # IGNORE_HEALTH_CHECKS_FACTOR = 5
+        # Verify order: health checks, replay ID, minimum sample rate, uniform
+        assert len(rules) == 4
 
-    # Replay ID rule should be second
-    assert rules[1]["id"] == 1005
-    assert rules[1]["samplingValue"]["value"] == 1.0
+        # Health checks rule should be first (lowest sample rate)
+        assert rules[0]["id"] == 1002
+        assert rules[0]["samplingValue"]["value"] == 0.4 / 5  # IGNORE_HEALTH_CHECKS_FACTOR = 5
 
-    # Minimum sample rate rule should be third
-    assert rules[2]["id"] == 1006
-    assert rules[2]["samplingValue"]["type"] == "minimumSampleRate"
-    assert rules[2]["samplingValue"]["value"] == 0.4
+        # Replay ID rule should be second
+        assert rules[1]["id"] == 1005
+        assert rules[1]["samplingValue"]["value"] == 1.0
 
-    # Uniform rule should be last
-    assert rules[3]["id"] == 1000
-    assert rules[3]["samplingValue"]["value"] == 0.4
+        # Minimum sample rate rule should be third
+        assert rules[2]["id"] == 1006
+        assert rules[2]["samplingValue"]["type"] == "minimumSampleRate"
+        assert rules[2]["samplingValue"]["value"] == 0.4
 
-    _validate_rules(default_old_project)
+        # Uniform rule should be last
+        assert rules[3]["id"] == 1000
+        assert rules[3]["samplingValue"]["value"] == 0.4
+
+        _validate_rules(default_old_project)
 
 
 @django_db_all
@@ -851,13 +865,20 @@ def test_generate_rules_minimum_sample_rate_with_100_percent_sample_rate(
             {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": True},
         ],
     )
+    with Feature({"organizations:dynamic-sampling-minimum-sample-rate": True}):
+        rules = generate_rules(default_old_project)
+        assert len(rules) == 2
+        assert rules[0]["id"] == 1006
+        assert rules[0]["samplingValue"]["value"] == 1.0
+        assert rules[1]["id"] == 1000
+        assert rules[1]["samplingValue"]["value"] == 1.0
+
+        _validate_rules(default_old_project)
 
     rules = generate_rules(default_old_project)
-    assert len(rules) == 2
-    assert rules[0]["id"] == 1006
+    assert len(rules) == 1
+    assert rules[0]["id"] == 1000
     assert rules[0]["samplingValue"]["value"] == 1.0
-    assert rules[1]["id"] == 1000
-    assert rules[1]["samplingValue"]["value"] == 1.0
 
     _validate_rules(default_old_project)
 

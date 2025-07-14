@@ -35,7 +35,13 @@ def get_relay_biases_combinator(organization: Organization) -> BiasesCombinator:
     default_combinator.add(
         RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE, BoostLowVolumeTransactionsBias()
     )
-    default_combinator.add(RuleType.MINIMUM_SAMPLE_RATE_RULE, MinimumSampleRateBias())
+    default_combinator.add_if(
+        RuleType.MINIMUM_SAMPLE_RATE_RULE,
+        MinimumSampleRateBias(),
+        lambda: features.has(
+            "organizations:dynamic-sampling-minimum-sample-rate", organization, actor=None
+        ),
+    )
     default_combinator.add(RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE, BoostLowVolumeProjectsBias())
 
     return default_combinator
