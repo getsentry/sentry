@@ -8,7 +8,7 @@ from django.db.models import prefetch_related_objects
 
 from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardLastVisited
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -18,7 +18,6 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
     DatasetSourcesTypes,
 )
-from sentry.models.organizationmember import OrganizationMember
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.services.user.service import user_service
@@ -267,7 +266,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
     def get_attrs(self, item_list, user, **kwargs):
         organization = kwargs.get("context", {}).get("organization")
         item_dict = {i.id: i for i in item_list}
-        prefetch_related_objects(item_list, "projects", "dashboardlastvisited_set")
+        prefetch_related_objects(item_list, "projects", "dashboardlastvisited_set__member")
 
         widgets = DashboardWidget.objects.filter(dashboard_id__in=item_dict.keys()).order_by(
             "order"
@@ -328,18 +327,16 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
             dashboard = item_dict[permission.dashboard_id]
             result[dashboard]["permissions"] = serialize(permission)
 
-        if features.has("organizations:dashboards-starred-reordering", organization, user):
-            org_member = OrganizationMember.objects.get(organization=organization, user_id=user.id)
-
         for dashboard in item_dict.values():
             if features.has(
                 "organizations:dashboards-starred-reordering",
                 organization,
                 user,
             ):
-                visit = DashboardLastVisited.objects.filter(
+                visit = dashboard.dashboardlastvisited_set.filter(
                     dashboard=dashboard,
-                    member=org_member,
+                    member__user_id=user.id,
+                    member__organization=organization,
                 ).first()
                 result[dashboard]["last_visited"] = visit.last_visited if visit else None
 
