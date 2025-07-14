@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, overload
 
 if TYPE_CHECKING:
     from sentry.models.auditlogentry import AuditLogEntry
@@ -88,7 +88,29 @@ class AuditLogEventManager:
         self._event_id_lookup: dict[int, AuditLogEvent] = {}
         self._api_name_lookup: dict[str, AuditLogEvent] = {}
 
-    def add(self, audit_log_event: AuditLogEvent) -> None:
+    @overload
+    def add(self, audit_log_event: AuditLogEvent) -> None: ...
+
+    @overload
+    def add(self, event_id: int, name: str, api_name: str, template: str | None = None) -> None: ...
+
+    def add(
+        self,
+        audit_log_event_or_event_id: AuditLogEvent | int,
+        name: str | None = None,
+        api_name: str | None = None,
+        template: str | None = None,
+    ) -> None:
+        if isinstance(audit_log_event_or_event_id, AuditLogEvent):
+            audit_log_event = audit_log_event_or_event_id
+        else:
+            audit_log_event = AuditLogEvent(
+                event_id=audit_log_event_or_event_id,
+                name=name,
+                api_name=api_name,
+                template=template,
+            )
+
         if (
             audit_log_event.name in self._event_registry
             or audit_log_event.event_id in self._event_id_lookup
@@ -102,10 +124,33 @@ class AuditLogEventManager:
         self._event_id_lookup[audit_log_event.event_id] = audit_log_event
         self._api_name_lookup[audit_log_event.api_name] = audit_log_event
 
+    @overload
     def add_with_render_func(
         self, audit_log_event: AuditLogEvent
+    ) -> Callable[[AuditLogEntry], AuditLogEvent]: ...
+
+    @overload
+    def add_with_render_func(
+        self, event_id: int, name: str, api_name: str, template: str | None = None
+    ) -> Callable[[AuditLogEntry], AuditLogEvent]: ...
+
+    def add_with_render_func(
+        self,
+        audit_log_event_or_event_id: AuditLogEvent | int,
+        name: str | None = None,
+        api_name: str | None = None,
+        template: str | None = None,
     ) -> Callable[[AuditLogEntry], AuditLogEvent]:
         """Decorator to add an audit log event with a custom render function"""
+        if isinstance(audit_log_event_or_event_id, AuditLogEvent):
+            audit_log_event = audit_log_event_or_event_id
+        else:
+            audit_log_event = AuditLogEvent(
+                event_id=audit_log_event_or_event_id,
+                name=name,
+                api_name=api_name,
+                template=template,
+            )
 
         def decorator(render_func: Callable[[AuditLogEntry], str]) -> AuditLogEvent:
             audit_log_event.template = render_func
