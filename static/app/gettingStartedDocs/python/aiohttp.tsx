@@ -4,6 +4,7 @@ import {
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
