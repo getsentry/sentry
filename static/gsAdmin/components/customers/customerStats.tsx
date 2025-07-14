@@ -14,6 +14,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {space} from 'sentry/styles/space';
+import type {DataCategoryExact} from 'sentry/types/core';
 import type {DataPoint} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -21,8 +22,6 @@ import {defined} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useRouter from 'sentry/utils/useRouter';
-
-import type {DataType} from 'admin/components/customers/customerStatsFilters';
 
 enum SeriesName {
   ACCEPTED = 'Accepted',
@@ -325,7 +324,7 @@ function FooterLegend({points}: LegendProps) {
 }
 
 type Props = {
-  dataType: DataType;
+  dataType: DataCategoryExact;
   orgSlug: Organization['slug'];
   onDemandPeriodEnd?: string;
   onDemandPeriodStart?: string;

@@ -1,8 +1,7 @@
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import type {DataCategory, DataCategoryInfo} from 'sentry/types/core';
-import {Outcome} from 'sentry/types/core';
+import {DataCategory, DataCategoryExact, Outcome} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -11,7 +10,7 @@ import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 
 type Props = {
   dataCategory: DataCategory;
-  dataCategoryApiName: DataCategoryInfo['apiName'];
+  dataCategoryApiName: DataCategoryExact;
   organization: Organization;
   projectIds: number[];
 };
@@ -67,13 +66,12 @@ function UsageStatsPerMin({
     const eventsLastMin = groups.reduce((count, group) => {
       const {category, outcome} = group.by;
 
-      if (dataCategoryApiName === 'span_indexed') {
-        if (category !== 'span_indexed' || outcome !== Outcome.ACCEPTED) {
+      if (dataCategoryApiName === DataCategoryExact.SPAN_INDEXED) {
+        if (category !== DataCategory.SPANS_INDEXED || outcome !== Outcome.ACCEPTED) {
           return count;
         }
       } else {
-        // HACK: The backend enum are singular, but the frontend enums are plural
-        if (!dataCategory.includes(`${category}`) || outcome !== Outcome.ACCEPTED) {
+        if (dataCategoryApiName !== category || outcome !== Outcome.ACCEPTED) {
           return count;
         }
       }
