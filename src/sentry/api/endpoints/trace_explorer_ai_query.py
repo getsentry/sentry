@@ -7,6 +7,7 @@ import orjson
 import requests
 from django.conf import settings
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -20,16 +21,17 @@ from sentry.seer.signed_seer_api import sign_with_seer_secret
 
 logger = logging.getLogger(__name__)
 
-from rest_framework.request import Request
 
-
-def send_translate_request(org_id: int, project_ids: list[int], natural_language_query: str) -> Any:
+def send_translate_request(
+    org_id: int, org_slug: str, project_ids: list[int], natural_language_query: str
+) -> Any:
     """
     Sends a request to seer to create the initial cached prompt / setup the AI models
     """
     body = orjson.dumps(
         {
             "org_id": org_id,
+            "org_slug": org_slug,
             "project_ids": project_ids,
             "natural_language_query": natural_language_query,
         }
@@ -66,12 +68,14 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
         Request to translate a natural language query into a sentry EQS query.
         """
         if not request.user.is_authenticated:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "User is not authenticated"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         project_ids = [int(x) for x in request.data.get("project_ids", [])]
         natural_language_query = request.data.get("natural_language_query")
         limit = request.data.get("limit", 1)
-        use_flyout = request.data.get("use_flyout", True)
 
         if len(project_ids) == 0 or not natural_language_query:
             return Response(
@@ -102,17 +106,10 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
                 {"detail": "Seer is not properly configured."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-        data = send_translate_request(organization.id, project_ids, natural_language_query)
+        data = send_translate_request(
+            organization.id, organization.slug, project_ids, natural_language_query
+        )
 
-        # XXX: This is a fallback to support the old response format until we fully support using multiple queries on the frontend
-        if "responses" in data and use_flyout:
-            if not data["responses"]:
-                logger.info("No results found for query")
-                return Response(
-                    {"detail": "No results found for query"},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-            data = data["responses"][0]
         if "responses" not in data:
             return Response(
                 {

@@ -9,6 +9,7 @@ import {
   type QueryKeyEndpointOptions,
   useInfiniteQuery,
 } from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {
   SummaryFilterKey,
   SummaryTAFilterKey,
@@ -61,10 +62,13 @@ type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions];
 
 export function useInfiniteTestResults() {
   const {integratedOrg, repository, branch, codecovPeriod} = useCodecovContext();
+  const organization = useOrganization();
   const [searchParams] = useSearchParams();
 
   const sortBy = searchParams.get('sort') || '-commitsFailed';
   const signedSortBy = sortValueToSortKey(sortBy);
+
+  const term = searchParams.get('term') || '';
 
   const filterBy = searchParams.get('filterBy') as SummaryFilterKey;
   let mappedFilterBy = null;
@@ -79,8 +83,8 @@ export function useInfiniteTestResults() {
     QueryKey
   >({
     queryKey: [
-      `/prevent/owner/${integratedOrg}/repository/${repository}/test-results/`,
-      {query: {branch, codecovPeriod, signedSortBy, mappedFilterBy}},
+      `/organizations/${organization.slug}/prevent/owner/${integratedOrg}/repository/${repository}/test-results/`,
+      {query: {branch, codecovPeriod, signedSortBy, mappedFilterBy, term}},
     ],
     queryFn: async ({
       queryKey: [url],
@@ -99,6 +103,7 @@ export function useInfiniteTestResults() {
                 ],
               sortBy: signedSortBy,
               branch,
+              term,
               ...(mappedFilterBy ? {filterBy: mappedFilterBy} : {}),
             },
           },
@@ -149,6 +154,7 @@ export function useInfiniteTestResults() {
 
   return {
     data: memoizedData,
+    totalCount: data?.pages?.[0]?.[0]?.totalCount ?? 0,
     // TODO: only provide the values that we're interested in
     ...rest,
   };

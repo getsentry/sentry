@@ -18,6 +18,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.constants import ObjectStatus
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, storage
@@ -135,29 +136,54 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[GroupEven
                 category="error",
                 id=event_id,
                 title=data.get("title", ""),
-                timestamp=data.get("timestamp", 0.0) * 1000,  # error timestamp is in seconds
+                timestamp=data.get("timestamp") * 1000,  # convert to milliseconds
                 message=data.get("message", ""),
             )
             for event_id, data in zip(error_ids, events.values())
-            if data is not None
+            if data is not None and data.get("timestamp") is not None
         ]
     except Exception as e:
         sentry_sdk.capture_exception(e)
         return []
 
 
+def parse_timestamp(timestamp_value: Any, unit: str) -> float:
+    """Parse a timestamp input to a float value.
+    The argument timestamp value can be string, float, or None.
+    The returned unit will be the same as the input unit.
+    """
+    if timestamp_value is not None:
+        if isinstance(timestamp_value, str):
+            try:
+                dt = datetime.fromisoformat(timestamp_value.replace("Z", "+00:00"))
+                return dt.timestamp() * 1000 if unit == "ms" else dt.timestamp()
+            except (ValueError, AttributeError):
+                return 0.0
+        else:
+            return float(timestamp_value)
+    return 0.0
+
+
 def fetch_trace_connected_errors(
-    project: Project, trace_ids: list[str], start: datetime | None, end: datetime | None
+    project: Project,
+    trace_ids: list[str],
+    start: datetime | None,
+    end: datetime | None,
 ) -> list[GroupEvent]:
     """Fetch error details given trace IDs and return a list of GroupEvent objects."""
     try:
         if not trace_ids:
             return []
 
+        # Get projects in the organization that the user has access to
+        org_projects = list(
+            Project.objects.filter(organization=project.organization, status=ObjectStatus.ACTIVE)
+        )
+
         queries = []
         for trace_id in trace_ids:
             snuba_params = SnubaParams(
-                projects=[project],
+                projects=org_projects,
                 start=start,
                 end=end,
                 organization=project.organization,
@@ -172,6 +198,7 @@ def fetch_trace_connected_errors(
                 selected_columns=[
                     "id",
                     "timestamp_ms",
+                    "timestamp",
                     "title",
                     "message",
                 ],
@@ -198,26 +225,20 @@ def fetch_trace_connected_errors(
             error_data = query.process_results(result)["data"]
 
             for event in error_data:
-                timestamp_raw = event.get("timestamp_ms", 0)
-                if isinstance(timestamp_raw, str):
-                    # The raw timestamp might be returned as a string.
-                    try:
-                        dt = datetime.fromisoformat(timestamp_raw.replace("Z", "+00:00"))
-                        timestamp = dt.timestamp() * 1000  # Convert to milliseconds
-                    except (ValueError, AttributeError):
-                        timestamp = 0.0
-                else:
-                    timestamp = float(timestamp_raw)  # Keep in milliseconds
+                timestamp_ms = parse_timestamp(event.get("timestamp_ms"), "ms")
+                timestamp_s = parse_timestamp(event.get("timestamp"), "s")
+                timestamp = timestamp_ms or timestamp_s * 1000
 
-                error_events.append(
-                    GroupEvent(
-                        category="error",
-                        id=event["id"],
-                        title=event.get("title", ""),
-                        timestamp=timestamp,
-                        message=event.get("message", ""),
+                if timestamp:
+                    error_events.append(
+                        GroupEvent(
+                            category="error",
+                            id=event["id"],
+                            title=event.get("title", ""),
+                            timestamp=timestamp,
+                            message=event.get("message", ""),
+                        )
                     )
-                )
 
         return error_events
 
@@ -242,10 +263,10 @@ def fetch_feedback_details(feedback_id: str | None, project_id):
                 category="feedback",
                 id=feedback_id,
                 title="User Feedback",
-                timestamp=event.get("timestamp", 0.0) * 1000,  # feedback timestamp is in seconds
+                timestamp=event.get("timestamp") * 1000,  # convert to milliseconds
                 message=event.get("contexts", {}).get("feedback", {}).get("message", ""),
             )
-            if event
+            if event and event.get("timestamp") is not None
             else None
         )
 
@@ -303,7 +324,7 @@ def gen_request_data(
             # Yield the current event's log message
             event_type = which(event)
             if event_type == EventType.FEEDBACK:
-                feedback_id = event["data"]["payload"].get("data", {}).get("feedbackId", None)
+                feedback_id = event["data"]["payload"].get("data", {}).get("feedbackId")
                 feedback = fetch_feedback_details(feedback_id, project_id)
                 if feedback:
                     yield generate_feedback_log_message(feedback)
@@ -353,74 +374,87 @@ def as_log_message(event: dict[str, Any]) -> str | None:
     event_type = which(event)
     timestamp = event.get("timestamp", 0.0)
 
-    match event_type:
-        case EventType.CLICK:
-            return f"User clicked on {event["data"]["payload"]["message"]} at {timestamp}"
-        case EventType.DEAD_CLICK:
-            return f"User clicked on {event["data"]["payload"]["message"]} but the triggered action was slow to complete at {timestamp}"
-        case EventType.RAGE_CLICK:
-            return f"User rage clicked on {event["data"]["payload"]["message"]} but the triggered action was slow to complete at {timestamp}"
-        case EventType.NAVIGATION:
-            return f"User navigated to: {event["data"]["payload"]["data"]["to"]} at {timestamp}"
-        case EventType.CONSOLE:
-            return f"Logged: {event["data"]["payload"]["message"]} at {timestamp}"
-        case EventType.UI_BLUR:
-            timestamp_ms = timestamp * 1000
-            return f"User looked away from the tab at {timestamp_ms}"
-        case EventType.UI_FOCUS:
-            timestamp_ms = timestamp * 1000
-            return f"User returned to tab at {timestamp_ms}"
-        case EventType.RESOURCE_FETCH:
-            timestamp_ms = timestamp * 1000
-            payload = event["data"]["payload"]
-            parsed_url = urlparse(payload["description"])
+    try:
+        match event_type:
+            case EventType.CLICK:
+                message = event["data"]["payload"]["message"]
+                return f"User clicked on {message} at {timestamp}"
+            case EventType.DEAD_CLICK:
+                message = event["data"]["payload"]["message"]
+                return f"User clicked on {message} but the triggered action was slow to complete at {timestamp}"
+            case EventType.RAGE_CLICK:
+                message = event["data"]["payload"]["message"]
+                return f"User rage clicked on {message} but the triggered action was slow to complete at {timestamp}"
+            case EventType.NAVIGATION:
+                to = event["data"]["payload"]["data"]["to"]
+                return f"User navigated to: {to} at {timestamp}"
+            case EventType.CONSOLE:
+                message = event["data"]["payload"]["message"]
+                return f"Logged: {message} at {timestamp}"
+            case EventType.UI_BLUR:
+                timestamp_ms = timestamp * 1000
+                return f"User looked away from the tab at {timestamp_ms}"
+            case EventType.UI_FOCUS:
+                timestamp_ms = timestamp * 1000
+                return f"User returned to tab at {timestamp_ms}"
+            case EventType.RESOURCE_FETCH:
+                timestamp_ms = timestamp * 1000
+                payload = event["data"]["payload"]
+                method = payload["data"]["method"]
+                status_code = payload["data"]["statusCode"]
+                description = payload["description"]
+                duration = payload["endTimestamp"] - payload["startTimestamp"]
 
-            path = f"{parsed_url.path}?{parsed_url.query}"
+                # Parse URL path
+                parsed_url = urlparse(description)
+                path = f"{parsed_url.path}?{parsed_url.query}"
 
-            # Safely get (request_size, response_size)
-            sizes_tuple = parse_network_content_lengths(event)
-            response_size = None
+                # Check if the tuple is valid and response size exists
+                sizes_tuple = parse_network_content_lengths(event)
+                response_size = None
+                if sizes_tuple and sizes_tuple[1] is not None:
+                    response_size = str(sizes_tuple[1])
 
-            # Check if the tuple is valid and response size exists
-            if sizes_tuple and sizes_tuple[1] is not None:
-                response_size = str(sizes_tuple[1])
+                # Skip successful requests
+                if status_code and str(status_code).startswith("2"):
+                    return None
 
-            status_code = payload["data"]["statusCode"]
-            duration = payload["endTimestamp"] - payload["startTimestamp"]
-            method = payload["data"]["method"]
-
-            # if status code is successful, ignore it
-            if str(status_code).startswith("2"):
+                if response_size is None:
+                    return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code}; took {duration} milliseconds at {timestamp_ms}'
+                else:
+                    return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code} and response size {response_size}; took {duration} milliseconds at {timestamp_ms}'
+            case EventType.LCP:
+                timestamp_ms = timestamp * 1000
+                duration = event["data"]["payload"]["data"]["size"]
+                rating = event["data"]["payload"]["data"]["rating"]
+                return f"Application largest contentful paint: {duration} ms and has a {rating} rating at {timestamp_ms}"
+            case EventType.FCP:
+                timestamp_ms = timestamp * 1000
+                duration = event["data"]["payload"]["data"]["size"]
+                rating = event["data"]["payload"]["data"]["rating"]
+                return f"Application first contentful paint: {duration} ms and has a {rating} rating at {timestamp_ms}"
+            case EventType.HYDRATION_ERROR:
+                return f"There was a hydration error on the page at {timestamp}"
+            case EventType.RESOURCE_XHR:
                 return None
-
-            if response_size is None:
-                return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code}; took {duration} milliseconds at {timestamp_ms}'
-            else:
-                return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code} and response size {response_size}; took {duration} milliseconds at {timestamp_ms}'
-        case EventType.RESOURCE_XHR:
-            return None
-        case EventType.LCP:
-            timestamp_ms = timestamp * 1000
-            duration = event["data"]["payload"]["data"]["size"]
-            rating = event["data"]["payload"]["data"]["rating"]
-            return f"Application largest contentful paint: {duration} ms and has a {rating} rating at {timestamp_ms}"
-        case EventType.FCP:
-            timestamp_ms = timestamp * 1000
-            duration = event["data"]["payload"]["data"]["size"]
-            rating = event["data"]["payload"]["data"]["rating"]
-            return f"Application first contentful paint: {duration} ms and has a {rating} rating at {timestamp_ms}"
-        case EventType.HYDRATION_ERROR:
-            return f"There was a hydration error on the page at {timestamp}"
-        case EventType.MUTATIONS:
-            return None
-        case EventType.UNKNOWN:
-            return None
-        case EventType.CANVAS:
-            return None
-        case EventType.OPTIONS:
-            return None
-        case EventType.FEEDBACK:
-            return None  # the log message is processed before this method is called
+            case EventType.MUTATIONS:
+                return None
+            case EventType.UNKNOWN:
+                return None
+            case EventType.CANVAS:
+                return None
+            case EventType.OPTIONS:
+                return None
+            case EventType.FEEDBACK:
+                return None  # the log message is processed before this method is called
+    except (KeyError, ValueError):
+        logger.exception(
+            "Error parsing event in replay AI summary",
+            extra={
+                "event": json.dumps(event),
+            },
+        )
+        return None
 
 
 def make_seer_request(request_data: str) -> bytes:

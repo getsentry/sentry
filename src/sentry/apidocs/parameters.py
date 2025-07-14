@@ -1119,6 +1119,12 @@ Available fields are:
         location="query",
         required=False,
         type=str,
-        description="""The cursor to start the query from. Will return results after the cursor if used with `first` or before the cursor if used with `last`.
-        """,
+        description="""The cursor to start the query from. Will return results after the cursor if used with `first` or before the cursor if used with `last`.""",
+    )
+    TERM = OpenApiParameter(
+        name="term",
+        location="query",
+        required=False,
+        type=str,
+        description="""The term substring to filter test name strings by using the `contains` operator.""",
     )

@@ -8,18 +8,20 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {
-  type Configuration,
-  type StepProps,
-  StepTitles,
-  StepType,
+  OnboardingCodeSnippet,
   TabbedCodeSnippet,
-} from 'sentry/components/onboarding/gettingStartedDoc/step';
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
+import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {
+  Configuration,
+  DocsParams,
+  OnboardingStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   DocsPageLocation,
-  type DocsParams,
   ProductSolution,
+  StepType,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
@@ -40,7 +42,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 
 function useOnboardingProject() {
   const {projects} = useProjects();
@@ -63,7 +65,7 @@ function useAiSpanWaiter(project: Project) {
   const {selection} = usePageFilters();
   const [refetchKey, setRefetchKey] = useState(0);
 
-  const request = useEAPSpans(
+  const request = useSpans(
     {
       search: 'span.op:"gen_ai.*"',
       fields: ['id'],
@@ -149,7 +151,7 @@ function StepRenderer({
 }: {
   isLastStep: boolean;
   project: Project;
-  step: StepProps;
+  step: OnboardingStep;
 }) {
   return (
     <GuidedSteps.Step
