@@ -40,7 +40,9 @@ export default function FeedbackList() {
     [queryResult.data?.pages]
   );
   const checkboxState = useListItemCheckboxContext({
-    hits: issues.length,
+    hits: Number(
+      queryResult.data?.pages[0]?.[2]?.getResponseHeader('X-Hits') ?? issues.length
+    ),
     knownIds: issues.map(issue => issue.id),
     queryKey: listQueryKey,
   });
