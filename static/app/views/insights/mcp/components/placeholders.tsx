@@ -24,14 +24,6 @@ const PlaceholderTable = styled(Panel)`
   color: ${p => p.theme.subText};
 `;
 
-const OnboardingContainer = styled(Panel)`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: ${space(4)};
-`;
-
 function PlaceholderText() {
   return <PlaceholderContent>{t('Placeholder')}</PlaceholderContent>;
 }
@@ -139,15 +131,5 @@ export function PromptsTable() {
         <p>{t('Placeholder for prompts table')}</p>
       </PlaceholderTable>
     </TableContainer>
-  );
-}
-
-// Onboarding component
-export function McpOnboarding() {
-  return (
-    <OnboardingContainer>
-      <h2>{t('MCP Insights')}</h2>
-      <p>{t('This is a placeholder for the MCP onboarding experience.')}</p>
-    </OnboardingContainer>
   );
 }
