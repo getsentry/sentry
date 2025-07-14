@@ -99,8 +99,6 @@ const Centered = styled('div')`
 
 const NoFeedbackWrapper = styled('div')`
   padding: ${space(4)} ${space(4)};
-  flex-direction: column;
-  align-items: center;
   text-align: center;
   color: ${p => p.theme.subText};
 
