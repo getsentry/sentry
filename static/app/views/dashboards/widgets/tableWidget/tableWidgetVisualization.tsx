@@ -219,9 +219,10 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
               canSort={column.sortable ?? false}
               title={<StyledTooltip title={name}>{name}</StyledTooltip>}
               onClick={e => {
+                if (!onChangeSort) return;
                 e.preventDefault();
                 const nextDirection = direction === 'desc' ? 'asc' : 'desc';
-                onChangeSort?.({
+                onChangeSort({
                   field: sortColumn,
                   kind: nextDirection,
                 });
