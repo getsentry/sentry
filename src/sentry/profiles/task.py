@@ -1324,13 +1324,27 @@ def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
                     len(json_profile),
                     tags={"type": "chunk", "platform": profile["platform"]},
                 )
+                metrics.distribution(
+                    "storage.put.size",
+                    len(json_profile),
+                    tags={"usecase": "profiling", "compression": "none"},
+                    unit="byte",
+                )
             with sentry_sdk.start_span(op="json.unmarshal"):
                 chunk = vroomrs.profile_chunk_from_json_str(json_profile, profile["platform"])
             chunk.normalize()
             with sentry_sdk.start_span(op="gcs.write", name="compress and write"):
                 storage = get_profiles_storage()
                 compressed_chunk = chunk.compress()
-                storage.save(chunk.storage_path(), io.BytesIO(compressed_chunk))
+
+                metrics.distribution(
+                    "storage.put.size",
+                    len(compressed_chunk),
+                    tags={"usecase": "profiling", "compression": "lz4"},
+                    unit="byte",
+                )
+                with metrics.timer("storage.put.latency", tags={"usecase": "profiling"}):
+                    storage.save(chunk.storage_path(), io.BytesIO(compressed_chunk))
             with sentry_sdk.start_span(op="processing", name="send chunk to kafka"):
                 payload = build_chunk_kafka_message(chunk)
                 topic = ArroyoTopic(get_topic_definition(Topic.PROFILE_CHUNKS)["real_topic_name"])
