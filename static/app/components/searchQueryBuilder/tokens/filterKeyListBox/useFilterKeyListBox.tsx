@@ -3,6 +3,7 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import type {ComboBoxState} from '@react-stately/combobox';
 import type {Node} from '@react-types/shared';
 
+import {useSeerAcknowledgeMutation} from 'sentry/components/searchQueryBuilder/askSeer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenu} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {FilterKeyListBox} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox';
@@ -380,6 +381,8 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
     [handleArrowUpDown, handleCycleRecentFilterKeys, handleCycleSections]
   );
 
+  const {mutate: seerAcknowledgeMutate} = useSeerAcknowledgeMutation();
+
   const handleOptionSelected = useCallback(
     (option: FilterKeyItem) => {
       if (option.type === 'ask-seer') {
@@ -392,15 +395,15 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
       }
 
       if (option.type === 'ask-seer-consent') {
-        // TODO: Implement logic to handle consent
         trackAnalytics('trace.explorer.ai_query_interface', {
           organization,
           action: 'consent_accepted',
         });
+        seerAcknowledgeMutate();
         return;
       }
     },
-    [organization, setDisplaySeerResults]
+    [organization, seerAcknowledgeMutate, setDisplaySeerResults]
   );
 
   return {
