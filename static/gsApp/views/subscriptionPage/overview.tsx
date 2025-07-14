@@ -25,7 +25,11 @@ import type {
 } from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
 import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
-import {isPartOfReservedBudget, sortCategories} from 'getsentry/utils/dataCategory';
+import {
+  getCategoryInfoFromPlural,
+  isPartOfReservedBudget,
+  sortCategories,
+} from 'getsentry/utils/dataCategory';
 import withPromotions from 'getsentry/utils/withPromotions';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
@@ -205,15 +209,12 @@ function Overview({location, subscription, promotionData}: Props) {
           )
           .map(categoryHistory => {
             const category = categoryHistory.category;
+            const categoryInfo = getCategoryInfoFromPlural(category);
 
-            // The usageData does not include details for seat-based categories.
-            // For now we will handle the monitor category specially
+            // The usageData does not include details for seat-based categories
             let monitor_usage: number | undefined = 0;
-            if (category === DataCategory.MONITOR_SEATS) {
-              monitor_usage = subscription.categories.monitorSeats?.usage;
-            }
-            if (category === DataCategory.UPTIME) {
-              monitor_usage = subscription.categories.uptime?.usage;
+            if (categoryInfo?.tallyType === 'seat') {
+              monitor_usage = subscription.categories[category]?.usage;
             }
 
             if (
@@ -224,9 +225,8 @@ function Overview({location, subscription, promotionData}: Props) {
             }
 
             const categoryTotals: BillingStatTotal =
-              category !== DataCategory.MONITOR_SEATS && category !== DataCategory.UPTIME
-                ? usageData.totals[category]!
-                : {
+              categoryInfo?.tallyType === 'usage'
+                ? {
                     accepted: monitor_usage ?? 0,
                     dropped: 0,
                     droppedOther: 0,
@@ -234,12 +234,12 @@ function Overview({location, subscription, promotionData}: Props) {
                     droppedSpikeProtection: 0,
                     filtered: 0,
                     projected: 0,
-                  };
-
+                  }
+                : usageData.totals[category]!;
             const eventTotals =
-              category !== DataCategory.MONITOR_SEATS && category !== DataCategory.UPTIME
-                ? usageData.eventTotals?.[category]
-                : undefined;
+              categoryInfo?.tallyType === 'usage'
+                ? undefined
+                : usageData.eventTotals?.[category];
 
             const showEventBreakdown =
               organization.features.includes('profiling-billing') &&
@@ -259,9 +259,7 @@ function Overview({location, subscription, promotionData}: Props) {
                 trueForward={categoryHistory.trueForward}
                 softCapType={categoryHistory.softCapType}
                 disableTable={
-                  category === DataCategory.MONITOR_SEATS ||
-                  category === DataCategory.UPTIME ||
-                  displayMode === 'cost'
+                  categoryInfo?.tallyType === 'seat' || displayMode === 'cost'
                 }
                 subscription={subscription}
                 organization={organization}
