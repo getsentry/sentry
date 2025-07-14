@@ -7,6 +7,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import BaseSearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import type {ChartInfo} from 'sentry/views/explore/charts';
 import {Charts} from 'sentry/views/explore/components/suspectTags/charts';
 import type {BoxSelectOptions} from 'sentry/views/explore/hooks/useChartBoxSelect';
@@ -38,6 +39,11 @@ export function Drawer({boxSelectOptions, chartInfo}: Props) {
     );
   }, [searchQuery, data?.rankedAttributes]);
 
+  // We use the search query as a key to virtual list items, to correctly re-mount
+  // charts the were invisible before the user searched for it. Debouncing the search
+  // query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 100);
+
   return (
     <DrawerContainer>
       <DrawerHeader hideBar />
@@ -61,7 +67,10 @@ export function Drawer({boxSelectOptions, chartInfo}: Props) {
               size="sm"
             />
             {filteredRankedAttributes.length > 0 ? (
-              <Charts rankedAttributes={filteredRankedAttributes} />
+              <Charts
+                rankedAttributes={filteredRankedAttributes}
+                searchQuery={debouncedSearchQuery}
+              />
             ) : (
               <NoAttributesMessage>
                 {t('No matching attributes found')}

@@ -19,10 +19,11 @@ const BASELINE_SERIES_NAME = 'baseline';
 
 type Props = {
   rankedAttributes: SuspectAttributesResult['rankedAttributes'];
+  searchQuery: string;
 };
 
 // TODO Abdullah Khan: Add virtualization and search to the list of charts
-export function Charts({rankedAttributes}: Props) {
+export function Charts({rankedAttributes, searchQuery}: Props) {
   const theme = useTheme();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -41,7 +42,7 @@ export function Charts({rankedAttributes}: Props) {
         {virtualItems.map(item => (
           <VirtualOffset key={item.index} offset={item.start}>
             <Chart
-              key={item.key}
+              key={`${item.key}+${searchQuery}`}
               index={item.index}
               virtualizer={virtualizer}
               attribute={rankedAttributes[item.index]!}
