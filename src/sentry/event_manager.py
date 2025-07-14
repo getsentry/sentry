@@ -81,6 +81,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
+from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.event import EventDict
@@ -697,42 +698,54 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
 
 
 def _set_project_platform_if_needed(project: Project, event: Event) -> None:
-
     # Only infer the platform if it's useful - if the event platform is "other" or null, there's
     # no useful information for us to set the project platform
     if not event.platform or event.platform == "other":
         return
 
-    if not project.platform:
-        project.update(platform=event.platform)
-        project.update_option("sentry:project_platform_inferred", event.platform)
+    # Use a lock to prevent race conditions when multiple events are processed
+    # concurrently for a project with no initial platform
+    lock_key = f"project-platform-lock:{project.id}"
 
-        create_system_audit_entry(
-            organization=project.organization,
-            target_object=project.id,
-            event=audit_log.get_event_id("PROJECT_EDIT"),
-            data={**project.get_audit_log_data(), "platform": event.platform},
-        )
+    try:
+        with locks.get(lock_key, duration=60, name="project-platform-lock").acquire():
+            project.refresh_from_db(fields=["platform"])
+
+            if not project.platform:
+                with transaction.atomic(router.db_for_write(Project)):
+                    project.update(platform=event.platform)
+                    project.update_option("sentry:project_platform_inferred", event.platform)
+
+                    create_system_audit_entry(
+                        organization=project.organization,
+                        target_object=project.id,
+                        event=audit_log.get_event_id("PROJECT_EDIT"),
+                        data={**project.get_audit_log_data(), "platform": event.platform},
+                    )
+                return
+
+            if project.platform != event.platform:
+                inferred_platform = project.get_option("sentry:project_platform_inferred")
+
+                # If current platform matches what we inferred, we can safely continue inferring it
+                # since it hasn't been manually changed
+                if inferred_platform and project.platform == inferred_platform:
+                    with transaction.atomic(router.db_for_write(Project)):
+                        project.update(platform="other")
+                        project.update_option("sentry:project_platform_inferred", "other")
+                        create_system_audit_entry(
+                            organization=project.organization,
+                            target_object=project.id,
+                            event=audit_log.get_event_id("PROJECT_EDIT"),
+                            data={**project.get_audit_log_data(), "platform": "other"},
+                        )
+
+                # Otherwise, we need to mark that we should stop inferring platform (unless it becomes null again)
+                else:
+                    project.update_option("sentry:project_platform_inferred", None)
+
+    except Exception:
         return
-
-    if project.platform != event.platform:
-        inferred_platform = project.get_option("sentry:project_platform_inferred")
-
-        # If current platform matches what we inferred, we can safely continue inferring it
-        # since it hasn't been manually changed
-        if inferred_platform and project.platform == inferred_platform:
-            project.update(platform="other")
-            project.update_option("sentry:project_platform_inferred", "other")
-            create_system_audit_entry(
-                organization=project.organization,
-                target_object=project.id,
-                event=audit_log.get_event_id("PROJECT_EDIT"),
-                data={**project.get_audit_log_data(), "platform": "other"},
-            )
-
-        # Otherwise, we need to mark that we should stop inferring platform (unless it becomes null again)
-        else:
-            project.update_option("sentry:project_platform_inferred", None)
 
 
 @sentry_sdk.tracing.trace
