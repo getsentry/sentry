@@ -11,6 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry import features, options
 from sentry.identity.base import Provider
 from sentry.integrations.base import IntegrationDomain
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
@@ -33,7 +34,7 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
 
     # TODO(iamrajjoshi): Delete this after Azure DevOps migration is complete
     def _get_provider(self, provider_key: str, organization: RpcOrganization | None) -> Provider:
-        if provider_key == "vsts" and features.has(
+        if provider_key == IntegrationProviderSlug.AZURE_DEVOPS.value and features.has(
             "organizations:migrate-azure-devops-integration", organization
         ):
             provider_key = "vsts_new"
