@@ -281,6 +281,9 @@ class OrganizationIndexEndpoint(Endpoint):
 
             analytics.record(
                 OrganizationCreatedEvent(
+                    id=org.id,
+                    name=org.name,
+                    slug=org.slug,
                     actor_id=request.user.id if request.user.is_authenticated else None,
                 )
             )

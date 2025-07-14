@@ -3,11 +3,11 @@ from sentry import analytics
 
 @analytics.eventclass("issue.priority_updated")
 class IssuePriorityUpdatedEvent(analytics.Event):
-    group_id: str
+    group_id: int
     new_priority: str
-    project_id: str
+    project_id: int | None
     organization_id: str
-    user_id: str | None = None
+    user_id: int | None = None
     issue_category: str | None = None
     issue_type: str | None = None
     previous_priority: str | None = None
