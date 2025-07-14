@@ -1,3 +1,8 @@
+"""
+Dual processing tests for the workflow engine/legacy system. This file will be cleaned up
+after we fully migrate away from metric alerts.
+"""
+
 from datetime import timedelta
 from unittest import mock
 from unittest.mock import MagicMock, call, patch
@@ -35,7 +40,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
-from tests.sentry.incidents.subscription_processor.test_subscription_processor import (
+from tests.sentry.incidents.subscription_processor.test_subscription_processor_legacy import (
     ProcessUpdateAnomalyDetectionTest,
     ProcessUpdateComparisonAlertTest,
 )
