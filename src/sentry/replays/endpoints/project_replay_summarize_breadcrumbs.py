@@ -183,19 +183,21 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[GroupEven
         return []
 
 
-def parse_timestamp_ms(value: str | float | None) -> float:
+def parse_timestamp(timestamp_value: Any, unit: str) -> float:
+    """Parse a timestamp input to a float value.
+    The argument timestamp value can be string, float, or None.
+    The returned unit will be the same as the input unit.
     """
-    Parse a str or float timestamp to milliseconds.
-    None and ill-formatted date strings default to 0.0.
-    """
-    if isinstance(value, str):
-        try:
-            dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
-            return dt.timestamp() * 1000
-        except (ValueError, AttributeError):
-            return 0.0
-
-    return value or 0.0
+    if timestamp_value is not None:
+        if isinstance(timestamp_value, str):
+            try:
+                dt = datetime.fromisoformat(timestamp_value.replace("Z", "+00:00"))
+                return dt.timestamp() * 1000 if unit == "ms" else dt.timestamp()
+            except (ValueError, AttributeError):
+                return 0.0
+        else:
+            return float(timestamp_value)
+    return 0.0
 
 
 def fetch_trace_connected_errors(
@@ -259,9 +261,9 @@ def fetch_trace_connected_errors(
             error_data = query.process_results(result)["data"]
 
             for event in error_data:
-                timestamp = parse_timestamp_ms(event.get("timestamp_ms")) or parse_timestamp_ms(
-                    event.get("timestamp")
-                )
+                timestamp_ms = parse_timestamp(event.get("timestamp_ms"), "ms")
+                timestamp_s = parse_timestamp(event.get("timestamp"), "s")
+                timestamp = timestamp_ms or timestamp_s * 1000
 
                 if timestamp:
                     error_events.append(
