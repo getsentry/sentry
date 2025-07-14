@@ -99,13 +99,14 @@ DetectorExtraDetails.Environment = function DetectorExtraDetailsEnvironment({
   detector: Detector;
 }) {
   const environment = getDetectorEnvironment(detector);
+  const environmentLabel = environment ?? t('All environments');
 
   return (
     <KeyValueTableRow
       keyName={t('Environment')}
       value={
-        <Tooltip title={environment} showOnlyOnOverflow>
-          <TextOverflow>{environment}</TextOverflow>
+        <Tooltip title={environmentLabel} showOnlyOnOverflow>
+          <TextOverflow>{environmentLabel}</TextOverflow>
         </Tooltip>
       }
     />
