@@ -155,7 +155,6 @@ export const Heading = styled(
   (props: HeadingProps & ExclusiveEllipsisProps) => {
     const {children, as, ...rest} = props;
     const HeadingComponent = as;
-
     return <HeadingComponent {...rest}>{children}</HeadingComponent>;
   },
   {
