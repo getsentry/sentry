@@ -21,15 +21,6 @@ const swcConfig: SwcConfig = {
         ],
         // https://github.com/magic-akari/swc_mut_cjs_exports
         ['swc_mut_cjs_exports', {}],
-        [
-          'swc-plugin-component-annotate',
-          {
-            'annotate-fragments': false,
-            'component-attr': 'data-sentry-component',
-            'element-attr': 'data-sentry-element',
-            'source-file-attr': 'data-sentry-source-file',
-          },
-        ],
       ],
     },
     parser: {
