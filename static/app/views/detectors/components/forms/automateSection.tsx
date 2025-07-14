@@ -15,6 +15,7 @@ import {space} from 'sentry/styles/space';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {getApiQueryData, setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
 import {makeAutomationsQueryKey} from 'sentry/views/automations/hooks';
 import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
 
@@ -49,10 +50,15 @@ function AllAutomations({
   automationIds: string[];
   toggleConnected: (params: {automation: Automation}) => void;
 }) {
+  const [searchQuery, setSearchQuery] = useState('');
   const [cursor, setCursor] = useState<string | undefined>(undefined);
 
   return (
     <Section title={t('All Automations')}>
+      <AutomationSearch
+        initialQuery={searchQuery}
+        onSearch={query => setSearchQuery(query)}
+      />
       <ConnectedAutomationsList
         data-test-id="drawer-all-automations-list"
         automationIds={null}
@@ -61,6 +67,7 @@ function AllAutomations({
         emptyMessage={t('No automations found')}
         cursor={cursor}
         onCursor={setCursor}
+        query={searchQuery}
       />
     </Section>
   );
