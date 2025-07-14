@@ -100,8 +100,9 @@ export default function ToolUsageWidget() {
         plottables: timeSeries.map(
           (ts, index) =>
             new Bars(convertSeriesToTimeseries(ts), {
-              color: ts.seriesName === 'Other' ? theme.gray200 : colorPalette[index],
-              alias: ts.seriesName,
+              color:
+                ts.seriesName === 'Other' ? theme.chart.neutral : colorPalette[index],
+              alias: ts.seriesName, // Ensures that the tooltip shows the full series name
               stack: 'stack',
             })
         ),

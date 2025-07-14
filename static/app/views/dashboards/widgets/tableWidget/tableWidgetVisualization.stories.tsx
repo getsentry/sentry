@@ -1,10 +1,14 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
+import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import * as Storybook from 'sentry/stories';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import type {Sort} from 'sentry/utils/discover/fields';
+import {useLocation} from 'sentry/utils/useLocation';
 import type {
   TabularColumn,
   TabularData,
@@ -14,6 +18,17 @@ import {sampleHTTPRequestTableData} from 'sentry/views/dashboards/widgets/tableW
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 
 export default Storybook.story('TableWidgetVisualization', story => {
+  const customColumns: TabularColumn[] = [
+    {
+      key: 'count(span.duration)',
+      type: 'number',
+    },
+    {
+      key: 'http.request_method',
+      type: 'string',
+    },
+  ];
+
   story('Getting Started', () => {
     return (
       <Fragment>
@@ -40,20 +55,6 @@ export default Storybook.story('TableWidgetVisualization', story => {
       ...sampleHTTPRequestTableData,
       data: [],
     };
-    const customColumns: TabularColumn[] = [
-      {
-        key: 'count(span.duration)',
-        name: 'count(span.duration)',
-        type: 'number',
-        width: 200,
-      },
-      {
-        key: 'http.request_method',
-        name: 'http.request_method',
-        type: 'string',
-        width: -1,
-      },
-    ];
     const aliases = {
       'count(span.duration)': 'Count of Span Duration',
       'http.request_method': 'HTTP Request Method',
@@ -78,7 +79,7 @@ ${JSON.stringify(tableWithEmptyData)}
           The prop is optional, as the table will fallback to extract the columns in order
           from the table data's <code>meta.fields</code>, displaying them as shown above.
         </p>
-        <p>This prop is used for reordering columns and setting column widths:</p>
+        <p>For example, this prop can be used for reordering columns:</p>
         <TableWidgetVisualization
           tableData={sampleHTTPRequestTableData}
           columns={customColumns}
@@ -91,7 +92,7 @@ ${JSON.stringify(customColumns)}
         <p>
           To pass custom names for a column header, provide the prop <code>aliases</code>{' '}
           which maps column key to the alias. In some cases you may have both field
-          aliases set by user (ex. in dashboards) as well as a static mapping. The util
+          aliases set by user (e.g., in dashboards) as well as a static mapping. The util
           function <code>decodeColumnAliases</code> is provided to consolidate them, with
           priority given to user field aliases.
         </p>
@@ -108,6 +109,225 @@ ${JSON.stringify(customColumns)}
 ${JSON.stringify(aliases)}
           `}
         </CodeSnippet>
+      </Fragment>
+    );
+  });
+
+  story('Sorting', () => {
+    const location = useLocation();
+    const [data, setData] = useState<TabularData>(sampleHTTPRequestTableData);
+    const [sort, setSort] = useState<Sort>();
+    function onChangeSort(newSort: Sort) {
+      const sortedData: Array<TabularRow<string>> = Object.entries(
+        sampleHTTPRequestTableData.data
+      )
+        .sort(([, a], [, b]) => {
+          const aField = a?.[newSort.field] ?? 0;
+          const bField = b?.[newSort.field] ?? 0;
+          const value = newSort.kind === 'asc' ? 1 : -1;
+
+          if (aField < bField) return -value;
+          if (aField > bField) return value;
+          return 0;
+        })
+        .map(result => result[1]);
+      setSort(newSort);
+      setData({data: sortedData, meta: data.meta});
+    }
+
+    const sortableColumns = customColumns.map(column => ({
+      ...column,
+      sortable: true,
+      width: -1,
+    }));
+    return (
+      <Fragment>
+        <p>
+          By default, column fields are assumed to be not sortable. To enable sorting,
+          pass the
+          <code>columns</code> prop with the field <code>sortable</code> set to true.
+          e.g.,
+        </p>
+        <CodeSnippet language="tsx">
+          {`
+columns={[{
+  key: 'count(span.duration)',
+  name: 'count(span.duration)',
+  type: 'number',
+  sortable: true
+},
+{
+  key: 'http.request_method',
+  name: 'http.request_method',
+  type: 'string',
+}]}
+          `}
+        </CodeSnippet>
+        <p>
+          This table <b>does not</b> sort entries. Almost all tables in Sentry rely on the{' '}
+          <code>sort</code> URL query parameter as a reference for sorting, which is why
+          most of the default behavior in this section is to fallback to the URL
+          parameter.{' '}
+          <i>
+            The table displays the rows in the order the data is provided and you are
+            responsible for ensuring the data is sorted.
+          </i>
+        </p>
+        <p>
+          Sorting may require the display of a directional arrow. The table will try to
+          automatically determine the direction based on the <code>sort</code> URL query
+          parameter. Note that the table only supports sorting by one column at a time, so
+          if multiple <code>sort</code> parameters are provided, it will choose the first
+          one.
+        </p>
+        <p>
+          For an interactive example, click column headers below and pay attention to the
+          parameter in the URL. Use the button to reset the parameter.
+        </p>
+        <ButtonContainer>
+          <LinkButton to={{...location, query: {...location.query, sort: undefined}}}>
+            Clear sort parameter
+          </LinkButton>
+        </ButtonContainer>
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          columns={sortableColumns}
+        />
+        <p>
+          If the sort is not stored in the parameter, then pass the <code>sort</code> prop
+          to correctly display the sort arrow direction. Similarly to the default
+          behavior, only one sort is allowed. If both the prop and parameter are defined,
+          the table will prioritize the prop. You can test this by clicking column headers
+          and note how the arrow doesn't change in the table below.
+        </p>
+        <br />
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          sort={{field: 'http.request_method', kind: 'desc'}}
+          columns={sortableColumns}
+        />
+
+        <p>
+          The default action when a sortable column header is clicked is to update the
+          <code>sort</code> URL query parameter. If you wish to override the URL update,
+          you can pass <code>onChangeSort</code> which accepts a<code>Sort</code>
+          object that represents the newly selected sort. This and the <code>sort</code>
+          prop are useful if you need to manage internal state or perform custom sorting.
+        </p>
+        <p>
+          Try clicking the column headers below!{' '}
+          <b>
+            Current sort is
+            <code>{sort?.field ?? 'undefined'}</code> by
+            <code>{sort?.kind ?? 'undefined'}</code> order
+          </b>
+        </p>
+        <TableWidgetVisualization
+          columns={sortableColumns}
+          tableData={data}
+          sort={sort}
+          onChangeSort={(newSort: Sort) => onChangeSort(newSort)}
+        />
+        <CodeSnippet language="tsx">
+          {`
+const [data, setData] = useState<TabularData>(...);
+const [sort, setSort] = useState<Sort>();
+
+// Performs sorting and updates internal state
+function onChangeSort(newSort: Sort) {
+  const sortedData: Array<TabularRow<string>> = Object.entries(
+    sampleHTTPRequestTableData.data
+  )
+    .sort(([, a], [, b]) => {
+      const aField = a?.[newSort.field] ?? 0;
+      const bField = b?.[newSort.field] ?? 0;
+      const value = newSort.kind === 'asc' ? 1 : -1;
+
+      if (aField < bField) return -value;
+      if (aField > bField) return value;
+      return 0;
+    })
+    .map(result => result[1]);
+  setSort(newSort);
+  setData({data: sortedData, meta: data.meta});
+}
+        `}
+        </CodeSnippet>
+      </Fragment>
+    );
+  });
+
+  story('Column Widths and Resizing', () => {
+    const location = useLocation();
+    const noWidthColumns = customColumns.map(column => ({...column, width: undefined}));
+    const customWidthsColumns = customColumns.map(column => ({...column, width: 200}));
+    const [columns, setColumns] = useState<TabularColumn[]>(noWidthColumns);
+
+    return (
+      <Fragment>
+        <p>
+          To set column widths, add the <code>width</code>field to a column in{' '}
+          <code>columns</code>prop. Column widths are specified in pixels. If a column
+          width is not specified, the special value <code>-1</code>is assumed and{' '}
+          <Storybook.JSXNode name="TableWidgetVisualization" /> will automatically expand
+          the column. The special value can also be explicitly set.
+        </p>
+        <p>
+          By default, table columns are assumed to be resizable. Pass
+          <code>{'resizable={false}'}</code> to disable it. Resizing is only available if
+          there are at least two columns in the table.
+        </p>
+        <p>
+          If a table is not column resizable, but needs custom widths, set the{' '}
+          <code>width</code> field. For example:
+        </p>
+        <TableWidgetVisualization
+          columns={customWidthsColumns}
+          tableData={sampleHTTPRequestTableData}
+          resizable={false}
+        />
+        <p>
+          Also by default, is <Storybook.JSXNode name="TableWidgetVisualization" />{' '}
+          managing column widths and resizing via <code>width</code> URL parameters. E.g.,{' '}
+          <code>?width=-1&width=512</code> will set the first column to have automatic
+          width, and the second column to have a width of 512px. Note: this behavior only
+          applies if the table columns are resizable.
+        </p>
+        <p>
+          If both the URL parameters and <code>width</code>field in the{' '}
+          <code>columns</code>prop are supplied, the table will prioritize the prop. If
+          you want the default behavior and need to pass <code>columns</code>, then ensure
+          that the <code>width</code>field does not exist or is set to{' '}
+          <code>undefined</code>for every column.
+        </p>
+        <p>
+          Try interacting with the columns and making note of the URL parameter. Use the
+          button to clear the width parameters.
+        </p>
+        <ButtonContainer>
+          <LinkButton to={{...location, query: {...location.query, width: undefined}}}>
+            Clear width parameters
+          </LinkButton>
+        </ButtonContainer>
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          columns={noWidthColumns}
+        />
+        <p>
+          If you wish to override default behavior of updating the URL, pass the callback
+          function <code>onResizeColumn</code>, which accepts <code>TabularColumn[]</code>{' '}
+          representing the columns with new widths. This and the <code>width</code>field
+          in <code>columns</code>is useful if you need to manage internal state:
+        </p>
+        <p>
+          Current widths are{' '}
+          <b>[{columns.map(column => column.width ?? 'undefined').toString()}]</b>
+        </p>
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          columns={columns}
+          onResizeColumn={newColumns => setColumns(newColumns)}
+        />
       </Fragment>
     );
   });
@@ -185,7 +405,23 @@ function getRenderer(fieldName: string) {
           used as a loading placeholder
         </p>
         <TableWidgetVisualization.LoadingPlaceholder />
+        <p>
+          Optionally, you can pass the
+          <code>columns</code>
+          prop to render them in the loading placeholder. You can also pass
+          <code>aliases</code> to apply custom names to columns. Note: sorting and
+          resizing are disabled in the loading placeholder.
+        </p>
+        <TableWidgetVisualization.LoadingPlaceholder
+          columns={customColumns.map(column => ({...column, width: -1}))}
+        />
       </Fragment>
     );
   });
 });
+
+const ButtonContainer = styled('div')`
+  display: flex;
+  justify-content: center;
+  margin: 20px;
+`;

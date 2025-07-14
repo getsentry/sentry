@@ -81,7 +81,7 @@ type NamedTimeSeries = TimeSeries & {
   seriesName?: string;
 };
 
-interface ChartInfo {
+export interface ChartInfo {
   chartIcon: ReactNode;
   chartType: ChartType;
   data: NamedTimeSeries[];
@@ -507,6 +507,7 @@ function Chart({
         }
       />
       <FloatingTrigger
+        chartInfo={chartInfo}
         boxSelectOptions={boxSelectOptions}
         triggerWrapperRef={triggerWrapperRef}
       />

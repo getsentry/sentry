@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {TRACE_WATERFALL_PREFERENCES_KEY} from 'sentry/components/events/interfaces/performance/utils';
+import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -20,10 +21,8 @@ import {IssuesTraceWaterfall} from 'sentry/views/performance/newTraceDetails/iss
 import {getTraceLinkForIssue} from 'sentry/views/performance/newTraceDetails/issuesTraceWaterfallOverlay';
 import {useIssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useIssuesTraceTree';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
-import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {TraceHeaderComponents} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
 import {
   getInitialTracePreferences,
   type TracePreferencesState,
@@ -61,7 +60,7 @@ interface EventTraceViewInnerProps {
 }
 
 function EventTraceViewInner({event, organization, traceId}: EventTraceViewInnerProps) {
-  const timestamp = new Date(event.dateReceived).getTime() / 1e3;
+  const timestamp = getEventTimestampInSeconds(event);
 
   const trace = useTrace({
     timestamp,
@@ -71,8 +70,7 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
   const params = useTraceQueryParams({
     timestamp,
   });
-  const meta = useTraceMeta([{traceSlug: traceId, timestamp}]);
-  const tree = useIssuesTraceTree({trace, meta, replay: null});
+  const tree = useIssuesTraceTree({trace, replay: null});
 
   const rootEventResults = useTraceRootEvent({
     tree,
@@ -97,7 +95,6 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
         rootEventResults={rootEventResults}
         organization={organization}
         traceEventView={traceEventView}
-        meta={meta}
         source="issues"
         replay={null}
         event={event}
@@ -174,10 +171,6 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
       title={t('Trace Preview')}
       actions={
         <ButtonBar gap={1}>
-          <TraceHeaderComponents.ToggleTraceFormatButton
-            location={location}
-            organization={organization}
-          />
           <LinkButton
             size="xs"
             to={getTraceLinkForIssue(traceTarget)}

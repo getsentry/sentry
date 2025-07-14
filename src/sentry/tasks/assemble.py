@@ -235,7 +235,7 @@ def delete_assemble_status(task, scope, checksum):
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=attachments_tasks,
-        processing_deadline_duration=30,
+        processing_deadline_duration=60 * 3,
     ),
 )
 def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
@@ -515,10 +515,19 @@ class ArtifactBundlePostAssembler:
 
         # In case there is not ArtifactBundle with a specific bundle_id, we just create it and return.
         if existing_artifact_bundle is None:
+            file = self.assemble_result.bundle
+
+            metrics.distribution(
+                "storage.put.size",
+                file.size,
+                tags={"usecase": "artifact-bundles", "compression": "none"},
+                unit="byte",
+            )
+
             artifact_bundle = ArtifactBundle.objects.create(
                 organization_id=self.organization.id,
                 bundle_id=bundle_id,
-                file=self.assemble_result.bundle,
+                file=file,
                 artifact_count=self.archive.artifact_count,
                 # By default, a bundle is not indexed.
                 indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,

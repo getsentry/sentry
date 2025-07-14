@@ -1703,6 +1703,12 @@ const TraceStylingWrapper = styled('div')`
     font-weight: ${p => p.theme.fontWeight.bold};
   }
 
+  .TraceName {
+    margin-left: 4px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .TraceEmDash {
     margin-left: 4px;
   }

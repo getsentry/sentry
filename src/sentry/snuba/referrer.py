@@ -173,8 +173,6 @@ class Referrer(StrEnum):
     API_ORGANIZATION_EVENTS_SPANS_PERFORMANCE_SUSPECTS = (
         "api.organization-events-spans-performance-suspects"
     )
-    API_PERFORMANCE_AGENT_MONITORING_TRACE_DRAWER = "api.performance.agent-monitoring.trace-drawer"
-    API_PERFORMANCE_AGENT_MONITORING_MODELS_TABLE = "api.performance.agent-monitoring.models-table"
     API_PERFORMANCE_EVENTS_FACETS_STATS = (
         "api.organization-events-facets-stats-performance.top-tags"
     )
@@ -696,6 +694,29 @@ class Referrer(StrEnum):
     API_PERFORMANCE_BACKEND_OVERVIEW_WEB_VITALS_CHART = (
         "api.performance.backend.overview.web-vitals-chart"
     )
+    API_PERFORMANCE_BACKEND_OVERVIEW_NEXTJS_API_TREE = "api.performance.nextjs.overview.api-tree"
+
+    # Performance Agent Monitoring Module
+    API_PERFORMANCE_AGENT_MONITORING_MODELS_TABLE = "api.performance.agent-monitoring.models-table"
+    API_PERFORMANCE_AGENT_MONITORING_TOOLS_TABLE = "api.performance.agent-monitoring.tools-table"
+    API_PERFORMANCE_AGENT_MONITORING_TRACE_DRAWER = "api.performance.agent-monitoring.trace-drawer"
+    API_PERFORMANCE_AGENT_MONITORING_TRACES_TABLE = "api.performance.agent-monitoring.traces-table"
+    API_PERFORMANCE_AGENT_MONITORING_TOKEN_USAGE_WIDGET = (
+        "api.performance.agent-monitoring.token-usage-widget"
+    )
+    API_PERFORMANCE_AGENT_MONITORING_TOOL_USAGE_WIDGET = (
+        "api.performance.agent-monitoring.tool-usage-widget"
+    )
+    API_PERFORMANCE_AGENT_MONITORING_LLM_GENERATIONS_WIDGET = (
+        "api.performance.agent-monitoring.llm-generations-widget"
+    )
+    API_PERFORMANCE_AGENT_MONITORING_AGENT_RUNS_WIDGET = (
+        "api.performance.agent-monitoring.agent-runs-widget"
+    )
+    API_PERFORMANCE_AGENT_MONITORING_AGENT_DURATION_WIDGET = (
+        "api.performance.agent-monitoring.agent-duration-widget"
+    )
+    API_PERFORMANCE_AGENT_MONITORING_ONBOARDING = "api.performance.agent-monitoring.onboarding"
 
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
@@ -983,6 +1004,7 @@ class Referrer(StrEnum):
     TAGSTORE_GET_RELEASE_TAGS = "tagstore.get_release_tags"
     TAGSTORE_GET_TAG_VALUE_PAGINATOR_FOR_PROJECTS = "tagstore.get_tag_value_paginator_for_projects"
     TASKS_MONITOR_RELEASE_ADOPTION = "tasks.monitor_release_adoption"
+    TASKS_UPDATE_USER_REPORTS = "tasks.update_user_reports"
     TASKS_PERFORMANCE_SPLIT_DISCOVER_DATASET = "tasks.performance.split_discover_dataset"
     TASKS_PERFORMANCE_SPLIT_DISCOVER_DATASET_METRICS_ENHANCED = (
         "tasks.performance.split_discover_dataset.metrics-enhanced"
