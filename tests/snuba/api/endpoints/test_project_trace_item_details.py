@@ -285,41 +285,17 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
         )
 
     def test_logs_with_a_meta_key(self):
-        logs = [
-            self.create_ourlog(
-                {
-                    "body": "[Filtered]",
-                    "trace_id": self.trace_uuid,
-                },
-                attributes={
-                    "str_attr": {
-                        "string_value": "1",
-                    },
-                    "sentry._meta.fields.attributes.sentry.body": '{"length": 300, "reason": "value too long"}',
-                    "sentry._meta.fields.attributes.float_attr": '{"unit": "float"}',
-                    "int_attr": {"int_value": 2},
-                    "float_attr": {
-                        "double_value": 3.0,
-                    },
-                    "bool_attr": {
-                        "bool_value": True,
-                    },
-                },
-                timestamp=self.one_min_ago,
-            ),
-        ]
-        self.store_ourlogs(logs)
-        item_list_url = reverse(
-            "sentry-api-0-organization-events",
-            kwargs={
-                "organization_id_or_slug": self.project.organization.slug,
+        log = self.create_ourlog(
+            {
+                "body": "[Filtered]",
+                "trace_id": self.trace_uuid,
             },
             attributes={
                 "str_attr": {
                     "string_value": "1",
                 },
-                # This is a guess on how this will look, the key & storage may change at some point
-                "sentry._meta.fields.attributes": '{"sentry.body": {"length": 300, "reason": "value too long"}, "float_attr": {"unit": "float"}}',
+                "sentry._meta.fields.attributes.sentry.body": '{"length": 300, "reason": "value too long"}',
+                "sentry._meta.fields.attributes.float_attr": '{"unit": "float"}',
                 "int_attr": {"int_value": 2},
                 "float_attr": {
                     "double_value": 3.0,
