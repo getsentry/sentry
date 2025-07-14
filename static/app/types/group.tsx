@@ -211,6 +211,7 @@ export enum IssueTitle {
   REPLAY_HYDRATION_ERROR = 'Hydration Error Detected',
 
   DB_QUERY_INJECTION_VULNERABILITY = 'Potential Database Query Injection Vulnerability',
+  QUERY_INJECTION_VULNERABILITY = 'Potential Query Injection Vulnerability',
 }
 
 export const ISSUE_TYPE_TO_ISSUE_TITLE = {
@@ -238,6 +239,7 @@ export const ISSUE_TYPE_TO_ISSUE_TITLE = {
   profile_function_regression: IssueTitle.PROFILE_FUNCTION_REGRESSION,
 
   db_query_injection_vulnerability: IssueTitle.DB_QUERY_INJECTION_VULNERABILITY,
+  query_injection_vulnerability: IssueTitle.QUERY_INJECTION_VULNERABILITY,
 
   replay_click_rage: IssueTitle.REPLAY_RAGE_CLICK,
   replay_hydration_error: IssueTitle.REPLAY_HYDRATION_ERROR,
