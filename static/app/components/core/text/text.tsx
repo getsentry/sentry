@@ -90,8 +90,8 @@ interface TextProps {
 }
 
 type ExclusiveEllipsisProps =
-  | {ellipsis: true; wrap?: never}
-  | {wrap: TextProps['wrap']; ellipsis?: false};
+  | {ellipsis?: true; wrap?: never}
+  | {ellipsis?: never; wrap?: TextProps['wrap']};
 
 export const Text = styled(
   (props: TextProps & ExclusiveEllipsisProps) => {
