@@ -1,5 +1,5 @@
 import {useContext, useEffect, useMemo, useRef, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabListOptions} from '@react-aria/tabs';
 import {useTabList} from '@react-aria/tabs';
@@ -45,6 +45,7 @@ function useOverflowTabs({
   tabListRef: React.RefObject<HTMLUListElement | null>;
 }) {
   const [overflowTabs, setOverflowTabs] = useState<Array<string | number>>([]);
+  const theme = useTheme();
 
   useEffect(() => {
     if (disabled) {
@@ -82,8 +83,11 @@ function useOverflowTabs({
       element => element && observer.observe(element)
     );
 
-    return () => observer.disconnect();
-  }, [tabListRef, tabItemsRef, disabled]);
+    return () => {
+      observer.disconnect();
+      setOverflowTabs([]);
+    };
+  }, [tabListRef, tabItemsRef, disabled, theme]);
 
   const tabItemKeyToHiddenMap = tabItems.reduce<Record<string | number, boolean>>(
     (acc, next) => ({
