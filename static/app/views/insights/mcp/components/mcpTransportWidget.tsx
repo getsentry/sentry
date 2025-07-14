@@ -11,7 +11,6 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
-import {AI_MODEL_ID_ATTRIBUTE} from 'sentry/views/insights/agentMonitoring/utils/query';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTopNSpanEAPSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
@@ -29,7 +28,7 @@ import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {SpanFields} from 'sentry/views/insights/types';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
-export default function LLMGenerationsWidget() {
+export default function McpTransportWidget() {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans-low',
@@ -109,9 +108,9 @@ export default function LLMGenerationsWidget() {
   const footer = hasData && (
     <WidgetFooterTable>
       {models?.map((item, index) => {
-        const modelId = `${item[AI_MODEL_ID_ATTRIBUTE]}`;
+        const transportName = item[SpanFields.MCP_TRANSPORT] ?? t('(none)');
         return (
-          <Fragment key={modelId}>
+          <Fragment key={transportName}>
             <div>
               <SeriesColorIndicator
                 style={{
@@ -119,7 +118,7 @@ export default function LLMGenerationsWidget() {
                 }}
               />
             </div>
-            <div>{item[SpanFields.MCP_TRANSPORT] ?? t('(none)')}</div>
+            <div>{transportName}</div>
             <span>
               <Count value={item['count()'] ?? 0} />
             </span>
