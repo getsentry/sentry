@@ -23,6 +23,7 @@ import {
   type DiscoverQueryRequestParams,
   doDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
+import {Container} from 'sentry/utils/discover/styles';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
@@ -374,6 +375,11 @@ function renderEventInTraceView(
   if (!spanId || typeof spanId !== 'string') {
     return emptyStringValue;
   }
+
+  if (!data.trace) {
+    return <Container>{getShortEventId(spanId)}</Container>;
+  }
+
   const target = generateLinkToEventInTraceView({
     traceSlug: data.trace,
     timestamp: data.timestamp,

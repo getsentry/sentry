@@ -894,7 +894,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
 
       return (
         <IconContainer>
-          {getContextIcon(browserName, false)}
+          {getContextIcon(browserName)}
           {browserName}
         </IconContainer>
       );
@@ -910,7 +910,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
 
       return (
         <IconContainer>
-          {getContextIcon(browser, true)}
+          {getContextIcon(dropVersion(browser))}
           {browser}
         </IconContainer>
       );
@@ -926,7 +926,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
 
       return (
         <IconContainer>
-          {getContextIcon(osName, false)}
+          {getContextIcon(osName)}
           {osName}
         </IconContainer>
       );
@@ -944,7 +944,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
 
       return (
         <IconContainer>
-          {getContextIcon(os, true)}
+          {getContextIcon(dropVersion(os))}
           {hasUserAgentLocking ? (
             <Tooltip title={userAgentLocking} showUnderline>
               {os}
@@ -960,20 +960,24 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
 
 /**
  * Returns a logo icon component for operating system (OS) and browser related fields
- * @param value OS or browser string that may include the version appended at the end. E.g., 'Safari 9.1.2', 'Mac OS X'
- * @param dropVersion drops the last part of the value. E.g., 'Safari 9.1.2' would drop '9.1.2' before mapping to an icon
+ * @param value OS or browser string. E.g., 'Safari', 'Mac OS X'
  */
-const getContextIcon = (value: string, dropVersion?: boolean) => {
+const getContextIcon = (value: string) => {
   const valueArray = value.split(' ');
-
-  // Some fields have the number version attached, so it needs to be removed
-  if (dropVersion) {
-    valueArray.pop();
-  }
-
   const formattedValue = valueArray.join('-').toLocaleLowerCase();
 
   return <ContextIcon name={formattedValue} size="md" />;
+};
+
+/**
+ * Drops the last part of an operating system or browser string
+ * @param value The string that contains the version to be dropped. E.g., 'Safari 9.1.2'
+ * @returns E.g., 'Safari 9.1.2' -> 'Safari'
+ */
+const dropVersion = (value: string) => {
+  const valueArray = value.split(' ');
+  valueArray.pop();
+  return valueArray.join(' ');
 };
 
 const getProjectIdLink = (
