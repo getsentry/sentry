@@ -5,7 +5,7 @@ import re
 from collections.abc import Sequence
 from typing import Any
 
-from sentry.issues.grouptype import DBQueryInjectionVulnerabilityGroupType
+from sentry.issues.grouptype import QueryInjectionVulnerabilityGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -92,7 +92,7 @@ class SQLInjectionDetector(PerformanceDetector):
 
         for query_pair in request_data:
             # Skip None values or pairs that don't have at least 2 elements
-            if not query_pair or len(query_pair) < 2:
+            if not query_pair or not isinstance(query_pair, Sequence) or len(query_pair) < 2:
                 continue
             query_value = query_pair[1]
             query_key = query_pair[0]
@@ -164,7 +164,7 @@ class SQLInjectionDetector(PerformanceDetector):
         )
 
         self.stored_problems[fingerprint] = PerformanceProblem(
-            type=DBQueryInjectionVulnerabilityGroupType,
+            type=QueryInjectionVulnerabilityGroupType,
             fingerprint=fingerprint,
             op=op,
             desc=issue_description[:MAX_EVIDENCE_VALUE_LENGTH],
@@ -233,4 +233,4 @@ class SQLInjectionDetector(PerformanceDetector):
     def _fingerprint(self, description: str) -> str:
         signature = description.encode("utf-8")
         full_fingerprint = hashlib.sha1(signature).hexdigest()
-        return f"1-{DBQueryInjectionVulnerabilityGroupType.type_id}-{full_fingerprint}"
+        return f"1-{QueryInjectionVulnerabilityGroupType.type_id}-{full_fingerprint}"

@@ -9,7 +9,7 @@ import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveRe
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 function mockLocation(query = '') {
-  window.location.search = qs.stringify({query});
+  setWindowLocation(`http://localhost/?${qs.stringify({query})}`);
 }
 
 describe('useActiveReplayTab', () => {
@@ -17,12 +17,29 @@ describe('useActiveReplayTab', () => {
     setWindowLocation('http://localhost/');
   });
 
-  describe('without replay-ai-summaries feature flag', () => {
-    it('should use Breadcrumbs as a default', () => {
+  describe('without both replay-ai-summaries and gen-ai-features feature flags', () => {
+    it('should use Breadcrumbs as a default when only gen-ai-features is enabled', () => {
       const {result} = renderHook(useActiveReplayTab, {
         initialProps: {},
         wrapper: ({children}) => (
-          <OrganizationContext value={OrganizationFixture({features: []})}>
+          <OrganizationContext
+            value={OrganizationFixture({features: ['gen-ai-features']})}
+          >
+            {children}
+          </OrganizationContext>
+        ),
+      });
+
+      expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
+    });
+
+    it('should use Breadcrumbs as a default when only replay-ai-summaries is enabled', () => {
+      const {result} = renderHook(useActiveReplayTab, {
+        initialProps: {},
+        wrapper: ({children}) => (
+          <OrganizationContext
+            value={OrganizationFixture({features: ['replay-ai-summaries']})}
+          >
             {children}
           </OrganizationContext>
         ),
@@ -90,7 +107,9 @@ describe('useActiveReplayTab', () => {
         initialProps: {},
         wrapper: ({children}) => (
           <OrganizationContext
-            value={OrganizationFixture({features: ['replay-ai-summaries']})}
+            value={OrganizationFixture({
+              features: ['replay-ai-summaries', 'gen-ai-features'],
+            })}
           >
             {children}
           </OrganizationContext>
@@ -107,7 +126,9 @@ describe('useActiveReplayTab', () => {
         initialProps: {},
         wrapper: ({children}) => (
           <OrganizationContext
-            value={OrganizationFixture({features: ['replay-ai-summaries']})}
+            value={OrganizationFixture({
+              features: ['replay-ai-summaries', 'gen-ai-features'],
+            })}
           >
             {children}
           </OrganizationContext>
@@ -122,7 +143,9 @@ describe('useActiveReplayTab', () => {
         initialProps: {},
         wrapper: ({children}) => (
           <OrganizationContext
-            value={OrganizationFixture({features: ['replay-ai-summaries']})}
+            value={OrganizationFixture({
+              features: ['replay-ai-summaries', 'gen-ai-features'],
+            })}
           >
             {children}
           </OrganizationContext>

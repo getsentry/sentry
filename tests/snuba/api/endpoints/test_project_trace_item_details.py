@@ -285,10 +285,34 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
         )
 
     def test_logs_with_a_meta_key(self):
-        log = self.create_ourlog(
-            {
-                "body": "[Filtered]",
-                "trace_id": self.trace_uuid,
+        logs = [
+            self.create_ourlog(
+                {
+                    "body": "[Filtered]",
+                    "trace_id": self.trace_uuid,
+                },
+                attributes={
+                    "str_attr": {
+                        "string_value": "1",
+                    },
+                    "sentry._meta.fields.attributes.sentry.body": '{"length": 300, "reason": "value too long"}',
+                    "sentry._meta.fields.attributes.float_attr": '{"unit": "float"}',
+                    "int_attr": {"int_value": 2},
+                    "float_attr": {
+                        "double_value": 3.0,
+                    },
+                    "bool_attr": {
+                        "bool_value": True,
+                    },
+                },
+                timestamp=self.one_min_ago,
+            ),
+        ]
+        self.store_ourlogs(logs)
+        item_list_url = reverse(
+            "sentry-api-0-organization-events",
+            kwargs={
+                "organization_id_or_slug": self.project.organization.slug,
             },
             attributes={
                 "str_attr": {
@@ -337,8 +361,8 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
                 {"name": "trace", "type": "str", "value": self.trace_uuid},
             ],
             "meta": {
-                "message": {"length": 300, "reason": "value too long"},
                 "tags[float_attr,number]": {"unit": "float"},
+                "message": {"length": 300, "reason": "value too long"},
             },
             "itemId": item_id,
             "timestamp": self.one_min_ago.replace(
