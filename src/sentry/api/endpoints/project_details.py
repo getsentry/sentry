@@ -1024,15 +1024,18 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if old_raw_dynamic_sampling_biases is None:
             return
 
-        for index, rule in enumerate(new_raw_dynamic_sampling_biases):
-            if rule["active"] != old_raw_dynamic_sampling_biases[index]["active"]:
+        old_biases = {bias["id"]: bias for bias in old_raw_dynamic_sampling_biases}
+        new_biases = {bias["id"]: bias for bias in new_raw_dynamic_sampling_biases}
+        for bias_id, new_bias in new_biases.items():
+            old_bias = old_biases.get(bias_id)
+            if new_bias["active"] != old_bias["active"]:
                 self.create_audit_entry(
                     request=request,
                     organization=project.organization,
                     target_object=project.id,
                     event=audit_log.get_event_id(
-                        "SAMPLING_BIAS_ENABLED" if rule["active"] else "SAMPLING_BIAS_DISABLED"
+                        "SAMPLING_BIAS_ENABLED" if new_bias["active"] else "SAMPLING_BIAS_DISABLED"
                     ),
-                    data={**project.get_audit_log_data(), "name": rule["id"]},
+                    data={**project.get_audit_log_data(), "name": bias_id},
                 )
                 return

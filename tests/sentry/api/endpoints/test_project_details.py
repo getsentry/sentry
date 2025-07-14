@@ -2029,3 +2029,102 @@ class TestSeerProjectDetails(TestProjectDetailsBase):
             )
             assert self.project.get_option("sentry:seer_scanner_automation") is True
             assert resp.data["seerScannerAutomation"] is True
+
+    def test_dynamic_sampling_biases_audit_log(self):
+        with self.feature("organizations:dynamic-sampling"):
+            resp = self.get_success_response(
+                self.org_slug, self.proj_slug, dynamicSamplingBiases=DEFAULT_BIASES
+            )
+            assert resp.status_code == 200
+            assert self.project.get_option("sentry:dynamic_sampling_biases") == DEFAULT_BIASES
+
+            updated_biases = [
+                {"id": "boostEnvironments", "active": True},
+            ]
+            resp = self.get_success_response(
+                self.org_slug, self.proj_slug, dynamicSamplingBiases=updated_biases
+            )
+            assert resp.status_code == 200
+            assert self.project.get_option("sentry:dynamic_sampling_biases") == updated_biases
+
+            audit_entry = (
+                AuditLogEntry.objects.filter(
+                    organization=self.organization,
+                    event=audit_log.get_event_id("SAMPLING_BIAS_ENABLED"),
+                    target_object=self.project.id,
+                )
+                .order_by("-datetime")
+                .first()
+            )
+            assert audit_entry is not None
+            assert audit_entry.data["name"] == "boostEnvironments"
+
+            reverted_biases = [{"id": "boostEnvironments", "active": False}]
+            resp = self.get_success_response(
+                self.org_slug, self.proj_slug, dynamicSamplingBiases=reverted_biases
+            )
+            assert resp.status_code == 200
+            assert self.project.get_option("sentry:dynamic_sampling_biases") == reverted_biases
+
+            audit_entry = (
+                AuditLogEntry.objects.filter(
+                    organization=self.organization,
+                    event=audit_log.get_event_id("SAMPLING_BIAS_DISABLED"),
+                    target_object=self.project.id,
+                )
+                .order_by("-datetime")
+                .first()
+            )
+            assert audit_entry is not None
+            assert audit_entry.data["name"] == "boostEnvironments"
+
+            # Test with new biases longer than old biases
+            initial_biases = [
+                {"id": "boostEnvironments", "active": False},
+                {"id": "boostLatestRelease", "active": False},
+            ]
+            resp = self.get_success_response(
+                self.org_slug, self.proj_slug, dynamicSamplingBiases=initial_biases
+            )
+            assert resp.status_code == 200
+            assert self.project.get_option("sentry:dynamic_sampling_biases") == initial_biases
+
+            longer_biases = [
+                {"id": "boostEnvironments", "active": False},
+                {"id": "boostLatestRelease", "active": False},
+                {"id": "boostLowVolumeTransactions", "active": True},
+                {"id": "ignoreHealthChecks", "active": False},
+            ]
+            resp = self.get_success_response(
+                self.org_slug, self.proj_slug, dynamicSamplingBiases=longer_biases
+            )
+            assert resp.status_code == 200
+            assert self.project.get_option("sentry:dynamic_sampling_biases") == longer_biases
+
+            audit_entry = (
+                AuditLogEntry.objects.filter(
+                    organization=self.organization,
+                    event=audit_log.get_event_id("SAMPLING_BIAS_ENABLED"),
+                    target_object=self.project.id,
+                )
+                .order_by("-datetime")
+                .first()
+            )
+            assert audit_entry is not None
+            assert audit_entry.data["name"] == "boostLowVolumeTransactions"
+
+            # Test with new biases shorter than old biases
+            resp = self.get_success_response(
+                self.org_slug, self.proj_slug, dynamicSamplingBiases=longer_biases
+            )
+            assert resp.status_code == 200
+            assert self.project.get_option("sentry:dynamic_sampling_biases") == longer_biases
+
+            shorter_biases = [
+                {"id": "boostEnvironments", "active": False},
+            ]
+            resp = self.get_success_response(
+                self.org_slug, self.proj_slug, dynamicSamplingBiases=shorter_biases
+            )
+            assert resp.status_code == 200
+            assert self.project.get_option("sentry:dynamic_sampling_biases") == shorter_biases
