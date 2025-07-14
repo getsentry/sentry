@@ -203,6 +203,54 @@ describe('formatReservedWithUnits', function () {
     );
     expect(formatReservedWithUnits(0, DataCategory.SPANS, {}, true)).toBe('$0.00');
   });
+
+  it('returns correct string for logs', function () {
+    expect(formatReservedWithUnits(0, DataCategory.LOG_BYTE)).toBe('0 GB');
+    expect(formatReservedWithUnits(0.1, DataCategory.LOG_BYTE)).toBe('0.1 GB');
+    expect(formatReservedWithUnits(1, DataCategory.LOG_BYTE)).toBe('1 GB');
+    expect(formatReservedWithUnits(1000, DataCategory.LOG_BYTE)).toBe('1,000 GB');
+
+    expect(
+      formatReservedWithUnits(0.1234, DataCategory.LOG_BYTE, {
+        isAbbreviated: true,
+      })
+    ).toBe('0 GB');
+    expect(
+      formatReservedWithUnits(1.234, DataCategory.LOG_BYTE, {
+        isAbbreviated: true,
+      })
+    ).toBe('1 GB');
+    expect(
+      formatReservedWithUnits(0.1, DataCategory.LOG_BYTE, {
+        useUnitScaling: true,
+      })
+    ).toBe('0.1 GB');
+    expect(
+      formatReservedWithUnits(1, DataCategory.LOG_BYTE, {
+        useUnitScaling: true,
+      })
+    ).toBe('1 GB');
+    expect(
+      formatReservedWithUnits(1000, DataCategory.LOG_BYTE, {
+        useUnitScaling: true,
+      })
+    ).toBe('1 TB');
+    expect(
+      formatReservedWithUnits(1234, DataCategory.LOG_BYTE, {
+        useUnitScaling: true,
+      })
+    ).toBe('1.23 TB');
+    expect(
+      formatReservedWithUnits(1234 * BILLION, DataCategory.LOG_BYTE, {
+        useUnitScaling: true,
+      })
+    ).toBe('1.23 ZB');
+    expect(
+      formatReservedWithUnits(-1 / GIGABYTE, DataCategory.LOG_BYTE, {
+        useUnitScaling: true,
+      })
+    ).toBe(UNLIMITED);
+  });
 });
 
 describe('formatUsageWithUnits', function () {

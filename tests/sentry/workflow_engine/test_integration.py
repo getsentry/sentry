@@ -152,7 +152,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
         self.create_event(self.project.id, datetime.utcnow(), str(self.detector.id))
 
         with mock.patch(
-            "sentry.workflow_engine.processors.workflow.process_workflows"
+            "sentry.workflow_engine.tasks.workflows.process_workflows_event.delay"
         ) as mock_process_workflow:
             self.call_post_process_group(self.group.id)
             mock_process_workflow.assert_called_once()
@@ -176,7 +176,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
         self.group = Group.objects.get(grouphash__hash=self.occurrence.fingerprint[0])
 
         with mock.patch(
-            "sentry.workflow_engine.processors.workflow.process_workflows"
+            "sentry.workflow_engine.tasks.workflows.process_workflows_event.delay"
         ) as mock_process_workflow:
             self.call_post_process_group(error_event.group_id)
 
@@ -189,7 +189,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
         assert self.group
 
         with mock.patch(
-            "sentry.workflow_engine.processors.workflow.process_workflows"
+            "sentry.workflow_engine.tasks.workflows.process_workflows_event.delay"
         ) as mock_process_workflow:
             self.call_post_process_group(self.group.id)
 
@@ -197,7 +197,8 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
             mock_process_workflow.assert_not_called()
 
 
-@mock.patch("sentry.workflow_engine.processors.workflow.Action.trigger")
+@with_feature("organizations:workflow-engine-action-trigger-async")
+@mock.patch("sentry.workflow_engine.processors.workflow.trigger_action.delay")
 @mock_redis_buffer()
 class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationTest):
     def setUp(self):

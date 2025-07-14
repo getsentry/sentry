@@ -15,6 +15,7 @@ import grpc
 from django.conf import settings
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import FetchNextTask
 
+from sentry import options
 from sentry.taskworker.client.client import HostTemporarilyUnavailable, TaskworkerClient
 from sentry.taskworker.client.inflight_task_activation import InflightTaskActivation
 from sentry.taskworker.client.processing_result import ProcessingResult
@@ -153,6 +154,17 @@ class TaskWorker:
         Add a task to child tasks queue. Returns False if no new task was fetched.
         """
         if self._child_tasks.full():
+            # I want to see how this differs between pools that operate well,
+            # and those that are not as effective. I suspect that with a consistent
+            # load of slowish tasks (like 5-15 seconds) that this will happen
+            # infrequently, resulting in the child tasks queue being full
+            # causing processing deadline expiration.
+            # Whereas in pools that have consistent short tasks, this happens
+            # more frequently, allowing workers to run more smoothly.
+            metrics.incr(
+                "taskworker.worker.add_tasks.child_tasks_full",
+                tags={"processing_pool": self._processing_pool_name},
+            )
             return False
 
         inflight = self.fetch_task()
@@ -166,6 +178,10 @@ class TaskWorker:
                     tags={"processing_pool": self._processing_pool_name},
                 )
             except queue.Full:
+                metrics.incr(
+                    "taskworker.worker.child_tasks.put.full",
+                    tags={"processing_pool": self._processing_pool_name},
+                )
                 logger.warning(
                     "taskworker.add_task.child_task_queue_full",
                     extra={
@@ -193,9 +209,13 @@ class TaskWorker:
             iopool = ThreadPoolExecutor(max_workers=self._concurrency)
             with iopool as executor:
                 while not self._shutdown_event.is_set():
+                    fetch_next = self._processing_pool_name not in options.get(
+                        "taskworker.fetch_next.disabled_pools"
+                    )
+
                     try:
                         result = self._processed_tasks.get(timeout=1.0)
-                        executor.submit(self._send_result, result)
+                        executor.submit(self._send_result, result, fetch_next)
                     except queue.Empty:
                         metrics.incr(
                             "taskworker.worker.result_thread.queue_empty",
@@ -331,7 +351,7 @@ class TaskWorker:
                 extra={"error": e, "processing_pool": self._processing_pool_name},
             )
 
-            self._gettask_backoff_seconds = min(self._gettask_backoff_seconds + 2, 10)
+            self._gettask_backoff_seconds = min(self._gettask_backoff_seconds + 1, 5)
             return None
 
         if not activation:
@@ -343,8 +363,7 @@ class TaskWorker:
                 "taskworker.fetch_task.not_found",
                 extra={"processing_pool": self._processing_pool_name},
             )
-
-            self._gettask_backoff_seconds = min(self._gettask_backoff_seconds + 1, 10)
+            self._gettask_backoff_seconds = min(self._gettask_backoff_seconds + 1, 5)
             return None
 
         self._gettask_backoff_seconds = 0
