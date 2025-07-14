@@ -2,38 +2,43 @@ import type {Config} from '@jest/types';
 import path from 'node:path';
 import process from 'node:process';
 import {execFileSync} from 'node:child_process';
-import type {TransformOptions} from '@babel/core';
+import type {Config as SwcConfig} from '@swc/core';
 
-const babelConfig: TransformOptions = {
-  presets: [
-    [
-      '@babel/preset-react',
-      {
+const swcConfig: SwcConfig = {
+  jsc: {
+    experimental: {
+      plugins: [
+        [
+          '@swc/plugin-emotion',
+          {
+            sourceMap: true,
+            autoLabel: 'always',
+          },
+        ],
+        // https://github.com/magic-akari/swc_mut_cjs_exports
+        ['swc_mut_cjs_exports', {}],
+        [
+          'swc-plugin-component-annotate',
+          {
+            'annotate-fragments': false,
+            'component-attr': 'data-sentry-component',
+            'element-attr': 'data-sentry-element',
+            'source-file-attr': 'data-sentry-source-file',
+          },
+        ],
+      ],
+    },
+    parser: {
+      syntax: 'typescript',
+      tsx: true,
+    },
+    transform: {
+      react: {
         runtime: 'automatic',
         importSource: '@emotion/react',
       },
-    ],
-    [
-      '@babel/preset-env',
-      {
-        useBuiltIns: 'usage',
-        corejs: '3.41',
-        targets: {
-          node: 'current',
-        },
-      },
-    ],
-    // TODO: Remove allowDeclareFields when we upgrade to Babel 8
-    ['@babel/preset-typescript', {allowDeclareFields: true, onlyRemoveTypeImports: true}],
-  ],
-  plugins: [
-    [
-      '@emotion/babel-plugin',
-      {
-        sourceMap: false,
-      },
-    ],
-  ],
+    },
+  },
 };
 
 const {
@@ -299,8 +304,8 @@ const config: Config.InitialOptions = {
     '<rootDir>/node_modules/reflux',
   ],
   transform: {
-    '^.+\\.jsx?$': ['babel-jest', babelConfig as any],
-    '^.+\\.tsx?$': ['babel-jest', babelConfig as any],
+    '^.+\\.jsx?$': ['@swc/jest', swcConfig],
+    '^.+\\.tsx?$': ['@swc/jest', swcConfig],
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
   transformIgnorePatterns: [
