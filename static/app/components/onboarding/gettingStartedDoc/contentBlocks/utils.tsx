@@ -3,7 +3,7 @@ import type {
   ContentBlock,
 } from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
 
-export enum CssVariables {
+export enum ContentBlockCssVariables {
   BLOCK_SPACING = '--block-spacing',
 }
 

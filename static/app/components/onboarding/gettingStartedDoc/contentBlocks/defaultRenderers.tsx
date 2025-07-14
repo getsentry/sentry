@@ -8,7 +8,7 @@ import type {
   ContentBlock,
 } from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
 import {
-  CssVariables,
+  ContentBlockCssVariables,
   renderBlocks,
 } from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/utils';
 import {
@@ -18,7 +18,7 @@ import {
 
 const baseBlockStyles = css`
   :not(:last-child) {
-    margin-bottom: var(${CssVariables.BLOCK_SPACING});
+    margin-bottom: var(${ContentBlockCssVariables.BLOCK_SPACING});
   }
 `;
 

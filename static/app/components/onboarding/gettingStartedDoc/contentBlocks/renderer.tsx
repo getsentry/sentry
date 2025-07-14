@@ -8,7 +8,7 @@ import type {
   ContentBlock,
 } from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
 import {
-  CssVariables,
+  ContentBlockCssVariables,
   renderBlocks,
 } from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/utils';
 import {space} from 'sentry/styles/space';
@@ -30,7 +30,7 @@ interface Props {
   renderers?: Partial<BlockRenderers>;
   /**
    * The spacing between the content blocks.
-   * Available as a CSS variable `var(${CssVariables.BLOCK_SPACING})` for styling of child elements.
+   * Available as a CSS variable `var(${ContentBlockCssVariables.BLOCK_SPACING})` for styling of child elements.
    */
   spacing?: string;
 }
@@ -63,5 +63,5 @@ export function ContentBlocksRenderer({
 }
 
 const Wrapper = styled('div')<{spacing: string}>`
-  ${CssVariables.BLOCK_SPACING}: ${p => p.spacing};
+  ${ContentBlockCssVariables.BLOCK_SPACING}: ${p => p.spacing};
 `;
