@@ -45,7 +45,7 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
         params_mut = dict(params)
         params_mut["repo"] = params.get("project") or defaults.get("project")
 
-        default_project, project_choices = self.get_repository_choices(group, params_mut, **kwargs)
+        default_project, project_choices = self.get_repository_choices(group, params_mut)
         return default_project, project_choices
 
     def create_default_repo_choice(self, default_repo):
