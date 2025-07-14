@@ -6,7 +6,7 @@ class OrganizationCreatedEvent(analytics.Event):
     id: str
     name: str
     slug: str
-    actor_id: str | None = None
+    actor_id: int | None = None
 
 
 analytics.register(OrganizationCreatedEvent)
