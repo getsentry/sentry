@@ -13,7 +13,8 @@ from rest_framework.response import Response
 from sentry import audit_log, eventstream
 from sentry.api.base import audit_logger
 from sentry.deletions.tasks.groups import delete_groups as delete_groups_task
-from sentry.models.group import Group, GroupInbox, GroupStatus
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupinbox import GroupInbox
 from sentry.models.project import Project
 from sentry.signals import issue_deleted
 from sentry.utils.audit import create_audit_entry
