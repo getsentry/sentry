@@ -20,7 +20,6 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager.base import BaseManager
-from sentry.integrations.slack.analytics import IntegrationIdentityLinked
 from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.users.services.user import RpcUser
 
@@ -91,6 +90,8 @@ class IdentityManager(BaseManager["Identity"]):
         the case where the user is linked to a different identity or the
         identity is linked to a different user.
         """
+        from sentry.integrations.slack.analytics import IntegrationIdentityLinked
+
         defaults = {
             **(defaults or {}),
             "status": IdentityStatus.VALID,
