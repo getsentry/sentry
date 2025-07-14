@@ -48,15 +48,13 @@ export interface SnubaQueryDataSource extends BaseDataSource {
   type: 'snuba_query_subscription';
 }
 
-interface UptimeSubscriptionDataSource extends BaseDataSource {
+export interface UptimeSubscriptionDataSource extends BaseDataSource {
   /**
    * See UptimeSubscriptionSerializer
    */
   queryObj: {
     body: string | null;
     headers: Array<[string, string]>;
-    hostProviderId: string;
-    hostProviderName: string;
     intervalSeconds: number;
     method: string;
     timeoutMs: number;
@@ -133,7 +131,7 @@ export interface MetricDetector extends BaseDetector {
 
 export interface UptimeDetector extends BaseDetector {
   readonly config: UptimeDetectorConfig;
-  readonly dataSources: UptimeSubscriptionDataSource[];
+  readonly dataSources: [UptimeSubscriptionDataSource];
   readonly type: 'uptime_domain_failure';
 }
 

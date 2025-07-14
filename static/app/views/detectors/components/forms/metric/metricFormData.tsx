@@ -22,6 +22,7 @@ import {
   Dataset,
   EventTypes,
 } from 'sentry/views/alerts/rules/metric/types';
+import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
 
 /**
  * Dataset types for detectors
@@ -467,7 +468,7 @@ export function metricSavedDetectorToFormData(
     // Core detector fields
     name: detector.name,
     projectId: detector.projectId,
-    environment: snubaQuery?.environment || '',
+    environment: getDetectorEnvironment(detector) || '',
     owner: detector.owner || '',
     query: snubaQuery?.query || '',
     aggregateFunction,
