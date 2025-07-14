@@ -18,7 +18,11 @@ export default function BrowserOSIcons({
   const {replay} = useReplayContext();
   const replayRecord = replay?.getReplay();
 
-  const icon = generatePlatformIconName(
+  const osIcon = generatePlatformIconName(
+    replayRecord?.os.name ?? '',
+    replayRecord?.os.version ?? undefined
+  );
+  const browserIcon = generatePlatformIconName(
     replayRecord?.browser.name ?? '',
     replayRecord?.browser.version ?? undefined
   );
@@ -28,7 +32,7 @@ export default function BrowserOSIcons({
   ) : (
     <Flex direction="row-reverse">
       <Tooltip title={`${replayRecord?.os.name ?? ''} ${replayRecord?.os.version ?? ''}`}>
-        <PlatformIcon platform={icon} size="20px" />
+        <PlatformIcon platform={osIcon} size="20px" />
       </Tooltip>
       {showBrowser && (
         <Overlap>
@@ -37,7 +41,7 @@ export default function BrowserOSIcons({
               replayRecord?.browser.version ?? ''
             }`}
           >
-            <PlatformIcon platform={icon} size="20px" />
+            <PlatformIcon platform={browserIcon} size="20px" />
           </Tooltip>
         </Overlap>
       )}
