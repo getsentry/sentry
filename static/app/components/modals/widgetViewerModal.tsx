@@ -1279,14 +1279,16 @@ function ViewerTableV2({
   }
 
   const tableColumns = columnOrder.map((column, index) => ({
-    key: column.key,
+    key: isAggregateField(column.key) ? getAggregateAlias(column.key) : column.key,
     type: column.type === 'never' ? null : column.type,
     sortable: sortable(column.key),
     width: widths[index] ? parseInt(widths[index], 10) || -1 : -1,
   }));
   const aliases = decodeColumnAliases(
     tableColumns,
-    tableWidget.queries[0]?.fieldAliases ?? [],
+    columnOrder.map(
+      (column, index) => tableWidget.queries[0]?.fieldAliases?.[index] ?? column.key
+    ),
     tableWidget.widgetType === WidgetType.ISSUE
       ? getDatasetConfig(tableWidget.widgetType).getFieldHeaderMap?.()
       : {}
