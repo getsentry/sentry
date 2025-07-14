@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 
 import SelectField from 'sentry/components/forms/fields/selectField';
 import type {Organization} from 'sentry/types/organization';
@@ -29,6 +29,11 @@ export default function ForkCustomerAction({
   onConfirm,
   setConfirmCallback,
 }: Props) {
+  // TODO: We should make sure that `setConfirmCallback` is a stable function
+  // before passing it in here. But because it's not memoized right now, we
+  // need to store it in a ref between renders.
+  const onConfirmRef = useRef(setConfirmCallback);
+
   const [regionUrl, setRegionUrl] = useState('');
   const api = useApi({persistInFlight: true});
   const navigate = useNavigate();
@@ -57,8 +62,8 @@ export default function ForkCustomerAction({
   });
 
   useEffect(() => {
-    setConfirmCallback(mutate);
-  }, [mutate, setConfirmCallback]);
+    onConfirmRef.current(mutate);
+  }, [mutate]);
 
   const currentRegionData = getRegionDataFromOrganization(organization);
   const regionChoices = getRegionChoices(currentRegionData ? [currentRegionData] : []);
@@ -76,7 +81,7 @@ export default function ForkCustomerAction({
         stacked
         required
         value={regionUrl}
-        onChange={(val: any) => setRegionUrl(val)}
+        onChange={setRegionUrl}
       />
     </Fragment>
   );
