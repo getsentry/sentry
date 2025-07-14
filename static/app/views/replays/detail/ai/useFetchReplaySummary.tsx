@@ -11,6 +11,7 @@ import {
 } from 'sentry/utils/replays/types';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
+import useTraceConnectedErrors from 'sentry/views/replays/detail/ai/useTraceConnectedErrors';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 export interface SummaryResponse {
@@ -60,54 +61,43 @@ export function useFetchReplaySummary(_options?: UseApiQueryOptions<SummaryRespo
 function useLocalAiSummary() {
   const {replay} = useReplayContext();
   const replayRecord = replay?.getReplay();
-  // const {data: summaryData, isPending, isRefetching, refetch, isError} = useAiSummary(replayRecord);
-  const replayData =
-    [...(replay?.getChapterFrames() ?? []), ...(replay?.getErrorFrames() ?? [])]
-      .sort((a, b) => a.timestampMs - b.timestampMs)
-      .map(asLogMessage)
+  const traceIds = replay?.getReplay()?.trace_ids ?? [];
+
+  // Fetch trace connected errors
+  const {data: traceConnectedErrors} = useTraceConnectedErrors({
+    replayRecord,
+    traceIds,
+    enabled: Boolean(traceIds.length > 0),
+  });
+
+  // Convert trace connected errors to the same format as replay events
+  const traceErrorEvents =
+    traceConnectedErrors?.data?.map(error => ({
+      timestampMs: error.timestamp,
+      message: `${error.title} - ${error.message}`,
+      category: 'trace_error' as const,
+      type: 'trace_error',
+      offsetMs: 0,
+      timestamp: new Date(error.timestamp),
+    })) ?? [];
+
+  // Combine and sort all events chronologically
+  const allEvents = [
+    ...(replay?.getChapterFrames() ?? []),
+    ...(replay?.getErrorFrames() ?? []),
+    ...traceErrorEvents,
+  ].sort((a, b) => a.timestampMs - b.timestampMs);
+
+  const allData =
+    allEvents
+      .map(event => {
+        if ('category' in event && event.category === 'trace_error') {
+          return `User experienced an error: ${event.message} at ${event.timestampMs}`;
+        }
+        return asLogMessage(event as BreadcrumbFrame | SpanFrame);
+      })
       .filter(Boolean) ?? [];
-
-  // const replayData = replay?._attachments
-  // ?.filter(({type}) => type === 5)
-  // .filter(
-  //     ({data}) =>
-  //       (data.tag !== 'performanceSpan' ||
-  //         (!data.payload.op.startsWith('resource') && data.payload.op !== 'memory') ||
-  //         ['resource.xhr', 'resource.fetch'].includes(data.payload.op)) &&
-  //       data.tag !== 'options'
-  // )
-  // .map(ev => {
-  //     if (['ui.click', 'ui.input'].includes(ev.data.payload.category)) {
-  //       const {message: _, type: _1, ...rest} = ev.data.payload;
-  //       return rest;
-  //     }
-  //
-  //     if (['console'].includes(ev.data.payload.category)) {
-  //       const {type: _1, data, _2, ...rest} = ev.data.payload;
-  //       return rest;
-  //     }
-  //
-  //     if (['resource.xhr', 'resource.fetch'].includes(ev.data.payload.op)) {
-  //       const {type: _1, data, startTimestamp, ...rest} = ev.data.payload;
-  //       return {
-  //         timestamp: startTimestamp,
-  //         ...rest,
-  //         data: {
-  //           method: data.method,
-  //           statusCode: data.statusCode,
-  //         },
-  //       };
-  //     }
-  //     const ts =
-  //       ev.data.payload.timestamp || ev.data.payload.startTimestamp || ev.timestamp;
-  //
-  //     return {
-  //       timestamp: ts,
-  //       ...ev.data.payload,
-  //     };
-  // });
-
-  const logs = [JSON.stringify(replayData)];
+  const logs = [JSON.stringify(allData)];
   const {data} = useReplayPrompt(replayRecord, logs);
 
   return useQuery<SummaryResponse | null>({
@@ -270,28 +260,32 @@ function asLogMessage(payload: BreadcrumbFrame | SpanFrame): string | null {
         const duration =
           Number(payload.endTimestamp || 0) - Number(payload.startTimestamp || 0);
         const method = (payload.data as any)?.method;
-        return `Application initiated request: "${method} ${path} HTTP/2.0" ${statusCode} ${size}; took ${duration} milliseconds at ${timestamp}`;
+        return `Application initiated request: "${method} ${path} HTTP/2.0" ${statusCode} and response size ${size}; took ${duration} milliseconds at ${timestamp}`;
       }
-      case EventType.RESOURCE_XHR:
-        return null;
       case EventType.LCP: {
         const duration = (payload.data as any)?.size;
         const rating = (payload.data as any)?.rating;
-        return `Application largest contentful paint: ${duration} ms and has a ${rating} rating`;
+        return `Application largest contentful paint: ${duration} ms and has a ${rating} rating at ${timestamp}`;
       }
       case EventType.FCP: {
         const duration = (payload.data as any)?.size;
         const rating = (payload.data as any)?.rating;
-        return `Application first contentful paint: ${duration} ms and has a ${rating} rating`;
+        return `Application first contentful paint: ${duration} ms and has a ${rating} rating at ${timestamp}`;
       }
       case EventType.HYDRATION_ERROR:
         return `There was a hydration error on the page at ${timestamp}.`;
+      case EventType.RESOURCE_XHR:
+        return null;
       case EventType.MUTATIONS:
         return null;
       case EventType.UNKNOWN:
         return null;
       case EventType.FEEDBACK:
-        return 'The user filled out a feedback form describing their experience using the application.';
+        return 'User submitted feedback:';
+      case EventType.CANVAS:
+        return null;
+      case EventType.OPTIONS:
+        return null;
       default:
         return '';
     }
