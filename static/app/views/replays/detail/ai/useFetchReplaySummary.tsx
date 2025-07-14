@@ -11,7 +11,6 @@ import {
 } from 'sentry/utils/replays/types';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
-import useTraceConnectedErrors from 'sentry/views/replays/detail/ai/useTraceConnectedErrors';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 export interface SummaryResponse {
@@ -61,43 +60,20 @@ export function useFetchReplaySummary(_options?: UseApiQueryOptions<SummaryRespo
 function useLocalAiSummary() {
   const {replay} = useReplayContext();
   const replayRecord = replay?.getReplay();
-  const traceIds = replay?.getReplay()?.trace_ids ?? [];
-
-  // Fetch trace connected errors
-  const {data: traceConnectedErrors} = useTraceConnectedErrors({
-    replayRecord,
-    traceIds,
-    enabled: Boolean(traceIds.length > 0),
-  });
-
-  // Convert trace connected errors to the same format as replay events
-  const traceErrorEvents =
-    traceConnectedErrors?.data?.map(error => ({
-      timestampMs: error.timestamp,
-      message: `${error.title} - ${error.message}`,
-      category: 'trace_error' as const,
-      type: 'trace_error',
-      offsetMs: 0,
-      timestamp: new Date(error.timestamp),
-    })) ?? [];
 
   // Combine and sort all events chronologically
   const allEvents = [
-    ...(replay?.getChapterFrames() ?? []),
-    ...(replay?.getErrorFrames() ?? []),
-    ...traceErrorEvents,
+    ...(replay?.getChapterFrames() ?? []), // inclues all errors
   ].sort((a, b) => a.timestampMs - b.timestampMs);
 
   const allData =
     allEvents
       .map(event => {
-        if ('category' in event && event.category === 'trace_error') {
-          return `User experienced an error: ${event.message} at ${event.timestampMs}`;
-        }
-        return asLogMessage(event as BreadcrumbFrame | SpanFrame);
+        return asLogMessage(event);
       })
-      .filter(Boolean) ?? [];
-  const logs = [JSON.stringify(allData)];
+      .filter((item): item is string => item !== null && item !== '') ?? [];
+
+  const logs = allData;
   const {data} = useReplayPrompt(replayRecord, logs);
 
   return useQuery<SummaryResponse | null>({
