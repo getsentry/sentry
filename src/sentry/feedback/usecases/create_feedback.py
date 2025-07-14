@@ -3,16 +3,14 @@ from __future__ import annotations
 import logging
 import random
 from datetime import UTC, datetime
-from enum import Enum
 from typing import Any
 from uuid import UUID, uuid4
 
 import jsonschema
 
-from sentry import features, options
+from sentry import options
 from sentry.constants import DataCategory
-from sentry.eventstore.models import Event, GroupEvent
-from sentry.feedback.lib.types import UserReportDict
+from sentry.feedback.lib.utils import UNREAL_FEEDBACK_UNATTENDED_MESSAGE, FeedbackCreationSource
 from sentry.feedback.usecases.spam_detection import is_spam, spam_detection_enabled
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -29,37 +27,6 @@ from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
-
-UNREAL_FEEDBACK_UNATTENDED_MESSAGE = "Sent in the unattended mode"
-
-
-class FeedbackCreationSource(Enum):
-    NEW_FEEDBACK_ENVELOPE = "new_feedback_envelope"
-    USER_REPORT_DJANGO_ENDPOINT = "user_report_sentry_django_endpoint"
-    USER_REPORT_ENVELOPE = "user_report_envelope"
-    CRASH_REPORT_EMBED_FORM = "crash_report_embed_form"
-    UPDATE_USER_REPORTS_TASK = "update_user_reports_task"
-
-    @classmethod
-    def new_feedback_category_values(cls) -> set[str]:
-        return {
-            c.value
-            for c in [
-                cls.NEW_FEEDBACK_ENVELOPE,
-            ]
-        }
-
-    @classmethod
-    def old_feedback_category_values(cls) -> set[str]:
-        return {
-            c.value
-            for c in [
-                cls.CRASH_REPORT_EMBED_FORM,
-                cls.USER_REPORT_ENVELOPE,
-                cls.USER_REPORT_DJANGO_ENDPOINT,
-                cls.UPDATE_USER_REPORTS_TASK,
-            ]
-        }
 
 
 def make_evidence(feedback, source: FeedbackCreationSource, is_message_spam: bool | None):
@@ -428,7 +395,16 @@ def create_feedback_issue(
     )
     # Mark as spam. We need this since IP doesn't currently support an initial status of IGNORED.
     if is_message_spam:
-        auto_ignore_spam_feedbacks(project, issue_fingerprint)
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.STATUS_CHANGE,
+            status_change=StatusChangeMessage(
+                fingerprint=issue_fingerprint,
+                project_id=project.id,
+                new_status=GroupStatus.IGNORED,  # we use ignored in the UI for the spam tab
+                new_substatus=GroupSubStatus.FOREVER,
+            ),
+        )
+
     metrics.incr(
         "feedback.create_feedback_issue.produced_occurrence",
         tags={
@@ -450,99 +426,3 @@ def create_feedback_issue(
     )
 
     return event_fixed
-
-
-def auto_ignore_spam_feedbacks(project, issue_fingerprint):
-    """
-    Marks an issue as spam with a STATUS_CHANGE kafka message. The IGNORED status allows the occurrence to skip alerts
-    and be picked up by frontend spam queries.
-    """
-    if features.has("organizations:user-feedback-spam-filter-actions", project.organization):
-        metrics.incr("feedback.spam-detection-actions.set-ignored")
-        produce_occurrence_to_kafka(
-            payload_type=PayloadType.STATUS_CHANGE,
-            status_change=StatusChangeMessage(
-                fingerprint=issue_fingerprint,
-                project_id=project.id,
-                new_status=GroupStatus.IGNORED,  # we use ignored in the UI for the spam tab
-                new_substatus=GroupSubStatus.FOREVER,
-            ),
-        )
-
-
-###########
-# Shim code
-###########
-
-
-def shim_to_feedback(
-    report: UserReportDict,
-    event: Event | GroupEvent,
-    project: Project,
-    source: FeedbackCreationSource,
-):
-    """
-    takes user reports from the legacy user report form/endpoint and
-    user reports that come from relay envelope ingestion and
-    creates a new User Feedback from it.
-    User feedbacks are an event type, so we try and grab as much from the
-    legacy user report and event to create the new feedback.
-    """
-    if is_in_feedback_denylist(project.organization):
-        track_outcome(
-            org_id=project.organization_id,
-            project_id=project.id,
-            key_id=None,
-            outcome=Outcome.RATE_LIMITED,
-            reason="feedback_denylist",
-            timestamp=datetime.fromisoformat(event.timestamp),
-            event_id=event.event_id,
-            category=DataCategory.USER_REPORT_V2,
-            quantity=1,
-        )
-        return
-
-    try:
-        name = (
-            report.get("name")
-            or get_path(event.data, "user", "name")
-            or get_path(event.data, "user", "username")
-            or ""
-        )
-        contact_email = report.get("email") or get_path(event.data, "user", "email") or ""
-
-        feedback_event: dict[str, Any] = {
-            "contexts": {
-                "feedback": {
-                    "name": name,
-                    "contact_email": contact_email,
-                    "message": report["comments"],
-                    "associated_event_id": event.event_id,
-                },
-            },
-        }
-
-        if get_path(event.data, "contexts", "replay", "replay_id"):
-            feedback_event["contexts"]["replay"] = event.data["contexts"]["replay"]
-            feedback_event["contexts"]["feedback"]["replay_id"] = event.data["contexts"]["replay"][
-                "replay_id"
-            ]
-
-        if get_path(event.data, "contexts", "trace", "trace_id"):
-            feedback_event["contexts"]["trace"] = event.data["contexts"]["trace"]
-
-        feedback_event["timestamp"] = event.datetime.timestamp()
-        feedback_event["platform"] = event.platform
-        feedback_event["level"] = event.data["level"]
-        feedback_event["environment"] = event.get_environment().name
-        feedback_event["tags"] = [list(item) for item in event.tags]
-
-        # Entrypoint for "new" (issue platform based) feedback. This emits outcomes.
-        create_feedback_issue(feedback_event, project.id, source)
-    except Exception:
-        logger.exception("Error attempting to create new user feedback by shimming a user report")
-        metrics.incr("feedback.shim_to_feedback.failed", tags={"referrer": source.value})
-
-
-def is_in_feedback_denylist(organization):
-    return organization.slug in options.get("feedback.organizations.slug-denylist")
