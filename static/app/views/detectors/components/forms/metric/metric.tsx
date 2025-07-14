@@ -2,7 +2,6 @@ import {useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import NumberField from 'sentry/components/forms/fields/numberField';
@@ -12,7 +11,6 @@ import FormContext from 'sentry/components/forms/formContext';
 import PriorityControl from 'sentry/components/workflowEngine/form/control/priorityControl';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import Section from 'sentry/components/workflowEngine/ui/section';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -28,6 +26,7 @@ import {
   AlertRuleThresholdType,
 } from 'sentry/views/alerts/rules/metric/types';
 import {AssigneeField} from 'sentry/views/detectors/components/forms/assigneeField';
+import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
@@ -35,6 +34,7 @@ import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {MetricDetectorPreviewChart} from 'sentry/views/detectors/components/forms/metric/previewChart';
 import {Visualize} from 'sentry/views/detectors/components/forms/metric/visualize';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
@@ -56,7 +56,11 @@ function MetricDetectorForm() {
 
 export function EditExistingMetricDetectorForm({detector}: {detector: Detector}) {
   return (
-    <EditDetectorLayout detector={detector} detectorType="metric_issue">
+    <EditDetectorLayout
+      detectorType="metric_issue"
+      detector={detector}
+      previewChart={<MetricDetectorPreviewChart />}
+    >
       <MetricDetectorForm />
     </EditDetectorLayout>
   );
@@ -64,7 +68,10 @@ export function EditExistingMetricDetectorForm({detector}: {detector: Detector})
 
 export function NewMetricDetectorForm() {
   return (
-    <NewDetectorLayout detectorType="metric_issue">
+    <NewDetectorLayout
+      detectorType="metric_issue"
+      previewChart={<MetricDetectorPreviewChart />}
+    >
       <MetricDetectorForm />
     </NewDetectorLayout>
   );
@@ -134,23 +141,6 @@ function ResolveSection() {
   return (
     <Container>
       <Section title={t('Resolve')} description={description} />
-    </Container>
-  );
-}
-
-function AutomateSection() {
-  return (
-    <Container>
-      <Section title={t('Automate')} description={t('Set up alerts or notifications.')}>
-        <Button
-          size="md"
-          style={{width: 'min-content'}}
-          priority="primary"
-          icon={<IconAdd />}
-        >
-          {t('Connect Automations')}
-        </Button>
-      </Section>
     </Container>
   );
 }

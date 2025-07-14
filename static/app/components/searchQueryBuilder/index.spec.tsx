@@ -134,6 +134,11 @@ describe('SearchQueryBuilder', function () {
     destroyAnnouncer();
 
     MockApiClient.clearMockResponses();
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'POST',
+    });
   });
 
   afterEach(function () {
@@ -173,6 +178,10 @@ describe('SearchQueryBuilder', function () {
       );
 
       await userEvent.click(getLastInput());
+
+      expect(mockOnChange).not.toHaveBeenCalled();
+      expect(mockOnSearch).not.toHaveBeenCalled();
+
       await userEvent.keyboard('b{enter}');
 
       const expectedQueryState = expect.objectContaining({
@@ -948,7 +957,7 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(getLastInput());
       await userEvent.type(screen.getByRole('combobox'), 'some free text');
 
-      expect(screen.getByRole('option', {name: 'Ask Seer'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: /Ask Seer/i})).toBeInTheDocument();
     });
 
     it('can add parens by typing', async function () {

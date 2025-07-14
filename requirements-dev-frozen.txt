@@ -179,7 +179,7 @@ rpds-py==0.20.0
 rsa==4.8
 s3transfer==0.10.0
 selenium==4.16.0
-sentry-arroyo==2.26.0
+sentry-arroyo==2.28.0
 sentry-cli==2.16.0
 sentry-covdefaults-disable-branch-coverage==1.0.2
 sentry-devenv==1.21.0
@@ -188,7 +188,7 @@ sentry-forked-djangorestframework-stubs==3.16.0.post1
 sentry-forked-email-reply-parser==0.5.12.post1
 sentry-kafka-schemas==1.3.14
 sentry-ophio==1.1.3
-sentry-protos==0.2.1
+sentry-protos==0.3.1
 sentry-redis-tools==0.5.0
 sentry-relay==0.9.10
 sentry-sdk==2.29.1
@@ -217,6 +217,7 @@ trio==0.25.0
 trio-websocket==0.11.1
 types-beautifulsoup4==4.11.6
 types-cachetools==5.3.0.5
+types-docker==7.1.0.20250705
 types-jsonschema==4.16.1
 types-oauthlib==3.2.0.8
 types-parsimonious==0.10.0.8
@@ -240,7 +241,7 @@ uritemplate==4.1.1
 urllib3==2.2.2
 vine==5.1.0
 virtualenv==20.26.6
-vroomrs==0.1.7
+vroomrs==0.1.12
 wcwidth==0.2.13
 werkzeug==3.0.6
 wheel==0.38.4

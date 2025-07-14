@@ -629,16 +629,6 @@ default_manager.add(
     )
 )
 
-default_manager.add(events.DataSecrecyWaivedAuditLogEvent())
-
-default_manager.add(
-    AuditLogEvent(
-        event_id=1142,
-        name="DATA_SECRECY_REINSTATED",
-        api_name="data-secrecy.reinstated",
-    )
-)
-
 default_manager.add(
     AuditLogEvent(
         event_id=1152,

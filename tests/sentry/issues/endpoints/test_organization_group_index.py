@@ -12,7 +12,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry import options
-from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
+from sentry.feedback.lib.utils import FeedbackCreationSource
+from sentry.feedback.usecases.create_feedback import create_feedback_issue
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.issues.grouptype import (
@@ -71,7 +72,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.users.models.user_option import UserOption
 from sentry.utils import json
-from tests.sentry.feedback.usecases.test_create_feedback import mock_feedback_event
+from tests.sentry.feedback import mock_feedback_event
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 

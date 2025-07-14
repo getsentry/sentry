@@ -14,6 +14,7 @@ export enum ModuleName {
   RESOURCE = 'resource',
   AI = 'ai',
   AGENTS = 'agents',
+  MCP = 'mcp',
   MOBILE_UI = 'mobile-ui',
   MOBILE_VITALS = 'mobile-vitals',
   SCREEN_RENDERING = 'screen-rendering',
@@ -110,6 +111,10 @@ export enum SpanFields {
   GEN_AI_USAGE_OUTPUT_TOKENS = 'gen_ai.usage.output_tokens',
   GEN_AI_USAGE_TOTAL_COST = 'gen_ai.usage.total_cost',
   GEN_AI_USAGE_TOTAL_TOKENS = 'gen_ai.usage.total_tokens',
+  MCP_TRANSPORT = 'mcp.transport',
+  MCP_TOOL_NAME = 'mcp.tool.name',
+  MCP_RESOURCE_URI = 'mcp.resource.uri',
+  MCP_PROMPT_NAME = 'mcp.prompt.name',
 }
 
 type WebVitalsMeasurements =
@@ -155,7 +160,7 @@ type SpanNumberFields =
   | SpanFields.GEN_AI_USAGE_TOTAL_COST
   | DiscoverNumberFields;
 
-type SpanStringFields =
+export type SpanStringFields =
   | SpanMetricsField.RESOURCE_RENDER_BLOCKING_STATUS
   | SpanFields.RAW_DOMAIN
   | SpanFields.ID
@@ -167,6 +172,10 @@ type SpanStringFields =
   | SpanFields.GEN_AI_REQUEST_MODEL
   | SpanFields.GEN_AI_RESPONSE_MODEL
   | SpanFields.GEN_AI_TOOL_NAME
+  | SpanFields.MCP_TRANSPORT
+  | SpanFields.MCP_TOOL_NAME
+  | SpanFields.MCP_RESOURCE_URI
+  | SpanFields.MCP_PROMPT_NAME
   | 'span_id'
   | 'span.op'
   | 'span.description'
@@ -554,7 +563,6 @@ type MetricsFunctions =
   | 'performance_score'
   | 'count_scores'
   | 'opportunity_score'
-  | 'total_opportunity_score'
   | 'p75';
 
 export enum MetricsFields {
@@ -727,10 +735,6 @@ type DiscoverResponseRaw = {
 export type DiscoverResponse = Flatten<DiscoverResponseRaw>;
 
 export type DiscoverProperty = keyof DiscoverResponse;
-
-export type MetricsQueryFilters = Partial<Record<MetricsStringFields, string>> & {
-  [SpanIndexedField.PROJECT_ID]?: string;
-};
 
 export type SpanQueryFilters = Partial<Record<SpanStringFields, string>> & {
   is_transaction?: 'true' | 'false';

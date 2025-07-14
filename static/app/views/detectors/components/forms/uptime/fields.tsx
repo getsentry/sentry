@@ -3,6 +3,7 @@ import type {
   Detector,
   UptimeDetectorUpdatePayload,
 } from 'sentry/types/workflowEngine/detectors';
+import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
 
 export interface UptimeDetectorFormData {
   body: string;
@@ -16,6 +17,7 @@ export interface UptimeDetectorFormData {
   timeoutMs: number;
   traceSampling: boolean;
   url: string;
+  workflowIds: string[];
 }
 
 type UptimeDetectorFormFieldName = keyof UptimeDetectorFormData;
@@ -40,6 +42,9 @@ export const UPTIME_DETECTOR_FORM_FIELDS = {
   environment: 'environment',
   projectId: 'projectId',
   owner: 'owner',
+  workflowIds: 'workflowIds',
+
+  // Uptime fields
   intervalSeconds: 'intervalSeconds',
   timeoutMs: 'timeoutMs',
   url: 'url',
@@ -57,6 +62,7 @@ export function uptimeFormDataToEndpointPayload(
     name: data.name,
     owner: data.owner,
     projectId: data.projectId,
+    workflowIds: data.workflowIds,
     dataSource: {
       intervalSeconds: data.intervalSeconds,
       method: data.method,
@@ -70,8 +76,13 @@ export function uptimeFormDataToEndpointPayload(
 export function uptimeSavedDetectorToFormData(
   detector: Detector
 ): UptimeDetectorFormData {
+  if (detector.type !== 'uptime_domain_failure') {
+    // This should never happen
+    throw new Error('Detector type mismatch');
+  }
+
   const dataSource = detector.dataSources?.[0];
-  const environment = 'environment' in detector.config ? detector.config.environment : '';
+  const environment = getDetectorEnvironment(detector);
 
   const common = {
     name: detector.name,
@@ -90,6 +101,7 @@ export function uptimeSavedDetectorToFormData(
       url: dataSource.queryObj.url,
       headers: dataSource.queryObj.headers,
       body: dataSource.queryObj.body ?? '',
+      workflowIds: detector.workflowIds,
     };
   }
 
@@ -102,5 +114,6 @@ export function uptimeSavedDetectorToFormData(
     url: 'https://example.com',
     headers: [],
     body: '',
+    workflowIds: detector.workflowIds,
   };
 }

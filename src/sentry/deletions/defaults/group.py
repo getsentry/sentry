@@ -15,7 +15,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.snuba.dataset import Dataset
-from sentry.tasks.delete_seer_grouping_records import call_delete_seer_grouping_records_by_hash
+from sentry.tasks.delete_seer_grouping_records import may_schedule_task_to_delete_hashes_from_seer
 from sentry.utils.snuba import bulk_snuba_queries
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
@@ -273,7 +273,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
             except InvalidGroupTypeError:
                 pass
         # Tell seer to delete grouping records with these group hashes
-        call_delete_seer_grouping_records_by_hash(error_group_ids)
+        may_schedule_task_to_delete_hashes_from_seer(error_group_ids)
 
         self._delete_children(instance_list)
 
