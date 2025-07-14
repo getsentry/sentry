@@ -38,6 +38,9 @@ from sentry.api.endpoints.organization_projects_experiment import (
 from sentry.api.endpoints.organization_sampling_project_span_counts import (
     OrganizationSamplingProjectSpanCountsEndpoint,
 )
+from sentry.api.endpoints.organization_seer_explorer_chat import (
+    OrganizationSeerExplorerChatEndpoint,
+)
 from sentry.api.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheck
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
 from sentry.api.endpoints.organization_trace_item_attributes import (
@@ -2131,6 +2134,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/trace-explorer-ai/query/$",
         TraceExplorerAIQuery.as_view(),
         name="sentry-api-0-trace-explorer-ai-query",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-chat/(?:(?P<run_id>[^/]+)/)?$",
+        OrganizationSeerExplorerChatEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-explorer-chat",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/setup-check/$",
