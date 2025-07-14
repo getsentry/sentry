@@ -6,6 +6,8 @@ import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import type {MonitorCountResponse, Plan, Subscription} from 'getsentry/types';
+import {isEnterprise} from 'getsentry/utils/billing';
+import formatCurrency from 'getsentry/utils/formatCurrency';
 
 interface Props {
   activePlan: Plan;
@@ -23,8 +25,18 @@ export function CronsOnDemandStepWarning({
 }: Props) {
   const cronCategoryName = DATA_CATEGORY_INFO[DataCategoryExact.MONITOR_SEAT].plural;
   const cronsBucket = activePlan.planCategories[cronCategoryName]?.[0];
-  const cronsPrice = cronsBucket?.onDemandPrice;
-  const reserved = cronsBucket?.events;
+  let reserved: number | undefined;
+  let cronsPrice: number | undefined;
+  if (isEnterprise(activePlan.id)) {
+    // this can only be reached for enterprise customers with invoiced on-demand
+    // we want to make sure we use their actual reserved amount and not the minimum
+    // for enterprise plans
+    reserved = subscription.categories[cronCategoryName]?.reserved ?? 0;
+    cronsPrice = subscription.categories[cronCategoryName]?.paygCpe ?? 0;
+  } else {
+    reserved = cronsBucket?.events;
+    cronsPrice = cronsBucket?.onDemandPrice;
+  }
 
   const queryKey = [`/organizations/${organization.slug}/monitor-count/`] as const;
   const {data, isPending} = useApiQuery<MonitorCountResponse>(queryKey, {
@@ -36,8 +48,8 @@ export function CronsOnDemandStepWarning({
   }
 
   const numCrons = data.enabledMonitorCount;
-  const currentUsage = (numCrons - reserved) * cronsPrice;
-  const overBudget = currentUsage > currentOnDemand;
+  const currentSpend = (numCrons - reserved) * cronsPrice;
+  const overBudget = currentSpend > currentOnDemand;
 
   if (!overBudget) {
     return null;
@@ -47,9 +59,9 @@ export function CronsOnDemandStepWarning({
     <Alert.Container>
       <Alert type="warning" showIcon>
         {tct(
-          "These changes will take effect at the start of your next billing cycle. Heads up that you're currently using $[currentUsageDollars] of Cron Monitors. These monitors will be turned off at the start of your next billing cycle unless you increase your [budgetType] budget.",
+          "These changes will take effect at the start of your next billing cycle. Heads up that you're currently using [currentSpend] of Cron Monitors. These monitors will be turned off at the start of your next billing cycle unless you increase your [budgetType] budget.",
           {
-            currentUsageDollars: currentUsage / 100,
+            currentSpend: formatCurrency(currentSpend),
             budgetType: subscription.planDetails.budgetTerm,
           }
         )}
