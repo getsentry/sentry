@@ -339,6 +339,7 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
 
 export const ReplaySessionColumn: ReplayTableColumn = {
   name: t('Replay'),
+  tooltip: t('Replays are sorted by the time the replay was sent.'),
   sortKey: 'started_at',
   Component: ({replay}) => {
     const routes = useRoutes();
