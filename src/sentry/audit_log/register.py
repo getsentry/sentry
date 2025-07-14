@@ -1,10 +1,29 @@
-from sentry.audit_log import events
+from typing import TYPE_CHECKING
+
 from sentry.audit_log.manager import AuditLogEvent, AuditLogEventManager
+from sentry.utils.strings import truncatechars
+
+if TYPE_CHECKING:
+    from sentry.models.auditlogentry import AuditLogEntry
+    from sentry.users.models.user import User
+
+
+def _get_member_display(email: str | None, target_user: User | None) -> str:
+    if email is not None:
+        return email
+    elif target_user is not None:
+        return target_user.get_display_name()
+    else:
+        return "(unknown member)"
+
 
 default_manager = AuditLogEventManager()
 
+add = default_manager.add
+add_with_render_func = default_manager.add_with_render_func
+
 # Register the AuditLogEvent objects to the `default_manager`
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=1,
         name="MEMBER_INVITE",
@@ -12,8 +31,18 @@ default_manager.add(
         template="invited member {email}",
     )
 )
-default_manager.add(events.MemberAddAuditLogEvent())
-default_manager.add(
+
+
+@add_with_render_func(AuditLogEvent(event_id=2, name="MEMBER_ADD", api_name="member.add"))
+def render_member_add(audit_log_entry: AuditLogEntry):
+    if audit_log_entry.target_user == audit_log_entry.actor:
+        return "joined the organization"
+
+    member = _get_member_display(audit_log_entry.data.get("email"), audit_log_entry.target_user)
+    return f"add member {member}"
+
+
+add(
     AuditLogEvent(
         event_id=3,
         name="MEMBER_ACCEPT",
@@ -21,14 +50,77 @@ default_manager.add(
         template="accepted the membership invite",
     )
 )
-default_manager.add(events.MemberEditAuditLogEvent())
-default_manager.add(events.MemberRemoveAuditLogEvent())
-default_manager.add(events.MemberJoinTeamAuditLogEvent())
-default_manager.add(events.MemberLeaveTeamAuditLogEvent())
-default_manager.add(events.MemberPendingAuditLogEvent())
-default_manager.add(events.OrgAddAuditLogEvent())
-default_manager.add(events.OrgEditAuditLogEvent())
-default_manager.add(
+
+
+@add_with_render_func(AuditLogEvent(event_id=4, name="MEMBER_EDIT", api_name="member.edit"))
+def render_member_edit(audit_log_entry: AuditLogEntry):
+    member = _get_member_display(audit_log_entry.data.get("email"), audit_log_entry.target_user)
+    role = audit_log_entry.data.get("role") or "N/A"
+
+    if "team_slugs" in audit_log_entry.data:
+        teams = ", ".join(str(x) for x in audit_log_entry.data.get("team_slugs", []))
+    else:
+        teams = "N/A"
+    return f"edited member {member} (role: {role}, teams: {teams})"
+
+
+@add_with_render_func(AuditLogEvent(event_id=5, name="MEMBER_REMOVE", api_name="member.remove"))
+def render_member_remove(audit_log_entry: AuditLogEntry):
+    if audit_log_entry.target_user == audit_log_entry.actor:
+        return "left the organization"
+
+    member = _get_member_display(audit_log_entry.data.get("email"), audit_log_entry.target_user)
+    return f"removed member {member}"
+
+
+@add_with_render_func(
+    AuditLogEvent(event_id=6, name="MEMBER_JOIN_TEAM", api_name="member.join-team")
+)
+def render_member_join_team(audit_log_entry: AuditLogEntry):
+    if audit_log_entry.target_user == audit_log_entry.actor:
+        return "joined team {team_slug}".format(**audit_log_entry.data)
+
+    user_display_name = _get_member_display(
+        audit_log_entry.data.get("email"), audit_log_entry.target_user
+    )
+    return "added {} to team {team_slug}".format(user_display_name, **audit_log_entry.data)
+
+
+@add_with_render_func(
+    AuditLogEvent(event_id=7, name="MEMBER_LEAVE_TEAM", api_name="member.leave-team")
+)
+def render_member_leave_team(audit_log_entry: AuditLogEntry):
+    if audit_log_entry.target_user == audit_log_entry.actor:
+        return "left team {team_slug}".format(**audit_log_entry.data)
+
+    user_display_name = _get_member_display(
+        audit_log_entry.data.get("email"), audit_log_entry.target_user
+    )
+    return "removed {} from team {team_slug}".format(user_display_name, **audit_log_entry.data)
+
+
+@add_with_render_func(AuditLogEvent(event_id=8, name="MEMBER_PENDING", api_name="member.pending"))
+def render_member_pending(audit_log_entry: AuditLogEntry):
+    user_display_name = _get_member_display(
+        audit_log_entry.data.get("email"), audit_log_entry.target_user
+    )
+    return f"required member {user_display_name} to setup 2FA"
+
+
+@add_with_render_func(AuditLogEvent(event_id=10, name="ORG_ADD", api_name="org.create"))
+def render_org_add(audit_log_entry: AuditLogEntry):
+    if channel := audit_log_entry.data.get("channel"):
+        return f"created the organization with {channel} integration"
+    return "created the organization"
+
+
+@add_with_render_func(AuditLogEvent(event_id=11, name="ORG_EDIT", api_name="org.edit"))
+def render_org_edit(audit_log_entry: AuditLogEntry):
+    items_string = ", ".join(f"{k} {v}" for k, v in audit_log_entry.data.items())
+    return "edited the organization setting: " + items_string
+
+
+add(
     AuditLogEvent(
         event_id=12,
         name="ORG_REMOVE",
@@ -36,7 +128,7 @@ default_manager.add(
         template="removed the organization",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=13,
         name="ORG_RESTORE",
@@ -44,7 +136,7 @@ default_manager.add(
         template="restored the organization",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=20,
         name="TEAM_ADD",
@@ -52,8 +144,15 @@ default_manager.add(
         template="created team {slug}",
     )
 )
-default_manager.add(events.TeamEditAuditLogEvent())
-default_manager.add(
+add(
+    AuditLogEvent(
+        event_id=21,
+        name="TEAM_EDIT",
+        api_name="team.edit",
+        template="edited team {slug}",
+    )
+)
+add(
     AuditLogEvent(
         event_id=22,
         name="TEAM_REMOVE",
@@ -61,7 +160,7 @@ default_manager.add(
         template="removed team {slug}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=30,
         name="PROJECT_ADD",
@@ -69,9 +168,44 @@ default_manager.add(
         template="created project {slug}",
     )
 )
-default_manager.add(events.ProjectEditAuditLogEvent())
-default_manager.add(events.ProjectPerformanceDetectionSettingsAuditLogEvent())
-default_manager.add(
+
+
+@add_with_render_func(
+    AuditLogEvent(
+        event_id=31,
+        name="PROJECT_EDIT",
+        api_name="project.edit",
+    )
+)
+def render_project_edit(audit_log_entry: AuditLogEntry):
+    if "old_slug" in audit_log_entry.data:
+        return "renamed project slug from {old_slug} to {new_slug}".format(**audit_log_entry.data)
+    items_string = " ".join(f"in {key} to {value}" for (key, value) in audit_log_entry.data.items())
+    return "edited project settings " + items_string
+
+
+@add_with_render_func(
+    AuditLogEvent(
+        event_id=178,
+        name="PROJECT_PERFORMANCE_ISSUE_DETECTION_CHANGE",
+        api_name="project.change-performance-issue-detection",
+    )
+)
+def render_project_performance_issue_detection_change(audit_log_entry: AuditLogEntry):
+    from sentry.api.endpoints.project_performance_issue_settings import (
+        project_settings_to_group_map as map,
+    )
+
+    data = audit_log_entry.data
+    items_string = ", ".join(
+        f"to {'enable' if value else 'disable'} detection of {map[key].description} issue"
+        for (key, value) in data.items()
+        if key in map.keys()
+    )
+    return "edited project performance issue detector settings " + items_string
+
+
+add(
     AuditLogEvent(
         event_id=32,
         name="PROJECT_REMOVE",
@@ -79,7 +213,7 @@ default_manager.add(
         template="removed project {slug}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=33,
         name="PROJECT_REMOVE_WITH_ORIGIN",
@@ -87,7 +221,7 @@ default_manager.add(
         template="removed project {slug} in {origin}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=35,
         name="PROJECT_REQUEST_TRANSFER",
@@ -95,7 +229,7 @@ default_manager.add(
         template="requested to transfer project {slug}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=36,
         name="PROJECT_ACCEPT_TRANSFER",
@@ -103,9 +237,41 @@ default_manager.add(
         template="accepted transfer of project {project_slug} from {old_organization_slug} to {new_organization_slug}",
     )
 )
-default_manager.add(events.ProjectEnableAuditLogEvent())
-default_manager.add(events.ProjectDisableAuditLogEvent())
-default_manager.add(
+
+
+def render_project_action(audit_log_entry: AuditLogEntry, action: str):
+    # Most logs will just be name of the filter, but legacy browser changes can be bool, str, list, or sets
+    filter_name = audit_log_entry.data["state"]
+    slug = audit_log_entry.data.get("slug")
+
+    message = f"{action} project filter {filter_name}"
+
+    if filter_name in ("0", "1") or isinstance(filter_name, (bool, list, set)):
+        message = f"{action} project filter legacy-browsers"
+        if isinstance(filter_name, (list, set)):
+            message += ": {}".format(", ".join(sorted(filter_name)))
+    if slug:
+        message += f" for project {slug}"
+    return message
+
+
+@add_with_render_func(AuditLogEvent(event_id=37, name="PROJECT_ENABLE", api_name="project.enable"))
+def render_project_enable(audit_log_entry: AuditLogEntry):
+    return render_project_action(audit_log_entry, "enable")
+
+
+@add_with_render_func(
+    AuditLogEvent(
+        event_id=38,
+        name="PROJECT_DISABLE",
+        api_name="project.disable",
+    )
+)
+def render_project_enable_disable(audit_log_entry: AuditLogEntry):
+    return render_project_action(audit_log_entry, "disable")
+
+
+add(
     AuditLogEvent(
         event_id=40,
         name="TAGKEY_REMOVE",
@@ -113,7 +279,7 @@ default_manager.add(
         template="removed tags matching {key} = *",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=50,
         name="PROJECTKEY_ADD",
@@ -121,8 +287,34 @@ default_manager.add(
         template="added project key {public_key}",
     )
 )
-default_manager.add(events.ProjectKeyEditAuditLogEvent())
-default_manager.add(
+
+
+@add_with_render_func(
+    AuditLogEvent(event_id=51, name="PROJECTKEY_EDIT", api_name="projectkey.edit")
+)
+def render_project_key_edit(audit_log_entry: AuditLogEntry):
+    items_strings = []
+    if "prev_rate_limit_count" in audit_log_entry.data:
+        items_strings.append(
+            " rate limit count from {prev_rate_limit_count} to {rate_limit_count}".format(
+                **audit_log_entry.data
+            )
+        )
+    if "prev_rate_limit_window" in audit_log_entry.data:
+        items_strings.append(
+            " rate limit window from {prev_rate_limit_window} to {rate_limit_window}".format(
+                **audit_log_entry.data
+            )
+        )
+
+    item_string = ""
+    if items_strings:
+        item_string = ":" + ",".join(items_strings)
+
+    return "edited project key {public_key}".format(**audit_log_entry.data) + item_string
+
+
+add(
     AuditLogEvent(
         event_id=52,
         name="PROJECTKEY_REMOVE",
@@ -130,7 +322,7 @@ default_manager.add(
         template="removed project key {public_key}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=53,
         name="PROJECTKEY_CHANGE",
@@ -138,7 +330,7 @@ default_manager.add(
         template="edited project key {public_key}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=60,
         name="SSO_ENABLE",
@@ -146,7 +338,7 @@ default_manager.add(
         template="enabled sso ({provider})",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=61,
         name="SSO_DISABLE",
@@ -154,8 +346,15 @@ default_manager.add(
         template="disabled sso ({provider})",
     )
 )
-default_manager.add(events.SSOEditAuditLogEvent())
-default_manager.add(
+
+
+@add_with_render_func(AuditLogEvent(event_id=62, name="SSO_EDIT", api_name="sso.edit"))
+def render_sso_edit(audit_log_entry: AuditLogEntry):
+    settings = ", ".join(f"{k} {v}" for k, v in audit_log_entry.data.items())
+    return "edited sso settings: " + settings
+
+
+add(
     AuditLogEvent(
         event_id=63,
         name="SSO_IDENTITY_LINK",
@@ -163,7 +362,7 @@ default_manager.add(
         template="linked their account to a new identity",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=70,
         name="APIKEY_ADD",
@@ -171,7 +370,7 @@ default_manager.add(
         template="added api key {label}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=71,
         name="APIKEY_EDIT",
@@ -179,7 +378,7 @@ default_manager.add(
         template="edited api key {label}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=72,
         name="APIKEY_REMOVE",
@@ -187,7 +386,7 @@ default_manager.add(
         template="removed api key {label}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=80,
         name="RULE_ADD",
@@ -195,7 +394,7 @@ default_manager.add(
         template='added rule "{label}"',
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=81,
         name="RULE_EDIT",
@@ -203,7 +402,7 @@ default_manager.add(
         template='edited rule "{label}"',
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=82,
         name="RULE_REMOVE",
@@ -211,7 +410,7 @@ default_manager.add(
         template='removed rule "{label}"',
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=83,
         name="RULE_SNOOZE",
@@ -219,7 +418,7 @@ default_manager.add(
         template='muted rule "{label}"',
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=84,
         name="RULE_DISABLE",
@@ -227,15 +426,79 @@ default_manager.add(
         template='disabled rule "{label}"',
     )
 )
-default_manager.add(events.ServiceHookAddAuditLogEvent())
-default_manager.add(events.ServiceHookEditAuditLogEvent())
-default_manager.add(events.ServiceHookRemoveAuditLogEvent())
-default_manager.add(events.IntegrationDisabledAuditLogEvent())
-default_manager.add(events.IntegrationUpgradeAuditLogEvent())
-default_manager.add(events.IntegrationAddAuditLogEvent())
-default_manager.add(events.IntegrationEditAuditLogEvent())
-default_manager.add(events.IntegrationRemoveAuditLogEvent())
-default_manager.add(
+
+
+@add_with_render_func(
+    AuditLogEvent(event_id=100, name="SERVICEHOOK_ADD", api_name="servicehook.create")
+)
+def render_service_hook_add(audit_log_entry: AuditLogEntry):
+    full_url = audit_log_entry.data.get("url")
+    return f'added a service hook for "{truncatechars(full_url, 64)}"'
+
+
+@add_with_render_func(
+    AuditLogEvent(event_id=101, name="SERVICEHOOK_EDIT", api_name="servicehook.edit")
+)
+def render_service_hook_edit(audit_log_entry: AuditLogEntry):
+    full_url = audit_log_entry.data.get("url")
+    return f'edited the service hook for "{truncatechars(full_url, 64)}"'
+
+
+@add_with_render_func(
+    AuditLogEvent(event_id=102, name="SERVICEHOOK_REMOVE", api_name="servicehook.remove")
+)
+def render_service_hook_remove(audit_log_entry: AuditLogEntry):
+    full_url = audit_log_entry.data.get("url")
+    return f'removed the service hook for "{truncatechars(full_url, 64)}"'
+
+
+@add_with_render_func(
+    AuditLogEvent(event_id=108, name="INTEGRATION_DISABLED", api_name="integration.disable")
+)
+def render_integration_disabled(audit_log_entry: AuditLogEntry):
+    provider = audit_log_entry.data.get("provider") or ""
+    return f"disabled {provider} integration".format(**audit_log_entry.data)
+
+
+@add_with_render_func(
+    AuditLogEvent(event_id=109, name="INTEGRATION_UPGRADE", api_name="integration.upgrade")
+)
+def render_integration_upgrade(audit_log_entry: AuditLogEntry):
+    if audit_log_entry.data.get("provider"):
+        return "upgraded {name} for the {provider} integration".format(**audit_log_entry.data)
+    return "updated an integration"
+
+
+@add_with_render_func(
+    AuditLogEvent(event_id=110, name="INTEGRATION_ADD", api_name="integration.add")
+)
+def render_integration_add(audit_log_entry: AuditLogEntry):
+    if audit_log_entry.data.get("provider"):
+        return "installed {name} for the {provider} integration".format(**audit_log_entry.data)
+    return "enabled integration {integration} for project {project}".format(**audit_log_entry.data)
+
+
+@add_with_render_func(
+    AuditLogEvent(event_id=111, name="INTEGRATION_EDIT", api_name="integration.edit")
+)
+def render_integration_edit(audit_log_entry: AuditLogEntry):
+    if audit_log_entry.data.get("provider"):
+        return "edited the {name} for the {provider} integration".format(**audit_log_entry.data)
+    return "edited integration {integration} for project {project}".format(**audit_log_entry.data)
+
+
+@add_with_render_func(
+    AuditLogEvent(event_id=112, name="INTEGRATION_REMOVE", api_name="integration.remove")
+)
+def render_integration_remove(audit_log_entry: AuditLogEntry):
+    if audit_log_entry.data.get("provider"):
+        return "uninstalled {name} for the {provider} integration".format(**audit_log_entry.data)
+    return "disabled integration {integration} from project {project}".format(
+        **audit_log_entry.data
+    )
+
+
+add(
     AuditLogEvent(
         event_id=113,
         name="SENTRY_APP_ADD",
@@ -243,7 +506,7 @@ default_manager.add(
         template="created sentry app {sentry_app}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=115,
         name="SENTRY_APP_REMOVE",
@@ -251,7 +514,7 @@ default_manager.add(
         template="removed sentry app {sentry_app}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=116,
         name="SENTRY_APP_INSTALL",
@@ -259,7 +522,7 @@ default_manager.add(
         template="installed sentry app {sentry_app}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=117,
         name="SENTRY_APP_UNINSTALL",
@@ -267,7 +530,7 @@ default_manager.add(
         template="uninstalled sentry app {sentry_app}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=118,
         name="INTEGRATION_ROTATE_CLIENT_SECRET",
@@ -275,8 +538,18 @@ default_manager.add(
         template="rotated a client secret for {status} integration {sentry_app}",
     )
 )
-default_manager.add(events.MonitorAddAuditLogEvent())
-default_manager.add(
+
+
+@add_with_render_func(AuditLogEvent(event_id=120, name="MONITOR_ADD", api_name="monitor.add"))
+def render_monitor_add(audit_log_entry: AuditLogEntry):
+    entry_data = audit_log_entry.data
+    name = entry_data.get("name")
+    upsert = entry_data.get("upsert")
+
+    return f"added{" upsert " if upsert else " "}monitor {name}"
+
+
+add(
     AuditLogEvent(
         event_id=121,
         name="MONITOR_EDIT",
@@ -284,7 +557,7 @@ default_manager.add(
         template="edited monitor {name}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=122,
         name="MONITOR_REMOVE",
@@ -292,7 +565,7 @@ default_manager.add(
         template="removed monitor {name}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=123,
         name="MONITOR_ENVIRONMENT_REMOVE",
@@ -300,7 +573,7 @@ default_manager.add(
         template="removed an environment from monitor {name}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=124,
         name="MONITOR_ENVIRONMENT_EDIT",
@@ -308,9 +581,29 @@ default_manager.add(
         template="edited an environment from monitor {name}",
     )
 )
-default_manager.add(events.InternalIntegrationAddAuditLogEvent())
-default_manager.add(events.InternalIntegrationDisabledAuditLogEvent())
-default_manager.add(
+
+
+@add_with_render_func(
+    AuditLogEvent(
+        event_id=130, name="INTERNAL_INTEGRATION_ADD", api_name="internal-integration.create"
+    )
+)
+def render_internal_integration_add(audit_log_entry: AuditLogEntry):
+    integration_name = audit_log_entry.data.get("name") or ""
+    return f"created internal integration {integration_name}"
+
+
+@add_with_render_func(
+    AuditLogEvent(
+        event_id=131, name="INTERNAL_INTEGRATION_DISABLED", api_name="internal-integration.disable"
+    )
+)
+def render_internal_integration_disabled(audit_log_entry: AuditLogEntry):
+    integration_name = audit_log_entry.data.get("name") or ""
+    return f"disabled internal integration {integration_name}".format(**audit_log_entry.data)
+
+
+add(
     AuditLogEvent(
         event_id=135,
         name="INTERNAL_INTEGRATION_ADD_TOKEN",
@@ -318,7 +611,7 @@ default_manager.add(
         template="created a token for internal integration {sentry_app}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=136,
         name="INTERNAL_INTEGRATION_REMOVE_TOKEN",
@@ -326,7 +619,7 @@ default_manager.add(
         template="revoked a token for internal integration {sentry_app}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=140,
         name="INVITE_REQUEST_ADD",
@@ -334,7 +627,7 @@ default_manager.add(
         template="request added to invite {email}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=141,
         name="INVITE_REQUEST_REMOVE",
@@ -342,7 +635,7 @@ default_manager.add(
         template="removed the invite request for {email}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=160,
         name="ALERT_RULE_ADD",
@@ -350,7 +643,7 @@ default_manager.add(
         template='added metric alert rule "{label}"',
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=161,
         name="ALERT_RULE_EDIT",
@@ -358,7 +651,7 @@ default_manager.add(
         template='edited metric alert rule "{label}"',
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=162,
         name="ALERT_RULE_REMOVE",
@@ -366,7 +659,7 @@ default_manager.add(
         template='removed metric alert rule "{label}"',
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=168,
         name="ALERT_RULE_SNOOZE",
@@ -374,7 +667,7 @@ default_manager.add(
         template='muted metric alert rule "{label}"',
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=163,
         name="SAMPLING_BIAS_ENABLED",
@@ -382,7 +675,7 @@ default_manager.add(
         template='enabled dynamic sampling priority "{name}"',
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=164,
         name="SAMPLING_BIAS_DISABLED",
@@ -390,7 +683,7 @@ default_manager.add(
         template='disabled dynamic sampling priority "{name}"',
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=165,
         name="NOTIFICATION_ACTION_ADD",
@@ -398,7 +691,7 @@ default_manager.add(
         template="added an action with the '{trigger}' trigger",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=166,
         name="NOTIFICATION_ACTION_EDIT",
@@ -406,7 +699,7 @@ default_manager.add(
         template="edited an action with the '{trigger}' trigger",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=167,
         name="NOTIFICATION_ACTION_REMOVE",
@@ -414,7 +707,7 @@ default_manager.add(
         template="removed an action with the '{trigger}' trigger",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=175,
         name="TEAM_AND_PROJECT_CREATED",
@@ -422,7 +715,7 @@ default_manager.add(
         template="created team {team_slug} and added user as Team Admin while creating project {project_slug}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=176,
         name="ORGAUTHTOKEN_ADD",
@@ -430,7 +723,7 @@ default_manager.add(
         template="added org auth token {name}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=177,
         name="ORGAUTHTOKEN_REMOVE",
@@ -438,8 +731,15 @@ default_manager.add(
         template="removed org auth token {name}",
     )
 )
-default_manager.add(events.ProjectOwnershipRuleEditAuditLogEvent())
-default_manager.add(
+add(
+    AuditLogEvent(
+        event_id=179,
+        name="PROJECT_OWNERSHIPRULE_EDIT",
+        api_name="project.ownership-rule.edit",
+        template="modified ownership rules",
+    )
+)
+add(
     AuditLogEvent(
         event_id=180,
         name="PROJECT_TEAM_REMOVE",
@@ -447,7 +747,7 @@ default_manager.add(
         template="removed team {team_slug} from project {project_slug}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=181,
         name="PROJECT_TEAM_ADD",
@@ -455,7 +755,7 @@ default_manager.add(
         template="added team {team_slug} to project {project_slug}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=182,
         name="METRIC_BLOCK",
@@ -463,7 +763,7 @@ default_manager.add(
         template="blocked metric {metric_mri} for project {project_slug}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=183,
         name="METRIC_TAGS_BLOCK",
@@ -471,7 +771,7 @@ default_manager.add(
         template="blocked {tags} tags of metric {metric_mri} for project {project_slug}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=184,
         name="METRIC_UNBLOCK",
@@ -479,7 +779,7 @@ default_manager.add(
         template="unblocked metric {metric_mri} for project {project_slug}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=185,
         name="METRIC_TAGS_UNBLOCK",
@@ -487,7 +787,7 @@ default_manager.add(
         template="unblocked {tags} tags of metric {metric_mri} for project {project_slug}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=186,
         name="ISSUE_DELETE",
@@ -495,7 +795,7 @@ default_manager.add(
         template="Deleted issue {issue_id} for project {project_slug}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=187,
         name="SPAN_BASED_METRIC_CREATE",
@@ -504,7 +804,7 @@ default_manager.add(
     )
 )
 
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=188,
         name="SPAN_BASED_METRIC_UPDATE",
@@ -513,7 +813,7 @@ default_manager.add(
     )
 )
 
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=189,
         name="SPAN_BASED_METRIC_DELETE",
@@ -522,7 +822,7 @@ default_manager.add(
     )
 )
 
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=190,
         name="PROJECT_TEMPLATE_CREATED",
@@ -531,7 +831,7 @@ default_manager.add(
     )
 )
 
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=200,
         name="UPTIME_MONITOR_ADD",
@@ -539,7 +839,7 @@ default_manager.add(
         template="added uptime monitor {name}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=201,
         name="UPTIME_MONITOR_EDIT",
@@ -547,7 +847,7 @@ default_manager.add(
         template="edited uptime monitor {name}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=202,
         name="UPTIME_MONITOR_REMOVE",
@@ -555,7 +855,7 @@ default_manager.add(
         template="removed uptime monitor {name}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=210,
         name="DETECTOR_ADD",
@@ -563,7 +863,7 @@ default_manager.add(
         template="added detector {name}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=211,
         name="DETECTOR_EDIT",
@@ -571,7 +871,7 @@ default_manager.add(
         template="edited detector {name}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=212,
         name="DETECTOR_REMOVE",
@@ -579,7 +879,7 @@ default_manager.add(
         template="removed detector {name}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=213,
         name="WORKFLOW_ADD",
@@ -587,7 +887,7 @@ default_manager.add(
         template="added workflow {name}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=214,
         name="WORKFLOW_EDIT",
@@ -595,7 +895,7 @@ default_manager.add(
         template="edited workflow {name}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=215,
         name="WORKFLOW_REMOVE",
@@ -603,7 +903,7 @@ default_manager.add(
         template="removed workflow {name}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=216,
         name="DETECTOR_WORKFLOW_ADD",
@@ -611,7 +911,7 @@ default_manager.add(
         template="connected detector {detector_name} to workflow {workflow_name}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=217,
         name="DETECTOR_WORKFLOW_REMOVE",
@@ -620,7 +920,7 @@ default_manager.add(
     )
 )
 
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=204,
         name="MEMBER_REINVITE",
@@ -629,7 +929,7 @@ default_manager.add(
     )
 )
 
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=1152,
         name="TEMPEST_CLIENT_ID_ADD",
@@ -637,7 +937,7 @@ default_manager.add(
         template="added playstation client id {client_id}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=1153,
         name="TEMPEST_CLIENT_ID_REMOVE",
@@ -645,7 +945,7 @@ default_manager.add(
         template="removed playstation client id {client_id}",
     )
 )
-default_manager.add(
+add(
     AuditLogEvent(
         event_id=1154,
         name="PROJECT_ADD_WITH_ORIGIN",
