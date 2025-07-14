@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from django.db import IntegrityError, router, transaction
-from django.db.models import Case, Exists, IntegerField, OuterRef, Value, When
+from django.db.models import Case, DateTimeField, Exists, F, IntegerField, OuterRef, Value, When
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -150,7 +150,29 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             ]
 
         elif sort_by == "recentlyViewed":
-            order_by = ["last_visited" if desc else "-last_visited"]
+            if features.has(
+                "organizations:dashboards-starred-reordering", organization, actor=request.user
+            ):
+                dashboards = dashboards.annotate(
+                    user_last_visited=Case(
+                        When(
+                            dashboardlastvisited__member_id=request.user.id,
+                            then=F("dashboardlastvisited__last_visited"),
+                        ),
+                        default=None,
+                        output_field=DateTimeField(null=True),
+                    )
+                )
+                order_by = [
+                    (
+                        F("user_last_visited").asc(nulls_last=True)
+                        if desc
+                        else F("user_last_visited").desc(nulls_last=True)
+                    ),
+                    "title",
+                ]
+            else:
+                order_by = ["last_visited" if desc else "-last_visited"]
 
         elif sort_by == "mydashboards":
             user_name_dict = {

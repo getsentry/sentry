@@ -5,12 +5,18 @@ from typing import Any
 
 from django.urls import reverse
 
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardTombstone
+from sentry.models.dashboard import (
+    Dashboard,
+    DashboardFavoriteUser,
+    DashboardLastVisited,
+    DashboardTombstone,
+)
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetTypes,
 )
+from sentry.models.organizationmember import OrganizationMember
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -163,6 +169,49 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 expected = list(reversed(expected))
 
             assert values == ["General"] + expected
+
+    def test_get_sortby_recently_viewed_user_last_visited(self):
+        dashboard_a = Dashboard.objects.create(
+            title="A",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        dashboard_b = Dashboard.objects.create(
+            title="B",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        DashboardLastVisited.objects.create(
+            dashboard=dashboard_a,
+            member=OrganizationMember.objects.get(
+                organization=self.organization, user_id=self.user.id
+            ),
+            last_visited=before_now(minutes=5),
+        )
+        DashboardLastVisited.objects.create(
+            dashboard=dashboard_b,
+            member=OrganizationMember.objects.get(
+                organization=self.organization, user_id=self.user.id
+            ),
+            last_visited=before_now(minutes=0),
+        )
+
+        for forward_sort in [True, False]:
+            sorting = "recentlyViewed" if forward_sort else "-recentlyViewed"
+
+            with self.feature("organizations:dashboards-starred-reordering"):
+                response = self.client.get(self.url, data={"sort": sorting})
+
+            assert response.status_code == 200
+            values = [row["title"] for row in response.data]
+            expected = ["B", "A"]
+
+            if not forward_sort:
+                expected = list(reversed(expected))
+
+            # Only A, B are sorted by their last visited entry, Dashboard 1
+            # and Dashboard 2 are by default sorted by their title
+            assert values == ["General"] + expected + ["Dashboard 1", "Dashboard 2"]
 
     def test_get_sortby_mydashboards(self):
         user_1 = self.create_user(username="user_1")
