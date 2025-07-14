@@ -442,6 +442,18 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             data=detector.get_audit_log_data(),
         )
 
+    def test_valid_creation_with_connected_workflows(self):
+        workflow = self.create_workflow(
+            organization_id=self.organization.id,
+        )
+        data = {**self.valid_data, "workflowIds": [workflow.id]}
+        response = self.get_success_response(
+            self.organization.slug,
+            **data,
+            status_code=201,
+        )
+        assert response.data["workflowIds"] == [str(workflow.id)]
+
     def test_missing_required_field(self):
         response = self.get_error_response(
             self.organization.slug,
