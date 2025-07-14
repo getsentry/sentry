@@ -43,7 +43,7 @@ export function TraceSearchBar({
     const secondaryAliases: TagCollection = Object.fromEntries(
       Object.values(stringAttributes ?? {})
         .flatMap(value => value.secondaryAliases ?? [])
-        .map(alias => [alias, {key: alias, name: alias, kind: FieldKind.MEASUREMENT}])
+        .map(alias => [alias, {key: alias, name: alias, kind: FieldKind.TAG}])
     );
     return secondaryAliases;
   }, [stringAttributes]);
