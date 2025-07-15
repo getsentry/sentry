@@ -97,7 +97,9 @@ export function useStreamingTimeseriesResult(
     timeseriesValues?.[timeseriesValues.length - 1]?.timestamp;
   const timeseriesNextTimestamp = timeseriesValues?.[1]?.timestamp;
   const timeseriesIntervalDuration =
-    timeseriesNextTimestamp && timeseriesStartTimestamp
+    timeseriesNextTimestamp &&
+    timeseriesStartTimestamp &&
+    timeseriesNextTimestamp - timeseriesStartTimestamp > 0
       ? timeseriesNextTimestamp - timeseriesStartTimestamp
       : null;
   const timeseriesLastBucketIndex = timeseriesValues?.length
