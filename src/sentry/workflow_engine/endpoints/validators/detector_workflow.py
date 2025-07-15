@@ -80,7 +80,7 @@ class BulkDetectorWorkflowsValidator(CamelSnakeSerializer):
     """
 
     detector_id = serializers.IntegerField(required=True)
-    workflow_ids = serializers.ListField(required=True)
+    workflow_ids = serializers.ListField(child=serializers.IntegerField(), required=True)
 
     def create(self, validated_data) -> list[DetectorWorkflow]:
         if not validated_data["workflow_ids"]:
