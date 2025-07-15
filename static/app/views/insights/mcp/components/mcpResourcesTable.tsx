@@ -26,7 +26,7 @@ const AVG_DURATION = `avg(${SpanFields.SPAN_DURATION})`;
 const P95_DURATION = `p95(${SpanFields.SPAN_DURATION})`;
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
-  {key: SpanFields.MCP_RESOURCE_URI, name: t('Tool Name'), width: COL_WIDTH_UNDEFINED},
+  {key: SpanFields.MCP_RESOURCE_URI, name: t('Resource URI'), width: COL_WIDTH_UNDEFINED},
   {key: 'count()', name: t('Requests'), width: 136},
   {key: 'failure_rate()', name: t('Error Rate'), width: 124},
   {key: AVG_DURATION, name: t('AVG'), width: 90},
