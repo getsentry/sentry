@@ -6610,6 +6610,19 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
                 project_id=self.project.id,
             )
 
+            # Store error event without error_sampling context (sample_weight = null should count as 1)
+            self.store_event(
+                data={
+                    "event_id": "a1" * 16,
+                    "message": "Error event without sampling",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something else went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1_no_sampling"],
+                },
+                project_id=self.project.id,
+            )
+
             # Test with errors dataset
             query = {
                 "field": ["count()"],
@@ -6619,8 +6632,8 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             }
             response = self.do_request(query)
             assert response.status_code == 200, response.content
-            # Expect the count to be upsampled (1 event / 0.1 = 10)
-            assert response.data["data"][0]["count()"] == 10
+            # Expect the count to be upsampled (1 event / 0.1 = 10) + 1 event with no sampling = 11
+            assert response.data["data"][0]["count()"] == 11
 
     def test_error_upsampling_eps_with_allowlisted_project(self):
         """Test that eps() is upsampled for allowlisted projects when querying error events."""
@@ -6640,6 +6653,19 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
                 project_id=self.project.id,
             )
 
+            # Store error event without error_sampling context (sample_weight = null should count as 1)
+            self.store_event(
+                data={
+                    "event_id": "b1" * 16,
+                    "message": "Error event without sampling for eps",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something else went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group2_no_sampling"],
+                },
+                project_id=self.project.id,
+            )
+
             # Test with errors dataset - eps() should be upsampled
             query = {
                 "field": ["eps()"],
@@ -6649,9 +6675,9 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             }
             response = self.do_request(query)
             assert response.status_code == 200, response.content
-            # Expect eps to be upsampled (10 events / 7200 seconds = ~0.00139)
-            # Since we have 1 event upsampled to 10 over 2 hour period
-            expected_eps = 10 / 7200
+            # Expect eps to be upsampled (10 events / 7200 seconds) + (1 event / 7200 seconds) = 11/7200
+            # Since we have 1 event upsampled to 10 + 1 event with no sampling over 2 hour period
+            expected_eps = 11 / 7200
             actual_eps = response.data["data"][0]["eps()"]
             assert abs(actual_eps - expected_eps) < 0.0001  # Allow small rounding differences
 
@@ -6673,6 +6699,19 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
                 project_id=self.project.id,
             )
 
+            # Store error event without error_sampling context (sample_weight = null should count as 1)
+            self.store_event(
+                data={
+                    "event_id": "c1" * 16,
+                    "message": "Error event without sampling for epm",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something else went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group3_no_sampling"],
+                },
+                project_id=self.project.id,
+            )
+
             # Test with errors dataset - epm() should be upsampled
             query = {
                 "field": ["epm()"],
@@ -6682,11 +6721,11 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             }
             response = self.do_request(query)
             assert response.status_code == 200, response.content
-            # Expect epm to be upsampled (10 events / 120 minutes = ~0.0833)
-            # Since we have 1 event upsampled to 10 over 2 hour period
-            expected_epm = 10 / 120
+            # Expect epm to be upsampled (10 events / 120 minutes) + (1 event / 120 minutes) = 11/120
+            # Since we have 1 event upsampled to 10 + 1 event with no sampling over 2 hour period
+            expected_epm = 11 / 120
             actual_epm = response.data["data"][0]["epm()"]
-            assert abs(actual_epm - expected_epm) < 0.01  # Allow small rounding differences
+            assert abs(actual_epm - expected_epm) < 0.001  # Allow small rounding differences
 
     def test_error_upsampling_with_no_allowlist(self):
         """Test that count() is not upsampled when project is not allowlisted."""
