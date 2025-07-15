@@ -3,6 +3,7 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, sane_repr
+from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields import UUIDField
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 
@@ -30,3 +31,38 @@ class Feedback(Model):
         indexes = [models.Index(fields=("project_id", "date_added"))]
 
     __repr__ = sane_repr("project_id", "feedback_id")
+
+
+@region_silo_model
+class Keyword(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    organization_id = BoundedBigIntegerField(db_index=True)
+    label = models.CharField(max_length=255)
+    groups = models.ManyToManyField("sentry.Group", through="feedback.GroupKeyword")
+
+    class Meta:
+        app_label = "feedback"
+        db_table = "feedback_keyword"
+        unique_together = (("organization_id", "label"),)
+        indexes = [models.Index(fields=("organization_id", "label"))]
+
+    __repr__ = sane_repr("organization_id", "label")
+
+
+@region_silo_model
+class GroupKeyword(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    group = FlexibleForeignKey("sentry.Group", on_delete=models.CASCADE)
+    keyword = FlexibleForeignKey("feedback.Keyword", on_delete=models.CASCADE)
+
+    class Meta:
+        app_label = "feedback"
+        db_table = "feedback_groupkeyword"
+        unique_together = (("group", "keyword"),)
+        indexes = [
+            models.Index(fields=("group", "keyword")),
+        ]
+
+    __repr__ = sane_repr("group", "keyword")
