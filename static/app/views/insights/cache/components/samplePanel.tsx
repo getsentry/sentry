@@ -46,7 +46,6 @@ import type {
   SpanQueryFilters,
 } from 'sentry/views/insights/types';
 import {
-  MetricsFields,
   ModuleName,
   SpanFields,
   SpanFunction,
@@ -318,7 +317,7 @@ export function CacheSamplePanel() {
                 />
 
                 <MetricReadout
-                  title={DataTitles[`avg(${MetricsFields.TRANSACTION_DURATION})`]}
+                  title={DataTitles['avg(transaction.duration)']}
                   value={
                     transactionDurationData?.[0]?.[`avg(${SpanFields.SPAN_DURATION})`]
                   }
