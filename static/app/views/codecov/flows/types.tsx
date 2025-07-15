@@ -1,29 +1,47 @@
-export type Flow = {
-  createdBy: string;
-  failures: number;
+export interface Flow {
   id: string;
-  lastChecked: string;
-  lastSeen: string;
-  linkedIssues: string[];
   name: string;
-  status: string;
-  metadata?: {
-    endBreadcrumb?: string | null;
-    endBreadcrumbData?: {
-      breadcrumbId: string;
-      offsetMs: number;
-    };
-    orgSlug?: string;
-    replaySlug?: string;
-    startBreadcrumb?: string | null;
-    startBreadcrumbData?: {
-      breadcrumbId: string;
-      offsetMs: number;
-    };
+  description?: string;
+  createdBy?: {
+    id: string;
+    name: string;
+    email: string;
+    avatar?: string;
   };
-};
+  status: 'active' | 'inactive' | 'draft';
+  createdAt: string;
+  updatedAt: string;
+  lastSeen?: string;
+  replayId?: string;
+  projectId: string;
+  organizationId: string;
+}
 
-export enum Status {
-  ACTIVE = 'Active',
-  INACTIVE = 'Inactive',
+export interface FlowDefinition {
+  id: string;
+  name: string;
+  description?: string;
+  steps: FlowStep[];
+  version: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FlowStep {
+  id: string;
+  name: string;
+  description?: string;
+  type: 'action' | 'condition' | 'wait';
+  config: Record<string, any>;
+  order: number;
+}
+
+export interface FlowInstance {
+  id: string;
+  flowId: string;
+  status: 'running' | 'completed' | 'failed' | 'paused';
+  currentStep?: string;
+  startedAt: string;
+  completedAt?: string;
+  data: Record<string, any>;
 }

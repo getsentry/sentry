@@ -15,7 +15,7 @@ import ReplayDetailsProviders from 'sentry/views/replays/detail/body/replayDetai
 import ReplayDetailsPageBreadcrumbs from 'sentry/views/replays/detail/header/replayDetailsPageBreadcrumbs';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
-import {useLocalStorageFlows} from './hooks/useLocalStorageFlows';
+import {useLocalStorageFlows} from '../hooks/useFlows';
 
 const StatusBadge = styled('span')<{status: string}>`
   display: inline-block;
@@ -37,7 +37,7 @@ const LayoutContainer = styled('div')`
 const Header = styled(Layout.Header)`
   gap: ${space(1)};
   padding-bottom: ${space(1.5)};
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     gap: ${space(1)} ${space(3)};
     padding: ${space(2)} ${space(2)} ${space(1.5)} ${space(2)};
   }
@@ -152,7 +152,10 @@ export default function FlowDetail() {
   const {onClickTimestamp} = useCrumbHandlers();
 
   // Create mock breadcrumb frames for start and end points
-  const createMockBreadcrumbFrame = (breadcrumbId: string, isStart: boolean) => {
+  const createMockBreadcrumbFrame = (
+    breadcrumbId: string | undefined,
+    isStart: boolean
+  ) => {
     if (!replay || !breadcrumbId) return null;
 
     // Parse the breadcrumb ID to get offsetMs
@@ -237,7 +240,8 @@ export default function FlowDetail() {
             <h1 style={{margin: 0, fontSize: '28px', fontWeight: 600}}>{flow.name}</h1>
           </div>
           <p style={{color: '#6b7280', margin: 0}}>
-            {t('Created by')} {flow.createdBy}
+            {t('Created by')}{' '}
+            {flow.createdBy?.name || flow.createdBy?.email || t('Unknown')}
           </p>
         </div>
 

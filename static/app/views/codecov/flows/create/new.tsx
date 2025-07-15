@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {useParams} from 'react-router-dom';
+import {Link, useParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -16,8 +16,7 @@ import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import useBreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/useBreadcrumbFilters';
 import ReplayDetailsPageBreadcrumbs from 'sentry/views/replays/detail/header/replayDetailsPageBreadcrumbs';
 
-import {sampleFlows} from './flowInstances/data/data';
-import {FlowCreateForm} from './create';
+import {FlowCreateForm} from '../detail/create';
 
 const LayoutContainer = styled('div')`
   display: flex;
@@ -28,7 +27,7 @@ const LayoutContainer = styled('div')`
 const Header = styled(Layout.Header)`
   gap: ${space(1)};
   padding-bottom: ${space(1.5)};
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     gap: ${space(1)} ${space(3)};
     padding: ${space(2)} ${space(2)} ${space(1.5)} ${space(2)};
   }
@@ -112,6 +111,40 @@ const FlowButtonContainer = styled('div')<{isEnd: boolean; isStart: boolean}>`
       border-radius: 2px;
     }
   `}
+`;
+
+const PageBreadcrumbs = styled('nav')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  margin-bottom: ${space(3)};
+  font-size: 14px;
+  color: ${p => p.theme.textColor};
+`;
+
+const BreadcrumbItem = styled('span')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const BreadcrumbLink = styled(Link)`
+  color: ${p => p.theme.linkColor};
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
+const BreadcrumbSeparator = styled('span')`
+  color: ${p => p.theme.subText};
+  margin: 0 ${space(0.5)};
+`;
+
+const CurrentPage = styled('span')`
+  color: ${p => p.theme.subText};
+  font-weight: 500;
 `;
 
 // Component that wraps the existing Breadcrumbs and adds flow buttons
@@ -359,6 +392,22 @@ export default function New() {
   return (
     <ReplayDetailsProviders replay={replay} projectSlug={replayRecord?.project_id || ''}>
       <div style={{padding: '20px'}}>
+        <PageBreadcrumbs>
+          <BreadcrumbItem>
+            <BreadcrumbLink to="/codecov/flows/">{t('Flows')}</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator>/</BreadcrumbSeparator>
+          <BreadcrumbItem>
+            <BreadcrumbLink to="/codecov/flows/select-replay">
+              {t('Select Replay')}
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator>/</BreadcrumbSeparator>
+          <BreadcrumbItem>
+            <CurrentPage>{t('New Flow')}</CurrentPage>
+          </BreadcrumbItem>
+        </PageBreadcrumbs>
+
         <div style={{marginBottom: '24px'}}>
           <div
             style={{
@@ -371,7 +420,10 @@ export default function New() {
             <h1 style={{margin: 0, fontSize: '28px', fontWeight: 600}}>{flow.name}</h1>
           </div>
           <p style={{color: '#6b7280', margin: 0}}>
-            {t('Created by')} {flow.createdBy}
+            {t('Created by')}{' '}
+            {typeof flow.createdBy === 'string'
+              ? flow.createdBy
+              : flow.createdBy?.name || flow.createdBy?.email || 'Unknown'}
           </p>
         </div>
 

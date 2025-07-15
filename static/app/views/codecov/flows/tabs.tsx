@@ -12,7 +12,7 @@ export default function FlowsTabs({selected}: Props) {
 
   return (
     <Layout.HeaderTabs value={selected}>
-      <TabList hideBorder>
+      <TabList>
         <TabList.Item
           key="flow-definitions"
           to={{
