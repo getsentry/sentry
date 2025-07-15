@@ -93,8 +93,8 @@ class AlertContext:
         resolve_threshold = alert_rule.resolve_threshold
 
         if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
-            alert_rule_threshold = None
-            resolve_threshold = None
+            alert_rule_threshold = 0
+            resolve_threshold = 0
 
         return cls(
             name=alert_rule.name,
