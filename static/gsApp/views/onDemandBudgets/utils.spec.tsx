@@ -6,6 +6,7 @@ import {
 } from 'getsentry-test/fixtures/subscription';
 
 import {OnDemandBudgetMode, type OnDemandBudgets} from 'getsentry/types';
+import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {
   exceedsInvoicedBudgetLimit,
   getTotalBudget,
@@ -519,13 +520,7 @@ describe('exceedsInvoicedBudgetLimit', function () {
 });
 
 describe('trackOnDemandBudgetAnalytics', function () {
-  beforeEach(function () {
-    jest.clearAllMocks();
-  });
-
   it('tracks LOG_BYTE budget in analytics when budget changes', function () {
-    const trackGetsentryAnalytics =
-      require('getsentry/utils/trackGetsentryAnalytics').default;
     const organization = OrganizationFixture();
 
     const previousBudget: OnDemandBudgets = {
