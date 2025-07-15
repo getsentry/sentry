@@ -277,6 +277,10 @@ export function isContinuousProfiling(category: DataCategory | string) {
   );
 }
 
+export function isByteCategory(category: DataCategory | string) {
+  return category === DataCategory.ATTACHMENTS || category === DataCategory.LOG_BYTE;
+}
+
 export function getChunkCategoryFromDuration(category: DataCategory) {
   if (category === DataCategory.PROFILE_DURATION) {
     return DataCategory.PROFILE_CHUNKS;
