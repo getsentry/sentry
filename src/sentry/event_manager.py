@@ -142,7 +142,6 @@ from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_span_attribute
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
-from sentry.workflow_engine.models import DetectorGroup
 
 from .utils.event_tracker import TransactionStageStatus, track_sampled_event
 
@@ -2609,28 +2608,6 @@ def save_grouphash_and_group(
         if created:
             group = _create_group(project, event, **group_kwargs)
             group_hash.update(group=group)
-
-            # Add the group to DetectorGroup if the issue was created from a detector
-            if (
-                hasattr(event, "occurrence")
-                and event.occurrence
-                and event.occurrence.evidence_data
-                and "detector_id" in event.occurrence.evidence_data
-            ):
-                try:
-                    detector_id = event.occurrence.evidence_data["detector_id"]
-                    DetectorGroup.objects.create(
-                        detector_id=detector_id,
-                        group_id=group.id,
-                    )
-                except Exception:
-                    logger.exception(
-                        "Failed to create DetectorGroup record",
-                        extra={
-                            "detector_id": event.occurrence.evidence_data.get("detector_id"),
-                            "group_id": group.id,
-                        },
-                    )
 
     if group is None:
         # If we failed to create the group it means another worker beat us to
