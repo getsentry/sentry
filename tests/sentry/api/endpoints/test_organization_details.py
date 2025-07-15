@@ -1369,6 +1369,25 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_success_response(self.organization.slug, **data)
         assert self.organization.get_option("sentry:default_seer_scanner_automation") is True
 
+    def test_enable_pr_review_test_generation_default_true(self):
+        response = self.get_success_response(self.organization.slug)
+        assert response.data["enablePrReviewTestGeneration"] is True
+
+    def test_enable_pr_review_test_generation_can_be_disabled(self):
+        data = {"enablePrReviewTestGeneration": False}
+        self.get_success_response(self.organization.slug, **data)
+
+        assert self.organization.get_option("sentry:enable_pr_review_test_generation") is False
+
+    def test_enable_pr_review_test_generation_can_be_enabled(self):
+        # First disable it
+        self.organization.update_option("sentry:enable_pr_review_test_generation", False)
+
+        data = {"enablePrReviewTestGeneration": True}
+        self.get_success_response(self.organization.slug, **data)
+
+        assert self.organization.get_option("sentry:enable_pr_review_test_generation") is True
+
 
 class OrganizationDeleteTest(OrganizationDetailsTestBase):
     method = "delete"

@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import invariant from 'invariant';
+import {PlatformIcon} from 'platformicons';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
@@ -14,7 +15,6 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import Duration from 'sentry/components/duration/duration';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {useSelectedReplayIndex} from 'sentry/components/replays/queryParams/selectedReplayIndex';
-import ReplayPlatformIcon from 'sentry/components/replays/replayPlatformIcon';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import NumericDropdownFilter from 'sentry/components/replays/table/filters/numericDropdownFilter';
 import OSBrowserDropdownFilter from 'sentry/components/replays/table/filters/osBrowserDropdownFilter';
@@ -34,6 +34,7 @@ import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fiel
 import {getShortEventId} from 'sentry/utils/events';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
 import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -52,6 +53,7 @@ type ListRecord = ReplayListRecord | ReplayListRecordWithTx;
 interface HeaderProps {
   columnIndex: number;
   listItemCheckboxState: ReturnType<typeof useListItemCheckboxContext>;
+  replays: ReplayListRecord[];
 }
 
 interface CellProps {
@@ -118,15 +120,15 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
       return <IconNot size="xs" color="gray300" />;
     }
 
+    const icon = generatePlatformIconName(
+      name ?? '',
+      version && isLargeBreakpoint ? version : undefined
+    );
+
     return (
       <DropdownContainer key="browser">
         <Tooltip title={`${name} ${version}`}>
-          <ReplayPlatformIcon
-            name={name ?? ''}
-            version={version && isLargeBreakpoint ? version : undefined}
-            showVersion={false}
-            showTooltip={false}
-          />
+          <PlatformIcon platform={icon} size="20px" />
           {showDropdownFilters ? (
             <OSBrowserDropdownFilter type="browser" name={name} version={version} />
           ) : null}
@@ -306,15 +308,15 @@ export const ReplayOSColumn: ReplayTableColumn = {
       return null;
     }
     const {name, version} = replay.os;
+    const icon = generatePlatformIconName(
+      name ?? '',
+      version && isLargeBreakpoint ? version : undefined
+    );
+
     return (
       <DropdownContainer key="os">
         <Tooltip title={`${name ?? ''} ${version ?? ''}`}>
-          <ReplayPlatformIcon
-            name={name ?? ''}
-            version={version && isLargeBreakpoint ? version : undefined}
-            showVersion={false}
-            showTooltip={false}
-          />
+          <PlatformIcon platform={icon} size="20px" />
           {showDropdownFilters ? (
             <OSBrowserDropdownFilter type="os" name={name} version={version} />
           ) : null}
@@ -367,6 +369,7 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
 export const ReplaySelectColumn: ReplayTableColumn = {
   Header: ({
     listItemCheckboxState: {isAllSelected, deselectAll, knownIds, toggleSelected},
+    replays,
   }) => {
     const organization = useOrganization();
     if (!organization.features.includes('replay-list-select')) {
@@ -382,7 +385,10 @@ export const ReplaySelectColumn: ReplayTableColumn = {
             if (isAllSelected === true) {
               deselectAll();
             } else {
-              toggleSelected(knownIds);
+              // If the replay is archived, don't include it in the selection
+              toggleSelected(
+                knownIds.filter(id => !replays.find(r => r.id === id)?.is_archived)
+              );
             }
           }}
         />
@@ -420,7 +426,11 @@ export const ReplaySelectColumn: ReplayTableColumn = {
 };
 
 export const ReplaySessionColumn: ReplayTableColumn = {
-  Header: t('Replay'),
+  Header: () => (
+    <Tooltip title={t('By default, replays are sorted by time sent.')}>
+      {t('Replay')}
+    </Tooltip>
+  ),
   sortKey: 'started_at',
   width: 'minmax(150px, 1fr)',
   Component: ({replay}) => {
@@ -485,7 +495,16 @@ export const ReplaySessionColumn: ReplayTableColumn = {
 
     return (
       <Flex key="session" align="center" gap={space(1)}>
-        <UserAvatar user={getUserBadgeUser(replay)} size={24} />
+        <UserAvatar
+          user={{
+            username: replay.user?.display_name || '',
+            email: replay.user?.email || '',
+            id: replay.user?.id || '',
+            ip_address: replay.user?.ip || '',
+            name: replay.user?.username || '',
+          }}
+          size={24}
+        />
         <SubText>
           <Flex gap={space(0.5)} align="flex-start">
             <DisplayNameLink
@@ -551,24 +570,6 @@ export const ReplaySlowestTransactionColumn: ReplayTableColumn = {
     );
   },
 };
-
-function getUserBadgeUser(replay: ListRecord) {
-  return replay.is_archived
-    ? {
-        username: '',
-        email: '',
-        id: '',
-        ip_address: '',
-        name: '',
-      }
-    : {
-        username: replay.user?.display_name || '',
-        email: replay.user?.email || '',
-        id: replay.user?.id || '',
-        ip_address: replay.user?.ip || '',
-        name: replay.user?.username || '',
-      };
-}
 
 const DropdownContainer = styled(Flex)`
   flex-direction: column;
