@@ -233,7 +233,7 @@ def save_issue_from_occurrence(
             group, is_new, primary_grouphash = save_grouphash_and_group(
                 project, event, primary_hash, **issue_kwargs
             )
-            if occurrence.evidence_data and "detector_id" in occurrence.evidence_data:
+            if is_new and occurrence.evidence_data and "detector_id" in occurrence.evidence_data:
                 DetectorGroup.objects.create(
                     detector_id=occurrence.evidence_data["detector_id"],
                     group_id=group.id,
