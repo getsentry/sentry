@@ -93,17 +93,17 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
             occurrence.project_id, stored_occurrence.event_id
         )
         assert event
-
-        post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            cache_key=None,
-            occurrence_id=occurrence.id,
-            group_id=event.group_id,
-            project_id=occurrence.project_id,
-            eventstream_type=EventStreamEventType.Generic.value,
-        )
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                cache_key=None,
+                occurrence_id=occurrence.id,
+                group_id=event.group_id,
+                project_id=occurrence.project_id,
+                eventstream_type=EventStreamEventType.Generic.value,
+            )
 
     def get_group(self, occurrence):
         stored_occurrence = IssueOccurrence.fetch(occurrence.id, occurrence.project_id)
@@ -131,7 +131,6 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
         assert isinstance(occurrence, IssueOccurrence)
         occurrence.save()
         self.call_post_process_group(occurrence)
-
         assert mock_trigger.call_count == 1  # just warning action
 
         mock_trigger.reset_mock()
@@ -173,7 +172,6 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
         occurrence.save()
         group = self.get_group(occurrence)
         self.call_post_process_group(occurrence)
-
         assert mock_trigger.call_count == 2  # both actions
 
         mock_trigger.reset_mock()
@@ -184,7 +182,7 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
         assert isinstance(evaluation_result, StatusChangeMessage)
         message = evaluation_result.to_dict()
         # TODO: Actions don't trigger on resolution yet. Update this test when this functionality exists.
-        with patch("sentry.workflow_engine.tasks.metrics.incr") as mock_incr:
+        with patch("sentry.workflow_engine.tasks.workflows.metrics.incr") as mock_incr:
             with self.tasks():
                 update_status(group, message)
             mock_incr.assert_any_call(
@@ -212,7 +210,7 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
         assert isinstance(evaluation_result, StatusChangeMessage)
         message = evaluation_result.to_dict()
         # TODO: Actions don't trigger on resolution yet. Update this test when this functionality exists.
-        with patch("sentry.workflow_engine.tasks.metrics.incr") as mock_incr:
+        with patch("sentry.workflow_engine.tasks.workflows.metrics.incr") as mock_incr:
             with self.tasks():
                 update_status(group, message)
             mock_incr.assert_any_call(
