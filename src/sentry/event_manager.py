@@ -1260,7 +1260,8 @@ def assign_event_to_group(
                 job, secondary.existing_grouphash, all_grouphashes
             )
             result = "found_secondary"
-        # If we still haven't found a group, ask Seer for a match (if enabled for the project)
+
+        # If we still haven't found a group, ask Seer for a match (if enabled for the event's platform)
         else:
             seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(
                 event, primary.grouphashes[0], primary.variants, all_grouphashes
