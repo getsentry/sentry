@@ -1042,7 +1042,9 @@ class DiscoverDatasetConfig(DatasetConfig):
                     "upsampled_count",
                     required_args=[],
                     snql_aggregate=lambda args, alias: Function(
-                        "sum", [Function("ifNull", [Column("sample_weight"), 1])], alias
+                        "toInt64",
+                        [Function("sum", [Function("ifNull", [Column("sample_weight"), 1])])],
+                        alias,
                     ),
                     default_result_type="integer",
                 ),

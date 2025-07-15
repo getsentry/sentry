@@ -14,7 +14,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.helpers.error_upsampling import (
-    are_all_projects_error_upsampled,
+    is_errors_query_for_error_upsampled_projects,
     transform_query_columns_for_error_upsampling,
 )
 from sentry.api.paginator import GenericOffsetPaginator
@@ -321,7 +321,9 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         ):
             transform_alias_to_input_format = True
             selected_columns = self.get_field_list(organization, request)
-            if are_all_projects_error_upsampled(snuba_params.project_ids):
+            if is_errors_query_for_error_upsampled_projects(
+                snuba_params, organization, dataset, request
+            ):
                 selected_columns = transform_query_columns_for_error_upsampling(selected_columns)
                 transform_alias_to_input_format = False
             query_source = self.get_request_source(request)
