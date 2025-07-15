@@ -177,7 +177,7 @@ const BreadcrumbContainer = styled('div')`
 const PlayerBreadcrumbContainer = styled('div')`
   display: flex;
   flex-direction: row;
-  height: 100%;
+  flex-grow: 1;
   gap: ${space(1)};
 `;
 

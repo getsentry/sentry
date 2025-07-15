@@ -4,7 +4,6 @@ import {Alert} from 'sentry/components/core/alert';
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
-import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconSeer, IconSync, IconThumb} from 'sentry/icons';
@@ -14,24 +13,11 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {ChapterList} from 'sentry/views/replays/detail/ai/chapterList';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 
 import {useFetchReplaySummary} from './useFetchReplaySummary';
 
 export default function Ai() {
-  return (
-    <PaddedFluidHeight>
-      <SummaryTabItemContainer data-test-id="replay-details-ai-summary-tab">
-        <ErrorBoundary mini>
-          <AiContent />
-        </ErrorBoundary>
-      </SummaryTabItemContainer>
-    </PaddedFluidHeight>
-  );
-}
-
-function AiContent() {
   const organization = useOrganization();
   const {replay} = useReplayContext();
   const replayRecord = replay?.getReplay();
@@ -84,114 +70,112 @@ function AiContent() {
     !organization.features.includes('gen-ai-features')
   ) {
     return (
-      <SummaryContainer>
-        <Alert type="info">
-          {t('Replay AI summary is not available for this organization.')}
-        </Alert>
-      </SummaryContainer>
+      <Wrapper data-test-id="replay-details-ai-summary-tab">
+        <EmptySummaryContainer>
+          <Alert type="info">
+            {t('Replay AI summary is not available for this organization.')}
+          </Alert>
+        </EmptySummaryContainer>
+      </Wrapper>
     );
   }
 
   if (replayRecord?.project_id && !project) {
     return (
-      <SummaryContainer>
-        <Alert type="error">{t('Project not found. Unable to load AI summary.')}</Alert>
-      </SummaryContainer>
+      <Wrapper data-test-id="replay-details-ai-summary-tab">
+        <EmptySummaryContainer>
+          <Alert type="error">{t('Project not found. Unable to load AI summary.')}</Alert>
+        </EmptySummaryContainer>
+      </Wrapper>
     );
   }
 
   if (isPending || isRefetching) {
     return (
-      <LoadingContainer>
-        <LoadingIndicator />
-      </LoadingContainer>
+      <Wrapper data-test-id="replay-details-ai-summary-tab">
+        <LoadingContainer>
+          <LoadingIndicator />
+        </LoadingContainer>
+      </Wrapper>
     );
   }
 
   if (isError) {
     return (
-      <SummaryContainer>
-        <Alert type="error">{t('Failed to load AI summary')}</Alert>
-      </SummaryContainer>
+      <Wrapper data-test-id="replay-details-ai-summary-tab">
+        <EmptySummaryContainer>
+          <Alert type="error">{t('Failed to load AI summary')}</Alert>
+        </EmptySummaryContainer>
+      </Wrapper>
     );
   }
 
   if (!summaryData) {
     return (
-      <SummaryContainer>
-        <Alert type="info">{t('No summary available for this replay.')}</Alert>
-      </SummaryContainer>
+      <Wrapper data-test-id="replay-details-ai-summary-tab">
+        <EmptySummaryContainer>
+          <Alert type="info">{t('No summary available for this replay.')}</Alert>
+        </EmptySummaryContainer>
+      </Wrapper>
     );
   }
 
   return (
-    <ErrorBoundary mini>
-      <SplitContainer>
-        <Summary>
-          <SummaryLeft>
-            <SummaryLeftTitle>
-              <Flex align="center" gap={space(0.5)}>
-                {t('Replay Summary')}
-                <IconSeer />
-              </Flex>
-              <Badge type="internal">{t('Internal')}</Badge>
-            </SummaryLeftTitle>
-            <SummaryText>{summaryData.data.summary}</SummaryText>
-          </SummaryLeft>
-          <SummaryRight>
-            <Flex gap={space(0.5)}>
-              {feedbackButton({type: 'positive'})}
-              {feedbackButton({type: 'negative'})}
+    <Wrapper data-test-id="replay-details-ai-summary-tab">
+      <Summary>
+        <SummaryLeft>
+          <SummaryLeftTitle>
+            <Flex align="center" gap={space(0.5)}>
+              {t('Replay Summary')}
+              <IconSeer />
             </Flex>
-            <Button
-              priority="default"
-              type="button"
-              size="xs"
-              onClick={() => refetch()}
-              icon={<IconSync size="xs" />}
-            >
-              {t('Regenerate')}
-            </Button>
-          </SummaryRight>
-        </Summary>
-        <ChapterList summaryData={summaryData} />
-      </SplitContainer>
-    </ErrorBoundary>
+            <Badge type="internal">{t('Internal')}</Badge>
+          </SummaryLeftTitle>
+          <SummaryText>{summaryData.data.summary}</SummaryText>
+        </SummaryLeft>
+        <SummaryRight>
+          <Flex gap={space(0.5)}>
+            {feedbackButton({type: 'positive'})}
+            {feedbackButton({type: 'negative'})}
+          </Flex>
+          <Button
+            priority="default"
+            type="button"
+            size="xs"
+            onClick={() => refetch()}
+            icon={<IconSync size="xs" />}
+          >
+            {t('Regenerate')}
+          </Button>
+        </SummaryRight>
+      </Summary>
+      <StyledTabItemContainer>
+        <OverflowBody>
+          <ChapterList summaryData={summaryData} />
+        </OverflowBody>
+      </StyledTabItemContainer>
+    </Wrapper>
   );
 }
 
-const SummaryTabItemContainer = styled(TabItemContainer)`
-  .beforeHoverTime:last-child {
-    border-bottom-color: transparent;
-  }
-  .beforeCurrentTime:last-child {
-    border-bottom-color: transparent;
-  }
-  details.beforeHoverTime + details.afterHoverTime,
-  details.beforeCurrentTime + details.afterCurrentTime {
-    border-top-color: transparent;
-  }
-`;
-
-const SplitContainer = styled('div')`
+const Wrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  overflow: auto;
+  flex-wrap: nowrap;
+  min-height: 0;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
-const PaddedFluidHeight = styled(FluidHeight)`
-  padding-top: ${space(1)};
+const EmptySummaryContainer = styled('div')`
+  padding: ${space(2)};
+  overflow: auto;
 `;
 
 const LoadingContainer = styled('div')`
   display: flex;
   justify-content: center;
   padding: ${space(4)};
-`;
-
-const SummaryContainer = styled('div')`
-  padding: ${space(2)};
-  overflow: auto;
 `;
 
 const Summary = styled('div')`
@@ -231,4 +215,24 @@ const SummaryText = styled('p')`
   font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeight.normal};
+`;
+
+const StyledTabItemContainer = styled(TabItemContainer)`
+  border: none;
+
+  .beforeHoverTime:last-child {
+    border-bottom-color: transparent;
+  }
+  .beforeCurrentTime:last-child {
+    border-bottom-color: transparent;
+  }
+  details.beforeHoverTime + details.afterHoverTime,
+  details.beforeCurrentTime + details.afterCurrentTime {
+    border-top-color: transparent;
+  }
+`;
+
+const OverflowBody = styled('section')`
+  flex: 1 1 auto;
+  overflow: auto;
 `;
