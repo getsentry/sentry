@@ -3,21 +3,21 @@ import {useApiQueries} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export default function useFeedbackEvents({
-  feedbackIds,
+  feedbackEventIds,
   projectId,
 }: {
-  feedbackIds: string[];
+  feedbackEventIds: string[];
   projectId: string | undefined | null;
 }) {
   const organization = useOrganization();
 
   const feedbackEventQuery = useApiQueries<FeedbackEvent>(
-    feedbackIds.map((feedbackId: string) => [
-      `/projects/${organization.slug}/${projectId}/events/${feedbackId}/`,
+    feedbackEventIds.map((feedbackEventId: string) => [
+      `/projects/${organization.slug}/${projectId}/events/${feedbackEventId}/`,
     ]),
     {
       staleTime: 0,
-      enabled: Boolean(feedbackIds.length > 0 && projectId),
+      enabled: Boolean(feedbackEventIds.length > 0 && projectId),
     }
   );
 
