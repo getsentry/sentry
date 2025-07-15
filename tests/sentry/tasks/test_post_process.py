@@ -601,6 +601,30 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
 
         assert not mock_process_service_hook.delay.mock_calls
 
+    @with_feature("organizations:workflow-engine-single-process-workflows")
+    @patch("sentry.rules.processing.processor.RuleProcessor")
+    @patch("sentry.tasks.post_process.process_workflow_engine")
+    def test_workflow_engine_single_processing(self, mock_process_workflow_engine, mock_processor):
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+
+        mock_callback = Mock()
+        mock_futures = [Mock()]
+
+        mock_processor.return_value.apply.return_value = [(mock_callback, mock_futures)]
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        # With the workflow engine feature flag enabled, RuleProcessor should not be called
+        assert mock_processor.call_count == 0
+
+        # But process_workflow_engine should be called instead
+        assert mock_process_workflow_engine.call_count == 1
+
 
 class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound.delay")
