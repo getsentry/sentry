@@ -105,7 +105,11 @@ class ProjectOptionRuleStore:
         # Track the number of rules per project.
         metrics.distribution(self._tracker, len(converted_rules))
 
-        project.update_option(self._storage, converted_rules)
+        # Check if the rules have changed compared to what is stored
+        # to prevent a needless project option update and project config
+        # invalidation.
+        if converted_rules != self.read_sorted(project):
+            project.update_option(self._storage, converted_rules)
 
 
 class CompositeRuleStore:
