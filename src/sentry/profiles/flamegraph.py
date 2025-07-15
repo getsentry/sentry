@@ -1,5 +1,5 @@
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Literal, NotRequired, TypedDict
@@ -614,7 +614,9 @@ class FlamegraphExecutor:
         )
 
 
-def split_datetime_range_exponential(start_datetime, end_datetime, initial_chunk_delta, max_delta):
+def split_datetime_range_exponential(
+    start_datetime, end_datetime, initial_chunk_delta, max_delta
+) -> Iterator[tuple[datetime, datetime]]:
     """
     Splits a datetime range into exponentially increasing chunks, yielded by a generator.
 
