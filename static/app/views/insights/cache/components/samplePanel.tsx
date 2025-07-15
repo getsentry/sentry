@@ -29,11 +29,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
-import {
-  useDiscoverOrEap,
-  useSpanMetrics,
-  useSpans,
-} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpanMetrics, useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   DataTitles,
   getThroughputTitle,
@@ -198,7 +194,7 @@ export function CacheSamplePanel() {
     data: transactionData,
     error: transactionError,
     isFetching: isFetchingTransactions,
-  } = useDiscoverOrEap(
+  } = useSpans(
     {
       search: transactionDurationSearch,
       enabled: Boolean(transactionIds.length),
