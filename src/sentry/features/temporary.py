@@ -430,6 +430,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:trace-spans-format", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable feature to use trace admin ui.
     manager.add("organizations:trace-view-admin-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable displaying span links in the attribute tree
+    manager.add("organizations:trace-view-span-links", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable feature to use trace tabs layout ui
     manager.add("organizations:trace-tabs-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable feature to load new traces onboarding guide.
@@ -495,6 +497,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:workflow-engine-process-metric-issue-workflows", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable workflow engine for issue alerts
     manager.add("organizations:workflow-engine-process-workflows", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable single processing through workflow engine for issue alerts
+    manager.add("organizations:workflow-engine-single-process-workflows", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable logging to debug workflow engine process workflows
     manager.add("organizations:workflow-engine-process-workflows-logs", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable firing actions for workflow engine issue alerts
