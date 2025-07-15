@@ -1286,7 +1286,7 @@ def assign_event_to_group(
 
     # Now that we've used the current and possibly secondary grouping config(s) to calculate the
     # hashes, we're free to perform a config update if needed. Future events will use the new
-    # config, but will also be grandfathered into the current config for a week, so as not to
+    # config, but will also be grandfathered into the current config for a set period, so as not to
     # erroneously create new groups.
     update_or_set_grouping_config_if_needed(project, "ingest")
 
