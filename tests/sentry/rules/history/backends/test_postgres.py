@@ -8,7 +8,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
-from sentry.workflow_engine.models import WorkflowFireHistory
+from sentry.workflow_engine.models import AlertRuleWorkflow, WorkflowFireHistory
 
 pytestmark = [requires_snuba]
 
@@ -202,9 +202,6 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
         rule = self.create_project_rule(project=self.event.project)
         workflow = self.create_workflow(organization=self.event.project.organization)
 
-        # Create AlertRuleWorkflow association
-        from sentry.workflow_engine.models import AlertRuleWorkflow
-
         AlertRuleWorkflow.objects.create(rule_id=rule.id, workflow=workflow)
 
         # Create some RuleFireHistory entries
@@ -248,7 +245,7 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
         RuleFireHistory.objects.bulk_create(rule_history)
         workflow_fire_histories = WorkflowFireHistory.objects.bulk_create(workflow_history)
 
-        # Manually update date_added for workflow fire histories since bulk_create doesn't set it
+        # Manually update date_added for workflow fire histories
         for i, wfh in enumerate(workflow_fire_histories):
             if i < 2:  # First two are is_single_written=True
                 wfh.date_added = before_now(days=i + 3)
@@ -271,8 +268,6 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
             event_id="workflow_event_group2",
             is_single_written=True,
         )
-
-        # Manually update date_added
         new_workflow_history.update(date_added=before_now(days=2))
 
         self.run_test(
@@ -288,13 +283,14 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
                 ),
                 RuleGroupHistory(
                     group=group_2,
-                    count=2,  # 2 from both RuleFireHistory and WorkflowFireHistory
+                    count=2,  # 2 from both Rule and WorkflowFireHistory
                     last_triggered=before_now(days=2),
                     event_id="workflow_event_group2",
                 ),
             ],
         )
 
+        # Test pagination
         result = self.run_test(
             rule,
             before_now(days=6),
@@ -302,8 +298,8 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
             [
                 RuleGroupHistory(
                     group=self.group,
-                    count=4,  # 4 from the original data
-                    last_triggered=before_now(days=1),  # Most recent from RuleFireHistory
+                    count=4,
+                    last_triggered=before_now(days=1),
                     event_id="rule_event_0",
                 ),
             ],
@@ -316,7 +312,7 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
             [
                 RuleGroupHistory(
                     group=group_2,
-                    count=2,  # 2 from both RuleFireHistory and WorkflowFireHistory
+                    count=2,
                     last_triggered=before_now(days=2),
                     event_id="workflow_event_group2",
                 ),
