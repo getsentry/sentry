@@ -223,6 +223,11 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         ):
             yield
 
+    @pytest.fixture(autouse=True)
+    def with_tasks(self):
+        with self.tasks():
+            yield
+
     def create_error_event(
         self,
         project=None,
