@@ -78,6 +78,7 @@ from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
 )
 from sentry.api.endpoints.trace_explorer_ai_setup import TraceExplorerAISetup
 from sentry.auth_v2.urls import AUTH_V2_URLS
+from sentry.codecov.endpoints.Branches.branches import BranchesEndpoint
 from sentry.codecov.endpoints.Repositories.repositories import RepositoriesEndpoint
 from sentry.codecov.endpoints.TestResults.test_results import TestResultsEndpoint
 from sentry.codecov.endpoints.TestResultsAggregates.test_results_aggregates import (
@@ -1066,6 +1067,11 @@ PREVENT_URLS = [
         r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-results-aggregates/$",
         TestResultsAggregatesEndpoint.as_view(),
         name="sentry-api-0-test-results-aggregates",
+    ),
+    re_path(
+        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/branches/$",
+        BranchesEndpoint.as_view(),
+        name="sentry-api-0-branches",
     ),
     re_path(
         r"^owner/(?P<owner>[^/]+)/repositories/$",

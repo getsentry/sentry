@@ -8,27 +8,24 @@ from sentry.codecov.endpoints.common.serializers import PageInfoTempSerializer
 logger = logging.getLogger(__name__)
 
 
-class RepositoryNodeSerializer(serializers.Serializer):
+class BranchNodeSerializer(serializers.Serializer):
     """
-    Serializer for individual repository nodes from GraphQL response
+    Serializer for individual branch nodes from GraphQL response
     """
 
     __test__ = False
 
     name = serializers.CharField()
-    updatedAt = serializers.DateTimeField()
-    latestCommitAt = serializers.DateTimeField()
-    defaultBranch = serializers.CharField()
 
 
-class RepositoriesSerializer(serializers.Serializer):
+class BranchesSerializer(serializers.Serializer):
     """
     Serializer for repositories response
     """
 
     __test__ = False
 
-    results = RepositoryNodeSerializer(many=True)
+    results = BranchNodeSerializer(many=True)
     pageInfo = PageInfoTempSerializer()
     totalCount = serializers.IntegerField()
 
@@ -37,18 +34,18 @@ class RepositoriesSerializer(serializers.Serializer):
         Transform the GraphQL response to the serialized format
         """
         try:
-            repository_data = graphql_response["data"]["owner"]["repositories"]
-            repositories = repository_data["edges"]
-            page_info = repository_data.get("pageInfo", {})
+            branch_data = graphql_response["data"]["owner"]["repository"]["branches"]
+            branches = branch_data["edges"]
+            page_info = branch_data.get("pageInfo", {})
 
             nodes = []
-            for edge in repositories:
+            for edge in branches:
                 node = edge["node"]
                 nodes.append(node)
 
             response_data = {
                 "results": nodes,
-                "pageInfo": repository_data.get(
+                "pageInfo": branch_data.get(
                     "pageInfo",
                     {
                         "hasNextPage": page_info.get("hasNextPage", False),
@@ -57,7 +54,7 @@ class RepositoriesSerializer(serializers.Serializer):
                         "endCursor": page_info.get("endCursor"),
                     },
                 ),
-                "totalCount": repository_data.get("totalCount", len(nodes)),
+                "totalCount": branch_data.get("totalCount", len(nodes)),
             }
 
             return super().to_representation(response_data)
@@ -68,7 +65,7 @@ class RepositoriesSerializer(serializers.Serializer):
                 "Error parsing GraphQL response",
                 extra={
                     "error": str(e),
-                    "endpoint": "repositories",
+                    "endpoint": "branches",
                     "response_keys": (
                         list(graphql_response.keys())
                         if isinstance(graphql_response, dict)

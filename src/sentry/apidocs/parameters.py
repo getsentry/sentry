@@ -1126,5 +1126,5 @@ Available fields are:
         location="query",
         required=False,
         type=str,
-        description="""The term substring to filter test name strings by using the `contains` operator.""",
+        description="""The term substring to filter name strings by using the `contains` operator.""",
     )
