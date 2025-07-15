@@ -10,7 +10,7 @@ import type {TourContextType} from 'sentry/components/tours/tourContext';
 import {useAssistant, useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useInvertedTheme} from 'sentry/utils/theme/theme';
+import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import {useIsNavTourActive} from 'sentry/views/nav/tour/tour';
 
 export const enum ExploreSpansTour {

@@ -20,7 +20,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useInvertedTheme} from 'sentry/utils/theme/theme';
+import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -467,7 +467,7 @@ const TourBody = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   width: 360px;
   a {
-    color: ${p => p.theme.text};
+    color: ${p => p.theme.tokens.content.primary};
     text-decoration: underline;
   }
 `;

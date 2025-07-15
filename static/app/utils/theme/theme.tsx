@@ -1092,6 +1092,18 @@ const iconSizes: Record<Size, string> = {
   '2xl': '72px',
 } as const;
 
+const space = {
+  none: '0px',
+  '2xs': '2px',
+  xs: '4px',
+  sm: '6px',
+  md: '8px',
+  lg: '12px',
+  xl: '16px',
+  '2xl': '24px',
+  '3xl': '32px',
+} as const;
+
 /**
  * Values shared between light and dark theme
  */
@@ -1100,6 +1112,8 @@ const commonTheme = {
 
   ...lightColors,
   ...lightShadows,
+
+  space,
 
   // Icons
   iconSizes,

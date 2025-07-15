@@ -1,12 +1,12 @@
 import {css, ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import issueDetailsPreviewLight from 'sentry-images/issue_details/issue-details-preview-light.png';
+import issueDetailsPreview from 'sentry-images/issue_details/issue-details-preview.png';
 
 import {TextTourAction, TourAction} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useInvertedTheme} from 'sentry/utils/theme/theme';
+import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 
 interface IssueDetailsTourModalProps {
   handleDismissTour: () => void;
@@ -24,7 +24,7 @@ export function IssueDetailsTourModal({
       <TourContainer>
         <ImageContainer
           alt={t('Preview of the issue details experience')}
-          src={issueDetailsPreviewLight}
+          src={issueDetailsPreview}
         />
         <TextContainer>
           <Header>{t('Welcome to Issue Details')}</Header>
@@ -38,7 +38,7 @@ export function IssueDetailsTourModal({
               {t('Maybe later')}
             </TextTourAction>
             <TourAction onClick={handleStartTour} autoFocus>
-              {t('Take tour')}
+              {t('Take a tour')}
             </TourAction>
           </Footer>
         </TextContainer>
