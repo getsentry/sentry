@@ -3,6 +3,8 @@ import logging
 import sentry_sdk
 from rest_framework import serializers
 
+from sentry.codecov.endpoints.TestResults.serializers import PageInfoSerializer
+
 logger = logging.getLogger(__name__)
 
 
@@ -19,17 +21,6 @@ class RepositoryNodeSerializer(serializers.Serializer):
     defaultBranch = serializers.CharField()
 
 
-class PageInfoTempSerializer(serializers.Serializer):
-    """
-    Serializer for pagination information
-    """
-
-    startCursor = serializers.CharField(allow_null=True)
-    endCursor = serializers.CharField(allow_null=True)
-    hasNextPage = serializers.BooleanField()
-    hasPreviousPage = serializers.BooleanField()
-
-
 class RepositoriesSerializer(serializers.Serializer):
     """
     Serializer for repositories response
@@ -38,7 +29,7 @@ class RepositoriesSerializer(serializers.Serializer):
     __test__ = False
 
     results = RepositoryNodeSerializer(many=True)
-    pageInfo = PageInfoTempSerializer()
+    pageInfo = PageInfoSerializer()
     totalCount = serializers.IntegerField()
 
     def to_representation(self, graphql_response):

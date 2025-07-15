@@ -246,7 +246,7 @@ class TestResultsEndpointTest(APITestCase):
         assert response.status_code == 200
 
     @patch("sentry.codecov.endpoints.TestResults.test_results.CodecovApiClient")
-    def test_get_with_cursor_alone_uses_default_limit_and_direction(
+    def test_get_with_cursor_alone_uses_default_limit_and_navigation(
         self, mock_codecov_client_class
     ):
         mock_codecov_client_instance = Mock()
@@ -285,8 +285,7 @@ class TestResultsEndpointTest(APITestCase):
         assert response.status_code == 200
 
     @patch("sentry.codecov.endpoints.TestResults.test_results.CodecovApiClient")
-    def test_get_with_cursor_with_direction(self, mock_codecov_client_class):
-        """Test that cursor with last parameter works correctly for backward pagination"""
+    def test_get_with_cursor_and_direction(self, mock_codecov_client_class):
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
         mock_response.json.return_value = mock_graphql_response_empty
@@ -294,7 +293,7 @@ class TestResultsEndpointTest(APITestCase):
         mock_codecov_client_class.return_value = mock_codecov_client_instance
 
         url = self.reverse_url()
-        query_params = {"cursor": "cursor123", "limit": "10", "direction": "before"}
+        query_params = {"cursor": "cursor123", "limit": "10", "navigation": "prev"}
         response = self.client.get(url, query_params)
 
         expected_variables = {
@@ -323,19 +322,9 @@ class TestResultsEndpointTest(APITestCase):
         assert response.status_code == 200
 
     def test_get_with_negative_limit_returns_bad_request(self):
-        """Test that providing negative first parameter returns a 400 Bad Request error"""
         url = self.reverse_url()
         query_params = {"limit": "-5"}
         response = self.client.get(url, query_params)
 
         assert response.status_code == 400
-        assert response.data == {"details": "`limit` parameter must be a positive integer"}
-
-    def test_get_with_large_first_returns_bad_request(self):
-        """Test that providing first parameter exceeding max limit returns a 400 Bad Request error"""
-        url = self.reverse_url()
-        query_params = {"limit": "150"}
-        response = self.client.get(url, query_params)
-
-        assert response.status_code == 400
-        assert response.data == {"details": "`limit` parameter cannot exceed 100"}
+        assert response.data == {"details": "provided `limit` parameter must be a positive integer"}

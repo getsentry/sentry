@@ -12,7 +12,12 @@ from sentry.codecov.base import CodecovEndpoint
 from sentry.codecov.client import CodecovApiClient
 from sentry.codecov.endpoints.TestResults.query import query
 from sentry.codecov.endpoints.TestResults.serializers import TestResultSerializer
-from sentry.codecov.enums import MeasurementInterval, OrderingDirection, OrderingParameter
+from sentry.codecov.enums import (
+    MeasurementInterval,
+    NavigationParameter,
+    OrderingDirection,
+    OrderingParameter,
+)
 
 
 @extend_schema(tags=["Prevent"])
@@ -39,7 +44,7 @@ class TestResultsEndpoint(CodecovEndpoint):
             PreventParams.INTERVAL,
             PreventParams.BRANCH,
             PreventParams.LIMIT,
-            PreventParams.DIRECTION,
+            PreventParams.NAVIGATION,
             PreventParams.CURSOR,
             PreventParams.TERM,
         ],
@@ -68,22 +73,16 @@ class TestResultsEndpoint(CodecovEndpoint):
 
         cursor = request.query_params.get("cursor")
         limit = int(request.query_params.get("limit", 20))
-        direction = request.query_params.get("direction", "after")
+        navigation = request.query_params.get("navigation", NavigationParameter.NEXT.value)
 
         # When calling request.query_params, the URL is decoded so + is replaced with spaces. We need to change them back so Codecov can properly fetch the next page.
         if cursor:
             cursor = cursor.replace(" ", "+")
 
-        MAX_LIMIT = 100
         if limit <= 0:
             return Response(
                 status=status.HTTP_400_BAD_REQUEST,
-                data={"details": "`limit` parameter must be a positive integer"},
-            )
-        elif limit > MAX_LIMIT:
-            return Response(
-                status=status.HTTP_400_BAD_REQUEST,
-                data={"details": f"`limit` parameter cannot exceed {MAX_LIMIT}"},
+                data={"details": "provided `limit` parameter must be a positive integer"},
             )
 
         variables = {
@@ -103,10 +102,10 @@ class TestResultsEndpoint(CodecovEndpoint):
                 "direction": ordering_direction,
                 "parameter": sort_by,
             },
-            "first": limit if direction == "after" else None,
-            "last": limit if direction == "before" else None,
-            "before": cursor if cursor and direction == "before" else None,
-            "after": cursor if cursor and direction == "after" else None,
+            "first": limit if navigation == NavigationParameter.NEXT.value else None,
+            "last": limit if navigation == NavigationParameter.PREV.value else None,
+            "before": cursor if cursor and navigation == NavigationParameter.PREV.value else None,
+            "after": cursor if cursor and navigation == NavigationParameter.NEXT.value else None,
         }
 
         client = CodecovApiClient(git_provider_org=owner)
