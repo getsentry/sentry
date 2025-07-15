@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import Any
@@ -58,7 +59,7 @@ class OccurrenceTestMixin:
         }
         kwargs.update(overrides)  # type: ignore[typeddict-item]
 
-        process_occurrence_data(kwargs)
+        process_occurrence_data(dict(kwargs))
         return kwargs
 
     def build_occurrence(self, **overrides: Any) -> IssueOccurrence:
@@ -99,7 +100,7 @@ class StatusChangeTestMixin:
         }
         kwargs.update(overrides)  # type: ignore[typeddict-item]
 
-        process_occurrence_data(kwargs)
+        process_occurrence_data(dict(kwargs))
         return kwargs
 
     def build_statuschange(self, **overrides: Any) -> StatusChangeMessage:
@@ -107,7 +108,12 @@ class StatusChangeTestMixin:
         return StatusChangeMessage(**self.build_statuschange_data(**overrides))
 
 
-class SearchIssueTestMixin(OccurrenceTestMixin):
+class SearchIssueTestMixin(OccurrenceTestMixin, ABC):
+
+    @abstractmethod
+    def store_event(self, data: dict[str, Any], project_id: int) -> Event:
+        raise NotImplementedError
+
     def store_search_issue(
         self,
         project_id: int,
