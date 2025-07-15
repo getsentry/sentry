@@ -99,6 +99,7 @@ export function EventSamples({
       limit: 4,
       enabled: defined(release),
       fields: [
+        SpanFields.ID,
         SpanFields.TRACE,
         SpanFields.TIMESTAMP,
         SpanFields.TRANSACTION,

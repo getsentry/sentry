@@ -14,7 +14,7 @@ import {IconProfiling} from 'sentry/icons/iconProfiling';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import type {TableDataNoId} from 'sentry/utils/discover/discoverQuery';
+import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
 import {isFieldSortable} from 'sentry/utils/discover/eventView';
@@ -42,7 +42,7 @@ type Props = {
   profileIdKey: 'profile.id' | 'profile_id';
   sort: Sort;
   sortKey: string;
-  data?: TableDataNoId;
+  data?: TableData;
   footerAlignedPagination?: boolean;
   pageLinks?: string;
   showDeviceClassSelector?: boolean;
@@ -200,7 +200,7 @@ export function EventSamplesTable({
       <GridContainer>
         <GridEditable
           isLoading={isLoading}
-          data={data?.data as Array<Record<string, any>>}
+          data={data?.data as TableDataRow[]}
           columnOrder={eventViewColumns
             .filter((col: TableColumn<string | number>) =>
               Object.keys(columnNameMap).includes(col.name)
