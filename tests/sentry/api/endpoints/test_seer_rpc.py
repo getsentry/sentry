@@ -9,6 +9,7 @@ from sentry.api.endpoints.seer_rpc import (
     generate_request_signature,
     get_organization_seer_consent_by_org_name,
 )
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 
@@ -193,6 +194,162 @@ class TestSeerRpcMethods(APITestCase):
         mock_get_acknowledgement.side_effect = [False, False]
 
         with override_options({"github-extension.enabled-orgs": [org_with_consent.id]}):
+            result = get_organization_seer_consent_by_org_name(org_name="test-org")
+
+        assert result == {"consent": True}
+        # Should be called twice (checks both existing orgs)
+        assert mock_get_acknowledgement.call_count == 2
+
+    @override_options({"github-extension.enabled-orgs": []})
+    @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
+    def test_get_organization_seer_consent_by_org_name_with_explicit_pr_review_enabled(
+        self, mock_get_acknowledgement
+    ):
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="test-org",
+            external_id="github:test-org",
+        )
+
+        mock_get_acknowledgement.return_value = True
+
+        # Explicitly enable PR review test generation for this organization
+        OrganizationOption.objects.set_value(
+            self.organization, "sentry:enable_pr_review_test_generation", True
+        )
+
+        result = get_organization_seer_consent_by_org_name(org_name="test-org")
+
+        assert result == {"consent": True}
+        mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
+
+    @override_options({"github-extension.enabled-orgs": []})
+    @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
+    def test_get_organization_seer_consent_by_org_name_default_pr_review_behavior(
+        self, mock_get_acknowledgement
+    ):
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="test-org",
+            external_id="github:test-org",
+        )
+
+        mock_get_acknowledgement.return_value = True
+
+        # Don't set any organization option - should use default (True)
+        result = get_organization_seer_consent_by_org_name(org_name="test-org")
+
+        assert result == {"consent": True}
+        mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
+
+    @override_options({"github-extension.enabled-orgs": []})
+    @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
+    def test_get_organization_seer_consent_by_org_name_with_seer_acknowledgement_but_pr_review_disabled(
+        self, mock_get_acknowledgement
+    ):
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="test-org",
+            external_id="github:test-org",
+        )
+
+        mock_get_acknowledgement.return_value = True
+
+        # Disable PR review test generation for this organization
+        OrganizationOption.objects.set_value(
+            self.organization, "sentry:enable_pr_review_test_generation", False
+        )
+
+        result = get_organization_seer_consent_by_org_name(org_name="test-org")
+
+        assert result == {"consent": False}
+        mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
+
+    @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
+    def test_get_organization_seer_consent_by_org_name_with_github_extension_but_pr_review_disabled(
+        self, mock_get_acknowledgement
+    ):
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="test-org",
+            external_id="github:test-org",
+        )
+
+        mock_get_acknowledgement.return_value = False
+
+        # Disable PR review test generation for this organization
+        OrganizationOption.objects.set_value(
+            self.organization, "sentry:enable_pr_review_test_generation", False
+        )
+
+        with override_options({"github-extension.enabled-orgs": [self.organization.id]}):
+            result = get_organization_seer_consent_by_org_name(org_name="test-org")
+
+        assert result == {"consent": False}
+        mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
+
+    @override_options({"github-extension.enabled-orgs": []})
+    @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
+    def test_get_organization_seer_consent_by_org_name_no_seer_acknowledgement_with_pr_review_enabled(
+        self, mock_get_acknowledgement
+    ):
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="test-org",
+            external_id="github:test-org",
+        )
+
+        mock_get_acknowledgement.return_value = False
+
+        # Explicitly enable PR review test generation for this organization (though it's default)
+        OrganizationOption.objects.set_value(
+            self.organization, "sentry:enable_pr_review_test_generation", True
+        )
+
+        result = get_organization_seer_consent_by_org_name(org_name="test-org")
+
+        assert result == {"consent": False}
+        mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
+
+    @override_options({"github-extension.enabled-orgs": []})
+    @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
+    def test_get_organization_seer_consent_by_org_name_multiple_orgs_pr_review_mixed(
+        self, mock_get_acknowledgement
+    ):
+        org_with_seer_no_pr_review = self.create_organization(owner=self.user)
+        org_with_github_and_pr_review = self.create_organization(owner=self.user)
+
+        # Create integrations for both organizations with the same name
+        self.create_integration(
+            organization=org_with_seer_no_pr_review,
+            provider="github",
+            name="test-org",
+            external_id="github:test-org-1",
+        )
+        self.create_integration(
+            organization=org_with_github_and_pr_review,
+            provider="github",
+            name="test-org",
+            external_id="github:test-org-2",
+        )
+
+        # First org has seer acknowledgement but PR review disabled
+        # Second org has github extension enabled and PR review enabled (default)
+        mock_get_acknowledgement.side_effect = [True, False]
+
+        # Disable PR review test generation for the first organization
+        OrganizationOption.objects.set_value(
+            org_with_seer_no_pr_review, "sentry:enable_pr_review_test_generation", False
+        )
+
+        with override_options(
+            {"github-extension.enabled-orgs": [org_with_github_and_pr_review.id]}
+        ):
             result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
         assert result == {"consent": True}
