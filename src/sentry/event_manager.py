@@ -721,7 +721,7 @@ def _set_project_platform_if_needed(project: Project, event: Event) -> None:
                 cache.set(cache_key, "1", 60 * 5)
 
             if not project.platform:
-                updated = Project.objects.filter(id=project.id, platform__isnull=True).update(
+                updated = Project.objects.filter(id=project.id, platform__in=[None, ""]).update(
                     platform=event.platform
                 )
 
