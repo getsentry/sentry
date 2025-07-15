@@ -539,18 +539,6 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
   };
 }
 
-const space = {
-  none: '0px',
-  '2xs': '2px',
-  xs: '4px',
-  sm: '6px',
-  md: '8px',
-  lg: '12px',
-  xl: '16px',
-  '2xl': '24px',
-  '3xl': '32px',
-} as const;
-
 const radius = {
   none: '0px',
   '2xs': '2px',
@@ -1100,8 +1088,6 @@ interface ChonkTheme extends Omit<SentryTheme, 'isChonk' | 'chart'> {
   };
   isChonk: true;
   radius: typeof radius;
-
-  space: typeof space;
   tokens: typeof lightTokens;
 }
 
@@ -1125,8 +1111,6 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
     ...darkAliases,
     tokens: darkTokens,
   },
-
-  space,
   radius,
   focusRing: {
     outline: 'none',
@@ -1195,7 +1179,6 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
     tokens: lightTokens,
   },
 
-  space,
   radius,
   focusRing: {
     outline: 'none',
