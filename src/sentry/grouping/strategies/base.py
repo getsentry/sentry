@@ -346,7 +346,7 @@ class StrategyConfiguration:
         }
 
 
-def create_strategy_configuration(
+def create_strategy_configuration_class(
     id: str | None,
     strategies: Sequence[str] | None = None,
     delegates: Sequence[str] | None = None,
