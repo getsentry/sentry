@@ -21,6 +21,8 @@ interface Repositories {
   pageInfo: {
     endCursor: string;
     hasNextPage: boolean;
+    hasPreviousPage: boolean;
+    startCursor: string;
   };
   results: RepositoryItem[];
   totalCount: number;
@@ -72,6 +74,11 @@ export function useRepositories({term}: Props) {
     },
     getNextPageParam: ([lastPage]) => {
       return lastPage.pageInfo?.hasNextPage ? lastPage.pageInfo.endCursor : undefined;
+    },
+    getPreviousPageParam: ([firstPage]) => {
+      return firstPage.pageInfo?.hasPreviousPage
+        ? firstPage.pageInfo.startCursor
+        : undefined;
     },
     initialPageParam: undefined,
     enabled: Boolean(integratedOrg),
