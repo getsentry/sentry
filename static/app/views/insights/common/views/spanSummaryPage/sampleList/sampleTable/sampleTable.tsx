@@ -11,10 +11,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {SamplesTableColumnHeader} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
 import {SpanSamplesTable} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
-import {
-  useDiscoverOrEap,
-  useSpanMetrics,
-} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpanMetrics, useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {
   NonDefaultSpanSampleFields,
   SpanSample,
@@ -129,7 +126,7 @@ function SampleTable({
     isFetching: isFetchingTransactions,
     isPending: isLoadingTransactions,
     error: transactionError,
-  } = useDiscoverOrEap(
+  } = useSpans(
     {
       search,
       enabled: isTransactionsEnabled,

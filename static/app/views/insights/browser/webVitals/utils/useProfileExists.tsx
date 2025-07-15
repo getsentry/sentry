@@ -1,10 +1,10 @@
-import {useDiscoverOrEap} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 
 /**
  * Query results for whether a given replayId exists in the database (not deleted, etc)
  */
 export default function useProfileExists(ids: string[]) {
-  const result = useDiscoverOrEap(
+  const result = useSpans(
     {
       search: `profile.id:[${ids.join(',')}]`,
       fields: ['profile.id'],
