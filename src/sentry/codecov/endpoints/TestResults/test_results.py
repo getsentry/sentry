@@ -109,7 +109,7 @@ class TestResultsEndpoint(CodecovEndpoint):
                 "direction": ordering_direction,
                 "parameter": sort_by,
             },
-            "first": limit if navigation == NavigationParameter.NEXT.value else None,
+            "first": limit if navigation != NavigationParameter.PREV.value else None,
             "last": limit if navigation == NavigationParameter.PREV.value else None,
             "before": cursor if cursor and navigation == NavigationParameter.PREV.value else None,
             "after": cursor if cursor and navigation == NavigationParameter.NEXT.value else None,
