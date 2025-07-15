@@ -1,6 +1,7 @@
-import pytest
 import uuid
 from uuid import uuid4
+
+import pytest
 
 from sentry.models.group import GroupStatus
 from sentry.models.release import Release
