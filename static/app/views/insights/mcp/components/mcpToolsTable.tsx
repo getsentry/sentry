@@ -12,50 +12,47 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
+import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
-import {
-  ErrorRateCell,
-  getErrorCellIssuesLink,
-} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
+import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 import {useSpanTableData} from 'sentry/views/insights/pages/platform/shared/table/useTableData';
-import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
+import {SpanFields} from 'sentry/views/insights/types';
+
+const AVG_DURATION = `avg(${SpanFields.SPAN_DURATION})`;
+const P95_DURATION = `p95(${SpanFields.SPAN_DURATION})`;
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
-  {key: 'command', name: t('Command Name'), width: COL_WIDTH_UNDEFINED},
-  {key: 'count()', name: t('Invocations'), width: 136},
+  {key: SpanFields.MCP_TOOL_NAME, name: t('Tool Name'), width: COL_WIDTH_UNDEFINED},
+  {key: 'count()', name: t('Requests'), width: 136},
   {key: 'failure_rate()', name: t('Error Rate'), width: 124},
-  {key: 'avg(span.duration)', name: t('AVG'), width: 90},
-  {key: 'p95(span.duration)', name: t('P95'), width: 90},
-  {key: 'sum(span.duration)', name: t('Time Spent'), width: 120},
+  {key: AVG_DURATION, name: t('AVG'), width: 90},
+  {key: P95_DURATION, name: t('P95'), width: 90},
 ];
 
 const rightAlignColumns = new Set([
   'count()',
   'failure_rate()',
-  'sum(span.duration)',
-  'avg(span.duration)',
-  'p95(span.duration)',
+  AVG_DURATION,
+  P95_DURATION,
 ]);
 
-export function CommandsTable() {
-  const {query} = useTransactionNameQuery();
+export function McpToolsTable() {
+  const query = useCombinedQuery(`span.op:mcp.server has:${SpanFields.MCP_TOOL_NAME}`);
   const tableDataRequest = useSpanTableData({
-    query: `span.op:console.command* ${query ?? ''}`.trim(),
+    query,
     fields: [
-      'command',
-      'project.id',
+      SpanFields.MCP_TOOL_NAME,
+      SpanFields.PROJECT_ID,
       'count()',
       'failure_rate()',
-      'avg(span.duration)',
-      'p95(span.duration)',
-      'sum(span.duration)',
+      AVG_DURATION,
+      P95_DURATION,
     ],
-    cursorParamName: 'jobsCursor',
+    cursorParamName: 'tableCursor',
     referrer: Referrer.PATHS_TABLE,
   });
 
@@ -64,8 +61,8 @@ export function CommandsTable() {
       <HeadSortCell
         sortKey={column.key}
         align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
-        forceCellGrow={column.key === 'command'}
-        cursorParamName="commandsCursor"
+        forceCellGrow={column.key === SpanFields.MCP_TOOL_NAME}
+        cursorParamName="tableCursor"
       >
         {column.name}
       </HeadSortCell>
@@ -78,26 +75,20 @@ export function CommandsTable() {
       dataRow: (typeof tableDataRequest.data)[number]
     ) => {
       switch (column.key) {
-        case 'command':
-          return <CommandCell command={dataRow.command} />;
+        case SpanFields.MCP_TOOL_NAME:
+          return <McpToolCell tool={dataRow[SpanFields.MCP_TOOL_NAME]} />;
         case 'failure_rate()':
           return (
             <ErrorRateCell
               errorRate={dataRow['failure_rate()']}
               total={dataRow['count()']}
-              issuesLink={getErrorCellIssuesLink({
-                projectId: dataRow['project.id'],
-                query: `command:"${dataRow.command}"`,
-              })}
             />
           );
-        case 'avg(span.duration)':
-        case 'p95(span.duration)':
-          return <DurationCell milliseconds={dataRow[column.key]} />;
         case 'count()':
           return <NumberCell value={dataRow['count()']} />;
-        case 'sum(span.duration)':
-          return <TimeSpentCell total={dataRow['sum(span.duration)']} />;
+        case AVG_DURATION:
+        case P95_DURATION:
+          return <DurationCell milliseconds={dataRow[column.key]} />;
         default:
           return <div />;
       }
@@ -116,14 +107,14 @@ export function CommandsTable() {
         renderBodyCell,
         renderHeadCell,
       }}
-      cursorParamName="commandsCursor"
+      cursorParamName="tableCursor"
       pageLinks={tableDataRequest.pageLinks}
       isPlaceholderData={tableDataRequest.isPlaceholderData}
     />
   );
 }
 
-function CommandCell({command}: {command: string}) {
+function McpToolCell({tool}: {tool: string}) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
@@ -137,8 +128,8 @@ function CommandCell({command}: {command: string}) {
         yAxes: ['count(span.duration)'],
       },
     ],
-    query: `span.op:console.command* command:${command}`,
+    query: `span.op:mcp.server ${SpanFields.MCP_TOOL_NAME}:"${tool}"`,
     sort: `-count(span.duration)`,
   });
-  return <Link to={link}>{command}</Link>;
+  return <Link to={link}>{tool}</Link>;
 }

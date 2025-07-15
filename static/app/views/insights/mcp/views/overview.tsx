@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
@@ -15,6 +15,7 @@ import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/c
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -22,6 +23,7 @@ import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
+import {useLocationSyncedState} from 'sentry/views/insights/agentMonitoring/hooks/useLocationSyncedState';
 import {McpInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -32,20 +34,18 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import McpTrafficWidget from 'sentry/views/insights/common/components/widgets/mcpTrafficWidget';
 import McpPromptDurationWidget from 'sentry/views/insights/mcp/components/mcpPromptDurationWidget';
 import McpPromptErrorRateWidget from 'sentry/views/insights/mcp/components/mcpPromptErrorRateWidget';
+import {McpPromptsTable} from 'sentry/views/insights/mcp/components/mcpPromptsTable';
 import McpPromptTrafficWidget from 'sentry/views/insights/mcp/components/mcpPromptTrafficWidget';
 import McpResourceDurationWidget from 'sentry/views/insights/mcp/components/mcpResourceDurationWidget';
 import McpResourceErrorRateWidget from 'sentry/views/insights/mcp/components/mcpResourceErrorRateWidget';
+import {McpResourcesTable} from 'sentry/views/insights/mcp/components/mcpResourcesTable';
 import McpResourceTrafficWidget from 'sentry/views/insights/mcp/components/mcpResourceTrafficWidget';
 import McpToolDurationWidget from 'sentry/views/insights/mcp/components/mcpToolDurationWidget';
 import McpToolErrorRateWidget from 'sentry/views/insights/mcp/components/mcpToolErrorRateWidget';
+import {McpToolsTable} from 'sentry/views/insights/mcp/components/mcpToolsTable';
 import McpToolTrafficWidget from 'sentry/views/insights/mcp/components/mcpToolTrafficWidget';
 import McpTransportWidget from 'sentry/views/insights/mcp/components/mcpTransportWidget';
-import {
-  PromptsTable,
-  RequestsBySourceWidget,
-  ResourcesTable,
-  ToolsTable,
-} from 'sentry/views/insights/mcp/components/placeholders';
+import {RequestsBySourceWidget} from 'sentry/views/insights/mcp/components/placeholders';
 import {WidgetGrid} from 'sentry/views/insights/mcp/components/styles';
 import {MODULE_TITLE} from 'sentry/views/insights/mcp/settings';
 import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
@@ -89,18 +89,29 @@ function useShowOnboarding() {
   return !selectedProjects.some(p => p.hasInsightsMCP);
 }
 
+function decodeViewType(value: unknown): ViewType | undefined {
+  if (Object.values(ViewType).includes(value as ViewType)) {
+    return value as ViewType;
+  }
+  return undefined;
+}
+
 function McpOverviewPage() {
   const organization = useOrganization();
   const showOnboarding = useShowOnboarding();
   const datePageFilterProps = limitMaxPickableDays(organization);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [activeTable, setActiveTable] = useState<ViewType>(ViewType.TOOL);
+  const [searchQuery, setSearchQuery] = useLocationSyncedState('query', decodeScalar);
+  const [view, setView] = useLocationSyncedState('view', decodeViewType);
+  const activeView = view ?? ViewType.TOOL;
 
   useEffect(() => {}, [organization, showOnboarding]);
 
-  const handleTableSwitch = useCallback((newTable: ViewType) => {
-    setActiveTable(newTable);
-  }, []);
+  const handleTableSwitch = useCallback(
+    (newTable: ViewType) => {
+      setView(newTable);
+    },
+    [setView]
+  );
 
   const {tags: numberTags} = useTraceItemTags('number');
   const {tags: stringTags} = useTraceItemTags('string');
@@ -123,9 +134,9 @@ function McpOverviewPage() {
     eapSpanSearchQueryBuilderProps
   );
 
-  const ViewTrafficWidget = viewTrafficWidgets[activeTable];
-  const ViewDurationWidget = viewDurationWidgets[activeTable];
-  const ViewErrorRateWidget = viewErrorRateWidgets[activeTable];
+  const ViewTrafficWidget = viewTrafficWidgets[activeView];
+  const ViewDurationWidget = viewDurationWidgets[activeView];
+  const ViewErrorRateWidget = viewErrorRateWidgets[activeView];
 
   return (
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
@@ -175,7 +186,7 @@ function McpOverviewPage() {
                     </WidgetGrid>
                     <ControlsWrapper>
                       <TableControl
-                        value={activeTable}
+                        value={activeView}
                         onChange={handleTableSwitch}
                         size="sm"
                       >
@@ -201,9 +212,9 @@ function McpOverviewPage() {
                         <ViewErrorRateWidget />
                       </WidgetGrid.Position3>
                     </WidgetGrid>
-                    {activeTable === ViewType.TOOL && <ToolsTable />}
-                    {activeTable === ViewType.RESOURCE && <ResourcesTable />}
-                    {activeTable === ViewType.PROMPT && <PromptsTable />}
+                    {activeView === ViewType.TOOL && <McpToolsTable />}
+                    {activeView === ViewType.RESOURCE && <McpResourcesTable />}
+                    {activeView === ViewType.PROMPT && <McpPromptsTable />}
                   </Fragment>
                 )}
               </ModuleLayout.Full>
@@ -236,7 +247,7 @@ const ControlsWrapper = styled('div')`
   justify-content: space-between;
   align-items: center;
   gap: ${space(1)};
-  margin: ${space(2)} 0;
+  padding-bottom: ${space(2)};
 `;
 
 export default PageWithProviders;
