@@ -24,6 +24,7 @@ interface Props<Data> {
     >,
     {fetchNextPage: () => Promise<unknown>}
   >;
+  deduplicateItems?: (items: Data[]) => Data[];
   emptyMessage?: () => React.ReactNode;
   estimateSize?: () => number;
   loadingCompleteMessage?: () => React.ReactNode;
@@ -32,16 +33,19 @@ interface Props<Data> {
 }
 
 export default function InfiniteListItems<Data>({
+  deduplicateItems = _ => _,
+  emptyMessage = EmptyMessage,
   estimateSize,
   itemRenderer,
-  emptyMessage = EmptyMessage,
   loadingCompleteMessage = LoadingCompleteMessage,
   loadingMoreMessage = LoadingMoreMessage,
   overscan,
   queryResult,
 }: Props<Data>) {
   const {data, hasNextPage, isFetchingNextPage, fetchNextPage} = queryResult;
-  const loadedRows = data ? data.pages.flatMap(d => d[0]) : [];
+  const loadedRows = deduplicateItems(
+    data ? data.pages.flatMap(result => result[0]) : []
+  );
   const parentRef = useRef<HTMLDivElement>(null);
 
   const rowVirtualizer = useVirtualizer({
