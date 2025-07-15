@@ -1,5 +1,6 @@
 import orjson
 
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.web.integration_extension_configuration import (
     IntegrationExtensionConfigurationView,
 )
@@ -18,8 +19,8 @@ class JiraExtensionConfigurationView(IntegrationExtensionConfigurationView):
     Handle the UI for adding the Jira integration to a Sentry org.
     """
 
-    provider = "jira"
-    external_provider_key = "jira"
+    provider = IntegrationProviderSlug.JIRA.value
+    external_provider_key = IntegrationProviderSlug.JIRA.value
 
     def map_params_to_state(self, original_params):
         # decode the signed params and add them to whatever params we have

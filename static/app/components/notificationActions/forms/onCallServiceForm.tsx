@@ -126,7 +126,7 @@ function OnCallServiceForm({
         />
       </NotificationActionCell>
 
-      <ButtonBar gap={0.5}>
+      <ButtonBar gap="xs">
         <Button onClick={onCancel} size="xs">
           {t('Cancel')}
         </Button>

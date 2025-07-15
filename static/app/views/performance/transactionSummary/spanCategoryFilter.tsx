@@ -13,7 +13,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 
@@ -44,7 +44,7 @@ export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
   const query = new MutableSearch('');
   query.addFilterValue('transaction', serviceEntrySpanName);
 
-  const {data, isError} = useEAPSpans(
+  const {data, isError} = useSpans(
     {
       limit: LIMIT,
       fields: [SpanIndexedField.SPAN_CATEGORY, 'count()'],

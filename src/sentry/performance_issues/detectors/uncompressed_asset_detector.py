@@ -143,7 +143,10 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
             (
                 tag[1]
                 for tag in tags
-                if tag is not None and tag[0] == "browser.name" and len(tag) == 2
+                if tag is not None
+                and tag[0] == "browser.name"
+                and len(tag) == 2
+                and tag[1] is not None
             ),
             "",
         )

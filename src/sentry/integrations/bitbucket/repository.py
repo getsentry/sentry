@@ -1,3 +1,4 @@
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.locks import locks
 from sentry.models.apitoken import generate_token
 from sentry.models.options.organization_option import OrganizationOption
@@ -10,7 +11,7 @@ from sentry.utils.http import absolute_uri
 
 class BitbucketRepositoryProvider(IntegrationRepositoryProvider):
     name = "Bitbucket"
-    repo_provider = "bitbucket"
+    repo_provider = IntegrationProviderSlug.BITBUCKET.value
 
     def get_repository_data(self, organization, config):
         installation = self.get_installation(config.get("installation"), organization.id)

@@ -65,6 +65,7 @@ from sentry.workflow_engine.processors.workflow import (
 )
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.tasks.actions import build_trigger_action_task_params, trigger_action
+from sentry.workflow_engine.tasks.utils import retry_timeouts
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 from sentry.workflow_engine.utils import log_context
 
@@ -470,6 +471,40 @@ def get_condition_group_results(
     return condition_group_results
 
 
+class MissingQueryResult(Exception):
+    """
+    Raised when a group is missing from a query result.
+    """
+
+    def __init__(self, group_id: GroupId, query: UniqueConditionQuery, query_result: QueryResult):
+        self.group_id = group_id
+        self.query = query
+        self.query_result = query_result
+
+
+def _group_result_for_dcg(
+    group_id: GroupId,
+    dcg: DataConditionGroup,
+    workflow_env: int | None,
+    condition_group_results: dict[UniqueConditionQuery, QueryResult],
+    slow_conditions: list[DataCondition],
+) -> bool:
+    conditions_to_evaluate: list[tuple[DataCondition, list[int | float]]] = []
+    for condition in slow_conditions:
+        query_values = []
+        for query in generate_unique_queries(condition, workflow_env):
+            query_result = condition_group_results[query]
+            if group_id not in query_result:
+                raise MissingQueryResult(group_id, query, query_result)
+
+            query_values.append(query_result[group_id])
+        conditions_to_evaluate.append((condition, query_values))
+
+    return evaluate_data_conditions(
+        conditions_to_evaluate, DataConditionGroup.Type(dcg.logic_type)
+    ).logic_result
+
+
 @sentry_sdk.trace
 def get_groups_to_fire(
     data_condition_groups: list[DataConditionGroup],
@@ -482,27 +517,26 @@ def get_groups_to_fire(
 
     for dcg in data_condition_groups:
         slow_conditions = dcg_to_slow_conditions[dcg.id]
-        action_match = DataConditionGroup.Type(dcg.logic_type)
         workflow_id = event_data.dcg_to_workflow.get(dcg.id)
         workflow_env = workflows_to_envs[workflow_id] if workflow_id else None
 
         for group_id in event_data.dcg_to_groups[dcg.id]:
-            conditions_to_evaluate: list[tuple[DataCondition, list[int | float]]] = []
-            for condition in slow_conditions:
-                unique_queries = generate_unique_queries(condition, workflow_env)
-                query_values = [
-                    condition_group_results[unique_query][group_id]
-                    for unique_query in unique_queries
-                ]
-                conditions_to_evaluate.append((condition, query_values))
-
-            evaluation = evaluate_data_conditions(conditions_to_evaluate, action_match)
-            if (
-                evaluation.logic_result and workflow_id is None
-            ):  # TODO: detector trigger passes. do something like create issue
-                pass
-            elif evaluation.logic_result:
-                groups_to_fire[group_id].add(dcg)
+            try:
+                result = _group_result_for_dcg(
+                    group_id, dcg, workflow_env, condition_group_results, slow_conditions
+                )
+                if (
+                    result and workflow_id is None
+                ):  # TODO: detector trigger passes. do something like create issue
+                    pass
+                elif result:
+                    groups_to_fire[group_id].add(dcg)
+            except MissingQueryResult:
+                # If we didn't get complete query results, don't fire.
+                metrics.incr("workflow_engine.delayed_workflow.missing_query_result")
+                logger.warning(
+                    "workflow_engine.delayed_workflow.missing_query_result", exc_info=True
+                )
 
     return groups_to_fire
 
@@ -597,6 +631,8 @@ def fire_actions_for_groups(
     event_data: EventRedisData,
     group_to_groupevent: dict[Group, GroupEvent],
 ) -> None:
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
     serialized_groups = {
         group.id: group_event.event_id for group, group_event in group_to_groupevent.items()
     }
@@ -630,9 +666,7 @@ def fire_actions_for_groups(
     }
 
     # Feature check caching to keep us within the trace budget.
-    should_trigger_actions = features.has(
-        "organizations:workflow-engine-trigger-actions", organization
-    )
+    should_trigger_actions = should_fire_workflow_actions(organization)
     should_trigger_actions_async = features.has(
         "organizations:workflow-engine-action-trigger-async", organization
     )
@@ -760,6 +794,7 @@ def repr_keys[T, V](d: dict[T, V]) -> dict[str, V]:
     ),
 )
 @retry
+@retry_timeouts
 @log_context.root()
 def process_delayed_workflows(
     project_id: int, batch_key: str | None = None, *args: Any, **kwargs: Any
