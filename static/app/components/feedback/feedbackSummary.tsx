@@ -18,7 +18,10 @@ export default function FeedbackSummary() {
 
   const openForm = useFeedbackForm();
 
-  if (!organization.features.includes('user-feedback-ai-summaries')) {
+  if (
+    !organization.features.includes('user-feedback-ai-summaries') ||
+    !organization.features.includes('gen-ai-features')
+  ) {
     return null;
   }
 
