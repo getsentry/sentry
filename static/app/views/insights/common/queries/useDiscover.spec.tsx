@@ -12,10 +12,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useSpanMetrics, useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {
-  SpanIndexedField,
-  type SpanIndexedProperty,
-  type SpanMetricsProperty,
+import type {
+  EAPSpanProperty,
+  SpanFields,
+  SpanMetricsProperty,
 } from 'sentry/views/insights/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -180,7 +180,7 @@ describe('useDiscover', () => {
         {
           wrapper: Wrapper,
           initialProps: {
-            fields: [SpanIndexedField.SPAN_DESCRIPTION] as SpanIndexedProperty[],
+            fields: [SpanFields.SPAN_DESCRIPTION] as EAPSpanProperty[],
             enabled: false,
           },
         }
@@ -234,10 +234,10 @@ describe('useDiscover', () => {
               release: '0.0.1',
             },
             fields: [
-              SpanIndexedField.SPAN_OP,
-              SpanIndexedField.SPAN_GROUP,
-              SpanIndexedField.SPAN_DESCRIPTION,
-            ] as SpanIndexedProperty[],
+              SpanFields.SPAN_OP,
+              SpanFields.SPAN_GROUP,
+              SpanFields.SPAN_DESCRIPTION,
+            ] as EAPSpanProperty[],
             sorts: [{field: 'span.group', kind: 'desc' as const}],
             limit: 10,
             referrer: 'api-spec',
