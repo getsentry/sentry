@@ -271,6 +271,18 @@ def get_fingerprinting_config_for_project(
 def apply_server_side_fingerprinting(
     event: MutableMapping[str, Any], fingerprinting_config: FingerprintingRules
 ) -> None:
+    """
+    Check the given event against the given rules and set various event values. Note that this does
+    not resolve fingerprint variables, except in the event title (if applicable).
+
+    If there is a client fingerprint, add it to `event["_fingprint_info"]`.
+
+    If a rule match is found:
+        - Set `event["fingerprint"]` to the raw (unresolved) fingerprint given by the matching rule.
+        - Add the matched rule to `event["_fingprint_info"]`.
+        - Set `event["title"]` if the rule includes title information.
+    """
+
     fingerprint_info = {}
 
     client_fingerprint = event.get("fingerprint", [])
