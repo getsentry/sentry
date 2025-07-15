@@ -146,7 +146,6 @@ module = [
     "sentry.web.frontend.auth_login",
     "sentry_plugins.jira.plugin",
     "tests.sentry.api.helpers.test_group_index",
-    "tests.sentry.issues.test_utils",
 ]
 disable_error_code = [
     "arg-type",
@@ -533,6 +532,7 @@ module = [
     "tests.sentry.issues.test_status_change",
     "tests.sentry.issues.test_status_change_consumer",
     "tests.sentry.issues.test_update_inbox",
+    "tests.sentry.issues.test_utils",
     "tests.sentry.middleware.test_reporting_endpoint",
     "tests.sentry.nodestore.bigtable.test_backend",
     "tests.sentry.organizations.*",
