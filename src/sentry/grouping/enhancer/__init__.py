@@ -98,7 +98,7 @@ def merge_rust_enhancements(
     return merged_rust_enhancements
 
 
-def get_rust_enhancements(
+def _get_rust_enhancements(
     source: Literal["config_structure", "config_string"], input: str | bytes
 ) -> RustEnhancements:
     """
@@ -251,8 +251,8 @@ def _split_rules(
     classifier_rules_text = "\n".join(rule.text for rule in classifier_rules)
     contributes_rules_text = "\n".join(rule.text for rule in contributes_rules)
 
-    classifier_rust_enhancements = get_rust_enhancements("config_string", classifier_rules_text)
-    contributes_rust_enhancements = get_rust_enhancements("config_string", contributes_rules_text)
+    classifier_rust_enhancements = _get_rust_enhancements("config_string", classifier_rules_text)
+    contributes_rust_enhancements = _get_rust_enhancements("config_string", contributes_rules_text)
 
     return (
         EnhancementsConfig(classifier_rules, classifier_rust_enhancements),
@@ -622,7 +622,7 @@ class Enhancements:
                 raise InvalidEnhancerConfig(f"Unknown enhancements version: {version}")
 
             rules = [EnhancementRule._from_config_structure(rule, version) for rule in rules]
-            rust_enhancements = get_rust_enhancements("config_structure", pickled)
+            rust_enhancements = _get_rust_enhancements("config_structure", pickled)
 
         except (LookupError, AttributeError, TypeError, ValueError) as e:
             raise ValueError("invalid stack trace rule config: %s" % e)
@@ -688,7 +688,7 @@ class Enhancements:
                 {"split": version == 3, "source": "rules_text", "referrer": referrer}
             )
 
-            rust_enhancements = get_rust_enhancements("config_string", rules_text)
+            rust_enhancements = _get_rust_enhancements("config_string", rules_text)
             rules = parse_enhancements(rules_text)
             return Enhancements(
                 rules,
