@@ -5,6 +5,7 @@ import {type Duration, duration} from 'moment-timezone';
 
 import {defined} from 'sentry/utils';
 import {domId} from 'sentry/utils/domId';
+import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import clamp from 'sentry/utils/number/clamp';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
@@ -86,11 +87,16 @@ interface ReplayReaderParams {
    * If provided, the replay will be clipped to this window.
    */
   clipWindow?: ClipWindow;
+
   /**
    * Relates to the setting of the clip window. If the event timestamp is before the replay started,
    * the clip window will be set to the start of the replay.
    */
   eventTimestampMs?: number;
+  /**
+   * Feedback in this replay
+   */
+  feedbackEvent?: FeedbackEvent;
 }
 
 type RequiredNotNull<T> = {
@@ -159,6 +165,7 @@ export default class ReplayReader {
   static factory({
     attachments,
     errors,
+    feedbackEvent,
     replayRecord,
     clipWindow,
     fetching,
@@ -172,6 +179,7 @@ export default class ReplayReader {
       return new ReplayReader({
         attachments,
         errors,
+        feedbackEvent,
         replayRecord,
         fetching,
         clipWindow,
@@ -187,6 +195,7 @@ export default class ReplayReader {
       return new ReplayReader({
         attachments: [],
         errors: [],
+        feedbackEvent,
         fetching,
         replayRecord,
         clipWindow,
@@ -198,6 +207,7 @@ export default class ReplayReader {
   private constructor({
     attachments,
     errors,
+    feedbackEvent,
     fetching,
     replayRecord,
     clipWindow,
@@ -248,7 +258,11 @@ export default class ReplayReader {
     this._replayRecord = replayRecord;
     // Errors don't need to be sorted here, they will be merged with breadcrumbs
     // and spans in the getter and then sorted together.
-    const {errorFrames, feedbackFrames} = hydrateErrors(replayRecord, errors);
+    const {errorFrames, feedbackFrames} = hydrateErrors(
+      replayRecord,
+      errors,
+      feedbackEvent
+    );
     this._errors = errorFrames.sort(sortFrames);
     // RRWeb Events are not sorted here, they are fetched in sorted order.
     this._sortedRRWebEvents = rrwebFrames;

@@ -1,6 +1,8 @@
 import {useMemo} from 'react';
 
 import type {Group} from 'sentry/types/group';
+import type {FeedbackEvent} from 'sentry/utils/feedback/types';
+import useFeedbackEvent from 'sentry/utils/replays/hooks/useFeedbackEvent';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 
@@ -16,6 +18,7 @@ type Props = {
 };
 
 interface ReplayReaderResult extends ReturnType<typeof useReplayData> {
+  feedbackEvent: FeedbackEvent | undefined;
   replay: ReplayReader | null;
   replayId: string;
 }
@@ -34,6 +37,14 @@ export default function useLoadReplayReader({
       orgSlug,
       replayId,
     });
+
+  const feedbackId = errors
+    .filter(error => error.title.includes('User Feedback'))
+    .map(error => error.id)[0];
+  const feedbackEvent = useFeedbackEvent({
+    feedbackId,
+    projectId: replayRecord?.project_id,
+  });
 
   // get first error matching our group
   const firstMatchingError = useMemo(
@@ -63,6 +74,7 @@ export default function useLoadReplayReader({
           attachments,
           clipWindow: memoizedClipWindow,
           errors,
+          feedbackEvent,
           fetching: isPending,
           replayRecord,
           eventTimestampMs,
@@ -71,6 +83,7 @@ export default function useLoadReplayReader({
     attachments,
     memoizedClipWindow,
     errors,
+    feedbackEvent,
     isPending,
     replayRecord,
     eventTimestampMs,
@@ -80,6 +93,7 @@ export default function useLoadReplayReader({
     ...replayData,
     attachments,
     errors,
+    feedbackEvent,
     isError,
     isPending,
     replay,
