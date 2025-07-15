@@ -12,31 +12,33 @@ export interface StoryResources {
   js?: string;
 }
 
-type FrontmatterPagination = boolean | {label: string; link: string};
-
 interface MDXStoryDescriptor {
   exports: {
     default: React.ComponentType | any;
     frontmatter?: {
       description: string;
       title: string;
-      next?: FrontmatterPagination;
-      prev?: FrontmatterPagination;
       resources?: StoryResources;
       source?: string;
       types?: string;
     };
-    types?: TypeLoader.ComponentDocWithFilename;
+    types?:
+      | TypeLoader.ComponentDocWithFilename
+      | Record<string, TypeLoader.ComponentDocWithFilename>;
   };
   filename: string;
 }
 
 interface TSStoryDescriptor {
-  exports: Record<string, React.ComponentType | any>;
+  exports: Record<string, React.ComponentType | unknown>;
   filename: string;
 }
 
 export type StoryDescriptor = MDXStoryDescriptor | TSStoryDescriptor;
+
+export function isMDXStory(story: StoryDescriptor): story is MDXStoryDescriptor {
+  return story.filename.endsWith('.mdx');
+}
 
 export function useStoryBookFiles() {
   return useMemo(

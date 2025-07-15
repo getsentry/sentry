@@ -1250,14 +1250,6 @@ export const lightTheme = {
   level: generateLevelTheme(lightColors),
   stacktraceActiveBackground: lightColors.gray500,
   stacktraceActiveText: lightColors.white,
-  tour: {
-    background: darkColors.surface400,
-    header: darkColors.white,
-    text: darkAliases.textColor,
-    next: lightAliases.textColor,
-    previous: darkColors.white,
-    close: lightColors.white,
-  },
   chart: {
     neutral: lightColors.gray200,
     colors: CHART_PALETTE,
@@ -1311,14 +1303,6 @@ export const darkTheme: typeof lightTheme = {
   ),
   stacktraceActiveBackground: darkColors.gray200,
   stacktraceActiveText: darkColors.white,
-  tour: {
-    background: darkColors.purple300,
-    header: darkColors.white,
-    text: darkAliases.textColor,
-    next: lightAliases.textColor,
-    previous: darkColors.white,
-    close: lightColors.white,
-  },
   chart: {
     neutral: darkColors.gray200,
     colors: CHART_PALETTE,

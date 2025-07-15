@@ -4,6 +4,7 @@ import logging
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 class VstsRepositoryProvider(IntegrationRepositoryProvider):
     name = "Azure DevOps"
-    repo_provider = "vsts"
+    repo_provider = IntegrationProviderSlug.AZURE_DEVOPS.value
 
     def get_repository_data(
         self, organization: Organization, config: MutableMapping[str, Any]

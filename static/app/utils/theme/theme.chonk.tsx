@@ -1124,15 +1124,6 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   tag: generateTagTheme(chonkLightColorMapping),
   level: generateLevelTheme(chonkLightColorMapping),
 
-  tour: {
-    background: darkColors.surface400,
-    header: darkColors.white,
-    text: darkAliases.subText,
-    next: lightAliases.textColor,
-    previous: darkColors.white,
-    close: lightColors.white,
-  },
-
   chart: {
     neutral: color(lightColors.gray400).lighten(0.8).toString(),
     colors: CHART_PALETTE_LIGHT,
@@ -1200,15 +1191,6 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   button: generateButtonTheme(chonkDarkColorMapping, darkAliases),
   tag: generateTagTheme(chonkDarkColorMapping),
   level: generateLevelTheme(chonkDarkColorMapping),
-
-  tour: {
-    background: darkColors.blue400,
-    header: darkColors.white,
-    text: darkColors.white,
-    next: lightAliases.textColor,
-    previous: darkColors.white,
-    close: lightColors.white,
-  },
 
   chart: {
     neutral: color(darkColors.gray400).darken(0.35).toString(),

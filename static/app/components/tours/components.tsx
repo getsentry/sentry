@@ -1,7 +1,7 @@
 import type {CSSProperties, HTMLAttributes} from 'react';
 import {Fragment, useContext, useEffect, useMemo} from 'react';
 import {createPortal} from 'react-dom';
-import {ClassNames, useTheme} from '@emotion/react';
+import {ClassNames, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -20,6 +20,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -367,6 +368,7 @@ export function TourGuide({
   margin,
 }: TourGuideProps) {
   const theme = useTheme();
+  const invertedTheme = useInvertedTheme();
 
   const isStepCountVisible = defined(stepCount) && defined(stepTotal) && stepTotal !== 1;
   const isDismissVisible = defined(handleDismiss);
@@ -401,45 +403,48 @@ export function TourGuide({
       {isOpen && defined(title) && defined(description)
         ? createPortal(
             <PositionWrapper zIndex={theme.zIndex.tour.overlay} {...overlayProps}>
-              <ClassNames>
-                {({css}) => (
-                  <TourOverlay
-                    animated
-                    arrowProps={{
-                      ...arrowProps,
-                      strokeWidth: 0,
-                      className: css`
-                        path.fill {
-                          fill: ${theme.tour.background};
-                        }
-                        path.stroke {
-                          stroke: transparent;
-                        }
-                      `,
-                    }}
-                  >
-                    <TourBody ref={scrollToElement}>
-                      {isTopRowVisible && (
-                        <TopRow>
-                          <div>{countText}</div>
-                          {isDismissVisible && (
-                            <TourCloseButton
-                              onClick={handleDismiss}
-                              icon={<IconClose />}
-                              aria-label={t('Close')}
-                              borderless
-                              size="sm"
-                            />
-                          )}
-                        </TopRow>
-                      )}
-                      {title && <TitleRow>{title}</TitleRow>}
-                      {description && <DescriptionRow>{description}</DescriptionRow>}
-                      {actions && <ActionRow>{actions}</ActionRow>}
-                    </TourBody>
-                  </TourOverlay>
-                )}
-              </ClassNames>
+              <ThemeProvider theme={invertedTheme}>
+                <ClassNames>
+                  {({css, theme: currentTheme}) => (
+                    <TourOverlay
+                      animated
+                      arrowProps={{
+                        ...arrowProps,
+                        strokeWidth: 0,
+                        className: css`
+                          path.fill {
+                            fill: ${currentTheme.tokens.background.primary};
+                          }
+                          path.stroke {
+                            stroke: transparent;
+                          }
+                        `,
+                      }}
+                    >
+                      <TourBody ref={scrollToElement}>
+                        {isTopRowVisible && (
+                          <TopRow>
+                            <div>{countText}</div>
+                            {isDismissVisible && (
+                              <Button
+                                priority="transparent"
+                                borderless
+                                onClick={handleDismiss}
+                                icon={<IconClose />}
+                                aria-label={t('Close')}
+                                size="zero"
+                              />
+                            )}
+                          </TopRow>
+                        )}
+                        {title && <TitleRow>{title}</TitleRow>}
+                        {description && <DescriptionRow>{description}</DescriptionRow>}
+                        {actions && <ActionRow>{actions}</ActionRow>}
+                      </TourBody>
+                    </TourOverlay>
+                  )}
+                </ClassNames>
+              </ThemeProvider>
             </PositionWrapper>,
             document.body
           )
@@ -456,25 +461,14 @@ function scrollToElement(element: HTMLDivElement | null) {
 const TourBody = styled('div')`
   display: flex;
   flex-direction: column;
-  background: ${p => p.theme.tour.background};
+  background: ${p => p.theme.tokens.background.primary};
   padding: ${space(1.5)} ${space(2)};
-  color: ${p => p.theme.tour.text};
+  color: ${p => p.theme.tokens.content.primary};
   border-radius: ${p => p.theme.borderRadius};
   width: 360px;
   a {
-    color: ${p => p.theme.tour.text};
+    color: ${p => p.theme.tokens.content.primary};
     text-decoration: underline;
-  }
-`;
-
-const TourCloseButton = styled(Button)`
-  display: block;
-  padding: 0;
-  height: 14px;
-  min-height: 14px;
-  color: ${p => p.theme.tour.close};
-  &:hover {
-    color: ${p => p.theme.tour.close};
   }
 `;
 
@@ -484,18 +478,16 @@ const TourOverlay = styled(Overlay)`
 `;
 
 const TopRow = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 15px;
-  align-items: start;
-  height: 18px;
-  color: ${p => p.theme.tour.close};
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: ${p => p.theme.tokens.content.muted};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.bold};
-  opacity: 0.6;
 `;
 
 const TitleRow = styled('div')`
-  color: ${p => p.theme.tour.header};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.xl};
   font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1.4;
@@ -503,7 +495,7 @@ const TitleRow = styled('div')`
 `;
 
 const DescriptionRow = styled('div')`
-  color: ${p => p.theme.tour.text};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.normal};
   line-height: 1.4;
@@ -517,41 +509,12 @@ const ActionRow = styled('div')`
   margin-top: ${space(1)};
 `;
 
-export const TourAction = styled(Button)`
-  color: ${p => p.theme.tour.next};
-
-  &:hover,
-  &:active,
-  &:focus {
-    color: ${p => p.theme.tour.next};
-  }
-
-  ${p =>
-    p.theme.isChonk
-      ? `
-    &::after {
-      background: ${p.theme.white};
-    }
-  `
-      : `
-    border: 0;
-    background: ${p.theme.white};
-  `}
-`;
-
-function TransparentButton(props: React.ComponentProps<typeof Button>) {
-  return <Button {...props} priority="transparent" borderless />;
+export function TourAction(props: React.ComponentProps<typeof Button>) {
+  return <Button {...props} priority="primary" size="sm" />;
 }
-
-export const TextTourAction = styled(TransparentButton)`
-  box-shadow: none;
-  color: ${p => p.theme.tour.previous};
-  &:hover,
-  &:active,
-  &:focus {
-    color: ${p => p.theme.tour.previous};
-  }
-`;
+export function TextTourAction(props: React.ComponentProps<typeof Button>) {
+  return <Button {...props} priority="transparent" size="sm" borderless />;
+}
 
 const BlurWindow = styled('div')`
   content: '';
@@ -570,12 +533,11 @@ const TourTriggerWrapper = styled('div')<{margin?: CSSProperties['margin']}>`
     pointer-events: none;
     &:after {
       content: '';
-      opacity: 0.5;
       position: absolute;
       z-index: ${p => p.theme.zIndex.tour.element + 1};
       inset: 0;
       border-radius: ${p => p.theme.borderRadius};
-      box-shadow: inset 0 0 0 3px ${p => p.theme.tour.background};
+      box-shadow: inset 0 0 0 3px ${p => p.theme.tokens.border.accent};
       ${p => defined(p.margin) && `margin: ${p.margin};`}
     }
   }
