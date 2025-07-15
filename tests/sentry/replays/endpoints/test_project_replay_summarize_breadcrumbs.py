@@ -44,7 +44,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(TransactionTestCase):
         **kwargs,
     ):
         replay = mock_replay(
-            datetime.now(timezone.utc) - timedelta(minutes=5),  # catch clock skew
+            dt or (datetime.now(timezone.utc) - timedelta(minutes=5)),  # catch clock skew
             self.project.id,
             self.replay_id,
             **kwargs,

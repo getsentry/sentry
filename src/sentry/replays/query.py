@@ -210,7 +210,14 @@ def query_replays_segment_count(
                 # is shadowed our index is disabled in the WHERE and we waste a lot of
                 # compute parsing UUIDs we don't care about.
                 _strip_uuid_dashes("replay_id", Column("replay_id"), alias="rid"),
-                Function("max", parameters=[Column("segment_id")], alias="segment_count"),
+                Function(
+                    "plus",
+                    parameters=[
+                        Function("max", parameters=[Column("segment_id")]),
+                        1,
+                    ],
+                    alias="segment_count",
+                ),
                 Function(
                     "ifNull",
                     parameters=[
