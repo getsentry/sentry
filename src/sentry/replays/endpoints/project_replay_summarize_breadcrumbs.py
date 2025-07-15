@@ -2,7 +2,7 @@ import functools
 import logging
 from collections.abc import Generator, Iterator
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, Literal, TypedDict
 from urllib.parse import urlparse
 
 import requests
@@ -52,7 +52,6 @@ class GroupEvent(TypedDict):
 
 CACHE_TIMEOUT = 7 * 24 * 60 * 60  # 7d if not regenerated
 REFRESH_CACHE_QPARAM = "regenerate"  # true or false
-ENABLE_ERROR_FETCH_QPARAM = "enable_error_context"  # true or false
 
 
 @region_silo_endpoint
@@ -96,10 +95,6 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
             return self.respond(status=404)
         num_segments = seg_count_response["data"][0]["segment_count"]
 
-        disable_error_fetching = (
-            request.query_params.get(ENABLE_ERROR_FETCH_QPARAM, "true").lower() == "false"
-        )
-
         per_page = self.get_per_page(request)
         cursor = request.GET.get(self.cursor_name, "")
         cache_key = f"replay_summarize_breadcrumbs:{project.id}:{replay_id}:{per_page}:{cursor}"
@@ -132,17 +127,14 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
             replay_details_response[0].get("trace_ids", []) if replay_details_response else []
         )
 
-        if disable_error_fetching:
-            error_events = []
-        else:
-            replay_errors = fetch_error_details(project_id=project.id, error_ids=error_ids)
-            trace_connected_errors = fetch_trace_connected_errors(
-                project=project,
-                trace_ids=trace_ids,
-                start=start,
-                end=end,
-            )
-            error_events = replay_errors + trace_connected_errors
+        replay_errors = fetch_error_details(project_id=project.id, error_ids=error_ids)
+        trace_connected_errors = fetch_trace_connected_errors(
+            project=project,
+            trace_ids=trace_ids,
+            start=start,
+            end=end,
+        )
+        error_events = replay_errors + trace_connected_errors
 
         response = self.paginate(
             request=request,
@@ -181,21 +173,24 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[GroupEven
         return []
 
 
-def parse_timestamp(timestamp_value: Any, unit: str) -> float:
-    """Parse a timestamp input to a float value.
-    The argument timestamp value can be string, float, or None.
-    The returned unit will be the same as the input unit.
+def parse_timestamp(
+    value: str | float | None, float_input_unit: Literal["s", "ms"] = "ms"
+) -> float:
     """
-    if timestamp_value is not None:
-        if isinstance(timestamp_value, str):
-            try:
-                dt = datetime.fromisoformat(timestamp_value.replace("Z", "+00:00"))
-                return dt.timestamp() * 1000 if unit == "ms" else dt.timestamp()
-            except (ValueError, AttributeError):
-                return 0.0
-        else:
-            return float(timestamp_value)
-    return 0.0
+    Parse a timestamp input to float milliseconds. None and parse errors default to 0.0.
+    `float_input_unit` is the value's expected unit, only applicable when it's a float.
+    """
+    if value is None:
+        return 0.0
+
+    if isinstance(value, str):
+        try:
+            dt = datetime.fromisoformat(value)
+            return dt.timestamp() * 1000
+        except (ValueError, AttributeError):
+            return 0.0
+
+    return value * 1000 if float_input_unit == "s" else value
 
 
 def fetch_trace_connected_errors(
@@ -259,9 +254,9 @@ def fetch_trace_connected_errors(
             error_data = query.process_results(result)["data"]
 
             for event in error_data:
-                timestamp_ms = parse_timestamp(event.get("timestamp_ms"), "ms")
-                timestamp_s = parse_timestamp(event.get("timestamp"), "s")
-                timestamp = timestamp_ms or timestamp_s * 1000
+                timestamp = parse_timestamp(
+                    event.get("timestamp_ms"), float_input_unit="ms"
+                ) or parse_timestamp(event.get("timestamp"), float_input_unit="s")
 
                 if timestamp:
                     error_events.append(
