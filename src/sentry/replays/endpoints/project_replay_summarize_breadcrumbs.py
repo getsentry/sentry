@@ -107,9 +107,9 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
         if not request.query_params.get(REFRESH_CACHE_QPARAM, "false").lower() == "true":
             cache_lookup_result: tuple[dict[str, Any], int] | None = cache.get(cache_key)
             if cache_lookup_result:
-                cached_response, prev_num_segments = cache_lookup_result
+                cached_response, cached_headers, prev_num_segments = cache_lookup_result
                 if num_segments == prev_num_segments:
-                    return Response(cached_response)
+                    return Response(cached_response, headers=cached_headers)
 
         # Fetch the replay's error IDs from the replay_id.
         replay_snuba_response = query_replay_instance(
@@ -152,7 +152,7 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
                 analyze_recording_segments, error_events, replay_id, project.id
             ),
         )
-        cache.set(cache_key, (response.data, num_segments), timeout=CACHE_TIMEOUT)
+        cache.set(cache_key, (response.data, response.headers, num_segments), timeout=CACHE_TIMEOUT)
         return response
 
 

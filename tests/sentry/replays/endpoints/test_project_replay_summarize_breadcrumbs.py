@@ -217,13 +217,18 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(TransactionTestCase):
     @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.cache")
     def test_get_cache_hit(self, mock_cache):
         self.store_replay_event()
-        mock_cache.get.return_value = ({"hello": "world"}, 1)  # response, segment count
+        mock_cache.get.return_value = (
+            {"hello": "world"},
+            {"pagination_header": "foo"},
+            1,  # segment count
+        )
 
         with self.feature(self.features):
             response = self.client.get(self.url)
             assert response.status_code == 200
             assert response.get("Content-Type") == "application/json"
             assert response.json() == {"hello": "world"}
+            assert response.headers["pagination_header"] == "foo"
             assert mock_cache.get.call_count == 1
 
     @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
@@ -234,7 +239,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(TransactionTestCase):
         self.save_recording_segment(0, json.dumps([]).encode())
         self.save_recording_segment(1, json.dumps([]).encode())
         mock_make_seer_request.return_value = json.dumps({"hello": "world"}).encode()
-        mock_cache.get.return_value = ({"cached_hello": "world"}, 1)  # response, segment count
+        mock_cache.get.return_value = ({"cached_hello": "world"}, {}, 1)
 
         with self.feature(self.features):
             response = self.client.get(self.url)
@@ -242,7 +247,12 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(TransactionTestCase):
             assert response.get("Content-Type") == "application/json"
             assert response.json() == {"hello": "world"}
             assert mock_cache.set.call_count == 1
-            assert mock_cache.set.call_args[0][1] == ({"hello": "world"}, 2)  # cache updated
+            # cache updated
+            assert mock_cache.set.call_args[0][1] == (
+                {"hello": "world"},
+                response.headers,
+                2,
+            )
 
     @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
     @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.cache")
@@ -250,7 +260,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(TransactionTestCase):
         self.store_replay_event()
         self.save_recording_segment(0, json.dumps([]).encode())
         mock_make_seer_request.return_value = json.dumps({"hello": "world"}).encode()
-        mock_cache.get.return_value = ({"cached_hello": "world"}, 1)  # response, segment count
+        mock_cache.get.return_value = ({"cached_hello": "world"}, {}, 1)
 
         with self.feature(self.features):
             response = self.client.get(self.url + f"?{REFRESH_CACHE_QPARAM}=false")
@@ -263,7 +273,12 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(TransactionTestCase):
             assert response.get("Content-Type") == "application/json"
             assert response.json() == {"hello": "world"}
             assert mock_cache.set.call_count == 1
-            assert mock_cache.set.call_args[0][1] == ({"hello": "world"}, 1)  # cache updated
+            # cache updated
+            assert mock_cache.set.call_args[0][1] == (
+                {"hello": "world"},
+                response.headers,
+                1,
+            )
 
     @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
     def test_get_with_error(self, make_seer_request):
