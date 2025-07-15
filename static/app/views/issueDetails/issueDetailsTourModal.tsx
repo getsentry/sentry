@@ -1,7 +1,7 @@
 import {css, ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import issueDetailsPreviewLight from 'sentry-images/issue_details/issue-details-preview-light.png';
+import issueDetailsPreview from 'sentry-images/issue_details/issue-details-preview.png';
 
 import {TextTourAction, TourAction} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
@@ -24,7 +24,7 @@ export function IssueDetailsTourModal({
       <TourContainer>
         <ImageContainer
           alt={t('Preview of the issue details experience')}
-          src={issueDetailsPreviewLight}
+          src={issueDetailsPreview}
         />
         <TextContainer>
           <Header>{t('Welcome to Issue Details')}</Header>
