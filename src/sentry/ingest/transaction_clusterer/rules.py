@@ -108,7 +108,7 @@ class ProjectOptionRuleStore:
         # Check if the rules have changed compared to what is stored
         # to prevent a needless project option update and project config
         # invalidation.
-        if converted_rules != self.read_sorted(project):
+        if converted_rules != project.get_option(self._storage, default=[]):
             project.update_option(self._storage, converted_rules)
 
 
