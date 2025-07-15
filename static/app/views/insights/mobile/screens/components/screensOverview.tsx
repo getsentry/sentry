@@ -15,16 +15,13 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  useMetrics,
-  useSpanMetrics,
-} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpanMetrics, useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import ScreensOverviewTable from 'sentry/views/insights/mobile/screens/components/screensOverviewTable';
 import {Referrer} from 'sentry/views/insights/mobile/screens/referrers';
 import {DEFAULT_SORT} from 'sentry/views/insights/mobile/screens/settings';
 import {
-  type MetricsProperty,
+  type EAPSpanProperty,
   SpanMetricsField,
   type SpanMetricsProperty,
 } from 'sentry/views/insights/types';
@@ -64,7 +61,7 @@ const transactionMetricsFields = [
   'avg(measurements.app_start_warm)',
   `avg(measurements.time_to_initial_display)`,
   `avg(measurements.time_to_full_display)`,
-] as const satisfies MetricsProperty[];
+] as const satisfies EAPSpanProperty[];
 
 const spanMetricsFields = [
   SpanMetricsField.PROJECT_ID,
@@ -129,7 +126,7 @@ export function ScreensOverview() {
     Referrer.SCREENS_SCREEN_TABLE
   );
 
-  const metricsResult = useMetrics(
+  const metricsResult = useSpans(
     {
       search: metricsQuery,
       fields: transactionMetricsFields,
