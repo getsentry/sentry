@@ -137,7 +137,7 @@ class AlertContext:
             name=detector.name,
             action_identifier_id=detector.id,
             threshold_type=threshold_type,
-            detection_type=AlertRuleDetectionType(detector.config.get("detection_type")),
+            detection_type=AlertRuleDetectionType(detector.config["detection_type"]),
             comparison_delta=detector.config.get("comparison_delta"),
             sensitivity=sensitivity,
             resolve_threshold=resolve_threshold,
@@ -197,7 +197,7 @@ class NotificationContext:
                 integration_id=None,
                 target_identifier=action.config.get("target_identifier"),
                 target_display=None,
-                target_type=ActionTarget(action.config.get("target_type")),
+                target_type=ActionTarget(action.config["target_type"]),
             )
         return cls(
             id=action.id,

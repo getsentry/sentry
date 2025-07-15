@@ -42,7 +42,7 @@ class EmailIssueAlertHandler(BaseIssueAlertHandler):
 
     @classmethod
     def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
-        target_type = ActionTarget(action.config.get("target_type"))
+        target_type = ActionTarget(action.config["target_type"])
 
         final_blob = {
             EmailFieldMappingKeys.TARGET_TYPE_KEY.value: EmailActionHelper.get_target_type_string(

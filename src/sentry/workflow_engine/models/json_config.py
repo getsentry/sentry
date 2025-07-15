@@ -8,7 +8,7 @@ logger = logging.getLogger("sentry.workflow_engine.json_config")
 
 
 class JSONConfigBase(models.Model):
-    config = models.JSONField(db_default={})
+    config: models.JSONField[dict[str, Any], dict[str, Any]] = models.JSONField(db_default={})
 
     def validate_config(self, schema: dict[str, Any]) -> None:
         try:
