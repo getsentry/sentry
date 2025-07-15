@@ -1,5 +1,5 @@
 import type {CSSProperties, ReactNode} from 'react';
-import {useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -64,13 +64,15 @@ export default function ReplayPlayerMeasurer({children, measure = 'both'}: Props
     MAX_ZOOM
   );
 
-  setViewSize({width: childDimensions.width, height: childDimensions.height, scale});
-
   const scaleStyle = {transform: `scale(${scale})`};
   const dimensions = {
     width: childDimensions.width * scale,
     height: childDimensions.height * scale,
   };
+
+  useEffect(() => {
+    setViewSize({width: dimensions.width, height: dimensions.height, scale});
+  }, [dimensions.height, dimensions.width, scale, setViewSize]);
 
   return (
     <MeasureableElem ref={elementRef}>
