@@ -462,7 +462,7 @@ export function metricSavedDetectorToFormData(
     query: snubaQuery?.query || '',
     aggregateFunction,
     dataset,
-    interval: 60 * 60, // Default to 1 hour
+    interval: snubaQuery?.timeWindow ?? DEFAULT_THRESHOLD_METRIC_FORM_DATA.interval,
 
     // Priority level and condition fields from processed conditions
     ...conditionData,
