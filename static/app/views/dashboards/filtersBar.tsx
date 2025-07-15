@@ -168,5 +168,6 @@ const FilterButtons = styled(ButtonBar)`
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: flex;
     align-items: flex-start;
+    gap: ${p => p.theme.space[p.gap!]};
   }
 `;
