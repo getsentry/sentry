@@ -125,7 +125,7 @@ type BaseDetector = Readonly<{
 export interface MetricDetector extends BaseDetector {
   readonly conditionGroup: DataConditionGroup | null;
   readonly config: MetricDetectorConfig;
-  readonly dataSources: SnubaQueryDataSource[];
+  readonly dataSources: [SnubaQueryDataSource];
   readonly type: 'metric_issue';
 }
 

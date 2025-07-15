@@ -134,6 +134,8 @@ export function MetricDetectorChart({
           // Hide the maximum y-axis label to avoid showing arbitrary threshold values
           showMaxLabel: false,
         },
+        // Disable the y-axis grid lines
+        splitLine: {show: false},
       }}
       grid={{
         left: space(0.25),

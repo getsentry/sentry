@@ -10,10 +10,7 @@ interface MetricDetectorDetailsChartProps {
 
 export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChartProps) {
   const dataSource = detector.dataSources[0];
-  const snubaQuery =
-    dataSource?.type === 'snuba_query_subscription'
-      ? dataSource.queryObj?.snubaQuery
-      : undefined;
+  const snubaQuery = dataSource.queryObj?.snubaQuery;
 
   if (!snubaQuery) {
     // Unlikely, helps narrow types
