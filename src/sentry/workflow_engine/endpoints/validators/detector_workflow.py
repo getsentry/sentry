@@ -71,3 +71,68 @@ class DetectorWorkflowValidator(CamelSnakeSerializer):
             )
 
         return detector_workflow
+
+
+class BulkDetectorWorkflowsValidator(CamelSnakeSerializer):
+    """
+    Same as DetectorWorkflowValidator, but for connecting multiple workflows
+    to a single detector all at once.
+    """
+
+    detector_id = serializers.IntegerField(required=True)
+    workflow_ids = serializers.ListField(required=True)
+
+    def create(self, validated_data) -> list[DetectorWorkflow]:
+        if not validated_data["workflow_ids"]:
+            return []
+
+        try:
+            detector = Detector.objects.get(
+                project__organization=self.context["organization"],
+                id=validated_data["detector_id"],
+            )
+            if not can_edit_detector(detector, self.context["request"]):
+                raise PermissionDenied
+        except Detector.DoesNotExist:
+            raise serializers.ValidationError("Detector matching query does not exist.")
+
+        # Validate all workflows exist and belong to organization
+        workflows = Workflow.objects.filter(
+            organization=self.context["organization"], id__in=validated_data["workflow_ids"]
+        )
+        found_workflow_ids = set(workflows.values_list("id", flat=True))
+        missing_workflow_ids = set(validated_data["workflow_ids"]) - found_workflow_ids
+
+        if missing_workflow_ids:
+            raise serializers.ValidationError(
+                f"Some workflows do not exist: {missing_workflow_ids}"
+            )
+
+        existing_detector_workflows_ids = DetectorWorkflow.objects.filter(
+            detector_id=validated_data["detector_id"],
+        ).values_list("workflow_id", flat=True)
+
+        workflows_to_add = set(validated_data["workflow_ids"]) - set(
+            existing_detector_workflows_ids
+        )
+
+        with transaction.atomic(router.db_for_write(DetectorWorkflow)):
+            detector_workflows = DetectorWorkflow.objects.bulk_create(
+                [
+                    DetectorWorkflow(
+                        detector_id=validated_data["detector_id"], workflow_id=workflow_id
+                    )
+                    for workflow_id in workflows_to_add
+                ]
+            )
+
+            for detector_workflow in detector_workflows:
+                create_audit_entry(
+                    request=self.context["request"],
+                    organization=self.context["organization"],
+                    target_object=detector_workflow.id,
+                    event=audit_log.get_event_id("DETECTOR_WORKFLOW_ADD"),
+                    data=detector_workflow.get_audit_log_data(),
+                )
+
+            return detector_workflows

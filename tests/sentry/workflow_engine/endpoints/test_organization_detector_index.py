@@ -462,7 +462,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             **data,
             status_code=400,
         )
-        assert "Workflow matching query does not exist" in str(response.data)
+        assert "Some workflows do not exist" in str(response.data)
 
         # Workflow that exists but is in another org should also fail validation
         other_org = self.create_organization()
@@ -473,7 +473,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             **data,
             status_code=400,
         )
-        assert "Workflow matching query does not exist" in str(response.data)
+        assert "Some workflows do not exist" in str(response.data)
 
     def test_transaction_rollback_on_workflow_validation_failure(self):
         initial_detector_count = Detector.objects.filter(project=self.project).count()
@@ -489,7 +489,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         # Verify that the detector was never created (same number of detectors as before)
         final_detector_count = Detector.objects.filter(project=self.project).count()
         assert final_detector_count == initial_detector_count
-        assert "Workflow matching query does not exist" in str(response.data)
+        assert "Some workflows do not exist" in str(response.data)
 
     def test_missing_required_field(self):
         response = self.get_error_response(
