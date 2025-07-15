@@ -1,12 +1,6 @@
-import {Fragment, useMemo, useRef} from 'react';
-import type {ListRowProps} from 'react-virtualized';
-import {
-  AutoSizer,
-  CellMeasurer,
-  InfiniteLoader,
-  List as ReactVirtualizedList,
-} from 'react-virtualized';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import uniqBy from 'lodash/uniqBy';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
@@ -15,172 +9,105 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackListHeader from 'sentry/components/feedback/list/feedbackListHeader';
 import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
+import InfiniteListItems from 'sentry/components/infiniteList/infiniteListItems';
+import InfiniteListState from 'sentry/components/infiniteList/infiniteListState';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import useFetchInfiniteListData from 'sentry/utils/api/useFetchInfiniteListData';
 import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
+import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 
-// Ensure this object is created once as it is an input to
-// `useVirtualizedList`'s memoization
-const cellMeasurer = {
-  fixedWidth: true,
-  minHeight: 24,
-};
-
-function NoFeedback({title, subtitle}: {subtitle: string; title: string}) {
+function NoFeedback() {
   return (
-    <Wrapper>
-      <img src={waitingForEventImg} alt="No feedback found spot illustration" />
-      <EmptyMessage>{title}</EmptyMessage>
-      <p>{subtitle}</p>
-    </Wrapper>
+    <NoFeedbackWrapper>
+      <img src={waitingForEventImg} alt={t('A person waiting for a phone to ring')} />
+      <NoFeedbackMessage>{t('Inbox Zero')}</NoFeedbackMessage>
+      <p>{t('You have two options: take a nap or be productive.')}</p>
+    </NoFeedbackWrapper>
   );
 }
 
 export default function FeedbackList() {
   const {listQueryKey} = useFeedbackQueryKeys();
-  const {
-    isFetchingNextPage,
-    isFetchingPreviousPage,
-    isLoading, // If anything is loaded yet
-    getRow,
-    isRowLoaded,
-    issues,
-    loadMoreRows,
-    hits,
-  } = useFetchInfiniteListData<FeedbackIssueListItem>({
+  const queryResult = useInfiniteApiQuery<FeedbackIssueListItem[]>({
     queryKey: listQueryKey ?? ['infinite', ''],
-    uniqueField: 'id',
     enabled: Boolean(listQueryKey),
   });
 
+  const issues = useMemo(
+    () => uniqBy(queryResult.data?.pages.flatMap(([pageData]) => pageData) ?? [], 'id'),
+    [queryResult.data?.pages]
+  );
   const checkboxState = useListItemCheckboxContext({
-    hits,
+    hits: Number(
+      queryResult.data?.pages[0]?.[2]?.getResponseHeader('X-Hits') ?? issues.length
+    ),
     knownIds: issues.map(issue => issue.id),
     queryKey: listQueryKey,
   });
-
-  const listRef = useRef<ReactVirtualizedList>(null);
-
-  const deps = useMemo(() => [isLoading, issues.length], [isLoading, issues.length]);
-  const {cache, updateList} = useVirtualizedList({
-    cellMeasurer,
-    ref: listRef,
-    deps,
-  });
-
-  const renderRow = ({index, key, style, parent}: ListRowProps) => {
-    const item = getRow({index});
-    if (!item) {
-      return null;
-    }
-
-    return (
-      <ErrorBoundary mini key={key}>
-        <CellMeasurer cache={cache} columnIndex={0} parent={parent} rowIndex={index}>
-          <FeedbackListItem
-            feedbackItem={item}
-            isSelected={checkboxState.isSelected(item.id)}
-            onSelect={() => {
-              checkboxState.toggleSelected(item.id);
-            }}
-            style={style}
-          />
-        </CellMeasurer>
-      </ErrorBoundary>
-    );
-  };
 
   return (
     <Fragment>
       <FeedbackListHeader {...checkboxState} />
       <FeedbackListItems>
-        <InfiniteLoader
-          isRowLoaded={isRowLoaded}
-          loadMoreRows={loadMoreRows}
-          rowCount={hits}
+        <InfiniteListState
+          queryResult={queryResult}
+          backgroundUpdatingMessage={() => null}
+          loadingMessage={() => <LoadingIndicator />}
         >
-          {({onRowsRendered, registerChild}) => (
-            <AutoSizer onResize={updateList}>
-              {({width, height}) => (
-                <ReactVirtualizedList
-                  deferredMeasurementCache={cache}
-                  height={height}
-                  noRowsRenderer={() =>
-                    isLoading ? (
-                      <LoadingIndicator />
-                    ) : (
-                      <NoFeedback
-                        title={t('Inbox Zero')}
-                        subtitle={t('You have two options: take a nap or be productive.')}
-                      />
-                    )
-                  }
-                  onRowsRendered={onRowsRendered}
-                  overscanRowCount={5}
-                  ref={e => {
-                    listRef.current = e;
-                    registerChild(e);
+          <InfiniteListItems<FeedbackIssueListItem>
+            estimateSize={() => 24}
+            queryResult={queryResult}
+            itemRenderer={({item}) => (
+              <ErrorBoundary mini>
+                <FeedbackListItem
+                  feedbackItem={item}
+                  isSelected={checkboxState.isSelected(item.id)}
+                  onSelect={() => {
+                    checkboxState.toggleSelected(item.id);
                   }}
-                  rowCount={issues.length}
-                  rowHeight={cache.rowHeight}
-                  rowRenderer={renderRow}
-                  width={width}
                 />
-              )}
-            </AutoSizer>
-          )}
-        </InfiniteLoader>
-        <FloatingContainer style={{top: '2px'}}>
-          {isFetchingPreviousPage ? (
-            <Tooltip title={t('Loading more feedback...')}>
-              <LoadingIndicator mini />
-            </Tooltip>
-          ) : null}
-        </FloatingContainer>
-        <FloatingContainer style={{bottom: '2px'}}>
-          {isFetchingNextPage ? (
-            <Tooltip title={t('Loading more feedback...')}>
-              <LoadingIndicator mini />
-            </Tooltip>
-          ) : null}
-        </FloatingContainer>
+              </ErrorBoundary>
+            )}
+            emptyMessage={() => <NoFeedback />}
+            loadingMoreMessage={() => (
+              <Centered>
+                <Tooltip title={t('Loading more feedback...')}>
+                  <LoadingIndicator mini />
+                </Tooltip>
+              </Centered>
+            )}
+            loadingCompleteMessage={() => null}
+          />
+        </InfiniteListState>
       </FeedbackListItems>
     </Fragment>
   );
 }
 
 const FeedbackListItems = styled('div')`
-  display: grid;
+  display: flex;
+  flex-direction: column;
   flex-grow: 1;
-  min-height: 300px;
+  padding-bottom: ${space(0.5)};
 `;
 
-const FloatingContainer = styled('div')`
-  position: absolute;
+const Centered = styled('div')`
   justify-self: center;
 `;
 
-const Wrapper = styled('div')`
-  display: flex;
+const NoFeedbackWrapper = styled('div')`
   padding: ${space(4)} ${space(4)};
-  flex-direction: column;
-  align-items: center;
   text-align: center;
   color: ${p => p.theme.subText};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     font-size: ${p => p.theme.fontSize.md};
   }
-  position: relative;
-  top: 50%;
-  transform: translateY(-50%);
 `;
 
-const EmptyMessage = styled('div')`
+const NoFeedbackMessage = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.gray400};
 

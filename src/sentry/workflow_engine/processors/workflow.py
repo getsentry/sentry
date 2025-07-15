@@ -374,6 +374,8 @@ def process_workflows(
 
     Finally, each of the triggered workflows will have their actions evaluated and executed.
     """
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
     try:
         if detector is None and isinstance(event_data.event, GroupEvent):
             detector = get_detector_by_event(event_data)
@@ -433,10 +435,7 @@ def process_workflows(
     create_workflow_fire_histories(detector, actions, event_data)
 
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.trigger_actions"):
-        if features.has(
-            "organizations:workflow-engine-trigger-actions",
-            organization,
-        ):
+        if should_fire_workflow_actions(organization):
             for action in actions:
                 if features.has(
                     "organizations:workflow-engine-action-trigger-async",

@@ -480,7 +480,6 @@ export default typescript.config([
       ? {
           '@typescript-eslint/await-thenable': 'error',
           '@typescript-eslint/consistent-type-exports': 'error',
-          '@typescript-eslint/consistent-type-imports': 'error',
           '@typescript-eslint/no-array-delete': 'error',
           '@typescript-eslint/no-base-to-string': 'error',
           '@typescript-eslint/no-for-in-array': 'error',

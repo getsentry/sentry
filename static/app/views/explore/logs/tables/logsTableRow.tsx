@@ -239,7 +239,6 @@ export const LogRowContent = memo(function LogRowContent({
         data-test-id="log-table-row"
         {...rowInteractProps}
         onMouseEnter={() => setShouldRenderHoverElements(true)}
-        onMouseLeave={() => setShouldRenderHoverElements(false)}
       >
         <LogsTableBodyFirstCell key={'first'}>
           <LogFirstCellContent>

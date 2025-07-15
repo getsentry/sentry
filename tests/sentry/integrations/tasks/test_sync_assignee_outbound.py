@@ -4,10 +4,12 @@ import pytest
 
 from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.example import ExampleIntegration
+from sentry.integrations.mixins.issues import IntegrationSyncTargetNotFound
 from sentry.integrations.models import ExternalIssue, Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.tasks import sync_assignee_outbound
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.shared_integrations.exceptions import IntegrationInstallationConfigurationError
 from sentry.testutils.asserts import assert_halt_metric, assert_success_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
@@ -35,19 +37,23 @@ class TestSyncAssigneeOutbound(TestCase):
             },
         )
 
-    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
-    def test_syncs_outbound_assignee(self, mock_sync_assignee, mock_record_event):
-        external_issue = self.create_integration_external_issue(
+        # Create a shared external issue for most tests
+        self.external_issue = self.create_integration_external_issue(
             group=self.group,
             key="foo-1234",
             integration=self.example_integration,
         )
 
-        sync_assignee_outbound(external_issue.id, self.user.id, True, None)
+        # Verify the external issue was created successfully
+        assert ExternalIssue.objects.filter(id=self.external_issue.id).exists()
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
+    def test_syncs_outbound_assignee(self, mock_sync_assignee, mock_record_event):
+        sync_assignee_outbound(self.external_issue.id, self.user.id, True, None)
         mock_sync_assignee.assert_called_once()
         mock_sync_assignee.assert_called_with(
-            external_issue, mock.ANY, assign=True, assignment_source=None
+            self.external_issue, mock.ANY, assign=True, assignment_source=None
         )
 
         user_arg = mock_sync_assignee.call_args_list[0][0][1]
@@ -61,14 +67,8 @@ class TestSyncAssigneeOutbound(TestCase):
     def test_sync_failure(self, mock_sync_assignee, mock_record_failure):
         mock_sync_assignee.side_effect = raise_sync_assignee_exception
 
-        external_issue = self.create_integration_external_issue(
-            group=self.group,
-            key="foo-1234",
-            integration=self.example_integration,
-        )
-
         with pytest.raises(Exception) as exc:
-            sync_assignee_outbound(external_issue.id, self.user.id, True, None)
+            sync_assignee_outbound(self.external_issue.id, self.user.id, True, None)
 
         assert exc.match("Something went wrong")
         mock_record_failure.assert_called_once()
@@ -86,13 +86,8 @@ class TestSyncAssigneeOutbound(TestCase):
         self, mock_should_sync, mock_sync_assignee, mock_record_event
     ):
         mock_should_sync.return_value = False
-        external_issue = self.create_integration_external_issue(
-            group=self.group,
-            key="foo-1234",
-            integration=self.example_integration,
-        )
 
-        sync_assignee_outbound(external_issue.id, self.user.id, True, None)
+        sync_assignee_outbound(self.external_issue.id, self.user.id, True, None)
         mock_sync_assignee.assert_not_called()
 
         assert mock_record_event.call_count == 2
@@ -120,38 +115,55 @@ class TestSyncAssigneeOutbound(TestCase):
 
     @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
     def test_missing_integration_installation(self, mock_sync_assignee):
-        external_issue = self.create_integration_external_issue(
-            group=self.group,
-            key="foo-1234",
-            integration=self.example_integration,
-        )
-
         # Delete all integrations, but ensure we still have an external issue
         with assume_test_silo_mode_of(Integration):
             Integration.objects.filter().delete()
 
-        assert ExternalIssue.objects.filter(id=external_issue.id).exists()
-        sync_assignee_outbound(external_issue.id, self.user.id, True, None)
+        sync_assignee_outbound(self.external_issue.id, self.user.id, True, None)
         mock_sync_assignee.assert_not_called()
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
     def test_missing_organization_integration(self, mock_sync_assignee, mock_record_event):
-        external_issue = self.create_integration_external_issue(
-            group=self.group,
-            key="foo-1234",
-            integration=self.example_integration,
-        )
-
         # Delete all organization integrations, but ensure we still have an external issue
         with assume_test_silo_mode_of(OrganizationIntegration):
             OrganizationIntegration.objects.filter().delete()
 
-        assert ExternalIssue.objects.filter(id=external_issue.id).exists()
-        sync_assignee_outbound(external_issue.id, self.user.id, True, None)
+        sync_assignee_outbound(self.external_issue.id, self.user.id, True, None)
         mock_sync_assignee.assert_not_called()
 
         assert mock_record_event.call_count == 2
         assert_halt_metric(
             mock_record_event, OrganizationIntegrationNotFound("missing org_integration")
+        )
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
+    def test_integration_sync_target_not_found(self, mock_sync_assignee, mock_record_event):
+        mock_sync_assignee.side_effect = IntegrationSyncTargetNotFound("No matching user found")
+
+        sync_assignee_outbound(self.external_issue.id, self.user.id, True, None)
+        mock_sync_assignee.assert_called_once()
+
+        assert mock_record_event.call_count == 2
+        assert_halt_metric(
+            mock_record_event, IntegrationSyncTargetNotFound("No matching user found")
+        )
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
+    def test_integration_installation_configuration_error(
+        self, mock_sync_assignee, mock_record_event
+    ):
+        mock_sync_assignee.side_effect = IntegrationInstallationConfigurationError(
+            "Insufficient permissions to assign user"
+        )
+
+        sync_assignee_outbound(self.external_issue.id, self.user.id, True, None)
+        mock_sync_assignee.assert_called_once()
+
+        assert mock_record_event.call_count == 2
+        assert_halt_metric(
+            mock_record_event,
+            IntegrationInstallationConfigurationError("Insufficient permissions to assign user"),
         )

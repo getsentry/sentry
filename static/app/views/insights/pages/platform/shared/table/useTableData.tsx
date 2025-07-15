@@ -3,15 +3,14 @@ import {useMemo} from 'react';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useTableSortParams} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import type {EAPSpanProperty} from 'sentry/views/insights/types';
 
 const PER_PAGE = 10;
 
-export function useTableData<Fields extends EAPSpanProperty>({
+export function useSpanTableData<Fields extends EAPSpanProperty>({
   fields,
   referrer,
-  query: baseQuery,
+  query,
   cursorParamName,
 }: {
   cursorParamName: string;
@@ -20,13 +19,14 @@ export function useTableData<Fields extends EAPSpanProperty>({
   referrer: string;
 }) {
   const location = useLocation();
-  const {query} = useTransactionNameQuery();
   const {sortField, sortOrder} = useTableSortParams();
+
+  const isValidSortKey = fields.includes(sortField as Fields);
 
   return useSpans(
     {
-      search: `${baseQuery ?? ''} ${query}`.trim(),
-      sorts: [{field: sortField, kind: sortOrder}],
+      search: query,
+      sorts: isValidSortKey ? [{field: sortField, kind: sortOrder}] : undefined,
       fields,
       limit: PER_PAGE,
       keepPreviousData: true,
@@ -50,7 +50,7 @@ export function useTableDataWithController<Fields extends EAPSpanProperty>({
   query: string;
   referrer: string;
 }) {
-  const transactionsRequest = useTableData({
+  const transactionsRequest = useSpanTableData({
     query,
     fields: ['transaction', ...fields],
     cursorParamName,

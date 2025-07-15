@@ -1,7 +1,5 @@
 import type React from 'react';
-import {Fragment} from 'react';
 
-import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import type {
   DocsParams,
   OnboardingStep,
@@ -11,31 +9,29 @@ import {t, tct} from 'sentry/locale';
 export function getProfilingDocumentHeaderConfigurationStep(): OnboardingStep {
   return {
     title: 'Add Document-Policy: js-profiling header',
-    description: (
-      <Fragment>
-        <p>
-          {tct(
-            `For the JavaScript browser profiler to start, the document response header needs
+    content: [
+      {
+        type: 'text',
+        text: t(
+          `For the JavaScript browser profiler to start, the document response header needs
           to include a Document-Policy header key with the js-profiling value. How you do
           this will depend on how your assets are served.
 
           If you're using a server like Express, you'll be able to use the response.set function to set the header value.
-          `,
-            {}
-          )}
-        </p>
-        <TabbedCodeSnippet
-          tabs={[
-            {
-              code: `response.set('Document-Policy', 'js-profiling')`,
-              language: 'javascript',
-              value: 'javascript',
-              label: 'Express',
-            },
-          ]}
-        />
-      </Fragment>
-    ),
+          `
+        ),
+      },
+      {
+        type: 'code',
+        tabs: [
+          {
+            label: 'Express',
+            language: 'javascript',
+            code: `response.set('Document-Policy', 'js-profiling')`,
+          },
+        ],
+      },
+    ],
   };
 }
 

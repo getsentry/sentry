@@ -136,7 +136,7 @@ class UsageTable extends Component<Props> {
         )}
       </CellStat>,
       <CellStat key={6}>
-        <ButtonBar gap={1}>
+        <ButtonBar>
           <Button
             icon={<IconGraph type="bar" />}
             title="Go to project level stats"
