@@ -468,6 +468,10 @@ def get_grouping_variants_for_event(
 def get_contributing_variant_and_component(
     variants: dict[str, BaseVariant],
 ) -> tuple[BaseVariant, ContributingComponent | None]:
+    """
+    Given the full set of variants, pick out the one which contributes, along with its contributing
+    component.
+    """
     if len(variants) == 1:
         contributing_variant = list(variants.values())[0]
     else:
