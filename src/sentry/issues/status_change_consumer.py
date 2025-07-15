@@ -144,13 +144,6 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             f"Unsupported status: {status_change['new_status']} {status_change['new_substatus']}"
         )
 
-    if status_change.get("detector_id"):
-        # issue platform received an object from the detector
-        metrics.incr(
-            "workflow_engine.issue_platform.status_change",
-            tags={"activity_type": activity_type.value if activity_type else "none"},
-        )
-
     if activity_type is not None:
         """
         If we have set created an activity, then we'll also notify any registered handlers
