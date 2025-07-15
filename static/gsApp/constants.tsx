@@ -167,4 +167,16 @@ export const BILLED_DATA_CATEGORY_INFO = {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SEER_SCANNER],
     feature: 'seer-billing',
   },
+  [DataCategoryExact.LOG_BYTE]: {
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.LOG_BYTE],
+    canAllocate: false,
+    canProductTrial: true,
+    maxAdminGift: 10_000,
+    freeEventsMultiple: 1,
+    hasSpikeProtection: false,
+    feature: 'logs-billing',
+    reservedVolumeTooltip: t(
+      'Log bytes represent the amount of log data ingested and stored.'
+    ),
+  },
 } as const satisfies Record<DataCategoryExact, BilledDataCategoryInfo>;

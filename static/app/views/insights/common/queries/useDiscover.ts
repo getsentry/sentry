@@ -8,8 +8,6 @@ import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery'
 import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
-  DiscoverProperty,
-  DiscoverResponse,
   EAPSpanProperty,
   EAPSpanResponse,
   SpanMetricsProperty,
@@ -61,18 +59,6 @@ export const useSpanMetrics = <Fields extends SpanMetricsProperty[]>(
   return useDiscover<Fields, SpanMetricsResponse>(
     options,
     useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_METRICS,
-    referrer
-  );
-};
-
-export const useDiscoverOrEap = <Fields extends DiscoverProperty[]>(
-  options: UseDiscoverOptions<Fields> = {},
-  referrer: string
-) => {
-  const useEap = useInsightsEap();
-  return useDiscover<Fields, DiscoverResponse>(
-    options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.DISCOVER,
     referrer
   );
 };
