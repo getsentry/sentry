@@ -5,7 +5,7 @@ import type {EventTransaction} from 'sentry/types/event';
 import {useApiQueries} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 
@@ -30,7 +30,7 @@ export function useFindNextTrace({
   linkedTraceStartTimestamp?: number;
   projectID?: string;
 }): TraceContextType | undefined {
-  const {data: indexedSpans} = useSpansIndexed(
+  const {data: indexedSpans} = useSpans(
     {
       limit: direction === 'next' && projectID ? 100 : 1,
       noPagination: true,
