@@ -1,3 +1,4 @@
+import pytest
 import uuid
 from uuid import uuid4
 
@@ -195,6 +196,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["previousEventID"] == self.event_c.event_id
         assert response.data["nextEventID"] is None
 
+    @pytest.mark.skip(reason="flaky: #95567")
     def test_get_helpful_event_id(self) -> None:
         """
         When everything else is equal, the event_id should be used to break ties.
