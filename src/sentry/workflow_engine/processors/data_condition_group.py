@@ -2,6 +2,8 @@ import dataclasses
 import logging
 from typing import TypeVar
 
+import sentry_sdk
+
 from sentry.utils.function_cache import cache_func_for_models
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import is_slow_condition
@@ -43,6 +45,7 @@ def get_data_conditions_for_group(data_condition_group_id: int) -> list[DataCond
     return list(DataCondition.objects.filter(condition_group_id=data_condition_group_id))
 
 
+@sentry_sdk.trace
 def get_slow_conditions_for_groups(
     data_condition_group_ids: list[int],
 ) -> dict[int, list[DataCondition]]:

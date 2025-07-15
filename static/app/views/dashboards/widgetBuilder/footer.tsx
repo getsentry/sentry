@@ -25,7 +25,7 @@ export function Footer({
 }: Props) {
   return (
     <Wrapper>
-      <Actions gap={1}>
+      <Actions>
         <LinkButton to={goBackLocation}>{t('Cancel')}</LinkButton>
         {isEditing && onDelete && (
           <Confirm

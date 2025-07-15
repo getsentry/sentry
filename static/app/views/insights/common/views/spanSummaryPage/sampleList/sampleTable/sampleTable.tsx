@@ -11,16 +11,12 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {SamplesTableColumnHeader} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
 import {SpanSamplesTable} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
-import {
-  useDiscoverOrEap,
-  useSpanMetrics,
-} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpanMetrics, useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {
   NonDefaultSpanSampleFields,
   SpanSample,
 } from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useSpanSamples} from 'sentry/views/insights/common/queries/useSpanSamples';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
   ModuleName,
   SpanMetricsQueryFilters,
@@ -65,8 +61,6 @@ function SampleTable({
   additionalFilters,
   subregions,
 }: Props) {
-  const useEap = useInsightsEap();
-
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,
     transaction: transactionName,
@@ -120,21 +114,19 @@ function SampleTable({
 
   const spans = spanSamplesData?.data ?? [];
 
-  const transactionIdField = useEap ? 'transaction.span_id' : 'transaction.id';
+  const transactionIdField = 'transaction.span_id';
   const transactionIds = spans.map(span => span[transactionIdField]);
 
   const isTransactionsEnabled = Boolean(transactionIds.length);
 
-  const search = useEap
-    ? `${SpanIndexedField.TRANSACTION_SPAN_ID}:[${transactionIds.join(',')}] is_transaction:true`
-    : `id:[${transactionIds.join(',')}]`;
+  const search = `${SpanIndexedField.TRANSACTION_SPAN_ID}:[${transactionIds.join(',')}] is_transaction:true`;
 
   const {
     data: transactions,
     isFetching: isFetchingTransactions,
     isPending: isLoadingTransactions,
     error: transactionError,
-  } = useDiscoverOrEap(
+  } = useSpans(
     {
       search,
       enabled: isTransactionsEnabled,

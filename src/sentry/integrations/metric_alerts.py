@@ -194,6 +194,8 @@ def incident_attachment_info(
     referrer: str = "metric_alert",
     notification_uuid: str | None = None,
 ) -> AttachmentInfo:
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
     status = get_status_text(metric_issue_context.new_status)
 
     text = ""
@@ -220,7 +222,7 @@ def incident_attachment_info(
     if notification_uuid:
         title_link_params["notification_uuid"] = notification_uuid
 
-    if features.has("organizations:workflow-engine-trigger-actions", organization):
+    if should_fire_workflow_actions(organization):
         try:
             alert_rule_id = AlertRuleDetector.objects.values_list("alert_rule_id", flat=True).get(
                 detector_id=alert_context.action_identifier_id

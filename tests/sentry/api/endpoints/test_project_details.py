@@ -1563,7 +1563,7 @@ class ProjectDeleteTest(APITestCase):
         mock_call_seer_delete_project_grouping_records.assert_called_with(args=[self.project.id])
 
 
-class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
+class TestProjectDetailsBase(APITestCase, ABC):
     endpoint = "sentry-api-0-project-details"
     method = "put"
 
@@ -1571,7 +1571,6 @@ class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
         self.org_slug = self.project.organization.slug
         self.proj_slug = self.project.slug
         self.login_as(user=self.user)
-        self.new_ds_flag = "organizations:dynamic-sampling"
         self._apply_old_date_to_project_and_org()
 
     def _apply_old_date_to_project_and_org(self):
@@ -1586,11 +1585,12 @@ class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
         self.project.update(date_added=old_date)
 
 
-class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingBase):
+class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
     endpoint = "sentry-api-0-project-details"
 
     def setUp(self):
         super().setUp()
+        self.new_ds_flag = "organizations:dynamic-sampling"
         self.url = reverse(
             "sentry-api-0-project-details",
             kwargs={
@@ -1624,7 +1624,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         so they should get their actual bias preferences.
         """
 
-        new_biases = [{"id": "boostEnvironments", "active": False}]
+        new_biases = [{"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False}]
         self.project.update_option("sentry:dynamic_sampling_biases", new_biases)
         with Feature(
             {
@@ -1635,22 +1635,20 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 self.organization.slug, self.project.slug, method="get"
             )
             assert response.data["dynamicSamplingBiases"] == [
-                {"id": "boostEnvironments", "active": False},
-                {
-                    "id": "boostLatestRelease",
-                    "active": True,
-                },
-                {"id": "ignoreHealthChecks", "active": True},
-                {"id": "boostKeyTransactions", "active": True},
-                {"id": "boostLowVolumeTransactions", "active": True},
+                {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+                {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": True},
+                {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": True},
+                {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": True},
+                {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": True},
                 {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
                 {"id": RuleType.RECALIBRATION_RULE.value, "active": True},
+                {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": False},
             ]
 
     def test_get_dynamic_sampling_biases_with_previously_assigned_biases(self):
         self.project.update_option(
             "sentry:dynamic_sampling_biases",
-            [{"id": "boostEnvironments", "active": False}],
+            [{"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False}],
         )
 
         with Feature(
@@ -1662,16 +1660,14 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 self.organization.slug, self.project.slug, method="get"
             )
             assert response.data["dynamicSamplingBiases"] == [
-                {"id": "boostEnvironments", "active": False},
-                {
-                    "id": "boostLatestRelease",
-                    "active": True,
-                },
-                {"id": "ignoreHealthChecks", "active": True},
-                {"id": "boostKeyTransactions", "active": True},
-                {"id": "boostLowVolumeTransactions", "active": True},
+                {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+                {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": True},
+                {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": True},
+                {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": True},
+                {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": True},
                 {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
                 {"id": RuleType.RECALIBRATION_RULE.value, "active": True},
+                {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": False},
             ]
 
     def test_dynamic_sampling_bias_activation(self):
@@ -1682,7 +1678,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         self.project.update_option(
             "sentry:dynamic_sampling_biases",
             [
-                {"id": "boostEnvironments", "active": False},
+                {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
                 {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
             ],
         )
@@ -1707,7 +1703,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 HTTP_AUTHORIZATION=authorization,
                 data={
                     "dynamicSamplingBiases": [
-                        {"id": "boostEnvironments", "active": True},
+                        {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": True},
                     ]
                 },
             )
@@ -1726,7 +1722,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         self.project.update_option(
             "sentry:dynamic_sampling_biases",
             [
-                {"id": "boostEnvironments", "active": True},
+                {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": True},
                 {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
             ],
         )
@@ -1751,7 +1747,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 HTTP_AUTHORIZATION=authorization,
                 data={
                     "dynamicSamplingBiases": [
-                        {"id": "boostEnvironments", "active": False},
+                        {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
                         {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
                     ]
                 },
@@ -1785,16 +1781,14 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         Test when user is on a new plan and is trying to update dynamic sampling features of a new plan
         """
         new_biases = [
-            {"id": "boostEnvironments", "active": False},
-            {
-                "id": "boostLatestRelease",
-                "active": False,
-            },
-            {"id": "ignoreHealthChecks", "active": False},
-            {"id": "boostKeyTransactions", "active": False},
-            {"id": "boostLowVolumeTransactions", "active": False},
+            {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+            {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": False},
             {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
             {"id": RuleType.RECALIBRATION_RULE.value, "active": False},
+            {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": False},
         ]
         with Feature(
             {
@@ -1874,6 +1868,24 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 "Error: Only 'id' and 'active' fields are allowed for bias."
             ]
 
+
+class TestTempestProjectDetails(TestProjectDetailsBase):
+    endpoint = "sentry-api-0-project-details"
+
+    def setUp(self):
+        super().setUp()
+        self.url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+            },
+        )
+        self.login_as(user=self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        self.authorization = f"Bearer {token.token}"
+
     @with_feature("organizations:tempest-access")
     def test_put_tempest_fetch_screenshots(self):
         # assert default value is False, and that put request updates the value
@@ -1931,6 +1943,24 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             self.organization.slug, self.project.slug, method="get"
         )
         assert "tempestFetchDumps" not in response.data
+
+
+class TestSeerProjectDetails(TestProjectDetailsBase):
+    endpoint = "sentry-api-0-project-details"
+
+    def setUp(self):
+        super().setUp()
+        self.url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+            },
+        )
+        self.login_as(user=self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        self.authorization = f"Bearer {token.token}"
 
     def test_autofix_automation_tuning(self):
         # Test without feature flag - should fail

@@ -191,7 +191,9 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 return False
             elif str(e).endswith("must contain the parameter MessageGroupId."):
                 return False
-            elif str(e).startswith("An error occurred (NoSuchBucket)"):
+            elif str(e).startswith("An error occurred (NoSuchBucket)") or str(e).startswith(
+                "An error occurred (IllegalLocationConstraintException)"
+            ):
                 # If there's an issue with the user's s3 bucket then we can't do
                 # anything to recover. Just continue.
                 return False
