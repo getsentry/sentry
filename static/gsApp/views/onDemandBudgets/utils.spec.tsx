@@ -200,6 +200,7 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
       replaysBudget: 0,
       profileDurationBudget: 0,
       profileDurationUIBudget: 0,
+      logBytesBudget: 0,
       budgets: {
         errors: 100,
         transactions: 200,
