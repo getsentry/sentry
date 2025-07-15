@@ -14,6 +14,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {FieldKey} from 'sentry/utils/fields';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
+import {looksLikeAJSONArray} from 'sentry/utils/string/looksLikeAJSONArray';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
@@ -187,9 +188,23 @@ export function Attributes({
     },
   };
 
+  // Some semantic attributes are known to contain JSON-encoded arrays or
+  // JSON-encoded objects. Add a JSON renderer for those attributes.
   for (const attribute of JSON_ATTRIBUTES) {
     customRenderers[attribute] = jsonRenderer;
   }
+
+  // Some attributes (semantic or otherwise) look like they contain JSON-encoded
+  // arrays. Use a JSON renderer for any value that looks suspiciously like it's
+  // a JSON-encoded array. NOTE: This happens a lot because EAP doesn't support
+  // array values, so SDKs often store array values as JSON-encoded strings.
+  sortedAndFilteredAttributes.forEach(attribute => {
+    if (Object.hasOwn(customRenderers, attribute.name)) return;
+    if (attribute.type !== 'str') return;
+    if (!looksLikeAJSONArray(attribute.value)) return;
+
+    customRenderers[attribute.name] = jsonRenderer;
+  });
 
   for (const attribute of TRUNCATED_TEXT_ATTRIBUTES) {
     customRenderers[attribute] = truncatedTextRenderer;
