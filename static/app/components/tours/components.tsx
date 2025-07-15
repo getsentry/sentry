@@ -467,7 +467,7 @@ const TourBody = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   width: 360px;
   a {
-    color: ${p => p.theme.text};
+    color: ${p => p.theme.tokens.content.primary};
     text-decoration: underline;
   }
 `;
