@@ -117,7 +117,7 @@ def child_process(
 
     Any import that could pull in django needs to be put inside this functiona
     and not the module root. If modules that include django are imported at
-    the module level the wrong django settings will be used.
+    the module level the wrong django settings will be used in our saas environment.
     """
     child_worker_init(process_type)
 
@@ -260,6 +260,13 @@ def child_process(
                     ]
                     scope.set_transaction_name(inflight.activation.taskname)
                     sentry_sdk.capture_exception(err)
+                record_task_execution(
+                    inflight.activation,
+                    TASK_ACTIVATION_STATUS_FAILURE,
+                    execution_start_time,
+                    time.time(),
+                    processing_pool_name,
+                )
                 metrics.incr(
                     "taskworker.worker.processing_deadline_exceeded",
                     tags={
