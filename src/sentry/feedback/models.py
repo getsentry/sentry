@@ -34,35 +34,43 @@ class Feedback(Model):
 
 
 @region_silo_model
-class Keyword(DefaultFieldsModel):
-    __relocation_scope__ = RelocationScope.Excluded
-
-    organization_id = BoundedBigIntegerField(db_index=True)
-    label = models.CharField(max_length=255)
-    groups = models.ManyToManyField("sentry.Group", through="feedback.GroupKeyword")
-
-    class Meta:
-        app_label = "feedback"
-        db_table = "feedback_keyword"
-        unique_together = (("organization_id", "label"),)
-        indexes = [models.Index(fields=("organization_id", "label"))]
-
-    __repr__ = sane_repr("organization_id", "label")
-
-
-@region_silo_model
-class GroupKeyword(DefaultFieldsModel):
+class GroupLabel(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     group = FlexibleForeignKey("sentry.Group", on_delete=models.CASCADE)
-    keyword = FlexibleForeignKey("feedback.Keyword", on_delete=models.CASCADE)
+    label = FlexibleForeignKey(
+        "feedback.Label", on_delete=models.CASCADE
+    )  # rm: Finding the top 10 labels for Groups that are in a given project and date range may be slow (if we don't care about project, date range I think it's fast)
 
     class Meta:
         app_label = "feedback"
-        db_table = "feedback_groupkeyword"
-        unique_together = (("group", "keyword"),)
+        db_table = "feedback_grouplabel"
+        unique_together = (("group", "label"),)
         indexes = [
-            models.Index(fields=("group", "keyword")),
+            models.Index(
+                fields=("group", "label")
+            ),  # rm: Allows us to quickly find all labels that a certain feedback has
         ]
 
-    __repr__ = sane_repr("group", "keyword")
+    __repr__ = sane_repr("group", "label")
+
+
+@region_silo_model
+class Label(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    organization_id = BoundedBigIntegerField(db_index=True)
+    name = models.CharField(max_length=255)
+    groups = models.ManyToManyField("sentry.Group", through=GroupLabel)
+
+    class Meta:
+        app_label = "feedback"
+        db_table = "feedback_label"
+        unique_together = (("organization_id", "name"),)
+        indexes = [models.Index(fields=("organization_id", "name"))]
+
+    __repr__ = sane_repr("organization_id", "name")
+
+
+# To support the query: find top 10 labels by number of groups (counting groups only in a date range and project), should we make a new table? one that stores label, project_id, date (date the feedback was submitted), and group_id. This query is cached based on project_id and date range.
+# We also want to find all groups that have a certain list of 20 or so labels, (again filtered by date range and project), maybe the new table would work well here? Note that this specific query is not cached, it would run every time a user clicks on a given category.
