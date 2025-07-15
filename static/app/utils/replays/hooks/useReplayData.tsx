@@ -262,7 +262,7 @@ function useReplayData({
     .flatMap(page => page.data);
 
   const feedbackIds = allErrors
-    ?.filter(error => error.title.includes('User Feedback'))
+    ?.filter(error => error?.title.includes('User Feedback'))
     .map(error => error.id);
 
   const feedbackEvents = useFeedbackEvents({
