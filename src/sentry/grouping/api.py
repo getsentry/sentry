@@ -129,7 +129,7 @@ class GroupingConfigLoader:
                 referrer="project_rules",
             ).base64_string
         except InvalidEnhancerConfig:
-            enhancements = get_default_enhancements()
+            enhancements = _get_default_enhancements()
         cache.set(cache_key, enhancements)
         return enhancements
 
@@ -188,7 +188,7 @@ def get_grouping_config_dict_for_event_data(data: NodeData, project: Project) ->
     return data.get("grouping_config") or get_grouping_config_dict_for_project(project)
 
 
-def get_default_enhancements(config_id: str | None = None) -> str:
+def _get_default_enhancements(config_id: str | None = None) -> str:
     base: str | None = DEFAULT_ENHANCEMENTS_BASE
     if config_id is not None:
         base = CONFIGURATIONS[config_id].enhancements_base
@@ -218,7 +218,7 @@ def get_default_grouping_config_dict(config_id: str | None = None) -> GroupingCo
         from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 
         config_id = DEFAULT_GROUPING_CONFIG
-    return {"id": config_id, "enhancements": get_default_enhancements(config_id)}
+    return {"id": config_id, "enhancements": _get_default_enhancements(config_id)}
 
 
 def load_grouping_config(config_dict: GroupingConfig | None = None) -> StrategyConfiguration:
