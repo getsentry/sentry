@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
@@ -66,48 +66,50 @@ interface PlatformPickerProps {
   visibleSelection?: boolean;
 }
 
-type State = {
-  category: Category;
-  filter: string;
-};
+function PlatformPicker({
+  defaultCategory,
+  noAutoFilter,
+  platform,
+  setPlatform,
+  listProps,
+  listClassName,
+  navClassName,
+  organization,
+  source,
+  visibleSelection = true,
+  loading = false,
+  showFilterBar = true,
+  showOther = true,
+}: PlatformPickerProps) {
+  const [category, setCategory] = useState(defaultCategory ?? categoryList[0]!.id);
+  const [filter, setFilter] = useState(
+    noAutoFilter ? '' : (platform || '').split('-')[0]!
+  );
 
-class PlatformPicker extends Component<PlatformPickerProps, State> {
-  static defaultProps = {
-    showOther: true,
-    visibleSelection: true,
-  };
-
-  state: State = {
-    category: this.props.defaultCategory ?? categoryList[0]!.id,
-    filter: this.props.noAutoFilter ? '' : (this.props.platform || '').split('-')[0]!,
-  };
-
-  componentDidUpdate(prevProps: Readonly<PlatformPickerProps>): void {
-    if (this.props.defaultCategory !== prevProps.defaultCategory) {
-      this.setState({category: this.props.defaultCategory ?? categoryList[0]!.id});
+  useEffect(() => {
+    if (defaultCategory !== category) {
+      setCategory(defaultCategory ?? categoryList[0]!.id);
     }
-  }
+  }, [defaultCategory, category]);
 
-  get platformList() {
-    const {category} = this.state;
-
+  const platformList = useMemo(() => {
     const currentCategory = categoryList.find(({id}) => id === category);
 
-    const filter = this.state.filter.toLowerCase();
+    const subsetMatch = (platformIntegration: PlatformIntegration) =>
+      platformIntegration.id.includes(filter.toLocaleLowerCase()) ||
+      platformIntegration.name.toLowerCase().includes(filter.toLocaleLowerCase()) ||
+      filterAliases[platformIntegration.id]?.some(alias =>
+        alias.includes(filter.toLocaleLowerCase())
+      );
 
-    const subsetMatch = (platform: PlatformIntegration) =>
-      platform.id.includes(filter) ||
-      platform.name.toLowerCase().includes(filter) ||
-      filterAliases[platform.id]?.some(alias => alias.includes(filter));
-
-    const categoryMatch = (platform: PlatformIntegration) => {
-      return currentCategory?.platforms?.has(platform.id);
+    const categoryMatch = (platformIntegration: PlatformIntegration) => {
+      return currentCategory?.platforms?.has(platformIntegration.id);
     };
 
     // temporary replacement of selectablePlatforms while `nintendo-switch` is behind feature flag
     const tempSelectablePlatforms = selectablePlatforms;
 
-    if (this.props.organization?.features.includes('selectable-nintendo-platform')) {
+    if (organization?.features.includes('selectable-nintendo-platform')) {
       const nintendo = platforms.find(p => p.id === 'nintendo-switch');
       if (nintendo) {
         if (!tempSelectablePlatforms.includes(nintendo)) {
@@ -117,11 +119,9 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
     }
 
     // 'other' is not part of the createablePlatforms list, therefore it won't be included in the filtered list
-    const filtered = tempSelectablePlatforms.filter(
-      this.state.filter ? subsetMatch : categoryMatch
-    );
+    const filtered = tempSelectablePlatforms.filter(filter ? subsetMatch : categoryMatch);
 
-    if (this.props.showOther && this.state.filter.toLocaleLowerCase() === 'other') {
+    if (showOther && filter.toLocaleLowerCase() === 'other') {
       // We only show 'Other' if users click on the 'Other' suggestion rendered in the not found state or type this word in the search bar
       return [otherPlatform];
     }
@@ -144,114 +144,110 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
       }
       return a.name.localeCompare(b.name);
     });
-  }
+  }, [filter, category, organization?.features, showOther]);
 
-  logSearch = debounce(() => {
-    if (this.state.filter) {
+  const logSearch = useCallback(() => {
+    if (filter) {
       trackAnalytics('growth.platformpicker_search', {
-        search: this.state.filter.toLowerCase(),
-        num_results: this.platformList.length,
-        source: this.props.source,
-        organization: this.props.organization ?? null,
+        search: filter.toLowerCase(),
+        num_results: platformList.length,
+        source,
+        organization: organization ?? null,
       });
     }
-  }, DEFAULT_DEBOUNCE_DURATION);
+  }, [filter, platformList.length, source, organization]);
 
-  render() {
-    const platformList = this.platformList;
-    const {
-      setPlatform,
-      listProps,
-      listClassName,
-      navClassName,
-      loading = false,
-      showFilterBar = true,
-    } = this.props;
-    const {filter, category} = this.state;
+  const debounceLogSearch = useMemo(
+    () => debounce(logSearch, DEFAULT_DEBOUNCE_DURATION),
+    [logSearch]
+  );
 
-    return (
-      <Fragment>
-        <NavContainer className={navClassName}>
-          <TabsContainer>
-            <Tabs
-              value={category}
-              onChange={val => {
-                trackAnalytics('growth.platformpicker_category', {
-                  category: val,
-                  source: this.props.source,
-                  organization: this.props.organization ?? null,
-                });
-                this.setState({category: val, filter: ''});
-              }}
-            >
-              <TabList>
-                {categoryList.map(({id, name}) => (
-                  <TabList.Item key={id}>{name}</TabList.Item>
-                ))}
-              </TabList>
-            </Tabs>
-          </TabsContainer>
-          {showFilterBar && (
-            <StyledSearchBar
-              size="sm"
-              query={filter}
-              placeholder={t('Filter Platforms')}
-              onChange={val => this.setState({filter: val}, this.logSearch)}
-            />
-          )}
-        </NavContainer>
-        <PlatformList className={listClassName} {...listProps}>
-          {platformList.map(platform => {
-            return (
-              <div key={platform.id} style={{position: 'relative'}}>
-                <TransparentLoadingMask visible={loading} />
-                <PlatformCard
-                  visibleSelection={this.props.visibleSelection}
-                  data-test-id={`platform-${platform.id}`}
-                  platform={platform}
-                  selected={this.props.platform === platform.id}
-                  onClear={(e: React.MouseEvent) => {
-                    setPlatform(null);
-                    e.stopPropagation();
-                  }}
+  return (
+    <Fragment>
+      <NavContainer className={navClassName}>
+        <TabsContainer>
+          <Tabs
+            value={category}
+            onChange={val => {
+              trackAnalytics('growth.platformpicker_category', {
+                category: val,
+                source,
+                organization: organization ?? null,
+              });
+              setCategory(val);
+              setFilter('');
+            }}
+          >
+            <TabList>
+              {categoryList.map(({id, name}) => (
+                <TabList.Item key={id}>{name}</TabList.Item>
+              ))}
+            </TabList>
+          </Tabs>
+        </TabsContainer>
+        {showFilterBar && (
+          <StyledSearchBar
+            size="sm"
+            query={filter}
+            placeholder={t('Filter Platforms')}
+            onChange={val => {
+              setFilter(val);
+              debounceLogSearch();
+            }}
+          />
+        )}
+      </NavContainer>
+      <PlatformList className={listClassName} {...listProps}>
+        {platformList.map(item => {
+          return (
+            <div key={item.id} style={{position: 'relative'}}>
+              <TransparentLoadingMask visible={loading} />
+              <PlatformCard
+                visibleSelection={visibleSelection}
+                data-test-id={`platform-${item.id}`}
+                platform={item}
+                selected={platform === item.id}
+                onClear={(e: React.MouseEvent) => {
+                  setPlatform(null);
+                  e.stopPropagation();
+                }}
+                onClick={() => {
+                  trackAnalytics('growth.select_platform', {
+                    platform_id: item.id,
+                    source,
+                    organization: organization ?? null,
+                  });
+                  setPlatform({...item, category});
+                }}
+              />
+            </div>
+          );
+        })}
+      </PlatformList>
+      {platformList.length === 0 && (
+        <EmptyMessage
+          icon={<IconProject size="xl" />}
+          title={t("We don't have an SDK for that yet!")}
+        >
+          {tct(
+            `Sure you haven't misspelled? If you're using a lesser-known platform, consider choosing a more generic SDK like Browser JavaScript, Python, Node, .NET & Java or create a generic project, by selecting [linkOther:“Other”].`,
+            {
+              linkOther: (
+                <Button
+                  aria-label={t("Select 'Other'")}
+                  priority="link"
                   onClick={() => {
-                    trackAnalytics('growth.select_platform', {
-                      platform_id: platform.id,
-                      source: this.props.source,
-                      organization: this.props.organization ?? null,
-                    });
-                    setPlatform({...platform, category});
+                    setFilter(otherPlatform.name);
+                    setPlatform({...otherPlatform, category});
                   }}
                 />
-              </div>
-            );
-          })}
-        </PlatformList>
-        {platformList.length === 0 && (
-          <EmptyMessage
-            icon={<IconProject size="xl" />}
-            title={t("We don't have an SDK for that yet!")}
-          >
-            {tct(
-              `Sure you haven't misspelled? If you're using a lesser-known platform, consider choosing a more generic SDK like Browser JavaScript, Python, Node, .NET & Java or create a generic project, by selecting [linkOther:“Other”].`,
-              {
-                linkOther: (
-                  <Button
-                    aria-label={t("Select 'Other'")}
-                    priority="link"
-                    onClick={() => {
-                      this.setState({filter: otherPlatform.name});
-                      setPlatform({...otherPlatform, category});
-                    }}
-                  />
-                ),
-              }
-            )}
-          </EmptyMessage>
-        )}
-      </Fragment>
-    );
-  }
+              ),
+            }
+          )}
+        </EmptyMessage>
+      )}
+    </Fragment>
+  );
 }
 
 const TabsContainer = styled('div')`
