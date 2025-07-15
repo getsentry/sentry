@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import invariant from 'invariant';
+import {PlatformIcon} from 'platformicons';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
@@ -14,7 +15,6 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import Duration from 'sentry/components/duration/duration';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {useSelectedReplayIndex} from 'sentry/components/replays/queryParams/selectedReplayIndex';
-import ReplayPlatformIcon from 'sentry/components/replays/replayPlatformIcon';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import NumericDropdownFilter from 'sentry/components/replays/table/filters/numericDropdownFilter';
 import OSBrowserDropdownFilter from 'sentry/components/replays/table/filters/osBrowserDropdownFilter';
@@ -34,6 +34,7 @@ import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fiel
 import {getShortEventId} from 'sentry/utils/events';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
 import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -118,15 +119,15 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
       return <IconNot size="xs" color="gray300" />;
     }
 
+    const icon = generatePlatformIconName(
+      name ?? '',
+      version && isLargeBreakpoint ? version : undefined
+    );
+
     return (
       <DropdownContainer key="browser">
         <Tooltip title={`${name} ${version}`}>
-          <ReplayPlatformIcon
-            name={name ?? ''}
-            version={version && isLargeBreakpoint ? version : undefined}
-            showVersion={false}
-            showTooltip={false}
-          />
+          <PlatformIcon platform={icon} size="20px" />
           {showDropdownFilters ? (
             <OSBrowserDropdownFilter type="browser" name={name} version={version} />
           ) : null}
@@ -306,15 +307,15 @@ export const ReplayOSColumn: ReplayTableColumn = {
       return null;
     }
     const {name, version} = replay.os;
+    const icon = generatePlatformIconName(
+      name ?? '',
+      version && isLargeBreakpoint ? version : undefined
+    );
+
     return (
       <DropdownContainer key="os">
         <Tooltip title={`${name ?? ''} ${version ?? ''}`}>
-          <ReplayPlatformIcon
-            name={name ?? ''}
-            version={version && isLargeBreakpoint ? version : undefined}
-            showVersion={false}
-            showTooltip={false}
-          />
+          <PlatformIcon platform={icon} size="20px" />
           {showDropdownFilters ? (
             <OSBrowserDropdownFilter type="os" name={name} version={version} />
           ) : null}
