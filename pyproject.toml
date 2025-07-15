@@ -169,6 +169,7 @@ module = [
     "sentry.api.endpoints.integrations.sentry_apps.installation.external_issue.*",
     "sentry.api.endpoints.project_repo_path_parsing",
     "sentry.api.endpoints.release_thresholds.health_checks.*",
+    "sentry.api.endpoints.team_all_unresolved_issues",
     "sentry.api.event_search",
     "sentry.api.helpers.deprecation",
     "sentry.api.helpers.environments",

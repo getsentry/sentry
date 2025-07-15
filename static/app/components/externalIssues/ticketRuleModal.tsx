@@ -183,12 +183,12 @@ export default function TicketRuleModal({
               integrationId: instance.integration,
               query: initialConfigQuery,
             }),
-            existingData => (data ? data : existingData)
+            (existingData: IntegrationIssueConfig | undefined) =>
+              data ? data : existingData
           );
           setIsDynamicallyRefetching(false);
         },
         error: (err: any) => {
-          // This behavior comes from the DeprecatedAsyncComponent
           if (err?.responseText) {
             Sentry.addBreadcrumb({
               message: err.responseText,

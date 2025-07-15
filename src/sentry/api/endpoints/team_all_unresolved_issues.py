@@ -1,8 +1,9 @@
 import copy
+import datetime
 from datetime import timedelta
 from itertools import chain
 
-from django.db.models import Count, OuterRef, Q, Subquery
+from django.db.models import Count, OuterRef, Q, QuerySet, Subquery
 from django.db.models.functions import Coalesce, TruncDay
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -28,7 +29,13 @@ OPEN_STATUSES = UNRESOLVED_STATUSES + (GroupHistoryStatus.UNIGNORED,)
 CLOSED_STATUSES = RESOLVED_STATUSES + (GroupHistoryStatus.IGNORED,)
 
 
-def calculate_unresolved_counts(team, project_list, start, end, environment_id):
+def calculate_unresolved_counts(
+    team: Team,
+    project_list: QuerySet[Project],
+    start: datetime.datetime,
+    end: datetime.datetime,
+    environment_id: int | None,
+) -> dict[int, dict[str, dict[str, int]]]:
     # Get the current number of unresolved issues. We can use this value for the most recent bucket.
     group_environment_filter = (
         Q(groupenvironment__environment_id=environment_id) if environment_id else Q()

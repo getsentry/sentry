@@ -14,6 +14,7 @@ from sentry.integrations.mixins import ResolveSyncAction
 from sentry.integrations.mixins.issues import IssueSyncIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.activity import Activity
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -46,7 +47,7 @@ VSTS_INTEGRATION_FORM_ERROR_CODES_SUBSTRINGS = ["TF401320"]
 
 class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
     description = "Integrate Azure DevOps work items by linking a project."
-    slug = "vsts"
+    slug = IntegrationProviderSlug.AZURE_DEVOPS.value
     conf_key = slug
 
     issue_fields = frozenset(["id", "title", "url"])
