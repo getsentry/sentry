@@ -69,7 +69,6 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
         cursor: Cursor | None = None,
         per_page: int = 25,
     ) -> CursorResult[RuleGroupHistory]:
-        # Check if the workflow engine single process workflows flag is enabled
         if features.has(
             "organizations:workflow-engine-single-process-workflows", rule.project.organization
         ):
