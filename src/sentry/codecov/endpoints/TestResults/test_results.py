@@ -72,7 +72,14 @@ class TestResultsEndpoint(CodecovEndpoint):
             ordering_direction = OrderingDirection.ASC.value
 
         cursor = request.query_params.get("cursor")
-        limit = int(request.query_params.get("limit", 20))
+        limit_param = request.query_params.get("limit", "20")
+        try:
+            limit = int(limit_param)
+        except (ValueError, TypeError):
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data={"details": "provided `limit` parameter must be a positive integer"},
+            )
         navigation = request.query_params.get("navigation", NavigationParameter.NEXT.value)
 
         # When calling request.query_params, the URL is decoded so + is replaced with spaces. We need to change them back so Codecov can properly fetch the next page.
