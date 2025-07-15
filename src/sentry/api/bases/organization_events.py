@@ -18,6 +18,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.base import CURSOR_LINK_HEADER
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import FilterParamsDateNotNull, OrganizationEndpoint
+from sentry.api.helpers.error_upsampling import are_all_projects_error_upsampled
 from sentry.api.helpers.mobile import get_readable_device_name
 from sentry.api.helpers.teams import get_teams
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
@@ -411,6 +412,18 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         if "device" in fields and request.GET.get("readable"):
             self.handle_readable_device(results, project_ids, organization)
+
+        if are_all_projects_error_upsampled(project_ids):
+            for result in results:
+                if "count" in result:
+                    result["count()"] = result["count"]
+                    del result["count"]
+                if "eps" in result:
+                    result["eps()"] = result["eps"]
+                    del result["eps"]
+                if "epm" in result:
+                    result["epm()"] = result["epm"]
+                    del result["epm"]
 
         if not ("project.id" in first_row or "projectid" in first_row):
             return results

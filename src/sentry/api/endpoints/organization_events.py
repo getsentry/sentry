@@ -322,9 +322,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             transform_alias_to_input_format = True
             selected_columns = self.get_field_list(organization, request)
             if are_all_projects_error_upsampled(snuba_params.project_ids):
-                selected_columns = transform_query_columns_for_error_upsampling(
-                    selected_columns, True
-                )
+                selected_columns = transform_query_columns_for_error_upsampling(selected_columns)
                 transform_alias_to_input_format = False
             query_source = self.get_request_source(request)
             return dataset_query(
