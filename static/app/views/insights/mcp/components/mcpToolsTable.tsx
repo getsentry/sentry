@@ -7,6 +7,7 @@ import {
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -41,6 +42,7 @@ const rightAlignColumns = new Set([
 ]);
 
 export function McpToolsTable() {
+  const organization = useOrganization();
   const query = useCombinedQuery(`span.op:mcp.server has:${SpanFields.MCP_TOOL_NAME}`);
   const tableDataRequest = useSpanTableData({
     query,
@@ -56,6 +58,18 @@ export function McpToolsTable() {
     referrer: MCPReferrer.MCP_TOOL_TABLE,
   });
 
+  const handleSort = useCallback(
+    (column: string, direction: 'asc' | 'desc') => {
+      trackAnalytics('mcp-monitoring.column-sort', {
+        organization,
+        table: 'tools',
+        column,
+        direction,
+      });
+    },
+    [organization]
+  );
+
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return (
       <HeadSortCell
@@ -63,11 +77,12 @@ export function McpToolsTable() {
         align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
         forceCellGrow={column.key === SpanFields.MCP_TOOL_NAME}
         cursorParamName="tableCursor"
+        onClick={handleSort}
       >
         {column.name}
       </HeadSortCell>
     );
-  }, []);
+  }, [handleSort]);
 
   const renderBodyCell = useCallback(
     (

@@ -79,6 +79,8 @@ import {tempestEventMap} from './analytics/tempestAnalyticsEvents';
 import {tracingEventMap, type TracingEventParameters} from './analytics/tracingEventMap';
 import type {TeamInsightsEventParameters} from './analytics/workflowAnalyticsEvents';
 import {workflowEventMap} from './analytics/workflowAnalyticsEvents';
+import type {McpMonitoringEventParameters} from './analytics/mcpMonitoringAnalyticsEvents';
+import {mcpMonitoringEventMap} from './analytics/mcpMonitoringAnalyticsEvents';
 
 interface EventParameters
   extends GrowthEventParameters,
@@ -92,6 +94,7 @@ interface EventParameters
     InsightEventParameters,
     IssueEventParameters,
     LaravelInsightsEventParameters,
+    McpMonitoringEventParameters,
     MonitorsEventParameters,
     PerformanceEventParameters,
     ProfilingEventParameters,
@@ -149,6 +152,7 @@ const allEventMap: Record<string, string | null> = {
   ...quickStartEventMap,
   ...navigationAnalyticsEventMap,
   ...tempestEventMap,
+  ...mcpMonitoringEventMap,
 };
 
 /**
