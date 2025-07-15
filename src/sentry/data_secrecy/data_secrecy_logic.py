@@ -122,7 +122,15 @@ def data_access_grant_exists(organization_id: int) -> bool:
     )
 
     if grant_status:
-        # Cache the grant status for the duration of the grant
+        # If the grant is expired, cache the negative result for 15 minutes
+        if grant_status.access_end <= datetime.now(timezone.utc):
+            cache.set(
+                CACHE_KEY_PATTERN.format(organization_id=organization_id),
+                NEGATIVE_CACHE_VALUE,
+                timeout=NEGATIVE_CACHE_TTL,
+            )
+            return False
+
         # This is ok since we invalidate the cache when the grant is revoked, updated, etc.
         ttl_seconds = int((grant_status.access_end - datetime.now(timezone.utc)).total_seconds())
 
@@ -131,25 +139,15 @@ def data_access_grant_exists(organization_id: int) -> bool:
         # We need to do this check because of concurrency issues.
         # If a request comes in at the same time as the grant is revoked,
         # we need to ensure that we don't store the expired grant status (accounting for the delay induced by RPC)
-        if ttl_seconds > 0:
-            cache.set(
-                CACHE_KEY_PATTERN.format(organization_id=organization_id),
-                serialized_grant_status,
-                timeout=ttl_seconds,
-            )
-            return True
+        cache.set(
+            CACHE_KEY_PATTERN.format(organization_id=organization_id),
+            serialized_grant_status,
+            timeout=ttl_seconds,
+        )
+        return True
 
-        else:
-            # If the grant is expired, cache the negative result for 15 minutes
-            cache.set(
-                CACHE_KEY_PATTERN.format(organization_id=organization_id),
-                NEGATIVE_CACHE_VALUE,
-                timeout=NEGATIVE_CACHE_TTL,
-            )
-            return False
-
+    # Cache the negative result for 15 minutes
     else:
-        # Cache the negative result for 15 minutes
         cache.set(
             CACHE_KEY_PATTERN.format(organization_id=organization_id),
             NEGATIVE_CACHE_VALUE,

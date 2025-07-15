@@ -194,6 +194,24 @@ class DataSecrecyV2Test(TestCase):
         assert cached_data["access_start"] == grant.grant_start
         assert cached_data["access_end"] == grant.grant_end
 
+    def test_data_access_grant_exists_cache_miss_with_expired_grant(self):
+        self.create_data_access_grant(
+            organization_id=self.organization.id,
+            grant_start=timezone.now(),
+            grant_end=timezone.now() + timedelta(hours=2),
+        )
+
+        # This should cache the grant
+        data_access_grant_exists(self.organization.id)
+
+        with freeze_time("2025-01-01 14:30:00"):  # 2.5 hours later
+            assert data_access_grant_exists(self.organization.id) is False
+            # Verify cache was set
+            cache_key = CACHE_KEY_PATTERN.format(organization_id=self.organization.id)
+            cached_data = cache.get(cache_key)
+            assert cached_data is not None
+            assert cached_data == NEGATIVE_CACHE_VALUE
+
     def test_data_access_grant_exists_cache_miss_no_grant(self):
         result = data_access_grant_exists(self.organization.id)
         assert result is False
