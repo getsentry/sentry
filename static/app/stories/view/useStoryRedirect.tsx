@@ -6,7 +6,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 
 import {useStoryBookFilesByCategory} from './storySidebar';
-import type {StoryCategory} from './storyTree';
+import type {StoryCategory, StoryTreeNode} from './storyTree';
 
 type LegacyStoryQuery = {
   name: string;
@@ -30,21 +30,12 @@ export function useStoryRedirect() {
     if (!location.pathname.startsWith('/stories')) {
       return;
     }
-    const story = getStoryMeta(stories, {query: location.query, params});
+    const story = getStory(stories, {query: location.query, params});
     if (!story) {
       return;
     }
-    if (story.category === 'shared') {
-      navigate(
-        {pathname: `/stories/`, search: `?name=${encodeURIComponent(story.path)}`},
-        {replace: true, state: {storyPath: story.path}}
-      );
-    } else {
-      navigate(
-        {pathname: `/stories/${story.category}/${kebabCase(story.label)}`},
-        {replace: true, state: {storyPath: story.path}}
-      );
-    }
+    const {state, ...to} = story.location;
+    navigate(to, {replace: true, state});
   }, [location, params, navigate, stories]);
 }
 
@@ -53,52 +44,46 @@ interface StoryRouteContext {
   query: LegacyStoryQuery;
 }
 
-interface StoryMeta {
-  category: StoryCategory;
-  label: string;
-  path: string;
-}
-
-function getStoryMeta(
+function getStory(
   stories: ReturnType<typeof useStoryBookFilesByCategory>,
   context: StoryRouteContext
 ) {
   if (context.params.storyType && context.params.storySlug) {
-    return getStoryMetaFromParams(stories, context);
+    return getStoryFromParams(stories, context);
   }
   if (context.query.name) {
-    return legacyGetStoryMetaFromQuery(stories, context);
+    return legacyGetStoryFromQuery(stories, context);
   }
   return undefined;
 }
 
-function legacyGetStoryMetaFromQuery(
+function legacyGetStoryFromQuery(
   stories: ReturnType<typeof useStoryBookFilesByCategory>,
   context: StoryRouteContext
-): StoryMeta | undefined {
+): StoryTreeNode | undefined {
   for (const category of Object.keys(stories) as StoryCategory[]) {
     const nodes = stories[category];
     for (const node of nodes) {
       const match = node.find(n => n.filesystemPath === context.query.name);
       if (match) {
-        return {category, label: match.label, path: match.filesystemPath};
+        return match;
       }
     }
   }
   return undefined;
 }
 
-function getStoryMetaFromParams(
+function getStoryFromParams(
   stories: ReturnType<typeof useStoryBookFilesByCategory>,
   context: StoryRouteContext
-): StoryMeta | undefined {
+): StoryTreeNode | undefined {
   const {storyType: category, storySlug} = context.params;
   const nodes =
     category && category in stories ? stories[category as keyof typeof stories] : [];
   for (const node of nodes) {
     const match = node.find(n => kebabCase(n.label) === storySlug);
     if (match) {
-      return {category, label: match.label, path: match.filesystemPath};
+      return match;
     }
   }
   return undefined;
