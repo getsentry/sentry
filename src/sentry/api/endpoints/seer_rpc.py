@@ -41,6 +41,7 @@ from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentic
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.organization_trace_item_attributes import as_attribute_key
 from sentry.constants import ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT
+from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.integrations.services.integration import integration_service
@@ -464,16 +465,32 @@ def get_attributes_and_values(
     )
     rpc_response = snuba_rpc.trace_item_stats_rpc(rpc_request)
 
-    attributes_and_values = [
-        {
-            attribute.attribute_name: [
-                {"value": value.label, "count": value.value} for value in attribute.buckets
-            ]
-        }
-        for result in rpc_response.results
-        for attribute in result.attribute_distributions.attributes
-        if attribute.buckets
-    ]
+    resolver = SearchResolver(
+        params=SnubaParams(
+            start=start,
+            end=end,
+        ),
+        config=SearchResolverConfig(),
+        definitions=SPAN_DEFINITIONS,
+    )
+
+    attributes_and_values = {}
+    for result in rpc_response.results:
+        for attribute in result.attribute_distributions.attributes:
+            try:
+                resolved_attribute, _ = resolver.resolve_attribute(attribute.attribute_name)
+                attribute_name = resolved_attribute.public_alias
+            except InvalidSearchQuery:
+                attribute_name = attribute.attribute_name
+
+            if attribute.buckets:
+                attributes_and_values[attribute_name] = [
+                    {
+                        "value": value.label,
+                        "count": value.value,
+                    }
+                    for value in attribute.buckets
+                ]
 
     return {"attributes_and_values": attributes_and_values}
 
