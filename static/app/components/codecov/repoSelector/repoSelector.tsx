@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
-import {useRepositories} from 'sentry/components/codecov/repoSelector/useRepositories';
+import {useInfiniteRepositories} from 'sentry/components/codecov/repoSelector/useInfiniteRepositories';
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -57,7 +57,7 @@ function MenuFooter({repoAccessLink}: MenuFooterProps) {
 export function RepoSelector() {
   const {repository, integratedOrg, changeContextValue} = useCodecovContext();
   const [searchValue, setSearchValue] = useState<string | undefined>();
-  const {data: repositories} = useRepositories({term: searchValue});
+  const {data: repositories} = useInfiniteRepositories({term: searchValue});
 
   const disabled = !integratedOrg;
 

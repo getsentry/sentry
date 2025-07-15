@@ -34,7 +34,7 @@ type Props = {
   term?: string;
 };
 
-export function useRepositories({term}: Props) {
+export function useInfiniteRepositories({term}: Props) {
   const {integratedOrg} = useCodecovContext();
   const organization = useOrganization();
 
@@ -86,7 +86,7 @@ export function useRepositories({term}: Props) {
 
   const memoizedData = useMemo(
     () =>
-      data?.pages.flatMap(([pageData]) =>
+      data?.pages?.flatMap(([pageData]) =>
         pageData.results.map(({defaultBranch, latestCommitAt, name, updatedAt}) => {
           return {
             name,
