@@ -229,9 +229,9 @@ class Strategy(Generic[ConcreteInterface]):
         self, event: Event, context: GroupingContext, variant: str | None = None
     ) -> None | BaseGroupingComponent[Any] | ReturnedVariants:
         """Given a specific variant this calculates the grouping component."""
-        iface = event.interfaces.get(self.interface_name)
+        interface = event.interfaces.get(self.interface_name)
 
-        if iface is None:
+        if interface is None:
             return None
 
         with context:
@@ -239,7 +239,7 @@ class Strategy(Generic[ConcreteInterface]):
             if variant is not None:
                 context["variant"] = variant
 
-            return self(iface, event=event, context=context)
+            return self(interface, event=event, context=context)
 
     def get_grouping_components(self, event: Event, context: GroupingContext) -> ReturnedVariants:
         """This returns a dictionary of all components by variant that this
