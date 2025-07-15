@@ -14,7 +14,6 @@ import type {Project} from 'sentry/types/project';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {hasLaravelInsightsFeature} from 'sentry/views/insights/pages/platform/laravel/features';
-import {hasNextJsInsightsFeature} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {
@@ -36,7 +35,6 @@ function ProjectQuickLinks({organization, project}: Props) {
     : 'backend';
 
   const isLaravelInsightsAvailable = hasLaravelInsightsFeature(organization);
-  const isNextJsInsightsAvailable = hasNextJsInsightsFeature(organization);
 
   const quickLinks = [
     ...(isLaravelInsightsAvailable && project?.platform === 'php-laravel'
@@ -51,7 +49,7 @@ function ProjectQuickLinks({organization, project}: Props) {
           },
         ]
       : []),
-    ...(isNextJsInsightsAvailable && project?.platform === 'javascript-nextjs'
+    ...(project?.platform === 'javascript-nextjs'
       ? [
           {
             title: t('Next.js Insights'),
