@@ -14,6 +14,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {FieldKey} from 'sentry/utils/fields';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
+import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
@@ -74,9 +75,7 @@ const truncatedTextRenderer = (props: CustomRenderersProps) => {
   if (typeof props.item.value !== 'string') {
     return props.item.value;
   }
-  return props.item.value.length > 100
-    ? props.item.value.slice(0, 100) + '...'
-    : props.item.value;
+  return ellipsize(props.item.value, 100);
 };
 
 export function Attributes({
