@@ -1,5 +1,5 @@
 import type {Key} from 'react';
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {Item, Section} from '@react-stately/collections';
@@ -155,20 +155,17 @@ function SearchComboBox(props: SearchComboBoxProps) {
   const listBoxRef = useRef<HTMLUListElement | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
-  const handleSelectionChange = useCallback(
-    (key: Key | null) => {
-      if (!key) {
-        return;
-      }
-      const node = getStoryTreeNodeFromKey(key, props);
-      if (!node) {
-        return;
-      }
-      const {state, ...to} = node.location;
-      navigate(to, {replace: true, state});
-    },
-    [navigate, props]
-  );
+  const handleSelectionChange = (key: Key | null) => {
+    if (!key) {
+      return;
+    }
+    const node = getStoryTreeNodeFromKey(key, props);
+    if (!node) {
+      return;
+    }
+    const {state, ...to} = node.location;
+    navigate(to, {replace: true, state});
+  };
 
   const state = useComboBoxState({
     ...props,
