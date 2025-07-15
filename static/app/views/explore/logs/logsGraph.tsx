@@ -21,7 +21,6 @@ import {
   ChartIntervalUnspecifiedStrategy,
   useChartInterval,
 } from 'sentry/views/explore/hooks/useChartInterval';
-import {INGESTION_DELAY} from 'sentry/views/explore/settings';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
@@ -138,7 +137,7 @@ export function LogsGraph({timeseriesResult}: LogsGraphProps) {
         <TimeSeriesWidgetVisualization
           plottables={data.map(
             timeSeries =>
-              new DataPlottableConstructor(markDelayedData(timeSeries, INGESTION_DELAY), {
+              new DataPlottableConstructor(markDelayedData(timeSeries, 60), {
                 stack: 'all',
               })
           )}
