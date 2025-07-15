@@ -388,7 +388,11 @@ def resolve_upsampled_eps(
         interval = builder.interval
     else:
         interval = args["interval"]
-    return Function("divide", [Function("sum", [Column("sample_weight")]), interval], alias)
+    return Function(
+        "divide",
+        [Function("sum", [Function("ifNull", [Column("sample_weight"), 1])]), interval],
+        alias,
+    )
 
 
 def resolve_epm(
@@ -418,6 +422,9 @@ def resolve_upsampled_epm(
         interval = args["interval"]
     return Function(
         "divide",
-        [Function("sum", [Column("sample_weight")]), Function("divide", [interval, 60])],
+        [
+            Function("sum", [Function("ifNull", [Column("sample_weight"), 1])]),
+            Function("divide", [interval, 60]),
+        ],
         alias,
     )
