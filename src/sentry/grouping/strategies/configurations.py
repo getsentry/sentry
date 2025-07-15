@@ -64,9 +64,9 @@ def register_strategy_config(id: str, **kwargs) -> type[StrategyConfiguration]:
         kwargs["base"] = CONFIGURATIONS[kwargs["base"]]
     else:
         kwargs["base"] = BASE_STRATEGY
-    rv = create_strategy_configuration(id, **kwargs)
-    CONFIGURATIONS[id] = rv
-    return rv
+    strategy_class = create_strategy_configuration(id, **kwargs)
+    CONFIGURATIONS[id] = strategy_class
+    return strategy_class
 
 
 # Legacy groupings
