@@ -47,7 +47,8 @@ export function useRepositories({term}: Props) {
       {query: {term}},
     ],
     queryFn: async ({
-      queryKey: [url],
+      queryKey: [url, {query}],
+      pageParam,
       client,
       signal,
       meta,
@@ -57,7 +58,8 @@ export function useRepositories({term}: Props) {
           url,
           {
             query: {
-              term,
+              ...query,
+              cursor: pageParam ?? undefined,
             },
           },
         ],
@@ -71,7 +73,8 @@ export function useRepositories({term}: Props) {
     getNextPageParam: ([lastPage]) => {
       return lastPage.pageInfo?.hasNextPage ? lastPage.pageInfo.endCursor : undefined;
     },
-    initialPageParam: null,
+    initialPageParam: undefined,
+    enabled: Boolean(integratedOrg),
   });
 
   const memoizedData = useMemo(
