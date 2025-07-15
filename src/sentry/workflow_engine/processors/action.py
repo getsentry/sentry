@@ -1,8 +1,10 @@
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
+from typing import Any
 
 from django.db import models
+from django.db.models import QuerySet
 from django.utils import timezone
 
 from sentry import features
@@ -124,7 +126,9 @@ def filter_recently_fired_workflow_actions(
     Returns actions associated with the provided DataConditionsGroups, excluding those that have been recently fired. Also updates associated WorkflowActionGroupStatus objects.
     """
 
-    data_condition_group_actions = (
+    data_condition_group_actions: QuerySet[
+        DataConditionGroupAction, tuple[int, int, dict[str, Any]]
+    ] = (
         DataConditionGroupAction.objects.filter(condition_group__in=filtered_action_groups)
         .select_related("condition_group__workflowdataconditiongroup__workflow")
         .values_list(
@@ -140,7 +144,7 @@ def filter_recently_fired_workflow_actions(
     for action_id, workflow_id, workflow_config in data_condition_group_actions:
         action_to_workflows_ids[action_id].add(workflow_id)
         if workflow_id not in workflow_frequencies:
-            frequency = workflow_config.get("frequency", 0) if workflow_config else 0
+            frequency = workflow_config.get("frequency", 0)
             workflow_frequencies[workflow_id] = timedelta(minutes=frequency)
 
     workflow_ids = set(workflow_frequencies.keys())
