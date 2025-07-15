@@ -36,22 +36,33 @@ PRIORITY_LEVEL_TO_DETECTOR_PRIORITY_LEVEL = {
 }
 
 
-def fetch_threshold_type(type: Condition) -> AlertRuleThresholdType:
-    return CONDITION_TO_ALERT_RULE_THRESHOLD_TYPE[type]
+def fetch_threshold_type(condition: dict[str, Any]) -> AlertRuleThresholdType:
+    condition_type = condition["type"]
+    if condition_type == Condition.ANOMALY_DETECTION:
+        return condition["comparison"]["threshold_type"]
+    return CONDITION_TO_ALERT_RULE_THRESHOLD_TYPE[condition_type]
 
 
-def fetch_alert_threshold(comparison_value: float, group_status: GroupStatus) -> float | None:
+def fetch_alert_threshold(condition: dict[str, Any], group_status: GroupStatus) -> float | None:
+    condition_type = condition["type"]
+    if condition_type == Condition.ANOMALY_DETECTION:
+        return 0
+    comparison_value = condition["comparison"]
     if group_status == GroupStatus.RESOLVED or group_status == GroupStatus.IGNORED:
         return None
     else:
         return comparison_value
 
 
-def fetch_resolve_threshold(comparison_value: float, group_status: GroupStatus) -> float | None:
+def fetch_resolve_threshold(condition: dict[str, Any], group_status: GroupStatus) -> float | None:
     """
     This is the opposite of `fetch_alert_threshold`.
     We keep it explicitly separate to make it clear that we are fetching the resolve threshold and to consolidate tech debt.
     """
+    condition_type = condition["type"]
+    if condition_type == Condition.ANOMALY_DETECTION:
+        return 0
+    comparison_value = condition["comparison"]
     if group_status == GroupStatus.RESOLVED or group_status == GroupStatus.IGNORED:
         return comparison_value
     else:
@@ -79,6 +90,12 @@ class AlertContext:
     def from_alert_rule_incident(
         cls, alert_rule: AlertRule, alert_rule_threshold: float | None = None
     ) -> AlertContext:
+        resolve_threshold = alert_rule.resolve_threshold
+
+        if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
+            alert_rule_threshold = 0
+            resolve_threshold = 0
+
         return cls(
             name=alert_rule.name,
             action_identifier_id=alert_rule.id,
@@ -87,7 +104,7 @@ class AlertContext:
             comparison_delta=alert_rule.comparison_delta,
             sensitivity=alert_rule.sensitivity,
             alert_threshold=alert_rule_threshold,
-            resolve_threshold=alert_rule.resolve_threshold,
+            resolve_threshold=resolve_threshold,
         )
 
     @classmethod
@@ -109,9 +126,9 @@ class AlertContext:
                 for cond in evidence_data.conditions
                 if cond["condition_result"] == target_priority
             )
-            threshold_type = fetch_threshold_type(Condition(condition["type"]))
-            resolve_threshold = fetch_resolve_threshold(condition["comparison"], group_status)
-            alert_threshold = fetch_alert_threshold(condition["comparison"], group_status)
+            threshold_type = fetch_threshold_type(condition)
+            resolve_threshold = fetch_resolve_threshold(condition, group_status)
+            alert_threshold = fetch_alert_threshold(condition, group_status)
             sensitivity = fetch_sensitivity(condition)
         except StopIteration:
             raise ValueError("No threshold type found for metric issues")

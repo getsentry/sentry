@@ -17,9 +17,9 @@ import {Button} from 'sentry/components/core/button';
 import {IconAdd, IconDelete, IconEdit} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
-import types from '!!type-loader!sentry/components/core/alert/index';
+import APIReference from '!!type-loader!sentry/components/core/alert/index';
 
-export {types};
+export const types = {Alert: APIReference.Alert};
 
 To create a basic alert, wrap your message in an `<Alert>` component and specify the appropriate type.
 

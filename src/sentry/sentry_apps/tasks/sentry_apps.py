@@ -46,6 +46,7 @@ from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError,
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import sentryapp_control_tasks, sentryapp_tasks
 from sentry.taskworker.retry import Retry, retry_task
 from sentry.types.rules import RuleFuture
@@ -329,7 +330,7 @@ def _process_resource_change(
             except model.DoesNotExist as e:
                 # Explicitly requeue the task, so we don't report this to Sentry until
                 # we hit the max number of retries.
-                return retry_task(e)
+                retry_task(e)
 
         org = None
 
@@ -654,6 +655,7 @@ def get_webhook_data(
             times=3,
             delay=60 * 5,
         ),
+        compression_type=CompressionType.ZSTD,
     ),
     **TASK_OPTIONS,
 )
@@ -676,6 +678,8 @@ def send_resource_change_webhook(
 
 
 def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
     for f in futures:
         if not f.kwargs.get("sentry_app"):
             logger.info(
@@ -698,9 +702,7 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
         if int(id) != -1:
             if features.has("organizations:workflow-engine-ui-links", event.group.organization):
                 id = get_key_from_rule_data(f.rule, "workflow_id")
-            elif features.has(
-                "organizations:workflow-engine-trigger-actions", event.group.organization
-            ):
+            elif should_fire_workflow_actions(event.group.organization):
                 id = get_key_from_rule_data(f.rule, "legacy_rule_id")
 
         settings = f.kwargs.get("schema_defined_settings")

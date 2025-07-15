@@ -85,7 +85,9 @@ export default function StreamlinedGroupHeader({
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
   ].includes(groupReprocessingStatus);
 
-  const isQueryInjection = group.issueType === IssueType.DB_QUERY_INJECTION_VULNERABILITY;
+  const isQueryInjection =
+    group.issueType === IssueType.DB_QUERY_INJECTION_VULNERABILITY ||
+    group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY;
   const openForm = useFeedbackForm();
   const feedbackButton = openForm ? (
     <Button
@@ -134,7 +136,7 @@ export default function StreamlinedGroupHeader({
               ]}
             />
           </Flex>
-          <ButtonBar gap={0.5}>
+          <ButtonBar gap="xs">
             {!hasOnlyOneUIOption && !isQueryInjection && (
               <LinkButton
                 size="xs"
@@ -151,7 +153,25 @@ export default function StreamlinedGroupHeader({
                 {showLearnMore ? t("See What's New") : null}
               </LinkButton>
             )}
-            {isQueryInjection ? feedbackButton : <NewIssueExperienceButton />}
+            {isQueryInjection ? (
+              <ButtonBar gap="xs">
+                <LinkButton
+                  size="xs"
+                  external
+                  title={t('Learn more about the query injection issue')}
+                  href={`https://docs.sentry.io/product/issues/issue-details/query-injection-issues/`}
+                  aria-label={t('Learn more about the query injection issue')}
+                  icon={<IconInfo />}
+                  analyticsEventKey="issue_details.query_injection_learn_more"
+                  analyticsEventName="Issue Details: Query Injection Learn More"
+                >
+                  {t('Learn more')}
+                </LinkButton>
+                {feedbackButton}
+              </ButtonBar>
+            ) : (
+              <NewIssueExperienceButton />
+            )}
           </ButtonBar>
         </Flex>
         <HeaderGrid>

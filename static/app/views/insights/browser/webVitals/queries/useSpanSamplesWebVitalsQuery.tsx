@@ -8,8 +8,12 @@ import {
 } from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
-import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
-import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {
+  SpanFields,
+  SpanIndexedField,
+  type SubregionCode,
+} from 'sentry/views/insights/types';
 
 export const INTERACTION_SPANS_FILTER =
   'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press]';
@@ -95,30 +99,31 @@ export function useSpanSamplesWebVitalsQuery({
       break;
   }
 
-  const {data, isPending, ...rest} = useSpansIndexed(
+  const {data, isPending, ...rest} = useSpans(
     {
       search: `${mutableSearch.formatString()} ${filter}`,
       sorts: [sort],
       fields: [
         ...(field && ratioField ? [field, ratioField] : []),
-        SpanIndexedField.TOTAL_SCORE,
-        SpanIndexedField.TRACE,
-        SpanIndexedField.PROFILE_ID,
-        SpanIndexedField.PROFILEID,
-        SpanIndexedField.REPLAY_ID,
-        SpanIndexedField.REPLAYID,
-        SpanIndexedField.USER_EMAIL,
-        SpanIndexedField.USER_USERNAME,
-        SpanIndexedField.USER_ID,
-        SpanIndexedField.USER_IP,
-        SpanIndexedField.PROJECT,
-        SpanIndexedField.SPAN_DESCRIPTION,
-        SpanIndexedField.TIMESTAMP,
-        SpanIndexedField.SPAN_SELF_TIME,
-        SpanIndexedField.TRANSACTION,
-        SpanIndexedField.SPAN_OP,
-        SpanIndexedField.LCP_ELEMENT,
-        SpanIndexedField.CLS_SOURCE,
+        SpanFields.TOTAL_SCORE,
+        SpanFields.TRACE,
+        SpanFields.PROFILE_ID,
+        SpanFields.PROFILEID,
+        SpanFields.REPLAY_ID,
+        SpanFields.REPLAYID,
+        SpanFields.USER_EMAIL,
+        SpanFields.USER_USERNAME,
+        SpanFields.USER_ID,
+        SpanFields.USER_IP,
+        SpanFields.PROJECT,
+        SpanFields.SPAN_DESCRIPTION,
+        SpanFields.TIMESTAMP,
+        SpanFields.SPAN_SELF_TIME,
+        SpanFields.TRANSACTION,
+        SpanFields.SPAN_OP,
+        SpanFields.LCP_ELEMENT,
+        SpanFields.CLS_SOURCE,
+        SpanFields.ID,
       ],
       enabled,
       limit,

@@ -17,7 +17,8 @@ import {
 } from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 import {TransactionCell} from 'sentry/views/insights/pages/platform/shared/table/TransactionCell';
-import {useTableData} from 'sentry/views/insights/pages/platform/shared/table/useTableData';
+import {useSpanTableData} from 'sentry/views/insights/pages/platform/shared/table/useTableData';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 const getP95Threshold = (avg: number) => {
   return {
@@ -44,8 +45,9 @@ const rightAlignColumns = new Set([
 ]);
 
 export function ApiTable() {
-  const tableDataRequest = useTableData({
-    query: 'transaction.op:http.server is_transaction:True',
+  const {query} = useTransactionNameQuery();
+  const tableDataRequest = useSpanTableData({
+    query: `transaction.op:http.server is_transaction:True ${query ?? ''}`.trim(),
     fields: [
       'project.id',
       'transaction',

@@ -1,8 +1,11 @@
 from uuid import uuid4
 
+import pytest
+
 from sentry import nodestore
 from sentry.deletions.tasks.groups import delete_groups
 from sentry.eventstore.models import Event
+from sentry.exceptions import DeleteAborted
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphash import GroupHash
@@ -17,7 +20,7 @@ pytestmark = [requires_snuba]
 
 
 class DeleteGroupTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         event_id = "a" * 32
         event_id_2 = "b" * 32
         project = self.create_project()
@@ -65,3 +68,22 @@ class DeleteGroupTest(TestCase):
         assert not Group.objects.filter(id=group.id).exists()
         assert not nodestore.backend.get(node_id)
         assert not nodestore.backend.get(node_id_2)
+
+    def test_first_group_not_found(self) -> None:
+        group = self.create_group()
+        group2 = self.create_group()
+        group_ids = [group.id, group2.id]
+        group.delete()
+
+        with self.tasks():
+            delete_groups(object_ids=group_ids)
+
+        assert Group.objects.count() == 0
+
+    def test_no_first_group_found(self) -> None:
+        group = self.create_group()
+        group_ids = [group.id]
+        group.delete()
+
+        with self.tasks(), pytest.raises(DeleteAborted):
+            delete_groups(object_ids=group_ids)

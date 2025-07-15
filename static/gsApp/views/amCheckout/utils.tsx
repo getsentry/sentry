@@ -12,6 +12,7 @@ import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 import {
@@ -362,6 +363,10 @@ export function getEventsWithUnit(
   return events;
 }
 
+type CheckoutData = {
+  plan: string;
+} & Partial<Record<DataCategory, number>>;
+
 function recordAnalytics(
   organization: Organization,
   subscription: Subscription,
@@ -370,30 +375,24 @@ function recordAnalytics(
 ) {
   trackMarketingEvent('Upgrade', {plan: data.plan});
 
-  const currentData = {
-    // TODO(data categories): BIL-966
+  const currentData: CheckoutData = {
     plan: data.plan,
-    errors: data.reservedErrors,
-    transactions: data.reservedTransactions,
-    attachments: data.reservedAttachments,
-    replays: data.reservedReplays,
-    monitorSeats: data.reservedMonitorSeats,
-    spans: data.reservedSpans,
-    profileDuration: data.reservedProfileDuration,
-    uptime: data.reservedUptime,
   };
 
-  const previousData = {
+  Object.keys(data).forEach(key => {
+    if (key.startsWith('reserved')) {
+      const targetKey = key.charAt(8).toLowerCase() + key.slice(9);
+      (currentData as any)[targetKey] = data[key as keyof CheckoutAPIData];
+    }
+  });
+
+  const previousData: CheckoutData = {
     plan: subscription.plan,
-    errors: subscription.categories.errors?.reserved || undefined,
-    transactions: subscription.categories.transactions?.reserved || undefined,
-    attachments: subscription.categories.attachments?.reserved || undefined,
-    replays: subscription.categories.replays?.reserved || undefined,
-    monitorSeats: subscription.categories.monitorSeats?.reserved || undefined,
-    profileDuration: subscription.categories.profileDuration?.reserved || undefined,
-    spans: subscription.categories.spans?.reserved || undefined,
-    uptime: subscription.categories.uptime?.reserved || undefined,
   };
+
+  Object.entries(subscription.categories).forEach(([category, value]) => {
+    (previousData as any)[category] = value?.reserved || undefined;
+  });
 
   // TODO(reserved budgets): in future, we should just be able to pass data.selectedProducts
   const selectableProductData = {
@@ -510,20 +509,14 @@ export function getCheckoutAPIData({
 }: APIDataProps) {
   const formatReservedData = (value: number | null | undefined) => value ?? undefined;
 
-  const reservedData = {
-    // TODO(data categories): BIL-965
-    reservedErrors: formatReservedData(formData.reserved.errors),
-    reservedTransactions: formatReservedData(formData.reserved.transactions),
-    reservedAttachments: formatReservedData(formData.reserved.attachments),
-    reservedReplays: formatReservedData(formData.reserved.replays),
-    reservedMonitorSeats: formatReservedData(formData.reserved.monitorSeats),
-    reservedProfileDuration: formatReservedData(formData.reserved.profileDuration),
-    reservedSpans: formatReservedData(formData.reserved.spans),
-    reservedUptime: formatReservedData(formData.reserved.uptime),
-  } satisfies Partial<
-    // Enforce plural spelling against the enums in DataCategory
-    Record<`reserved${Capitalize<DataCategory>}`, number | undefined>
-  >;
+  const reservedData = Object.fromEntries(
+    Object.entries(formData.reserved).map(([category, value]) => [
+      `reserved${toTitleCase(category, {
+        allowInnerUpperCase: true,
+      })}`,
+      formatReservedData(value),
+    ])
+  ) satisfies Partial<Record<`reserved${Capitalize<DataCategory>}`, number>>;
 
   const onDemandMaxSpend = shouldUpdateOnDemand
     ? (formData.onDemandMaxSpend ?? 0)

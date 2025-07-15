@@ -748,15 +748,13 @@ export enum CreditType {
   ERROR = 'error',
   TRANSACTION = 'transaction',
   SPAN = 'span',
-  SPAN_INDEXED = 'spanIndexed',
-  PROFILE_DURATION = 'profileDuration',
-  PROFILE_DURATION_UI = 'profileDurationUI',
+  PROFILE_DURATION = 'profile_duration',
+  PROFILE_DURATION_UI = 'profile_duration_ui',
   ATTACHMENT = 'attachment',
   REPLAY = 'replay',
-  MONITOR_SEAT = 'monitorSeat',
   DISCOUNT = 'discount',
   PERCENT = 'percent',
-  UPTIME = 'uptime',
+  LOG_BYTE = 'log_byte',
 }
 
 type BaseRecurringCredit = {
@@ -786,7 +784,8 @@ interface RecurringEventCredit extends BaseRecurringCredit {
     | CreditType.PROFILE_DURATION
     | CreditType.PROFILE_DURATION_UI
     | CreditType.ATTACHMENT
-    | CreditType.REPLAY;
+    | CreditType.REPLAY
+    | CreditType.LOG_BYTE;
 }
 
 export type RecurringCredit =
@@ -1033,4 +1032,8 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    * The tooltip text for the checkout page
    */
   reservedVolumeTooltip: string | null;
+  /**
+   * How usage is tallied for the category
+   */
+  tallyType: 'usage' | 'seat';
 }

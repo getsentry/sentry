@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Access from 'sentry/components/acl/access';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
 import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
@@ -38,6 +38,10 @@ export default function ProjectReplaySettings({
   project,
   params: {projectId},
 }: Props) {
+  const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
+  const hasAdminAccess = hasEveryAccess(['project:admin'], {organization, project});
+  const hasAccess = hasWriteAccess || hasAdminAccess;
+
   const formGroups: JsonFormObject[] = [
     {
       title: t('Replay Issues'),
@@ -115,15 +119,11 @@ export default function ProjectReplaySettings({
                 response // This will update our project context
               ) => ProjectsStore.onUpdateSuccess(response)}
             >
-              <Access access={['project:write']} project={project}>
-                {({hasAccess}) => (
-                  <JsonForm
-                    disabled={!hasAccess}
-                    features={new Set(organization.features)}
-                    forms={formGroups}
-                  />
-                )}
-              </Access>
+              <JsonForm
+                disabled={!hasAccess}
+                features={new Set(organization.features)}
+                forms={formGroups}
+              />
             </Form>
           </TabPanels.Item>
           <TabPanels.Item key="bulk-delete">

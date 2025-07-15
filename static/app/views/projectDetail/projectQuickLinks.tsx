@@ -14,7 +14,6 @@ import type {Project} from 'sentry/types/project';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {hasLaravelInsightsFeature} from 'sentry/views/insights/pages/platform/laravel/features';
-import {hasNextJsInsightsFeature} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {
@@ -31,13 +30,11 @@ type Props = {
 };
 
 function ProjectQuickLinks({organization, project}: Props) {
-  const hasNewFeedback = organization.features.includes('user-feedback-ui');
   const domainView: DomainView | undefined = project
     ? platformToDomainView([project], [parseInt(project.id, 10)])
     : 'backend';
 
   const isLaravelInsightsAvailable = hasLaravelInsightsFeature(organization);
-  const isNextJsInsightsAvailable = hasNextJsInsightsFeature(organization);
 
   const quickLinks = [
     ...(isLaravelInsightsAvailable && project?.platform === 'php-laravel'
@@ -52,7 +49,7 @@ function ProjectQuickLinks({organization, project}: Props) {
           },
         ]
       : []),
-    ...(isNextJsInsightsAvailable && project?.platform === 'javascript-nextjs'
+    ...(project?.platform === 'javascript-nextjs'
       ? [
           {
             title: t('Next.js Insights'),
@@ -67,9 +64,7 @@ function ProjectQuickLinks({organization, project}: Props) {
     {
       title: t('User Feedback'),
       to: {
-        pathname: hasNewFeedback
-          ? `/organizations/${organization.slug}/feedback/`
-          : `/organizations/${organization.slug}/user-feedback/`,
+        pathname: `/organizations/${organization.slug}/feedback/`,
         query: {project: project?.id},
       },
     },

@@ -3,6 +3,14 @@ import {useEffect, useState} from 'react';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getIsAiNode} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
+import {
+  AI_AGENT_NAME_ATTRIBUTE,
+  AI_COST_ATTRIBUTE,
+  AI_MODEL_ID_ATTRIBUTE,
+  AI_MODEL_NAME_FALLBACK_ATTRIBUTE,
+  AI_TOOL_NAME_ATTRIBUTE,
+  AI_TOTAL_TOKENS_ATTRIBUTE,
+} from 'sentry/views/insights/agentMonitoring/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/agentMonitoring/utils/types';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
@@ -33,7 +41,18 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
   const queryParams = useTraceQueryParams();
 
   const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
-  const trace = useTrace({traceSlug, timestamp: queryParams.timestamp});
+  const trace = useTrace({
+    traceSlug,
+    timestamp: queryParams.timestamp,
+    additionalAttributes: [
+      AI_AGENT_NAME_ATTRIBUTE,
+      AI_MODEL_ID_ATTRIBUTE,
+      AI_MODEL_NAME_FALLBACK_ATTRIBUTE,
+      AI_TOTAL_TOKENS_ATTRIBUTE,
+      AI_COST_ATTRIBUTE,
+      AI_TOOL_NAME_ATTRIBUTE,
+    ],
+  });
 
   useEffect(() => {
     if (trace.status !== 'success' || !trace.data || !meta.data) {

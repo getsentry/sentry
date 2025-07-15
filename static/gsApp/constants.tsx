@@ -59,6 +59,7 @@ Object.entries(DEFAULT_BILLED_DATA_CATEGORY_INFO).forEach(
       feature: null,
       hasSpikeProtection: false,
       reservedVolumeTooltip: null,
+      tallyType: 'usage',
     };
   }
 );
@@ -73,7 +74,6 @@ export const BILLED_DATA_CATEGORY_INFO = {
   [DataCategoryExact.ERROR]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.ERROR],
     canAllocate: true,
-    canProductTrial: false,
     maxAdminGift: 10_000_000,
     freeEventsMultiple: 1_000,
     hasSpikeProtection: true,
@@ -96,7 +96,6 @@ export const BILLED_DATA_CATEGORY_INFO = {
   [DataCategoryExact.ATTACHMENT]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.ATTACHMENT],
     canAllocate: true,
-    canProductTrial: false,
     maxAdminGift: 10_000,
     freeEventsMultiple: 1,
     feature: 'event-attachments',
@@ -107,7 +106,6 @@ export const BILLED_DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.REPLAY]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.REPLAY],
-    canAllocate: false,
     canProductTrial: true,
     maxAdminGift: 1_000_000,
     freeEventsMultiple: 1,
@@ -118,7 +116,6 @@ export const BILLED_DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.SPAN]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SPAN],
-    canAllocate: false,
     canProductTrial: true,
     maxAdminGift: 1_000_000_000,
     freeEventsMultiple: 100_000,
@@ -130,7 +127,6 @@ export const BILLED_DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.SPAN_INDEXED]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SPAN_INDEXED],
-    canAllocate: false,
     canProductTrial: true,
     maxAdminGift: 1_000_000_000,
     freeEventsMultiple: 100_000,
@@ -138,50 +134,37 @@ export const BILLED_DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.MONITOR_SEAT]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.MONITOR_SEAT],
-    canAllocate: false,
-    canProductTrial: false,
     maxAdminGift: 10_000,
     freeEventsMultiple: 1,
     feature: 'monitor-seat-billing',
+    tallyType: 'seat',
   },
   [DataCategoryExact.UPTIME]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.UPTIME],
-    canAllocate: false,
-    canProductTrial: false,
     maxAdminGift: 10_000,
     freeEventsMultiple: 1,
     feature: 'uptime-billing',
+    tallyType: 'seat',
   },
   [DataCategoryExact.PROFILE_DURATION]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.PROFILE_DURATION],
-    canAllocate: false,
     canProductTrial: true,
     maxAdminGift: 10_000,
     freeEventsMultiple: 1, // in hours
-    feature: null,
   },
   [DataCategoryExact.PROFILE_DURATION_UI]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.PROFILE_DURATION_UI],
-    canAllocate: false,
     canProductTrial: true,
     maxAdminGift: 10_000,
     freeEventsMultiple: 1, // in hours
-    feature: null,
   },
+  // Seer categories have product trials through ReservedBudgetCategoryType.SEER, not as individual categories
   [DataCategoryExact.SEER_AUTOFIX]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SEER_AUTOFIX],
-    canAllocate: false,
-    canProductTrial: false,
-    maxAdminGift: 0,
-    freeEventsMultiple: 0,
     feature: 'seer-billing',
   },
   [DataCategoryExact.SEER_SCANNER]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SEER_SCANNER],
-    canAllocate: false,
-    canProductTrial: false,
-    maxAdminGift: 0,
-    freeEventsMultiple: 0,
     feature: 'seer-billing',
   },
   [DataCategoryExact.LOG_BYTE]: {
@@ -190,6 +173,10 @@ export const BILLED_DATA_CATEGORY_INFO = {
     canProductTrial: true,
     maxAdminGift: 10_000,
     freeEventsMultiple: 1,
+    hasSpikeProtection: false,
     feature: 'logs-billing',
+    reservedVolumeTooltip: t(
+      'Log bytes represent the amount of log data ingested and stored.'
+    ),
   },
 } as const satisfies Record<DataCategoryExact, BilledDataCategoryInfo>;

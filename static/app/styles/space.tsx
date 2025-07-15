@@ -11,6 +11,9 @@ const SPACES = {
 
 export type ValidSize = keyof typeof SPACES;
 
+/**
+ * @deprecated prefer using `theme.space`
+ */
 function space<S extends ValidSize>(size: S): (typeof SPACES)[S] {
   return SPACES[size];
 }

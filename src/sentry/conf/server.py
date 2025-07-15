@@ -2936,7 +2936,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.6.2"
+SELF_HOSTED_STABLE_VERSION = "25.7.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3701,6 +3701,7 @@ SENTRY_GROUP_ATTRIBUTES_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROCESSED_PROFILES_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_FUNCTIONS_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_CHUNKS_FUTURES_MAX_LIMIT = 10000
+SENTRY_PROFILE_OCCURRENCES_FUTURES_MAX_LIMIT = 10000
 
 SENTRY_PREPROD_ARTIFACT_EVENTS_FUTURES_MAX_LIMIT = 10000
 
@@ -3864,8 +3865,6 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-group-integration-details",
     "sentry-api-0-group-current-release",
     "sentry-api-0-shared-group-details",
-    # Unscoped profiling URLs
-    "sentry-api-0-profiling-project-profile",
     # These paths are used by relay which is implicitly region scoped
     "sentry-api-0-relays-index",
     "sentry-api-0-relay-register-challenge",

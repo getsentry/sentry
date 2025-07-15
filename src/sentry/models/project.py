@@ -349,6 +349,9 @@ class Project(Model):
         # This Project has sent insight agent monitoring spans
         has_insights_agent_monitoring: bool
 
+        # This Project has sent insight MCP spans
+        has_insights_mcp: bool
+
         bitfield_default = 10
 
     objects: ClassVar[ProjectManager] = ProjectManager(cache_fields=["pk"])
@@ -441,8 +444,14 @@ class Project(Model):
 
         return self.option_manager.get_value(self, key, default, validate)
 
-    def update_option(self, key: str, value: Any) -> bool:
-        return self.option_manager.set_value(self, key, value)
+    def update_option(self, key: str, value: Any, reload_cache: bool = True) -> bool:
+        """
+        Updates a project option for this project.
+        :param reload_cache: Invalidate the project config and reload the
+        cache. Do not call this with `False` unless you know for sure that
+        it's fine to keep the cached project config.
+        """
+        return self.option_manager.set_value(self, key, value, reload_cache=reload_cache)
 
     def delete_option(self, key: str) -> None:
         self.option_manager.unset_value(self, key)

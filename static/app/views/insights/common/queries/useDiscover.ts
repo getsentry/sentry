@@ -14,9 +14,6 @@ import type {
   EAPSpanResponse,
   MetricsProperty,
   MetricsResponse,
-  SpanIndexedField,
-  SpanIndexedProperty,
-  SpanIndexedResponse,
   SpanMetricsProperty,
   SpanMetricsResponse,
 } from 'sentry/views/insights/types';
@@ -47,20 +44,7 @@ interface UseDiscoverOptions<Fields> {
 // The default sampling mode for eap queries
 export const DEFAULT_SAMPLING_MODE: SamplingMode = 'NORMAL';
 
-export const useSpansIndexed = <Fields extends SpanIndexedProperty[]>(
-  options: UseDiscoverOptions<Fields> = {},
-  referrer: string
-) => {
-  const useEap = useInsightsEap();
-  // Indexed spans dataset always returns an `id`
-  return useDiscover<Fields | [SpanIndexedField.ID], SpanIndexedResponse>(
-    options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_INDEXED,
-    referrer
-  );
-};
-
-export const useEAPSpans = <Fields extends EAPSpanProperty[]>(
+export const useSpans = <Fields extends EAPSpanProperty[]>(
   options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
@@ -107,10 +91,7 @@ export const useDiscoverOrEap = <Fields extends DiscoverProperty[]>(
   );
 };
 
-export const useDiscover = <
-  T extends Array<Extract<keyof ResponseType, string>>,
-  ResponseType,
->(
+const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, ResponseType>(
   options: UseDiscoverOptions<T> = {},
   dataset: DiscoverDatasets,
   referrer: string
