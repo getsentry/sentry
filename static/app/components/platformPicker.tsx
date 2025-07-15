@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
@@ -85,6 +85,10 @@ function PlatformPicker({
   const [filter, setFilter] = useState(
     noAutoFilter ? '' : (platform || '').split('-')[0]!
   );
+
+  useEffect(() => {
+    setCategory(defaultCategory ?? categoryList[0]!.id);
+  }, [defaultCategory]);
 
   const platformList = useMemo(() => {
     const currentCategory = categoryList.find(({id}) => id === category);
