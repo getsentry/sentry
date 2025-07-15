@@ -100,10 +100,7 @@ class AddGiftEventsAction extends Component<Props, State> {
       if (dataCategory === DataCategory.LOG_BYTE) {
         return 'How many log bytes in GB?';
       }
-      if (
-        dataCategory === DataCategory.PROFILE_DURATION ||
-        dataCategory === DataCategory.PROFILE_DURATION_UI
-      ) {
+      if (isContinuousProfiling(dataCategory)) {
         return 'How many profile hours?';
       }
       const categoryName = getPlanCategoryName({
