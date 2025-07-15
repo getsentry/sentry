@@ -83,7 +83,6 @@ const Header = styled('div')`
 const Description = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.tokens.content.primary};
-  opacity: 0.8;
 `;
 
 const Footer = styled('div')`
