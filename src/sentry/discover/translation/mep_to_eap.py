@@ -19,11 +19,11 @@ class QueryParts(TypedDict):
 
 
 COLUMNS_TO_DROP = (
-    "any(",
-    "count_miserable(",
-    "count_web_vitals(",
-    "last_seen(",
-    "percentile(",
+    "any",
+    "count_miserable",
+    "count_web_vitals",
+    "last_seen",
+    "percentile",
     "total.count",
 )
 
