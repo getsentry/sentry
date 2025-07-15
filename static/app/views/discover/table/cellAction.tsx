@@ -1,4 +1,3 @@
-import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -7,7 +6,6 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {
@@ -16,6 +14,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import getDuration from 'sentry/utils/duration/getDuration';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import type {TableColumn} from './types';
 
@@ -261,31 +260,27 @@ function makeCellActions({
 
 type Props = React.PropsWithoutRef<CellActionsOpts>;
 
-type State = {
-  isHovering: boolean;
-  isOpen: boolean;
-};
+function CellAction(props: Props) {
+  const organization = useOrganization();
+  const {children} = props;
+  const cellActions = makeCellActions(props);
 
-class CellAction extends Component<Props, State> {
-  render() {
-    const {children} = this.props;
-    const cellActions = makeCellActions(this.props);
-
+  if (organization.features.includes('organizations:discover-cell-actions-v2'))
     return (
       <Container
         data-test-id={cellActions === null ? undefined : 'cell-action-container'}
       >
-        {children}
         {cellActions?.length && (
           <DropdownMenu
             items={cellActions}
             usePortal
             size="sm"
             offset={4}
-            position="bottom"
+            position="bottom-start"
             preventOverflowOptions={{padding: 4}}
             flipOptions={{
               fallbackPlacements: [
+                'bottom-end',
                 'top',
                 'right-start',
                 'right-end',
@@ -294,19 +289,51 @@ class CellAction extends Component<Props, State> {
               ],
             }}
             trigger={triggerProps => (
-              <ActionMenuTrigger
-                {...triggerProps}
-                translucentBorder
-                aria-label={t('Actions')}
-                icon={<IconEllipsis size="xs" />}
-                size="zero"
-              />
+              <ActionMenuTriggerV2 {...triggerProps} aria-label={t('Actions')}>
+                {children}
+              </ActionMenuTriggerV2>
             )}
+            // So the menu doesn't fill the entire row which can lead to extremely wide menus
+            menuWidth={'fit-content'}
+            minMenuWidth={0}
           />
         )}
       </Container>
     );
-  }
+
+  return (
+    <Container data-test-id={cellActions === null ? undefined : 'cell-action-container'}>
+      {children}
+      {cellActions?.length && (
+        <DropdownMenu
+          items={cellActions}
+          usePortal
+          size="sm"
+          offset={4}
+          position="bottom"
+          preventOverflowOptions={{padding: 4}}
+          flipOptions={{
+            fallbackPlacements: [
+              'top',
+              'right-start',
+              'right-end',
+              'left-start',
+              'left-end',
+            ],
+          }}
+          trigger={triggerProps => (
+            <ActionMenuTrigger
+              {...triggerProps}
+              translucentBorder
+              aria-label={t('Actions')}
+              icon={<IconEllipsis size="xs" />}
+              size="zero"
+            />
+          )}
+        />
+      )}
+    </Container>
+  );
 }
 
 export default CellAction;
@@ -325,7 +352,7 @@ const ActionMenuTrigger = styled(Button)`
   top: 50%;
   right: -1px;
   transform: translateY(-50%);
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space.xs};
 
   display: flex;
   align-items: center;
@@ -337,4 +364,13 @@ const ActionMenuTrigger = styled(Button)`
   ${Container}:hover & {
     opacity: 1;
   }
+`;
+
+const ActionMenuTriggerV2 = styled('div')<{text?: string}>`
+  :hover {
+    cursor: pointer;
+    font-weight: ${p => p.theme.fontWeight.bold};
+  }
+  padding: ${p => p.theme.space.md};
+  margin: -${p => p.theme.space.md};
 `;

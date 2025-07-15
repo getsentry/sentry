@@ -156,6 +156,7 @@ function DropdownMenu({
   flipOptions,
   portalContainerRef,
   shouldApplyMinWidth,
+  menuWidth,
   ...props
 }: DropdownMenuProps) {
   const isDisabled = disabledProp ?? (!items || items.length === 0);
@@ -244,6 +245,7 @@ function DropdownMenu({
         overlayPositionProps={overlayProps}
         overlayState={overlayState}
         items={activeItems}
+        menuWidth={menuWidth}
       >
         {(item: MenuItemProps) => {
           if (item.children && item.children.length > 0 && !item.isSubmenu) {

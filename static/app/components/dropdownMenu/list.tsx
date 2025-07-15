@@ -1,4 +1,11 @@
-import {createContext, Fragment, useContext, useMemo, useRef} from 'react';
+import {
+  createContext,
+  type CSSProperties,
+  Fragment,
+  useContext,
+  useMemo,
+  useRef,
+} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
@@ -66,6 +73,10 @@ export interface DropdownMenuListProps
    */
   menuTitle?: React.ReactNode;
   /**
+   * Set the menu width
+   */
+  menuWidth?: CSSProperties['width'];
+  /**
    * Minimum menu width
    */
   minMenuWidth?: number;
@@ -81,6 +92,7 @@ function DropdownMenuList({
   menuFooter,
   overlayState,
   overlayPositionProps,
+  menuWidth,
   ...props
 }: DropdownMenuListProps) {
   const {rootOverlayState, parentMenuState} = useContext(DropdownMenuContext);
@@ -91,6 +103,14 @@ function DropdownMenuList({
   const menuRef = useRef(null);
   const {menuProps} = useMenu({...props, selectionMode: 'single'}, state, menuRef);
   const {separatorProps} = useSeparator({elementType: 'li'});
+
+  if (menuWidth) {
+    overlayPositionProps.style = {
+      ...overlayPositionProps.style,
+      width: menuWidth,
+      minWidth: minMenuWidth ?? overlayPositionProps.style?.minWidth,
+    };
+  }
 
   // If this is a submenu, pressing arrow left should close it (but not the
   // root menu).
