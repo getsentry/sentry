@@ -8,7 +8,7 @@ from unittest.mock import ANY, MagicMock, patch
 import pytest
 
 from sentry import audit_log
-from sentry.conf.server import SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
+from sentry.conf.server import SENTRY_GROUPING_CONFIG_TRANSITION_DURATION
 from sentry.event_manager import _get_updated_group_title
 from sentry.eventtypes.base import DefaultEvent
 from sentry.grouping.api import get_grouping_config_dict_for_project
@@ -176,7 +176,7 @@ class EventManagerGroupingTest(TestCase):
         # necessary.
         actual_expiry = audit_log_entry.data["sentry:secondary_grouping_expiry"]
         expected_expiry = (
-            int(audit_log_entry.datetime.timestamp()) + SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
+            int(audit_log_entry.datetime.timestamp()) + SENTRY_GROUPING_CONFIG_TRANSITION_DURATION
         )
         assert actual_expiry == expected_expiry or actual_expiry == expected_expiry - 1
 

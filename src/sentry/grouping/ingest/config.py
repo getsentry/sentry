@@ -76,7 +76,7 @@ def update_or_set_grouping_config_if_needed(project: Project, source: str) -> st
                 # This is when we will stop calculating the old hash in cases where we don't find the
                 # new hash (which we do in an effort to preserve group continuity).
                 transition_expiry = (
-                    int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
+                    int(time.time()) + settings.SENTRY_GROUPING_CONFIG_TRANSITION_DURATION
                 )
 
                 changes.update(
