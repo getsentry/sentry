@@ -73,7 +73,7 @@ export function useExploreSpansTourModal() {
             description={t(
               'Aggregate and visualize metrics with your span data in this new query builder. You’ll be able to drill into the exact problems causing your infra bills to spike and your users to grimace.'
             )}
-            imgSrc={exploreSpansTourSvg}
+            img={{src: exploreSpansTourSvg, alt: t('Explore Spans Tour')}}
             closeModal={props.closeModal}
             onDismissTour={() => {
               mutateAssistant({

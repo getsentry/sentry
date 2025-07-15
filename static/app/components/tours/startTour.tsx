@@ -10,7 +10,10 @@ interface StartTourModalProps {
   closeModal: () => void;
   description: React.ReactNode;
   header: React.ReactNode;
-  imgSrc: string;
+  img: {
+    alt: string;
+    src: string;
+  };
   onDismissTour: () => void;
   onStartTour: () => void;
 }
@@ -19,7 +22,7 @@ export function StartTourModal({
   closeModal,
   onDismissTour,
   onStartTour,
-  imgSrc,
+  img,
   header,
   description,
 }: StartTourModalProps) {
@@ -27,7 +30,7 @@ export function StartTourModal({
   return (
     <ThemeProvider theme={invertedTheme}>
       <TourContainer>
-        <ModalImage src={imgSrc} />
+        <ModalImage {...img} />
         <TextContainer>
           <Header>{header}</Header>
           <Description>{description}</Description>

@@ -292,7 +292,7 @@ export function useTourModal() {
       openModal(
         props => (
           <StartTourModal
-            imgSrc={stackedNavTourSvg}
+            img={{src: stackedNavTourSvg, alt: t('Stacked Navigation Tour')}}
             header={t('Welcome to a simpler Sentry')}
             description={t(
               'Find what you need, faster. Our new navigation puts your top workflows front and center.'

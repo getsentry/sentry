@@ -72,7 +72,10 @@ function useIssueDetailsPromoModal() {
         props => (
           <StartTourModal
             closeModal={props.closeModal}
-            imgSrc={issueDetailsPreview}
+            img={{
+              src: issueDetailsPreview,
+              alt: t('Preview of the issue details experience'),
+            }}
             header={t('Welcome to Issue Details')}
             description={t(
               "New around here? Tour the issue experience - we promise you'll be less confused."
