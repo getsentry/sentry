@@ -31,10 +31,13 @@ import {
   useLogsAggregateFunction,
   useLogsFields,
   useLogsGroupBy,
+  useLogsMode,
   useLogsSearch,
   useSetLogsFields,
+  useSetLogsMode,
   useSetLogsPageParams,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {
@@ -79,6 +82,8 @@ export function LogsTabContent({
   const logsSearch = useLogsSearch();
   const fields = useLogsFields();
   const groupBy = useLogsGroupBy();
+  const mode = useLogsMode();
+  const setMode = useSetLogsMode();
   const setFields = useSetLogsFields();
   const setLogsPageParams = useSetLogsPageParams();
   const tableData = useLogsPageDataQueryResult();
@@ -179,6 +184,15 @@ export function LogsTabContent({
       {closeEvents: 'escape-key'}
     );
   }, [fields, setFields, stringAttributes, numberAttributes]);
+
+  const tableTab = mode === Mode.AGGREGATE ? 'aggregates' : 'logs';
+  const setTableTab = useCallback(
+    (tab: 'aggregates' | 'logs') => {
+      setMode(tab === 'aggregates' ? Mode.AGGREGATE : Mode.SAMPLES);
+    },
+    [setMode]
+  );
+
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
       <TopSectionBody noRowGap>

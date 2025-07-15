@@ -74,7 +74,7 @@ describe('WebVitalsLandingPage', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'metrics',
+          dataset: 'spans',
           field: [
             'project.id',
             'project',
@@ -105,7 +105,7 @@ describe('WebVitalsLandingPage', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'metrics',
+          dataset: 'spans',
           field: [
             'p75(measurements.lcp)',
             'p75(measurements.fcp)',
@@ -125,7 +125,7 @@ describe('WebVitalsLandingPage', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'metrics',
+          dataset: 'spans',
           field: [
             'performance_score(measurements.score.lcp)',
             'performance_score(measurements.score.fcp)',

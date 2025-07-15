@@ -26,7 +26,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -190,7 +190,7 @@ function EAPMobileOverviewPage() {
 
   existingQuery.addFilterValue('is_transaction', 'true');
 
-  const response = useEAPSpans(
+  const response = useSpans(
     {
       search: existingQuery,
       sorts,

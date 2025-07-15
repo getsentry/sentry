@@ -10,6 +10,7 @@ import {
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {HTTPSamplesPanel} from 'sentry/views/insights/http/components/httpSamplesPanel';
 
 jest.mock('sentry/utils/useLocation');
@@ -111,7 +112,6 @@ describe('HTTPSamplesPanel', () => {
   describe('Status panel', () => {
     let eventsStatsRequestMock: jest.Mock;
     let samplesRequestMock: jest.Mock;
-    let spanFieldTagsMock: jest.Mock;
 
     beforeEach(() => {
       jest.mocked(useLocation).mockReturnValue({
@@ -195,21 +195,6 @@ describe('HTTPSamplesPanel', () => {
           meta: {},
         },
       });
-
-      spanFieldTagsMock = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/spans/fields/`,
-        method: 'GET',
-        body: [
-          {
-            key: 'api_key',
-            name: 'Api Key',
-          },
-          {
-            key: 'bytes.size',
-            name: 'Bytes.Size',
-          },
-        ],
-      });
     });
 
     it('fetches panel data', async () => {
@@ -272,7 +257,8 @@ describe('HTTPSamplesPanel', () => {
         expect.objectContaining({
           method: 'GET',
           query: expect.objectContaining({
-            dataset: 'spansIndexed',
+            dataset: 'spans',
+            sampling: SAMPLING_MODE.NORMAL,
             query:
               'span.op:http.client !has:span.domain transaction:/api/0/users span.status_code:[300,301,302,303,304,305,307,308]',
             project: [],
@@ -289,19 +275,6 @@ describe('HTTPSamplesPanel', () => {
             referrer: 'api.performance.http.samples-panel-response-code-samples',
             statsPeriod: '10d',
           }),
-        })
-      );
-
-      expect(spanFieldTagsMock).toHaveBeenNthCalledWith(
-        1,
-        `/organizations/${organization.slug}/spans/fields/`,
-        expect.objectContaining({
-          method: 'GET',
-          query: {
-            project: [],
-            environment: [],
-            statsPeriod: '1h',
-          },
         })
       );
 
@@ -338,7 +311,6 @@ describe('HTTPSamplesPanel', () => {
   describe('Duration panel', () => {
     let chartRequestMock: jest.Mock;
     let samplesRequestMock: jest.Mock;
-    let spanFieldTagsMock: jest.Mock;
 
     beforeEach(() => {
       jest.mocked(useLocation).mockReturnValue({
@@ -391,21 +363,6 @@ describe('HTTPSamplesPanel', () => {
           },
         },
       });
-
-      spanFieldTagsMock = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/spans/fields/`,
-        method: 'GET',
-        body: [
-          {
-            key: 'api_key',
-            name: 'Api Key',
-          },
-          {
-            key: 'bytes.size',
-            name: 'Bytes.Size',
-          },
-        ],
-      });
     });
 
     it('fetches panel data', async () => {
@@ -456,19 +413,6 @@ describe('HTTPSamplesPanel', () => {
             referrer: 'api.performance.http.samples-panel-duration-samples',
             statsPeriod: '10d',
           }),
-        })
-      );
-
-      expect(spanFieldTagsMock).toHaveBeenNthCalledWith(
-        1,
-        `/organizations/${organization.slug}/spans/fields/`,
-        expect.objectContaining({
-          method: 'GET',
-          query: {
-            project: [],
-            environment: [],
-            statsPeriod: '1h',
-          },
         })
       );
     });

@@ -226,6 +226,7 @@ class NodeStorage(local, Service):
 
         return b"\n".join(lines)
 
+    @metrics.wraps("storage.put.latency", tags={"usecase": "nodestore"})
     def set_bytes(self, item_id: str, data: bytes, ttl: timedelta | None = None) -> None:
         """
         >>> nodestore.set_bytes('key1', b"{'foo': 'bar'}")

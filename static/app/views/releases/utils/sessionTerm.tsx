@@ -117,6 +117,12 @@ function getTermDescriptions(platform: PlatformKey | null) {
         [SessionTerm.CRASHED]: t(
           'An unhandled exception that resulted in the application crashing'
         ),
+        [SessionTerm.ANR_RATE]: t(
+          'Percentage of unique users that experienced an App Not Responding (ANR) error'
+        ),
+        [SessionTerm.FOREGROUND_ANR_RATE]: t(
+          'Percentage of unique users that experienced an App Not Responding (ANR) error when the app was running in the foreground'
+        ),
       };
     case 'apple': {
       return {

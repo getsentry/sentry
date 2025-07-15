@@ -270,7 +270,7 @@ function buildRoutes() {
         <IndexRoute component={make(() => import('sentry/views/onboarding'))} />
       </Route>
       <Route
-        path="/stories/:category?/:topic?"
+        path="/stories/:storyType?/:storySlug?/"
         component={make(() => import('sentry/stories/view/index'))}
         withOrgPath
       />

@@ -22,7 +22,7 @@ export function StorySidebar() {
           <StoryTree nodes={core} />
         </li>
         <li>
-          <h3>Shared</h3>
+          <h3>Product</h3>
           <StoryTree nodes={shared} />
         </li>
       </ul>
