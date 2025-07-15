@@ -172,7 +172,7 @@ def _can_use_hint(
     return True
 
 
-def get_hint_for_frame(
+def _get_hint_for_frame(
     variant_name: str,
     frame: dict[str, Any],
     frame_component: FrameGroupingComponent,
@@ -448,7 +448,7 @@ class Enhancements:
                 else "in-app" if rust_hint.startswith("marked") else "contributes"
             )
 
-            hint = get_hint_for_frame(variant_name, frame, frame_component, rust_frame)
+            hint = _get_hint_for_frame(variant_name, frame, frame_component, rust_frame)
 
             if not (variant_name == "system" and rust_hint_type == "in-app"):
                 hint = rust_hint
@@ -543,13 +543,13 @@ class Enhancements:
             frame_component.update(contributes=contributes)
 
             in_app_hint = (
-                get_hint_for_frame(
+                _get_hint_for_frame(
                     variant_name, frame, frame_component, in_app_rust_frame, "in-app"
                 )
                 if variant_name == "app"
                 else None  # In-app hints don't apply to the system stacktrace
             )
-            contributes_hint = get_hint_for_frame(
+            contributes_hint = _get_hint_for_frame(
                 variant_name, frame, frame_component, contributes_rust_frame, "contributes"
             )
             hint = _combine_hints(variant_name, frame_component, in_app_hint, contributes_hint)
