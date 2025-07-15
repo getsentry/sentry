@@ -6,6 +6,7 @@ import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget, hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import ResultsSearchQueryBuilder from 'sentry/views/discover/results/resultsSearchQueryBuilder';
 
 interface Props {
@@ -26,6 +27,7 @@ export function EventsSearchBar({
   const organization = useOrganization();
   const {customMeasurements} = useCustomMeasurements();
   const eventView = eventViewFromWidget('', widgetQuery, pageFilters);
+  const disableTransactionWidget = useDisableTransactionWidget();
   const fields = eventView.hasAggregateField()
     ? generateAggregateFields(organization, eventView.fields)
     : eventView.fields;
@@ -38,6 +40,7 @@ export function EventsSearchBar({
       onChange={(query, state) => {
         onClose?.(query, {validSearch: state.queryIsValid});
       }}
+      disabled={disableTransactionWidget}
       customMeasurements={customMeasurements}
       dataset={dataset}
       includeTransactions={hasDatasetSelector(organization) ? false : true}

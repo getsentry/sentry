@@ -1738,4 +1738,72 @@ describe('Visualize', () => {
       await screen.findByRole('button', {name: 'Column Selection'})
     ).toHaveTextContent('span.op');
   });
+
+  it('disables visualize step when discover-saved-queries-deprecation feature is enabled and dataset is transactions', async function () {
+    const organizationWithDeprecation = OrganizationFixture({
+      features: ['discover-saved-queries-deprecation'],
+    });
+
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization: organizationWithDeprecation,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+              yAxis: ['p95(transaction.duration)'],
+            },
+          }),
+        }),
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    // The dropdowns should be disabled
+    const aggregateSelect = await screen.findByRole('button', {
+      name: 'Aggregate Selection',
+    });
+    expect(aggregateSelect).toBeDisabled();
+
+    const columnSelect = await screen.findByRole('button', {name: 'Column Selection'});
+    expect(columnSelect).toBeDisabled();
+  });
+
+  it('enables visualize step when discover-saved-queries-deprecation feature is disabled', async function () {
+    const organizationWithoutDeprecation = OrganizationFixture({
+      features: [], // No discover-saved-queries-deprecation feature
+    });
+
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization: organizationWithoutDeprecation,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+              yAxis: ['p95(transaction.duration)'],
+            },
+          }),
+        }),
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    // The dropdowns should be enabled
+    const aggregateSelect = await screen.findByRole('button', {
+      name: 'Aggregate Selection',
+    });
+    expect(aggregateSelect).toBeEnabled();
+
+    const columnSelect = await screen.findByRole('button', {name: 'Column Selection'});
+    expect(columnSelect).toBeEnabled();
+  });
 });

@@ -27,6 +27,7 @@ import {WidgetOnDemandQueryWarning} from 'sentry/views/dashboards/widgetBuilder/
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
+import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {getDiscoverDatasetFromWidgetType} from 'sentry/views/dashboards/widgetBuilder/utils';
@@ -50,6 +51,7 @@ function WidgetBuilderQueryFilterBuilder({
   });
   const source = useDashboardWidgetSource();
   const isEditing = useIsEditingWidget();
+  const disableTransactionWidget = useDisableTransactionWidget();
 
   const widgetType = state.dataset ?? WidgetType.ERRORS;
   const datasetConfig = getDatasetConfig(state.dataset);
@@ -246,6 +248,7 @@ function WidgetBuilderQueryFilterBuilder({
           priority="link"
           onClick={onAddSearchConditions}
           aria-label={t('Add Filter')}
+          disabled={disableTransactionWidget}
         >
           {t('+ Add Filter')}
         </Button>

@@ -23,6 +23,7 @@ import {
   type WidgetType,
 } from 'sentry/views/dashboards/types';
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
+import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import type {generateFieldOptions} from 'sentry/views/discover/utils';
@@ -56,6 +57,7 @@ export function GroupBySelector({
   const source = useDashboardWidgetSource();
   const isEditing = useIsEditingWidget();
   const builderVersion = WidgetBuilderVersion.SLIDEOUT;
+  const disableTransactionWidget = useDisableTransactionWidget();
 
   function handleAdd() {
     const newColumns =
@@ -155,6 +157,7 @@ export function GroupBySelector({
             fieldOptions={filteredFieldOptions}
             onChange={value => handleSelect(value, 0)}
             canDelete={canDelete}
+            disabled={disableTransactionWidget}
           />
         ) : (
           <DndContext
@@ -200,6 +203,7 @@ export function GroupBySelector({
                     onDelete={() => handleRemove(index)}
                     canDrag={canDrag}
                     canDelete={canDelete}
+                    disabled={disableTransactionWidget}
                   />
                 ))}
               </SortableQueryFields>
@@ -216,6 +220,7 @@ export function GroupBySelector({
                     onChange={value => handleSelect(value, Number(activeId))}
                     canDrag={canDrag}
                     canDelete={canDelete}
+                    disabled={disableTransactionWidget}
                   />
                 </Ghost>
               ) : null}
@@ -224,7 +229,13 @@ export function GroupBySelector({
         )}
       </StyledField>
       {columns.length < GROUP_BY_LIMIT && (
-        <Button size="sm" priority="link" onClick={handleAdd} aria-label={t('Add Group')}>
+        <Button
+          size="sm"
+          priority="link"
+          onClick={handleAdd}
+          aria-label={t('Add Group')}
+          disabled={disableTransactionWidget}
+        >
           {t('+ Add Group')}
         </Button>
       )}
