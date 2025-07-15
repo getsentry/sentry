@@ -1,22 +1,21 @@
 import {useCallback, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
-import {AreaChart} from 'sentry/components/charts/areaChart';
 import BaseChart from 'sentry/components/charts/baseChart';
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
-import StackedAreaChart from 'sentry/components/charts/stackedAreaChart';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {
   MajorGridlines,
   MinorGridlines,
 } from 'sentry/components/replays/breadcrumbs/gridlines';
-import ReplayTimelineEvents from 'sentry/components/replays/breadcrumbs/replayTimelineEvents';
+// import ReplayTimelineEvents from 'sentry/components/replays/breadcrumbs/replayTimelineEvents';
 import Stacked from 'sentry/components/replays/breadcrumbs/stacked';
 import TimelineGaps from 'sentry/components/replays/breadcrumbs/timelineGaps';
-import {TimelineScrubber} from 'sentry/components/replays/player/scrubber';
+// import {TimelineScrubber} from 'sentry/components/replays/player/scrubber';
 import {useTimelineScrubberMouseTracking} from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import type {EChartMouseEventData, EChartMouseEventParam} from 'sentry/types/echarts';
@@ -25,28 +24,15 @@ import toPercent from 'sentry/utils/number/toPercent';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useTimelineScale from 'sentry/utils/replays/hooks/useTimelineScale';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
-import type {incrementalSnapshotEvent} from 'sentry/utils/replays/types';
+import type ReplayReader from 'sentry/utils/replays/replayReader';
+import type {BreadcrumbFrame, ErrorFrame, SpanFrame} from 'sentry/utils/replays/types';
 import {getFrameOpOrCategory} from 'sentry/utils/replays/types';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
-const USER_INTERACTION_CATEGORY = 'user.action';
+// const USER_INTERACTION_CATEGORY = 'user.action';
 const ISSUE_CATEGORY = 'issue';
 
-function createBuckets({
-  bucketCount,
-  durationMs,
-  startTimestampMs,
-}: {
-  bucketCount: number;
-  durationMs: number;
-  startTimestampMs: number;
-}) {
-  const bucketSizeMs = durationMs / bucketCount;
-  return Array.from(
-    {length: bucketCount},
-    (_, index) => startTimestampMs + index * bucketSizeMs
-  );
-}
+type Frame = BreadcrumbFrame | SpanFrame;
 
 // Helper function to create stacked area chart data from chapter frames
 function createStackedChartData({
@@ -54,13 +40,13 @@ function createStackedChartData({
   durationMs,
   startTimestampMs,
   frames,
-  getTimestamp = (frame: unknown) => frame.timestamp || frame.startTimestamp,
+  getTimestamp = (frame: Frame) => frame.timestamp || frame.startTimestamp,
 }: {
   bucketCount: number;
   durationMs: number;
   frames: unknown[];
   startTimestampMs: number;
-  getTimestamp?: (frame: unknown) => number;
+  getTimestamp?: (frame: Frame) => number;
 }) {
   if (!frames?.length) {
     return [];
@@ -85,7 +71,7 @@ function createStackedChartData({
   // Initialize buckets
   const bucketData = buckets.map(bucket => ({
     time: bucket,
-    data: 0,
+    data: [] as Frame[],
   }));
 
   // Initialize all categories to 0
@@ -106,8 +92,11 @@ function createStackedChartData({
     const relativeTimestampMs = timestamp - startTimestampMs;
     const bucketIndex = Math.floor(relativeTimestampMs / bucketSizeMs);
 
-    if (bucketIndex >= 0 && bucketIndex < bucketCount) {
-      bucketData[bucketIndex].data += 1;
+    if (bucketIndex >= 0 && bucketIndex < bucketCount && bucketData.at(bucketIndex)) {
+      const bucketObj = bucketData.at(bucketIndex);
+      if (bucketObj) {
+        bucketObj.data.push(frame);
+      }
     }
   });
 
@@ -141,15 +130,21 @@ function getGroupedCategories(frame: BreadcrumbFrame | SpanFrame) {
   return null;
 }
 
-export default function ReplayTimeline() {
-  const {replay, currentTime, setCurrentTime} = useReplayContext();
+export default function ReplayTimelineOrLoader() {
+  const {replay} = useReplayContext();
+  if (!replay) {
+    return <Placeholder height="48px" />;
+  }
+  return <ReplayTimeline replay={replay} />;
+}
+
+function ReplayTimeline({replay}: {replay: ReplayReader}) {
+  const {currentTime, setCurrentTime} = useReplayContext();
   const [timelineScale] = useTimelineScale();
   const [currentHoverTime] = useCurrentHoverTime();
   const theme = useTheme();
   const handleOnClick = useCallback(
-    (params: EChartMouseEventParam<EChartMouseEventData>) => {
-      console.log('onClick', {params});
-    },
+    (params: EChartMouseEventParam<EChartMouseEventData>) => {},
     []
   );
 
@@ -158,10 +153,6 @@ export default function ReplayTimeline() {
     {elem: panelRef},
     timelineScale
   );
-
-  if (!replay) {
-    return <Placeholder height="60px" />;
-  }
 
   const stackedRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions<HTMLDivElement>({elementRef: stackedRef});
@@ -214,7 +205,7 @@ export default function ReplayTimeline() {
   const userInteractionStackedData = useMemo(
     () =>
       createStackedChartData({
-        bucketCount: 100,
+        bucketCount: 1000,
         frames: userInteractionEvents,
         durationMs,
         startTimestampMs,
@@ -240,20 +231,20 @@ export default function ReplayTimeline() {
   };
 
   const maxIssueCount = issuesStackedData.reduce((acc, bucket) => {
-    if ((bucket.data ?? 0) > acc) {
-      acc = bucket.data ?? 0;
+    if (bucket.data.length > acc) {
+      acc = bucket.data.length;
     }
     return acc;
   }, 0);
-  const maxNavigationCount = stackedData.navigation.reduce((acc, bucket) => {
-    if ((bucket.data ?? 0) > acc) {
-      acc = bucket.data ?? 0;
+  const maxNavigationCount = stackedData.navigation?.reduce((acc, bucket) => {
+    if (bucket.data.length > acc) {
+      acc = bucket.data.length;
     }
     return acc;
   }, 0);
-  const maxUiCount = stackedData.ui.reduce((acc, bucket) => {
-    if ((bucket.data ?? 0) > acc) {
-      acc = bucket.data ?? 0;
+  const maxUiCount = stackedData.ui?.reduce((acc, bucket) => {
+    if (bucket.data.length > acc) {
+      acc = bucket.data.length;
     }
     return acc;
   }, 0);
@@ -306,35 +297,40 @@ export default function ReplayTimeline() {
     opacity: 0.25,
     smooth: true,
     color: theme.tokens.graphics.muted,
-    data: userInteractionStackedData.map(bucket => [bucket.time, bucket.data || 0]),
+    data: userInteractionStackedData.map(bucket => [
+      bucket.time,
+      bucket.data.length,
+      bucket.data,
+    ]),
   };
-  const allScatterSeriesData = [
-    ...issuesStackedData.map(bucket => {
-      return {
-        name: bucket.time,
-        itemStyle: {
-          color: theme.tokens.graphics.danger,
-        },
-        value: [bucket.time, bucket.data || 0],
-      };
-    }),
-    ...Object.entries(stackedData).flatMap(([category, categoryData]) => {
-      return categoryData.map(bucket => {
-        return {
-          name: category,
-          itemStyle: {
-            color: theme.tokens.graphics[frameDetails.get(category) ?? ''],
-          },
-          value: [bucket.time, bucket.data || 0],
-        };
-      });
-    }),
-  ];
+  // const allScatterSeriesData = [
+  //   ...issuesStackedData.map(bucket => {
+  //     return {
+  //       name: bucket.time,
+  //       itemStyle: {
+  //         color: theme.tokens.graphics.danger,
+  //       },
+  //       value: [bucket.time, bucket.data || 0],
+  //     };
+  //   }),
+  //   ...Object.entries(stackedData).flatMap(([category, categoryData]) => {
+  //     return categoryData.map(bucket => {
+  //       return {
+  //         name: category,
+  //         itemStyle: {
+  //           color: theme.tokens.graphics[frameDetails.get(category) ?? ''],
+  //         },
+  //         value: [bucket.time, bucket.data || 0],
+  //       };
+  //     });
+  //   }),
+  // ];
   const uiSeries = {
     type: 'scatter' as const,
     singleAxisIndex: 0,
     coordinateSystem: 'singleAxis',
     showSymbol: true,
+    silent: true,
     symbolSize: (dataItem: [timestamp: number, value: number]) => {
       if (dataItem[1] === 0) {
         return 0;
@@ -349,7 +345,9 @@ export default function ReplayTimeline() {
     seriesName: 'ui',
     name: 'ui',
     color: theme.tokens.graphics.accent,
-    data: stackedData.ui.map(bucket => [bucket.time, bucket.data || 0]),
+    tooltip: {show: false},
+    data:
+      stackedData.ui?.map(bucket => [bucket.time, bucket.data.length, bucket.data]) ?? [],
     // [
     //   ...issuesStackedData.map(bucket => {
     //     return {
@@ -376,6 +374,8 @@ export default function ReplayTimeline() {
     singleAxisIndex: 0,
     coordinateSystem: 'singleAxis',
     showSymbol: true,
+    silent: true,
+    tooltip: {show: false},
     symbolSize: (dataItem: [timestamp: number, value: number]) => {
       if (dataItem[1] === 0) {
         return 0;
@@ -390,7 +390,12 @@ export default function ReplayTimeline() {
     seriesName: 'navigation',
     name: 'navigation',
     color: theme.tokens.graphics.success,
-    data: stackedData.navigation.map(bucket => [bucket.time, bucket.data || 0]),
+    data:
+      stackedData.navigation?.map(bucket => [
+        bucket.time,
+        bucket.data.length,
+        bucket.data,
+      ]) ?? [],
     // [
     //   ...issuesStackedData.map(bucket => {
     //     return {
@@ -414,9 +419,11 @@ export default function ReplayTimeline() {
   };
   const issueSeries = {
     type: 'scatter' as const,
+    silent: true,
     singleAxisIndex: 1,
     coordinateSystem: 'singleAxis',
     showSymbol: true,
+    tooltip: {show: false},
     symbolSize: (dataItem: [timestamp: number, value: number]) => {
       if (dataItem[1] === 0) {
         return 0;
@@ -436,7 +443,7 @@ export default function ReplayTimeline() {
         itemStyle: {
           color: theme.tokens.graphics.danger,
         },
-        value: [bucket.time, bucket.data || 0],
+        value: [bucket.time, bucket.data.length, bucket.data],
       };
     }),
     // [
@@ -461,36 +468,36 @@ export default function ReplayTimeline() {
     // ],
   };
 
-  const series =
-    chapterFrames.length > 0
-      ? Object.entries(stackedData).map(([category, categoryData]) => {
-          const data = categoryData.map(bucket => [bucket.time, bucket.data || 0]);
-          return {
-            type: 'line' as const,
-            smooth: true,
-            xAxisIndex: 0,
-            yAxisIndex: 0,
-            triggerLineEvent: true,
-            gridIndex: 1,
-            stack: 'breadcrumbs',
-            areaStyle: {
-              opacity: 1,
-            },
-            lineStyle: {
-              color: theme.tokens.graphics[frameDetails.get(category)],
-              // opacity: 1,
-              width: 0.4,
-            },
-            showSymbol: false,
-            seriesName: category,
-            name: category,
-            opacity: 0.5,
-            smooth: true,
-            color: theme.tokens.graphics[frameDetails.get(category)],
-            data,
-          };
-        })
-      : [];
+  // const series =
+  //   chapterFrames.length > 0
+  //     ? Object.entries(stackedData).map(([category, categoryData]) => {
+  //         const data = categoryData.map(bucket => [bucket.time, bucket.data || 0]);
+  //         return {
+  //           type: 'line' as const,
+  //           smooth: true,
+  //           xAxisIndex: 0,
+  //           yAxisIndex: 0,
+  //           triggerLineEvent: true,
+  //           gridIndex: 0,
+  //           stack: 'breadcrumbs',
+  //           areaStyle: {
+  //             opacity: 1,
+  //           },
+  //           lineStyle: {
+  //             color: theme.tokens.graphics[frameDetails.get(category)],
+  //             // opacity: 1,
+  //             width: 0.4,
+  //           },
+  //           showSymbol: false,
+  //           seriesName: category,
+  //           name: category,
+  //           opacity: 0.5,
+  //           smooth: true,
+  //           color: theme.tokens.graphics[frameDetails.get(category)],
+  //           data,
+  //         };
+  //       })
+  //     : [];
 
   const playedStatus = {
     type: 'custom' as const,
@@ -544,6 +551,59 @@ export default function ReplayTimeline() {
       animation: false,
     }),
   };
+  //
+  // {
+  // componentType: 'series',
+  // // Series type
+  // seriesType: string,
+  // // Series index in option.series
+  // seriesIndex: number,
+  // // Series name
+  // seriesName: string,
+  // // Data name, or category name
+  // name: string,
+  // // Data index in input data array
+  // dataIndex: number,
+  // // Original data as input
+  // data: Object,
+  // // Value of data. In most series it is the same as data.
+  // // But in some series it is some part of the data (e.g., in map, radar)
+  // value: number|Array|Object,
+  // // encoding info of coordinate system
+  // // Key: coord, like ('x' 'y' 'radius' 'angle')
+  // // value: Must be an array, not null/undefined. Contain dimension indices, like:
+  // // {
+  // //     x: [2] // values on dimension index 2 are mapped to x axis.
+  // //     y: [0] // values on dimension index 0 are mapped to y axis.
+  // // }
+  // encode: Object,
+  // // dimension names list
+  // dimensionNames: Array<String>,
+  // // data dimension index, for example 0 or 1 or 2 ...
+  // // Only work in `radar` series.
+  // dimensionIndex: number,
+  // // Color of data
+  // color: string,
+  // // The percentage of current data item in the pie/funnel series
+  // percent: number,
+  // // The ancestors of current node in the sunburst series (including self)
+  // treePathInfo: Array,
+  // // The ancestors of current node in the tree/treemap series (including self)
+  // treeAncestors: Array,
+  // // A function that returns a boolean value to flag if the axis label is truncated
+  // isTruncated: Function,
+  // // Current index of the axis label tick
+  // tickIndex: number
+  // }
+
+  const allSeries = [
+    userInteractionSeries,
+    playedStatus,
+    issueSeries,
+    hoverStatus,
+    navigationSeries,
+    uiSeries,
+  ];
 
   return (
     <VisiblePanel ref={panelRef}>
@@ -564,8 +624,70 @@ export default function ReplayTimeline() {
         <div>
           <BaseChart
             onClick={handleOnClick}
-            height={60}
-            tooltip={{appendToBody: true}}
+            height={48}
+            tooltip={{
+              trigger: 'axis',
+              appendToBody: true,
+              // @ts-expect-error Wrong typing?
+              formatter: (params: CallbackDataParams[]) => {
+                // This assumes all series data has same buckets, otherwise we would need to find
+                // based on params.data[0] (timestamp) -- though if bucket sizes are different then this timestamp may be different too
+                const dataIndex = params[0]?.dataIndex ?? 0;
+                const allData = [];
+
+                const userInteractionDataItem = userInteractionSeries.data.at(dataIndex);
+
+                if (userInteractionDataItem) {
+                  allData.push(
+                    `<div>user activity:${userInteractionDataItem[1]} events</div>`
+                  );
+                }
+
+                const navigationDataItem = navigationSeries.data.at(dataIndex);
+                const issueDataItem = issueSeries.data.at(dataIndex);
+                const uiDataItem = uiSeries.data.at(dataIndex);
+
+                if (navigationDataItem) {
+                  navigationDataItem[2].forEach((frame: SpanFrame) => {
+                    allData.push(`<div>${frame.op}: ${frame.description}</div>`);
+                  });
+                }
+
+                if (issueDataItem) {
+                  issueDataItem.value?.[2]?.forEach((frame: ErrorFrame) => {
+                    allData.push(`<div>Error: ${frame.message}</div>`);
+                  });
+                }
+
+                if (uiDataItem) {
+                  uiDataItem[2].forEach((frame: BreadcrumbFrame) => {
+                    allData.push(`<div>${frame.category}: ${frame.message}</div>`);
+                  });
+                }
+
+                allData.push(params[0].data[0]);
+
+                // const foundSeries = allSeries
+                //   .map(series => {
+                //     const dataItem = series.data?.at(params[0]?.dataIndex);
+                //     if (dataItem) {
+                //       return (dataItem.value ?? dataItem)?.[2];
+                //     }
+                //   })
+                //   .filter(Boolean);
+                // const str = foundSeries
+                //   .flatMap(series => {
+                //     return series
+                //       .map(frame => {
+                //         return `<div>${frame.message}</div>`;
+                //       })
+                //       .join('\n');
+                //   })
+                //   .join('\n');
+                // console.log({str});
+                return allData.join('\n');
+              },
+            }}
             yAxes={[
               {
                 gridIndex: 0,
@@ -709,14 +831,7 @@ export default function ReplayTimeline() {
                 bottom: 0,
               },
             ]}
-            series={[
-              userInteractionSeries,
-              playedStatus,
-              issueSeries,
-              hoverStatus,
-              navigationSeries,
-              uiSeries,
-            ]}
+            series={allSeries}
           />
         </div>
       </Stacked>
