@@ -323,7 +323,8 @@ export const MY_TOUR_KEY = 'tour.my_tour';
               <StartTourModal
                 closeModal={props.closeModal}
                 onDismissTour={() => {
-                  props.closeModal();
+                  // eslint-disable-next-line no-alert
+                  window.alert('Tour dismissed');
                 }}
                 onStartTour={() => {
                   // eslint-disable-next-line no-alert

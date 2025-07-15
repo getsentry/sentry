@@ -81,7 +81,6 @@ export function useExploreSpansTourModal() {
                 status: 'dismissed',
               });
               endTour();
-              props.closeModal();
             }}
             onStartTour={startTour}
           />
