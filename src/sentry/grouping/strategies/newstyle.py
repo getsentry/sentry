@@ -433,7 +433,7 @@ def _single_stacktrace_variant(
 
     frame_components = []
     prev_frame = None
-    frames_for_filtering = []
+    raw_frames = []
     found_in_app_frame = False
 
     for frame in frames:
@@ -448,7 +448,7 @@ def _single_stacktrace_variant(
                 frame_component.update(contributes=False)
 
         frame_components.append(frame_component)
-        frames_for_filtering.append(frame.get_raw_data())
+        raw_frames.append(frame.get_raw_data())
         prev_frame = frame
 
     # Special case for JavaScript where we want to ignore single frame
@@ -468,7 +468,7 @@ def _single_stacktrace_variant(
     stacktrace_component = context.config.enhancements.assemble_stacktrace_component(
         variant_name,
         frame_components,
-        frames_for_filtering,
+        raw_frames,
         event.platform,
         exception_data=context["exception_data"],
     )
