@@ -238,6 +238,6 @@ class TestProcessWorkflowActivity(TestCase):
 
             # Workflow engine evaluated activity update in process_workflows
             mock_incr.assert_any_call(
-                "workflow_engine.tasks.process_workflow.activity_update.executed",
+                "workflow_engine.tasks.process_workflows.activity_update.executed",
                 tags={"activity_type": self.activity.type},
             )

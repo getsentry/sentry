@@ -73,7 +73,7 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
 
     process_workflows(event_data, detector)
     metrics.incr(
-        "workflow_engine.tasks.process_workflow.activity_update.executed",
+        "workflow_engine.tasks.process_workflows.activity_update.executed",
         tags={"activity_type": activity.type},
     )
 
