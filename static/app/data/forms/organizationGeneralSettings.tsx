@@ -48,14 +48,21 @@ const formGroups: JsonFormObject[] = [
         name: 'enablePrReviewTestGeneration',
         type: 'boolean',
         label: tct('Enable PR Review and Test Generation [badge]', {
-          badge: <FeatureBadge type="beta" />,
+          badge: <FeatureBadge type="beta" style={{marginBottom: '2px'}} />,
         }),
         help: tct(
           'Use AI to generate feedback and tests in pull requests [link:Learn more]',
           {
-            link: <ExternalLink href="https://github.com/apps/seer-by-sentry/" />,
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/sentry-prevent-ai/" />
+            ),
           }
         ),
+        visible: ({model}) => {
+          // Show field when AI features are enabled (hideAiFeatures is false)
+          const hideAiFeatures = model.getValue('hideAiFeatures');
+          return !hideAiFeatures;
+        },
       },
     ],
   },

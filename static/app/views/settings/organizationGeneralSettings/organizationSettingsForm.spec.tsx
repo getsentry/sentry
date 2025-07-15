@@ -270,7 +270,74 @@ describe('OrganizationSettingsForm', function () {
     expect(learnMoreLink).toBeInTheDocument();
     expect(learnMoreLink).toHaveAttribute(
       'href',
-      'https://github.com/apps/seer-by-sentry/'
+      'https://docs.sentry.io/product/ai-in-sentry/sentry-prevent-ai/'
     );
+  });
+
+  it('hides PR Review and Test Generation field when AI features are disabled', function () {
+    render(
+      <OrganizationSettingsForm
+        {...routerProps}
+        initialData={OrganizationFixture({hideAiFeatures: true})}
+        onSave={onSave}
+      />
+    );
+
+    expect(
+      screen.queryByText('Enable PR Review and Test Generation')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Use AI to generate feedback and tests in pull requests')
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows PR Review and Test Generation field when AI features are enabled', function () {
+    render(
+      <OrganizationSettingsForm
+        {...routerProps}
+        initialData={OrganizationFixture({hideAiFeatures: false})}
+        onSave={onSave}
+      />
+    );
+
+    expect(screen.getByText('Enable PR Review and Test Generation')).toBeInTheDocument();
+    expect(
+      screen.getByText('Use AI to generate feedback and tests in pull requests')
+    ).toBeInTheDocument();
+  });
+
+  it('shows/hides PR Review field when toggling AI features', async function () {
+    render(
+      <OrganizationSettingsForm
+        {...routerProps}
+        initialData={OrganizationFixture({hideAiFeatures: true})}
+        onSave={onSave}
+      />
+    );
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      method: 'PUT',
+    });
+
+    // Initially AI features are disabled, so PR Review field should be hidden
+    expect(
+      screen.queryByText('Enable PR Review and Test Generation')
+    ).not.toBeInTheDocument();
+
+    // Toggle AI features on (this will set hideAiFeatures to false)
+    const aiToggle = screen.getByRole('checkbox', {name: 'Show Generative AI Features'});
+    await userEvent.click(aiToggle);
+
+    // PR Review field should now be visible
+    expect(screen.getByText('Enable PR Review and Test Generation')).toBeInTheDocument();
+
+    // Toggle AI features back off (this will set hideAiFeatures to true)
+    await userEvent.click(aiToggle);
+
+    // PR Review field should be hidden again
+    expect(
+      screen.queryByText('Enable PR Review and Test Generation')
+    ).not.toBeInTheDocument();
   });
 });
