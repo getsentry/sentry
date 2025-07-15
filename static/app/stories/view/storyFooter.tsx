@@ -1,33 +1,78 @@
 import styled from '@emotion/styled';
+import qs from 'query-string';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {IconArrow} from 'sentry/icons';
-import {isMDXStory} from 'sentry/stories/view/useStoriesLoader';
+import {useStoryBookFilesByCategory} from 'sentry/stories/view/storySidebar';
+import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
+import type {StoryDescriptor} from 'sentry/stories/view/useStoriesLoader';
 import {useStory} from 'sentry/stories/view/useStory';
 import {space} from 'sentry/styles/space';
+import {useLocation} from 'sentry/utils/useLocation';
 
 export function StoryFooter() {
+  const location = useLocation();
+
   const {story} = useStory();
-  if (!isMDXStory(story)) return null;
-  const {prev, next} = story.exports.frontmatter ?? {};
+  const categories = useStoryBookFilesByCategory();
+  const pagination = findPreviousAndNextStory(story, categories);
+
+  const prevLocationDescriptor = qs.stringify({
+    ...location.query,
+    name: pagination?.prev?.story.filesystemPath,
+  });
+  const nextLocationDescriptor = qs.stringify({
+    ...location.query,
+    name: pagination?.next?.story.filesystemPath,
+  });
 
   return (
     <Flex align="center" justify="space-between" gap={space(2)}>
-      {typeof prev === 'object' && 'link' in prev && (
-        <Card to={prev.link} icon={<IconArrow direction="left" />}>
+      {pagination?.prev && (
+        <Card
+          to={`/stories/?${prevLocationDescriptor}`}
+          icon={<IconArrow direction="left" />}
+        >
           <CardLabel>Previous</CardLabel>
-          <CardTitle>{prev.label}</CardTitle>
+          <CardTitle>{pagination.prev.story.label}</CardTitle>
         </Card>
       )}
-      {typeof next === 'object' && 'link' in next && (
-        <Card data-flip to={next.link} icon={<IconArrow direction="right" />}>
+      {pagination?.next && (
+        <Card
+          data-flip
+          to={`/stories/?${nextLocationDescriptor}`}
+          icon={<IconArrow direction="right" />}
+        >
           <CardLabel>Next</CardLabel>
-          <CardTitle>{next.label}</CardTitle>
+          <CardTitle>{pagination.next.story.label}</CardTitle>
         </Card>
       )}
     </Flex>
   );
+}
+
+function findPreviousAndNextStory(
+  story: StoryDescriptor,
+  categories: ReturnType<typeof useStoryBookFilesByCategory>
+): {
+  next: {category: string; story: StoryTreeNode} | undefined;
+  prev: {category: string; story: StoryTreeNode} | undefined;
+} | null {
+  const stories = Object.entries(categories).flatMap(([key, category]) =>
+    category.map(s => ({category: key, story: s}))
+  );
+
+  const currentIndex = stories.findIndex(s => s.story.filesystemPath === story.filename);
+
+  if (currentIndex === -1) {
+    return null;
+  }
+
+  return {
+    prev: stories[currentIndex - 1] ?? undefined,
+    next: stories[currentIndex + 1] ?? undefined,
+  };
 }
 
 const Card = styled(LinkButton)`
