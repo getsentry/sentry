@@ -128,8 +128,8 @@ function BasePlayerRoot({
       );
       if (scale) {
         setViewSize({
-          width: videoDimensions.width,
-          height: videoDimensions.height,
+          width: windowDimensions.width,
+          height: windowDimensions.height,
           scale,
         });
         // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message

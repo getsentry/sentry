@@ -71,8 +71,12 @@ export default function ReplayPlayerMeasurer({children, measure = 'both'}: Props
   };
 
   useEffect(() => {
-    setViewSize({width: dimensions.width, height: dimensions.height, scale});
-  }, [dimensions.height, dimensions.width, scale, setViewSize]);
+    setViewSize({
+      width: childDimensions.width,
+      height: childDimensions.height,
+      scale,
+    });
+  }, [childDimensions.height, childDimensions.width, scale, setViewSize]);
 
   return (
     <MeasureableElem ref={elementRef}>
