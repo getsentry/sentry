@@ -298,6 +298,7 @@ class OrganizationExamples:
                 "aggregatedDataConsent": False,
                 "defaultAutofixAutomationTuning": AutofixAutomationTuningSettings.OFF,
                 "defaultSeerScannerAutomation": True,
+                "enablePrReviewTestGeneration": True,
                 "issueAlertsThreadFlag": True,
                 "metricAlertsThreadFlag": True,
                 "trustedRelays": [],
@@ -388,6 +389,7 @@ class OrganizationExamples:
                         "hasInsightsQueues": False,
                         "hasInsightsLlmMonitoring": False,
                         "hasInsightsAgentMonitoring": False,
+                        "hasInsightsMCP": False,
                         "platform": "node",
                         "platforms": [],
                         "latestRelease": None,
@@ -452,6 +454,7 @@ class OrganizationExamples:
                     "hasInsightsQueues": False,
                     "hasInsightsLlmMonitoring": False,
                     "hasInsightsAgentMonitoring": False,
+                    "hasInsightsMCP": False,
                     "latestRelease": None,
                 }
             ],

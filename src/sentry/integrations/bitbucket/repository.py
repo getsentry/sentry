@@ -1,8 +1,12 @@
+from typing import Any
+
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.locks import locks
 from sentry.models.apitoken import generate_token
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.plugins.providers.integration_repository import RepositoryConfig
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.email import parse_email, parse_user_name
 from sentry.utils.http import absolute_uri
@@ -10,7 +14,7 @@ from sentry.utils.http import absolute_uri
 
 class BitbucketRepositoryProvider(IntegrationRepositoryProvider):
     name = "Bitbucket"
-    repo_provider = "bitbucket"
+    repo_provider = IntegrationProviderSlug.BITBUCKET.value
 
     def get_repository_data(self, organization, config):
         installation = self.get_installation(config.get("installation"), organization.id)
@@ -42,7 +46,9 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider):
                 )
         return secret
 
-    def build_repository_config(self, organization: RpcOrganization, data):
+    def build_repository_config(
+        self, organization: RpcOrganization, data: dict[str, Any]
+    ) -> RepositoryConfig:
         installation = self.get_installation(data.get("installation"), organization.id)
         client = installation.get_client()
         try:

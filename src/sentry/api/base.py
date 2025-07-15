@@ -377,7 +377,8 @@ class Endpoint(APIView):
             self.request = request
             self.headers = self.default_response_headers  # deprecate?
 
-        sentry_sdk.set_tag("http.referer", request.META.get("HTTP_REFERER", ""))
+        if request.META.get("HTTP_REFERER"):
+            sentry_sdk.set_tag("http.referer", request.META.get("HTTP_REFERER"))
 
         start_time = time.time()
 

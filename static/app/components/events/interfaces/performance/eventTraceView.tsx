@@ -170,7 +170,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
       type={SectionKey.TRACE}
       title={t('Trace Preview')}
       actions={
-        <ButtonBar gap={1}>
+        <ButtonBar>
           <LinkButton
             size="xs"
             to={getTraceLinkForIssue(traceTarget)}

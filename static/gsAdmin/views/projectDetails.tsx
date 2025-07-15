@@ -8,6 +8,7 @@ import ListItem from 'sentry/components/list/listItem';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ConfigStore from 'sentry/stores/configStore';
+import {DataCategoryExact} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -16,7 +17,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 
 import {CustomerStats} from 'admin/components/customers/customerStats';
-import type {DataType} from 'admin/components/customers/customerStatsFilters';
 import {CustomerStatsFilters} from 'admin/components/customers/customerStatsFilters';
 import DetailLabel from 'admin/components/detailLabel';
 import DetailList from 'admin/components/detailList';
@@ -61,11 +61,11 @@ function ProjectDetails() {
     return <LoadingError />;
   }
 
-  const activeDataType = (): DataType => {
-    return (location.query.dataType as DataType) ?? 'error';
+  const activeDataType = (): DataCategoryExact => {
+    return (location.query.dataType as DataCategoryExact) ?? DataCategoryExact.ERROR;
   };
 
-  const handleStatsTypeChange = (dataType: DataType) => {
+  const handleStatsTypeChange = (dataType: DataCategoryExact) => {
     navigate({
       pathname: location.pathname,
       query: {...location.query, dataType},

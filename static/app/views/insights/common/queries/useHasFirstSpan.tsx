@@ -24,6 +24,7 @@ const modulePropertyMap: Record<
   [ModuleName.QUEUE]: 'hasInsightsQueues',
   [ModuleName.SCREEN_LOAD]: 'hasInsightsScreenLoad',
   [ModuleName.APP_START]: 'hasInsightsAppStart',
+  [ModuleName.MCP]: 'hasInsightsMCP',
   // Renamed resource to assets
   [ModuleName.RESOURCE]: 'hasInsightsAssets',
   [ModuleName.AI]: 'hasInsightsLlmMonitoring',

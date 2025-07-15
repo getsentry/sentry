@@ -13,13 +13,10 @@ from rest_framework.response import Response
 from sentry import audit_log, eventstream
 from sentry.api.base import audit_logger
 from sentry.deletions.tasks.groups import delete_groups as delete_groups_task
-from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group, GroupStatus
-from sentry.models.grouphash import GroupHash
 from sentry.models.groupinbox import GroupInbox
 from sentry.models.project import Project
 from sentry.signals import issue_deleted
-from sentry.tasks.delete_seer_grouping_records import call_delete_seer_grouping_records_by_hash
 from sentry.utils.audit import create_audit_entry
 
 from . import BULK_MUTATION_LIMIT, SearchFunction
@@ -47,12 +44,7 @@ def delete_group_list(
     # deterministic sort for sanity, and for very large deletions we'll
     # delete the "smaller" groups first
     group_list.sort(key=lambda g: (g.times_seen, g.id))
-    group_ids = []
-    error_ids = []
-    for g in group_list:
-        group_ids.append(g.id)
-        if g.issue_category == GroupCategory.ERROR:
-            error_ids.append(g.id)
+    group_ids = [g.id for g in group_list]
 
     transaction_id = uuid4().hex
     delete_logger.info(
@@ -83,13 +75,6 @@ def delete_group_list(
     # so that we can see who requested the deletion. Even if anything after this point
     # fails, we will still have a record of who requested the deletion.
     create_audit_entries(request, project, group_list, delete_type, transaction_id)
-
-    # Tell seer to delete grouping records for these groups
-    call_delete_seer_grouping_records_by_hash(error_ids)
-
-    # Removing GroupHash rows prevents new events from associating to the groups
-    # we just deleted.
-    GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
 
     # We remove `GroupInbox` rows here so that they don't end up influencing queries for
     # `Group` instances that are pending deletion

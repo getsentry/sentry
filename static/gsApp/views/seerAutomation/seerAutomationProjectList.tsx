@@ -12,10 +12,11 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import {
+  makeProjectSeerPreferencesQueryKey,
+  useProjectSeerPreferences,
+} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -34,9 +35,11 @@ import {
   makeDetailedProjectQueryKey,
   useDetailedProject,
 } from 'sentry/utils/useDetailedProject';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {SEER_THRESHOLD_MAP} from 'sentry/views/settings/projectSeer';
+import {SEER_THRESHOLD_OPTIONS} from 'sentry/views/settings/projectSeer/constants';
 
 const PROJECTS_PER_PAGE = 20;
 
@@ -68,27 +71,38 @@ function ProjectSeerSetting({project, orgSlug}: {orgSlug: string; project: Proje
 
   return (
     <SeerValue>
-      <span>
-        <Subheading>{t('Scans')}:</Subheading>{' '}
+      <ValueWrapper isDangerous={!seerScannerAutomation}>
+        <Subheading>{t('Scans:')}</Subheading>{' '}
         {seerScannerAutomation ? t('On') : t('Off')}
-      </span>
-      <span>
-        <Subheading>{t('Fixes')}:</Subheading>{' '}
+      </ValueWrapper>
+      <ValueWrapper isDangerous={autofixAutomationTuning === 'off'}>
+        <Subheading>{t('Fixes:')}</Subheading>{' '}
         {getSeerLabel(autofixAutomationTuning, seerScannerAutomation)}
-      </span>
-      <span>
-        <Subheading>{t('Repos')}:</Subheading> {repoCount}
-      </span>
+      </ValueWrapper>
+      <ValueWrapper isDangerous={repoCount === 0}>
+        <Subheading>{t('Repos:')}</Subheading> {repoCount}
+      </ValueWrapper>
     </SeerValue>
   );
 }
+
+const ValueWrapper = styled('span')<{isDangerous?: boolean}>`
+  color: ${p => (p.isDangerous ? p.theme.errorText : p.theme.subText)};
+`;
 
 const Subheading = styled('span')`
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
-const SeerSelectLabel = styled('div')`
-  margin-bottom: ${space(0.5)};
+const SeerDropdownLabel = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.25)};
+`;
+
+const SeerDropdownDescription = styled('div')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
 `;
 
 function getSeerLabel(key: string, seerScannerAutomation: boolean) {
@@ -96,41 +110,46 @@ function getSeerLabel(key: string, seerScannerAutomation: boolean) {
     return t('Off');
   }
 
-  switch (key) {
-    case 'off':
-      return t('Off');
-    case 'super_low':
-      return t('Only the Most Actionable Issues');
-    case 'low':
-      return t('Highly Actionable and Above');
-    case 'medium':
-      return t('Moderately Actionable and Above');
-    case 'high':
-      return t('Minimally Actionable and Above');
-    case 'always':
-      return t('All Issues');
-    default:
-      return key;
+  const option = SEER_THRESHOLD_OPTIONS.find(opt => opt.value === key);
+  return option ? option.label : key;
+}
+
+function getSeerDropdownLabel(key: string) {
+  const option = SEER_THRESHOLD_OPTIONS.find(opt => opt.value === key);
+  if (!option) {
+    return (
+      <SeerDropdownLabel>
+        <div>{key}</div>
+        <SeerDropdownDescription />
+      </SeerDropdownLabel>
+    );
   }
+
+  return (
+    <SeerDropdownLabel>
+      <div>{option.label}</div>
+      <SeerDropdownDescription>{option.details}</SeerDropdownDescription>
+    </SeerDropdownLabel>
+  );
 }
 
 export function SeerAutomationProjectList() {
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
   const {projects, fetching, fetchError} = useProjects();
-  const projectsWithWriteAccess = projects.filter(p =>
-    hasEveryAccess(['project:write'], {organization, project: p})
-  );
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  const navigate = useNavigate();
 
   const filteredProjects = useMemo(() => {
-    return projects.filter(project =>
-      project.slug.toLowerCase().includes(search.toLowerCase())
+    return projects.filter(
+      project =>
+        project.slug.toLowerCase().includes(search.toLowerCase()) &&
+        hasEveryAccess(['project:read'], {organization, project})
     );
-  }, [projects, search]);
+  }, [projects, search, organization]);
 
   const handleSearchChange = (searchQuery: string) => {
     setSearch(searchQuery);
@@ -194,6 +213,18 @@ export function SeerAutomationProjectList() {
     });
   };
 
+  const handleRowClick = (project: Project) => {
+    navigate(`/settings/projects/${project.slug}/seer/`);
+  };
+
+  const handleCheckboxChange = (projectId: string) => {
+    toggleProject(projectId);
+  };
+
+  const handleCheckboxClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent row click when clicking checkbox
+  };
+
   async function updateProjectsSeerValue(value: string) {
     addLoadingMessage('Updating projects...', {duration: 30000});
     try {
@@ -201,9 +232,17 @@ export function SeerAutomationProjectList() {
         Array.from(selected).map(projectId => {
           const project = projects.find(p => p.id === projectId);
           if (!project) return Promise.resolve();
+
+          const updateData: any = {autofixAutomationTuning: value};
+
+          // If setting fixes to anything other than "off", also enable scanner
+          if (value !== 'off') {
+            updateData.seerScannerAutomation = true;
+          }
+
           return api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
             method: 'PUT',
-            data: {autofixAutomationTuning: value},
+            data: updateData,
           });
         })
       );
@@ -254,9 +293,100 @@ export function SeerAutomationProjectList() {
     }
   }
 
+  async function setAllToRecommended() {
+    addLoadingMessage('Setting all projects to recommended settings...', {
+      duration: 30000,
+    });
+    try {
+      // Get preferences for all filtered projects to check repo counts
+      const projectPreferences = await Promise.all(
+        filteredProjects.map(async project => {
+          try {
+            const response = await queryClient.fetchQuery({
+              queryKey: [
+                makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
+              ],
+              queryFn: () =>
+                api.requestPromise(
+                  makeProjectSeerPreferencesQueryKey(organization.slug, project.slug)
+                ),
+              staleTime: 60000,
+            });
+            return {
+              project,
+              repoCount: response[0].preference?.repositories?.length || 0,
+            };
+          } catch (err) {
+            // If we can't get preferences, assume no repos
+            return {
+              project,
+              repoCount: 0,
+            };
+          }
+        })
+      );
+
+      // Update all projects
+      await Promise.all(
+        projectPreferences.map(({project, repoCount}) => {
+          const updateData: any = {};
+
+          if (!project.seerScannerAutomation) {
+            updateData.seerScannerAutomation = true; // Set scanner to on for all projects
+          }
+
+          // Sets fixes to highly actionable if repos are connected and no automation already set
+          if (
+            (!project.autofixAutomationTuning ||
+              project.autofixAutomationTuning === 'off') &&
+            repoCount > 0
+          ) {
+            updateData.autofixAutomationTuning = 'low';
+          }
+
+          // no updates, so don't make a request
+          if (Object.keys(updateData).length === 0) {
+            return Promise.resolve();
+          }
+
+          // make the request
+          return api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
+            method: 'PUT',
+            data: updateData,
+          });
+        })
+      );
+
+      const projectsWithNoRepos = projectPreferences.filter(
+        ({repoCount}) => repoCount === 0
+      ).length;
+      const updatedProjectsCount = projectPreferences.length;
+
+      if (projectsWithNoRepos > 0) {
+        addSuccessMessage(
+          `Settings applied to ${updatedProjectsCount} project(s). ${projectsWithNoRepos} project(s) have no repos connected and were skipped.`
+        );
+      } else {
+        addSuccessMessage(`Settings applied to ${updatedProjectsCount} projects.`);
+      }
+    } catch (err) {
+      addErrorMessage('Failed to update some projects');
+    } finally {
+      // Invalidate queries for all filtered projects
+      filteredProjects.forEach(project => {
+        queryClient.invalidateQueries({
+          queryKey: makeDetailedProjectQueryKey({
+            orgSlug: organization.slug,
+            projectSlug: project.slug,
+          }),
+        });
+      });
+    }
+  }
+
   const actionMenuItems = SEER_THRESHOLD_MAP.map(key => ({
     key,
-    label: <SeerSelectLabel>{getSeerLabel(key, true)}</SeerSelectLabel>,
+    label: getSeerDropdownLabel(key),
     onAction: () => updateProjectsSeerValue(key),
   }));
 
@@ -276,35 +406,45 @@ export function SeerAutomationProjectList() {
   return (
     <Fragment>
       <SearchWrapper>
-        <SearchBar
-          query={search}
-          onChange={handleSearchChange}
-          placeholder={t('Search projects')}
-        />
+        <SearchBarWrapper>
+          <SearchBar
+            query={search}
+            onChange={handleSearchChange}
+            placeholder={t('Search projects')}
+          />
+        </SearchBarWrapper>
+        <Button
+          size="sm"
+          priority="primary"
+          onClick={setAllToRecommended}
+          disabled={filteredProjects.length === 0}
+          title={t(
+            'For all projects, turns Issue Scans on, and if repos are connected, sets Issue Fixes to run automatically.'
+          )}
+        >
+          {t('Turn On for Recommended Projects')}
+        </Button>
       </SearchWrapper>
       <Panel>
         <PanelHeader hasButtons>
-          {selected.size > 0 ? (
-            <Flex gap={space(1)} align="center">
-              <ActionDropdownMenu
-                items={scanMenuItems}
-                triggerLabel={t('Set Issue Scans to')}
-                size="sm"
-              />
-              <ActionDropdownMenu
-                items={actionMenuItems}
-                triggerLabel={t('Set Issue Fixes to')}
-                size="sm"
-              />
-            </Flex>
-          ) : (
-            <div>{t('Automation for Current Projects')}</div>
-          )}
-          <div style={{marginLeft: 'auto'}}>
+          <div>{t('Automation for Existing Projects')}</div>
+          <Flex gap={space(1)} align="center" style={{marginLeft: 'auto'}}>
+            <ActionDropdownMenu
+              items={scanMenuItems}
+              triggerLabel={t('Set Issue Scans to')}
+              size="sm"
+              isDisabled={selected.size === 0}
+            />
+            <ActionDropdownMenu
+              items={actionMenuItems}
+              triggerLabel={t('Set Issue Fixes to')}
+              size="sm"
+              isDisabled={selected.size === 0}
+            />
             <Button size="sm" onClick={toggleSelectAll}>
               {allFilteredSelected ? t('Unselect All') : t('Select All')}
             </Button>
-          </div>
+          </Flex>
         </PanelHeader>
         <PanelBody>
           {filteredProjects.length === 0 && search && (
@@ -313,36 +453,27 @@ export function SeerAutomationProjectList() {
             </div>
           )}
           {paginatedProjects.map(project => (
-            <PanelItem key={project.id}>
+            <ClickablePanelItem key={project.id} onClick={() => handleRowClick(project)}>
               <Flex justify="space-between" align="center" gap={space(2)} flex={1}>
                 <Flex gap={space(1)} align="center">
-                  <Tooltip
-                    title={t('You do not have permission to edit this project')}
-                    disabled={projectsWithWriteAccess.includes(project)}
-                  >
-                    <StyledCheckbox
-                      checked={selected.has(project.id)}
-                      onChange={() => toggleProject(project.id)}
-                      aria-label={t('Toggle project')}
-                      disabled={!projectsWithWriteAccess.includes(project)}
-                    />
-                  </Tooltip>
+                  <StyledCheckbox
+                    checked={selected.has(project.id)}
+                    onChange={() => handleCheckboxChange(project.id)}
+                    onClick={handleCheckboxClick}
+                    aria-label={t('Toggle project')}
+                  />
                   <ProjectAvatar project={project} title={project.slug} />
-                  <Link
-                    to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
-                  >
-                    {project.slug}
-                  </Link>
+                  <ProjectName>{project.slug}</ProjectName>
                 </Flex>
                 <ProjectSeerSetting project={project} orgSlug={organization.slug} />
               </Flex>
-            </PanelItem>
+            </ClickablePanelItem>
           ))}
         </PanelBody>
       </Panel>
       {totalProjects > PROJECTS_PER_PAGE && (
         <Flex justify="flex-end">
-          <ButtonBar merged>
+          <ButtonBar merged gap="none">
             <Button
               icon={<IconChevron direction="left" />}
               aria-label={t('Previous')}
@@ -366,6 +497,13 @@ export function SeerAutomationProjectList() {
 
 const SearchWrapper = styled('div')`
   margin-bottom: ${space(2)};
+  display: flex;
+  gap: ${space(2)};
+  align-items: center;
+`;
+
+const SearchBarWrapper = styled('div')`
+  flex: 1;
 `;
 
 const SeerValue = styled('div')`
@@ -379,11 +517,23 @@ const ActionDropdownMenu = styled(DropdownMenu)`
   [data-test-id='menu-list-item-label'] {
     font-weight: normal;
     text-transform: none;
+    white-space: normal;
+    word-break: break-word;
   }
 `;
 
 const StyledCheckbox = styled(Checkbox)`
   margin-bottom: 0;
   padding-bottom: 0;
-  padding-top: ${space(0.5)};
+`;
+
+const ClickablePanelItem = styled(PanelItem)`
+  cursor: pointer;
+  &:hover {
+    background-color: ${p => p.theme.backgroundSecondary};
+  }
+`;
+
+const ProjectName = styled('span')`
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;

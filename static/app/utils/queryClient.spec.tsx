@@ -2,7 +2,12 @@ import {Fragment} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {
+  type ApiQueryKey,
+  type InfiniteApiQueryKey,
+  parseQueryKey,
+  useApiQuery,
+} from 'sentry/utils/queryClient';
 
 type ResponseData = {
   value: number;
@@ -13,6 +18,60 @@ beforeEach(() => {
 });
 
 describe('queryClient', function () {
+  describe('parseQueryKey', function () {
+    it('can parse a undefined', function () {
+      const result = parseQueryKey(undefined);
+      expect(result).toEqual({
+        isInfinite: false,
+        url: undefined,
+        options: undefined,
+      });
+    });
+    it('can parse a simple query key, without options', function () {
+      const queryKey: ApiQueryKey = ['/some/test/path/'];
+      const result = parseQueryKey(queryKey);
+      expect(result).toEqual({
+        isInfinite: false,
+        url: '/some/test/path/',
+        options: undefined,
+      });
+    });
+
+    it('can parse a simple query key, with options', function () {
+      const queryKey: ApiQueryKey = ['/some/test/path/', {query: {filter: 'red'}}];
+      const result = parseQueryKey(queryKey);
+      expect(result).toEqual({
+        isInfinite: false,
+        url: '/some/test/path/',
+        options: {query: {filter: 'red'}},
+      });
+    });
+
+    it('can parse an infinite query key, without options', function () {
+      const queryKey: InfiniteApiQueryKey = ['infinite', '/some/test/path/'];
+      const result = parseQueryKey(queryKey);
+      expect(result).toEqual({
+        isInfinite: true,
+        url: '/some/test/path/',
+        options: undefined,
+      });
+    });
+
+    it('can parse a infinite query key, with options', function () {
+      const queryKey: InfiniteApiQueryKey = [
+        'infinite',
+        '/some/test/path/',
+        {query: {filter: 'red'}},
+      ];
+      const result = parseQueryKey(queryKey);
+      expect(result).toEqual({
+        isInfinite: true,
+        url: '/some/test/path/',
+        options: {query: {filter: 'red'}},
+      });
+    });
+  });
+
   describe('useQuery', function () {
     it('can do a simple fetch', async function () {
       const mock = MockApiClient.addMockResponse({
