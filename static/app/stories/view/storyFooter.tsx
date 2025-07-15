@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import qs from 'query-string';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
@@ -9,31 +8,16 @@ import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
 import type {StoryDescriptor} from 'sentry/stories/view/useStoriesLoader';
 import {useStory} from 'sentry/stories/view/useStory';
 import {space} from 'sentry/styles/space';
-import {useLocation} from 'sentry/utils/useLocation';
 
 export function StoryFooter() {
-  const location = useLocation();
-
   const {story} = useStory();
   const categories = useStoryBookFilesByCategory();
   const pagination = findPreviousAndNextStory(story, categories);
 
-  const prevLocationDescriptor = qs.stringify({
-    ...location.query,
-    name: pagination?.prev?.story.filesystemPath,
-  });
-  const nextLocationDescriptor = qs.stringify({
-    ...location.query,
-    name: pagination?.next?.story.filesystemPath,
-  });
-
   return (
     <Flex align="center" justify="space-between" gap={space(2)}>
       {pagination?.prev && (
-        <Card
-          to={`/stories/?${prevLocationDescriptor}`}
-          icon={<IconArrow direction="left" />}
-        >
+        <Card to={pagination.prev.story.location} icon={<IconArrow direction="left" />}>
           <CardLabel>Previous</CardLabel>
           <CardTitle>{pagination.prev.story.label}</CardTitle>
         </Card>
@@ -41,7 +25,7 @@ export function StoryFooter() {
       {pagination?.next && (
         <Card
           data-flip
-          to={`/stories/?${nextLocationDescriptor}`}
+          to={pagination.next.story.location}
           icon={<IconArrow direction="right" />}
         >
           <CardLabel>Next</CardLabel>
