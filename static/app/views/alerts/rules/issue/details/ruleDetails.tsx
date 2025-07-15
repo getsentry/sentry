@@ -418,7 +418,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <ButtonBar gap={1}>
+          <ButtonBar>
             <Access access={['alerts:write']}>
               {({hasAccess}) => (
                 <SnoozeAlert

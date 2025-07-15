@@ -95,7 +95,9 @@ export function RepoSelector() {
       menuBody={<SyncRepoButton />}
       menuFooter={<MenuFooter repoAccessLink="placeholder" />}
       disabled={disabled}
-      emptyMessage={'No repositories found'}
+      emptyMessage={
+        'No repositories found. Please enter at least 3 characters to search.'
+      }
       trigger={(triggerProps, isOpen) => {
         const defaultLabel = options.some(item => item.value === repository)
           ? repository
