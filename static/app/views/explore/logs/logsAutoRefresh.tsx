@@ -74,7 +74,7 @@ export function AutorefreshToggle({
 
   // Disable auto-refresh if the group-by changes
   useEffect(() => {
-    if (isEqual(groupBy, previousGroupBy)) {
+    if (groupBy && groupBy !== previousGroupBy) {
       setChecked(false);
     }
   }, [groupBy, previousGroupBy, setChecked]);
