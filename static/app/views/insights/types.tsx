@@ -134,6 +134,8 @@ export enum SpanFields {
   SDK_VERSION = 'sdk.version',
   PLATFORM = 'platform',
   CODE_LINENO = 'code.lineno',
+  APP_START_COLD = 'measurements.app_start_cold',
+  APP_START_WARM = 'measurements.app_start_warm',
 
   // User fields
   USER_ID = 'user.id',
@@ -231,6 +233,9 @@ type SpanNumberFields =
   | SpanFields.FCP_SCORE_WEIGHT
   | SpanFields.SPAN_SELF_TIME
   | SpanFields.CACHE_ITEM_SIZE
+  | SpanFields.CODE_LINENO
+  | SpanFields.APP_START_COLD
+  | SpanFields.APP_START_WARM
   | SpanFields.CODE_LINENO;
 
 export type SpanStringFields =
@@ -267,6 +272,7 @@ export type SpanStringFields =
   | SpanFields.CODE_FUNCTION
   | SpanFields.SDK_NAME
   | SpanFields.SDK_VERSION
+  | SpanFields.DEVICE_CLASS
   | 'span_id'
   | 'span.op'
   | 'span.description'
@@ -365,7 +371,7 @@ type SpanAnyFunction = `any(${string})`;
 
 export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
 
-type WebVitalsFunctions = 'performance_score' | 'count_scores';
+type WebVitalsFunctions = 'performance_score' | 'count_scores' | 'opportunity_score';
 
 type SpanMetricsResponseRaw = {
   [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
@@ -650,103 +656,6 @@ export enum SpanFunction {
   TRACE_STATUS_RATE = 'trace_status_rate',
   FAILURE_RATE_IF = 'failure_rate_if',
 }
-
-// TODO - add more functions and fields, combine shared ones, etc
-
-type MetricsFunctions =
-  | 'count'
-  | 'performance_score'
-  | 'count_scores'
-  | 'opportunity_score'
-  | 'p75';
-
-export enum MetricsFields {
-  TRANSACTION_DURATION = 'transaction.duration',
-  SPAN_DURATION = 'span.duration',
-  TRANSACTION = 'transaction',
-  PROJECT = 'project',
-  LCP_SCORE = 'measurements.score.lcp',
-  FCP_SCORE = 'measurements.score.fcp',
-  INP_SCORE = 'measurements.score.inp',
-  CLS_SCORE = 'measurements.score.cls',
-  TTFB_SCORE = 'measurements.score.ttfb',
-  TOTAL_SCORE = 'measurements.score.total',
-  LCP_WEIGHT = 'measurements.score.weight.lcp',
-  FCP_WEIGHT = 'measurements.score.weight.fcp',
-  INP_WEIGHT = 'measurements.score.weight.inp',
-  CLS_WEIGHT = 'measurements.score.weight.cls',
-  TTFB_WEIGHT = 'measurements.score.weight.ttfb',
-  TOTAL_WEIGHT = 'measurements.score.weight.total',
-  PROJECT_ID = 'project.id',
-  LCP = 'measurements.lcp',
-  FCP = 'measurements.fcp',
-  INP = 'measurements.inp',
-  CLS = 'measurements.cls',
-  TTFB = 'measurements.ttfb',
-  ID = 'id',
-  TRACE = 'trace',
-  USER_DISPLAY = 'user.display',
-  REPLAY_ID = 'replayId',
-  TIMESTAMP = 'timestamp',
-  PROFILE_ID = 'profile.id',
-  APP_START_COLD = 'measurements.app_start_cold',
-  APP_START_WARM = 'measurements.app_start_warm',
-  TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
-  TIME_TO_FULL_DISPLAY = 'measurements.time_to_full_display',
-  RELEASE = 'release',
-  DEVICE_CLASS = 'device.class',
-}
-
-type MetricsNumberFields =
-  | MetricsFields.TRANSACTION_DURATION
-  | MetricsFields.SPAN_DURATION
-  | MetricsFields.LCP_SCORE
-  | MetricsFields.FCP_SCORE
-  | MetricsFields.INP_SCORE
-  | MetricsFields.CLS_SCORE
-  | MetricsFields.TTFB_SCORE
-  | MetricsFields.TOTAL_SCORE
-  | MetricsFields.LCP_WEIGHT
-  | MetricsFields.FCP_WEIGHT
-  | MetricsFields.INP_WEIGHT
-  | MetricsFields.CLS_WEIGHT
-  | MetricsFields.TTFB_WEIGHT
-  | MetricsFields.TOTAL_WEIGHT
-  | MetricsFields.LCP
-  | MetricsFields.FCP
-  | MetricsFields.INP
-  | MetricsFields.CLS
-  | MetricsFields.TTFB
-  | MetricsFields.APP_START_COLD
-  | MetricsFields.APP_START_WARM
-  | MetricsFields.TIME_TO_INITIAL_DISPLAY
-  | MetricsFields.TIME_TO_FULL_DISPLAY;
-
-type MetricsStringFields =
-  | MetricsFields.TRANSACTION
-  | MetricsFields.PROJECT
-  | MetricsFields.ID
-  | MetricsFields.TRACE
-  | MetricsFields.USER_DISPLAY
-  | MetricsFields.PROFILE_ID
-  | MetricsFields.RELEASE
-  | MetricsFields.TIMESTAMP
-  | MetricsFields.DEVICE_CLASS;
-
-type MetricsResponseRaw = {
-  [Property in MetricsNumberFields as `${Aggregate}(${Property})`]: number;
-} & {
-  [Property in MetricsNumberFields as `${MetricsFunctions}(${Property})`]: number;
-} & {
-  [Function in MetricsFunctions as `${Function}()`]: number;
-} & {
-  [Property in MetricsStringFields as `${Property}`]: string;
-} & {
-  ['project.id']: number;
-};
-export type MetricsResponse = Flatten<MetricsResponseRaw>;
-
-export type MetricsProperty = keyof MetricsResponse;
 
 export type SpanQueryFilters = Partial<Record<SpanStringFields, string>> & {
   is_transaction?: 'true' | 'false';
