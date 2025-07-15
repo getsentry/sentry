@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import {Tooltip, TooltipContext} from 'sentry/components/core/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -51,7 +51,7 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
     replays: replay ? [replay.getReplay()] : [],
   });
 
-  const content = (
+  return (
     <Fragment>
       <PlayerBreadcrumbContainer>
         <PlayerContainer>
@@ -132,20 +132,6 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
       ) : null}
     </Fragment>
   );
-
-  if (isFullscreen) {
-    return (
-      <TooltipContext
-        value={{
-          container: document.fullscreenElement,
-        }}
-      >
-        {content}
-      </TooltipContext>
-    );
-  }
-
-  return content;
 }
 
 const Panel = styled(FluidHeight)`

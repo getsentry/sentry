@@ -1,6 +1,7 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {TooltipContext} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Placeholder from 'sentry/components/placeholder';
 import ReplayController from 'sentry/components/replays/replayController';
@@ -44,9 +45,11 @@ export default function ReplayLayout({
 
   const video = (
     <VideoSection ref={fullscreenRef}>
-      <ErrorBoundary mini>
-        <ReplayView toggleFullscreen={toggleFullscreen} isLoading={isLoading} />
-      </ErrorBoundary>
+      <TooltipContext value={{container: fullscreenRef.current}}>
+        <ErrorBoundary mini>
+          <ReplayView toggleFullscreen={toggleFullscreen} isLoading={isLoading} />
+        </ErrorBoundary>
+      </TooltipContext>
     </VideoSection>
   );
 
