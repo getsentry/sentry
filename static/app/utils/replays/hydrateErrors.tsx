@@ -15,7 +15,7 @@ import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 export default function hydrateErrors(
   replayRecord: HydratedReplayRecord,
   errors: RawReplayError[],
-  feedbackEvent?: FeedbackEvent
+  feedbackEvents?: FeedbackEvent[]
 ): {errorFrames: ErrorFrame[]; feedbackFrames: BreadcrumbFrame[]} {
   const startTimestampMs = replayRecord.started_at.getTime();
 
@@ -41,7 +41,9 @@ export default function hydrateErrors(
             labels: toArray(e['error.type']).filter(Boolean),
             projectSlug: e['project.name'],
           },
-          message: feedbackEvent?.contexts.feedback?.message ?? e.title,
+          message:
+            feedbackEvents?.find(event => event.id === e.id)?.contexts.feedback
+              ?.message ?? e.title,
           offsetMs: Math.abs(time.getTime() - startTimestampMs),
           timestamp: time,
           timestampMs: time.getTime(),

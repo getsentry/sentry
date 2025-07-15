@@ -94,9 +94,9 @@ interface ReplayReaderParams {
    */
   eventTimestampMs?: number;
   /**
-   * Feedback in this replay
+   * Feedbacks in this replay
    */
-  feedbackEvent?: FeedbackEvent;
+  feedbackEvents?: FeedbackEvent[];
 }
 
 type RequiredNotNull<T> = {
@@ -165,7 +165,7 @@ export default class ReplayReader {
   static factory({
     attachments,
     errors,
-    feedbackEvent,
+    feedbackEvents,
     replayRecord,
     clipWindow,
     fetching,
@@ -179,7 +179,7 @@ export default class ReplayReader {
       return new ReplayReader({
         attachments,
         errors,
-        feedbackEvent,
+        feedbackEvents,
         replayRecord,
         fetching,
         clipWindow,
@@ -195,7 +195,7 @@ export default class ReplayReader {
       return new ReplayReader({
         attachments: [],
         errors: [],
-        feedbackEvent,
+        feedbackEvents,
         fetching,
         replayRecord,
         clipWindow,
@@ -207,7 +207,7 @@ export default class ReplayReader {
   private constructor({
     attachments,
     errors,
-    feedbackEvent,
+    feedbackEvents,
     fetching,
     replayRecord,
     clipWindow,
@@ -261,7 +261,7 @@ export default class ReplayReader {
     const {errorFrames, feedbackFrames} = hydrateErrors(
       replayRecord,
       errors,
-      feedbackEvent
+      feedbackEvents
     );
     this._errors = errorFrames.sort(sortFrames);
     // RRWeb Events are not sorted here, they are fetched in sorted order.

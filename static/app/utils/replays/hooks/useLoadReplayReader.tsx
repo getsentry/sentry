@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 
 import type {Group} from 'sentry/types/group';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
-import useFeedbackEvent from 'sentry/utils/replays/hooks/useFeedbackEvent';
+import useFeedbackEvents from 'sentry/utils/replays/hooks/useFeedbackEvents';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 
@@ -20,7 +20,7 @@ type Props = {
 interface ReplayReaderResult extends ReturnType<typeof useReplayData> {
   replay: ReplayReader | null;
   replayId: string;
-  feedbackEvent?: FeedbackEvent;
+  feedbackEvents?: FeedbackEvent[];
 }
 
 export default function useLoadReplayReader({
@@ -38,11 +38,12 @@ export default function useLoadReplayReader({
       replayId,
     });
 
-  const feedbackId = errors
-    .filter(error => error.title.includes('User Feedback'))
-    .map(error => error.id)[0];
-  const feedbackEvent = useFeedbackEvent({
-    feedbackId,
+  const feedbackIds = errors
+    ?.filter(error => error.title.includes('User Feedback'))
+    .map(error => error.id);
+
+  const feedbackEvents = useFeedbackEvents({
+    feedbackIds,
     projectId: replayRecord?.project_id,
   });
 
@@ -74,7 +75,7 @@ export default function useLoadReplayReader({
           attachments,
           clipWindow: memoizedClipWindow,
           errors,
-          feedbackEvent,
+          feedbackEvents,
           fetching: isPending,
           replayRecord,
           eventTimestampMs,
@@ -83,7 +84,7 @@ export default function useLoadReplayReader({
     attachments,
     memoizedClipWindow,
     errors,
-    feedbackEvent,
+    feedbackEvents,
     isPending,
     replayRecord,
     eventTimestampMs,
@@ -93,7 +94,7 @@ export default function useLoadReplayReader({
     ...replayData,
     attachments,
     errors,
-    feedbackEvent,
+    feedbackEvents,
     isError,
     isPending,
     replay,
