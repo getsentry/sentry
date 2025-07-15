@@ -13,9 +13,9 @@ from sentry.grouping.component import FrameGroupingComponent, StacktraceGrouping
 from sentry.grouping.enhancer import (
     ENHANCEMENT_BASES,
     Enhancements,
+    _is_valid_profiling_action,
     _is_valid_profiling_matcher,
     _split_rules,
-    is_valid_profiling_action,
     keep_profiling_rules,
 )
 from sentry.grouping.enhancer.actions import EnhancementAction
@@ -508,7 +508,7 @@ def test_valid_profiling_matchers(test_input, expected):
     ],
 )
 def test_valid_profiling_action(test_input, expected):
-    assert is_valid_profiling_action(test_input) == expected
+    assert _is_valid_profiling_action(test_input) == expected
 
 
 @pytest.mark.parametrize(

@@ -307,7 +307,7 @@ def _is_valid_profiling_matcher(matchers: list[str]) -> bool:
     return True
 
 
-def is_valid_profiling_action(action: str) -> bool:
+def _is_valid_profiling_action(action: str) -> bool:
     return action in VALID_PROFILING_ACTIONS_SET
 
 
@@ -320,7 +320,7 @@ def keep_profiling_rules(config: str) -> str:
         if rule == "" or rule.startswith("#"):  # ignore comment lines
             continue
         *matchers, action = rule.split()
-        if _is_valid_profiling_matcher(matchers) and is_valid_profiling_action(action):
+        if _is_valid_profiling_matcher(matchers) and _is_valid_profiling_action(action):
             filtered_rules.append(rule)
     return "\n".join(filtered_rules)
 
