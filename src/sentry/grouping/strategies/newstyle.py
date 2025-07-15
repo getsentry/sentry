@@ -392,20 +392,22 @@ def get_contextline_component(
     if not line:
         return ContextLineGroupingComponent()
 
-    component = ContextLineGroupingComponent(values=[line])
+    context_line_component = ContextLineGroupingComponent(values=[line])
     if line:
         if len(frame.context_line) > 120:
-            component.update(hint="discarded because line too long", contributes=False)
+            context_line_component.update(hint="discarded because line too long", contributes=False)
         elif get_behavior_family_for_platform(platform) == "javascript":
             if context["with_context_line_file_origin_bug"]:
                 if has_url_origin(frame.abs_path, allow_file_origin=True):
-                    component.update(hint="discarded because from URL origin", contributes=False)
+                    context_line_component.update(
+                        hint="discarded because from URL origin", contributes=False
+                    )
             elif not function and has_url_origin(frame.abs_path):
-                component.update(
+                context_line_component.update(
                     hint="discarded because from URL origin and no function", contributes=False
                 )
 
-    return component
+    return context_line_component
 
 
 @strategy(ids=["stacktrace:v1"], interface=Stacktrace, score=1800)
