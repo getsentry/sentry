@@ -25,6 +25,11 @@ import {
   updateLocationWithAggregateSortBys,
   updateLocationWithLogSortBys,
 } from 'sentry/views/explore/contexts/logs/sortBys';
+import {
+  getModeFromLocation,
+  type Mode,
+  updateLocationWithMode,
+} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {useLogsQueryKeyWithInfinite} from 'sentry/views/explore/logs/useLogsQuery';
 
@@ -52,6 +57,7 @@ interface LogsPageParams {
   readonly cursor: string;
   readonly fields: string[];
   readonly isTableFrozen: boolean | undefined;
+  readonly mode: Mode;
   readonly refreshInterval: number;
   readonly search: MutableSearch;
   /**
@@ -176,6 +182,7 @@ export function LogsPageParamsProvider({
     ...(groupBy ? [groupBy] : []),
     aggregate,
   ]);
+  const mode = getModeFromLocation(location);
   const pageFilters = usePageFilters();
   const projectIds = isTableFrozen
     ? (limitToProjectIds ?? [-1])
@@ -209,6 +216,7 @@ export function LogsPageParamsProvider({
         groupBy,
         aggregateFn,
         aggregateParam,
+        mode,
         ..._testContext,
       }}
     >
@@ -238,6 +246,7 @@ function setLogsPageParams(location: Location, pageParams: LogPageParamsUpdate) 
   updateNullableLocation(target, LOGS_GROUP_BY_KEY, pageParams.groupBy);
   updateNullableLocation(target, LOGS_AGGREGATE_FN_KEY, pageParams.aggregateFn);
   updateNullableLocation(target, LOGS_AGGREGATE_PARAM_KEY, pageParams.aggregateParam);
+  updateLocationWithMode(target, pageParams.mode); // Can be swapped with updateNullableLocation if we merge page params.
   if (!pageParams.isTableFrozen) {
     updateLocationWithLogSortBys(target, pageParams.sortBys);
     updateLocationWithAggregateSortBys(target, pageParams.aggregateSortBys);
@@ -473,6 +482,21 @@ export function useSetLogsSortBys() {
 export function useLogsAnalyticsPageSource() {
   const {analyticsPageSource} = useLogsPageParams();
   return analyticsPageSource;
+}
+
+export function useLogsMode() {
+  const {mode} = useLogsPageParams();
+  return mode;
+}
+
+export function useSetLogsMode() {
+  const setPageParams = useSetLogsPageParams();
+  return useCallback(
+    (mode: Mode) => {
+      setPageParams({mode});
+    },
+    [setPageParams]
+  );
 }
 
 function getLogCursorFromLocation(location: Location): string {
