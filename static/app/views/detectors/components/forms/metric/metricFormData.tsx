@@ -94,7 +94,7 @@ export interface MetricDetectorFormData
     MetricDetectorConditionFormData,
     MetricDetectorDynamicFormData,
     SnubaQueryFormData {
-  kind: 'static' | 'percent' | 'dynamic';
+  detectionType: MetricDetectorConfig['detectionType'];
   name: string;
   owner: string;
   projectId: string;
@@ -109,7 +109,7 @@ type MetricDetectorFormFieldName = keyof MetricDetectorFormData;
  */
 export const METRIC_DETECTOR_FORM_FIELDS = {
   // Core detector fields
-  kind: 'kind',
+  detectionType: 'detectionType',
   environment: 'environment',
   projectId: 'projectId',
   owner: 'owner',
@@ -138,7 +138,7 @@ export const METRIC_DETECTOR_FORM_FIELDS = {
 } satisfies Record<MetricDetectorFormFieldName, MetricDetectorFormFieldName>;
 
 export const DEFAULT_THRESHOLD_METRIC_FORM_DATA = {
-  kind: 'static',
+  detectionType: 'static',
 
   // Priority level fields
   // Metric detectors only support MEDIUM and HIGH priority levels
@@ -154,7 +154,6 @@ export const DEFAULT_THRESHOLD_METRIC_FORM_DATA = {
   dataset: DetectorDataset.SPANS,
   aggregateFunction: 'avg(span.duration)',
   interval: 60 * 60, // One hour in seconds
-  query: '',
 } satisfies Partial<MetricDetectorFormData>;
 
 /**
@@ -338,7 +337,7 @@ export function metricDetectorFormDataToEndpointPayload(
 
   // Create config based on detection type
   let config: MetricDetectorConfig;
-  switch (data.kind) {
+  switch (data.detectionType) {
     case 'percent':
       config = {
         thresholdPeriod: 1,
@@ -440,11 +439,8 @@ export function metricSavedDetectorToFormData(
     throw new Error('Detector type mismatch');
   }
 
-  const dataSource = detector.dataSources?.[0];
+  const dataSource = detector.dataSources[0];
   const snubaQuery = dataSource.queryObj?.snubaQuery;
-
-  // Use the full aggregate string directly
-  const aggregateFunction = snubaQuery?.aggregate || 'count()';
 
   const conditionData = processDetectorConditions(detector);
 
@@ -460,28 +456,31 @@ export function metricSavedDetectorToFormData(
     environment: getDetectorEnvironment(detector) || '',
     owner: detector.owner || '',
     query: snubaQuery?.query || '',
-    aggregateFunction,
+    aggregateFunction:
+      snubaQuery?.aggregate || DEFAULT_THRESHOLD_METRIC_FORM_DATA.aggregateFunction,
     dataset,
     interval: snubaQuery?.timeWindow ?? DEFAULT_THRESHOLD_METRIC_FORM_DATA.interval,
 
     // Priority level and condition fields from processed conditions
     ...conditionData,
-    kind: detector.config.detectionType,
+    detectionType: detector.config.detectionType,
 
     // Condition fields - get comparison delta from detector config (already in seconds)
     conditionComparisonAgo:
-      (detector.config.detectionType === 'percent'
+      detector.config.detectionType === 'percent' &&
+      defined(detector.config.comparisonDelta)
         ? detector.config.comparisonDelta
-        : null) || 3600,
+        : DEFAULT_THRESHOLD_METRIC_FORM_DATA.conditionComparisonAgo,
 
     // Dynamic fields - extract from config for dynamic detectors
     sensitivity:
-      detector.config.detectionType === 'dynamic'
-        ? detector.config.sensitivity || AlertRuleSensitivity.LOW
-        : AlertRuleSensitivity.LOW,
+      detector.config.detectionType === 'dynamic' && defined(detector.config.sensitivity)
+        ? detector.config.sensitivity
+        : DEFAULT_THRESHOLD_METRIC_FORM_DATA.sensitivity,
     thresholdType:
-      detector.config.detectionType === 'dynamic'
-        ? detector.config.thresholdType || AlertRuleThresholdType.ABOVE
-        : AlertRuleThresholdType.ABOVE,
+      detector.config.detectionType === 'dynamic' &&
+      defined(detector.config.thresholdType)
+        ? detector.config.thresholdType
+        : DEFAULT_THRESHOLD_METRIC_FORM_DATA.thresholdType,
   };
 }
