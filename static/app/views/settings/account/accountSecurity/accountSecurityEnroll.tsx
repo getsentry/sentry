@@ -171,7 +171,7 @@ export default function AccountSecurityEnroll() {
     isError,
     isPending,
     refetch,
-  } = useApiQuery<Authenticator>([authenticatorEndpoint], {
+  } = useApiQuery<Authenticator>([enrollEndpoint], {
     staleTime: 0,
   });
 
