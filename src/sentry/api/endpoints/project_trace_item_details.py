@@ -153,6 +153,23 @@ def serialize_meta(
     return meta_result
 
 
+def serialize_links(attributes: list[dict]) -> dict | None:
+    """Links are temporarily stored in `sentry.links` so lets parse that back out and return separately"""
+    link_attribute = None
+    for attribute in attributes:
+        internal_name = attribute["name"]
+        if internal_name == "sentry.links":
+            link_attribute = attribute
+
+    if link_attribute is None:
+        return None
+
+    try:
+        return json.loads(link_attribute["value"]["valStr"])
+    except json.JSONDecodeError:
+        return None
+
+
 def serialize_item_id(item_id: str, trace_item_type: SupportedTraceItemType) -> str:
     if trace_item_type == SupportedTraceItemType.SPANS:
         return item_id[-16:]
@@ -240,6 +257,7 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
                 resp["attributes"], item_type, use_sentry_conventions
             ),
             "meta": serialize_meta(resp["attributes"], item_type),
+            "links": serialize_links(resp["attributes"]),
         }
 
         return Response(resp_dict)
