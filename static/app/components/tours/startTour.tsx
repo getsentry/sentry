@@ -8,8 +8,8 @@ import {useInvertedTheme} from 'sentry/utils/theme/theme';
 
 interface StartTourModalProps {
   closeModal: () => void;
-  description: string;
-  header: string;
+  description: React.ReactNode;
+  header: React.ReactNode;
   imgSrc: string;
   onDismissTour: () => void;
   onStartTour: () => void;
