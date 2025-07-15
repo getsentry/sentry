@@ -1475,7 +1475,7 @@ class DetectorFilterTest(TestCase):
             projects=[self.project],
             search_filters=[
                 SearchFilter(SearchKey("detector"), "=", SearchValue([self.detector1.id])),
-                SearchFilter(SearchKey("status"), "=", SearchValue(["unresolved"])),
+                SearchFilter(SearchKey("status"), "=", SearchValue([0])),
             ],
         )
 
