@@ -1,6 +1,7 @@
 export enum MCPReferrer {
   MCP_TRAFFIC_WIDGET = 'api.performance.mcp.traffic-widget',
   MCP_TRANSPORT_WIDGET = 'api.performance.mcp.transport-widget',
+  MCP_SOURCES_WIDGET = 'api.performance.mcp.sources-widget',
   MCP_TOOL_TRAFFIC_WIDGET = 'api.performance.mcp.tool-traffic-widget',
   MCP_PROMPT_TRAFFIC_WIDGET = 'api.performance.mcp.prompt-traffic-widget',
   MCP_RESOURCE_TRAFFIC_WIDGET = 'api.performance.mcp.resource-traffic-widget',
