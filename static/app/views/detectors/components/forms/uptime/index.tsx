@@ -6,6 +6,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {AssigneeField} from 'sentry/views/detectors/components/forms/assigneeField';
+import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 import {UptimeDetectorFormDetectSection} from 'sentry/views/detectors/components/forms/uptime/detect';
@@ -30,6 +31,7 @@ function UptimeDetectorForm() {
     <FormStack>
       <UptimeDetectorFormDetectSection />
       <AssignSection />
+      <AutomateSection />
     </FormStack>
   );
 }

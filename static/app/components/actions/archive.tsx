@@ -297,7 +297,7 @@ function ArchiveActions({
   });
 
   return (
-    <ButtonBar merged>
+    <ButtonBar merged gap="none">
       <ArchiveButton
         size={size}
         className={className}

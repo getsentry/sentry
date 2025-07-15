@@ -1,4 +1,4 @@
-import {css} from '@emotion/react';
+import {css, ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import stackedNavTourSvg from 'sentry-images/spot/stacked-nav-tour.svg';
@@ -6,6 +6,7 @@ import stackedNavTourSvg from 'sentry-images/spot/stacked-nav-tour.svg';
 import {TextTourAction, TourAction} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 
 interface NavTourModalProps {
   closeModal: () => void;
@@ -18,41 +19,40 @@ export function NavTourModal({
   handleDismissTour,
   handleStartTour,
 }: NavTourModalProps) {
+  const invertedTheme = useInvertedTheme();
   return (
-    <TourContainer>
-      <ModalImage src={stackedNavTourSvg} />
-      <TextContainer>
-        <Header>{t('Welcome to a simpler Sentry')}</Header>
-        <Description>
-          {t(
-            'Find what you need, faster. Our new navigation puts your top workflows front and center.'
-          )}
-        </Description>
-        <Footer>
-          <TextTourAction
-            size="sm"
-            onClick={() => {
-              handleDismissTour();
-              closeModal();
-            }}
-            borderless
-          >
-            {t('Maybe later')}
-          </TextTourAction>
-          <TourAction
-            size="sm"
-            onClick={() => {
-              handleStartTour();
-              closeModal();
-            }}
-            borderless
-            autoFocus
-          >
-            {t('Take a tour')}
-          </TourAction>
-        </Footer>
-      </TextContainer>
-    </TourContainer>
+    <ThemeProvider theme={invertedTheme}>
+      <TourContainer>
+        <ModalImage src={stackedNavTourSvg} />
+        <TextContainer>
+          <Header>{t('Welcome to a simpler Sentry')}</Header>
+          <Description>
+            {t(
+              'Find what you need, faster. Our new navigation puts your top workflows front and center.'
+            )}
+          </Description>
+          <Footer>
+            <TextTourAction
+              onClick={() => {
+                handleDismissTour();
+                closeModal();
+              }}
+            >
+              {t('Maybe later')}
+            </TextTourAction>
+            <TourAction
+              onClick={() => {
+                handleStartTour();
+                closeModal();
+              }}
+              autoFocus
+            >
+              {t('Take a tour')}
+            </TourAction>
+          </Footer>
+        </TextContainer>
+      </TourContainer>
+    </ThemeProvider>
   );
 }
 
@@ -73,7 +73,7 @@ const TourContainer = styled('div')`
     margin: -${space(4)};
   }
   border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.tour.background};
+  background: ${p => p.theme.tokens.background.primary};
   overflow: hidden;
 `;
 
@@ -82,15 +82,14 @@ const TextContainer = styled('div')`
 `;
 
 const Header = styled('div')`
-  color: ${p => p.theme.tour.header};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.headerFontSize};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const Description = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.white};
-  opacity: 0.8;
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const Footer = styled('div')`
@@ -102,4 +101,7 @@ const Footer = styled('div')`
 
 export const navTourModalCss = css`
   width: 545px;
+  [role='document'] {
+    box-shadow: none;
+  }
 `;

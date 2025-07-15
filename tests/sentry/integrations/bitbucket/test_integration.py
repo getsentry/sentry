@@ -1,11 +1,14 @@
+from unittest.mock import patch
 from urllib.parse import quote, urlencode
 
+import pytest
 import responses
 from django.urls import reverse
 
 from sentry.integrations.bitbucket.integration import BitbucketIntegrationProvider
 from sentry.integrations.models.integration import Integration
 from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -203,3 +206,39 @@ class BitbucketIntegrationTest(APITestCase):
             installation.extract_source_path_from_source_url(repo, source_url)
             == "src/sentry/integrations/bitbucket/integration.py"
         )
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
+    def test_get_repository_choices_halt_lifecycle(self, mock_record_halt, mock_record_failure):
+        responses.add(
+            responses.GET,
+            "https://api.bitbucket.org/2.0/repositories/sentryuser",
+            status=404,
+            json={"error": {"message": "No workspace with identifier sentryuser"}},
+        )
+        installation = self.integration.get_installation(self.organization.id)
+        with pytest.raises(
+            IntegrationError, match="Unable to retrieve repositories. Please try again later."
+        ):
+            installation.get_repository_choices(None, {})
+        assert mock_record_halt.call_count == 1
+        assert mock_record_failure.call_count == 0
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
+    def test_get_repository_choices_failure_lifecycle(self, mock_record_halt, mock_record_failure):
+        responses.add(
+            responses.GET,
+            "https://api.bitbucket.org/2.0/repositories/sentryuser",
+            status=404,
+            json={"error": {"message": "Some other error, sentry is responsible"}},
+        )
+        installation = self.integration.get_installation(self.organization.id)
+        with pytest.raises(
+            IntegrationError, match="Unable to retrieve repositories. Please try again later."
+        ):
+            installation.get_repository_choices(None, {})
+        assert mock_record_halt.call_count == 0
+        assert mock_record_failure.call_count == 1

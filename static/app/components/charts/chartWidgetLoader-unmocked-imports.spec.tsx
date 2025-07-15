@@ -173,7 +173,7 @@ jest.mock('sentry/views/insights/common/queries/useDiscover', () => ({
     isPending: false,
     error: null,
   })),
-  useEAPSpans: jest.fn(() => ({
+  useSpans: jest.fn(() => ({
     data: [
       {
         'avg(span.duration)': 123,
@@ -201,7 +201,7 @@ jest.mock('sentry/views/insights/common/queries/useTopNDiscoverSeries', () => ({
   })),
 }));
 jest.mock('sentry/views/insights/common/queries/useDiscoverSeries', () => ({
-  useEAPSeries: jest.fn(() => ({
+  useSpanSeries: jest.fn(() => ({
     data: {
       'count(span.duration)': mockDiscoverSeries('count(span.duration)'),
       'avg(span.duration)': mockDiscoverSeries('avg(span.duration)'),
