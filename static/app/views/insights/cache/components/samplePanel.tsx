@@ -143,6 +143,7 @@ export function CacheSamplePanel() {
           'cache.hit': isCacheHit,
         }),
         fields: [
+          SpanFields.ID,
           SpanFields.PROJECT,
           SpanFields.TRACE,
           SpanFields.TRANSACTION_SPAN_ID,
