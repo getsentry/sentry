@@ -1099,27 +1099,19 @@ Available fields are:
 - `UPDATED_AT`
         """,
     )
-    FIRST = OpenApiParameter(
-        name="first",
+    LIMIT = OpenApiParameter(
+        name="limit",
         location="query",
         required=False,
         type=int,
-        default=20,
-        description="""The number of results to return from the start of the list.""",
-    )
-    LAST = OpenApiParameter(
-        name="last",
-        location="query",
-        required=False,
-        type=int,
-        description="""The number of results to return from the end of the list.""",
+        description="""The number of results to return. If not specified, defaults to 20. Maximum allowed is 100.""",
     )
     CURSOR = OpenApiParameter(
         name="cursor",
         location="query",
         required=False,
         type=str,
-        description="""The cursor to start the query from. Will return results after the cursor if used with `first` or before the cursor if used with `last`.""",
+        description="""The cursor pointing to a specific position in the result set to start the query from. Will return results after the cursor if used with `after` or before the cursor if used with `before` for `direction`.""",
     )
     TERM = OpenApiParameter(
         name="term",
@@ -1127,4 +1119,11 @@ Available fields are:
         required=False,
         type=str,
         description="""The term substring to filter test name strings by using the `contains` operator.""",
+    )
+    DIRECTION = OpenApiParameter(
+        name="direction",
+        location="query",
+        required=False,
+        type=str,
+        description="""The direction to paginate in. Use `after` for forward pagination (get results after the cursor) or `before` for backward pagination (get results before the cursor). If not specified, defaults to `after`.""",
     )

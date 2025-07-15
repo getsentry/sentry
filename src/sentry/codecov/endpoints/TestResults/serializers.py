@@ -33,6 +33,8 @@ class PageInfoSerializer(serializers.Serializer):
     """
 
     endCursor = serializers.CharField(allow_null=True)
+    startCursor = serializers.CharField(allow_null=True)
+    hasPreviousPage = serializers.BooleanField()
     hasNextPage = serializers.BooleanField()
 
 
@@ -65,7 +67,13 @@ class TestResultSerializer(serializers.Serializer):
             response_data = {
                 "results": nodes,
                 "pageInfo": test_results_data.get(
-                    "pageInfo", {"endCursor": None, "hasNextPage": False}
+                    "pageInfo",
+                    {
+                        "endCursor": None,
+                        "hasNextPage": False,
+                        "startCursor": None,
+                        "hasPreviousPage": False,
+                    },
                 ),
                 "totalCount": test_results_data.get("totalCount", len(nodes)),
             }
