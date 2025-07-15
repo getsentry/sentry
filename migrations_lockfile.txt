@@ -27,7 +27,7 @@ preprod: 0011_add_preprod_artifact_app_name_and_app_id_fields
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0950_safe_del_dswaiver
+sentry: 0951_delete_ds_waiver
 
 social_auth: 0003_social_auth_json_field
 
