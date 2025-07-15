@@ -1,14 +1,9 @@
-import type {Organization} from 'sentry/types/organization';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-
-export function hasLaravelInsightsFeature(organization: Organization) {
-  return organization.features.includes('laravel-insights');
-}
 
 const laravelViews: DomainView[] = ['backend'];
 
