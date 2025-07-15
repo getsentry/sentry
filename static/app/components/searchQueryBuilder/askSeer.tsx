@@ -3,10 +3,13 @@ import styled from '@emotion/styled';
 import {useOption} from '@react-aria/listbox';
 import type {ComboBoxState} from '@react-stately/combobox';
 
-import {promptsUpdate} from 'sentry/actionCreators/prompts';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {makeOrganizationSeerSetupQueryKey} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
+import {
+  setupCheckQueryKey,
+  useSeerAcknowledgeMutation,
+} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
@@ -14,44 +17,11 @@ import {IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {
-  useIsFetching,
-  useIsMutating,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useIsFetching, useIsMutating} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export const ASK_SEER_ITEM_KEY = 'ask_seer';
 export const ASK_SEER_CONSENT_ITEM_KEY = 'ask_seer_consent';
-
-const setupCheckQueryKey = (orgSlug: string) =>
-  `/organizations/${orgSlug}/seer/setup-check/`;
-
-export function useSeerAcknowledgeMutation() {
-  const api = useApi();
-  const queryClient = useQueryClient();
-  const organization = useOrganization();
-
-  const {mutate} = useMutation({
-    mutationKey: [setupCheckQueryKey(organization.slug)],
-    mutationFn: () => {
-      return promptsUpdate(api, {
-        organization,
-        feature: 'seer_autofix_setup_acknowledged',
-        status: 'dismissed',
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: [setupCheckQueryKey(organization.slug)],
-      });
-    },
-  });
-
-  return {mutate};
-}
 
 function AskSeerConsentOption<T>({state}: {state: ComboBoxState<T>}) {
   const organization = useOrganization();
