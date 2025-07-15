@@ -68,8 +68,8 @@ const Registers = styled('div')`
 
 const Register = styled('div')`
   display: grid;
-  gap: ${space(0.5)};
-  grid-template-columns: 3em 1fr;
+  gap: ${space(1)};
+  grid-template-columns: 6em 1fr;
   align-items: center;
   color: ${p => p.theme.subText};
 
