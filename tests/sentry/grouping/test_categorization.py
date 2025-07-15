@@ -208,14 +208,14 @@ def track_enhancers_coverage():
             )
 
 
-def _strip_sensitive_keys(data, keys):
+def _strip_sensitive_keys(data, keep_keys):
     if not data:
         return False
 
     keys_stripped = False
 
     for key in list(data):
-        if key not in keys:
+        if key not in keep_keys:
             del data[key]
             keys_stripped = True
 
