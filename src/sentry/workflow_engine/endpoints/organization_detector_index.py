@@ -33,8 +33,9 @@ from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
+from sentry.workflow_engine.endpoints.validators.detector_workflow import DetectorWorkflowValidator
 from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
-from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
+from sentry.workflow_engine.models import Detector
 
 detector_search_config = SearchConfig.create_from(
     default_config,
@@ -194,20 +195,6 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         if not detector_type:
             raise ValidationError({"type": ["This field is required."]})
 
-        workflow_ids = request.data.get("workflowIds", [])
-
-        if workflow_ids:
-            workflows = Workflow.objects.filter(
-                id__in=workflow_ids, organization_id=organization.id
-            )
-            found_workflow_ids = set(workflows.values_list("id", flat=True))
-            missing_workflow_ids = set(workflow_ids) - found_workflow_ids
-
-            if missing_workflow_ids:
-                raise ValidationError(
-                    {"workflowIds": [f"Workflows not found: {list(missing_workflow_ids)}"]}
-                )
-
         # restrict creating metric issue detectors by plan type
         if detector_type == MetricIssue.slug and not features.has(
             "organizations:incidents", organization, actor=request.user
@@ -236,7 +223,25 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
         detector = validator.save()
 
-        for workflow_id in workflow_ids:
-            DetectorWorkflow.objects.create(detector=detector, workflow_id=workflow_id)
+        # Handle workflow connections
+        workflow_ids = request.data.get("workflowIds", [])
+        if workflow_ids:
+            for workflow_id in workflow_ids:
+                workflow_validator = DetectorWorkflowValidator(
+                    data={
+                        "detector_id": detector.id,
+                        "workflow_id": workflow_id,
+                    },
+                    context={
+                        "organization": organization,
+                        "request": request,
+                    },
+                )
+                if not workflow_validator.is_valid():
+                    # Clean up the detector if workflow validation fails
+                    detector.delete()
+                    return Response(workflow_validator.errors, status=status.HTTP_400_BAD_REQUEST)
+
+                workflow_validator.save()
 
         return Response(serialize(detector, request.user), status=status.HTTP_201_CREATED)
