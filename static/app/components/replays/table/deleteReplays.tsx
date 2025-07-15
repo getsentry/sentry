@@ -10,6 +10,7 @@ import {Flex} from 'sentry/components/core/layout/flex';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Duration from 'sentry/components/duration/duration';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TimeSince from 'sentry/components/timeSince';
@@ -45,7 +46,7 @@ export default function DeleteReplays({selectedIds, replays, queryOptions}: Prop
   });
 
   const {bulkDelete, canDelete, queryOptionsToPayload} = useDeleteReplays({
-    projectIdOrSlug: project?.slug ?? '',
+    projectSlug: project?.slug ?? '',
   });
   const deletePayload = queryOptionsToPayload(selectedIds, queryOptions ?? {});
 
@@ -54,7 +55,7 @@ export default function DeleteReplays({selectedIds, replays, queryOptions}: Prop
   return (
     <Tooltip
       disabled={canDelete}
-      title={t('Delete replays from a single project at a time')}
+      title={t('Select a single project from the dropdown to delete replays')}
     >
       <Button
         disabled={!canDelete}
@@ -67,11 +68,13 @@ export default function DeleteReplays({selectedIds, replays, queryOptions}: Prop
                 {selectedIds === 'all' ? (
                   <ReplayQueryPreview deletePayload={deletePayload} project={project!} />
                 ) : (
-                  <ReplayPreviewTable
-                    replays={replays}
-                    selectedIds={selectedIds}
-                    project={project!}
-                  />
+                  <ErrorBoundary mini>
+                    <ReplayPreviewTable
+                      replays={replays}
+                      selectedIds={selectedIds}
+                      project={project!}
+                    />
+                  </ErrorBoundary>
                 )}
               </Fragment>
             ),

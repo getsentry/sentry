@@ -1,5 +1,6 @@
 import {useCallback} from 'react';
 
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {
   fetchMutation,
@@ -7,9 +8,10 @@ import {
   useMutation,
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 
 interface Props {
-  projectIdOrSlug: string;
+  projectSlug: string;
 }
 
 export type ReplayBulkDeletePayload = {
@@ -21,20 +23,28 @@ export type ReplayBulkDeletePayload = {
 
 type Vars = [ReplayBulkDeletePayload];
 
-export default function useDeleteReplays({projectIdOrSlug}: Props) {
+export default function useDeleteReplays({projectSlug}: Props) {
   const organization = useOrganization();
+  const project = useProjectFromSlug({organization, projectSlug});
+  const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
+  const hasAdminAccess = hasEveryAccess(['project:admin'], {organization, project});
+
+  const canDelete = Boolean(projectSlug) && (hasWriteAccess || hasAdminAccess);
 
   const {mutate} = useMutation({
     mutationFn: ([data]: Vars) => {
-      if (!projectIdOrSlug) {
+      if (!projectSlug) {
         throw new Error('Project ID or slug is required');
+      }
+      if (!canDelete) {
+        throw new Error('User does not have permission to delete replays');
       }
 
       const options = {};
       const payload = {data};
       return fetchMutation([
         'POST',
-        `/projects/${organization.slug}/${projectIdOrSlug}/replays/jobs/delete/`,
+        `/projects/${organization.slug}/${projectSlug}/replays/jobs/delete/`,
         options,
         payload,
       ]);
@@ -62,7 +72,7 @@ export default function useDeleteReplays({projectIdOrSlug}: Props) {
 
   return {
     bulkDelete: mutate,
-    canDelete: Boolean(projectIdOrSlug),
+    canDelete,
     queryOptionsToPayload,
   };
 }

@@ -48,7 +48,11 @@ export default function ReplayTableHeaderActions({
       {isAllSelected === 'indeterminate' ? (
         <FullGridAlert type="warning" system>
           <Flex justify="center" wrap="wrap" gap={space(1)}>
-            {tn('Selected %s replay.', 'Selected %s replays.', countSelected)}
+            {tn(
+              'Selected %s visible replay.',
+              'Selected %s visible replays.',
+              countSelected
+            )}
             <a onClick={selectAll}>
               {queryString
                 ? tct('Select all replays that match: [queryString].', {
