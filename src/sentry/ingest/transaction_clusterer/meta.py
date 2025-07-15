@@ -28,6 +28,6 @@ def track_clusterer_run(namespace: ClustererNamespace, project: Project) -> None
     meta["last_run"] = now = int(datetime.now(timezone.utc).timestamp())
     if meta["first_run"] == 0:
         meta["first_run"] = now
-    # This project option only serves a stats purpose and doesn't
-    # require refreshing the cache.
+    # This option is updated very often, but only keeps track of transaction clusterer internal metadata.
+    # To minimize the recomputations the system does, we can skip reloading (project) caches.
     project.update_option(namespace.value.meta_store, meta, reload_cache=False)

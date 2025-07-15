@@ -120,6 +120,13 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
     def set_value(
         self, project: int | Project, key: str, value: Any, reload_cache: bool = True
     ) -> bool:
+        """
+        Sets a project option for the given project.
+        :param reload_cache: Invalidate the project config and reload the
+        cache. Do not call this with `False` unless you know for sure that
+        it's fine to keep the cached project config.
+        """
+
         if isinstance(project, models.Model):
             project_id = project.id
         else:
