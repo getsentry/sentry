@@ -3,6 +3,7 @@ import {useEffect, useMemo, useRef} from 'react';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
+import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -183,7 +184,7 @@ function createBufferFromTableData(
     !timeseriesStartTimestamp ||
     !timeseriesLastTimestamp ||
     !timeseriesIntervalDuration ||
-    !timeseriesLastBucketIndex ||
+    !defined(timeseriesLastBucketIndex) ||
     !timeseriesValues ||
     !autoRefresh
   ) {
