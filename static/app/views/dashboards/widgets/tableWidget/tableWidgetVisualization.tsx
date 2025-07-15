@@ -211,25 +211,26 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
             <SortLink
               align={align}
               canSort={column.sortable ?? false}
-              title={<StyledTooltip title={name}>{name}</StyledTooltip>}
-              onClick={e => {
-                if (!onChangeSort) return;
-                e.preventDefault();
+              onClick={() => {
                 const nextDirection = direction === 'desc' ? 'asc' : 'desc';
-                onChangeSort({
+
+                onChangeSort?.({
                   field: sortColumn,
                   kind: nextDirection,
                 });
               }}
+              title={<StyledTooltip title={name}>{name}</StyledTooltip>}
               direction={direction}
               generateSortLink={() => {
-                return {
-                  ...location,
-                  query: {
-                    ...location.query,
-                    sort: `${direction === 'desc' ? '' : '-'}${sortColumn}`,
-                  },
-                };
+                return onChangeSort
+                  ? location
+                  : {
+                      ...location,
+                      query: {
+                        ...location.query,
+                        sort: `${direction === 'desc' ? '' : '-'}${sortColumn}`,
+                      },
+                    };
               }}
             />
           );

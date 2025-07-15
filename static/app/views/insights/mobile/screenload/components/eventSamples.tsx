@@ -13,7 +13,7 @@ import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
-import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useDiscoverOrEap} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {EventSamplesTable} from 'sentry/views/insights/mobile/screenload/components/tables/eventSamplesTable';
@@ -110,7 +110,7 @@ export function ScreenLoadEventSamples({
   const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
   eventView.sorts = [sort];
 
-  const {data, meta, isPending, pageLinks} = useSpans(
+  const {data, meta, isPending, pageLinks} = useDiscoverOrEap(
     {
       search: searchQuery.formatString(),
       cursor,

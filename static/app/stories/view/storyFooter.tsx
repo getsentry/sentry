@@ -1,36 +1,51 @@
 import styled from '@emotion/styled';
+import qs from 'query-string';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {IconArrow} from 'sentry/icons';
+import {useStoryBookFilesByCategory} from 'sentry/stories/view/storySidebar';
+import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
+import type {StoryDescriptor} from 'sentry/stories/view/useStoriesLoader';
+import {useStory} from 'sentry/stories/view/useStory';
 import {space} from 'sentry/styles/space';
-
-import {useStoryBookFilesByCategory} from './storySidebar';
-import type {StoryTreeNode} from './storyTree';
-import {type StoryDescriptor} from './useStoriesLoader';
-import {useStory} from './useStory';
+import {useLocation} from 'sentry/utils/useLocation';
 
 export function StoryFooter() {
+  const location = useLocation();
+
   const {story} = useStory();
-  const stories = useStoryBookFilesByCategory();
-  const pagination = findPreviousAndNextStory(story, stories);
+  const categories = useStoryBookFilesByCategory();
+  const pagination = findPreviousAndNextStory(story, categories);
+
+  const prevLocationDescriptor = qs.stringify({
+    ...location.query,
+    name: pagination?.prev?.story.filesystemPath,
+  });
+  const nextLocationDescriptor = qs.stringify({
+    ...location.query,
+    name: pagination?.next?.story.filesystemPath,
+  });
 
   return (
     <Flex align="center" justify="space-between" gap={space(2)}>
       {pagination?.prev && (
-        <Card to={pagination.prev.location} icon={<IconArrow direction="left" />}>
+        <Card
+          to={`/stories/?${prevLocationDescriptor}`}
+          icon={<IconArrow direction="left" />}
+        >
           <CardLabel>Previous</CardLabel>
-          <CardTitle>{pagination.prev.label}</CardTitle>
+          <CardTitle>{pagination.prev.story.label}</CardTitle>
         </Card>
       )}
       {pagination?.next && (
         <Card
           data-flip
-          to={pagination.next.location}
+          to={`/stories/?${nextLocationDescriptor}`}
           icon={<IconArrow direction="right" />}
         >
           <CardLabel>Next</CardLabel>
-          <CardTitle>{pagination.next.label}</CardTitle>
+          <CardTitle>{pagination.next.story.label}</CardTitle>
         </Card>
       )}
     </Flex>
@@ -41,11 +56,14 @@ function findPreviousAndNextStory(
   story: StoryDescriptor,
   categories: ReturnType<typeof useStoryBookFilesByCategory>
 ): {
-  next?: StoryTreeNode;
-  prev?: StoryTreeNode;
+  next: {category: string; story: StoryTreeNode} | undefined;
+  prev: {category: string; story: StoryTreeNode} | undefined;
 } | null {
-  const stories = Object.values(categories).flat();
-  const currentIndex = stories.findIndex(s => s.filesystemPath === story.filename);
+  const stories = Object.entries(categories).flatMap(([key, category]) =>
+    category.map(s => ({category: key, story: s}))
+  );
+
+  const currentIndex = stories.findIndex(s => s.story.filesystemPath === story.filename);
 
   if (currentIndex === -1) {
     return null;

@@ -9,11 +9,7 @@ import type {
   AdminConfirmRenderProps,
 } from 'admin/components/adminConfirmationModal';
 import type {BilledDataCategoryInfo, Subscription} from 'getsentry/types';
-import {
-  getPlanCategoryName,
-  isByteCategory,
-  isContinuousProfiling,
-} from 'getsentry/utils/dataCategory';
+import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 
 /** @internal exported for tests only */
 export function getFreeEventsKey(dataCategory: DataCategory) {
@@ -94,19 +90,20 @@ class AddGiftEventsAction extends Component<Props, State> {
     const {freeEvents} = this.state;
 
     function getlabel() {
+      if (dataCategory === DataCategory.ATTACHMENTS) {
+        return 'How many attachments in GB?';
+      }
+      if (
+        dataCategory === DataCategory.PROFILE_DURATION ||
+        dataCategory === DataCategory.PROFILE_DURATION_UI
+      ) {
+        return 'How many profile hours?';
+      }
       const categoryName = getPlanCategoryName({
         plan: subscription.planDetails,
         category: dataCategory,
         capitalize: false,
       });
-
-      if (isByteCategory(dataCategory)) {
-        return `How many ${categoryName} in GB?`;
-      }
-      if (isContinuousProfiling(dataCategory)) {
-        return 'How many profile hours?';
-      }
-
       const multiplier = billedCategoryInfo?.freeEventsMultiple ?? 0;
       const addToMessage =
         multiplier > 1
@@ -118,14 +115,17 @@ class AddGiftEventsAction extends Component<Props, State> {
     const total = this.calculatedTotal.toLocaleString();
     function getHelp() {
       let postFix = '';
-      if (isContinuousProfiling(dataCategory)) {
+      if (
+        dataCategory === DataCategory.PROFILE_DURATION ||
+        dataCategory === DataCategory.PROFILE_DURATION_UI
+      ) {
         if (total === '1') {
           postFix = ' hour';
         } else {
           postFix = ' hours';
         }
       }
-      if (isByteCategory(dataCategory)) {
+      if (dataCategory === DataCategory.ATTACHMENTS) {
         postFix = ' GB';
       }
       return `Total: ${total}${postFix}`;

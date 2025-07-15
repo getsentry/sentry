@@ -229,7 +229,7 @@ describe('Recurring Credits', function () {
 
     await screen.findByRole('heading', {name: /recurring credits/i});
 
-    expect(screen.getByText('log bytes')).toBeInTheDocument();
+    expect(screen.getByText('logBytes')).toBeInTheDocument();
     expect(screen.getByTestId('amount')).toHaveTextContent('+2.5 GB/mo');
   });
 

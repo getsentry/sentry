@@ -90,7 +90,6 @@ export enum SpanFields {
   PROJECT = 'project',
   MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH = 'measurements.http.response_content_length',
   MEASUREMENTS_TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
-  MEASUREMENTS_TIME_TO_FILL_DISPLAY = 'measurements.time_to_full_display',
   SPAN_DESCRIPTION = 'span.description',
   SPAN_GROUP = 'span.group',
   SPAN_OP = 'span.op',
@@ -117,14 +116,19 @@ export enum SpanFields {
   MCP_RESOURCE_URI = 'mcp.resource.uri',
   MCP_PROMPT_NAME = 'mcp.prompt.name',
   TRANSACTION_SPAN_ID = 'transaction.span_id',
+  TOTAL_SCORE = 'measurements.score.total',
   SPAN_SELF_TIME = 'span.self_time',
   TRACE = 'trace',
   PROFILE_ID = 'profile_id',
   PROFILEID = 'profile.id',
   REPLAYID = 'replayId',
   REPLAY_ID = 'replay.id',
+  USER_ID = 'user.id',
+  USER_IP = 'user.ip',
   LCP_ELEMENT = 'lcp.element',
   CLS_SOURCE = 'cls.source.1',
+  USER_EMAIL = 'user.email',
+  USER_USERNAME = 'user.username',
   CACHE_ITEM_SIZE = 'measurements.cache.item_size',
   SPAN_ID = 'span_id',
   DB_SYSTEM = 'db.system',
@@ -136,36 +140,6 @@ export enum SpanFields {
   CODE_LINENO = 'code.lineno',
   APP_START_COLD = 'measurements.app_start_cold',
   APP_START_WARM = 'measurements.app_start_warm',
-
-  // User fields
-  USER_ID = 'user.id',
-  USER_IP = 'user.ip',
-  USER_EMAIL = 'user.email',
-  USER_USERNAME = 'user.username',
-  USER_GEO_SUBREGION = 'user.geo.subregion',
-
-  // Web vitals
-  INP = 'measurements.inp',
-  INP_SCORE = 'measurements.score.inp',
-  INP_SCORE_RATIO = 'measurements.score.ratio.inp',
-  INP_SCORE_WEIGHT = 'measurements.score.weight.inp',
-  LCP = 'measurements.lcp',
-  LCP_SCORE = 'measurements.score.lcp',
-  LCP_SCORE_RATIO = 'measurements.score.ratio.lcp',
-  LCP_SCORE_WEIGHT = 'measurements.score.weight.lcp',
-  CLS = 'measurements.cls',
-  CLS_SCORE = 'measurements.score.cls',
-  CLS_SCORE_RATIO = 'measurements.score.ratio.cls',
-  CLS_SCORE_WEIGHT = 'measurements.score.weight.cls',
-  TTFB = 'measurements.ttfb',
-  TTFB_SCORE = 'measurements.score.ttfb',
-  TTFB_SCORE_RATIO = 'measurements.score.ratio.ttfb',
-  TTFB_SCORE_WEIGHT = 'measurements.score.weight.ttfb',
-  FCP = 'measurements.fcp',
-  FCP_SCORE = 'measurements.score.fcp',
-  FCP_SCORE_RATIO = 'measurements.score.ratio.fcp',
-  FCP_SCORE_WEIGHT = 'measurements.score.weight.fcp',
-  TOTAL_SCORE = 'measurements.score.total',
 }
 
 type WebVitalsMeasurements =
@@ -205,38 +179,17 @@ type SpanNumberFields =
   | SpanFields.SLOW_FRAMES_RATE
   | SpanFields.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH
   | SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY
-  | SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY
   | SpanFields.GEN_AI_USAGE_INPUT_TOKENS
   | SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS
   | SpanFields.GEN_AI_USAGE_TOTAL_TOKENS
   | SpanFields.GEN_AI_USAGE_TOTAL_COST
   | SpanFields.TOTAL_SCORE
-  | SpanFields.INP
-  | SpanFields.INP_SCORE
-  | SpanFields.INP_SCORE_RATIO
-  | SpanFields.INP_SCORE_WEIGHT
-  | SpanFields.LCP
-  | SpanFields.LCP_SCORE
-  | SpanFields.LCP_SCORE_RATIO
-  | SpanFields.LCP_SCORE_WEIGHT
-  | SpanFields.CLS
-  | SpanFields.CLS_SCORE
-  | SpanFields.CLS_SCORE_RATIO
-  | SpanFields.CLS_SCORE_WEIGHT
-  | SpanFields.TTFB
-  | SpanFields.TTFB_SCORE
-  | SpanFields.TTFB_SCORE_RATIO
-  | SpanFields.TTFB_SCORE_WEIGHT
-  | SpanFields.FCP
-  | SpanFields.FCP_SCORE
-  | SpanFields.FCP_SCORE_RATIO
-  | SpanFields.FCP_SCORE_WEIGHT
   | SpanFields.SPAN_SELF_TIME
   | SpanFields.CACHE_ITEM_SIZE
   | SpanFields.CODE_LINENO
   | SpanFields.APP_START_COLD
   | SpanFields.APP_START_WARM
-  | SpanFields.CODE_LINENO;
+  | DiscoverNumberFields;
 
 export type SpanStringFields =
   | SpanMetricsField.RESOURCE_RENDER_BLOCKING_STATUS
@@ -441,8 +394,6 @@ type EAPSpanResponseRaw = {
     [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
   } & {
     [SpanFields.PLATFORM]: PlatformKey;
-  } & {
-    [SpanFields.USER_GEO_SUBREGION]: SubregionCode;
   } & {
     [Property in SpanFields as `count_unique(${Property})`]: number;
   } & {
@@ -657,102 +608,88 @@ export enum SpanFunction {
   FAILURE_RATE_IF = 'failure_rate_if',
 }
 
-// TODO - add more functions and fields, combine shared ones, etc
-
-type MetricsFunctions =
-  | 'count'
-  | 'performance_score'
-  | 'count_scores'
-  | 'opportunity_score'
-  | 'p75';
-
-export enum MetricsFields {
-  TRANSACTION_DURATION = 'transaction.duration',
-  SPAN_DURATION = 'span.duration',
-  TRANSACTION = 'transaction',
-  PROJECT = 'project',
-  LCP_SCORE = 'measurements.score.lcp',
-  FCP_SCORE = 'measurements.score.fcp',
-  INP_SCORE = 'measurements.score.inp',
-  CLS_SCORE = 'measurements.score.cls',
-  TTFB_SCORE = 'measurements.score.ttfb',
-  TOTAL_SCORE = 'measurements.score.total',
-  LCP_WEIGHT = 'measurements.score.weight.lcp',
-  FCP_WEIGHT = 'measurements.score.weight.fcp',
-  INP_WEIGHT = 'measurements.score.weight.inp',
-  CLS_WEIGHT = 'measurements.score.weight.cls',
-  TTFB_WEIGHT = 'measurements.score.weight.ttfb',
-  TOTAL_WEIGHT = 'measurements.score.weight.total',
-  PROJECT_ID = 'project.id',
-  LCP = 'measurements.lcp',
-  FCP = 'measurements.fcp',
-  INP = 'measurements.inp',
-  CLS = 'measurements.cls',
-  TTFB = 'measurements.ttfb',
+enum DiscoverFields {
   ID = 'id',
   TRACE = 'trace',
   USER_DISPLAY = 'user.display',
+  TRANSACTION = 'transaction',
+  LCP = 'measurements.lcp',
+  FCP = 'measurements.fcp',
+  CLS = 'measurements.cls',
+  TTFB = 'measurements.ttfb',
+  INP = 'measurements.inp',
+  TRANSACTION_DURATION = 'transaction.duration',
+  SPAN_DURATION = 'span.duration',
   REPLAY_ID = 'replayId',
   TIMESTAMP = 'timestamp',
   PROFILE_ID = 'profile.id',
-  APP_START_COLD = 'measurements.app_start_cold',
-  APP_START_WARM = 'measurements.app_start_warm',
-  TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
-  TIME_TO_FULL_DISPLAY = 'measurements.time_to_full_display',
-  RELEASE = 'release',
-  DEVICE_CLASS = 'device.class',
+  PROJECT = 'project',
+  SCORE_TOTAL = 'measurements.score.total',
+  SCORE_LCP = 'measurements.score.lcp',
+  SCORE_FCP = 'measurements.score.fcp',
+  SCORE_CLS = 'measurements.score.cls',
+  SCORE_TTFB = 'measurements.score.ttfb',
+  SCORE_INP = 'measurements.score.inp',
+  SCORE_WEIGHT_LCP = 'measurements.score.weight.lcp',
+  SCORE_WEIGHT_FCP = 'measurements.score.weight.fcp',
+  SCORE_WEIGHT_CLS = 'measurements.score.weight.cls',
+  SCORE_WEIGHT_TTFB = 'measurements.score.weight.ttfb',
+  SCORE_WEIGHT_INP = 'measurements.score.weight.inp',
+  SCORE_RATIO_LCP = 'measurements.score.ratio.lcp',
+  SCORE_RATIO_FCP = 'measurements.score.ratio.fcp',
+  SCORE_RATIO_CLS = 'measurements.score.ratio.cls',
+  SCORE_RATIO_TTFB = 'measurements.score.ratio.ttfb',
+  SCORE_RATIO_INP = 'measurements.score.ratio.inp',
+  MEASUREMENTS_TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
+  MEASUREMENTS_TIME_TO_FULL_DISPLAY = 'measurements.time_to_full_display',
 }
 
-type MetricsNumberFields =
-  | MetricsFields.TRANSACTION_DURATION
-  | MetricsFields.SPAN_DURATION
-  | MetricsFields.LCP_SCORE
-  | MetricsFields.FCP_SCORE
-  | MetricsFields.INP_SCORE
-  | MetricsFields.CLS_SCORE
-  | MetricsFields.TTFB_SCORE
-  | MetricsFields.TOTAL_SCORE
-  | MetricsFields.LCP_WEIGHT
-  | MetricsFields.FCP_WEIGHT
-  | MetricsFields.INP_WEIGHT
-  | MetricsFields.CLS_WEIGHT
-  | MetricsFields.TTFB_WEIGHT
-  | MetricsFields.TOTAL_WEIGHT
-  | MetricsFields.LCP
-  | MetricsFields.FCP
-  | MetricsFields.INP
-  | MetricsFields.CLS
-  | MetricsFields.TTFB
-  | MetricsFields.APP_START_COLD
-  | MetricsFields.APP_START_WARM
-  | MetricsFields.TIME_TO_INITIAL_DISPLAY
-  | MetricsFields.TIME_TO_FULL_DISPLAY;
+type DiscoverNumberFields =
+  | DiscoverFields.INP
+  | DiscoverFields.CLS
+  | DiscoverFields.FCP
+  | DiscoverFields.LCP
+  | DiscoverFields.TTFB
+  | DiscoverFields.TRANSACTION_DURATION
+  | DiscoverFields.SPAN_DURATION
+  | DiscoverFields.SCORE_TOTAL
+  | DiscoverFields.SCORE_LCP
+  | DiscoverFields.SCORE_FCP
+  | DiscoverFields.SCORE_CLS
+  | DiscoverFields.SCORE_TTFB
+  | DiscoverFields.SCORE_INP
+  | DiscoverFields.SCORE_WEIGHT_LCP
+  | DiscoverFields.SCORE_WEIGHT_FCP
+  | DiscoverFields.SCORE_WEIGHT_CLS
+  | DiscoverFields.SCORE_WEIGHT_TTFB
+  | DiscoverFields.SCORE_WEIGHT_INP
+  | DiscoverFields.SCORE_RATIO_LCP
+  | DiscoverFields.SCORE_RATIO_FCP
+  | DiscoverFields.SCORE_RATIO_CLS
+  | DiscoverFields.SCORE_RATIO_TTFB
+  | DiscoverFields.SCORE_RATIO_INP
+  | DiscoverFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY
+  | DiscoverFields.MEASUREMENTS_TIME_TO_FULL_DISPLAY;
 
-type MetricsStringFields =
-  | MetricsFields.TRANSACTION
-  | MetricsFields.PROJECT
-  | MetricsFields.ID
-  | MetricsFields.TRACE
-  | MetricsFields.USER_DISPLAY
-  | MetricsFields.PROFILE_ID
-  | MetricsFields.RELEASE
-  | MetricsFields.TIMESTAMP
-  | MetricsFields.DEVICE_CLASS;
+type DiscoverStringFields =
+  | DiscoverFields.ID
+  | DiscoverFields.TRACE
+  | DiscoverFields.USER_DISPLAY
+  | DiscoverFields.TRANSACTION
+  | DiscoverFields.REPLAY_ID
+  | DiscoverFields.TIMESTAMP
+  | DiscoverFields.PROFILE_ID
+  | DiscoverFields.PROJECT;
 
-type MetricsResponseRaw = {
-  [Property in MetricsNumberFields as `${Aggregate}(${Property})`]: number;
+type DiscoverResponseRaw = {
+  [Property in DiscoverNumberFields as `${Property}`]: number;
 } & {
-  [Property in MetricsNumberFields as `${MetricsFunctions}(${Property})`]: number;
-} & {
-  [Function in MetricsFunctions as `${Function}()`]: number;
-} & {
-  [Property in MetricsStringFields as `${Property}`]: string;
-} & {
-  ['project.id']: number;
+  [Property in DiscoverStringFields as `${Property}`]: string;
 };
-export type MetricsResponse = Flatten<MetricsResponseRaw>;
 
-export type MetricsProperty = keyof MetricsResponse;
+export type DiscoverResponse = Flatten<DiscoverResponseRaw>;
+
+export type DiscoverProperty = keyof DiscoverResponse;
 
 export type SpanQueryFilters = Partial<Record<SpanStringFields, string>> & {
   is_transaction?: 'true' | 'false';

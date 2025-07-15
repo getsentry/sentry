@@ -3,22 +3,25 @@ import kebabCase from 'lodash/kebabCase';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useParams} from 'sentry/utils/useParams';
 
 import {useStoryBookFilesByCategory} from './storySidebar';
-import type {StoryCategory, StoryTreeNode} from './storyTree';
+import type {StoryCategory} from './storyTree';
 
 type LegacyStoryQuery = {
   name: string;
+  category?: never;
+  topic?: never;
 };
-interface StoryParams {
-  storySlug: string;
-  storyType: StoryCategory;
-}
+type NewStoryQuery = {
+  category: StoryCategory;
+  topic: string;
+  name?: never;
+};
+
+type StoryQuery = LegacyStoryQuery | NewStoryQuery;
 
 export function useStoryRedirect() {
-  const location = useLocation<LegacyStoryQuery>();
-  const params = useParams<StoryParams>();
+  const location = useLocation<StoryQuery>();
   const navigate = useNavigate();
   const stories = useStoryBookFilesByCategory();
 
@@ -30,60 +33,69 @@ export function useStoryRedirect() {
     if (!location.pathname.startsWith('/stories')) {
       return;
     }
-    const story = getStory(stories, {query: location.query, params});
+    const story = getStoryMeta(location.query, stories);
     if (!story) {
       return;
     }
-    const {state, ...to} = story.location;
-    navigate(to, {replace: true, state});
-  }, [location, params, navigate, stories]);
+    if (story.category === 'shared') {
+      navigate(
+        {pathname: `/stories/`, search: `?name=${encodeURIComponent(story.path)}`},
+        {replace: true, state: {storyPath: story.path}}
+      );
+    } else {
+      navigate(
+        {pathname: `/stories/${story.category}/${kebabCase(story.label)}`},
+        {replace: true, state: {storyPath: story.path}}
+      );
+    }
+  }, [location, navigate, stories]);
 }
 
-interface StoryRouteContext {
-  params: StoryParams;
-  query: LegacyStoryQuery;
+interface StoryMeta {
+  category: StoryCategory;
+  label: string;
+  path: string;
 }
 
-function getStory(
-  stories: ReturnType<typeof useStoryBookFilesByCategory>,
-  context: StoryRouteContext
+function getStoryMeta(
+  query: StoryQuery,
+  stories: ReturnType<typeof useStoryBookFilesByCategory>
 ) {
-  if (context.params.storyType && context.params.storySlug) {
-    return getStoryFromParams(stories, context);
+  if (query.name) {
+    return legacyGetStoryMetaFromQuery(query, stories);
   }
-  if (context.query.name) {
-    return legacyGetStoryFromQuery(stories, context);
+  if (query.category && query.topic) {
+    return getStoryMetaFromQuery(query, stories);
   }
   return undefined;
 }
 
-function legacyGetStoryFromQuery(
-  stories: ReturnType<typeof useStoryBookFilesByCategory>,
-  context: StoryRouteContext
-): StoryTreeNode | undefined {
+function legacyGetStoryMetaFromQuery(
+  query: LegacyStoryQuery,
+  stories: ReturnType<typeof useStoryBookFilesByCategory>
+): StoryMeta | undefined {
   for (const category of Object.keys(stories) as StoryCategory[]) {
     const nodes = stories[category];
     for (const node of nodes) {
-      const match = node.find(n => n.filesystemPath === context.query.name);
+      const match = node.find(n => n.filesystemPath === query.name);
       if (match) {
-        return match;
+        return {category, label: match.label, path: match.filesystemPath};
       }
     }
   }
   return undefined;
 }
 
-function getStoryFromParams(
-  stories: ReturnType<typeof useStoryBookFilesByCategory>,
-  context: StoryRouteContext
-): StoryTreeNode | undefined {
-  const {storyType: category, storySlug} = context.params;
-  const nodes =
-    category && category in stories ? stories[category as keyof typeof stories] : [];
+function getStoryMetaFromQuery(
+  query: NewStoryQuery,
+  stories: ReturnType<typeof useStoryBookFilesByCategory>
+): StoryMeta | undefined {
+  const {category, topic} = query;
+  const nodes = category in stories ? stories[category] : [];
   for (const node of nodes) {
-    const match = node.find(n => kebabCase(n.label) === storySlug);
+    const match = node.find(n => kebabCase(n.label) === topic);
     if (match) {
-      return match;
+      return {category, label: match.label, path: match.filesystemPath};
     }
   }
   return undefined;

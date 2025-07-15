@@ -73,12 +73,12 @@ grpc-google-iam-v1==0.13.1
 grpc-stubs==1.53.0.5
 grpcio==1.67.0
 grpcio-status==1.67.0
-h11==0.16.0
+h11==0.13.0
 h2==4.2.0
 hiredis==2.3.2
 honcho==2.0.0
 hpack==4.1.0
-httpcore==1.0.9
+httpcore==1.0.2
 httpx==0.25.2
 hyperframe==6.1.0
 identify==2.6.1

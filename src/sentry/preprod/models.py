@@ -116,12 +116,6 @@ class PreprodArtifact(DefaultFieldsModel):
     # Installable file like IPA or APK
     installable_app_file_id = BoundedBigIntegerField(db_index=True, null=True)
 
-    # The name of the app, e.g. "My App"
-    app_name = models.CharField(max_length=255, null=True)
-
-    # The identifier of the app, e.g. "com.myapp.MyApp"
-    app_id = models.CharField(max_length=255, null=True)
-
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodartifact"
