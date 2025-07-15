@@ -223,7 +223,7 @@ export function createConditions(
 /**
  * Convert backend dataset to our form dataset
  */
-const getDetectorDataset = (
+export const getDetectorDataset = (
   backendDataset: Dataset,
   eventTypes: EventTypes[]
 ): DetectorDataset => {
