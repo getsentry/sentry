@@ -166,10 +166,10 @@ export const LogsHighlight = styled(HighlightComponent)`
 `;
 
 export const WrappingText = styled('div')<{wrap?: boolean}>`
-  white-space: nowrap;
+  white-space: ${p => (p.wrap ? 'pre-wrap' : 'nowrap')};
   overflow: hidden;
   text-overflow: ellipsis;
-  ${p => (p.wrap ? 'text-wrap: auto;' : '')}
+  ${p => (p.wrap ? '' : '')}
 `;
 
 export const AlignedCellContent = styled('div')<{
