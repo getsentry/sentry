@@ -91,7 +91,7 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
             workflow_status_update_handler(group, message, activity)
             mock_delay.assert_not_called()
 
-    @with_feature("organizations:workflow-engine-process-activity")
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test(self):
         detector = self.create_detector(project=self.project)
         group = self.create_group(project=self.project)
@@ -207,7 +207,7 @@ class TestProcessWorkflowActivity(TestCase):
 
         mock_filter_actions.assert_called_once_with({self.action_group}, expected_event_data)
 
-    @with_feature("organizations:workflow-engine-process-activity")
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
     @mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr")
     def test__e2e__issue_plat_to_processed(self, mock_incr):
         self.message = StatusChangeMessageData(
