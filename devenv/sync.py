@@ -110,7 +110,7 @@ exec {binroot}/node-env/bin/pnpm "$@"
 def main(context: dict[str, str]) -> int:
     repo = context["repo"]
     reporoot = context["reporoot"]
-    repo_config = config.get_config(f"{reporoot}/devenv/config.ini")
+    cfg = config.get_repo(reporoot)
 
     # TODO: context["verbose"]
     verbose = os.environ.get("SENTRY_DEVENV_VERBOSE") is not None
@@ -127,7 +127,6 @@ def main(context: dict[str, str]) -> int:
 
     from devenv.lib import uv
 
-    cfg = config.get_repo(reporoot)
     uv.install(
         cfg["uv"]["version"],
         cfg["uv"][constants.SYSTEM_MACHINE],
@@ -138,9 +137,9 @@ def main(context: dict[str, str]) -> int:
     from devenv.lib import node
 
     node.install(
-        repo_config["node"]["version"],
-        repo_config["node"][constants.SYSTEM_MACHINE],
-        repo_config["node"][f"{constants.SYSTEM_MACHINE}_sha256"],
+        cfg["node"]["version"],
+        cfg["node"][constants.SYSTEM_MACHINE],
+        cfg["node"][f"{constants.SYSTEM_MACHINE}_sha256"],
         reporoot,
     )
 
