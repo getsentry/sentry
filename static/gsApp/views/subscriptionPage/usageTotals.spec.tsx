@@ -2029,9 +2029,13 @@ describe('calculateCategoryPrepaidUsage', () => {
     );
 
     // Should multiply prepaid by GIGABYTE for unit conversion
-    expect(result.prepaidPercentUsed).toBe(50); // 5GB / 10GB = 50%
-    expect(result.prepaidUsage).toBe(usageBytes);
-    expect(result.onDemandUsage).toBe(0);
+    expect(result).toEqual({
+      onDemandUsage: 0,
+      prepaidPercentUsed: 50, // 5GB / 10GB = 50%
+      prepaidPrice: 1000,
+      prepaidSpend: 500,
+      prepaidUsage: usageBytes,
+    });
   });
 });
 
