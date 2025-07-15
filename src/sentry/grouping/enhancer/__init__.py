@@ -37,7 +37,7 @@ RUST_CACHE = RustCache(1_000)
 # TODO: Version 2 can be removed once all events with that config have expired, 90 days after this
 # comment is merged
 VERSIONS = [2, 3]
-LATEST_VERSION = VERSIONS[-1]
+DEFAULT_ENHANCEMENTS_VERSION = VERSIONS[-1]
 
 # A delimiter to insert between rulesets in the base64 represenation of enhancements (by spec,
 # base64 strings never contain '#')
@@ -336,7 +336,7 @@ def get_enhancements_version(project: Project, grouping_config_id: str = "") -> 
     if grouping_config_id.startswith("legacy"):
         return 2
 
-    return LATEST_VERSION
+    return DEFAULT_ENHANCEMENTS_VERSION
 
 
 class Enhancements:
@@ -356,7 +356,7 @@ class Enhancements:
     ):
         self.id = id
         self.rules = rules
-        self.version = version or LATEST_VERSION
+        self.version = version or DEFAULT_ENHANCEMENTS_VERSION
         self.bases = bases or []
 
         self.rust_enhancements = _merge_rust_enhancements(self.bases, rust_enhancements)
