@@ -2009,7 +2009,11 @@ function buildRoutes() {
   );
 
   const preprodRoutes = (
-    <Route path="/preprod/" component={make(() => import('sentry/views/preprod/index'))}>
+    <Route
+      path="/preprod/"
+      component={make(() => import('sentry/views/preprod/index'))}
+      withOrgPath
+    >
       <IndexRoute component={make(() => import('sentry/views/preprod/sizeAnalysis'))} />
     </Route>
   );
