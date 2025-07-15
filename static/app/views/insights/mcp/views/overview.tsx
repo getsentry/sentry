@@ -14,6 +14,7 @@ import {
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -110,13 +111,23 @@ function McpOverviewPage() {
   const [view, setView] = useLocationSyncedState('view', decodeViewType);
   const activeView = view ?? ViewType.TOOL;
 
-  useEffect(() => {}, [organization, showOnboarding]);
+  useEffect(() => {
+    trackAnalytics('mcp-monitoring.page-view', {
+      organization,
+      isOnboarding: showOnboarding,
+    });
+  }, [organization, showOnboarding]);
 
   const handleTableSwitch = useCallback(
     (newTable: ViewType) => {
+      trackAnalytics('mcp-monitoring.table-switch', {
+        organization,
+        newTable,
+        previousTable: activeView,
+      });
       setView(newTable);
     },
-    [setView]
+    [organization, activeView, setView]
   );
 
   const {tags: numberTags} = useTraceItemTags('number');
