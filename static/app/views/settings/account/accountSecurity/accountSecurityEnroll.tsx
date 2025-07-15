@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {QRCodeCanvas} from 'qrcode.react';
 
@@ -161,9 +161,8 @@ export default function AccountSecurityEnroll() {
   const authenticatorEndpoint = `/users/me/authenticators/${authId}/`;
   const enrollEndpoint = `${authenticatorEndpoint}enroll/`;
 
-  const pendingInvitation = getPendingInvite();
-
-  const [formModel] = useState(() => new FormModel());
+  const formModel = useMemo(() => new FormModel(), []);
+  const pendingInvitation = useMemo(getPendingInvite, []);
 
   const {
     data: authenticator,
