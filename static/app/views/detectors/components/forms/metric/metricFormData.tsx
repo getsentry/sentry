@@ -440,32 +440,17 @@ export function metricSavedDetectorToFormData(
     throw new Error('Detector type mismatch');
   }
 
-  // Get the first data source (assuming metric detectors have one)
   const dataSource = detector.dataSources?.[0];
-
-  // Check if this is a snuba query data source
-  const snubaQuery =
-    dataSource?.type === 'snuba_query_subscription'
-      ? dataSource.queryObj?.snubaQuery
-      : undefined;
+  const snubaQuery = dataSource.queryObj?.snubaQuery;
 
   // Use the full aggregate string directly
   const aggregateFunction = snubaQuery?.aggregate || 'count()';
 
-  // Process conditions using the extracted function
   const conditionData = processDetectorConditions(detector);
 
   const dataset = snubaQuery?.dataset
     ? getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes)
     : DetectorDataset.SPANS;
-
-  const metricDetectorConfig =
-    'detectionType' in detector.config
-      ? detector.config
-      : {
-          detectionType: 'static' as const,
-          thresholdPeriod: 1,
-        };
 
   return {
     // Core detector fields
@@ -481,22 +466,22 @@ export function metricSavedDetectorToFormData(
 
     // Priority level and condition fields from processed conditions
     ...conditionData,
-    kind: metricDetectorConfig.detectionType,
+    kind: detector.config.detectionType,
 
     // Condition fields - get comparison delta from detector config (already in seconds)
     conditionComparisonAgo:
-      (metricDetectorConfig.detectionType === 'percent'
-        ? metricDetectorConfig.comparisonDelta
+      (detector.config.detectionType === 'percent'
+        ? detector.config.comparisonDelta
         : null) || 3600,
 
     // Dynamic fields - extract from config for dynamic detectors
     sensitivity:
-      metricDetectorConfig.detectionType === 'dynamic'
-        ? metricDetectorConfig.sensitivity || AlertRuleSensitivity.LOW
+      detector.config.detectionType === 'dynamic'
+        ? detector.config.sensitivity || AlertRuleSensitivity.LOW
         : AlertRuleSensitivity.LOW,
     thresholdType:
-      metricDetectorConfig.detectionType === 'dynamic'
-        ? metricDetectorConfig.thresholdType || AlertRuleThresholdType.ABOVE
+      detector.config.detectionType === 'dynamic'
+        ? detector.config.thresholdType || AlertRuleThresholdType.ABOVE
         : AlertRuleThresholdType.ABOVE,
   };
 }
