@@ -46,7 +46,6 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
-from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
@@ -507,7 +506,8 @@ def get_github_enterprise_integration_config(
     *, organization_id: int, integration_id: int
 ) -> dict[str, Any]:
     if not settings.SEER_GHE_ENCRYPT_KEY:
-        raise RuntimeError("Cannot encrypt access token without SEER_GHE_ENCRYPT_KEY")
+        logger.error("Cannot encrypt access token without SEER_GHE_ENCRYPT_KEY")
+        return {"success": False}
 
     integration = integration_service.get_integration(
         integration_id=integration_id,
@@ -516,7 +516,8 @@ def get_github_enterprise_integration_config(
         status=ObjectStatus.ACTIVE,
     )
     if integration is None:
-        raise Integration.DoesNotExist
+        logger.error("Integration %s does not exist", integration_id)
+        return {"success": False}
 
     installation = integration.get_installation(organization_id=organization_id)
     assert isinstance(installation, GitHubEnterpriseIntegration)
@@ -525,16 +526,18 @@ def get_github_enterprise_integration_config(
     access_token = client.get_access_token()
 
     if not access_token:
-        raise RuntimeError("No access token found")
+        logger.error("No access token found for integration %s", integration.id)
+        return {"success": False}
 
     try:
         fernet = Fernet(settings.SEER_GHE_ENCRYPT_KEY.encode("utf-8"))
         encrypted_access_token = fernet.encrypt(access_token.encode("utf-8")).decode("utf-8")
     except Exception:
-        sentry_sdk.capture_exception()
-        raise RuntimeError("Failed to encrypt access token")
+        logger.exception("Failed to encrypt access token")
+        return {"success": False}
 
     return {
+        "success": True,
         "base_url": f"https://{installation.model.metadata["domain_name"].split("/")[0]}/api/v3",
         "verify_ssl": installation.model.metadata["installation"]["verify_ssl"],
         "encrypted_access_token": encrypted_access_token,

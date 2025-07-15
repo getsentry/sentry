@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 from unittest.mock import patch
 
@@ -14,7 +15,6 @@ from sentry.api.endpoints.seer_rpc import (
     get_organization_seer_consent_by_org_name,
 )
 from sentry.constants import ObjectStatus
-from sentry.integrations.models.integration import Integration
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -61,6 +61,10 @@ class TestSeerRpcMethods(APITestCase):
     def setUp(self):
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
+
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog):
+        self._caplog = caplog
 
     def test_get_organization_seer_consent_by_org_name_no_integrations(self):
         """Test when no organization integrations are found"""
@@ -403,6 +407,8 @@ class TestSeerRpcMethods(APITestCase):
             organization_id=self.organization.id,
             integration_id=integration.id,
         )
+
+        assert result["success"]
         assert result["base_url"] == "https://github.example.org/api/v3"
         assert result["verify_ssl"]
         assert result["encrypted_access_token"]
@@ -421,11 +427,14 @@ class TestSeerRpcMethods(APITestCase):
     @assume_test_silo_mode(SiloMode.CONTROL)
     def test_get_github_enterprise_integration_config_invalid_integration_id(self):
         # Test with invalid integration_id
-        with pytest.raises(Integration.DoesNotExist):
-            get_github_enterprise_integration_config(
+        with self._caplog.at_level(logging.ERROR):
+            result = get_github_enterprise_integration_config(
                 organization_id=self.organization.id,
                 integration_id=-1,
             )
+
+        assert not result["success"]
+        assert "Integration -1 does not exist" in self._caplog.text
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -450,11 +459,14 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         # Test with invalid organization_id
-        with pytest.raises(Integration.DoesNotExist):
-            get_github_enterprise_integration_config(
+        with self._caplog.at_level(logging.ERROR):
+            result = get_github_enterprise_integration_config(
                 organization_id=-1,
                 integration_id=integration.id,
             )
+
+        assert not result["success"]
+        assert f"Integration {integration.id} does not exist" in self._caplog.text
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -482,11 +494,14 @@ class TestSeerRpcMethods(APITestCase):
         integration.status = ObjectStatus.DISABLED
         integration.save()
 
-        with pytest.raises(Integration.DoesNotExist):
-            get_github_enterprise_integration_config(
+        with self._caplog.at_level(logging.ERROR):
+            result = get_github_enterprise_integration_config(
                 organization_id=self.organization.id,
                 integration_id=integration.id,
             )
+
+        assert not result["success"]
+        assert f"Integration {integration.id} does not exist" in self._caplog.text
 
     @responses.activate
     @override_settings(SEER_GHE_ENCRYPT_KEY="invalid")
@@ -518,10 +533,11 @@ class TestSeerRpcMethods(APITestCase):
             },
         )
 
-        with pytest.raises(RuntimeError) as excinfo:
-            get_github_enterprise_integration_config(
+        with self._caplog.at_level(logging.ERROR):
+            result = get_github_enterprise_integration_config(
                 organization_id=self.organization.id,
                 integration_id=integration.id,
             )
 
-        assert "Failed to encrypt access token" in str(excinfo.value)
+        assert not result["success"]
+        assert "Failed to encrypt access token" in self._caplog.text
