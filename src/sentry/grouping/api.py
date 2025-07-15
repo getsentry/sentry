@@ -268,7 +268,7 @@ def get_fingerprinting_config_for_project(
     return rules
 
 
-def apply_server_fingerprinting(
+def apply_server_side_fingerprinting(
     event: MutableMapping[str, Any], fingerprinting_config: FingerprintingRules
 ) -> None:
     fingerprint_info = {}

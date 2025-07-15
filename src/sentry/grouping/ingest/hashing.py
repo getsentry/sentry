@@ -13,7 +13,7 @@ from sentry.grouping.api import (
     BackgroundGroupingConfigLoader,
     GroupingConfig,
     SecondaryGroupingConfigLoader,
-    apply_server_fingerprinting,
+    apply_server_side_fingerprinting,
     get_fingerprinting_config_for_project,
     get_grouping_config_dict_for_project,
     load_grouping_config,
@@ -66,7 +66,7 @@ def _calculate_event_grouping(
             # removed it from the payload.  The call to `get_hashes_and_variants` will then
             # look at `grouping_config` to pick the right parameters.
             event.data["fingerprint"] = event.data.data.get("fingerprint") or ["{{ default }}"]
-            apply_server_fingerprinting(
+            apply_server_side_fingerprinting(
                 event.data.data, get_fingerprinting_config_for_project(project)
             )
 
