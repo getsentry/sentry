@@ -176,22 +176,22 @@ export default function AccountSecurityEnroll() {
 
   const authenticatorName = authenticator?.name ?? 'Authenticator';
 
+  const alreadyEnrolled =
+    error &&
+    error.status === 400 &&
+    error.responseJSON &&
+    error.responseJSON.details === 'Already enrolled';
+
   useEffect(() => {
     if (!isError) {
       return;
     }
 
-    const alreadyEnrolled =
-      error &&
-      error.status === 400 &&
-      error.responseJSON &&
-      error.responseJSON.details === 'Already enrolled';
-
     if (alreadyEnrolled) {
       navigate('/settings/account/security/');
       addErrorMessage(t('Already enrolled'));
     }
-  }, [error, isError, navigate]);
+  }, [alreadyEnrolled, error, isError, navigate]);
 
   // Handler when we successfully add a 2fa device
   const handleEnrollSuccess = useCallback(async () => {
@@ -240,8 +240,8 @@ export default function AccountSecurityEnroll() {
   // Handler when we failed to add a 2fa device
   const handleEnrollError = useCallback(() => {
     setIsMutationPending(false);
-    addErrorMessage(t('Error adding %s authenticator', authenticator?.name));
-  }, [authenticator]);
+    addErrorMessage(t('Error adding %s authenticator', authenticatorName));
+  }, [authenticatorName]);
 
   const handleSmsReset = useCallback(() => {
     setHasSentCode(false);
@@ -394,7 +394,7 @@ export default function AccountSecurityEnroll() {
     addSuccessMessage(t('Authenticator has been removed'));
   }, [api, authenticator?.authId, authenticatorEndpoint, navigate]);
 
-  if (isMutationPending || isPending) {
+  if (isMutationPending || isPending || alreadyEnrolled) {
     return <LoadingIndicator />;
   }
   if (isError) {
