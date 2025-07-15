@@ -25,7 +25,7 @@ ActionRegistrationT = TypeVar("ActionRegistrationT", bound=ActionRegistration)
 
 
 def _mock_register(
-    data: MutableMapping[str, Any]
+    data: MutableMapping[str, Any],
 ) -> Callable[[type[ActionRegistrationT]], type[ActionRegistrationT]]:
     trigger_type = ActionTrigger.get_value(data["triggerType"])
     service_type = ActionService.get_value(data["serviceType"])
@@ -109,7 +109,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         self.get_error_response(
             self.organization.slug,
             action.id,
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=status.HTTP_403_FORBIDDEN,
         )
 
     def test_get_simple(self):
@@ -470,3 +470,82 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         self.login_as(user)
 
         self.test_delete_simple()
+
+    def test_bonus_get_respects_multiple_project_access(self):
+        # Disable open membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        # Create a user, team, project
+        user = self.create_user()
+        self.create_member(user=user, organization=self.organization)
+        team = self.create_team(name="mobile", organization=self.organization, members=[user])
+        access_project = self.create_project(
+            organization=self.organization, teams=[team], name="ionia"
+        )
+        # Attempt to access a different project's action, should fail since open membership is off
+        self.login_as(user)
+        self.get_error_response(
+            self.organization.slug,
+            self.notif_action.id,
+            status_code=status.HTTP_403_FORBIDDEN,
+            method="GET",
+        )
+        # Add the project to the action to allow it to succeed now
+        self.notif_action.projects.add(access_project)
+        self.notif_action.save()
+        self.get_success_response(
+            self.organization.slug,
+            self.notif_action.id,
+            status_code=status.HTTP_200_OK,
+            method="GET",
+        )
+
+    def test_bonus_delete_respects_multiple_project_access(self):
+        # Disable open membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        # Create a user, team, project
+        user = self.create_user()
+        member = self.create_member(user=user, organization=self.organization)
+        team = self.create_team(name="mobile", organization=self.organization)
+        team_membership = OrganizationMemberTeam.objects.create(
+            team=team, organizationmember=member, role="contributor"
+        )
+        access_project = self.create_project(
+            organization=self.organization, teams=[team], name="ionia"
+        )
+        # Attempt to access a different project's action, should fail since open membership is off
+        self.login_as(user)
+        self.get_error_response(
+            self.organization.slug,
+            self.notif_action.id,
+            status_code=status.HTTP_403_FORBIDDEN,
+            method="DELETE",
+        )
+        # Add the project to the action should still fail, without write access to other projects
+        self.notif_action.projects.add(access_project)
+        self.notif_action.save()
+        self.get_error_response(
+            self.organization.slug,
+            self.notif_action.id,
+            status_code=status.HTTP_403_FORBIDDEN,
+            method="DELETE",
+        )
+        # Giving the team access to the other projects will still fail if the user is a contributor
+        for project in self.projects:
+            project.add_team(team)
+        self.get_error_response(
+            self.organization.slug,
+            self.notif_action.id,
+            status_code=status.HTTP_403_FORBIDDEN,
+            method="DELETE",
+        )
+        # Giving the user admin access to the team will finally allow it to succeed
+        team_membership.role = "admin"
+        team_membership.save()
+        self.get_success_response(
+            self.organization.slug,
+            self.notif_action.id,
+            status_code=status.HTTP_204_NO_CONTENT,
+            method="DELETE",
+        )

@@ -1,6 +1,5 @@
 import logging
 
-from django.db.models import Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
@@ -54,37 +53,35 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
     def convert_args(self, request: Request, action_id: int, *args, **kwargs):
         parsed_args, parsed_kwargs = super().convert_args(request, *args, **kwargs)
         organization = parsed_kwargs["organization"]
-        # projects where the user has access
-        accessible_projects = self.get_projects(request, organization, project_ids={-1})
-        # projects where the user has project membership
-        projects = self.get_projects(request, organization)
 
-        # team admins and regular org members don't have project:write on an org level
-        if not request.access.has_scope("project:write"):
-            # team admins will have project:write scoped to their projects, members will not
-            team_admin_has_access = all(
-                [request.access.has_project_scope(project, "project:write") for project in projects]
-            )
-            # all() returns True for empty list, so include a check for it
-            if not team_admin_has_access or not projects:
-                raise PermissionDenied
-
+        # Get the relevant action associated with the organization and request
         try:
-            # It must either have no project affiliation, or be accessible to the user...
-            action = (
-                NotificationAction.objects.filter(
-                    Q(projects=None) | Q(projects__in=accessible_projects),
-                ).distinct()
-                # and must belong to the organization
-                .get(
-                    id=action_id,
-                    organization_id=organization.id,
-                )
-            )
+            action = NotificationAction.objects.get(id=action_id, organization_id=organization.id)
         except NotificationAction.DoesNotExist:
             raise ResourceDoesNotExist
 
         parsed_kwargs["action"] = action
+
+        # If the action has no projects, skip the project access check
+        if not action.projects.exists():
+            return (parsed_args, parsed_kwargs)
+
+        if request.method == "GET":
+            # If we're reading the action, the user must have access to one of the associated projects
+            if not any(
+                request.access.has_project_scope(project, "project:read")
+                for project in action.projects.all()
+            ):
+                raise PermissionDenied
+        else:
+            # If we're modifying the action, the user must have access to all associated projects
+            if not all(
+                request.access.has_project_scope(project, "project:write")
+                for project in action.projects.all()
+            ):
+                raise PermissionDenied(
+                    detail="You don't have sufficient permissions to all the projects associated with this action."
+                )
 
         return (parsed_args, parsed_kwargs)
 
