@@ -48,6 +48,7 @@ from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import ingest_profiling_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import json, metrics
@@ -137,6 +138,7 @@ def encode_payload(message: dict[str, Any]) -> str:
             times=2,
             delay=5,
         ),
+        compression_type=CompressionType.ZSTD,
     ),
 )
 def process_profile_task(
