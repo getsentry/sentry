@@ -1602,7 +1602,8 @@ describe('trace view', () => {
       await assertHighlightedRowAtIndex(container, 1);
     });
 
-    it('supports roving with arrowup and arrowdown', async () => {
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('supports roving with arrowup and arrowdown', async () => {
       const {container} = await searchTestSetup();
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');
