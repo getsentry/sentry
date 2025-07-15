@@ -421,6 +421,7 @@ def get_condition_query_groups(
     # We want this to be accurate enough for alerting, so sample 100%
     sample_rate=1.0,
 )
+@sentry_sdk.trace
 def get_condition_group_results(
     queries_to_groups: dict[UniqueConditionQuery, GroupQueryParams],
 ) -> dict[UniqueConditionQuery, QueryResult]:
@@ -572,9 +573,11 @@ def get_group_to_groupevent(
     group_id_to_group = {group.id: group for group in groups}
 
     bulk_event_id_to_events = bulk_fetch_events(list(event_data.event_ids), project_id)
-    bulk_occurrences = IssueOccurrence.fetch_multi(
-        list(event_data.occurrence_ids), project_id=project_id
-    )
+    bulk_occurrences: list[IssueOccurrence | None] = []
+    if event_data.occurrence_ids:
+        bulk_occurrences = IssueOccurrence.fetch_multi(
+            list(event_data.occurrence_ids), project_id=project_id
+        )
 
     bulk_occurrence_id_to_occurrence = {
         occurrence.id: occurrence for occurrence in bulk_occurrences if occurrence
