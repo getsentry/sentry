@@ -12,11 +12,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useSpanMetrics, useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import type {
-  EAPSpanProperty,
-  SpanFields,
-  SpanMetricsProperty,
-} from 'sentry/views/insights/types';
+import type {EAPSpanProperty, SpanMetricsProperty} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/useLocation');
