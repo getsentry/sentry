@@ -28,7 +28,7 @@ import {
   ChartContainer,
   ModalChartContainer,
 } from 'sentry/views/insights/common/components/insightsChartContainer';
-import {useMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
@@ -92,7 +92,7 @@ function DeviceClassBreakdownBarChart({
     data: startupDataByDeviceClass,
     isPending,
     error,
-  } = useMetrics(
+  } = useSpans(
     {
       enabled: !isReleasesLoading,
       search,

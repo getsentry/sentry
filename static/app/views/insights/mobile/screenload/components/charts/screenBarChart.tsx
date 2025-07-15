@@ -22,13 +22,12 @@ import {
   ChartContainer,
   ModalChartContainer,
 } from 'sentry/views/insights/common/components/insightsChartContainer';
-import {useMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {YAxis, YAXIS_COLUMNS} from 'sentry/views/insights/mobile/screenload/constants';
 import {Referrer} from 'sentry/views/insights/mobile/screenload/referrers';
 import {transformDeviceClassEvents} from 'sentry/views/insights/mobile/screenload/utils';
-import type {MetricsProperty} from 'sentry/views/insights/types';
-import {SpanFields} from 'sentry/views/insights/types';
+import {type EAPSpanProperty, SpanFields} from 'sentry/views/insights/types';
 
 export function ScreensBarChart({
   chartHeight,
@@ -48,7 +47,7 @@ export function ScreensBarChart({
     secondaryRelease,
   } = useReleaseSelection();
 
-  const breakdownMetric: MetricsProperty =
+  const breakdownMetric: EAPSpanProperty =
     type === 'ttid'
       ? 'avg(measurements.time_to_initial_display)'
       : 'avg(measurements.time_to_full_display)';
@@ -60,7 +59,7 @@ export function ScreensBarChart({
     data: deviceClassEvents,
     isPending,
     error,
-  } = useMetrics(
+  } = useSpans(
     {
       enabled: !isReleasesLoading,
       search,
