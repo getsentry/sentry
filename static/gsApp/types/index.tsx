@@ -244,6 +244,7 @@ export type PerCategoryOnDemandBudget = {
   errorsBudget: number;
   replaysBudget: number;
   transactionsBudget: number;
+  logBytesBudget?: number;
   monitorSeatsBudget?: number;
   profileDurationBudget?: number;
   profileDurationUIBudget?: number;
