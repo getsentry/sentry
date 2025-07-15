@@ -300,7 +300,7 @@ def _combine_hints(
     return f"{in_app_hint} {conjunction} {contributes_hint}"
 
 
-def is_valid_profiling_matcher(matchers: list[str]) -> bool:
+def _is_valid_profiling_matcher(matchers: list[str]) -> bool:
     for matcher in matchers:
         if not matcher.startswith(VALID_PROFILING_MATCHER_PREFIXES):
             return False
@@ -320,7 +320,7 @@ def keep_profiling_rules(config: str) -> str:
         if rule == "" or rule.startswith("#"):  # ignore comment lines
             continue
         *matchers, action = rule.split()
-        if is_valid_profiling_matcher(matchers) and is_valid_profiling_action(action):
+        if _is_valid_profiling_matcher(matchers) and is_valid_profiling_action(action):
             filtered_rules.append(rule)
     return "\n".join(filtered_rules)
 
