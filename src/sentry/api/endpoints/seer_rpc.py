@@ -474,7 +474,7 @@ def get_attributes_and_values(
         definitions=SPAN_DEFINITIONS,
     )
 
-    attributes_and_values = {}
+    attributes_and_values: dict[str, list[dict[str, Any]]] = {}
     for result in rpc_response.results:
         for attribute in result.attribute_distributions.attributes:
             try:
