@@ -17,6 +17,16 @@ class QueryParts(TypedDict):
     orderby: list[str] | None
 
 
+COLUMNS_TO_DROP = (
+    "any(",
+    "count_miserable(",
+    "count_web_vitals(",
+    "last_seen(",
+    "percentile(",
+    "total.count",
+)
+
+
 def format_percentile_term(term):
     function, args, alias = fields.parse_function(term)
 
@@ -40,6 +50,21 @@ def format_percentile_term(term):
         return term
 
     return f"{new_function}({translated_column})"
+
+
+def drop_unsupported_columns(columns):
+    final_columns = []
+    dropped_columns = []
+    for column in columns:
+        if column.startswith(COLUMNS_TO_DROP):
+            dropped_columns.append(column)
+        else:
+            final_columns.append(column)
+    # if no columns are left, leave the original columns but keep track of the "dropped" columns
+    if len(final_columns) == 0:
+        return columns, dropped_columns
+
+    return final_columns, dropped_columns
 
 
 def apply_is_segment_condition(query: str) -> str:
@@ -66,6 +91,8 @@ def column_switcheroo(term):
         "geo.region": "user.geo.region",
         "geo.subdivision": "user.geo.subdivision",
         "geo.subregion": "user.geo.subregion",
+        "timestamp.to_day": "timestamp",
+        "timestamp.to_hour": "timestamp",
     }
 
     swapped_term = column_swap_map.get(term, term)
@@ -174,7 +201,10 @@ def translate_columns(columns):
         new_arg = ",".join(translated_arguments)
         translated_columns.append(f"{raw_function}({new_arg})")
 
-    return translated_columns
+    # need to drop columns after they have been translated to avoid issues with percentile()
+    final_columns, dropped_columns = drop_unsupported_columns(translated_columns)
+
+    return final_columns, dropped_columns
 
 
 def translate_mep_to_eap(query_parts: QueryParts):
@@ -187,7 +217,7 @@ def translate_mep_to_eap(query_parts: QueryParts):
     datamodels to store EAP compatible EQS queries.
     """
     new_query = translate_query(query_parts["query"])
-    new_columns = translate_columns(query_parts["selected_columns"])
+    new_columns, dropped_columns = translate_columns(query_parts["selected_columns"])
 
     eap_query = QueryParts(
         query=new_query,
