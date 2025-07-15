@@ -547,6 +547,8 @@ export function useSetLogsAutoRefresh() {
     (autoRefresh: boolean) => {
       if (autoRefresh) {
         queryClient.removeQueries({queryKey});
+        // Until we change our timeseries hooks to be build their query keys separately, we need to remove the query via the route.
+        queryClient.removeQueries({queryKey: ['events-stats']});
       }
       setPageParams({autoRefresh});
     },
