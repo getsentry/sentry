@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import type {UseInfiniteQueryResult, UseQueryResult} from '@tanstack/react-query';
 
 import type {ApiResult} from 'sentry/api';
+import {t} from 'sentry/locale';
 
 interface Props<Data> {
   children: React.ReactNode;
@@ -47,13 +48,13 @@ export default function InfiniteListState<Data>({
 }
 
 function LoadingMessage() {
-  return <p>Loading...</p>;
+  return <p>{t('Loading...')}</p>;
 }
 
 function ErrorMessage({error}: {error: Error}) {
-  return <p>Error: {error.message}</p>;
+  return <p>{t('Error: %s', error.message)}</p>;
 }
 
 function BackgroundUpdatingMessage() {
-  return <footer>Background Updating...</footer>;
+  return <footer>{t('Background Updating...')}</footer>;
 }
