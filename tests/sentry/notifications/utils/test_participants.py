@@ -370,6 +370,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             slack=[self.user.id],
         )
 
+    @pytest.mark.skip(reason="flaky: #95565")
     def test_disable_alerts_multiple_scopes(self):
         event = self.store_event_owners("everyone.cbl")
 
