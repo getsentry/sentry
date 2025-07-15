@@ -29,6 +29,7 @@ import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/log
 import {
   useLogsAggregate,
   useLogsAggregateFunction,
+  useLogsAggregateSortBys,
   useLogsFields,
   useLogsGroupBy,
   useLogsMode,
@@ -38,6 +39,7 @@ import {
   useSetLogsPageParams,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {
@@ -82,6 +84,7 @@ export function LogsTabContent({
   const fields = useLogsFields();
   const groupBy = useLogsGroupBy();
   const mode = useLogsMode();
+  const sortBys = useLogsAggregateSortBys();
   const setMode = useSetLogsMode();
   const setFields = useSetLogsFields();
   const setLogsPageParams = useSetLogsPageParams();
@@ -97,9 +100,19 @@ export function LogsTabContent({
   });
   const aggregateFunction = useLogsAggregateFunction();
   const aggregate = useLogsAggregate();
+
+  const orderby: string | string[] | undefined = useMemo(() => {
+    if (!sortBys.length) {
+      return undefined;
+    }
+
+    return sortBys.map(formatSort);
+  }, [sortBys]);
+
   const [sidebarOpen, setSidebarOpen] = useState(
     !!((aggregateFunction && aggregateFunction !== 'count') || groupBy)
   );
+
   const timeseriesResult = useSortedTimeSeries(
     {
       search: logsSearch,
@@ -107,6 +120,7 @@ export function LogsTabContent({
       interval,
       fields: [...(groupBy ? [groupBy] : []), aggregate],
       topEvents: groupBy?.length ? 5 : undefined,
+      orderby,
     },
     'explore.ourlogs.main-chart',
     DiscoverDatasets.OURLOGS
