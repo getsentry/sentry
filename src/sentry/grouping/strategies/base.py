@@ -358,7 +358,7 @@ def create_strategy_configuration_class(
     enhancements_base: str | None = None,
     fingerprinting_bases: Sequence[str] | None = None,
 ) -> type[StrategyConfiguration]:
-    """Declares a new strategy configuration.
+    """Declares a new strategy configuration class.
 
     Values can be inherited from a base configuration.  For strategies if there is
     a strategy of the same class it's replaced.  For delegates if there is a
