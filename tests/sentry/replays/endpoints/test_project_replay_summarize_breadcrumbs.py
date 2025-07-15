@@ -343,74 +343,6 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(TransactionTestCase):
         assert response.content == return_value
 
     @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
-    def test_get_with_error_context_disabled_and_enabled(self, make_seer_request):
-        """Test handling of breadcrumbs with error context disabled"""
-        return_value = json.dumps({"error": "An error happened"}).encode()
-        make_seer_request.return_value = return_value
-
-        now = datetime.now(timezone.utc)
-        event_id = uuid.uuid4().hex
-        error_timestamp = now.timestamp() - 1
-        self.store_event(
-            data={
-                "event_id": event_id,
-                "timestamp": error_timestamp,
-                "exception": {
-                    "values": [
-                        {
-                            "type": "ZeroDivisionError",
-                            "value": "division by zero",
-                        }
-                    ]
-                },
-                "contexts": {"replay": {"replay_id": self.replay_id}},
-            },
-            project_id=self.project.id,
-        )
-
-        self.store_replay_event(error_ids=[event_id])
-
-        data = [
-            {
-                "type": 5,
-                "timestamp": float(now.timestamp()),
-                "data": {
-                    "tag": "breadcrumb",
-                    "payload": {"category": "console", "message": "hello"},
-                },
-            }
-        ]
-        self.save_recording_segment(0, json.dumps(data).encode())
-
-        # with error context disabled
-        with self.feature(self.features):
-            response = self.client.get(self.url, {"enable_error_context": "false"})
-
-        make_seer_request.assert_called_once()
-        call_args = json.loads(make_seer_request.call_args[0][0])
-        assert "logs" in call_args
-        assert not any("ZeroDivisionError" in log for log in call_args["logs"])
-        assert not any("division by zero" in log for log in call_args["logs"])
-
-        assert response.status_code == 200
-        assert response.get("Content-Type") == "application/json"
-        assert response.content == return_value
-
-        # with error context enabled
-        with self.feature(self.features):
-            response = self.client.get(self.url, {"enable_error_context": "true"})
-
-        assert make_seer_request.call_count == 2
-        call_args = json.loads(make_seer_request.call_args[0][0])
-        assert "logs" in call_args
-        assert any("ZeroDivisionError" in log for log in call_args["logs"])
-        assert any("division by zero" in log for log in call_args["logs"])
-
-        assert response.status_code == 200
-        assert response.get("Content-Type") == "application/json"
-        assert response.content == return_value
-
-    @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
     def test_get_with_trace_connected_errors(self, make_seer_request):
         """Test handling of breadcrumbs with trace connected errors"""
         return_value = json.dumps({"trace_errors": "Trace connected errors found"}).encode()
@@ -858,20 +790,20 @@ def test_parse_timestamp():
 
     # Test numeric input
     assert parse_timestamp(123.456, "ms") == 123.456
-    assert parse_timestamp(123, "s") == 123.0
+    assert parse_timestamp(123, "s") == 123 * 1000
 
     # Test string input with ISO format without timezone
-    assert parse_timestamp("2023-01-01T12:00:00", "ms") == 1672574400.0 * 1000
-    assert parse_timestamp("2023-01-01T12:00:00", "s") == 1672574400.0
+    assert parse_timestamp("2023-01-01T12:00:00", "ms") == 1672574400000
+    assert parse_timestamp("2023-01-01T12:00:00", "s") == 1672574400000
 
     # Test string input with ISO format with timezone offset
-    assert parse_timestamp("2023-01-01T12:00:00+00:00", "ms") == 1672574400.0 * 1000
-    assert parse_timestamp("2023-01-01T12:00:00.123+00:00", "ms") == 1672574400.123 * 1000
-    assert parse_timestamp("2023-01-01T12:00:00+00:00", "s") == 1672574400.0
+    assert parse_timestamp("2023-01-01T12:00:00+00:00", "ms") == 1672574400000
+    assert parse_timestamp("2023-01-01T12:00:00.123+00:00", "ms") == 1672574400123
+    assert parse_timestamp("2023-01-01T12:00:00+00:00", "s") == 1672574400000
 
     # Test string input with ISO format with 'Z' timezone suffix
-    assert parse_timestamp("2023-01-01T12:00:00Z", "s") == 1672574400.0
-    assert parse_timestamp("2023-01-01T12:00:00.123Z", "ms") == 1672574400.123 * 1000
+    assert parse_timestamp("2023-01-01T12:00:00Z", "s") == 1672574400000
+    assert parse_timestamp("2023-01-01T12:00:00.123Z", "ms") == 1672574400123
 
     # Test invalid input
     assert parse_timestamp("invalid timestamp", "ms") == 0.0

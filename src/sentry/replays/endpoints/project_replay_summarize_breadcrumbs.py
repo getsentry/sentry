@@ -100,7 +100,9 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
         cache_key = f"replay_summarize_breadcrumbs:{project.id}:{replay_id}:{per_page}:{cursor}"
 
         if not request.query_params.get(REFRESH_CACHE_QPARAM, "false").lower() == "true":
-            cache_lookup_result: tuple[dict[str, Any], int] | None = cache.get(cache_key)
+            cache_lookup_result: tuple[dict[str, Any], dict[str, Any], int] | None = cache.get(
+                cache_key
+            )
             if cache_lookup_result:
                 cached_response, cached_headers, prev_num_segments = cache_lookup_result
                 if num_segments == prev_num_segments:
