@@ -137,7 +137,6 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
     return (
       <TooltipContext
         value={{
-          // that browser/OS icons and size information tooltips remain visible.
           container: document.fullscreenElement,
         }}
       >
