@@ -44,6 +44,7 @@ from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssu
 from sentry.users.models.user import User
 from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
+from sentry.workflow_engine.models.detector_group import DetectorGroup
 
 logger = logging.getLogger(__name__)
 
@@ -771,6 +772,13 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             ),
             "regressed_in_release": QCallbackCondition(
                 functools.partial(regressed_in_release_filter, projects=projects)
+            ),
+            "detector": QCallbackCondition(
+                lambda detector_ids: Q(
+                    id__in=DetectorGroup.objects.filter(detector_id__in=detector_ids).values_list(
+                        "group_id", flat=True
+                    )
+                )
             ),
             "issue.category": QCallbackCondition(lambda categories: Q(type__in=categories)),
             "issue.type": QCallbackCondition(lambda types: Q(type__in=types)),

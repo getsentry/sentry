@@ -1333,3 +1333,168 @@ class SnQLBooleanSearchQueryTest(TestCase):
             )
         ]
         assert having == []
+
+
+class DetectorFilterTest(TestCase):
+    """Tests for the detector filter functionality."""
+
+    def setUp(self):
+        super().setUp()
+        self.project = self.create_project()
+        self.organization = self.project.organization
+
+        # Create test groups
+        self.group1 = self.create_group(project=self.project, message="Group 1")
+        self.group2 = self.create_group(project=self.project, message="Group 2")
+        self.group3 = self.create_group(project=self.project, message="Group 3")
+
+        # Import models
+        from sentry.workflow_engine.models.detector import Detector
+        from sentry.workflow_engine.models.detector_group import DetectorGroup
+
+        # Create test detectors
+        self.detector1 = Detector.objects.create(
+            project=self.project, name="Test Detector 1", type="error", config={}
+        )
+        self.detector2 = Detector.objects.create(
+            project=self.project, name="Test Detector 2", type="error", config={}
+        )
+
+        # Create DetectorGroup associations
+        self.detector_group_1 = DetectorGroup.objects.create(
+            detector=self.detector1, group=self.group1
+        )
+        self.detector_group_2 = DetectorGroup.objects.create(
+            detector=self.detector1, group=self.group2
+        )
+        # group3 is not associated with any detector
+
+    def test_detector_filter_single_detector(self):
+        """Test filtering by a single detector ID."""
+        from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
+
+        backend = EventsDatasetSnubaSearchBackend()
+
+        # Test filtering by detector1
+        results = backend.query(
+            projects=[self.project],
+            search_filters=[
+                SearchFilter(SearchKey("detector"), "=", SearchValue([self.detector1.id]))
+            ],
+        )
+
+        # Should return groups 1 and 2 (both associated with detector_id_1)
+        assert len(results) == 2
+        group_ids = {group.id for group in results}
+        assert group_ids == {self.group1.id, self.group2.id}
+
+    def test_detector_filter_multiple_detectors(self):
+        """Test filtering by multiple detector IDs."""
+        from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
+
+        backend = EventsDatasetSnubaSearchBackend()
+
+        # Test filtering by both detector IDs
+        results = backend.query(
+            projects=[self.project],
+            search_filters=[
+                SearchFilter(
+                    SearchKey("detector"), "IN", SearchValue([self.detector1.id, self.detector2.id])
+                )
+            ],
+        )
+
+        # Should return groups 1 and 2 (associated with detector_id_1)
+        # group3 is not associated with any detector
+        assert len(results) == 2
+        group_ids = {group.id for group in results}
+        assert group_ids == {self.group1.id, self.group2.id}
+
+    def test_detector_filter_no_matches(self):
+        """Test filtering by a detector ID that has no associated groups."""
+        from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
+
+        backend = EventsDatasetSnubaSearchBackend()
+
+        # Test filtering by detector2 (no groups associated)
+        results = backend.query(
+            projects=[self.project],
+            search_filters=[
+                SearchFilter(SearchKey("detector"), "=", SearchValue([self.detector2.id]))
+            ],
+        )
+
+        # Should return no groups
+        assert len(results) == 0
+
+    def test_detector_filter_invalid_detector(self):
+        """Test filtering by an invalid detector ID."""
+        from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
+
+        backend = EventsDatasetSnubaSearchBackend()
+
+        # Test filtering by invalid detector ID
+        results = backend.query(
+            projects=[self.project],
+            search_filters=[
+                SearchFilter(
+                    SearchKey("detector"), "=", SearchValue([99999])  # Invalid detector ID
+                )
+            ],
+        )
+
+        # Should return no groups
+        assert len(results) == 0
+
+    def test_detector_filter_negation(self):
+        """Test negated detector filter."""
+        from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
+
+        backend = EventsDatasetSnubaSearchBackend()
+
+        # Test negated filter - should return groups NOT associated with detector1
+        results = backend.query(
+            projects=[self.project],
+            search_filters=[
+                SearchFilter(SearchKey("detector"), "!=", SearchValue([self.detector1.id]))
+            ],
+        )
+
+        # Should return group3 (not associated with detector_id_1)
+        assert len(results) == 1
+        assert results[0].id == self.group3.id
+
+    def test_detector_filter_with_other_filters(self):
+        """Test detector filter combined with other filters."""
+        from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
+
+        backend = EventsDatasetSnubaSearchBackend()
+
+        # Test detector filter combined with status filter (both processed in Postgres)
+        results = backend.query(
+            projects=[self.project],
+            search_filters=[
+                SearchFilter(SearchKey("detector"), "=", SearchValue([self.detector1.id])),
+                SearchFilter(SearchKey("status"), "=", SearchValue(["unresolved"])),
+            ],
+        )
+
+        # Should return groups 1 and 2 (both associated with detector1 and unresolved)
+        assert len(results) == 2
+        group_ids = {group.id for group in results}
+        assert group_ids == {self.group1.id, self.group2.id}
+
+    def test_detector_filter_empty_list(self):
+        """Test detector filter with empty list of detector IDs."""
+        from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
+
+        backend = EventsDatasetSnubaSearchBackend()
+
+        # Test filtering by empty list
+        results = backend.query(
+            projects=[self.project],
+            search_filters=[SearchFilter(SearchKey("detector"), "IN", SearchValue([]))],
+        )
+
+        # Should return no groups
+        assert len(results) == 0
