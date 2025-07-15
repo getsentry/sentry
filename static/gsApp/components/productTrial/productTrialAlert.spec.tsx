@@ -7,6 +7,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {DataCategory} from 'sentry/types/core';
 
 import ProductTrialAlert from 'getsentry/components/productTrial/productTrialAlert';
+import {getProductForPath} from 'getsentry/components/productTrial/productTrialPaths';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {ProductTrial} from 'getsentry/types';
 
@@ -155,5 +156,103 @@ describe('ProductTrialAlert', function () {
         'Your unlimited Continuous Profiling trial ended. Keep using more by upgrading your plan.'
       )
     ).toBeInTheDocument();
+  });
+});
+
+describe('getProductForPath', function () {
+  const organization = OrganizationFixture();
+  const subscription = SubscriptionFixture({organization});
+
+  it('returns LOG_BYTE product for /explore/logs/ path', function () {
+    const result = getProductForPath(subscription, '/explore/logs/');
+    expect(result).toEqual({
+      product: DataCategory.LOG_BYTE,
+      categories: [DataCategory.LOG_BYTE],
+    });
+  });
+
+  it('returns ERRORS product for /issues/ path', function () {
+    const result = getProductForPath(subscription, '/issues/');
+    expect(result).toEqual({
+      product: DataCategory.ERRORS,
+      categories: [DataCategory.ERRORS],
+    });
+  });
+
+  it('returns TRANSACTIONS product for /performance/ path', function () {
+    const result = getProductForPath(subscription, '/performance/');
+    expect(result).toEqual({
+      product: DataCategory.TRANSACTIONS,
+      categories: [DataCategory.TRANSACTIONS],
+    });
+  });
+
+  it('returns REPLAYS product for /replays/ path', function () {
+    const result = getProductForPath(subscription, '/replays/');
+    expect(result).toEqual({
+      product: DataCategory.REPLAYS,
+      categories: [DataCategory.REPLAYS],
+    });
+  });
+
+  it('returns PROFILES product for /profiling/ path', function () {
+    const result = getProductForPath(subscription, '/profiling/');
+    expect(result).toEqual({
+      product: DataCategory.PROFILES,
+      categories: [DataCategory.PROFILES, DataCategory.TRANSACTIONS],
+    });
+  });
+
+  it('returns MONITOR_SEATS product for /insights/crons/ path', function () {
+    const result = getProductForPath(subscription, '/insights/crons/');
+    expect(result).toEqual({
+      product: DataCategory.MONITOR_SEATS,
+      categories: [DataCategory.MONITOR_SEATS],
+    });
+  });
+
+  it('returns UPTIME product for /insights/uptime/ path', function () {
+    const result = getProductForPath(subscription, '/insights/uptime/');
+    expect(result).toEqual({
+      product: DataCategory.UPTIME,
+      categories: [DataCategory.UPTIME],
+    });
+  });
+
+  it('returns TRANSACTIONS product for /traces/ path', function () {
+    const result = getProductForPath(subscription, '/traces/');
+    expect(result).toEqual({
+      product: DataCategory.TRANSACTIONS,
+      categories: [DataCategory.TRANSACTIONS],
+    });
+  });
+
+  it('normalizes /explore/traces/ to /traces/', function () {
+    const result = getProductForPath(subscription, '/explore/traces/');
+    expect(result).toEqual({
+      product: DataCategory.TRANSACTIONS,
+      categories: [DataCategory.TRANSACTIONS],
+    });
+  });
+
+  it('normalizes /explore/profiling/ to /profiling/', function () {
+    const result = getProductForPath(subscription, '/explore/profiling/');
+    expect(result).toEqual({
+      product: DataCategory.PROFILES,
+      categories: [DataCategory.PROFILES, DataCategory.TRANSACTIONS],
+    });
+  });
+
+  it('normalizes /explore/replays/ to /replays/', function () {
+    const result = getProductForPath(subscription, '/explore/replays/');
+    expect(result).toEqual({
+      product: DataCategory.REPLAYS,
+      categories: [DataCategory.REPLAYS],
+    });
+  });
+
+  it('returns null for unknown path', function () {
+    const result = getProductForPath(subscription, '/unknown/');
+    expect(result).toBeNull();
   });
 });
