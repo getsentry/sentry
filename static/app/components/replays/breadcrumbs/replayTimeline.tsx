@@ -278,6 +278,7 @@ function ReplayTimeline({replay}: {replay: ReplayReader}) {
   // A line series for rrweb user interaction events
   const userInteractionSeries = {
     type: 'line' as const,
+    silent: true,
     gridIndex: 0,
     xAxisIndex: 0,
     yAxisIndex: 1,
@@ -324,7 +325,8 @@ function ReplayTimeline({replay}: {replay: ReplayReader}) {
     singleAxisIndex: 0,
     coordinateSystem: 'singleAxis',
     showSymbol: true,
-    silent: true,
+    // silent: true,
+    // tooltip: {show: false},
     symbolSize: (dataItem: [timestamp: number, value: number]) => {
       if (dataItem[1] === 0) {
         return 0;
@@ -339,7 +341,6 @@ function ReplayTimeline({replay}: {replay: ReplayReader}) {
     seriesName: 'ui',
     name: 'ui',
     color: theme.tokens.graphics.accent,
-    tooltip: {show: false},
     data:
       stackedData.ui?.map(bucket => [bucket.time, bucket.data.length, bucket.data]) ?? [],
     // [
@@ -368,8 +369,8 @@ function ReplayTimeline({replay}: {replay: ReplayReader}) {
     singleAxisIndex: 0,
     coordinateSystem: 'singleAxis',
     showSymbol: true,
-    silent: true,
-    tooltip: {show: false},
+    // silent: true,
+    // tooltip: {show: false},
     symbolSize: (dataItem: [timestamp: number, value: number]) => {
       if (dataItem[1] === 0) {
         return 0;
@@ -413,11 +414,11 @@ function ReplayTimeline({replay}: {replay: ReplayReader}) {
   };
   const issueSeries = {
     type: 'scatter' as const,
-    silent: true,
+    // silent: true,
     singleAxisIndex: 1,
     coordinateSystem: 'singleAxis',
     showSymbol: true,
-    tooltip: {show: false},
+    // tooltip: {show: false},
     symbolSize: (dataItem: [timestamp: number, value: number]) => {
       if (dataItem[1] === 0) {
         return 0;
@@ -430,15 +431,10 @@ function ReplayTimeline({replay}: {replay: ReplayReader}) {
       // return (dataItem[1] / maxIssueCount) * 8;
     },
     seriesName: ISSUE_CATEGORY,
+    color: theme.tokens.graphics.danger,
     name: ISSUE_CATEGORY,
     data: issuesStackedData.map(bucket => {
-      return {
-        name: bucket.time,
-        itemStyle: {
-          color: theme.tokens.graphics.danger,
-        },
-        value: [bucket.time, bucket.data.length, bucket.data],
-      };
+      return [bucket.time, bucket.data.length, bucket.data];
     }),
     // [
     //   ...issuesStackedData.map(bucket => {
@@ -637,13 +633,18 @@ function ReplayTimeline({replay}: {replay: ReplayReader}) {
             ref={handleChartRef}
             height={48}
             tooltip={{
-              trigger: 'axis',
+              trigger: 'item',
               appendToBody: true,
               // @ts-expect-error Wrong typing?
-              formatter: (params: CallbackDataParams[]) => {
+              formatter: (params: CallbackDataParams | CallbackDataParams[]) => {
+                const callbackData = Array.isArray(params) ? params : [params];
+                if (!callbackData.length) {
+                  return null;
+                }
+
                 // This assumes all series data has same buckets, otherwise we would need to find
                 // based on params.data[0] (timestamp) -- though if bucket sizes are different then this timestamp may be different too
-                const dataIndex = params[0]?.dataIndex ?? 0;
+                const dataIndex = callbackData[0].dataIndex ?? 0;
                 const allData = [];
 
                 const userInteractionDataItem = userInteractionSeries.data.at(dataIndex);
@@ -665,7 +666,7 @@ function ReplayTimeline({replay}: {replay: ReplayReader}) {
                 }
 
                 if (issueDataItem) {
-                  issueDataItem.value?.[2]?.forEach((frame: ErrorFrame) => {
+                  issueDataItem[2].forEach((frame: ErrorFrame) => {
                     allData.push(`<div>Error: ${frame.message}</div>`);
                   });
                 }
@@ -676,7 +677,7 @@ function ReplayTimeline({replay}: {replay: ReplayReader}) {
                   });
                 }
 
-                allData.push(params[0].data[0]);
+                allData.push(callbackData[0].data[0]);
 
                 // const foundSeries = allSeries
                 //   .map(series => {
