@@ -55,7 +55,7 @@ export function CommandsTable() {
       'p95(span.duration)',
       'sum(span.duration)',
     ],
-    cursorParamName: 'jobsCursor',
+    cursorParamName: 'commandsCursor',
     referrer: Referrer.PATHS_TABLE,
   });
 
