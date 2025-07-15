@@ -95,7 +95,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         )
 
     @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
-    def test_get(self, make_seer_request):
+    def test_get_a(self, make_seer_request):
         return_value = json.dumps({"hello": "world"}).encode()
         make_seer_request.return_value = return_value
 

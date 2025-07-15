@@ -93,7 +93,6 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
             tenant_ids={"organization_id": project.organization_id},
         )
         if not seg_count_response["data"] or seg_count_response["data"][0]["is_archived"]:
-            # TODO: delete cache key. Should this be done in delete endpoint?
             return self.respond(status=404)
         num_segments = seg_count_response["data"][0]["segment_count"]
 
@@ -105,16 +104,15 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
         cursor = request.GET.get(self.cursor_name, "")
         cache_key = f"replay_summarize_breadcrumbs:{project.id}:{replay_id}:{per_page}:{cursor}:{disable_error_fetching}"
 
-        # TODO: refactor to be neater?
         if not request.query_params.get(REFRESH_CACHE_QPARAM, "false").lower() == "true":
-            cache_lookup_result: tuple[Response, int] | None = cache.get(cache_key)
+            cache_lookup_result: tuple[dict[str, Any], int] | None = cache.get(cache_key)
             if cache_lookup_result:
                 cached_response, prev_num_segments = cache_lookup_result
                 if num_segments == prev_num_segments:
-                    return cached_response
+                    return Response(cached_response)
 
         # Fetch the replay's error IDs from the replay_id.
-        snuba_response = query_replay_instance(
+        replay_snuba_response = query_replay_instance(
             project_id=project.id,
             replay_id=replay_id,
             start=start,
@@ -123,7 +121,7 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
             request_user_id=request.user.id,
         )
         replay_details_response = process_raw_response(
-            snuba_response,
+            replay_snuba_response,
             fields=request.query_params.getlist("field"),
         )
 
@@ -154,7 +152,8 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
                 analyze_recording_segments, error_events, replay_id, project.id
             ),
         )
-        cache.set(cache_key, (response, num_segments), timeout=CACHE_TIMEOUT)
+
+        cache.set(cache_key, (response.data, num_segments), timeout=CACHE_TIMEOUT)
         return response
 
 
