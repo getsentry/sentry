@@ -16,11 +16,20 @@ export default function useFeedbackEvents({
       `/projects/${organization.slug}/${projectId}/events/${feedbackEventId}/`,
     ]),
     {
-      staleTime: 0,
+      staleTime: Infinity,
       enabled: Boolean(feedbackEventIds.length > 0 && projectId),
     }
   );
 
-  const feedbackEvents = feedbackEventQuery.map(query => query.data);
-  return feedbackEvents;
+  const feedbackEvents = feedbackEventQuery
+    .map(query => query.data)
+    .filter(e => e !== undefined);
+  const isPending = feedbackEventQuery.some(query => query.isPending);
+  const isError = feedbackEventQuery.some(query => query.isError);
+
+  return {
+    feedbackEvents,
+    isPending,
+    isError,
+  };
 }

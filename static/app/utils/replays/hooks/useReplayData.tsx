@@ -244,18 +244,6 @@ function useReplayData({
     });
   }, [orgSlug, replayId, projectSlug, queryClient]);
 
-  const allStatuses = [
-    enableReplayRecord ? fetchReplayStatus : undefined,
-    enableAttachments ? fetchAttachmentsStatus : undefined,
-    enableErrors ? fetchErrorsStatus : undefined,
-    enableExtraErrors ? fetchExtraErrorsStatus : undefined,
-    fetchPlatformErrorsStatus,
-  ];
-
-  const isError = allStatuses.includes('error');
-  const isPending = allStatuses.includes('pending');
-  const status = isError ? 'error' : isPending ? 'pending' : 'success';
-
   const {allErrors, feedbackEventIds} = useMemo(() => {
     const errors = errorPages
       .concat(extraErrorPages)
@@ -269,10 +257,26 @@ function useReplayData({
     return {allErrors: errors, feedbackEventIds: feedbackIds};
   }, [errorPages, extraErrorPages, platformErrorPages]);
 
-  const feedbackEvents = useFeedbackEvents({
+  const {
+    feedbackEvents,
+    isPending: feedbackEventsPending,
+    isError: feedbackEventsError,
+  } = useFeedbackEvents({
     feedbackEventIds: feedbackEventIds ?? [],
     projectId: replayRecord?.project_id,
-  }).filter(e => e !== undefined);
+  });
+
+  const allStatuses = [
+    enableReplayRecord ? fetchReplayStatus : undefined,
+    enableAttachments ? fetchAttachmentsStatus : undefined,
+    enableErrors ? fetchErrorsStatus : undefined,
+    enableExtraErrors ? fetchExtraErrorsStatus : undefined,
+    fetchPlatformErrorsStatus,
+  ];
+
+  const isError = allStatuses.includes('error') || feedbackEventsError;
+  const isPending = allStatuses.includes('pending') || feedbackEventsPending;
+  const status = isError ? 'error' : isPending ? 'pending' : 'success';
 
   return useMemo(() => {
     return {
