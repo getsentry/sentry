@@ -1369,6 +1369,68 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_success_response(self.organization.slug, **data)
         assert self.organization.get_option("sentry:default_seer_scanner_automation") is True
 
+    def test_gaming_platform_enabled_options(self):
+        test_cases = [
+            ("playstationPlatformEnabled", "sentry:playstation_platform_enabled"),
+            ("switchOnePlatformEnabled", "sentry:switch_one_platform_enabled"),
+            ("switchTwoPlatformEnabled", "sentry:switch_two_platform_enabled"),
+            ("xboxPlatformEnabled", "sentry:xbox_platform_enabled"),
+        ]
+
+        for field_name, option_key in test_cases:
+            with self.subTest(field_name=field_name, option_key=option_key):
+                assert not self.organization.get_option(option_key)
+
+                with self.feature({"organizations:project-creation-games-tab": False}):
+                    data = {field_name: True}
+                    response = self.get_error_response(
+                        self.organization.slug, status_code=400, **data
+                    )
+                    assert response.data[field_name] == [
+                        "Organization does not have the project creation games tab feature enabled."
+                    ]
+
+                with self.feature({"organizations:project-creation-games-tab": True}):
+                    data = {field_name: True}
+                    response = self.get_error_response(
+                        self.organization.slug, status_code=400, **data
+                    )
+                    assert response.data[field_name] == [
+                        "Only staff members can toggle this platform."
+                    ]
+
+                with self.feature({"organizations:project-creation-games-tab": True}):
+                    staff_user = self.create_user(is_staff=True)
+                    self.create_member(
+                        organization=self.organization, user=staff_user, role="owner"
+                    )
+                    self.login_as(user=staff_user, staff=True)
+
+                    data = {field_name: True}
+                    self.get_success_response(self.organization.slug, **data)
+                    assert self.organization.get_option(option_key) is True
+
+    @with_feature({"organizations:project-creation-games-tab": False})
+    def test_get_gaming_platform_options_without_feature_flag(self):
+        response = self.get_success_response(self.organization.slug)
+        assert "playstationPlatformEnabled" not in response.data
+        assert "switchOnePlatformEnabled" not in response.data
+        assert "switchTwoPlatformEnabled" not in response.data
+        assert "xboxPlatformEnabled" not in response.data
+
+    @with_feature({"organizations:project-creation-games-tab": True})
+    def test_get_gaming_platform_options_with_feature_flag(self):
+        response = self.get_success_response(self.organization.slug)
+        assert "playstationPlatformEnabled" in response.data
+        assert "switchOnePlatformEnabled" in response.data
+        assert "switchTwoPlatformEnabled" in response.data
+        assert "xboxPlatformEnabled" in response.data
+
+        assert response.data["playstationPlatformEnabled"] is False
+        assert response.data["switchOnePlatformEnabled"] is False
+        assert response.data["switchTwoPlatformEnabled"] is False
+        assert response.data["xboxPlatformEnabled"] is False
+
 
 class OrganizationDeleteTest(OrganizationDetailsTestBase):
     method = "delete"

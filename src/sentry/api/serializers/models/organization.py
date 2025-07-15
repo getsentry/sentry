@@ -44,6 +44,7 @@ from sentry.constants import (
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     METRIC_ALERTS_THREAD_DEFAULT,
+    PLAYSTATION_PLATFORM_ENABLED_DEFAULT,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
@@ -52,7 +53,10 @@ from sentry.constants import (
     ROLLBACK_ENABLED_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
+    SWITCH_ONE_PLATFORM_ENABLED_DEFAULT,
+    SWITCH_TWO_PLATFORM_ENABLED_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
+    XBOX_PLATFORM_ENABLED_DEFAULT,
     ObjectStatus,
 )
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
@@ -514,6 +518,10 @@ class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResp
     planSampleRate: float
     desiredSampleRate: float
     ingestThroughTrustedRelaysOnly: bool
+    playstationPlatformEnabled: bool
+    switchOnePlatformEnabled: bool
+    switchTwoPlatformEnabled: bool
+    xboxPlatformEnabled: bool
 
 
 @extend_schema_serializer(exclude_fields=["availableRoles"])
@@ -744,6 +752,24 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
             )
 
+        if features.has("organizations:project-creation-games-tab", obj):
+            context["playstationPlatformEnabled"] = obj.get_option(
+                "sentry:playstation_platform_enabled",
+                PLAYSTATION_PLATFORM_ENABLED_DEFAULT,
+            )
+            context["switchOnePlatformEnabled"] = obj.get_option(
+                "sentry:switch_one_platform_enabled",
+                SWITCH_ONE_PLATFORM_ENABLED_DEFAULT,
+            )
+            context["switchTwoPlatformEnabled"] = obj.get_option(
+                "sentry:switch_two_platform_enabled",
+                SWITCH_TWO_PLATFORM_ENABLED_DEFAULT,
+            )
+            context["xboxPlatformEnabled"] = obj.get_option(
+                "sentry:xbox_platform_enabled",
+                XBOX_PLATFORM_ENABLED_DEFAULT,
+            )
+
         if access.role is not None:
             context["role"] = access.role  # Deprecated
             context["orgRole"] = access.role
@@ -778,6 +804,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "rollbackEnabled",
         "streamlineOnly",
         "ingestThroughTrustedRelaysOnly",
+        "playstationPlatformEnabled",
+        "switchOnePlatformEnabled",
+        "switchTwoPlatformEnabled",
+        "xboxPlatformEnabled",
     ]
 )
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(
