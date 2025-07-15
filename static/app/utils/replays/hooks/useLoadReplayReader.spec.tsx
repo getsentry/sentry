@@ -1,8 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {QueryClientProvider} from 'sentry/utils/queryClient';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -14,9 +12,7 @@ jest.mock('sentry/utils/replays/hooks/useReplayData', () => ({
 const {organization, project} = initializeOrg();
 
 const wrapper = ({children}: {children?: React.ReactNode}) => (
-  <QueryClientProvider client={makeTestQueryClient()}>
-    <OrganizationContext value={organization}>{children}</OrganizationContext>
-  </QueryClientProvider>
+  <OrganizationContext value={organization}>{children}</OrganizationContext>
 );
 
 describe('useLoadReplayReader', () => {
