@@ -615,7 +615,10 @@ class FlamegraphExecutor:
 
 
 def split_datetime_range_exponential(
-    start_datetime, end_datetime, initial_chunk_delta, max_delta
+    start_datetime: datetime,
+    end_datetime: datetime,
+    initial_chunk_delta: timedelta,
+    max_delta: timedelta,
 ) -> Iterator[tuple[datetime, datetime]]:
     """
     Splits a datetime range into exponentially increasing chunks, yielded by a generator.
