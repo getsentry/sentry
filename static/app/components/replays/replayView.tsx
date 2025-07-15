@@ -137,7 +137,6 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
     return (
       <TooltipContext
         value={{
-          // container instead of document.body to avoid being clipped. This ensures
           // that browser/OS icons and size information tooltips remain visible.
           // See: https://developer.mozilla.org/en-US/docs/Web/API/Fullscreen_API#things_to_keep_in_mind
           container: document.fullscreenElement,
