@@ -11,7 +11,6 @@ from google.protobuf.message import Message
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TASK_ACTIVATION_STATUS_COMPLETE,
     TASK_ACTIVATION_STATUS_RETRY,
-    FetchNextTask,
     GetTaskResponse,
     SetTaskStatusResponse,
     TaskActivation,
@@ -223,69 +222,6 @@ def test_get_task_failure():
 
 
 @django_db_all
-def test_update_task_ok_with_next():
-    channel = MockChannel()
-    channel.add_response(
-        "/sentry_protos.taskbroker.v1.ConsumerService/SetTaskStatus",
-        SetTaskStatusResponse(
-            task=TaskActivation(
-                id="abc123",
-                namespace="testing",
-                taskname="do_thing",
-                parameters="",
-                headers={},
-                processing_deadline_duration=10,
-            )
-        ),
-    )
-    with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
-        mock_channel.return_value = channel
-        client = TaskworkerClient("localhost:50051", 1)
-        assert set(client._host_to_stubs.keys()) == {"localhost-0:50051"}
-        result = client.update_task(
-            ProcessingResult("abc123", TASK_ACTIVATION_STATUS_RETRY, "localhost-0:50051", 0),
-            FetchNextTask(namespace=None),
-        )
-
-        assert result
-        assert result.host == "localhost-0:50051"
-        assert result.activation.id == "abc123"
-
-
-@django_db_all
-def test_update_task_ok_with_next_namespace():
-    channel = MockChannel()
-    channel.add_response(
-        "/sentry_protos.taskbroker.v1.ConsumerService/SetTaskStatus",
-        SetTaskStatusResponse(
-            task=TaskActivation(
-                id="abc123",
-                namespace="testing",
-                taskname="do_thing",
-                parameters="",
-                headers={},
-                processing_deadline_duration=10,
-            )
-        ),
-    )
-    with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
-        mock_channel.return_value = channel
-        client = TaskworkerClient("localhost:50051", 1)
-        result = client.update_task(
-            ProcessingResult(
-                task_id="id",
-                status=TASK_ACTIVATION_STATUS_RETRY,
-                host="localhost-0:50051",
-                receive_timestamp=0,
-            ),
-            FetchNextTask(namespace="testing"),
-        )
-        assert result
-        assert result.activation.id == "abc123"
-        assert result.activation.namespace == "testing"
-
-
-@django_db_all
 def test_update_task_ok_no_next():
     channel = MockChannel()
     channel.add_response(
@@ -300,8 +236,7 @@ def test_update_task_ok_no_next():
                 status=TASK_ACTIVATION_STATUS_RETRY,
                 host="localhost-0:50051",
                 receive_timestamp=0,
-            ),
-            FetchNextTask(namespace=None),
+            )
         )
         assert result is None
 
@@ -322,8 +257,7 @@ def test_update_task_not_found():
                 status=TASK_ACTIVATION_STATUS_RETRY,
                 host="localhost-0:50051",
                 receive_timestamp=0,
-            ),
-            FetchNextTask(namespace=None),
+            )
         )
         assert result is None
 
@@ -345,8 +279,7 @@ def test_update_task_unavailable_retain_task_to_host():
                     status=TASK_ACTIVATION_STATUS_RETRY,
                     host="localhost-0:50051",
                     receive_timestamp=0,
-                ),
-                FetchNextTask(namespace=None),
+                )
             )
         assert "broker down" in str(err.value)
 
@@ -369,7 +302,7 @@ def test_client_loadbalance():
     )
     channel_0.add_response(
         "/sentry_protos.taskbroker.v1.ConsumerService/SetTaskStatus",
-        SetTaskStatusResponse(task=None),
+        SetTaskStatusResponse(),
     )
     channel_1 = MockChannel()
     channel_1.add_response(
@@ -387,7 +320,7 @@ def test_client_loadbalance():
     )
     channel_1.add_response(
         "/sentry_protos.taskbroker.v1.ConsumerService/SetTaskStatus",
-        SetTaskStatusResponse(task=None),
+        SetTaskStatusResponse(),
     )
     channel_2 = MockChannel()
     channel_2.add_response(
@@ -405,7 +338,7 @@ def test_client_loadbalance():
     )
     channel_2.add_response(
         "/sentry_protos.taskbroker.v1.ConsumerService/SetTaskStatus",
-        SetTaskStatusResponse(task=None),
+        SetTaskStatusResponse(),
     )
     channel_3 = MockChannel()
     channel_3.add_response(
@@ -450,26 +383,22 @@ def test_client_loadbalance():
             client.update_task(
                 ProcessingResult(
                     task_0.activation.id, TASK_ACTIVATION_STATUS_COMPLETE, task_0.host, 0
-                ),
-                None,
+                )
             )
             client.update_task(
                 ProcessingResult(
                     task_1.activation.id, TASK_ACTIVATION_STATUS_COMPLETE, task_1.host, 0
-                ),
-                None,
+                )
             )
             client.update_task(
                 ProcessingResult(
                     task_2.activation.id, TASK_ACTIVATION_STATUS_COMPLETE, task_2.host, 0
-                ),
-                None,
+                )
             )
             client.update_task(
                 ProcessingResult(
                     task_3.activation.id, TASK_ACTIVATION_STATUS_COMPLETE, task_3.host, 0
-                ),
-                None,
+                )
             )
 
 
@@ -538,8 +467,7 @@ def test_client_loadbalance_on_notfound():
             res = client.update_task(
                 ProcessingResult(
                     task_1.activation.id, TASK_ACTIVATION_STATUS_COMPLETE, task_1.host, 0
-                ),
-                None,
+                )
             )
             assert res is None
 
@@ -776,5 +704,4 @@ def test_client_update_task_host_unavailable():
                     host=host,
                     receive_timestamp=0,
                 ),
-                fetch_next_task=None,
             )

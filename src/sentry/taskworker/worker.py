@@ -13,9 +13,7 @@ from typing import Any
 
 import grpc
 from django.conf import settings
-from sentry_protos.taskbroker.v1.taskbroker_pb2 import FetchNextTask
 
-from sentry import options
 from sentry.taskworker.client.client import HostTemporarilyUnavailable, TaskworkerClient
 from sentry.taskworker.client.inflight_task_activation import InflightTaskActivation
 from sentry.taskworker.client.processing_result import ProcessingResult
@@ -143,7 +141,7 @@ class TaskWorker:
         while True:
             try:
                 result = self._processed_tasks.get_nowait()
-                self._send_result(result, fetch=False)
+                self._send_result(result)
             except queue.Empty:
                 break
 
@@ -209,13 +207,9 @@ class TaskWorker:
             iopool = ThreadPoolExecutor(max_workers=self._concurrency)
             with iopool as executor:
                 while not self._shutdown_event.is_set():
-                    fetch_next = self._processing_pool_name not in options.get(
-                        "taskworker.fetch_next.disabled_pools"
-                    )
-
                     try:
                         result = self._processed_tasks.get(timeout=1.0)
-                        executor.submit(self._send_result, result, fetch_next)
+                        executor.submit(self._send_result, result)
                     except queue.Empty:
                         metrics.incr(
                             "taskworker.worker.result_thread.queue_empty",
@@ -228,9 +222,9 @@ class TaskWorker:
         )
         self._result_thread.start()
 
-    def _send_result(self, result: ProcessingResult, fetch: bool = True) -> bool:
+    def _send_result(self, result: ProcessingResult) -> bool:
         """
-        Send a result to the broker and conditionally fetch an additional task
+        Send a result to the broker.
 
         Run in a thread to avoid blocking the process, and during shutdown/
         See `start_result_thread`
@@ -241,37 +235,10 @@ class TaskWorker:
             tags={"processing_pool": self._processing_pool_name},
         )
 
-        if fetch:
-            fetch_next = None
-            if not self._child_tasks.full():
-                fetch_next = FetchNextTask(namespace=self._namespace)
-
-            next = self._send_update_task(result, fetch_next)
-            if next:
-                try:
-                    start_time = time.monotonic()
-                    self._child_tasks.put(next)
-                    metrics.distribution(
-                        "taskworker.worker.child_task.put.duration",
-                        time.monotonic() - start_time,
-                        tags={"processing_pool": self._processing_pool_name},
-                    )
-                except queue.Full:
-                    logger.warning(
-                        "taskworker.send_result.child_task_queue_full",
-                        extra={
-                            "task_id": next.activation.id,
-                            "processing_pool": self._processing_pool_name,
-                        },
-                    )
-            return True
-
-        self._send_update_task(result, fetch_next=None)
+        self._send_update_task(result)
         return True
 
-    def _send_update_task(
-        self, result: ProcessingResult, fetch_next: FetchNextTask | None
-    ) -> InflightTaskActivation | None:
+    def _send_update_task(self, result: ProcessingResult) -> None:
         """
         Do the RPC call to this worker's taskbroker, and handle errors
         """
@@ -279,7 +246,6 @@ class TaskWorker:
             "taskworker.workers._send_result",
             extra={
                 "task_id": result.task_id,
-                "next": fetch_next is not None,
                 "processing_pool": self._processing_pool_name,
             },
         )
@@ -287,9 +253,8 @@ class TaskWorker:
         self._shutdown_event.wait(self._setstatus_backoff_seconds)
 
         try:
-            next_task = self.client.update_task(result, fetch_next)
+            self.client.update_task(result)
             self._setstatus_backoff_seconds = 0
-            return next_task
         except grpc.RpcError as e:
             self._setstatus_backoff_seconds = min(self._setstatus_backoff_seconds + 1, 10)
             if e.code() == grpc.StatusCode.UNAVAILABLE:
@@ -298,14 +263,12 @@ class TaskWorker:
                 "taskworker.send_update_task.failed",
                 extra={"task_id": result.task_id, "error": e},
             )
-            return None
         except HostTemporarilyUnavailable as e:
             logger.info(
                 "taskworker.send_update_task.temporarily_unavailable",
                 extra={"task_id": result.task_id, "error": str(e)},
             )
             self._processed_tasks.put(result)
-            return None
 
     def start_spawn_children_thread(self) -> None:
         def spawn_children_thread() -> None:

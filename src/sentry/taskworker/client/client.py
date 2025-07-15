@@ -9,11 +9,7 @@ from typing import TYPE_CHECKING, Any
 import grpc
 from django.conf import settings
 from google.protobuf.message import Message
-from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
-    FetchNextTask,
-    GetTaskRequest,
-    SetTaskStatusRequest,
-)
+from sentry_protos.taskbroker.v1.taskbroker_pb2 import GetTaskRequest, SetTaskStatusRequest
 from sentry_protos.taskbroker.v1.taskbroker_pb2_grpc import ConsumerServiceStub
 
 from sentry import options
@@ -244,22 +240,16 @@ class TaskworkerClient:
             )
         return None
 
-    def update_task(
-        self,
-        processing_result: ProcessingResult,
-        fetch_next_task: FetchNextTask | None = None,
-    ) -> InflightTaskActivation | None:
+    def update_task(self, processing_result: ProcessingResult) -> None:
         """
         Update the status for a given task activation.
 
         The return value is the next task that should be executed.
         """
-        metrics.incr("taskworker.client.fetch_next", tags={"next": fetch_next_task is not None})
         self._clear_temporary_unavailable_hosts()
         request = SetTaskStatusRequest(
             id=processing_result.task_id,
             status=processing_result.status,
-            fetch_next_task=fetch_next_task,
         )
 
         try:
@@ -270,7 +260,7 @@ class TaskworkerClient:
                 )
 
             with metrics.timer("taskworker.update_task.rpc", tags={"host": processing_result.host}):
-                response = self._host_to_stubs[processing_result.host].SetTaskStatus(request)
+                self._host_to_stubs[processing_result.host].SetTaskStatus(request)
         except grpc.RpcError as err:
             metrics.incr(
                 "taskworker.client.rpc_error",
@@ -288,10 +278,4 @@ class TaskworkerClient:
 
         self._num_consecutive_unavailable_errors = 0
         self._temporary_unavailable_hosts.pop(processing_result.host, None)
-        if response.HasField("task"):
-            return InflightTaskActivation(
-                activation=response.task,
-                host=processing_result.host,
-                receive_timestamp=time.monotonic(),
-            )
         return None

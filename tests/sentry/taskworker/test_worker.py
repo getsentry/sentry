@@ -211,7 +211,6 @@ class TestTaskWorker(TestCase):
             assert (
                 mock_client.update_task.call_args.args[0].status == TASK_ACTIVATION_STATUS_COMPLETE
             )
-            assert mock_client.update_task.call_args.args[1] is None
 
     def test_run_once_with_next_task(self) -> None:
         # Cover the scenario where update_task returns the next task which should
@@ -250,11 +249,8 @@ class TestTaskWorker(TestCase):
             assert (
                 mock_client.update_task.call_args.args[0].status == TASK_ACTIVATION_STATUS_COMPLETE
             )
-            assert mock_client.update_task.call_args.args[1] is None
 
-    @override_options({"taskworker.fetch_next.disabled_pools": ["testing"]})
-    def test_run_once_with_fetch_next_disabled(self) -> None:
-        # Cover the scenario where taskworker.fetch_next.disabled_pools is defined
+    def test_run_once_multiple_get_and_update(self) -> None:
         max_runtime = 5
         taskworker = TaskWorker(
             rpc_host="127.0.0.1:50051",
@@ -287,7 +283,6 @@ class TestTaskWorker(TestCase):
             assert (
                 mock_client.update_task.call_args.args[0].status == TASK_ACTIVATION_STATUS_COMPLETE
             )
-            assert mock_client.update_task.call_args.args[1] is None
 
     def test_run_once_with_update_failure(self) -> None:
         # Cover the scenario where update_task fails a few times in a row
@@ -370,7 +365,6 @@ class TestTaskWorker(TestCase):
             assert (
                 mock_client.update_task.call_args.args[0].status == TASK_ACTIVATION_STATUS_COMPLETE
             )
-            assert mock_client.update_task.call_args.args[1] is None
 
             redis = redis_clusters.get("default")
             assert current_task() is None, "should clear current task on completion"

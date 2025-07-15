@@ -3188,11 +3188,6 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "taskworker.fetch_next.disabled_pools",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 
 # Taskbroker rollout flags
