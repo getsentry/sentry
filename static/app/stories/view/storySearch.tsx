@@ -169,7 +169,7 @@ function SearchComboBox<T extends StoryTreeNode>(props: SearchComboBoxProps<T>) 
     inputValue,
     onInputChange: setInputValue,
     defaultFilter: filter,
-    shouldCloseOnBlur: false,
+    shouldCloseOnBlur: true,
     allowsEmptyCollection: false,
     onSelectionChange: handleSelectionChange,
   });
