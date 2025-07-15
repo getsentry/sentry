@@ -6,7 +6,7 @@ import issueDetailsPreview from 'sentry-images/issue_details/issue-details-previ
 import {TextTourAction, TourAction} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useInvertedTheme} from 'sentry/utils/theme/theme';
+import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 
 interface IssueDetailsTourModalProps {
   handleDismissTour: () => void;
