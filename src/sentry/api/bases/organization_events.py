@@ -341,6 +341,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             meta = results.get("meta", {})
             fields_meta = meta.get("fields", {})
 
+            self.handle_error_upsampling(project_ids, results)
+
             if standard_meta:
                 isMetricsData = meta.pop("isMetricsData", False)
                 isMetricsExtractedData = meta.pop("isMetricsExtractedData", False)
@@ -413,8 +415,27 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         if "device" in fields and request.GET.get("readable"):
             self.handle_readable_device(results, project_ids, organization)
 
+        if not ("project.id" in first_row or "projectid" in first_row):
+            return results
+
+        for result in results:
+            for key in ("projectid", "project.id"):
+                if key in result and key not in fields:
+                    del result[key]
+
+        return results
+
+    def handle_error_upsampling(self, project_ids: Sequence[int], results: dict[str, Any]):
+        """
+        If the query is for error upsampled projects, we need to rename the fields to include the ()
+        and update the meta fields to reflect the new field names. This works around a limitation in
+        how aliases are handled in the SnQL parser.
+        """
         if are_all_projects_error_upsampled(project_ids):
-            for result in results:
+            data = results.get("data", [])
+            fields_meta = results.get("meta", {}).get("fields", {})
+
+            for result in data:
                 if "count" in result:
                     result["count()"] = result["count"]
                     del result["count"]
@@ -425,15 +446,15 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     result["epm()"] = result["epm"]
                     del result["epm"]
 
-        if not ("project.id" in first_row or "projectid" in first_row):
-            return results
-
-        for result in results:
-            for key in ("projectid", "project.id"):
-                if key in result and key not in fields:
-                    del result[key]
-
-        return results
+            if "count" in fields_meta:
+                fields_meta["count()"] = fields_meta["count"]
+                del fields_meta["count"]
+            if "eps" in fields_meta:
+                fields_meta["eps()"] = fields_meta["eps"]
+                del fields_meta["eps"]
+            if "epm" in fields_meta:
+                fields_meta["epm()"] = fields_meta["epm"]
+                del fields_meta["epm"]
 
     def handle_issues(
         self, results: Sequence[Any], project_ids: Sequence[int], organization: Organization

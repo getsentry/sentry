@@ -6635,6 +6635,12 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             # Expect the count to be upsampled (1 event / 0.1 = 10) + 1 event with no sampling = 11
             assert response.data["data"][0]["count()"] == 11
 
+            # Check meta information
+            meta = response.data["meta"]
+            assert "fields" in meta
+            assert "count()" in meta["fields"]
+            assert meta["fields"]["count()"] == "integer"
+
     def test_error_upsampling_eps_with_allowlisted_project(self):
         """Test that eps() is upsampled for allowlisted projects when querying error events."""
         # Set up allowlisted project
@@ -6681,6 +6687,12 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             actual_eps = response.data["data"][0]["eps()"]
             assert abs(actual_eps - expected_eps) < 0.0001  # Allow small rounding differences
 
+            # Check meta information
+            meta = response.data["meta"]
+            assert "fields" in meta
+            assert "eps()" in meta["fields"]
+            assert meta["fields"]["eps()"] == "rate"
+
     def test_error_upsampling_epm_with_allowlisted_project(self):
         """Test that epm() is upsampled for allowlisted projects when querying error events."""
         # Set up allowlisted project
@@ -6726,6 +6738,12 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             expected_epm = 11 / 120
             actual_epm = response.data["data"][0]["epm()"]
             assert abs(actual_epm - expected_epm) < 0.001  # Allow small rounding differences
+
+            # Check meta information
+            meta = response.data["meta"]
+            assert "fields" in meta
+            assert "epm()" in meta["fields"]
+            assert meta["fields"]["epm()"] == "rate"
 
     def test_error_upsampling_with_no_allowlist(self):
         """Test that count() is not upsampled when project is not allowlisted."""
