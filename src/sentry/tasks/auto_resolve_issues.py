@@ -81,7 +81,7 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
     if not age:
         return
 
-    project.update_option("sentry:_last_auto_resolve", int(time()))
+    project.update_option("sentry:_last_auto_resolve", int(time()), reload_cache=False)
 
     if cutoff:
         cutoff = datetime.fromtimestamp(cutoff, timezone.utc)
