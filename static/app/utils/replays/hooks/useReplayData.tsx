@@ -256,18 +256,18 @@ function useReplayData({
   const isPending = allStatuses.includes('pending');
   const status = isError ? 'error' : isPending ? 'pending' : 'success';
 
-  const allErrors = useMemo(
-    () =>
-      errorPages
-        .concat(extraErrorPages)
-        .concat(platformErrorPages)
-        .flatMap(page => page.data),
-    [errorPages, extraErrorPages, platformErrorPages]
-  );
+  const {allErrors, feedbackEventIds} = useMemo(() => {
+    const errors = errorPages
+      .concat(extraErrorPages)
+      .concat(platformErrorPages)
+      .flatMap(page => page.data);
 
-  const feedbackEventIds = allErrors
-    ?.filter(error => error?.title.includes('User Feedback'))
-    .map(error => error.id);
+    const feedbackIds = errors
+      ?.filter(error => error?.title.includes('User Feedback'))
+      .map(error => error.id);
+
+    return {allErrors: errors, feedbackEventIds: feedbackIds};
+  }, [errorPages, extraErrorPages, platformErrorPages]);
 
   const feedbackEvents = useFeedbackEvents({
     feedbackEventIds: feedbackEventIds ?? [],
