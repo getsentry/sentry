@@ -117,12 +117,15 @@ export default function ReplayIndexTable() {
 
   const pageLinks = getResponseHeader?.('Link') ?? null;
   const hasNextResultsPage = parseLinkHeader(pageLinks).next?.results;
+  const hasPrevResultsPage = parseLinkHeader(pageLinks).prev?.results;
 
   return (
     <Fragment>
       {needsJetpackComposePiiWarning && <JetpackComposePiiNotice />}
       <ListItemCheckboxProvider
-        hits={hasNextResultsPage ? replays.length + 1 : replays.length}
+        hits={
+          hasPrevResultsPage || hasNextResultsPage ? replays.length + 1 : replays.length
+        }
         knownIds={replays.map(replay => replay.id)}
         queryKey={queryKey}
       >
