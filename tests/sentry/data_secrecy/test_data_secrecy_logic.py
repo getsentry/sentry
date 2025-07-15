@@ -130,10 +130,11 @@ class DataSecrecyV2Test(TestCase):
     def test_get_cached_grant_status_valid_cached_data(self):
         # Set valid cached data that hasn't expired
         future_time = timezone.now() + timedelta(hours=1)
-        cached_data = {
-            "access_start": timezone.now(),
-            "access_end": future_time,
-        }
+        cached_data = RpcEffectiveGrantStatus(
+            organization_id=self.organization.id,
+            access_start=timezone.now(),
+            access_end=future_time,
+        ).dict()
         cache_key = CACHE_KEY_PATTERN.format(organization_id=self.organization.id)
         cache.set(cache_key, cached_data, timeout=300)
 
@@ -143,10 +144,11 @@ class DataSecrecyV2Test(TestCase):
     def test_get_cached_grant_status_expired_cached_data(self):
         # Set cached data that has logically expired
         past_time = timezone.now() - timedelta(hours=1)
-        cached_data = {
-            "access_start": (timezone.now() - timedelta(hours=2)),
-            "access_end": past_time,
-        }
+        cached_data = RpcEffectiveGrantStatus(
+            organization_id=self.organization.id,
+            access_start=timezone.now() - timedelta(hours=2),
+            access_end=past_time,
+        ).dict()
         cache_key = CACHE_KEY_PATTERN.format(organization_id=self.organization.id)
         cache.set(cache_key, cached_data, timeout=300)
 
@@ -159,10 +161,11 @@ class DataSecrecyV2Test(TestCase):
     def test_data_access_grant_exists_cache_hit_positive(self):
         # Set valid cached data
         future_time = timezone.now() + timedelta(hours=1)
-        cached_data = {
-            "access_start": timezone.now(),
-            "access_end": future_time,
-        }
+        cached_data = RpcEffectiveGrantStatus(
+            organization_id=self.organization.id,
+            access_start=timezone.now(),
+            access_end=future_time,
+        ).dict()
         cache_key = CACHE_KEY_PATTERN.format(organization_id=self.organization.id)
         cache.set(cache_key, cached_data, timeout=300)
 
