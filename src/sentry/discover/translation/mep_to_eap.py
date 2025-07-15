@@ -209,6 +209,9 @@ def translate_columns(columns):
 
 
 def translate_equations(equations):
+    if equations is None:
+        return None
+
     translated_equations = []
 
     for equation in equations:
