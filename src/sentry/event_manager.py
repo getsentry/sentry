@@ -719,11 +719,12 @@ def _set_project_platform_if_needed(project: Project, event: Event) -> None:
             else:
                 cache.set(cache_key, "1", 60 * 5)
 
-            with transaction.atomic(router.db_for_write(Project)):
-                project.refresh_from_db(fields=["platform"])
-                if not project.platform:
-                    project.update(platform=event.platform)
+            if not project.platform:
+                updated = Project.objects.filter(id=project.id, platform__isnull=True).update(
+                    platform=event.platform
+                )
 
+                if updated:
                     create_system_audit_entry(
                         organization=project.organization,
                         target_object=project.id,
