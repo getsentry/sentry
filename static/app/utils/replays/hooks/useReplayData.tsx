@@ -204,10 +204,6 @@ function useReplayData({
     perPage: errorsPerPage,
   });
 
-  // check for feedback events and call hook
-  // pass into replay reader
-  // pass feedback events in hydrateError to find the matching feedback
-
   const linkHeader = lastErrorsResponseHeader?.('Link') ?? null;
   const links = parseLinkHeader(linkHeader);
   const enableExtraErrors =
