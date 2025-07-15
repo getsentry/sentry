@@ -471,7 +471,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
 
         self.test_delete_simple()
 
-    def test_bonus_get_respects_multiple_project_access(self):
+    def test_get_respects_multiple_project_access(self):
         # Disable open membership
         self.organization.flags.allow_joinleave = False
         self.organization.save()
@@ -500,7 +500,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             method="GET",
         )
 
-    def test_bonus_delete_respects_multiple_project_access(self):
+    def test_delete_respects_multiple_project_access(self):
         # Disable open membership
         self.organization.flags.allow_joinleave = False
         self.organization.save()
@@ -508,6 +508,8 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         user = self.create_user()
         member = self.create_member(user=user, organization=self.organization)
         team = self.create_team(name="mobile", organization=self.organization)
+        # Unrelated team, shouldn't affect anything
+        self.create_team(name="desktop", organization=self.organization, members=[user])
         team_membership = OrganizationMemberTeam.objects.create(
             team=team, organizationmember=member, role="contributor"
         )
