@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import uniqBy from 'lodash/uniqBy';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
@@ -13,7 +14,6 @@ import InfiniteListState from 'sentry/components/infiniteList/infiniteListState'
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import uniqueBy from 'sentry/utils/array/uniqBy';
 import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
@@ -36,7 +36,7 @@ export default function FeedbackList() {
   });
 
   const issues = useMemo(
-    () => uniqueBy(queryResult.data?.pages.flatMap(([pageData]) => pageData) ?? [], 'id'),
+    () => uniqBy(queryResult.data?.pages.flatMap(([pageData]) => pageData) ?? [], 'id'),
     [queryResult.data?.pages]
   );
   const checkboxState = useListItemCheckboxContext({
