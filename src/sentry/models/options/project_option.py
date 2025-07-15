@@ -117,7 +117,9 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
         self.filter(project=project, key=key).delete()
         self.reload_cache(project.id, "projectoption.unset_value", key)
 
-    def set_value(self, project: int | Project, key: str, value: Any) -> bool:
+    def set_value(
+        self, project: int | Project, key: str, value: Any, reload_cache: bool = True
+    ) -> bool:
         if isinstance(project, models.Model):
             project_id = project.id
         else:
@@ -126,7 +128,9 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
         inst, created = self.create_or_update(
             project_id=project_id, key=key, values={"value": value}
         )
-        self.reload_cache(project_id, "projectoption.set_value", key)
+
+        if reload_cache:
+            self.reload_cache(project_id, "projectoption.set_value", key)
 
         return created or inst > 0
 

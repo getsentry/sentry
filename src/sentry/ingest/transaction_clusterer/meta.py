@@ -28,4 +28,6 @@ def track_clusterer_run(namespace: ClustererNamespace, project: Project) -> None
     meta["last_run"] = now = int(datetime.now(timezone.utc).timestamp())
     if meta["first_run"] == 0:
         meta["first_run"] = now
-    project.update_option(namespace.value.meta_store, meta)
+    # This project option only serves a stats purpose and doesn't
+    # require refreshing the cache.
+    project.update_option(namespace.value.meta_store, meta, reload_cache=False)
