@@ -59,14 +59,14 @@ export default function ReplayLayout({
     </ErrorBoundary>
   );
 
-  // if (layout === LayoutKey.VIDEO_ONLY) {
-  //   return (
-  //     <BodyContent>
-  //       {video}
-  //       {controller}
-  //     </BodyContent>
-  //   );
-  // }
+  if (layout === LayoutKey.VIDEO_ONLY) {
+    return (
+      <BodyGrid>
+        {video}
+        {controller}
+      </BodyGrid>
+    );
+  }
 
   const focusArea =
     isLoading || replayRecord?.is_archived ? (
@@ -83,15 +83,15 @@ export default function ReplayLayout({
 
   const hasSize = width + height > 0;
 
-  // if (layout === LayoutKey.NO_VIDEO) {
-  //   return (
-  //     <BodyContent>
-  //       <FluidHeight ref={measureRef}>
-  //         {hasSize ? <PanelContainer key={layout}>{focusArea}</PanelContainer> : null}
-  //       </FluidHeight>
-  //     </BodyContent>
-  //   );
-  // }
+  if (layout === LayoutKey.NO_VIDEO) {
+    return (
+      <BodyGrid>
+        <BodySlider ref={measureRef}>
+          {hasSize ? <PanelContainer key={layout}>{focusArea}</PanelContainer> : null}
+        </BodySlider>
+      </BodyGrid>
+    );
+  }
 
   if (layout === LayoutKey.SIDEBAR_LEFT) {
     return (
