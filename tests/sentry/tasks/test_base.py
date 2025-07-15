@@ -40,14 +40,62 @@ def ignore_and_capture_retry_task(param):
     raise Exception(param)
 
 
-@retry(on=(Exception,))
 @instrumented_task(
     name="test.tasks.test_base.retry_task",
     silo_mode=SiloMode.CONTROL,
     taskworker_config=TaskworkerConfig(namespace=test_tasks),
 )
+@retry(on=(Exception,))
 def retry_on_task(param):
     raise Exception(param)
+
+
+@instrumented_task(
+    name="test.tasks.test_base.timeout_retry_task",
+    silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(namespace=test_tasks),
+)
+@retry(timeouts=True)
+def timeout_retry_task(param):
+    from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
+
+    raise ProcessingDeadlineExceeded(param)
+
+
+@instrumented_task(
+    name="test.tasks.test_base.timeout_no_retry_task",
+    silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(namespace=test_tasks),
+)
+@retry(timeouts=False)
+def timeout_no_retry_task(param):
+    from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
+
+    raise ProcessingDeadlineExceeded(param)
+
+
+@instrumented_task(
+    name="test.tasks.test_base.soft_timeout_retry_task",
+    silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(namespace=test_tasks),
+)
+@retry(timeouts=True)
+def soft_timeout_retry_task(param):
+    from celery.exceptions import SoftTimeLimitExceeded
+
+    raise SoftTimeLimitExceeded(param)
+
+
+@instrumented_task(
+    name="test.tasks.test_base.soft_timeout_no_retry_task",
+    silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(namespace=test_tasks),
+)
+@retry(timeouts=False)
+def soft_timeout_no_retry_task(param):
+    from celery.exceptions import SoftTimeLimitExceeded
+
+    raise SoftTimeLimitExceeded(param)
 
 
 @retry(ignore=(Exception,))
@@ -196,3 +244,61 @@ def test_task_silo_limit_celery_task_methods(method_name) -> None:
     method = getattr(region_task, method_name)
     with pytest.raises(SiloLimit.AvailabilityError):
         method("hi")
+
+
+@override_settings(SILO_MODE=SiloMode.CONTROL)
+@patch("sentry.taskworker.retry.current_task")
+@patch("sentry_sdk.capture_exception")
+def test_retry_timeout_enabled(capture_exception, current_task):
+    class ExpectedException(Exception):
+        pass
+
+    current_task.retry.side_effect = ExpectedException("retry called")
+
+    with pytest.raises(ExpectedException):
+        timeout_retry_task("timeout_param")
+
+    assert capture_exception.call_count == 1
+    assert current_task.retry.call_count == 1
+
+
+@override_settings(SILO_MODE=SiloMode.CONTROL)
+@patch("sentry.taskworker.retry.current_task")
+@patch("sentry_sdk.capture_exception")
+def test_retry_timeout_disabled(capture_exception, current_task):
+    from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
+
+    with pytest.raises(ProcessingDeadlineExceeded):
+        timeout_no_retry_task("timeout_param")
+
+    assert capture_exception.call_count == 0
+    assert current_task.retry.call_count == 0
+
+
+@override_settings(SILO_MODE=SiloMode.CONTROL)
+@patch("sentry.taskworker.retry.current_task")
+@patch("sentry_sdk.capture_exception")
+def test_retry_soft_timeout_enabled(capture_exception, current_task):
+    class ExpectedException(Exception):
+        pass
+
+    current_task.retry.side_effect = ExpectedException("retry called")
+
+    with pytest.raises(ExpectedException):
+        soft_timeout_retry_task("soft_timeout_param")
+
+    assert capture_exception.call_count == 1
+    assert current_task.retry.call_count == 1
+
+
+@override_settings(SILO_MODE=SiloMode.CONTROL)
+@patch("sentry.taskworker.retry.current_task")
+@patch("sentry_sdk.capture_exception")
+def test_retry_soft_timeout_disabled(capture_exception, current_task):
+    from celery.exceptions import SoftTimeLimitExceeded
+
+    with pytest.raises(SoftTimeLimitExceeded):
+        soft_timeout_no_retry_task("soft_timeout_param")
+
+    assert capture_exception.call_count == 0
+    assert current_task.retry.call_count == 0
