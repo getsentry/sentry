@@ -38,7 +38,7 @@ export function IssueDetailsTourModal({
               {t('Maybe later')}
             </TextTourAction>
             <TourAction onClick={handleStartTour} autoFocus>
-              {t('Take tour')}
+              {t('Take a tour')}
             </TourAction>
           </Footer>
         </TextContainer>
