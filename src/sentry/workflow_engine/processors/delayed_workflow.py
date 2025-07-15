@@ -12,7 +12,7 @@ from celery import Task
 from django.utils import timezone
 from pydantic import BaseModel, validator
 
-from sentry import buffer, features, nodestore
+from sentry import buffer, nodestore
 from sentry.buffer.base import BufferField
 from sentry.db import models
 from sentry.eventstore.models import Event, GroupEvent
@@ -670,9 +670,6 @@ def fire_actions_for_groups(
 
     # Feature check caching to keep us within the trace budget.
     should_trigger_actions = should_fire_workflow_actions(organization)
-    should_trigger_actions_async = features.has(
-        "organizations:workflow-engine-action-trigger-async", organization
-    )
 
     total_actions = 0
     with track_batch_performance(
@@ -749,13 +746,10 @@ def fire_actions_for_groups(
 
                 if should_trigger_actions:
                     for action in filtered_actions:
-                        if should_trigger_actions_async:
-                            task_params = build_trigger_action_task_params(
-                                action, detector, workflow_event_data
-                            )
-                            trigger_action.delay(**task_params)
-                        else:
-                            action.trigger(workflow_event_data, detector)
+                        task_params = build_trigger_action_task_params(
+                            action, detector, workflow_event_data
+                        )
+                        trigger_action.delay(**task_params)
 
     logger.info(
         "workflow_engine.delayed_workflow.triggered_actions_summary",
