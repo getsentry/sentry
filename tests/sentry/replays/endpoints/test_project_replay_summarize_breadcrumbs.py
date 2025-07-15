@@ -37,6 +37,11 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(TransactionTestCase):
             self.endpoint,
             args=(self.organization.slug, self.project.slug, self.replay_id),
         )
+        self.features = {
+            "organizations:session-replay": True,
+            "organizations:replay-ai-summaries": True,
+            "organizations:gen-ai-features": True,
+        }
 
     def store_replay_event(
         self,
@@ -129,13 +134,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(TransactionTestCase):
         ]
         self.save_recording_segment(0, json.dumps(data).encode())
 
-        with self.feature(
-            {
-                "organizations:session-replay": True,
-                "organizations:replay-ai-summaries": True,
-                "organizations:gen-ai-features": True,
-            }
-        ):
+        with self.feature(self.features):
             response = self.client.get(self.url)
 
         assert response.status_code == 200
@@ -175,18 +174,18 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(TransactionTestCase):
         self.store_replay_event()
         self.save_recording_segment(0, json.dumps([]).encode())
 
-        with self.feature(
-            {
-                "organizations:session-replay": True,
-                "organizations:replay-ai-summaries": True,
-                "organizations:gen-ai-features": True,
-            }
-        ):
+        with self.feature(self.features):
             response = self.client.get(self.url)
 
         assert response.status_code == 400
         assert response.get("Content-Type") == "application/json"
         assert response.json() == {"detail": "e"}
+
+    # Test replay too old and/or missing
+    # Test replay archived
+    # Test cache hit
+    # Test cache hit but regenerate
+    # Test cache hit but segment count changed
 
     @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
     def test_get_with_error(self, make_seer_request):
@@ -237,13 +236,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(TransactionTestCase):
         ]
         self.save_recording_segment(0, json.dumps(data).encode())
 
-        with self.feature(
-            {
-                "organizations:session-replay": True,
-                "organizations:replay-ai-summaries": True,
-                "organizations:gen-ai-features": True,
-            }
-        ):
+        with self.feature(self.features):
             response = self.client.get(self.url)
 
         make_seer_request.assert_called_once()
@@ -297,13 +290,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(TransactionTestCase):
         self.save_recording_segment(0, json.dumps(data).encode())
 
         # with error context disabled
-        with self.feature(
-            {
-                "organizations:session-replay": True,
-                "organizations:replay-ai-summaries": True,
-                "organizations:gen-ai-features": True,
-            }
-        ):
+        with self.feature(self.features):
             response = self.client.get(self.url, {"enable_error_context": "false"})
 
         make_seer_request.assert_called_once()
@@ -317,13 +304,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(TransactionTestCase):
         assert response.content == return_value
 
         # with error context enabled
-        with self.feature(
-            {
-                "organizations:session-replay": True,
-                "organizations:replay-ai-summaries": True,
-                "organizations:gen-ai-features": True,
-            }
-        ):
+        with self.feature(self.features):
             response = self.client.get(self.url, {"enable_error_context": "true"})
 
         assert make_seer_request.call_count == 2
@@ -386,13 +367,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(TransactionTestCase):
         ]
         self.save_recording_segment(0, json.dumps(data).encode())
 
-        with self.feature(
-            {
-                "organizations:session-replay": True,
-                "organizations:replay-ai-summaries": True,
-                "organizations:gen-ai-features": True,
-            }
-        ):
+        with self.feature(self.features):
             response = self.client.get(self.url)
 
         make_seer_request.assert_called_once()
@@ -477,13 +452,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(TransactionTestCase):
         ]
         self.save_recording_segment(0, json.dumps(data).encode())
 
-        with self.feature(
-            {
-                "organizations:session-replay": True,
-                "organizations:replay-ai-summaries": True,
-                "organizations:gen-ai-features": True,
-            }
-        ):
+        with self.feature(self.features):
             response = self.client.get(self.url)
 
         make_seer_request.assert_called_once()
@@ -533,13 +502,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(TransactionTestCase):
         ]
         self.save_recording_segment(0, json.dumps(data).encode())
 
-        with self.feature(
-            {
-                "organizations:session-replay": True,
-                "organizations:replay-ai-summaries": True,
-                "organizations:gen-ai-features": True,
-            }
-        ):
+        with self.feature(self.features):
             response = self.client.get(self.url)
 
         make_seer_request.assert_called_once()

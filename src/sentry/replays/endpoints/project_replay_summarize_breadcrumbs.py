@@ -18,7 +18,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.utils import default_start_end_dates
 from sentry.constants import ObjectStatus
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
@@ -83,7 +82,8 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
         ):
             return self.respond(status=404)
 
-        start, end = default_start_end_dates()
+        filter_params = self.get_filter_params(request, project, date_filter_optional=False)
+        start, end = filter_params["start"], filter_params["end"]
 
         seg_count_response = query_replays_segment_count(
             project_ids=[project.id],
