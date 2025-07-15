@@ -8,8 +8,10 @@
  * - Theme type exports
  */
 import type {CSSProperties} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import color from 'color';
+
+import {DO_NOT_USE_darkChonkTheme, DO_NOT_USE_lightChonkTheme} from './theme.chonk';
 
 // palette generated via: https://gka.github.io/palettes/#colors=444674,69519A,E1567C,FB7D46,F2B712|steps=20|bez=1|coL=1
 const CHART_PALETTE = [
@@ -1236,14 +1238,6 @@ export const lightTheme = {
   level: generateLevelTheme(lightColors),
   stacktraceActiveBackground: lightColors.gray500,
   stacktraceActiveText: lightColors.white,
-  tour: {
-    background: darkColors.surface400,
-    header: darkColors.white,
-    text: darkAliases.textColor,
-    next: lightAliases.textColor,
-    previous: darkColors.white,
-    close: lightColors.white,
-  },
   chart: {
     neutral: lightColors.gray200,
     colors: CHART_PALETTE,
@@ -1297,14 +1291,6 @@ export const darkTheme: typeof lightTheme = {
   ),
   stacktraceActiveBackground: darkColors.gray200,
   stacktraceActiveText: darkColors.white,
-  tour: {
-    background: darkColors.purple300,
-    header: darkColors.white,
-    text: darkAliases.textColor,
-    next: lightAliases.textColor,
-    previous: darkColors.white,
-    close: lightColors.white,
-  },
   chart: {
     neutral: darkColors.gray200,
     colors: CHART_PALETTE,
@@ -1346,3 +1332,13 @@ const commonThemeExport = {...commonTheme};
  * @deprecated Do not import the theme directly, use useTheme hook instead.
  */
 export default commonThemeExport;
+
+export const useInvertedTheme = (): Theme => {
+  const theme = useTheme();
+  if (theme.isChonk) {
+    return theme.type === 'light'
+      ? (DO_NOT_USE_darkChonkTheme as any)
+      : (DO_NOT_USE_lightChonkTheme as any);
+  }
+  return theme.type === 'light' ? darkTheme : lightTheme;
+};
