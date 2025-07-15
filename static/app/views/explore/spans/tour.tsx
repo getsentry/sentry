@@ -72,7 +72,6 @@ function ExploreSpansTourModal({
                 handleDismissTour();
                 closeModal();
               }}
-              borderless
             >
               {t('Maybe later')}
             </TextTourAction>

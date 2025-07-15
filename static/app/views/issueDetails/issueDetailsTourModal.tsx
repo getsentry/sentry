@@ -54,7 +54,6 @@ const ImageContainer = styled('img')`
   margin: ${space(1.5)} auto 0;
   background-size: cover;
   background-position: center;
-  background-color: ${p => p.theme.blue400};
   border: 1px solid ${p => p.theme.translucentBorder};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;

@@ -428,6 +428,7 @@ export function TourGuide({
                             {isDismissVisible && (
                               <Button
                                 priority="transparent"
+                                borderless
                                 onClick={handleDismiss}
                                 icon={<IconClose />}
                                 aria-label={t('Close')}
@@ -477,13 +478,12 @@ const TourOverlay = styled(Overlay)`
 `;
 
 const TopRow = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 15px;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
   color: ${p => p.theme.tokens.content.muted};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.bold};
-  opacity: 0.6;
 `;
 
 const TitleRow = styled('div')`
@@ -513,7 +513,7 @@ export function TourAction(props: React.ComponentProps<typeof Button>) {
   return <Button {...props} priority="primary" size="sm" />;
 }
 export function TextTourAction(props: React.ComponentProps<typeof Button>) {
-  return <Button {...props} priority="transparent" size="sm" />;
+  return <Button {...props} priority="transparent" size="sm" borderless />;
 }
 
 const BlurWindow = styled('div')`

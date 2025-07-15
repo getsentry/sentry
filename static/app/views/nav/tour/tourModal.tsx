@@ -34,7 +34,6 @@ export function NavTourModal({
               handleDismissTour();
               closeModal();
             }}
-            borderless
           >
             {t('Maybe later')}
           </TextTourAction>
