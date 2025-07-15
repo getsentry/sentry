@@ -30,6 +30,7 @@ import {AiModuleToggleButton} from 'sentry/views/insights/agentMonitoring/compon
 import {LegacyLLMMonitoringInfoAlert} from 'sentry/views/insights/agentMonitoring/components/legacyLlmMonitoringAlert';
 import LLMGenerationsWidget from 'sentry/views/insights/agentMonitoring/components/llmGenerationsWidget';
 import {ModelsTable} from 'sentry/views/insights/agentMonitoring/components/modelsTable';
+import TokenCostWidget from 'sentry/views/insights/agentMonitoring/components/tokenCostWidget';
 import TokenThroughputWidget from 'sentry/views/insights/agentMonitoring/components/tokenThroughputWidget';
 import TokenUsageWidget from 'sentry/views/insights/agentMonitoring/components/tokenUsageWidget';
 import {ToolsTable} from 'sentry/views/insights/agentMonitoring/components/toolsTable';
@@ -191,7 +192,7 @@ function AgentsMonitoringPage() {
                         <TokenUsageWidget />
                       </WidgetGrid.Position5>
                       <WidgetGrid.Position6>
-                        <TokenCostsWidget />
+                        <TokenCostWidget />
                       </WidgetGrid.Position6>
                       <WidgetGrid.Position7>
                         <ToolUsageWidget />
@@ -267,15 +268,6 @@ export function ToolErrorsWidget() {
   return (
     <Widget
       Title={<Widget.WidgetTitle title={t('Tool errors')} />}
-      Visualization={<PlaceholderText />}
-    />
-  );
-}
-
-export function TokenCostsWidget() {
-  return (
-    <Widget
-      Title={<Widget.WidgetTitle title={t('Token costs')} />}
       Visualization={<PlaceholderText />}
     />
   );
