@@ -78,6 +78,12 @@ const viewErrorRateWidgets: Record<ViewType, React.ComponentType> = {
   [ViewType.PROMPT]: McpPromptErrorRateWidget,
 };
 
+const viewTables: Record<ViewType, React.ComponentType> = {
+  [ViewType.TOOL]: McpToolsTable,
+  [ViewType.RESOURCE]: McpResourcesTable,
+  [ViewType.PROMPT]: McpPromptsTable,
+};
+
 function useShowOnboarding() {
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
@@ -137,6 +143,7 @@ function McpOverviewPage() {
   const ViewTrafficWidget = viewTrafficWidgets[activeView];
   const ViewDurationWidget = viewDurationWidgets[activeView];
   const ViewErrorRateWidget = viewErrorRateWidgets[activeView];
+  const ViewTable = viewTables[activeView];
 
   return (
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
@@ -212,9 +219,7 @@ function McpOverviewPage() {
                         <ViewErrorRateWidget />
                       </WidgetGrid.Position3>
                     </WidgetGrid>
-                    {activeView === ViewType.TOOL && <McpToolsTable />}
-                    {activeView === ViewType.RESOURCE && <McpResourcesTable />}
-                    {activeView === ViewType.PROMPT && <McpPromptsTable />}
+                    <ViewTable />
                   </Fragment>
                 )}
               </ModuleLayout.Full>
