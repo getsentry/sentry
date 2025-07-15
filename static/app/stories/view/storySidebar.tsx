@@ -18,11 +18,11 @@ export function StorySidebar() {
           <StoryTree nodes={foundations} />
         </li>
         <li>
-          <h3>Core Components</h3>
+          <h3>Components</h3>
           <StoryTree nodes={core} />
         </li>
         <li>
-          <h3>Product Components</h3>
+          <h3>Product</h3>
           <StoryTree nodes={shared} />
         </li>
       </ul>

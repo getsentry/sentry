@@ -65,7 +65,7 @@ export function StorySearch() {
     if (core.length > 0) {
       sections.push({
         key: 'components',
-        label: 'Core Components',
+        label: 'Components',
         options: core,
       });
     }
@@ -73,7 +73,7 @@ export function StorySearch() {
     if (shared.length > 0) {
       sections.push({
         key: 'shared',
-        label: 'Product Components',
+        label: 'Product',
         options: shared,
       });
     }
