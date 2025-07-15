@@ -3,7 +3,7 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import type {ComboBoxState} from '@react-stately/combobox';
 import type {Node} from '@react-types/shared';
 
-import {useSeerAcknowledgeMutation} from 'sentry/components/searchQueryBuilder/askSeer';
+import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenu} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {FilterKeyListBox} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox';
