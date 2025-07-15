@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -44,10 +43,7 @@ function StoriesLanding() {
 function StoryDetail() {
   useStoryRedirect();
   const location = useLocation<{name: string; query?: string}>();
-  const files = useMemo(
-    () => [location.state?.storyPath ?? location.query.name],
-    [location.state?.storyPath, location.query.name]
-  );
+  const files = [location.state?.storyPath ?? location.query.name];
   const story = useStoriesLoader({files});
 
   return (
