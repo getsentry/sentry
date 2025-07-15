@@ -14,7 +14,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, OperationalError, connection, router, transaction
-from django.db.models import Max
+from django.db.models import Max, Q
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
 from urllib3.exceptions import MaxRetryError, TimeoutError
@@ -721,9 +721,9 @@ def _set_project_platform_if_needed(project: Project, event: Event) -> None:
                 cache.set(cache_key, "1", 60 * 5)
 
             if not project.platform:
-                updated = Project.objects.filter(id=project.id, platform__in=[None, ""]).update(
-                    platform=event.platform
-                )
+                updated = Project.objects.filter(
+                    Q(id=project.id) & (Q(platform__isnull=True) | Q(platform=""))
+                ).update(platform=event.platform)
 
                 if updated:
                     create_system_audit_entry(
