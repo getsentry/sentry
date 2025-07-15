@@ -14,7 +14,7 @@ import {getExploreUrl} from 'sentry/views/explore/utils';
 import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
 import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
+import {MCPReferrer} from 'sentry/views/insights/mcp/utils/referrer';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
@@ -53,7 +53,7 @@ export function McpToolsTable() {
       P95_DURATION,
     ],
     cursorParamName: 'tableCursor',
-    referrer: Referrer.PATHS_TABLE,
+    referrer: MCPReferrer.MCP_TOOL_TABLE,
   });
 
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {

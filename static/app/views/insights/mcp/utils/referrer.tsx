@@ -10,4 +10,7 @@ export enum MCPReferrer {
   MCP_TOOL_ERROR_RATE_WIDGET = 'api.performance.mcp.tool-error-rate-widget',
   MCP_PROMPT_ERROR_RATE_WIDGET = 'api.performance.mcp.prompt-error-rate-widget',
   MCP_RESOURCE_ERROR_RATE_WIDGET = 'api.performance.mcp.resource-error-rate-widget',
+  MCP_TOOL_TABLE = 'api.performance.mcp.tool-table',
+  MCP_PROMPT_TABLE = 'api.performance.mcp.prompt-table',
+  MCP_RESOURCE_TABLE = 'api.performance.mcp.resource-table',
 }
