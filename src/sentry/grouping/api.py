@@ -195,7 +195,7 @@ def _get_default_enhancements(config_id: str | None = None) -> str:
     return Enhancements.from_rules_text("", bases=[base] if base else []).base64_string
 
 
-def get_projects_default_fingerprinting_bases(
+def _get_default_fingerprinting_bases_for_project(
     project: Project, config_id: str | None = None
 ) -> Sequence[str] | None:
     """Returns the default built-in fingerprinting bases (i.e. sets of rules) for a project."""
@@ -247,7 +247,7 @@ def get_fingerprinting_config_for_project(
 
     from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 
-    bases = get_projects_default_fingerprinting_bases(project, config_id=config_id)
+    bases = _get_default_fingerprinting_bases_for_project(project, config_id=config_id)
     raw_rules = project.get_option("sentry:fingerprinting_rules")
     if not raw_rules:
         return FingerprintingRules([], bases=bases)
