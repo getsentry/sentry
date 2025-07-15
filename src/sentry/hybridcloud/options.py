@@ -165,7 +165,6 @@ register(
 # Controls whether or not the pathway to target regions via integration request contents is enabled for the system.
 register(
     "hybrid_cloud.integration_region_targeting_rate",
-    type=Int,
-    default=0,
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
