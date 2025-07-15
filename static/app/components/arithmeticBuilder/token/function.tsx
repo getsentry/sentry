@@ -120,7 +120,8 @@ function InternalInput({
     updateSelectionIndex();
   }, [updateSelectionIndex]);
 
-  const {dispatch, functionArguments, getFieldDefinition} = useArithmeticBuilder();
+  const {dispatch, functionArguments, getFieldDefinition, getSuggestedKey} =
+    useArithmeticBuilder();
 
   const parameterDefinition = useMemo(
     () => getFieldDefinition(token.function)?.parameters?.[argumentIndex],
@@ -182,7 +183,16 @@ function InternalInput({
   );
 
   const onInputCommit = useCallback(() => {
-    const value = inputValue.trim() || attribute.attribute;
+    let value = inputValue.trim() || attribute.attribute;
+
+    if (
+      defined(getSuggestedKey) &&
+      parameterDefinition &&
+      parameterDefinition.kind === 'column'
+    ) {
+      value = getSuggestedKey(value) ?? value;
+    }
+
     dispatch({
       text: `${token.function}(${value})`,
       type: 'REPLACE_TOKEN',
@@ -192,7 +202,16 @@ function InternalInput({
       },
     });
     resetInputValue();
-  }, [dispatch, state, token, attribute, inputValue, resetInputValue]);
+  }, [
+    dispatch,
+    state,
+    token,
+    attribute,
+    inputValue,
+    resetInputValue,
+    getSuggestedKey,
+    parameterDefinition,
+  ]);
 
   const onInputEscape = useCallback(() => {
     resetInputValue();
