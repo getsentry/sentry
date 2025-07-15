@@ -157,11 +157,12 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             .first()
         )
         if latest_activity is not None:
+            metrics.incr(
+                "workflow_engine.issue_platform.status_change_handler",
+                amount=len(metrics),
+                tags={"activity_type": activity_type.value},
+            )
             for handler in group_status_update_registry.registrations.values():
-                metrics.incr(
-                    "workflow_engine.issue_platform.status_change_handler",
-                    tags={"activity_type": activity_type.value},
-                )
                 handler(group, status_change, latest_activity)
 
 
