@@ -253,7 +253,7 @@ describe('OrganizationSettingsForm', function () {
     render(
       <OrganizationSettingsForm
         {...routerProps}
-        initialData={OrganizationFixture()}
+        initialData={OrganizationFixture({hideAiFeatures: true})}
         onSave={onSave}
       />
     );
@@ -278,7 +278,8 @@ describe('OrganizationSettingsForm', function () {
     render(
       <OrganizationSettingsForm
         {...routerProps}
-        initialData={OrganizationFixture({hideAiFeatures: true})}
+        // This logic is inverted from the variable name
+        initialData={OrganizationFixture({hideAiFeatures: false})}
         onSave={onSave}
       />
     );
@@ -295,7 +296,7 @@ describe('OrganizationSettingsForm', function () {
     render(
       <OrganizationSettingsForm
         {...routerProps}
-        initialData={OrganizationFixture({hideAiFeatures: false})}
+        initialData={OrganizationFixture({hideAiFeatures: true})}
         onSave={onSave}
       />
     );
@@ -310,7 +311,7 @@ describe('OrganizationSettingsForm', function () {
     render(
       <OrganizationSettingsForm
         {...routerProps}
-        initialData={OrganizationFixture({hideAiFeatures: true})}
+        initialData={OrganizationFixture({hideAiFeatures: false})}
         onSave={onSave}
       />
     );
@@ -325,14 +326,12 @@ describe('OrganizationSettingsForm', function () {
       screen.queryByText('Enable PR Review and Test Generation')
     ).not.toBeInTheDocument();
 
-    // Toggle AI features on (this will set hideAiFeatures to false)
     const aiToggle = screen.getByRole('checkbox', {name: 'Show Generative AI Features'});
     await userEvent.click(aiToggle);
 
     // PR Review field should now be visible
     expect(screen.getByText('Enable PR Review and Test Generation')).toBeInTheDocument();
 
-    // Toggle AI features back off (this will set hideAiFeatures to true)
     await userEvent.click(aiToggle);
 
     // PR Review field should be hidden again
