@@ -70,7 +70,7 @@ def EmptyRustFrame() -> RustFrame:  # noqa
     return RustFrame(contributes=None)
 
 
-def merge_rust_enhancements(
+def _merge_rust_enhancements(
     bases: list[str],
     rust_enhancements: RustEnhancements,
     type: Literal["classifier", "contributes"] | None = None,
@@ -359,16 +359,16 @@ class Enhancements:
         self.version = version or LATEST_VERSION
         self.bases = bases or []
 
-        self.rust_enhancements = merge_rust_enhancements(self.bases, rust_enhancements)
+        self.rust_enhancements = _merge_rust_enhancements(self.bases, rust_enhancements)
 
         classifier_config, contributes_config = split_enhancement_configs or _split_rules(rules)
 
         self.classifier_rules = classifier_config.rules
         self.contributes_rules = contributes_config.rules
-        self.classifier_rust_enhancements = merge_rust_enhancements(
+        self.classifier_rust_enhancements = _merge_rust_enhancements(
             self.bases, classifier_config.rust_enhancements, type="classifier"
         )
-        self.contributes_rust_enhancements = merge_rust_enhancements(
+        self.contributes_rust_enhancements = _merge_rust_enhancements(
             self.bases, contributes_config.rust_enhancements, type="contributes"
         )
 
