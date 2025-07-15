@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import {MetricDetectorChart} from 'sentry/views/detectors/components/forms/metric/metricDetectorChart';
 import {
@@ -49,15 +50,22 @@ export function MetricDetectorPreviewChart() {
   }, [conditionType, conditionValue, initialPriorityLevel, highThreshold, kind]);
 
   return (
-    <MetricDetectorChart
-      dataset={dataset}
-      aggregate={aggregateFunction}
-      interval={interval}
-      query={query}
-      environment={environment}
-      projectId={projectId}
-      conditions={conditions}
-      detectionType={kind}
-    />
+    <ChartContainer>
+      <MetricDetectorChart
+        dataset={dataset}
+        aggregate={aggregateFunction}
+        interval={interval}
+        query={query}
+        environment={environment}
+        projectId={projectId}
+        conditions={conditions}
+        detectionType={kind}
+      />
+    </ChartContainer>
   );
 }
+
+const ChartContainer = styled('div')`
+  max-width: 1440px;
+  border-top: 1px solid ${p => p.theme.border};
+`;

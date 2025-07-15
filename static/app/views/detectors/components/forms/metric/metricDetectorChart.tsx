@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -14,7 +13,7 @@ import type {DetectorDataset} from 'sentry/views/detectors/components/forms/metr
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
 
-const CHART_HEIGHT = 150;
+const CHART_HEIGHT = 165;
 
 interface MetricDetectorChartProps {
   /**
@@ -104,55 +103,44 @@ export function MetricDetectorChart({
 
   if (isPending) {
     return (
-      <ChartContainer>
-        <Flex style={{height: CHART_HEIGHT}} justify="center" align="center">
-          <Placeholder height={`${CHART_HEIGHT - 20}px`} />
-        </Flex>
-      </ChartContainer>
+      <Flex style={{height: CHART_HEIGHT}} justify="center" align="center">
+        <Placeholder height={`${CHART_HEIGHT - 20}px`} />
+      </Flex>
     );
   }
 
   if (isError) {
     return (
-      <ChartContainer>
-        <Flex style={{height: CHART_HEIGHT}} justify="center" align="center">
-          <ErrorPanel>
-            <IconWarning color="gray300" size="lg" />
-            <div>{t('Error loading chart data')}</div>
-          </ErrorPanel>
-        </Flex>
-      </ChartContainer>
+      <Flex style={{height: CHART_HEIGHT}} justify="center" align="center">
+        <ErrorPanel>
+          <IconWarning color="gray300" size="lg" />
+          <div>{t('Error loading chart data')}</div>
+        </ErrorPanel>
+      </Flex>
     );
   }
 
   return (
-    <ChartContainer>
-      <AreaChart
-        isGroupedByDate
-        showTimeInTooltip
-        height={CHART_HEIGHT}
-        stacked={false}
-        series={mergedSeries}
-        yAxis={{
-          min: yAxisBounds.min,
-          max: yAxisBounds.max,
-          axisLabel: {
-            // Hide the maximum y-axis label to avoid showing arbitrary threshold values
-            showMaxLabel: false,
-          },
-        }}
-        grid={{
-          left: space(0.25),
-          right: space(0.5),
-          top: space(1),
-          bottom: space(1),
-        }}
-      />
-    </ChartContainer>
+    <AreaChart
+      isGroupedByDate
+      showTimeInTooltip
+      height={CHART_HEIGHT}
+      stacked={false}
+      series={mergedSeries}
+      yAxis={{
+        min: yAxisBounds.min,
+        max: yAxisBounds.max,
+        axisLabel: {
+          // Hide the maximum y-axis label to avoid showing arbitrary threshold values
+          showMaxLabel: false,
+        },
+      }}
+      grid={{
+        left: space(0.25),
+        right: space(0.5),
+        top: space(0.5),
+        bottom: space(1),
+      }}
+    />
   );
 }
-
-const ChartContainer = styled('div')`
-  max-width: 1440px;
-  border-top: 1px solid ${p => p.theme.border};
-`;
