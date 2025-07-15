@@ -139,7 +139,7 @@ function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
           <LinkButton external href="https://sentry.io/support/" size="xs">
             {t('Contact Support')}
           </LinkButton>
-          <ButtonBar gap={0.5}>
+          <ButtonBar gap="xs">
             <Button
               onClick={event => {
                 event.stopPropagation();

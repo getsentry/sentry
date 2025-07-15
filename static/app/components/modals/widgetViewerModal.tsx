@@ -1032,7 +1032,7 @@ function WidgetViewerModal(props: Props) {
                 <Footer>
                   <ResultsContainer>
                     {renderTotalResults(totalResults, widget.widgetType)}
-                    <ButtonBar gap={1}>
+                    <ButtonBar>
                       {onEdit && widget.id && (
                         <Button
                           onClick={() => {

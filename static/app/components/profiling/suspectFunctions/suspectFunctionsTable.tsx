@@ -127,7 +127,7 @@ export function SuspectFunctionsTable({
     <Fragment>
       <TableHeader>
         <SectionHeading>{t('Suspect Functions')}</SectionHeading>
-        <ButtonBar merged>
+        <ButtonBar merged gap="none">
           <Button
             icon={<IconChevron direction="left" />}
             aria-label={t('Previous')}

@@ -77,7 +77,7 @@ function NoProjectMessage({
       <Content>
         <Layout.Title>{t('Remain Calm')}</Layout.Title>
         <HelpMessage>{t('You need at least one project to use this view')}</HelpMessage>
-        <Actions gap={1}>
+        <Actions>
           {orgHasProjects ? (
             <Fragment>
               {joinTeamAction}

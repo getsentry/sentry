@@ -350,7 +350,7 @@ function AddToDashboardModal({
       </Body>
 
       <Footer>
-        <StyledButtonBar gap={1.5}>
+        <StyledButtonBar gap="lg">
           {actions.includes('add-and-stay-on-current-page') && (
             <Button
               onClick={handleAddAndStayOnCurrentPage}

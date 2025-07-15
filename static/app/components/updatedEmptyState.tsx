@@ -213,7 +213,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                         {({indicator, firstEventButton}) => (
                           <FirstEventWrapper>
                             <IndicatorWrapper>{indicator}</IndicatorWrapper>
-                            <StyledButtonBar gap={1}>
+                            <StyledButtonBar>
                               <GuidedSteps.BackButton size="md" />
                               {firstEventButton}
                             </StyledButtonBar>
