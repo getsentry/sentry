@@ -1,5 +1,3 @@
-import type * as React from 'react';
-
 import {ROOT_ELEMENT} from 'sentry/constants';
 import Main from 'sentry/main';
 
