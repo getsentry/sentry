@@ -75,6 +75,9 @@
       "enhancedPrivacy": {
         "type": "boolean"
       },
+      "enablePrReviewTestGeneration": {
+        "type": "boolean"
+      },
       "experiments": {
         "type": "object"
       },

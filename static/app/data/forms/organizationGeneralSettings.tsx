@@ -1,3 +1,4 @@
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
@@ -42,6 +43,19 @@ const formGroups: JsonFormObject[] = [
           ),
         }),
         visible: () => !ConfigStore.get('isSelfHostedErrorsOnly'),
+      },
+      {
+        name: 'enablePrReviewTestGeneration',
+        type: 'boolean',
+        label: tct('Enable PR Review and Test Generation [badge]', {
+          badge: <FeatureBadge type="beta" />,
+        }),
+        help: tct(
+          'Use AI to generate feedback and tests in pull requests [link:Learn more]',
+          {
+            link: <ExternalLink href="https://github.com/apps/seer-by-sentry/" />,
+          }
+        ),
       },
     ],
   },
