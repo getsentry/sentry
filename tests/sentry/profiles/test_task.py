@@ -1234,7 +1234,7 @@ class TestProcessProfileTaskDoubleCompression(TestCase):
 
         # Create the processing strategy (this will call process_message)
         processing_strategy = ProcessProfileStrategyFactory().create_with_partitions(
-            commit=mock.Mock(), partitions=None
+            commit=mock.Mock(), partitions={}
         )
 
         # Use self.tasks() to run the actual task with both compression layers
