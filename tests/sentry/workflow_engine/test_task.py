@@ -226,6 +226,7 @@ class TestProcessWorkflowActivity(TestCase):
             # Issue platform is forwarding the activity update
             mock_incr.assert_any_call(
                 "workflow_engine.issue_platform.status_change_handler",
+                amount=1,
                 tags={"activity_type": self.activity.type},
             )
 
