@@ -11,7 +11,6 @@ from sentry.snuba import (
     metrics_performance,
     ourlogs,
     profiles,
-    spans_indexed,
     spans_metrics,
     spans_rpc,
     transactions,
@@ -34,7 +33,6 @@ DATASET_OPTIONS = {
     "issuePlatform": issue_platform,
     "profileFunctions": functions,
     "spans": spans_rpc,
-    "spansIndexed": spans_indexed,
     "spansMetrics": spans_metrics,
     "transactions": transactions,
 }
