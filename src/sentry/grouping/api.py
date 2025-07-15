@@ -422,9 +422,9 @@ def get_grouping_variants_for_event(
     additional_variants: dict[str, BaseVariant] = {}
 
     # If the fingerprint is the default fingerprint, we can use the variants as is. If it's custom,
-    # we need to create an addiional fingerprint variant and mark the existing variants as
-    # non-contributing. And if it's hybrid, we'll replace the existing variants with "salted"
-    # versions which include the fingerprint.
+    # we need to create a fingerprint variant and mark the existing variants as non-contributing.
+    # If it's hybrid, we'll replace the existing variants with "salted" versions which include
+    # the fingerprint.
     if fingerprint_type == "custom":
         matched_rule = fingerprint_info.get("matched_rule", {})
 
