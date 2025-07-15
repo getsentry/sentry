@@ -215,7 +215,7 @@ const StorySearchContainer = styled('div')`
   position: relative;
   width: 320px;
   flex-grow: 1;
-  z-index: calc(infinity);
+  z-index: ${p => p.theme.zIndex.header};
   padding: ${space(1)};
   padding-right: 0;
   display: flex;
@@ -226,7 +226,7 @@ const StorySearchContainer = styled('div')`
 const StyledOverlay = styled(Overlay)`
   position: fixed;
   top: 48px;
-  left: 272px;
+  left: 108px;
   width: 320px;
   max-height: calc(100dvh - 128px);
   overflow-y: auto;
