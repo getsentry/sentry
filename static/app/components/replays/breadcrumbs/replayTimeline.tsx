@@ -16,7 +16,6 @@ import {
 import Stacked from 'sentry/components/replays/breadcrumbs/stacked';
 import TimelineGaps from 'sentry/components/replays/breadcrumbs/timelineGaps';
 // import {TimelineScrubber} from 'sentry/components/replays/player/scrubber';
-import {useTimelineScrubberMouseTracking} from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import type {
   EChartMouseEventData,
@@ -149,11 +148,6 @@ function ReplayTimeline({replay}: {replay: ReplayReader}) {
   const theme = useTheme();
 
   const panelRef = useRef<HTMLDivElement>(null);
-  const mouseTrackingProps = useTimelineScrubberMouseTracking(
-    {elem: panelRef},
-    timelineScale
-  );
-
   const stackedRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions<HTMLDivElement>({elementRef: stackedRef});
 
