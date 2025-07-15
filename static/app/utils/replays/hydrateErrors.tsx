@@ -15,7 +15,7 @@ import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 export default function hydrateErrors(
   replayRecord: HydratedReplayRecord,
   errors: RawReplayError[],
-  feedbackEvent: FeedbackEvent | undefined
+  feedbackEvent?: FeedbackEvent
 ): {errorFrames: ErrorFrame[]; feedbackFrames: BreadcrumbFrame[]} {
   const startTimestampMs = replayRecord.started_at.getTime();
 
