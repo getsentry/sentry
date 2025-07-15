@@ -296,7 +296,7 @@ def get_function_component(
     interface=Frame,
 )
 def frame(
-    interface: Frame, event: Event, context: GroupingContext, **meta: Any
+    interface: Frame, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
     frame = interface
     platform = frame.platform or event.platform
@@ -412,7 +412,7 @@ def get_contextline_component(
 
 @strategy(ids=["stacktrace:v1"], interface=Stacktrace, score=1800)
 def stacktrace(
-    interface: Stacktrace, event: Event, context: GroupingContext, **meta: Any
+    interface: Stacktrace, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
     assert context["variant"] is None
 
@@ -422,12 +422,12 @@ def stacktrace(
         interface,
         event=event,
         context=context,
-        meta=meta,
+        kwargs=kwargs,
     )
 
 
 def _single_stacktrace_variant(
-    stacktrace: Stacktrace, event: Event, context: GroupingContext, meta: dict[str, Any]
+    stacktrace: Stacktrace, event: Event, context: GroupingContext, kwargs: dict[str, Any]
 ) -> ReturnedVariants:
     variant_name = context["variant"]
 
@@ -441,7 +441,7 @@ def _single_stacktrace_variant(
     for frame in frames:
         with context:
             context["is_recursion"] = is_recursive_frames(frame, prev_frame)
-            frame_component = context.get_single_grouping_component(frame, event=event, **meta)
+            frame_component = context.get_single_grouping_component(frame, event=event, **kwargs)
 
         if variant_name == "app":
             if frame.in_app:
@@ -500,7 +500,7 @@ def _single_stacktrace_variant(
 
 @stacktrace.variant_processor
 def stacktrace_variant_processor(
-    variants: ReturnedVariants, context: GroupingContext, **meta: Any
+    variants: ReturnedVariants, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
     return remove_non_stacktrace_variants(variants)
 
@@ -510,7 +510,7 @@ def stacktrace_variant_processor(
     interface=SingleException,
 )
 def single_exception(
-    interface: SingleException, event: Event, context: GroupingContext, **meta: Any
+    interface: SingleException, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
     exception = interface
 
@@ -543,7 +543,7 @@ def single_exception(
             context["exception_data"] = exception.to_json()
             stacktrace_components_by_variant: dict[str, StacktraceGroupingComponent] = (
                 context.get_grouping_components_by_variant(
-                    exception.stacktrace, event=event, **meta
+                    exception.stacktrace, event=event, **kwargs
                 )
             )
     else:
@@ -604,14 +604,14 @@ def single_exception(
 
 @strategy(ids=["chained-exception:v1"], interface=ChainedException, score=2000)
 def chained_exception(
-    interface: ChainedException, event: Event, context: GroupingContext, **meta: Any
+    interface: ChainedException, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
     # Get all the exceptions to consider.
     all_exceptions = interface.exceptions()
 
     # For each exception, create a dictionary of grouping components by variant name
     exception_components_by_exception = {
-        id(exception): context.get_grouping_components_by_variant(exception, event=event, **meta)
+        id(exception): context.get_grouping_components_by_variant(exception, event=event, **kwargs)
         for exception in all_exceptions
     }
 
@@ -803,26 +803,26 @@ def filter_exceptions_for_exception_groups(
 
 @chained_exception.variant_processor
 def chained_exception_variant_processor(
-    variants: ReturnedVariants, context: GroupingContext, **meta: Any
+    variants: ReturnedVariants, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
     return remove_non_stacktrace_variants(variants)
 
 
 @strategy(ids=["threads:v1"], interface=Threads, score=1900)
 def threads(
-    interface: Threads, event: Event, context: GroupingContext, **meta: Any
+    interface: Threads, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
     crashed_threads = [thread for thread in interface.values if thread.get("crashed")]
-    thread_variants = _filtered_threads(crashed_threads, event, context, meta)
+    thread_variants = _filtered_threads(crashed_threads, event, context, **kwargs)
     if thread_variants is not None:
         return thread_variants
 
     current_threads = [thread for thread in interface.values if thread.get("current")]
-    thread_variants = _filtered_threads(current_threads, event, context, meta)
+    thread_variants = _filtered_threads(current_threads, event, context, **kwargs)
     if thread_variants is not None:
         return thread_variants
 
-    thread_variants = _filtered_threads(interface.values, event, context, meta)
+    thread_variants = _filtered_threads(interface.values, event, context, **kwargs)
     if thread_variants is not None:
         return thread_variants
 
@@ -840,7 +840,7 @@ def threads(
 
 
 def _filtered_threads(
-    threads: list[dict[str, Any]], event: Event, context: GroupingContext, meta: dict[str, Any]
+    threads: list[dict[str, Any]], event: Event, context: GroupingContext, **kwargs: dict[str, Any]
 ) -> ReturnedVariants | None:
     if len(threads) != 1:
         return None
@@ -852,7 +852,7 @@ def _filtered_threads(
     thread_components_by_variant = {}
 
     for variant_name, stacktrace_component in context.get_grouping_components_by_variant(
-        stacktrace, event=event, **meta
+        stacktrace, event=event, **kwargs
     ).items():
         thread_components_by_variant[variant_name] = ThreadsGroupingComponent(
             values=[stacktrace_component], frame_counts=stacktrace_component.frame_counts
@@ -863,7 +863,7 @@ def _filtered_threads(
 
 @threads.variant_processor
 def threads_variant_processor(
-    variants: ReturnedVariants, context: GroupingContext, **meta: Any
+    variants: ReturnedVariants, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
     return remove_non_stacktrace_variants(variants)
 

@@ -50,13 +50,13 @@ class StrategyFunc(Protocol[ConcreteInterface]):
         interface: ConcreteInterface,
         event: Event,
         context: GroupingContext,
-        **meta: Any,
+        **kwargs: Any,
     ) -> ReturnedVariants: ...
 
 
 class VariantProcessor(Protocol):
     def __call__(
-        self, variants: ReturnedVariants, context: GroupingContext, **meta: Any
+        self, variants: ReturnedVariants, context: GroupingContext, **kwargs: Any
     ) -> ReturnedVariants: ...
 
 
