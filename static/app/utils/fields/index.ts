@@ -857,11 +857,12 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
       {
         name: 'column',
         kind: 'column',
-        columnTypes: validateForNumericAggregate([
-          FieldValueType.DURATION,
-          FieldValueType.NUMBER,
-          FieldValueType.PERCENTAGE,
-        ]),
+        columnTypes: function ({key, valueType}) {
+          return (
+            key === SpanIndexedField.SPAN_DURATION &&
+            (valueType === FieldValueType.DURATION || valueType === FieldValueType.NUMBER)
+          );
+        },
         defaultValue: 'span.duration',
         required: false,
       },
