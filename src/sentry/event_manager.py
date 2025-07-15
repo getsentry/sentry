@@ -701,8 +701,6 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
 
 
 def _set_project_platform_if_needed(project: Project, event: Event) -> None:
-    # Only infer the platform if it's useful - if the event platform is "other", null or a sample
-    # event, there's no useful information for us to set the project platform
     if event.platform not in VALID_PLATFORMS or event.get_tag("sample_event") == "yes":
         return
 
