@@ -207,4 +207,7 @@ const Footer = styled('div')`
 
 const navTourModalCss = css`
   width: 545px;
+  [role='document'] {
+    box-shadow: none;
+  }
 `;

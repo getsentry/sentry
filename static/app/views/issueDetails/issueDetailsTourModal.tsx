@@ -96,4 +96,7 @@ const Footer = styled('div')`
 
 export const IssueDetailsTourModalCss = css`
   width: 545px;
+  [role='document'] {
+    box-shadow: none;
+  }
 `;
