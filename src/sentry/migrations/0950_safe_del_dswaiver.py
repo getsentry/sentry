@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0948_ds_waiver_org_fk_not_db_constr"),
+        ("sentry", "0949_add_dashboard_widget_snapshot_model"),
     ]
 
     operations = [
