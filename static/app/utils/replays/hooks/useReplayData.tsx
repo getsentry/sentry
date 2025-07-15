@@ -4,9 +4,11 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import useFetchParallelPages from 'sentry/utils/api/useFetchParallelPages';
 import useFetchSequentialPages from 'sentry/utils/api/useFetchSequentialPages';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import useFeedbackEvents from 'sentry/utils/replays/hooks/useFeedbackEvents';
 import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -47,6 +49,7 @@ interface Result {
   projectSlug: string | null;
   replayRecord: ReplayRecord | undefined;
   status: 'pending' | 'error' | 'success';
+  feedbackEvents?: FeedbackEvent[];
 }
 
 /**
@@ -253,16 +256,27 @@ function useReplayData({
   const isPending = allStatuses.includes('pending');
   const status = isError ? 'error' : isPending ? 'pending' : 'success';
 
+  const allErrors = errorPages
+    .concat(extraErrorPages)
+    .concat(platformErrorPages)
+    .flatMap(page => page.data);
+
+  const feedbackIds = allErrors
+    ?.filter(error => error.title.includes('User Feedback'))
+    .map(error => error.id);
+
+  const feedbackEvents = useFeedbackEvents({
+    feedbackIds: feedbackIds ?? [],
+    projectId: replayRecord?.project_id,
+  }).filter(e => e !== undefined);
+
   return useMemo(() => {
-    const allErrors = errorPages
-      .concat(extraErrorPages)
-      .concat(platformErrorPages)
-      .flatMap(page => page.data);
     return {
       attachments: attachmentPages.flat(2),
       errors: allErrors,
       fetchError: fetchReplayError ?? undefined,
       attachmentError: fetchAttachmentsError ?? undefined,
+      feedbackEvents,
       isError,
       isPending,
       status,
@@ -271,18 +285,17 @@ function useReplayData({
       replayRecord,
     };
   }, [
-    errorPages,
-    extraErrorPages,
-    platformErrorPages,
     attachmentPages,
     fetchReplayError,
     fetchAttachmentsError,
+    feedbackEvents,
     isError,
     isPending,
     status,
     clearQueryCache,
     projectSlug,
     replayRecord,
+    allErrors,
   ]);
 }
 
