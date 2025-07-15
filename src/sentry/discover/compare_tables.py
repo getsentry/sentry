@@ -72,6 +72,10 @@ def compare_table_results(metrics_query_result: EventsResponse, eap_result: EAPR
             if is_equation(field):
                 continue
             [translated_field, *rest], dropped_columns = translate_columns([field])
+            # if we're dropping the field in eap then we can skip checking for mismatches
+            if len(dropped_columns) > 0:
+                continue
+
             arg: str | None = None
             if match := is_function(field):
                 function = match.group("function")
