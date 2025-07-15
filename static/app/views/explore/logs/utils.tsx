@@ -253,3 +253,17 @@ export function parseLinkHeaderFromLogsPage(
   const linkHeader = page.data?.pages?.[0]?.[2]?.getResponseHeader('Link');
   return parseLinkHeader(linkHeader ?? null);
 }
+
+export function getLogRowTimestampMillis(row: OurLogsResponseItem): number {
+  return Number(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]) / 1_000_000;
+}
+
+export function getLogTimestampBucketIndex(
+  rowTimestampMillis: number,
+  periodStartMillis: number,
+  intervalMillis: number
+): number {
+  const relativeRowTimestamp = rowTimestampMillis - periodStartMillis;
+  const bucketIndex = Math.floor(relativeRowTimestamp / intervalMillis);
+  return bucketIndex;
+}
