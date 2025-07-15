@@ -18,7 +18,11 @@ import TimelineGaps from 'sentry/components/replays/breadcrumbs/timelineGaps';
 // import {TimelineScrubber} from 'sentry/components/replays/player/scrubber';
 import {useTimelineScrubberMouseTracking} from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import type {EChartMouseEventData, EChartMouseEventParam} from 'sentry/types/echarts';
+import type {
+  EChartMouseEventData,
+  EChartMouseEventParam,
+  ReactEchartsRef,
+} from 'sentry/types/echarts';
 import divide from 'sentry/utils/number/divide';
 import toPercent from 'sentry/utils/number/toPercent';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
@@ -143,10 +147,6 @@ function ReplayTimeline({replay}: {replay: ReplayReader}) {
   const [timelineScale] = useTimelineScale();
   const [currentHoverTime] = useCurrentHoverTime();
   const theme = useTheme();
-  const handleOnClick = useCallback(
-    (params: EChartMouseEventParam<EChartMouseEventData>) => {},
-    []
-  );
 
   const panelRef = useRef<HTMLDivElement>(null);
   const mouseTrackingProps = useTimelineScrubberMouseTracking(
@@ -605,6 +605,23 @@ function ReplayTimeline({replay}: {replay: ReplayReader}) {
     uiSeries,
   ];
 
+  const handleChartRef = useCallback(
+    (ref: ReactEchartsRef | null) => {
+      if (ref) {
+        const echartsInstance = ref.getEchartsInstance?.();
+        const handleClick = (params: EChartMouseEventParam<EChartMouseEventData>) => {
+          const pointInPixel = [params.offsetX, params.offsetY];
+          const pointInGrid = echartsInstance.convertFromPixel('grid', pointInPixel);
+          if (pointInGrid?.[0]) {
+            setCurrentTime(pointInGrid[0] - startTimestampMs);
+          }
+        };
+        echartsInstance?.getZr().on('click', handleClick);
+      }
+    },
+    [setCurrentTime, startTimestampMs]
+  );
+
   return (
     <VisiblePanel ref={panelRef}>
       <Stacked
@@ -623,7 +640,7 @@ function ReplayTimeline({replay}: {replay: ReplayReader}) {
         />
         <div>
           <BaseChart
-            onClick={handleOnClick}
+            ref={handleChartRef}
             height={48}
             tooltip={{
               trigger: 'axis',
