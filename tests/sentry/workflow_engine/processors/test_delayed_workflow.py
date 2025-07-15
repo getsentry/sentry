@@ -697,6 +697,29 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             self.group2.id: {self.workflow2_dcgs[0]},  # WHEN dcg (ANY-short)
         }
 
+    def test_missing_query_result_excludes_group(self):
+        existing_query = UniqueConditionQuery(
+            handler=EventFrequencyQueryHandler, interval="1h", environment_id=None
+        )
+        existing_result = self.condition_group_results[existing_query]
+        assert self.group2.id in existing_result
+        self.condition_group_results[existing_query] = {
+            self.group1.id: existing_result[self.group1.id]
+        }
+
+        result = get_groups_to_fire(
+            self.data_condition_groups,
+            self.workflows_to_envs,
+            self.event_data,
+            self.condition_group_results,
+            self.dcg_to_slow_conditions,
+        )
+
+        # group2 should be excluded because it's missing from the query result
+        assert result == {
+            self.group1.id: set(self.workflow1_dcgs),
+        }
+
     def test_dcg_all_fails(self):
         self.condition_group_results.update(
             {
