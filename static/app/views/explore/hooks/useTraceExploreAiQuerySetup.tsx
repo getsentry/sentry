@@ -33,11 +33,11 @@ export function useTraceExploreAiQuerySetup({
         : memberProjects.map(p => p.id);
 
     if (hasSetupRun.current) {
+      const prevSet = new Set(previousProjects.current);
+      const currentSet = new Set(selectedProjects.map(Number));
+
       const projectsChanged =
-        previousProjects.current.length !== selectedProjects.length ||
-        previousProjects.current.some(
-          (id, index) => id !== Number(selectedProjects[index])
-        );
+        prevSet.size !== currentSet.size || ![...prevSet].every(id => currentSet.has(id));
 
       if (!projectsChanged) return;
     }
