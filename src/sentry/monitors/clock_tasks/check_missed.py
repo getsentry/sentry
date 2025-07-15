@@ -9,6 +9,7 @@ from sentry_kafka_schemas.schema_types.monitors_clock_tasks_v1 import MarkMissin
 
 from sentry.constants import ObjectStatus
 from sentry.monitors.logic.mark_failed import mark_failed
+from sentry.monitors.logic.monitor_environment import update_monitor_environment
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorEnvironment, MonitorStatus
 from sentry.monitors.schedule import get_prev_schedule
 from sentry.utils import metrics
@@ -158,6 +159,9 @@ def mark_environment_missing(monitor_environment_id: int, ts: datetime):
         monitor.schedule,
     )
 
+    update_monitor_environment(
+        monitor_environment, monitor_environment.last_checkin, most_recent_expected_ts
+    )
     mark_failed(
         checkin,
         failed_at=most_recent_expected_ts,
