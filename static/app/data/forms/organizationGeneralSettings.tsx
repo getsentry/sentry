@@ -61,7 +61,7 @@ const formGroups: JsonFormObject[] = [
         visible: ({model}) => {
           // Show field when AI features are enabled (hideAiFeatures is false)
           const hideAiFeatures = model.getValue('hideAiFeatures');
-          return !hideAiFeatures;
+          return hideAiFeatures;
         },
       },
     ],
