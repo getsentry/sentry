@@ -473,7 +473,7 @@ export function SeerAutomationProjectList() {
       </Panel>
       {totalProjects > PROJECTS_PER_PAGE && (
         <Flex justify="flex-end">
-          <ButtonBar merged>
+          <ButtonBar merged gap="none">
             <Button
               icon={<IconChevron direction="left" />}
               aria-label={t('Previous')}
