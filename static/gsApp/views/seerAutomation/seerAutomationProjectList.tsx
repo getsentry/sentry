@@ -324,7 +324,7 @@ export function SeerAutomationProjectList() {
           priority="primary"
           onClick={() => navigate('/settings/seer/onboarding')}
         >
-          {t('Configure for All Projects')}
+          {t('Open Setup Wizard')}
         </Button>
       </SearchWrapper>
       <Panel>

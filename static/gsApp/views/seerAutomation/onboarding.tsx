@@ -12,6 +12,7 @@ import ClippedBox from 'sentry/components/clippedBox';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Flex} from 'sentry/components/core/layout';
 import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
@@ -25,7 +26,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconChevron} from 'sentry/icons';
+import {IconChevron, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
@@ -182,6 +183,7 @@ function ProjectsWithoutRepos({
   const [successfullyConnectedProjects, setSuccessfullyConnectedProjects] = useState(
     new Set<string>()
   );
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleProjectUpdate = useCallback(
     (project: Project, preference: any, isPending: boolean) => {
@@ -226,7 +228,7 @@ function ProjectsWithoutRepos({
   const projectsWithoutRepos = useMemo(() => {
     if (isLoading) return [];
 
-    return projects.filter(project => {
+    const filtered = projects.filter(project => {
       if (successfullyConnectedProjects.has(project.id)) return false;
 
       const state = projectStates[project.id];
@@ -235,13 +237,23 @@ function ProjectsWithoutRepos({
       const repoCount = state.preference?.repositories?.length || 0;
       return repoCount === 0;
     });
-  }, [projects, projectStates, isLoading, successfullyConnectedProjects]);
+
+    // Apply search filter
+    if (!searchQuery.trim()) return filtered;
+
+    const query = searchQuery.toLowerCase();
+    return filtered.filter(
+      project =>
+        project.slug.toLowerCase().includes(query) ||
+        project.name?.toLowerCase().includes(query)
+    );
+  }, [projects, projectStates, isLoading, successfullyConnectedProjects, searchQuery]);
 
   if (isLoading) {
     return (
       <Panel>
         <PanelHeader>
-          <HeaderText>{t('Projects missing repositories')}</HeaderText>
+          <HeaderText>{t('Loading projects...')}</HeaderText>
         </PanelHeader>
         <PanelBody>
           <LoadingState>
@@ -262,8 +274,27 @@ function ProjectsWithoutRepos({
   return (
     <ClippedBox clipHeight={512}>
       <Panel>
-        <PanelHeader>
-          <HeaderText>{t('Projects missing repositories')}</HeaderText>
+        <PanelHeader hasButtons>
+          <HeaderText>
+            {t('%s Projects missing repositories', projectsWithoutRepos.length)}
+          </HeaderText>
+          <SearchInputWrapper>
+            <InputGroup>
+              <InputGroup.LeadingItems>
+                <IconSearch size="sm" />
+              </InputGroup.LeadingItems>
+              <InputGroup.Input
+                type="text"
+                name="search"
+                placeholder={t('Search projects...')}
+                value={searchQuery}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setSearchQuery(e.target.value)
+                }
+                size="sm"
+              />
+            </InputGroup>
+          </SearchInputWrapper>
         </PanelHeader>
         <PanelBody>
           {projectsWithoutRepos.map(project => (
@@ -512,22 +543,24 @@ function SeerAutomationOnboarding() {
 
             <AutoFixActionWrapper>
               {projectsWithRepos.length > 0 && (
-                <ThresholdSelectorWrapper>
-                  <Flex gap={space(1)} align="center">
-                    <SelectorLabel>
-                      {t('Automatically diagnose issues that are...')}
-                    </SelectorLabel>
-                    <CompactSelect
-                      value={selectedThreshold}
-                      onChange={opt => setSelectedThreshold(opt.value)}
-                      options={SEER_THRESHOLD_OPTIONS.map(option => ({
-                        value: option.value,
-                        label: option.label,
-                        details: option.details,
-                      }))}
-                      strategy="fixed"
-                    />
-                  </Flex>
+                <Fragment>
+                  <ThresholdSelectorWrapper>
+                    <Flex gap={space(1)} align="center">
+                      <SelectorLabel>
+                        {t('Automatically diagnose issues that are...')}
+                      </SelectorLabel>
+                      <CompactSelect
+                        value={selectedThreshold}
+                        onChange={opt => setSelectedThreshold(opt.value)}
+                        options={SEER_THRESHOLD_OPTIONS.map(option => ({
+                          value: option.value,
+                          label: option.label,
+                          details: option.details,
+                        }))}
+                        strategy="fixed"
+                      />
+                    </Flex>
+                  </ThresholdSelectorWrapper>
                   <Button
                     priority="primary"
                     onClick={handleEnableAutoTriggerFixes}
@@ -535,7 +568,7 @@ function SeerAutomationOnboarding() {
                   >
                     {t('Enable for %s recommended project(s)', projectsWithRepos.length)}
                   </Button>
-                </ThresholdSelectorWrapper>
+                </Fragment>
               )}
 
               {projectsWithRepos.length === 0 && !fetching && (
@@ -570,7 +603,7 @@ function SeerAutomationOnboarding() {
                 onClick={handleEnableIssueScans}
                 disabled={fetching || projectsWithoutRepos.length === 0}
               >
-                {t('Enable for %s remaining projects', projectsWithoutRepos.length)}
+                {t('Enable for all projects')}
               </Button>
               {projectsWithoutRepos.length === 0 && !fetching && (
                 <EmptyProjectsMessage>
@@ -668,6 +701,8 @@ const StyledGuidedSteps = styled(GuidedSteps)`
 const ClickablePanelItem = styled(PanelItem)`
   cursor: pointer;
   transition: background-color 0.1s;
+  padding-top: ${space(1)};
+  padding-bottom: ${space(1)};
 
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
@@ -714,6 +749,10 @@ const CustomizationList = styled('ul')`
     margin-bottom: ${space(1)};
     color: ${p => p.theme.subText};
   }
+`;
+
+const SearchInputWrapper = styled('div')`
+  width: 300px;
 `;
 
 export default SeerAutomationOnboarding;
