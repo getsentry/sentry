@@ -125,20 +125,16 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         )
 
         assert result == {
-            "attributes_and_values": [
-                {
-                    "test_tag": [
-                        {"value": "foo", "count": 1.0},
-                        {"value": "baz", "count": 1.0},
-                        {"value": "bar", "count": 1.0},
-                    ],
-                },
-                {
-                    "another_tag": [
-                        {"value": "another_value", "count": 1.0},
-                    ],
-                },
-            ]
+            "attributes_and_values": {
+                "test_tag": [
+                    {"value": "foo", "count": 1.0},
+                    {"value": "baz", "count": 1.0},
+                    {"value": "bar", "count": 1.0},
+                ],
+                "another_tag": [
+                    {"value": "another_value", "count": 1.0},
+                ],
+            },
         }
 
     def test_get_attribute_values_with_substring_empty_field_list(self):
