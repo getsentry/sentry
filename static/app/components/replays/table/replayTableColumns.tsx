@@ -53,6 +53,7 @@ type ListRecord = ReplayListRecord | ReplayListRecordWithTx;
 interface HeaderProps {
   columnIndex: number;
   listItemCheckboxState: ReturnType<typeof useListItemCheckboxContext>;
+  replays: ReplayListRecord[];
 }
 
 interface CellProps {
@@ -368,6 +369,7 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
 export const ReplaySelectColumn: ReplayTableColumn = {
   Header: ({
     listItemCheckboxState: {isAllSelected, deselectAll, knownIds, toggleSelected},
+    replays,
   }) => {
     const organization = useOrganization();
     if (!organization.features.includes('replay-list-select')) {
@@ -383,7 +385,10 @@ export const ReplaySelectColumn: ReplayTableColumn = {
             if (isAllSelected === true) {
               deselectAll();
             } else {
-              toggleSelected(knownIds);
+              // If the replay is archived, don't include it in the selection
+              toggleSelected(
+                knownIds.filter(id => !replays.find(r => r.id === id)?.is_archived)
+              );
             }
           }}
         />
