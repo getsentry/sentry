@@ -19,7 +19,7 @@ import {
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
-import type {MetricsProperty} from 'sentry/views/insights/types';
+import type {EAPSpanProperty} from 'sentry/views/insights/types';
 
 import {convertDiscoverTimeseriesResponse} from './convertDiscoverTimeseriesResponse';
 
@@ -38,8 +38,8 @@ interface UseMetricsSeriesOptions<YAxisFields, Fields> {
 }
 
 export const useTopNMetricsMultiSeries = <
-  YAxisFields extends MetricsProperty[],
-  Fields extends MetricsProperty[],
+  YAxisFields extends EAPSpanProperty[],
+  Fields extends EAPSpanProperty[],
 >(
   options: UseMetricsSeriesOptions<YAxisFields, Fields>,
   referrer: string,
