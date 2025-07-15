@@ -18,9 +18,9 @@ type Props = {
 };
 
 interface ReplayReaderResult extends ReturnType<typeof useReplayData> {
-  feedbackEvent: FeedbackEvent | undefined;
   replay: ReplayReader | null;
   replayId: string;
+  feedbackEvent?: FeedbackEvent;
 }
 
 export default function useLoadReplayReader({
