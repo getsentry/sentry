@@ -102,7 +102,7 @@ export default Storybook.story('CheckInTimeline', story => {
           are contiguously the same status will be merged together visually.
         </p>
 
-        <Controls gap={1}>
+        <Controls>
           <DatePageFilter triggerProps={{prefix: 'Time Window'}} />
           <CompactSelect
             triggerProps={{prefix: 'Spacing'}}

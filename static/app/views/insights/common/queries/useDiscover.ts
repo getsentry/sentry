@@ -8,15 +8,8 @@ import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery'
 import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
-  DiscoverProperty,
-  DiscoverResponse,
   EAPSpanProperty,
   EAPSpanResponse,
-  MetricsProperty,
-  MetricsResponse,
-  SpanIndexedField,
-  SpanIndexedProperty,
-  SpanIndexedResponse,
   SpanMetricsProperty,
   SpanMetricsResponse,
 } from 'sentry/views/insights/types';
@@ -47,19 +40,6 @@ interface UseDiscoverOptions<Fields> {
 // The default sampling mode for eap queries
 export const DEFAULT_SAMPLING_MODE: SamplingMode = 'NORMAL';
 
-export const useSpansIndexed = <Fields extends SpanIndexedProperty[]>(
-  options: UseDiscoverOptions<Fields> = {},
-  referrer: string
-) => {
-  const useEap = useInsightsEap();
-  // Indexed spans dataset always returns an `id`
-  return useDiscover<Fields | [SpanIndexedField.ID], SpanIndexedResponse>(
-    options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_INDEXED,
-    referrer
-  );
-};
-
 export const useSpans = <Fields extends EAPSpanProperty[]>(
   options: UseDiscoverOptions<Fields> = {},
   referrer: string
@@ -79,30 +59,6 @@ export const useSpanMetrics = <Fields extends SpanMetricsProperty[]>(
   return useDiscover<Fields, SpanMetricsResponse>(
     options,
     useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_METRICS,
-    referrer
-  );
-};
-
-export const useMetrics = <Fields extends MetricsProperty[]>(
-  options: UseDiscoverOptions<Fields> = {},
-  referrer: string
-) => {
-  const useEap = useInsightsEap();
-  return useDiscover<Fields, MetricsResponse>(
-    options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.METRICS,
-    referrer
-  );
-};
-
-export const useDiscoverOrEap = <Fields extends DiscoverProperty[]>(
-  options: UseDiscoverOptions<Fields> = {},
-  referrer: string
-) => {
-  const useEap = useInsightsEap();
-  return useDiscover<Fields, DiscoverResponse>(
-    options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.DISCOVER,
     referrer
   );
 };
