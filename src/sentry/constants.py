@@ -331,7 +331,7 @@ SENTRY_APP_ACTIONS = frozenset(
 # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
 HTTP_METHODS = ("GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH")
 
-# See https://github.com/getsentry/relay/blob/master/relay-general/src/protocol/constants.rs
+# See https://github.com/getsentry/relay/blob/master/relay-event-schema/src/protocol/constants.rs
 VALID_PLATFORMS = sentry_relay.processing.VALID_PLATFORMS
 
 OK_PLUGIN_ENABLED = _("The {name} integration has been enabled.")
