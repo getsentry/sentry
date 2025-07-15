@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Literal, NotRequired, TypedDict
 
 from rest_framework.request import Request as HttpRequest
@@ -612,3 +612,58 @@ class FlamegraphExecutor:
                 auto_fields=True,
             ),
         )
+
+
+def split_datetime_range_exponential(start_datetime, end_datetime, initial_chunk_delta, max_delta):
+    """
+    Splits a datetime range into exponentially increasing chunks, yielded by a generator.
+
+    The duration of each chunk doubles from the previous one until it reaches the
+    max_delta, at which point the chunk size remains constant.
+
+    Args:
+        start_datetime (datetime): The start of the datetime range.
+        end_datetime (datetime): The end of the datetime range.
+        initial_chunk_delta (timedelta): The duration of the first chunk.
+        max_delta (timedelta): The maximum duration for any chunk.
+
+    Yields:
+        tuple: A tuple representing a datetime chunk (start_of_chunk, end_of_chunk).
+
+    Raises:
+        TypeError: If args are not the correct datetime/timedelta objects.
+        ValueError: If datetimes are invalid, or deltas are not positive,
+                    or initial_chunk_delta > max_delta.
+    """
+    if not all(isinstance(dt, datetime) for dt in [start_datetime, end_datetime]):
+        raise TypeError("start_datetime and end_datetime must be datetime objects.")
+
+    if not all(isinstance(td, timedelta) for td in [initial_chunk_delta, max_delta]):
+        raise TypeError("initial_chunk_delta and max_delta must be timedelta objects.")
+
+    if start_datetime > end_datetime:
+        raise ValueError("start_datetime cannot be after end_datetime.")
+
+    if initial_chunk_delta.total_seconds() <= 0 or max_delta.total_seconds() <= 0:
+        raise ValueError("Time deltas must be positive durations.")
+
+    if initial_chunk_delta > max_delta:
+        raise ValueError("initial_chunk_delta cannot be greater than max_delta.")
+
+    current_datetime = start_datetime
+    current_delta = initial_chunk_delta
+
+    while current_datetime < end_datetime:
+        chunk_end = current_datetime + current_delta
+
+        # Ensure the last chunk does not go past the end_datetime
+        if chunk_end > end_datetime:
+            chunk_end = end_datetime
+
+        yield (current_datetime, chunk_end)
+
+        # Prepare for the next iteration
+        current_datetime = chunk_end
+
+        # Double the delta for the next chunk, but cap it at max_delta
+        current_delta = min(current_delta * 2, max_delta)
