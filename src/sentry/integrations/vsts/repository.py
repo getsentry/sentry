@@ -9,6 +9,7 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.plugins.providers.integration_repository import RepositoryConfig
 
 MAX_COMMIT_DATA_REQUESTS = 90
 
@@ -46,8 +47,8 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider):
         return config
 
     def build_repository_config(
-        self, organization: RpcOrganization, data: Mapping[str, str]
-    ) -> Mapping[str, Any]:
+        self, organization: RpcOrganization, data: dict[str, Any]
+    ) -> RepositoryConfig:
         return {
             "name": data["name"],
             "external_id": data["external_id"],
