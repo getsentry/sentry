@@ -140,6 +140,7 @@ def create_or_update_grouphash_metadata_if_needed(
 
         new_data = get_grouphash_metadata_data(event, project, variants, grouping_config_id)
 
+        # Handle race condition cases where this event lost the race to create the metadata record
         if not created:
             logger.info(
                 "grouphash_metadata.creation_race_condition.record_exists",
