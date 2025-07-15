@@ -43,7 +43,7 @@ export default function useLoadReplayReader({
     .map(error => error.id);
 
   const feedbackEvents = useFeedbackEvents({
-    feedbackIds,
+    feedbackIds: feedbackIds ?? [],
     projectId: replayRecord?.project_id,
   });
 
