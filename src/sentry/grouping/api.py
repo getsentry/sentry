@@ -233,7 +233,7 @@ def load_grouping_config(config_dict: GroupingConfig | None = None) -> StrategyC
     return CONFIGURATIONS[config_id](enhancements=config_dict["enhancements"])
 
 
-def load_default_grouping_config() -> StrategyConfiguration:
+def _load_default_grouping_config() -> StrategyConfiguration:
     return load_grouping_config(config_dict=None)
 
 
@@ -412,7 +412,7 @@ def get_grouping_variants_for_event(
 
     # Run all of the event-data-based grouping strategies. Any which apply will create grouping
     # components, which will then be grouped into variants by variant type (system, app, default).
-    context = GroupingContext(config or load_default_grouping_config(), event)
+    context = GroupingContext(config or _load_default_grouping_config(), event)
     strategy_component_variants: dict[str, ComponentVariant] = _get_variants_from_strategies(
         event, context
     )
