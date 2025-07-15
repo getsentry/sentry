@@ -281,7 +281,7 @@ export function useHasStreamlinedUI() {
   }
 
   // Apply the UI based on user preferences
-  return userStreamlinedUIOption ?? false;
+  return userStreamlinedUIOption !== false;
 }
 
 export function useIsSampleEvent(): boolean {
