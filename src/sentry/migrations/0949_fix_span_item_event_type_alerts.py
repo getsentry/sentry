@@ -42,15 +42,20 @@ def fix_span_item_event_type_alerts(
             if event_type.type == EventType.TRANSACTION.value:
                 transaction_event_type = event_type
 
+        # We have always explicitly set event type for logs, so if log event type
+        # exists, we know it's a log alert, so skip the rest of the logic.
         if log_event_type is not None:
             continue
 
+        # If it's not a log alerts and dataset is events_analytics_platform,
+        # we know it's a span alert.
         if span_event_type is None:
             SnubaQueryEventType.objects.create(
                 snuba_query=snuba_query, type=EventType.TRACE_ITEM_SPAN.value
             )
 
-        if transaction_event_type:
+        # Always delete transaction event type.
+        if transaction_event_type is not None:
             transaction_event_type.delete()
 
 
