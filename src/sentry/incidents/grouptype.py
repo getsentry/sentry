@@ -101,12 +101,12 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
 
     def extract_value(
         self, data_packet: DataPacket[QuerySubscriptionUpdate | AnomalyDetectionUpdate]
-    ) -> int:
+    ) -> int | dict:
         # this is a bit of a hack - anomaly detection data packets send extra data we need to pass along
         values = data_packet.packet["values"]
         if values.get("value") is not None:
             return values.get("value")
-        return values
+        return {None: values["values"]}
 
     def construct_title(
         self,
