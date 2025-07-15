@@ -3,6 +3,8 @@ import logging
 import sentry_sdk
 from rest_framework import serializers
 
+from sentry.codecov.endpoints.serializers import PageInfoSerializer
+
 logger = logging.getLogger(__name__)
 
 
@@ -25,17 +27,6 @@ class TestResultNodeSerializer(serializers.Serializer):
     totalSkipCount = serializers.IntegerField()
     totalPassCount = serializers.IntegerField()
     lastDuration = serializers.FloatField()
-
-
-class PageInfoSerializer(serializers.Serializer):
-    """
-    Serializer for pagination information
-    """
-
-    endCursor = serializers.CharField(allow_null=True)
-    startCursor = serializers.CharField(allow_null=True)
-    hasPreviousPage = serializers.BooleanField()
-    hasNextPage = serializers.BooleanField()
 
 
 class TestResultSerializer(serializers.Serializer):

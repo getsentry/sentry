@@ -3,7 +3,7 @@ import logging
 import sentry_sdk
 from rest_framework import serializers
 
-from sentry.codecov.endpoints.TestResults.serializers import PageInfoSerializer
+from sentry.codecov.endpoints.serializers import PageInfoSerializer
 
 logger = logging.getLogger(__name__)
 
