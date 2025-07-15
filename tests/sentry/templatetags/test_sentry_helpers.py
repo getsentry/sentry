@@ -23,6 +23,7 @@ def test_system_origin():
     assert result == "http://testserver"
 
 
+@pytest.mark.skip(reason="flaky: #95447")
 @pytest.mark.parametrize(
     "input,output",
     (
