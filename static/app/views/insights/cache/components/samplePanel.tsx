@@ -33,7 +33,6 @@ import {
   useDiscoverOrEap,
   useSpanMetrics,
   useSpans,
-  useSpansIndexed,
 } from 'sentry/views/insights/common/queries/useDiscover';
 import {
   DataTitles,
@@ -129,14 +128,14 @@ export function CacheSamplePanel() {
   const sampleFilters: SpanIndexedQueryFilters = {
     ...BASE_FILTERS,
     transaction: query.transaction,
-    project_id: query.project,
+    ['project.id']: query.project,
   };
 
   const useIndexedCacheSpans = (
     isCacheHit: SpanIndexedResponse['cache.hit'],
     limit: number
   ) =>
-    useSpansIndexed(
+    useSpans(
       {
         search: MutableSearch.fromQueryObject({
           ...sampleFilters,
@@ -144,16 +143,17 @@ export function CacheSamplePanel() {
           'cache.hit': isCacheHit,
         }),
         fields: [
-          SpanIndexedField.PROJECT,
-          SpanIndexedField.TRACE,
-          SpanIndexedField.TRANSACTION_SPAN_ID,
-          SpanIndexedField.SPAN_ID,
-          SpanIndexedField.TIMESTAMP,
-          SpanIndexedField.SPAN_DESCRIPTION,
-          SpanIndexedField.CACHE_HIT,
-          SpanIndexedField.SPAN_OP,
-          SpanIndexedField.CACHE_ITEM_SIZE,
-          SpanIndexedField.TRACE,
+          SpanFields.ID,
+          SpanFields.PROJECT,
+          SpanFields.TRACE,
+          SpanFields.TRANSACTION_SPAN_ID,
+          SpanFields.SPAN_ID,
+          SpanFields.TIMESTAMP,
+          SpanFields.SPAN_DESCRIPTION,
+          SpanFields.CACHE_HIT,
+          SpanFields.SPAN_OP,
+          SpanFields.CACHE_ITEM_SIZE,
+          SpanFields.TRACE,
         ],
         sorts: [SPAN_SAMPLES_SORT],
         limit,
@@ -211,6 +211,10 @@ export function CacheSamplePanel() {
     const transactionDurationsMap = keyBy(transactionData, 'id');
     return cacheSamples.map(span => ({
       ...span,
+      'cache.hit':
+        span['cache.hit'] === undefined
+          ? ''
+          : (`${span['cache.hit']}` as 'true' | 'false' | ''),
       'transaction.duration':
         transactionDurationsMap[span[SpanIndexedField.TRANSACTION_SPAN_ID]]?.[
           'span.duration'

@@ -115,6 +115,29 @@ export enum SpanFields {
   MCP_TOOL_NAME = 'mcp.tool.name',
   MCP_RESOURCE_URI = 'mcp.resource.uri',
   MCP_PROMPT_NAME = 'mcp.prompt.name',
+  TRANSACTION_SPAN_ID = 'transaction.span_id',
+  TOTAL_SCORE = 'measurements.score.total',
+  SPAN_SELF_TIME = 'span.self_time',
+  TRACE = 'trace',
+  PROFILE_ID = 'profile_id',
+  PROFILEID = 'profile.id',
+  REPLAYID = 'replayId',
+  REPLAY_ID = 'replay.id',
+  USER_ID = 'user.id',
+  USER_IP = 'user.ip',
+  LCP_ELEMENT = 'lcp.element',
+  CLS_SOURCE = 'cls.source.1',
+  USER_EMAIL = 'user.email',
+  USER_USERNAME = 'user.username',
+  CACHE_ITEM_SIZE = 'measurements.cache.item_size',
+  SPAN_ID = 'span_id',
+  DB_SYSTEM = 'db.system',
+  CODE_FILEPATH = 'code.filepath',
+  CODE_FUNCTION = 'code.function',
+  SDK_NAME = 'sdk.name',
+  SDK_VERSION = 'sdk.version',
+  PLATFORM = 'platform',
+  CODE_LINENO = 'code.lineno',
 }
 
 type WebVitalsMeasurements =
@@ -158,6 +181,10 @@ type SpanNumberFields =
   | SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS
   | SpanFields.GEN_AI_USAGE_TOTAL_TOKENS
   | SpanFields.GEN_AI_USAGE_TOTAL_COST
+  | SpanFields.TOTAL_SCORE
+  | SpanFields.SPAN_SELF_TIME
+  | SpanFields.CACHE_ITEM_SIZE
+  | SpanFields.CODE_LINENO
   | DiscoverNumberFields;
 
 export type SpanStringFields =
@@ -176,6 +203,24 @@ export type SpanStringFields =
   | SpanFields.MCP_TOOL_NAME
   | SpanFields.MCP_RESOURCE_URI
   | SpanFields.MCP_PROMPT_NAME
+  | SpanFields.TRACE
+  | SpanFields.PROFILEID
+  | SpanFields.PROFILE_ID
+  | SpanFields.REPLAYID
+  | SpanFields.REPLAY_ID
+  | SpanFields.USER_EMAIL
+  | SpanFields.USER_USERNAME
+  | SpanFields.USER_ID
+  | SpanFields.USER_IP
+  | SpanFields.CLS_SOURCE
+  | SpanFields.LCP_ELEMENT
+  | SpanFields.SPAN_ID
+  | SpanFields.TRANSACTION_SPAN_ID
+  | SpanFields.DB_SYSTEM
+  | SpanFields.CODE_FILEPATH
+  | SpanFields.CODE_FUNCTION
+  | SpanFields.SDK_NAME
+  | SpanFields.SDK_VERSION
   | 'span_id'
   | 'span.op'
   | 'span.description'
@@ -343,6 +388,8 @@ type EAPSpanResponseRaw = {
   } & {
     [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
   } & {
+    [SpanFields.PLATFORM]: PlatformKey;
+  } & {
     [Property in SpanFields as `count_unique(${Property})`]: number;
   } & {
     [Property in SpanNumberFields as `${CounterConditionalAggregate}(${Property},${string},${string})`]: number;
@@ -381,7 +428,7 @@ export enum SpanIndexedField {
   TIMESTAMP = 'timestamp',
   RAW_DOMAIN = 'raw_domain',
   PROJECT = 'project',
-  PROJECT_ID = 'project_id',
+  PROJECT_ID = 'project.id',
   PROFILE_ID = 'profile_id',
   PROFILEID = 'profile.id',
   PROFILER_ID = 'profiler.id',
