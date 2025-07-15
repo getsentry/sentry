@@ -94,20 +94,19 @@ class AddGiftEventsAction extends Component<Props, State> {
     const {freeEvents} = this.state;
 
     function getlabel() {
-      if (dataCategory === DataCategory.ATTACHMENTS) {
-        return 'How many attachments in GB?';
-      }
-      if (dataCategory === DataCategory.LOG_BYTE) {
-        return 'How many log bytes in GB?';
-      }
-      if (isContinuousProfiling(dataCategory)) {
-        return 'How many profile hours?';
-      }
       const categoryName = getPlanCategoryName({
         plan: subscription.planDetails,
         category: dataCategory,
         capitalize: false,
       });
+
+      if (isByteCategory(dataCategory)) {
+        return `How many ${categoryName} in GB?`;
+      }
+      if (isContinuousProfiling(dataCategory)) {
+        return 'How many profile hours?';
+      }
+
       const multiplier = billedCategoryInfo?.freeEventsMultiple ?? 0;
       const addToMessage =
         multiplier > 1
