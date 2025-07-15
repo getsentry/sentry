@@ -11,7 +11,7 @@ export default function useFeedbackEvents({
 }) {
   const organization = useOrganization();
 
-  const feedbackEventQuery = useApiQueries<FeedbackEvent[]>(
+  const feedbackEventQuery = useApiQueries<FeedbackEvent>(
     feedbackIds.map((feedbackId: string) => [
       `/projects/${organization.slug}/${projectId}/events/${feedbackId}/`,
     ]),
@@ -21,5 +21,6 @@ export default function useFeedbackEvents({
     }
   );
 
-  return feedbackEventQuery[0]?.data;
+  const feedbackEvents = feedbackEventQuery.map(query => query.data);
+  return feedbackEvents;
 }

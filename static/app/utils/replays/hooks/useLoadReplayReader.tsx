@@ -45,7 +45,7 @@ export default function useLoadReplayReader({
   const feedbackEvents = useFeedbackEvents({
     feedbackIds: feedbackIds ?? [],
     projectId: replayRecord?.project_id,
-  });
+  }).filter(e => e !== undefined);
 
   // get first error matching our group
   const firstMatchingError = useMemo(
