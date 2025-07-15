@@ -14,7 +14,7 @@ const exposedPlatformCategoriesSet = new Set([
   'serverless',
 ]);
 
-export const platformOptions = platformCategories
+export const platformOptions = platformCategories()
   .filter(({id}) => exposedPlatformCategoriesSet.has(id))
   .map(({name, platforms: platformKeys}) => ({
     label: name,

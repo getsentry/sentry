@@ -271,6 +271,10 @@ export function FrameworkSuggestionModal({
     documentElement.style.minHeight = '631px';
   }, [listEntriesWithVanilla.length]);
 
+  const filteredCategoryList = useMemo(() => {
+    return categoryList(organization);
+  }, [organization]);
+
   return (
     <Fragment>
       <Header>
@@ -300,7 +304,7 @@ export function FrameworkSuggestionModal({
                     <PlatformList>
                       {items.map((platform, index) => {
                         const platformCategory =
-                          categoryList.find(category => {
+                          filteredCategoryList.find(category => {
                             return category.platforms?.has(platform.id);
                           })?.id ?? 'all';
 

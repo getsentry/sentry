@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, useAnimation} from 'framer-motion';
 
@@ -87,6 +87,10 @@ function Onboarding(props: Props) {
 
   const {activateSidebar} = useOnboardingSidebar();
 
+  const filteredCategoryList = useMemo(() => {
+    return categoryList(organization);
+  }, [organization]);
+
   useEffect(() => {
     return () => {
       window.clearTimeout(cornerVariantTimeoutRed.current);
@@ -113,7 +117,7 @@ function Onboarding(props: Props) {
       }
 
       const frameworkCategory =
-        categoryList.find(category => {
+        filteredCategoryList.find(category => {
           return category.platforms?.has(platform.id);
         })?.id ?? 'all';
 
@@ -132,6 +136,7 @@ function Onboarding(props: Props) {
     onboardingContext,
     organization.slug,
     props.location.pathname,
+    filteredCategoryList,
   ]);
 
   const shallProjectBeDeleted =

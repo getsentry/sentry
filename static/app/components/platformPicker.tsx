@@ -40,7 +40,7 @@ function startsWithPunctuation(name: string) {
   return /^[\p{P}]/u.test(name);
 }
 
-export type Category = (typeof categoryList)[number]['id'];
+export type Category = ReturnType<typeof categoryList>[number]['id'];
 
 export type Platform = PlatformIntegration & {
   category: Category;
@@ -78,20 +78,27 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
   };
 
   state: State = {
-    category: this.props.defaultCategory ?? categoryList[0]!.id,
+    category: this.props.defaultCategory ?? categoryList(this.props.organization)[0]!.id,
     filter: this.props.noAutoFilter ? '' : (this.props.platform || '').split('-')[0]!,
   };
 
   componentDidUpdate(prevProps: Readonly<PlatformPickerProps>): void {
     if (this.props.defaultCategory !== prevProps.defaultCategory) {
-      this.setState({category: this.props.defaultCategory ?? categoryList[0]!.id});
+      this.setState({
+        category:
+          this.props.defaultCategory ?? categoryList(this.props.organization)[0]!.id,
+      });
     }
+  }
+
+  get categoryList() {
+    return categoryList(this.props.organization);
   }
 
   get platformList() {
     const {category} = this.state;
 
-    const currentCategory = categoryList.find(({id}) => id === category);
+    const currentCategory = this.categoryList.find(({id}) => id === category);
 
     const filter = this.state.filter.toLowerCase();
 
@@ -185,7 +192,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
               }}
             >
               <TabList>
-                {categoryList.map(({id, name}) => (
+                {this.categoryList.map(({id, name}) => (
                   <TabList.Item key={id}>{name}</TabList.Item>
                 ))}
               </TabList>
