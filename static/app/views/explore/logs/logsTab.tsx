@@ -113,11 +113,6 @@ export function LogsTabContent({
     DiscoverDatasets.OURLOGS
   );
   const timeseriesResult = useStreamingTimeseriesResult(tableData, _timeseriesResult);
-  const [tableTab, setTableTab] = useState<'aggregates' | 'logs'>(
-    (aggregateFunction && aggregateFunction !== 'count') || groupBy
-      ? 'aggregates'
-      : 'logs'
-  );
 
   const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
     useTraceItemAttributes('string');
