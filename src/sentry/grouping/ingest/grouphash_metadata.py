@@ -127,7 +127,7 @@ def create_or_update_grouphash_metadata_if_needed(
     project: Project,
     grouphash: GroupHash,
     grouphash_is_new: bool,
-    grouping_config: str,
+    grouping_config_id: str,
     variants: dict[str, BaseVariant],
 ) -> None:
     db_hit_metadata: dict[str, Any] = {}
@@ -138,7 +138,7 @@ def create_or_update_grouphash_metadata_if_needed(
         # for a lock
         grouphash_metadata, created = GroupHashMetadata.objects.get_or_create(grouphash=grouphash)
 
-        new_data = get_grouphash_metadata_data(event, project, variants, grouping_config)
+        new_data = get_grouphash_metadata_data(event, project, variants, grouping_config_id)
 
         if not created:
             logger.info(
@@ -188,19 +188,19 @@ def create_or_update_grouphash_metadata_if_needed(
         # Keep track of the most recent config which computed this hash, so that once a config is
         # deprecated, we can clear out the GroupHash records which are no longer being produced
         current_latest_config = grouphash.metadata.latest_grouping_config
-        if _is_incoming_config_newer_than_current_latest(grouping_config, current_latest_config):
-            updated_data = {"latest_grouping_config": grouping_config}
+        if _is_incoming_config_newer_than_current_latest(grouping_config_id, current_latest_config):
+            updated_data = {"latest_grouping_config": grouping_config_id}
             db_hit_metadata = {
                 "reason": "old_grouping_config",
                 "current_config": current_latest_config,
-                "new_config": grouping_config,
+                "new_config": grouping_config_id,
             }
 
         # If the metadata was gathered under an old schema, get new data and bump the schema version
         if grouphash.metadata.schema_version != GROUPHASH_METADATA_SCHEMA_VERSION:
             updated_data.update(
                 # This includes `schema_version`
-                get_grouphash_metadata_data(event, project, variants, grouping_config)
+                get_grouphash_metadata_data(event, project, variants, grouping_config_id)
             )
 
             db_hit_metadata.update(
@@ -246,14 +246,14 @@ def get_grouphash_metadata_data(
     event: Event,
     project: Project,
     variants: dict[str, BaseVariant],
-    grouping_config: str,
+    grouping_config_id: str,
 ) -> dict[str, Any]:
     with metrics.timer(
         "grouping.grouphashmetadata.get_grouphash_metadata_data"
     ) as metrics_timer_tags:
         base_data = {
             "schema_version": GROUPHASH_METADATA_SCHEMA_VERSION,
-            "latest_grouping_config": grouping_config,
+            "latest_grouping_config": grouping_config_id,
             "platform": event.platform or "unknown",
         }
         hashing_metadata: HashingMetadata = {}

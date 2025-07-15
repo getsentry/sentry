@@ -214,9 +214,9 @@ def get_or_create_grouphashes(
     project: Project,
     variants: dict[str, BaseVariant],
     hashes: Iterable[str],
-    grouping_config: str,
+    grouping_config_id: str,
 ) -> list[GroupHash]:
-    is_secondary = grouping_config == project.get_option("sentry:secondary_grouping_config")
+    is_secondary = grouping_config_id == project.get_option("sentry:secondary_grouping_config")
     grouphashes: list[GroupHash] = []
 
     if is_secondary:
@@ -238,7 +238,7 @@ def get_or_create_grouphashes(
                 # We don't expect this to throw any errors, but collecting this metadata
                 # shouldn't ever derail ingestion, so better to be safe
                 create_or_update_grouphash_metadata_if_needed(
-                    event, project, grouphash, created, grouping_config, variants
+                    event, project, grouphash, created, grouping_config_id, variants
                 )
             except Exception as exc:
                 event_id = sentry_sdk.capture_exception(exc)
