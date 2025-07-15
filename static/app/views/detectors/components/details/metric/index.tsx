@@ -4,6 +4,7 @@ import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
 import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/details/common/ongoingIssues';
+import {MetricDetectorDetailsChart} from 'sentry/views/detectors/components/details/metric/chart';
 import {MetricDetectorDetailsSidebar} from 'sentry/views/detectors/components/details/metric/sidebar';
 
 type MetricDetectorDetailsProps = {
@@ -17,6 +18,7 @@ export function MetricDetectorDetails({detector, project}: MetricDetectorDetails
       <DetectorDetailsHeader detector={detector} project={project} />
       <DetailLayout.Body>
         <DetailLayout.Main>
+          <MetricDetectorDetailsChart detector={detector} />
           <DetectorDetailsOngoingIssues />
           <DetectorDetailsAutomations detector={detector} />
         </DetailLayout.Main>
