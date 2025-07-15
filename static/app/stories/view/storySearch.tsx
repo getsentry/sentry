@@ -73,7 +73,7 @@ export function StorySearch() {
     if (shared.length > 0) {
       sections.push({
         key: 'shared',
-        label: 'Shared',
+        label: 'Product',
         options: shared,
       });
     }
@@ -172,7 +172,7 @@ function SearchComboBox(props: SearchComboBoxProps) {
     inputValue,
     onInputChange: setInputValue,
     defaultFilter: filter,
-    shouldCloseOnBlur: false,
+    shouldCloseOnBlur: true,
     allowsEmptyCollection: false,
     onSelectionChange: handleSelectionChange,
   });
