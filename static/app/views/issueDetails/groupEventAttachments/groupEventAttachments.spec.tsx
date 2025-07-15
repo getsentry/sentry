@@ -179,7 +179,7 @@ describe('GroupEventAttachments', function () {
           },
         },
       },
-      organization: {...organization, features: ['issue-details-streamline-enforce']},
+      organization: {...organization},
     });
     expect(getAttachmentsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/group-id/attachments/',

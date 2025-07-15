@@ -152,7 +152,7 @@ def register_temporary_features(manager: FeatureManager):
     # Enables lifetime stats on issue details
     manager.add("organizations:issue-details-lifetime-stats", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables streamlined issue details UI for all users of an organization without opt-out
-    manager.add("organizations:issue-details-streamline-enforce", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:issue-details-streamline-enforce", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=True)
     # Enables sorting spans for issue detection
     manager.add("organizations:issue-detection-sort-spans", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Whether to allow issue only search on the issue list

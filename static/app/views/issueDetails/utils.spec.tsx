@@ -33,23 +33,6 @@ describe('useHasStreamlinedUI', () => {
     expect(userPrefersLegacy.current).toBe(false);
   });
 
-  it('ignores preferences if enforce flag is set and user has not opted out', () => {
-    const enforceOrg = OrganizationFixture({
-      features: ['issue-details-streamline-enforce'],
-      streamlineOnly: null,
-    });
-
-    ConfigStore.init();
-    const user = UserFixture();
-    user.options.prefersIssueDetailsStreamlinedUI = null;
-    act(() => ConfigStore.set('user', user));
-
-    const {result} = renderHook(useHasStreamlinedUI, {
-      wrapper: contextWrapper(enforceOrg),
-    });
-    expect(result.current).toBe(true);
-  });
-
   it('respects preferences if enforce flag is set and user has opted out', () => {
     const enforceOrg = OrganizationFixture({
       features: ['issue-details-streamline-enforce'],

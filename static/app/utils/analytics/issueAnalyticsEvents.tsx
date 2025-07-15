@@ -197,7 +197,6 @@ export type IssueEventParameters = {
   'issue_details.sourcemap_wizard_dismiss': SourceMapWizardParam;
   'issue_details.sourcemap_wizard_learn_more': SourceMapWizardParam;
   'issue_details.streamline_ui_toggle': {
-    enforced_streamline_ui: boolean;
     isEnabled: boolean;
   };
   'issue_details.tour.reminder': {method: 'dismissed' | 'timeout'};

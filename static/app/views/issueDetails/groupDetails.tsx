@@ -541,9 +541,6 @@ function useTrackView({
     ref_fallback,
     group_event_type: groupEventType,
     prefers_streamlined_ui: user?.options?.prefersIssueDetailsStreamlinedUI ?? false,
-    enforced_streamlined_ui:
-      organization.features.includes('issue-details-streamline-enforce') &&
-      user?.options?.prefersIssueDetailsStreamlinedUI === null,
     org_streamline_only: organization.streamlineOnly ?? undefined,
     has_streamlined_ui: hasStreamlinedUI,
   });

@@ -280,14 +280,6 @@ export function useHasStreamlinedUI() {
     return true;
   }
 
-  // If the enforce flag is set for the organization, ignore user preferences and enable the UI
-  if (
-    userStreamlinedUIOption !== false &&
-    organization.features.includes('issue-details-streamline-enforce')
-  ) {
-    return true;
-  }
-
   // Apply the UI based on user preferences
   return userStreamlinedUIOption ?? false;
 }
