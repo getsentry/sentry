@@ -206,6 +206,33 @@ describe('Recurring Credits', function () {
     expect(screen.getByTestId('amount')).toHaveTextContent('+3M/mo');
   });
 
+  it('renders log byte recurring credits', async function () {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/recurring-credits/`,
+      method: 'GET',
+      body: [
+        RecurringCreditFixture({
+          id: 1,
+          periodStart: moment().format(),
+          periodEnd: moment().utc().add(3, 'months').format(),
+          amount: 2.5,
+          type: CreditType.LOG_BYTE,
+          totalAmountRemaining: null,
+        }),
+      ],
+    });
+
+    render(
+      <RecurringCredits displayType="data" planDetails={subscription.planDetails} />,
+      {organization}
+    );
+
+    await screen.findByRole('heading', {name: /recurring credits/i});
+
+    expect(screen.getByText('logBytes')).toBeInTheDocument();
+    expect(screen.getByTestId('amount')).toHaveTextContent('+2.5 GB/mo');
+  });
+
   it('renders multiple recurring credits', async function () {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/recurring-credits/`,
