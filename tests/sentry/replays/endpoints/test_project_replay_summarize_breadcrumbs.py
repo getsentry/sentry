@@ -11,6 +11,7 @@ from rest_framework.exceptions import ParseError
 from sentry import nodestore
 from sentry.eventstore.models import Event
 from sentry.replays.endpoints.project_replay_summarize_breadcrumbs import (
+    REFRESH_CACHE_QPARAM,
     GroupEvent,
     as_log_message,
     get_request_data,
@@ -19,6 +20,7 @@ from sentry.replays.endpoints.project_replay_summarize_breadcrumbs import (
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
 from sentry.replays.testutils import mock_replay
 from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.helpers.datetime import isoformat_z
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
@@ -181,11 +183,87 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(TransactionTestCase):
         assert response.get("Content-Type") == "application/json"
         assert response.json() == {"detail": "e"}
 
-    # Test replay too old and/or missing
-    # Test replay archived
-    # Test cache hit
-    # Test cache hit but regenerate
-    # Test cache hit but segment count changed
+    def test_get_missing(self):
+        with self.feature(self.features):
+            response = self.client.get(self.url)
+            assert response.status_code == 404
+
+    def test_get_archived(self):
+        self.store_replay_event(
+            dt=datetime.now(timezone.utc) - timedelta(days=7), segment_id=0, is_archived=True
+        )
+        self.save_recording_segment(0, json.dumps([]).encode())
+
+        with self.feature(self.features):
+            response = self.client.get(self.url)
+            assert response.status_code == 404
+
+    def test_get_date_filter(self):
+        self.store_replay_event(dt=datetime.now(timezone.utc) - timedelta(days=7), segment_id=0)
+        self.store_replay_event(dt=datetime.now(timezone.utc) - timedelta(minutes=7), segment_id=1)
+        self.save_recording_segment(0, json.dumps([]).encode())
+        self.save_recording_segment(1, json.dumps([]).encode())
+
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url
+                + f"?start={isoformat_z(datetime.now(timezone.utc) - timedelta(days=3))}&end={isoformat_z(datetime.now(timezone.utc))}"
+            )
+            assert response.status_code == 404
+
+            response = self.client.get(self.url + "?statsPeriod=24h")
+            assert response.status_code == 404
+
+    @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.cache")
+    def test_get_cache_hit(self, mock_cache):
+        self.store_replay_event()
+        mock_cache.get.return_value = ({"hello": "world"}, 1)  # response, segment count
+
+        with self.feature(self.features):
+            response = self.client.get(self.url)
+            assert response.status_code == 200
+            assert response.get("Content-Type") == "application/json"
+            assert response.json() == {"hello": "world"}
+            assert mock_cache.get.call_count == 1
+
+    @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
+    @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.cache")
+    def test_get_cache_segment_count_changed(self, mock_cache, mock_make_seer_request):
+        self.store_replay_event(segment_id=0)
+        self.store_replay_event(segment_id=1)
+        self.save_recording_segment(0, json.dumps([]).encode())
+        self.save_recording_segment(1, json.dumps([]).encode())
+        mock_make_seer_request.return_value = json.dumps({"hello": "world"}).encode()
+        mock_cache.get.return_value = ({"cached_hello": "world"}, 1)  # response, segment count
+
+        with self.feature(self.features):
+            response = self.client.get(self.url)
+            assert response.status_code == 200
+            assert response.get("Content-Type") == "application/json"
+            assert response.json() == {"hello": "world"}
+            assert mock_cache.set.call_count == 1
+            assert mock_cache.set.call_args[0][1] == ({"hello": "world"}, 2)  # cache updated
+
+    @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
+    @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.cache")
+    def test_get_cache_force_refresh(self, mock_cache, mock_make_seer_request):
+        self.store_replay_event()
+        self.save_recording_segment(0, json.dumps([]).encode())
+        mock_make_seer_request.return_value = json.dumps({"hello": "world"}).encode()
+        mock_cache.get.return_value = ({"cached_hello": "world"}, 1)  # response, segment count
+
+        with self.feature(self.features):
+            response = self.client.get(self.url + f"?{REFRESH_CACHE_QPARAM}=false")
+            assert response.status_code == 200
+            assert response.get("Content-Type") == "application/json"
+            assert response.json() == {"cached_hello": "world"}
+
+            response = self.client.get(self.url + f"?{REFRESH_CACHE_QPARAM}=true")
+            assert response.status_code == 200
+            assert response.get("Content-Type") == "application/json"
+            assert response.json() == {"hello": "world"}
+            assert mock_cache.set.call_count == 1
+            assert mock_cache.set.call_args[0][1] == ({"hello": "world"}, 1)  # cache updated
 
     @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
     def test_get_with_error(self, make_seer_request):
