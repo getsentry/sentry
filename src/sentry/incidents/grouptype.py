@@ -36,7 +36,9 @@ class MetricIssueEvidenceData(EvidenceData[float]):
     alert_id: int
 
 
-class MetricIssueDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate, int]):
+class MetricIssueDetectorHandler(
+    StatefulDetectorHandler[QuerySubscriptionUpdate | AnomalyDetectionUpdate, int | dict]
+):
     def create_occurrence(
         self,
         evaluation_result: ProcessedDataConditionGroup,
