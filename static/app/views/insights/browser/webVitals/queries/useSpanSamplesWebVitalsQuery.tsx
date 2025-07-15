@@ -123,6 +123,7 @@ export function useSpanSamplesWebVitalsQuery({
         SpanFields.SPAN_OP,
         SpanFields.LCP_ELEMENT,
         SpanFields.CLS_SOURCE,
+        SpanFields.ID,
       ],
       enabled,
       limit,

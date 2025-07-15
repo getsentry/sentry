@@ -10,6 +10,7 @@ import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useSpanMetrics, useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   SpanIndexedField,
@@ -252,7 +253,8 @@ describe('useDiscover', () => {
         expect.objectContaining({
           method: 'GET',
           query: {
-            dataset: 'spansIndexed',
+            dataset: 'spans',
+            sampling: SAMPLING_MODE.NORMAL,
             environment: [],
             field: ['span.op', 'span.group', 'span.description'],
             per_page: 10,
