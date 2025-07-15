@@ -500,7 +500,6 @@ describe('Subscription > UsageAlert', function () {
           subscription={{
             ...subscription,
             plan: 'am1_f',
-            reservedErrors: 5000,
             categories: {
               errors: MetricHistoryFixture({prepaid: 5_000, reserved: 5_000}),
             },
