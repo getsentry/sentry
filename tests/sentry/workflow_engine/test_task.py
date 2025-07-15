@@ -58,6 +58,7 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
             new_substatus=None,
             fingerprint=["test_fingerprint"],
             detector_id=None,  # No detector_id provided
+            activity_data=None,
         )
 
         with mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr") as mock_incr:
@@ -80,6 +81,7 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
             new_substatus=None,
             fingerprint=["test_fingerprint"],
             detector_id=detector.id,
+            activity_data={"test": "test"},
         )
 
         with mock.patch(
@@ -105,6 +107,7 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
             new_substatus=None,
             fingerprint=["test_fingerprint"],
             detector_id=detector.id,
+            activity_data={"test": "test"},
         )
 
         with mock.patch(

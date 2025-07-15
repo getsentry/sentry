@@ -62,6 +62,7 @@ class IssuePlatformIntegrationTests(TestCase):
             new_substatus=None,
             fingerprint=[self.fingerprint],
             detector_id=self.detector.id,
+            activity_data={"test": "test"},
         )
 
         with mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr") as mock_incr:

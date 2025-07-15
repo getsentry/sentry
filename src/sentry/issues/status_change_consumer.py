@@ -67,6 +67,7 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             status=new_status,
             substatus=new_substatus,
             activity_type=activity_type,
+            activity_data=status_change.get("activity_data"),
         )
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
         kick_off_status_syncs.apply_async(
@@ -90,6 +91,7 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             status=new_status,
             substatus=new_substatus,
             activity_type=activity_type,
+            activity_data=status_change.get("activity_data"),
         )
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.IGNORED)
         kick_off_status_syncs.apply_async(
@@ -127,6 +129,7 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             substatus=new_substatus,
             activity_type=activity_type,
             from_substatus=group.substatus,
+            activity_data=status_change.get("activity_data"),
         )
         add_group_to_inbox(group, group_inbox_reason)
         kick_off_status_syncs.apply_async(
@@ -164,7 +167,7 @@ def get_group_from_fingerprint(project_id: int, fingerprint: Sequence[str]) -> G
 
 
 def bulk_get_groups_from_fingerprints(
-    project_fingerprint_pairs: Iterable[tuple[int, Sequence[str]]]
+    project_fingerprint_pairs: Iterable[tuple[int, Sequence[str]]],
 ) -> dict[tuple[int, tuple[str, ...]], Group]:
     """
     Returns a map of (project, fingerprint) to the group.
