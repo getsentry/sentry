@@ -21,6 +21,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -29,6 +30,7 @@ import {AiModuleToggleButton} from 'sentry/views/insights/agentMonitoring/compon
 import {LegacyLLMMonitoringInfoAlert} from 'sentry/views/insights/agentMonitoring/components/legacyLlmMonitoringAlert';
 import LLMGenerationsWidget from 'sentry/views/insights/agentMonitoring/components/llmGenerationsWidget';
 import {ModelsTable} from 'sentry/views/insights/agentMonitoring/components/modelsTable';
+import TokenThroughputWidget from 'sentry/views/insights/agentMonitoring/components/tokenThroughputWidget';
 import TokenUsageWidget from 'sentry/views/insights/agentMonitoring/components/tokenUsageWidget';
 import {ToolsTable} from 'sentry/views/insights/agentMonitoring/components/toolsTable';
 import ToolUsageWidget from 'sentry/views/insights/agentMonitoring/components/toolUsageWidget';
@@ -43,6 +45,7 @@ import {
   usePreferedAiModule,
 } from 'sentry/views/insights/agentMonitoring/utils/features';
 import {Onboarding} from 'sentry/views/insights/agentMonitoring/views/onboarding';
+import {WidgetGrid} from 'sentry/views/insights/agentMonitoring/views/styles';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
@@ -54,8 +57,6 @@ import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL'
 import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
 import {AGENTS_LANDING_TITLE} from 'sentry/views/insights/pages/agents/settings';
 import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
-import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
-import {WidgetGrid} from 'sentry/views/insights/pages/platform/shared/styles';
 import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
@@ -181,17 +182,26 @@ function AgentsMonitoringPage() {
                         <OverviewAgentsDurationChartWidget />
                       </WidgetGrid.Position2>
                       <WidgetGrid.Position3>
-                        <IssuesWidget />
+                        <TokenThroughputWidget />
                       </WidgetGrid.Position3>
                       <WidgetGrid.Position4>
                         <LLMGenerationsWidget />
                       </WidgetGrid.Position4>
                       <WidgetGrid.Position5>
-                        <ToolUsageWidget />
+                        <TokenUsageWidget />
                       </WidgetGrid.Position5>
                       <WidgetGrid.Position6>
-                        <TokenUsageWidget />
+                        <TokenCostsWidget />
                       </WidgetGrid.Position6>
+                      <WidgetGrid.Position7>
+                        <ToolUsageWidget />
+                      </WidgetGrid.Position7>
+                      <WidgetGrid.Position8>
+                        <ToolErrorsWidget />
+                      </WidgetGrid.Position8>
+                      <WidgetGrid.Position9>
+                        <TokensPerToolWidget />
+                      </WidgetGrid.Position9>
                     </WidgetGrid>
                     <ControlsWrapper>
                       <TableControl
@@ -248,6 +258,45 @@ function PageWithProviders() {
     </AIInsightsFeature>
   );
 }
+
+function PlaceholderText() {
+  return <PlaceholderContent>{t('Placeholder')}</PlaceholderContent>;
+}
+
+export function ToolErrorsWidget() {
+  return (
+    <Widget
+      Title={<Widget.WidgetTitle title={t('Tool errors')} />}
+      Visualization={<PlaceholderText />}
+    />
+  );
+}
+
+export function TokenCostsWidget() {
+  return (
+    <Widget
+      Title={<Widget.WidgetTitle title={t('Token costs')} />}
+      Visualization={<PlaceholderText />}
+    />
+  );
+}
+
+export function TokensPerToolWidget() {
+  return (
+    <Widget
+      Title={<Widget.WidgetTitle title={t('Tokens per tool')} />}
+      Visualization={<PlaceholderText />}
+    />
+  );
+}
+const PlaceholderContent = styled('div')`
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.md};
+`;
 
 const QueryBuilderWrapper = styled('div')`
   flex: 2;
