@@ -1,4 +1,3 @@
-import time
 import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -6,7 +5,6 @@ from unittest import mock
 
 import pytest
 from django.utils import timezone
-from sentry_kafka_schemas.schema_types.group_attributes_v1 import GroupAttributesSnapshot
 
 from sentry import options
 from sentry.api.issue_search import convert_query_values, issue_search_config, parse_search_query
@@ -32,11 +30,10 @@ from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend, SnubaSe
 from sentry.search.snuba.executors import TrendsSortWeights
 from sentry.seer.seer_utils import FixabilityScoreThresholds
 from sentry.snuba.dataset import Dataset
-from sentry.testutils.cases import SnubaTestCase, TestCase, TransactionTestCase
-from sentry.testutils.helpers import Feature, apply_feature_flag_on_cls
+from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now
 from sentry.types.group import GroupSubStatus, PriorityLevel
-from sentry.utils import json
 from sentry.utils.snuba import SENTRY_SNUBA_MAP
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -2566,107 +2563,6 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
 
 class EventsSnubaSearchTest(TestCase, EventsSnubaSearchTestCases):
     pass
-
-
-@apply_feature_flag_on_cls("organizations:issue-search-group-attributes-side-query")
-class EventsJoinedGroupAttributesSnubaSearchTest(TransactionTestCase, EventsSnubaSearchTestCases):
-    def setUp(self):
-        def post_insert(snapshot: GroupAttributesSnapshot) -> None:
-            from sentry.utils import snuba
-
-            resp = snuba._snuba_pool.urlopen(
-                "POST",
-                "/tests/entities/group_attributes/insert",
-                body=json.dumps([snapshot]),
-                headers={},
-            )
-            assert resp.status == 200
-
-        with mock.patch("sentry.issues.attributes.produce_snapshot_to_kafka", post_insert):
-            super().setUp()
-
-    @mock.patch("sentry.utils.metrics.timer")
-    @mock.patch("sentry.utils.metrics.incr")
-    def test_is_unresolved_query_logs_metric(self, metrics_incr, metrics_timer):
-        results = self.make_query(search_filter_query="is:unresolved")
-        assert set(results) == {self.group1}
-
-        # introduce a slight delay so the async future has time to run and log the metric
-        time.sleep(1)
-
-        metrics_incr_called = False
-        for call in metrics_incr.call_args_list:
-            args, kwargs = call
-            if "snuba.search.group_attributes_joined.events_compared" in set(args):
-                metrics_incr_called = True
-        assert metrics_incr_called
-
-        metrics_timer_called = False
-        for call in metrics_timer.call_args_list:
-            args, kwargs = call
-            if "snuba.search.group_attributes_joined.duration" in set(args):
-                metrics_timer_called = True
-        assert metrics_timer_called
-
-    def test_issue_priority(self):
-        results = self.make_query(search_filter_query="issue.priority:high")
-        assert set(results) == {self.group1, self.group2}
-
-        event_3 = self.store_event(
-            data={
-                "fingerprint": ["put-me-in-group3"],
-                "event_id": "c" * 32,
-                "timestamp": (self.base_datetime - timedelta(days=20)).isoformat(),
-            },
-            project_id=self.project.id,
-        )
-        group_3 = event_3.group
-        group_3.update(priority=PriorityLevel.LOW)
-        results = self.make_query(search_filter_query="issue.priority:low")
-        assert set(results) == {group_3}
-
-        results = self.make_query(search_filter_query="issue.priority:[high, low]")
-        assert set(results) == {self.group1, self.group2, group_3}
-
-        with pytest.raises(InvalidSearchQuery):
-            self.make_query(search_filter_query="issue.category:wrong")
-
-    def test_seer_actionability(self):
-        results = self.make_query(search_filter_query="issue.seer_actionability:high")
-        assert set(results) == {self.group1}
-
-        results = self.make_query(search_filter_query="issue.seer_actionability:medium")
-        assert set(results) == {self.group2}
-
-        event_3 = self.store_event(
-            data={
-                "fingerprint": ["put-me-in-group3"],
-                "event_id": "c" * 32,
-                "timestamp": (self.base_datetime - timedelta(days=20)).isoformat(),
-            },
-            project_id=self.project.id,
-        )
-        group_3 = event_3.group
-        group_3.update(seer_fixability_score=0.0)
-
-        results = self.make_query(search_filter_query="issue.seer_actionability:low")
-        assert set(results) == {group_3}
-
-    def test_seer_last_run(self):
-        results = self.make_query(
-            search_filter_query=f"issue.seer_last_run:{self.event3.datetime.isoformat()}"
-        )
-        assert set(results) == {self.group1}
-
-        results = self.make_query(
-            search_filter_query=f"issue.seer_last_run:<={(self.event3.datetime + timedelta(days=1)).isoformat()}"
-        )
-        assert set(results) == set({self.group1, self.group2})
-
-        results = self.make_query(
-            search_filter_query=f"issue.seer_last_run:<={self.event2.datetime.isoformat()}"
-        )
-        assert set(results) == {self.group2}
 
 
 class EventsTrendsTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
