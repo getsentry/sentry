@@ -515,7 +515,7 @@ export function useInfiniteLogsQuery({
     initialPageParam,
     enabled: !disabled,
     staleTime: getStaleTimeForEventView(other.eventView),
-    maxPages: 15,
+    maxPages: 30, // This number * the refresh interval must be more seconds than 2 * the smallest time interval in the chart for streaming to work.
   });
 
   const {
