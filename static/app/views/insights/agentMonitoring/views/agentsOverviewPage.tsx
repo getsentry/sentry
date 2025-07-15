@@ -186,22 +186,22 @@ function AgentsMonitoringPage() {
                         <TokenThroughputWidget />
                       </WidgetGrid.Position3>
                       <WidgetGrid.Position4>
-                        <LLMGenerationsWidget />
+                        <TokenUsageWidget />
                       </WidgetGrid.Position4>
                       <WidgetGrid.Position5>
-                        <TokenUsageWidget />
+                        <TokensPerTypeWidget />
                       </WidgetGrid.Position5>
                       <WidgetGrid.Position6>
                         <TokenCostWidget />
                       </WidgetGrid.Position6>
                       <WidgetGrid.Position7>
-                        <ToolUsageWidget />
+                        <LLMGenerationsWidget />
                       </WidgetGrid.Position7>
                       <WidgetGrid.Position8>
-                        <ToolErrorsWidget />
+                        <ToolUsageWidget />
                       </WidgetGrid.Position8>
                       <WidgetGrid.Position9>
-                        <TokensPerToolWidget />
+                        <ToolErrorsWidget />
                       </WidgetGrid.Position9>
                     </WidgetGrid>
                     <ControlsWrapper>
@@ -273,10 +273,10 @@ export function ToolErrorsWidget() {
   );
 }
 
-export function TokensPerToolWidget() {
+export function TokensPerTypeWidget() {
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={t('Tokens per tool')} />}
+      Title={<Widget.WidgetTitle title={t('Token Distribution')} />}
       Visualization={<PlaceholderText />}
     />
   );
