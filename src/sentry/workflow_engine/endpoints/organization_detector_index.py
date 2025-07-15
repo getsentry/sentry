@@ -188,9 +188,11 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         Create a new detector for a project.
 
         :param string name: The name of the detector
-        :param string detector_type: The type of detector to create
-        :param object data_source: Configuration for the data source
-        :param array data_conditions: List of conditions to trigger the detector
+        :param string type: The type of detector to create
+        :param string projectId: The detector project
+        :param object dataSource: Configuration for the data source
+        :param array dataConditions: List of conditions to trigger the detector
+        :param array workflowIds: List of workflow IDs to connect to the detector
         """
         detector_type = request.data.get("type")
         if not detector_type:
@@ -222,7 +224,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        workflow_ids = request.data.get("workflowIds", [])
+        workflow_ids = set(request.data.get("workflowIds", []))
         if not workflow_ids:
             detector = validator.save()
         else:
@@ -244,7 +246,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                 ]
                 for workflow_validator in workflow_validators:
                     if not workflow_validator.is_valid():
-                        raise ValidationError(workflow_validator.errors)
+                        raise ValidationError({"workflowIds": workflow_validator.errors})
 
                 for workflow_validator in workflow_validators:
                     workflow_validator.save()
