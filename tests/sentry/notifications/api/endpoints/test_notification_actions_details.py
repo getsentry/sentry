@@ -470,3 +470,47 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         self.login_as(user)
 
         self.test_delete_simple()
+
+    def test_delete_no_project_access(self):
+        user = self.create_user()
+        member = self.create_member(user=user, organization=self.organization)
+        self.team = self.create_team(name="empty", organization=self.organization)
+        # the test passes with removing of "create_project" below
+        self.create_project(organization=self.organization, teams=[self.team], name="other")
+        OrganizationMemberTeam.objects.create(
+            team=self.team, organizationmember=member, role="admin"
+        )
+        self.login_as(user)
+        self.get_error_response(
+            self.organization.slug,
+            self.notif_action.id,
+            status_code=status.HTTP_403_FORBIDDEN,
+            method="DELETE",
+        )
+
+    def test_delete_when_team_level_roles(self):
+        user = self.create_user()
+        member = self.create_member(user=user, organization=self.organization)
+        self.team = self.create_team(name="empty", organization=self.organization)
+        self.team2 = self.create_team(name="empty2", organization=self.organization)
+        my_project = self.create_project(
+            organization=self.organization, teams=[self.team], name="other"
+        )
+        self.create_project(organization=self.organization, teams=[self.team2], name="other2")
+        my_notif_action = self.create_notification_action(
+            organization=self.organization, projects=[my_project]
+        )
+        OrganizationMemberTeam.objects.create(
+            team=self.team, organizationmember=member, role="admin"
+        )
+        # the test passes with removing of this "contributor" membership below
+        OrganizationMemberTeam.objects.create(
+            team=self.team2, organizationmember=member, role="contributor"
+        )
+        self.login_as(user)
+        self.get_success_response(
+            self.organization.slug,
+            my_notif_action.id,
+            status_code=status.HTTP_204_NO_CONTENT,
+            method="DELETE",
+        )
