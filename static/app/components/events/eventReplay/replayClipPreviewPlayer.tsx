@@ -14,7 +14,6 @@ import useLogEventReplayStatus from 'sentry/utils/replays/hooks/useLogEventRepla
 import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
 import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 interface Props {
   analyticsContext: string;
@@ -81,7 +80,12 @@ export default function ReplayClipPreviewPlayer({
   );
 }
 
-const PlayerContainer = styled(FluidHeight)`
+const PlayerContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  flex-grow: 1;
+
   position: relative;
   max-height: ${REPLAY_LOADING_HEIGHT + 16}px;
   @media (min-width: ${p => p.theme.breakpoints.sm}) {

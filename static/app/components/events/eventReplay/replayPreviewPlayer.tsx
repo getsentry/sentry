@@ -186,7 +186,6 @@ const PlayerPanel = styled('div')`
   gap: ${space(1)};
   flex-direction: column;
   flex-grow: 1;
-  overflow: hidden;
   height: 100%;
 `;
 
@@ -194,7 +193,13 @@ const PlayerBreadcrumbContainer = styled(FluidHeight)`
   position: relative;
 `;
 
-const PreviewPlayerContainer = styled(FluidHeight)<{isSidebarOpen: boolean}>`
+const PreviewPlayerContainer = styled('div')<{isSidebarOpen: boolean}>`
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  flex-grow: 1;
+  height: 100%;
+
   gap: ${space(2)};
   background: ${p => p.theme.background};
 
