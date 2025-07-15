@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 
-import {Link} from 'sentry/components/core/link';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {NoAccess} from 'sentry/components/noAccess';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import Placeholder from 'sentry/components/placeholder';
@@ -66,14 +67,24 @@ function SeerAutomationRoot() {
       <SettingsPageHeader
         title={t('Seer Automation')}
         subtitle={tct(
-          "Choose how Seer automatically triages and root-causes incoming issues, before you even notice them. This analysis is billed at the [link:standard rates] for Seer's Issue Scan and Issue Fix. See [spendlink:docs] on how to manage your Seer spend.",
+          "Choose how Seer automatically triages and diagnoses incoming issues, before you even notice them. This analysis is billed at the [link:standard rates] for Seer's Issue Scan and Issue Fix. See [spendlink:docs] on how to manage your Seer spend.",
           {
-            link: <Link to={'https://docs.sentry.io/pricing/#seer-pricing'} />,
+            link: <ExternalLink href={'https://docs.sentry.io/pricing/#seer-pricing'} />,
             spendlink: (
-              <Link to={getPricingDocsLinkForEventType(DataCategoryExact.SEER_AUTOFIX)} />
+              <ExternalLink
+                href={getPricingDocsLinkForEventType(DataCategoryExact.SEER_AUTOFIX)}
+              />
             ),
           }
         )}
+        action={
+          <LinkButton
+            href={'https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities'}
+            external
+          >
+            {t('Read the docs')}
+          </LinkButton>
+        }
       />
 
       <NoProjectMessage organization={organization}>
