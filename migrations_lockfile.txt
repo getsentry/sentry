@@ -27,7 +27,7 @@ preprod: 0010_actual_drop_preprod_artifact_analysis_file_id_col
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0949_add_dashboard_widget_snapshot_model
+sentry: 0950_safe_del_dswaiver
 
 social_auth: 0003_social_auth_json_field
 
