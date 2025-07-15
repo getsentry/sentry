@@ -10,7 +10,7 @@ from sentry.incidents.metric_issue_detector import MetricIssueDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, ComparisonDeltaChoices
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.incidents.utils.metric_issue_poc import QUERY_AGGREGATION_DISPLAY
-from sentry.incidents.utils.types import QuerySubscriptionUpdate
+from sentry.incidents.utils.types import AnomalyDetectionUpdate, QuerySubscriptionUpdate
 from sentry.integrations.metric_alerts import TEXT_COMPARISON_DELTA
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.models.organization import Organization
@@ -99,7 +99,9 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
     def extract_dedupe_value(self, data_packet: DataPacket[QuerySubscriptionUpdate]) -> int:
         return int(data_packet.packet.get("timestamp", datetime.now(UTC)).timestamp())
 
-    def extract_value(self, data_packet: DataPacket[QuerySubscriptionUpdate]) -> int:
+    def extract_value(
+        self, data_packet: DataPacket[QuerySubscriptionUpdate | AnomalyDetectionUpdate]
+    ) -> int:
         # this is a bit of a hack - anomaly detection data packets send extra data we need to pass along
         values = data_packet.packet["values"]
         if values.get("value") is not None:

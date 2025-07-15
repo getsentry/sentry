@@ -4,7 +4,7 @@ from unittest import mock
 import orjson
 from urllib3.response import HTTPResponse
 
-from sentry.incidents.utils.types import QuerySubscriptionUpdate
+from sentry.incidents.utils.types import AnomalyDetectionUpdate
 from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSeasonality,
     AnomalyDetectionSensitivity,
@@ -31,10 +31,10 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
             self.create_detector_and_workflow()
         )
 
-        subscription_update: QuerySubscriptionUpdate = {
+        subscription_update: AnomalyDetectionUpdate = {
             "subscription_id": str(self.subscription.id),
             "values": {
-                None: {
+                "values": {
                     "value": 1,
                     "source_id": str(self.subscription.id),
                     "subscription_id": str(self.subscription.id),
@@ -51,7 +51,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
         )
         self.data_source.detectors.add(self.detector)
 
-        self.data_packet = DataPacket[QuerySubscriptionUpdate](
+        self.data_packet = DataPacket[AnomalyDetectionUpdate](
             source_id=str(subscription_update["subscription_id"]),
             packet=subscription_update,
         )
@@ -86,7 +86,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
         }
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         assert (
-            self.dc.evaluate_value(self.data_packet.packet["values"][None])
+            self.dc.evaluate_value(self.data_packet.packet["values"]["values"])
             == DetectorPriorityLevel.HIGH.value
         )
 
@@ -109,7 +109,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
         }
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         assert (
-            self.dc.evaluate_value(self.data_packet.packet["values"][None])
+            self.dc.evaluate_value(self.data_packet.packet["values"]["values"])
             == DetectorPriorityLevel.OK.value
         )
 
@@ -129,7 +129,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
             "source_type": DataSourceType.SNUBA_QUERY_SUBSCRIPTION,
             "dataset": self.subscription.snuba_query.dataset,
         }
-        self.dc.evaluate_value(self.data_packet.packet["values"][None])
+        self.dc.evaluate_value(self.data_packet.packet["values"]["values"])
         mock_logger.warning.assert_called_with(
             "Timeout error when hitting anomaly detection endpoint", extra=timeout_extra
         )
@@ -141,7 +141,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
     def test_seer_call_empty_list(self, mock_logger, mock_seer_request):
         seer_return_value: DetectAnomaliesResponse = {"success": True, "timeseries": []}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        self.dc.evaluate_value(self.data_packet.packet["values"][None])
+        self.dc.evaluate_value(self.data_packet.packet["values"]["values"])
         assert mock_logger.warning.call_args[0] == (
             "Seer anomaly detection response returned no potential anomalies",
         )
@@ -161,7 +161,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
             "dataset": self.subscription.snuba_query.dataset,
             "response_data": None,
         }
-        self.dc.evaluate_value(self.data_packet.packet["values"][None])
+        self.dc.evaluate_value(self.data_packet.packet["values"]["values"])
         mock_logger.error.assert_called_with(
             "Error when hitting Seer detect anomalies endpoint", extra=extra
         )
@@ -173,7 +173,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
     def test_seer_call_failed_parse(self, mock_logger, mock_seer_request):
         # XXX: coercing a response into something that will fail to parse
         mock_seer_request.return_value = HTTPResponse(None, status=200)  # type: ignore[arg-type]
-        self.dc.evaluate_value(self.data_packet.packet["values"][None])
+        self.dc.evaluate_value(self.data_packet.packet["values"]["values"])
         mock_logger.exception.assert_called_with(
             "Failed to parse Seer anomaly detection response", extra=mock.ANY
         )
