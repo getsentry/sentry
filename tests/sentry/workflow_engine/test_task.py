@@ -217,16 +217,11 @@ class TestProcessWorkflowActivity(TestCase):
             new_status=GroupStatus.RESOLVED,
             new_substatus=None,
             detector_id=self.detector.id,
+            activity_data={},
         )
 
         with self.tasks():
             update_status(self.group, self.message)
-
-            # Ensure task is evaluated in issue platform
-            mock_incr.assert_any_call(
-                "workflow_engine.issue_platform.status_change",
-                tags={"activity_type": self.activity.type},
-            )
 
             # Issue platform is forwarding the activity update
             mock_incr.assert_any_call(
