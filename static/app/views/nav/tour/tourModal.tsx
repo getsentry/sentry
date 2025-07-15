@@ -30,7 +30,6 @@ export function NavTourModal({
         </Description>
         <Footer>
           <TextTourAction
-            size="sm"
             onClick={() => {
               handleDismissTour();
               closeModal();
@@ -40,7 +39,6 @@ export function NavTourModal({
             {t('Maybe later')}
           </TextTourAction>
           <TourAction
-            size="sm"
             onClick={() => {
               handleStartTour();
               closeModal();

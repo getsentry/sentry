@@ -36,10 +36,10 @@ export function IssueDetailsTourModal({
           )}
         </Description>
         <Footer>
-          <TextTourAction size="sm" onClick={handleDismissTour} borderless>
+          <TextTourAction onClick={handleDismissTour} borderless>
             {t('Maybe later')}
           </TextTourAction>
-          <TourAction size="sm" onClick={handleStartTour} borderless autoFocus>
+          <TourAction onClick={handleStartTour} borderless autoFocus>
             {t('Take tour')}
           </TourAction>
         </Footer>

@@ -64,7 +64,6 @@ function ExploreSpansTourModal({
         </Description>
         <Footer>
           <TextTourAction
-            size="sm"
             onClick={() => {
               handleDismissTour();
               closeModal();
@@ -74,7 +73,6 @@ function ExploreSpansTourModal({
             {t('Maybe later')}
           </TextTourAction>
           <TourAction
-            size="sm"
             onClick={() => {
               handleStartTour();
               closeModal();
