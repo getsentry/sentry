@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip, TooltipContext} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -51,7 +51,7 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
     replays: replay ? [replay.getReplay()] : [],
   });
 
-  return (
+  const content = (
     <Fragment>
       <PlayerBreadcrumbContainer>
         <PlayerContainer>
@@ -132,6 +132,26 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
       ) : null}
     </Fragment>
   );
+
+  // In fullscreen mode, ensure tooltips are rendered within the fullscreen container
+  // to prevent them from being clipped by the fullscreen boundary
+  if (isFullscreen) {
+    return (
+      <TooltipContext
+        value={{
+          // When in fullscreen mode, tooltips must be rendered within the fullscreen
+          // container instead of document.body to avoid being clipped. This ensures
+          // that browser/OS icons and size information tooltips remain visible.
+          // See: https://developer.mozilla.org/en-US/docs/Web/API/Fullscreen_API#things_to_keep_in_mind
+          container: document.fullscreenElement,
+        }}
+      >
+        {content}
+      </TooltipContext>
+    );
+  }
+
+  return content;
 }
 
 const Panel = styled(FluidHeight)`
