@@ -342,7 +342,7 @@ export default function AccountSecurityEnroll() {
   // Handle webAuthn
   const handleWebAuthn = useCallback(
     async (dataModel: any) => {
-      setIsMutationPending(false);
+      setIsMutationPending(true);
 
       try {
         await api.requestPromise(enrollEndpoint, {data: dataModel});
