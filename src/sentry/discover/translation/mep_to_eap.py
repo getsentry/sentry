@@ -4,6 +4,7 @@ from typing import TypedDict
 from parsimonious import NodeVisitor
 
 from sentry.api.event_search import event_search_grammar
+from sentry.discover import arithmetic
 from sentry.search.events import fields
 from sentry.snuba.metrics import parse_mri
 
@@ -207,6 +208,28 @@ def translate_columns(columns):
     return final_columns, dropped_columns
 
 
+def translate_equations(equations):
+    translated_equations = []
+
+    for equation in equations:
+        if arithmetic.is_equation(equation):
+            arithmetic_equation = arithmetic.strip_equation(equation)
+        else:
+            arithmetic_equation = equation
+
+        # TODO: add column and function swaps to equation fields and functions
+        operation, fields, functions = arithmetic.parse_arithmetic(arithmetic_equation)
+        new_fields, dropped_fields = drop_unsupported_columns(fields)
+        new_functions, dropped_functions = drop_unsupported_columns(functions)
+
+        if len(dropped_fields) > 0 or len(dropped_functions) > 0:
+            continue
+
+        translated_equations.append(equation)
+
+    return translated_equations
+
+
 def translate_mep_to_eap(query_parts: QueryParts):
     """
     This is a utility used to translate transactions/metrics/mep
@@ -218,11 +241,12 @@ def translate_mep_to_eap(query_parts: QueryParts):
     """
     new_query = translate_query(query_parts["query"])
     new_columns, dropped_columns = translate_columns(query_parts["selected_columns"])
+    new_equations = translate_equations(query_parts["equations"])
 
     eap_query = QueryParts(
         query=new_query,
         selected_columns=new_columns,
-        equations=query_parts["equations"],
+        equations=new_equations,
         orderby=query_parts["orderby"],
     )
 

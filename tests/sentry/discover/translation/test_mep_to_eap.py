@@ -125,3 +125,24 @@ def test_mep_to_eap_simple_selected_columns(input: list[str], expected: list[str
     translated = translate_mep_to_eap(old)
 
     assert translated["selected_columns"] == expected
+
+
+@pytest.mark.parametrize(
+    "input,expected",
+    [
+        pytest.param(
+            ["count(span.duration) + 5", "count_web_vitals(user,300) * 3"],
+            ["count(span.duration) + 5"],
+        ),
+    ],
+)
+def test_mep_to_eap_simple_equations(input: list[str], expected: list[str]):
+    old = QueryParts(
+        selected_columns=["id"],
+        query="",
+        equations=input,
+        orderby=[],
+    )
+    translated = translate_mep_to_eap(old)
+
+    assert translated["equations"] == expected
