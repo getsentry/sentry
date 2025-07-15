@@ -18,7 +18,7 @@ from sentry.grouping.component import (
 )
 from sentry.grouping.enhancer import Enhancements, get_enhancements_version
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
-from sentry.grouping.strategies.base import DEFAULT_GROUPING_ENHANCEMENTS_BASE, GroupingContext
+from sentry.grouping.strategies.base import DEFAULT_ENHANCEMENTS_BASE, GroupingContext
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.utils import (
     expand_title_template,
@@ -189,7 +189,7 @@ def get_grouping_config_dict_for_event_data(data: NodeData, project: Project) ->
 
 
 def get_default_enhancements(config_id: str | None = None) -> str:
-    base: str | None = DEFAULT_GROUPING_ENHANCEMENTS_BASE
+    base: str | None = DEFAULT_ENHANCEMENTS_BASE
     if config_id is not None:
         base = CONFIGURATIONS[config_id].enhancements_base
     return Enhancements.from_rules_text("", bases=[base] if base else []).base64_string

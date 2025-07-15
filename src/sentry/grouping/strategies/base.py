@@ -34,7 +34,7 @@ Risk = int  # TODO: make enum or union of literals
 ContextValue = Any
 ContextDict = dict[str, ContextValue]
 
-DEFAULT_GROUPING_ENHANCEMENTS_BASE = "common:2019-03-23"
+DEFAULT_ENHANCEMENTS_BASE = "common:2019-03-23"
 DEFAULT_GROUPING_FINGERPRINTING_BASES: list[str] = []
 
 # TODO: Hack to make `ReturnedVariants` (no pun intended) covariant. At some point we should
@@ -301,7 +301,7 @@ class StrategyConfiguration:
     hidden = False
     risk = RISK_LEVEL_LOW
     initial_context: ContextDict = {}
-    enhancements_base: str | None = DEFAULT_GROUPING_ENHANCEMENTS_BASE
+    enhancements_base: str | None = DEFAULT_ENHANCEMENTS_BASE
     fingerprinting_bases: Sequence[str] | None = DEFAULT_GROUPING_FINGERPRINTING_BASES
 
     def __init__(self, enhancements: str | None = None, **extra: Any):
@@ -317,7 +317,7 @@ class StrategyConfiguration:
                 )
             except InvalidEnhancerConfig:
                 enhancements_instance = ENHANCEMENT_BASES[
-                    self.enhancements_base or DEFAULT_GROUPING_ENHANCEMENTS_BASE
+                    self.enhancements_base or DEFAULT_ENHANCEMENTS_BASE
                 ]
 
         self.enhancements = enhancements_instance
