@@ -97,7 +97,6 @@ def _get_cached_grant_status(organization_id: int) -> bool | None:
             return True
         else:
             # Cached data is stale, remove it
-            # TODO: (iamrajjoshi) Invalidate the cache in other regions as well.
             cache.delete(cache_key)
 
     return None
