@@ -373,7 +373,7 @@ function renderEventInTraceView(
 ) {
   const spanId = data.id;
   if (!spanId || typeof spanId !== 'string') {
-    return emptyStringValue;
+    return <Container>{emptyStringValue}</Container>;
   }
 
   if (!data.trace) {
@@ -390,5 +390,9 @@ function renderEventInTraceView(
     source: TraceViewSources.DASHBOARDS,
   });
 
-  return <Link to={target}>{getShortEventId(spanId)}</Link>;
+  return (
+    <Link to={target}>
+      <Container>{getShortEventId(spanId)}</Container>
+    </Link>
+  );
 }

@@ -365,7 +365,7 @@ export function renderEventIdAsLinkable(
 ) {
   const id: string | unknown = data?.id;
   if (!eventView || typeof id !== 'string') {
-    return null;
+    return <Container>{emptyStringValue}</Container>;
   }
 
   const eventSlug = generateEventSlug(data);
@@ -392,7 +392,7 @@ export function renderTraceAsLinkable(widget?: Widget) {
   ) {
     const id: string | unknown = data?.trace;
     if (!eventView || typeof id !== 'string') {
-      return emptyStringValue;
+      return <Container>{emptyStringValue}</Container>;
     }
     const dateSelection = eventView.normalizeDateSelection(location);
     const target = getTraceDetailsUrl({
