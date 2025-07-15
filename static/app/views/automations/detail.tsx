@@ -10,6 +10,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TimeSince from 'sentry/components/timeSince';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
@@ -18,8 +19,10 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import type {Automation} from 'sentry/types/workflowEngine/automations';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useUserFromId from 'sentry/utils/useUserFromId';
@@ -28,34 +31,32 @@ import ConditionsPanel from 'sentry/views/automations/components/conditionsPanel
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
 import {useAutomationQuery} from 'sentry/views/automations/hooks';
 import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
-import {useDetectorQueriesByIds} from 'sentry/views/detectors/hooks';
+import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 
-export default function AutomationDetail() {
+const AUTOMATION_DETECTORS_LIMIT = 10;
+
+function AutomationDetailContent({automation}: {automation: Automation}) {
   const organization = useOrganization();
-  useWorkflowEngineFeatureGate({redirect: true});
-  const params = useParams<{automationId: string}>();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const {data: createdByUser} = useUserFromId({id: Number(automation.createdBy)});
 
   const {
-    data: automation,
-    isPending,
+    data: detectors,
+    isLoading,
     isError,
-    refetch,
-  } = useAutomationQuery(params.automationId);
-
-  const {data: createdByUser} = useUserFromId({id: Number(automation?.createdBy)});
-
-  const detectorsQuery = useDetectorQueriesByIds(automation?.detectorIds || []);
-  const detectors = detectorsQuery
-    .map(result => result.data)
-    .filter((detector): detector is Detector => detector !== undefined);
-
-  if (isPending) {
-    return <LoadingIndicator />;
-  }
-
-  if (isError) {
-    return <LoadingError onRetry={refetch} />;
-  }
+    getResponseHeader,
+  } = useDetectorsQuery(
+    {
+      ids: automation.detectorIds,
+      limit: AUTOMATION_DETECTORS_LIMIT,
+      cursor: location.query.cursor as string | undefined,
+    },
+    {
+      enabled: automation.detectorIds.length > 0,
+    }
+  );
 
   return (
     <SentryDocumentTitle title={automation.name} noSuffix>
@@ -86,7 +87,25 @@ export default function AutomationDetail() {
             </Section>
             <Section title={t('Connected Monitors')}>
               <ErrorBoundary mini>
-                <ConnectedMonitorsList monitors={detectors} />
+                <ConnectedMonitorsList
+                  detectors={detectors ?? []}
+                  isLoading={isLoading}
+                  isError={isError}
+                  connectedDetectorIds={new Set(automation.detectorIds)}
+                  numSkeletons={Math.min(
+                    automation.detectorIds.length,
+                    AUTOMATION_DETECTORS_LIMIT
+                  )}
+                />
+                <Pagination
+                  pageLinks={getResponseHeader?.('Link')}
+                  onCursor={cursor => {
+                    navigate({
+                      pathname: location.pathname,
+                      query: {...location.query, cursor},
+                    });
+                  }}
+                />
               </ErrorBoundary>
             </Section>
           </DetailLayout.Main>
@@ -142,6 +161,28 @@ export default function AutomationDetail() {
       </DetailLayout>
     </SentryDocumentTitle>
   );
+}
+
+export default function AutomationDetail() {
+  useWorkflowEngineFeatureGate({redirect: true});
+  const params = useParams<{automationId: string}>();
+
+  const {
+    data: automation,
+    isPending,
+    isError,
+    refetch,
+  } = useAutomationQuery(params.automationId);
+
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
+  }
+
+  return <AutomationDetailContent automation={automation} />;
 }
 
 function Actions() {

@@ -20,6 +20,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import DetectorListTable from 'sentry/views/detectors/components/detectorListTable';
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
+import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
@@ -54,6 +55,7 @@ export default function DetectorsList() {
     query,
     sortBy: sort ? `${sort?.kind === 'asc' ? '' : '-'}${sort?.field}` : undefined,
     projects: selection.projects,
+    limit: DETECTOR_LIST_PAGE_LIMIT,
   });
 
   return (
@@ -86,11 +88,22 @@ export default function DetectorsList() {
 }
 
 function TableHeader() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const query = typeof location.query.query === 'string' ? location.query.query : '';
+
+  const onSearch = (searchQuery: string) => {
+    navigate({
+      pathname: location.pathname,
+      query: {...location.query, query: searchQuery},
+    });
+  };
+
   return (
     <Flex gap={space(2)}>
       <ProjectPageFilter />
       <div style={{flexGrow: 1}}>
-        <DetectorSearch />
+        <DetectorSearch initialQuery={query} onSearch={onSearch} />
       </div>
     </Flex>
   );

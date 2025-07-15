@@ -1,7 +1,9 @@
-import type {Dispatch, SetStateAction} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import LoadingError from 'sentry/components/loadingError';
+import Placeholder from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
 import {t} from 'sentry/locale';
@@ -11,33 +13,64 @@ import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
 import {DetectorAssigneeCell} from 'sentry/views/detectors/components/detectorListTable/detectorAssigneeCell';
 import {DetectorTypeCell} from 'sentry/views/detectors/components/detectorListTable/detectorTypeCell';
 
-type Props = {
-  monitors: Detector[];
-  connectedIds?: Set<string>;
-  setConnectedIds?: Dispatch<SetStateAction<Set<string>>>;
+type Props = React.HTMLAttributes<HTMLDivElement> & {
+  /**
+   * If null, all detectors will be fetched.
+   */
+  detectors: Detector[];
+  isError: boolean;
+  isLoading: boolean;
+  connectedDetectorIds?: Set<string>;
+  emptyMessage?: string;
+  numSkeletons?: number;
+  toggleConnected?: (params: {detector: Detector}) => void;
 };
 
-export default function ConnectedMonitorsList({
-  monitors,
-  connectedIds,
-  setConnectedIds,
-}: Props) {
-  const canEdit = connectedIds && !!setConnectedIds;
+function Skeletons({canEdit, numberOfRows}: {canEdit: boolean; numberOfRows: number}) {
+  return (
+    <Fragment>
+      {Array.from({length: numberOfRows}).map((_, index) => (
+        <SimpleTable.Row key={index}>
+          <SimpleTable.RowCell>
+            <div style={{width: '100%'}}>
+              <Placeholder height="20px" width="50%" style={{marginBottom: '4px'}} />
+              <Placeholder height="16px" width="20%" />
+            </div>
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell data-column-name="type">
+            <Placeholder height="20px" />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell data-column-name="last-issue">
+            <Placeholder height="20px" />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell data-column-name="owner">
+            <Placeholder height="20px" />
+          </SimpleTable.RowCell>
+          {canEdit && (
+            <SimpleTable.RowCell data-column-name="connected">
+              <Placeholder height="20px" />
+            </SimpleTable.RowCell>
+          )}
+        </SimpleTable.Row>
+      ))}
+    </Fragment>
+  );
+}
 
-  const toggleConnected = (id: string) => {
-    setConnectedIds?.(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
-      return newSet;
-    });
-  };
+export default function ConnectedMonitorsList({
+  detectors,
+  isLoading,
+  isError,
+  connectedDetectorIds,
+  toggleConnected,
+  emptyMessage = t('No monitors connected'),
+  numSkeletons = 10,
+  ...props
+}: Props) {
+  const canEdit = Boolean(connectedDetectorIds && typeof toggleConnected === 'function');
 
   return (
-    <Container>
+    <Container {...props}>
       <SimpleTableWithColumns>
         <SimpleTable.Header>
           <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
@@ -52,27 +85,31 @@ export default function ConnectedMonitorsList({
           </SimpleTable.HeaderCell>
           {canEdit && <SimpleTable.HeaderCell data-column-name="connected" />}
         </SimpleTable.Header>
-        {monitors.length === 0 && (
-          <SimpleTable.Empty>{t('No monitors connected')}</SimpleTable.Empty>
+        {isLoading && <Skeletons canEdit={canEdit} numberOfRows={numSkeletons} />}
+        {isError && <LoadingError />}
+        {!isLoading && !isError && detectors.length === 0 && (
+          <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
         )}
-        {monitors.map(monitor => (
-          <SimpleTable.Row key={monitor.id}>
+        {detectors.map(detector => (
+          <SimpleTable.Row key={detector.id}>
             <SimpleTable.RowCell>
-              <DetectorLink detector={monitor} />
+              <DetectorLink detector={detector} />
             </SimpleTable.RowCell>
             <SimpleTable.RowCell data-column-name="type">
-              <DetectorTypeCell type={monitor.type} />
+              <DetectorTypeCell type={detector.type} />
             </SimpleTable.RowCell>
             <SimpleTable.RowCell data-column-name="last-issue">
               <IssueCell group={undefined} />
             </SimpleTable.RowCell>
             <SimpleTable.RowCell data-column-name="owner">
-              <DetectorAssigneeCell assignee={monitor.owner} />
+              <DetectorAssigneeCell assignee={detector.owner} />
             </SimpleTable.RowCell>
             {canEdit && (
               <SimpleTable.RowCell data-column-name="connected" justify="flex-end">
-                <Button onClick={() => toggleConnected(monitor.id)} size="sm">
-                  {connectedIds?.has(monitor.id) ? t('Disconnect') : t('Connect')}
+                <Button onClick={() => toggleConnected?.({detector})} size="sm">
+                  {connectedDetectorIds?.has(detector.id)
+                    ? t('Disconnect')
+                    : t('Connect')}
                 </Button>
               </SimpleTable.RowCell>
             )}

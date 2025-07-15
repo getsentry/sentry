@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {
   useApiQueries,
   useApiQuery,
@@ -11,7 +11,6 @@ import {
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {DetectorUpdatePayload} from 'sentry/views/detectors/components/forms/config';
-import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
 
 interface UseDetectorsQueryKeyOptions {
   cursor?: string;
@@ -22,7 +21,7 @@ interface UseDetectorsQueryKeyOptions {
   sortBy?: string;
 }
 
-const makeDetectorListQueryKey = ({
+export const makeDetectorListQueryKey = ({
   orgSlug,
   query,
   sortBy,
@@ -43,14 +42,10 @@ const makeDetectorListQueryKey = ({
   {query: {query, sortBy, project: projects, per_page: limit, cursor, id: ids}},
 ];
 
-export function useDetectorsQuery({
-  ids,
-  query,
-  sortBy,
-  projects,
-  limit = DETECTOR_LIST_PAGE_LIMIT,
-  cursor,
-}: UseDetectorsQueryKeyOptions = {}) {
+export function useDetectorsQuery(
+  {ids, query, sortBy, projects, limit, cursor}: UseDetectorsQueryKeyOptions = {},
+  queryOptions: Partial<UseApiQueryOptions<Detector[]>> = {}
+) {
   const org = useOrganization();
 
   return useApiQuery<Detector[]>(
@@ -66,6 +61,7 @@ export function useDetectorsQuery({
     {
       staleTime: 0,
       retry: false,
+      ...queryOptions,
     }
   );
 }

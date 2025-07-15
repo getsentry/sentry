@@ -1,25 +1,18 @@
-import {useState} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import type FormModel from 'sentry/components/forms/model';
-import useDrawer from 'sentry/components/globalDrawer';
 import {DebugForm} from 'sentry/components/workflowEngine/form/debug';
 import {EnvironmentSelector} from 'sentry/components/workflowEngine/form/environmentSelector';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Card} from 'sentry/components/workflowEngine/ui/card';
-import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {Automation} from 'sentry/types/workflowEngine/automations';
 import AutomationBuilder from 'sentry/views/automations/components/automationBuilder';
-import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
-import {EditConnectedMonitorsDrawer} from 'sentry/views/automations/components/editConnectedMonitorsDrawer';
-import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
-import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
+import EditConnectedMonitors from 'sentry/views/automations/components/editConnectedMonitors';
 
 const FREQUENCY_OPTIONS = [
   {value: 5, label: t('5 minutes')},
@@ -34,40 +27,14 @@ const FREQUENCY_OPTIONS = [
 ];
 
 export default function AutomationForm({model}: {model: FormModel}) {
-  const organization = useOrganization();
-
-  const {data: monitors = []} = useDetectorsQuery();
-  const initialConnectedIds = useFormField('detectorIds');
-  const [connectedIds, setConnectedIds] = useState<Set<string>>(
-    initialConnectedIds ? new Set(initialConnectedIds) : new Set<string>()
+  const initialConnectedIds = useFormField('detectorIds') as Automation['detectorIds'];
+  const connectedIdsSet = new Set(initialConnectedIds);
+  const setConnectedIds = useCallback(
+    (ids: Set<string>) => {
+      model.setValue('detectorIds', Array.from(ids));
+    },
+    [model]
   );
-  const connectedMonitors = monitors.filter(monitor => connectedIds.has(monitor.id));
-  const updateConnectedIds = (ids: Set<string>) => {
-    setConnectedIds(ids);
-    model.setValue('detectorIds', Array.from(ids));
-  };
-
-  const {openDrawer, isDrawerOpen, closeDrawer} = useDrawer();
-
-  const showEditMonitorsDrawer = () => {
-    if (!isDrawerOpen) {
-      openDrawer(
-        () => (
-          <EditConnectedMonitorsDrawer
-            initialIds={connectedIds}
-            onSave={ids => {
-              updateConnectedIds(ids);
-              closeDrawer();
-            }}
-          />
-        ),
-        {
-          ariaLabel: 'Edit Monitors Drawer',
-          drawerKey: 'edit-monitors-drawer',
-        }
-      );
-    }
-  };
 
   const [environment, setEnvironment] = useState<string>('');
   const updateEnvironment = (env: string) => {
@@ -77,21 +44,10 @@ export default function AutomationForm({model}: {model: FormModel}) {
 
   return (
     <Flex direction="column" gap={space(1.5)}>
-      <Card>
-        <Heading>{t('Connect Monitors')}</Heading>
-        <ConnectedMonitorsList monitors={connectedMonitors} />
-        <ButtonWrapper justify="space-between">
-          <LinkButton
-            icon={<IconAdd />}
-            to={`${makeMonitorBasePathname(organization.slug)}new/`}
-          >
-            {t('Create New Monitor')}
-          </LinkButton>
-          <Button icon={<IconEdit />} onClick={showEditMonitorsDrawer}>
-            {t('Edit Monitors')}
-          </Button>
-        </ButtonWrapper>
-      </Card>
+      <EditConnectedMonitors
+        connectedIds={connectedIdsSet}
+        setConnectedIds={setConnectedIds}
+      />
       <Card>
         <Flex direction="column" gap={space(0.5)}>
           <Heading>{t('Choose Environment')}</Heading>
@@ -132,12 +88,6 @@ const Description = styled('span')`
   color: ${p => p.theme.subText};
   margin: 0;
   padding: 0;
-`;
-
-const ButtonWrapper = styled(Flex)`
-  border-top: 1px solid ${p => p.theme.border};
-  padding: ${space(2)};
-  margin: -${space(2)};
 `;
 
 const EmbeddedSelectField = styled(SelectField)`
