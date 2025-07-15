@@ -3,33 +3,34 @@ import styled from '@emotion/styled';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {IconArrow} from 'sentry/icons';
-import {useStoryBookFilesByCategory} from 'sentry/stories/view/storySidebar';
-import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
-import type {StoryDescriptor} from 'sentry/stories/view/useStoriesLoader';
-import {useStory} from 'sentry/stories/view/useStory';
 import {space} from 'sentry/styles/space';
+
+import {useStoryBookFilesByCategory} from './storySidebar';
+import type {StoryTreeNode} from './storyTree';
+import {type StoryDescriptor} from './useStoriesLoader';
+import {useStory} from './useStory';
 
 export function StoryFooter() {
   const {story} = useStory();
-  const categories = useStoryBookFilesByCategory();
-  const pagination = findPreviousAndNextStory(story, categories);
+  const stories = useStoryBookFilesByCategory();
+  const pagination = findPreviousAndNextStory(story, stories);
 
   return (
     <Flex align="center" justify="space-between" gap={space(2)}>
       {pagination?.prev && (
-        <Card to={pagination.prev.story.location} icon={<IconArrow direction="left" />}>
+        <Card to={pagination.prev.location} icon={<IconArrow direction="left" />}>
           <CardLabel>Previous</CardLabel>
-          <CardTitle>{pagination.prev.story.label}</CardTitle>
+          <CardTitle>{pagination.prev.label}</CardTitle>
         </Card>
       )}
       {pagination?.next && (
         <Card
           data-flip
-          to={pagination.next.story.location}
+          to={pagination.next.location}
           icon={<IconArrow direction="right" />}
         >
           <CardLabel>Next</CardLabel>
-          <CardTitle>{pagination.next.story.label}</CardTitle>
+          <CardTitle>{pagination.next.label}</CardTitle>
         </Card>
       )}
     </Flex>
@@ -40,14 +41,11 @@ function findPreviousAndNextStory(
   story: StoryDescriptor,
   categories: ReturnType<typeof useStoryBookFilesByCategory>
 ): {
-  next: {category: string; story: StoryTreeNode} | undefined;
-  prev: {category: string; story: StoryTreeNode} | undefined;
+  next?: StoryTreeNode;
+  prev?: StoryTreeNode;
 } | null {
-  const stories = Object.entries(categories).flatMap(([key, category]) =>
-    category.map(s => ({category: key, story: s}))
-  );
-
-  const currentIndex = stories.findIndex(s => s.story.filesystemPath === story.filename);
+  const stories = Object.values(categories).flat();
+  const currentIndex = stories.findIndex(s => s.filesystemPath === story.filename);
 
   if (currentIndex === -1) {
     return null;
