@@ -745,15 +745,9 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
                     scope.set_extra("widget_query.id", widget_query.id)
                     raise HighCardinalityWidgetException()
         except HighCardinalityWidgetException as error:
-            metrics.incr(
-                "on_demand_metrics.cardinality_check.query.success", tags={"low_cardinality": False}
-            )
             sentry_sdk.capture_message(str(error))
             return False
 
-    metrics.incr(
-        "on_demand_metrics.cardinality_check.query.success", tags={"low_cardinality": True}
-    )
     cache.set(cache_key, True)
     return True
 
