@@ -259,6 +259,14 @@ class DashboardWidgetQueryOnDemand(Model):
 
 
 @region_silo_model
+class DashboardWidgetSnapshot(Model):
+    __relocation_scope__ = RelocationScope.Organization
+
+    widget = FlexibleForeignKey("sentry.DashboardWidget")
+    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
+
+
+@region_silo_model
 class DashboardWidget(Model):
     """
     A dashboard widget.

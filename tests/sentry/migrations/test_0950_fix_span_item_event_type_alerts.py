@@ -6,8 +6,8 @@ from sentry.testutils.cases import TestMigrations
 
 @pytest.mark.migrations
 class FixSpanItemEventTypeAlertsTest(TestMigrations):
-    migrate_from = "0948_ds_waiver_org_fk_not_db_constr"
-    migrate_to = "0949_fix_span_item_event_type_alerts"
+    migrate_from = "0949_add_dashboard_widget_snapshot_model"
+    migrate_to = "0950_fix_span_item_event_type_alerts"
 
     def setup_before_migration(self, apps):
         self.snuba_query_with_transaction = SnubaQuery.objects.create(
