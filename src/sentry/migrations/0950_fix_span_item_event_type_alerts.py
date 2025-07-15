@@ -28,7 +28,7 @@ def fix_span_item_event_type_alerts(
     for snuba_query in RangeQuerySetWrapperWithProgressBar(
         SnubaQuery.objects.filter(dataset="events_analytics_platform")
     ):
-        event_type_objects = list(SnubaQueryEventType.objects.filter(snuba_query=snuba_query))
+        event_type_objects = SnubaQueryEventType.objects.filter(snuba_query=snuba_query)
 
         log_event_type: Any | None = None
         span_event_type: Any | None = None
