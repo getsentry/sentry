@@ -80,6 +80,17 @@ SPAN_KAFKA_MESSAGE = {
         "server_name": "D23CXQ4GK2.local",
         "spans_over_limit": "False",
     },
+    "links": [
+        {
+            "trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b",
+            "span_id": "8873a98879faf06d",
+            "sampled": True,
+            "attributes": {
+                "sentry.link.type": "parent",
+                "parent_depth": 17,
+            },
+        }
+    ],
     "trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b",
     "start_timestamp_ms": 1721319572616,
     "start_timestamp_precise": 1721319572.616648,
@@ -135,6 +146,9 @@ def test_convert_span_to_item():
         "sentry.profile_id": AnyValue(string_value="56c7d1401ea14ad7b4ac86de46baebae"),
         "thread.id": AnyValue(string_value="8522009600"),
         "http.status_code": AnyValue(string_value="200"),
+        "sentry.links": AnyValue(
+            string_value='[{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b","span_id":"8873a98879faf06d","sampled":true,"attributes":{"sentry.link.type":"parent","sentry.dropped_attributes_count":1}}]'
+        ),
         "sentry.release": AnyValue(
             string_value="backend@24.7.0.dev0+c45b49caed1e5fcbf70097ab3f434b487c359b6b"
         ),
