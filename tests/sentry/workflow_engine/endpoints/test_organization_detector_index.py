@@ -455,17 +455,16 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         )
 
     def test_invalid_workflow_ids(self):
-        # Non-existent workflow ID should fail validation
+        # Workflow doesn't exist at all
         data = {**self.valid_data, "workflowIds": [999999]}
         response = self.get_error_response(
             self.organization.slug,
             **data,
             status_code=400,
         )
-        assert "workflowIds" in response.data
-        assert "999999" in response.data["workflowIds"][0]
+        assert "Workflow matching query does not exist" in str(response.data)
 
-        # Workflow that exists but is in another org should fail validation
+        # Workflow that exists but is in another org should also fail validation
         other_org = self.create_organization()
         other_workflow = self.create_workflow(organization_id=other_org.id)
         data = {**self.valid_data, "workflowIds": [other_workflow.id]}
@@ -474,8 +473,23 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             **data,
             status_code=400,
         )
-        assert "workflowIds" in response.data
-        assert str(other_workflow.id) in response.data["workflowIds"][0]
+        assert "Workflow matching query does not exist" in str(response.data)
+
+    def test_transaction_rollback_on_workflow_validation_failure(self):
+        initial_detector_count = Detector.objects.filter(project=self.project).count()
+
+        # Try to create detector with invalid workflow, get an error response back
+        data = {**self.valid_data, "workflowIds": [999999]}
+        response = self.get_error_response(
+            self.organization.slug,
+            **data,
+            status_code=400,
+        )
+
+        # Verify that the detector was never created (same number of detectors as before)
+        final_detector_count = Detector.objects.filter(project=self.project).count()
+        assert final_detector_count == initial_detector_count
+        assert "Workflow matching query does not exist" in str(response.data)
 
     def test_missing_required_field(self):
         response = self.get_error_response(

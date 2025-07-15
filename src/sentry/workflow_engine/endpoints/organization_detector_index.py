@@ -1,5 +1,6 @@
 from functools import partial
 
+from django.db import router, transaction
 from django.db.models import Count, Q
 from django.db.models.query import QuerySet
 from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
@@ -221,27 +222,31 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        detector = validator.save()
-
-        # Handle workflow connections
         workflow_ids = request.data.get("workflowIds", [])
-        if workflow_ids:
-            for workflow_id in workflow_ids:
-                workflow_validator = DetectorWorkflowValidator(
-                    data={
-                        "detector_id": detector.id,
-                        "workflow_id": workflow_id,
-                    },
-                    context={
-                        "organization": organization,
-                        "request": request,
-                    },
-                )
-                if not workflow_validator.is_valid():
-                    # Clean up the detector if workflow validation fails
-                    detector.delete()
-                    return Response(workflow_validator.errors, status=status.HTTP_400_BAD_REQUEST)
+        if not workflow_ids:
+            detector = validator.save()
+        else:
+            with transaction.atomic(router.db_for_write(Detector)):
+                detector = validator.save()
 
-                workflow_validator.save()
+                workflow_validators = [
+                    DetectorWorkflowValidator(
+                        data={
+                            "detector_id": detector.id,
+                            "workflow_id": workflow_id,
+                        },
+                        context={
+                            "organization": organization,
+                            "request": request,
+                        },
+                    )
+                    for workflow_id in workflow_ids
+                ]
+                for workflow_validator in workflow_validators:
+                    if not workflow_validator.is_valid():
+                        raise ValidationError(workflow_validator.errors)
+
+                for workflow_validator in workflow_validators:
+                    workflow_validator.save()
 
         return Response(serialize(detector, request.user), status=status.HTTP_201_CREATED)
