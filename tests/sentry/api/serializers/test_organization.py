@@ -91,6 +91,7 @@ class OrganizationSerializerTest(TestCase):
             "new-page-filter",
             "open-membership",
             "performance-tracing-without-performance",
+            "related-issues",
             "relay",
             "session-replay-ui",
             "shared-issues",
