@@ -484,13 +484,17 @@ def get_attributes_and_values(
                 attribute_name = attribute.attribute_name
 
             if attribute.buckets:
-                attributes_and_values[attribute_name] = [
-                    {
-                        "value": value.label,
-                        "count": value.value,
-                    }
-                    for value in attribute.buckets
-                ]
+                if attribute_name not in attributes_and_values:
+                    attributes_and_values[attribute_name] = []
+                attributes_and_values[attribute_name].extend(
+                    [
+                        {
+                            "value": value.label,
+                            "count": value.value,
+                        }
+                        for value in attribute.buckets
+                    ]
+                )
 
     return {"attributes_and_values": attributes_and_values}
 
