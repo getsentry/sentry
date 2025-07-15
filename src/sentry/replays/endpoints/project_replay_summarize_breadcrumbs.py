@@ -173,12 +173,10 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[GroupEven
         return []
 
 
-def parse_timestamp(
-    value: str | float | None, float_input_unit: Literal["s", "ms"] = "ms"
-) -> float:
+def parse_timestamp(value: str | float | None, float_input_unit: Literal["s", "ms"]) -> float:
     """
     Parse a timestamp input to float milliseconds. None and parse errors default to 0.0.
-    `float_input_unit` is the value's expected unit, only applicable when it's a float.
+    `float_input_unit` is the value's expected unit and ignored when it's a not a number.
     """
     if value is None:
         return 0.0
@@ -254,9 +252,9 @@ def fetch_trace_connected_errors(
             error_data = query.process_results(result)["data"]
 
             for event in error_data:
-                timestamp = parse_timestamp(
-                    event.get("timestamp_ms"), float_input_unit="ms"
-                ) or parse_timestamp(event.get("timestamp"), float_input_unit="s")
+                timestamp = parse_timestamp(event.get("timestamp_ms"), "ms") or parse_timestamp(
+                    event.get("timestamp"), float_input_unit="s"
+                )
 
                 if timestamp:
                     error_events.append(
