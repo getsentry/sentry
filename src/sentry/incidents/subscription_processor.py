@@ -381,7 +381,7 @@ class SubscriptionProcessor:
                         entity=subscription_update.get("entity", ""),
                         subscription_id=subscription_update["subscription_id"],
                         values={
-                            "values": {
+                            None: {
                                 "value": aggregation_value,
                                 "source_id": str(self.subscription.id),
                                 "subscription_id": subscription_update["subscription_id"],
