@@ -736,7 +736,6 @@ SWITCH_ONE_PLATFORM_ENABLED_DEFAULT = False
 SWITCH_TWO_PLATFORM_ENABLED_DEFAULT = False
 XBOX_PLATFORM_ENABLED_DEFAULT = False
 
-
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True
 ALERTS_MEMBER_WRITE_DEFAULT = True
