@@ -673,6 +673,9 @@ def fire_actions_for_groups(
     should_trigger_actions_async = features.has(
         "organizations:workflow-engine-action-trigger-async", organization
     )
+    is_single_processing = features.has(
+        "organizations:workflow-engine-single-processing", organization
+    )
 
     total_actions = 0
     with track_batch_performance(
@@ -723,7 +726,9 @@ def fire_actions_for_groups(
                 filtered_actions = filter_recently_fired_workflow_actions(
                     action_filters_for_group | workflows_actions, workflow_event_data
                 )
-                create_workflow_fire_histories(detector, filtered_actions, workflow_event_data)
+                create_workflow_fire_histories(
+                    detector, filtered_actions, workflow_event_data, is_single_processing
+                )
 
                 metrics.incr(
                     "workflow_engine.delayed_workflow.triggered_actions",

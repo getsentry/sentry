@@ -432,7 +432,10 @@ def process_workflows(
         # If there aren't any actions on the associated workflows, there's nothing to trigger
         return triggered_workflows
 
-    create_workflow_fire_histories(detector, actions, event_data)
+    is_single_processing = features.has(
+        "organizations:workflow-engine-single-processing", organization
+    )
+    create_workflow_fire_histories(detector, actions, event_data, is_single_processing)
 
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.trigger_actions"):
         if should_fire_workflow_actions(organization):
