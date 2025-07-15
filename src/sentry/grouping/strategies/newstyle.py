@@ -735,9 +735,10 @@ def filter_exceptions_for_exception_groups(
         node = exception_tree.get(exception_id)
         return node.children if node else []
 
-    # This recursive generator gets the "top-level exceptions," and is used below.
-    # Top-level exceptions are those that are the first descendants of the root that are not exception groups.
-    # For examples, see https://github.com/getsentry/rfcs/blob/main/text/0079-exception-groups.md#sentry-issue-grouping
+    # This recursive generator gets the "top-level exceptions," and is used below. Top-level
+    # exceptions are those that are the direct descendants of an exception group that are not
+    # themselves exception groups. For examples, see
+    # https://github.com/getsentry/rfcs/blob/main/text/0079-exception-groups.md#sentry-issue-grouping
     def get_top_level_exceptions(
         exception: SingleException,
     ) -> Generator[SingleException]:
@@ -749,15 +750,16 @@ def filter_exceptions_for_exception_groups(
         else:
             yield exception
 
-    # This recursive generator gets the "first-path" of exceptions, and is used below.
-    # The first path follows from the root to a leaf node, but only following the first child of each node.
+    # This recursive generator gets the "first-path" of exceptions, and is used below. The first
+    # path follows from the root to a leaf node, but only following the first child of each node.
     def get_first_path(exception: SingleException) -> Generator[SingleException]:
         yield exception
         children = get_child_exceptions(exception)
         if children:
             yield from get_first_path(children[0])
 
-    # Traverse the tree recursively from the root exception to get all "top-level exceptions" and sort for consistency.
+    # Traverse the tree recursively from the root exception to get all "top-level exceptions" (see
+    # `get_top_level_exceptions` above) and sort by exception type for consistency.
     top_level_exceptions = []
     root_node = exception_tree.get(0)
     if root_node and root_node.exception:
