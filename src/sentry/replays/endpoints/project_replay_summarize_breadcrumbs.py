@@ -102,7 +102,7 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
 
         per_page = self.get_per_page(request)
         cursor = request.GET.get(self.cursor_name, "")
-        cache_key = f"replay_summarize_breadcrumbs:{project.id}:{replay_id}:{per_page}:{cursor}"
+        cache_key = f"replay_summarize_breadcrumbs:{project.id}:{replay_id}:{per_page}:{cursor}:{disable_error_fetching}"
 
         if not request.query_params.get(REFRESH_CACHE_QPARAM, "false").lower() == "true":
             cache_lookup_result: tuple[dict[str, Any], int] | None = cache.get(cache_key)
