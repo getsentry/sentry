@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {TextTourAction, TourAction} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useInvertedTheme} from 'sentry/utils/theme/theme';
+import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 
 interface StartTourModalProps {
   closeModal: () => void;
