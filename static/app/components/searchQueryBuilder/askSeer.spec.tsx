@@ -58,7 +58,7 @@ describe('AskSeer', () => {
       organization: {features: ['gen-ai-features', 'gen-ai-explore-traces']},
     });
 
-    const askSeer = await screen.findByRole('option', {name: 'Ask Seer'});
+    const askSeer = await screen.findByRole('option', {name: /Ask Seer/});
     expect(askSeer).toBeInTheDocument();
   });
 
@@ -77,7 +77,7 @@ describe('AskSeer', () => {
       organization: {features: ['gen-ai-features', 'gen-ai-explore-traces']},
     });
 
-    const enableAi = await screen.findByText('Enable Gen AI');
+    const enableAi = await screen.findByText(/Enable Gen AI/);
     expect(enableAi).toBeInTheDocument();
   });
 
@@ -103,7 +103,7 @@ describe('AskSeer', () => {
         organization: {features: ['gen-ai-features', 'gen-ai-explore-traces']},
       });
 
-      const enableAi = await screen.findByText('Enable Gen AI');
+      const enableAi = await screen.findByText(/Enable Gen AI/);
       expect(enableAi).toBeInTheDocument();
 
       await userEvent.click(enableAi);
