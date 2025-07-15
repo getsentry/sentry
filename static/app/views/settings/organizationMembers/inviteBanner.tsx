@@ -185,7 +185,7 @@ export function InviteBanner({
               />
             </Subtitle>
           </CardTitleContent>
-          <ButtonBar gap={1}>
+          <ButtonBar>
             <Button
               priority="primary"
               size="xs"

@@ -284,7 +284,7 @@ function EditAccessSelector({
 
   // Save and Cancel Buttons
   const dropdownFooterButtons = (
-    <FilterButtons>
+    <FilterButtons gap="lg">
       <Button
         size="sm"
         onClick={() => {
@@ -422,8 +422,6 @@ const StyledBadge = styled(Tag)<{size: number}>`
 `;
 
 const FilterButtons = styled(ButtonBar)`
-  display: grid;
-  gap: ${space(1.5)};
   margin-top: ${space(0.5)};
   margin-bottom: ${space(0.5)};
   justify-content: flex-end;

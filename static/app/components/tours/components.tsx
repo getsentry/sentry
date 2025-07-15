@@ -256,7 +256,7 @@ export function TourElementContent<T extends TourEnumType>({
 
   const defaultActions = useMemo(
     () => (
-      <ButtonBar gap={1}>
+      <ButtonBar>
         {hasPreviousStep && (
           <TextTourAction size="xs" onClick={previousStep}>
             {t('Previous')}
