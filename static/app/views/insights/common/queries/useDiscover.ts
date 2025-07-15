@@ -12,8 +12,6 @@ import type {
   DiscoverResponse,
   EAPSpanProperty,
   EAPSpanResponse,
-  MetricsProperty,
-  MetricsResponse,
   SpanMetricsProperty,
   SpanMetricsResponse,
 } from 'sentry/views/insights/types';
@@ -63,18 +61,6 @@ export const useSpanMetrics = <Fields extends SpanMetricsProperty[]>(
   return useDiscover<Fields, SpanMetricsResponse>(
     options,
     useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_METRICS,
-    referrer
-  );
-};
-
-export const useMetrics = <Fields extends MetricsProperty[]>(
-  options: UseDiscoverOptions<Fields> = {},
-  referrer: string
-) => {
-  const useEap = useInsightsEap();
-  return useDiscover<Fields, MetricsResponse>(
-    options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.METRICS,
     referrer
   );
 };

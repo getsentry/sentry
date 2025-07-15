@@ -3,7 +3,7 @@ import {useReleaseSelection} from 'sentry/views/insights/common/queries/useRelea
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 
-import {useMetrics} from './useDiscover';
+import {useSpans} from './useDiscover';
 
 export function useTTFDConfigured(additionalFilters?: string[]) {
   const useEap = useInsightsEap();
@@ -22,7 +22,7 @@ export function useTTFDConfigured(additionalFilters?: string[]) {
 
   const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
 
-  const result = useMetrics(
+  const result = useSpans(
     {
       search: queryString,
       enabled: !isReleasesLoading,
