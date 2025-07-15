@@ -133,7 +133,6 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
     </Fragment>
   );
 
-  // to prevent them from being clipped by the fullscreen boundary
   if (isFullscreen) {
     return (
       <TooltipContext
