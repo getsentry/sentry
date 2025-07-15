@@ -1,6 +1,6 @@
 import uuid
 import zlib
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from unittest.mock import patch
 
 import requests
@@ -26,9 +26,7 @@ from sentry.utils import json
 
 # have to use TransactionTestCase because we're using threadpools
 @requires_snuba
-class ProjectReplaySummarizeBreadcrumbsTestCase(
-    TransactionTestCase,
-):
+class ProjectReplaySummarizeBreadcrumbsTestCase(TransactionTestCase):
     endpoint = "sentry-api-0-project-replay-summarize-breadcrumbs"
 
     def setUp(self):
@@ -40,7 +38,17 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
             args=(self.organization.slug, self.project.slug, self.replay_id),
         )
 
-    def store_replays(self, replay):
+    def store_replay_event(
+        self,
+        dt: datetime | None = None,
+        **kwargs,
+    ):
+        replay = mock_replay(
+            datetime.now(timezone.utc) - timedelta(minutes=5),  # catch clock skew
+            self.project.id,
+            self.replay_id,
+            **kwargs,
+        )
         response = requests.post(
             settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=[replay]
         )
@@ -95,9 +103,11 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         )
 
     @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
-    def test_get_a(self, make_seer_request):
+    def test_get_simple(self, make_seer_request):
         return_value = json.dumps({"hello": "world"}).encode()
         make_seer_request.return_value = return_value
+
+        self.store_replay_event()
 
         data = [
             {
@@ -162,6 +172,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
             raise ParseError("e")
 
         make_seer_request.side_effect = x
+        self.store_replay_event()
         self.save_recording_segment(0, json.dumps([]).encode())
 
         with self.feature(
@@ -212,14 +223,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
             == "ZeroDivisionError"
         )
 
-        self.store_replays(
-            mock_replay(
-                now,
-                self.project.id,
-                self.replay_id,
-                error_ids=[event_id],
-            )
-        )
+        self.store_replay_event(error_ids=[event_id])
 
         data = [
             {
@@ -278,14 +282,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
             project_id=self.project.id,
         )
 
-        self.store_replays(
-            mock_replay(
-                now,
-                self.project.id,
-                self.replay_id,
-                error_ids=[event_id],
-            )
-        )
+        self.store_replay_event(error_ids=[event_id])
 
         data = [
             {
@@ -375,15 +372,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
             project_id=project_2.id,
         )
 
-        self.store_replays(
-            mock_replay(
-                now,
-                self.project.id,
-                self.replay_id,
-                trace_ids=[trace_id],
-                error_ids=[],
-            )
-        )
+        self.store_replay_event(trace_ids=[trace_id])
 
         data = [
             {
@@ -474,15 +463,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         )
 
         # Store the replay with both error IDs and trace IDs
-        self.store_replays(
-            mock_replay(
-                now,
-                self.project.id,
-                self.replay_id,
-                error_ids=[direct_event_id],
-                trace_ids=[trace_id],
-            )
-        )
+        self.store_replay_event(error_ids=[direct_event_id], trace_ids=[trace_id])
 
         data = [
             {
@@ -527,13 +508,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
 
         now = datetime.now(timezone.utc)
 
-        self.store_replays(
-            mock_replay(
-                now,
-                self.project.id,
-                self.replay_id,
-            )
-        )
+        self.store_replay_event()
 
         data = [
             {

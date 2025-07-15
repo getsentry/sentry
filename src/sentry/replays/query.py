@@ -206,7 +206,10 @@ def query_replays_segment_count(
         query=Query(
             match=Entity("replays"),
             select=[
-                Column("replay_id"),
+                # Alias as "rid" to avoid shadowing the replay_id column. When the column
+                # is shadowed our index is disabled in the WHERE and we waste a lot of
+                # compute parsing UUIDs we don't care about.
+                _strip_uuid_dashes("replay_id", Column("replay_id"), alias="rid"),
                 Function("max", parameters=[Column("segment_id")], alias="segment_count"),
                 Function(
                     "ifNull",
@@ -227,12 +230,12 @@ def query_replays_segment_count(
                 Condition(Column("replay_id"), Op.IN, replay_ids),
             ],
             having=[
-                # Must include the first sequence otherwise the replay is too old.
+                # Time range must include the first sequence otherwise the replay is too old.
                 Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
             ],
             orderby=[],
             groupby=[Column("replay_id")],
-            granularity=Granularity(3600),
+            granularity=Granularity(3600),  # Time range resolution.
         ),
         tenant_ids=tenant_ids,
     )

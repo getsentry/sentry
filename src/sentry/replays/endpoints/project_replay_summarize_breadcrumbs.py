@@ -152,7 +152,6 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
                 analyze_recording_segments, error_events, replay_id, project.id
             ),
         )
-
         cache.set(cache_key, (response.data, num_segments), timeout=CACHE_TIMEOUT)
         return response
 
