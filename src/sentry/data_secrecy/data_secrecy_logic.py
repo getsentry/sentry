@@ -122,8 +122,12 @@ def data_access_grant_exists(organization_id: int) -> bool:
     )
 
     if grant_status:
-        # If the grant is expired, cache the negative result for 15 minutes
-        if grant_status.access_end <= datetime.now(timezone.utc):
+        # Calculate TTL first to avoid race condition where grant expires between checks
+        current_time = datetime.now(timezone.utc)
+        ttl_seconds = int((grant_status.access_end - current_time).total_seconds())
+
+        # If the grant is expired or about to expire (TTL <= 0), cache the negative result
+        if ttl_seconds <= 0:
             cache.set(
                 CACHE_KEY_PATTERN.format(organization_id=organization_id),
                 NEGATIVE_CACHE_VALUE,
@@ -131,14 +135,8 @@ def data_access_grant_exists(organization_id: int) -> bool:
             )
             return False
 
-        # This is ok since we invalidate the cache when the grant is revoked, updated, etc.
-        ttl_seconds = int((grant_status.access_end - datetime.now(timezone.utc)).total_seconds())
-
+        # Grant is still valid, cache the positive result with calculated TTL
         serialized_grant_status = grant_status.dict()
-
-        # We need to do this check because of concurrency issues.
-        # If a request comes in at the same time as the grant is revoked,
-        # we need to ensure that we don't store the expired grant status (accounting for the delay induced by RPC)
         cache.set(
             CACHE_KEY_PATTERN.format(organization_id=organization_id),
             serialized_grant_status,
