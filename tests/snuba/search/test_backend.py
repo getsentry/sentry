@@ -33,7 +33,7 @@ from sentry.search.snuba.executors import TrendsSortWeights
 from sentry.seer.seer_utils import FixabilityScoreThresholds
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import SnubaTestCase, TestCase, TransactionTestCase
-from sentry.testutils.helpers import Feature, apply_feature_flag_on_cls
+from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.utils import json
@@ -2568,7 +2568,6 @@ class EventsSnubaSearchTest(TestCase, EventsSnubaSearchTestCases):
     pass
 
 
-@apply_feature_flag_on_cls("organizations:issue-search-group-attributes-side-query")
 class EventsJoinedGroupAttributesSnubaSearchTest(TransactionTestCase, EventsSnubaSearchTestCases):
     def setUp(self):
         def post_insert(snapshot: GroupAttributesSnapshot) -> None:
