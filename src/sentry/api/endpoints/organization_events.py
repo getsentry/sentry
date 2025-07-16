@@ -578,7 +578,9 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                             in request.GET,
                         )
                     else:
-                        config = SearchResolverConfig()
+                        config = SearchResolverConfig(
+                            use_aggregate_conditions=use_aggregate_conditions,
+                        )
                     return scoped_dataset.run_table_query(
                         params=snuba_params,
                         query_string=scoped_query or "",
