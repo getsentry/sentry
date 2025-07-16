@@ -43,9 +43,9 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
             preference=self.project_preference, code_mapping_repos=[self.repo_definition]
         ).dict()
 
-    @patch("sentry.api.endpoints.project_seer_preferences.requests.post")
+    @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
     @patch(
-        "sentry.api.endpoints.project_seer_preferences.get_autofix_repos_from_project_code_mappings",
+        "sentry.seer.endpoints.project_seer_preferences.get_autofix_repos_from_project_code_mappings",
         return_value=[
             {
                 "provider": "github",
@@ -85,7 +85,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert "content-type" in kwargs["headers"]
         assert kwargs["headers"]["content-type"] == "application/json;charset=utf-8"
 
-    @patch("sentry.api.endpoints.project_seer_preferences.requests.post")
+    @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
     def test_post(self, mock_post):
         """Test that the POST method correctly calls the SEER API and returns the response"""
         # Setup the mock
@@ -138,7 +138,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert "content-type" in kwargs["headers"]
         assert kwargs["headers"]["content-type"] == "application/json;charset=utf-8"
 
-    @patch("sentry.api.endpoints.project_seer_preferences.requests.post")
+    @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
     def test_api_error_handling(self, mock_post):
         """Test that the endpoint correctly handles API errors"""
         # Setup the mock to raise an error
@@ -150,7 +150,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         # Assert the response indicates an error
         assert response.status_code == 500
 
-    @patch("sentry.api.endpoints.project_seer_preferences.requests.post")
+    @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
     def test_http_error(self, mock_post):
         """Test handling of HTTP errors from the SEER API"""
         # Setup mock to raise a requests.HTTPError
@@ -164,7 +164,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         # Assert the response indicates an error
         assert response.status_code == 500
 
-    @patch("sentry.api.endpoints.project_seer_preferences.requests.post")
+    @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
     def test_invalid_request_data(self, mock_post):
         """Test handling of invalid request data"""
         # Request with invalid data (missing required fields)
@@ -187,7 +187,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         # We don't assert mock_post.assert_not_called() here since the error happens
         # during validation which triggers a 500 error rather than a 400
 
-    @patch("sentry.api.endpoints.project_seer_preferences.requests.post")
+    @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
     def test_api_error_status_code(self, mock_post):
         """Test handling when the SEER API returns an error status code"""
         # Setup the mock to return an error status code
@@ -202,7 +202,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         # Assert the response indicates an error
         assert response.status_code == 500
 
-    @patch("sentry.api.endpoints.project_seer_preferences.requests.post")
+    @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
     def test_no_preferences_found(self, mock_post):
         """Test handling when no preferences are found for the project"""
         # Setup the mock to return a response with null preference
@@ -219,7 +219,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert response.data["preference"] is None
         assert response.data["code_mapping_repos"] == []
 
-    @patch("sentry.api.endpoints.project_seer_preferences.requests.post")
+    @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
     def test_api_invalid_response_data(self, mock_post):
         """Test handling when the SEER API returns invalid data"""
         # Setup the mock to return invalid data

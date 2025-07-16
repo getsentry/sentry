@@ -18,7 +18,7 @@ pytestmark = [requires_snuba]
 
 
 @apply_feature_flag_on_cls("organizations:gen-ai-features")
-@patch("sentry.seer.autofix.get_seer_org_acknowledgement", return_value=True)
+@patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     def _get_url(self, group_id: int):
         return f"/api/0/issues/{group_id}/autofix/"
@@ -286,10 +286,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         # Should have empty repositories list since there are no codebases
         assert len(response.data["autofix"]["repositories"]) == 0
 
-    @patch("sentry.seer.autofix.get_from_profiling_service")
-    @patch("sentry.seer.autofix._get_profile_from_trace_tree")
-    @patch("sentry.seer.autofix._call_autofix")
-    @patch("sentry.seer.autofix._get_trace_tree_for_event")
+    @patch("sentry.seer.autofix.autofix.get_from_profiling_service")
+    @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
+    @patch("sentry.seer.autofix.autofix._call_autofix")
+    @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
     def test_ai_autofix_post_endpoint(
         self,
@@ -368,10 +368,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         mock_check_autofix_status.assert_called_once_with(args=[123], countdown=900)
 
-    @patch("sentry.seer.autofix.get_from_profiling_service")
-    @patch("sentry.seer.autofix._get_profile_from_trace_tree")
-    @patch("sentry.seer.autofix._call_autofix")
-    @patch("sentry.seer.autofix._get_trace_tree_for_event")
+    @patch("sentry.seer.autofix.autofix.get_from_profiling_service")
+    @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
+    @patch("sentry.seer.autofix.autofix._call_autofix")
+    @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
     def test_ai_autofix_post_without_code_mappings(
         self,
@@ -436,10 +436,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         mock_check_autofix_status.assert_called_once_with(args=[123], countdown=900)
 
-    @patch("sentry.seer.autofix.get_from_profiling_service")
-    @patch("sentry.seer.autofix._get_profile_from_trace_tree")
-    @patch("sentry.seer.autofix._call_autofix")
-    @patch("sentry.seer.autofix._get_trace_tree_for_event")
+    @patch("sentry.seer.autofix.autofix.get_from_profiling_service")
+    @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
+    @patch("sentry.seer.autofix.autofix._call_autofix")
+    @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
     def test_ai_autofix_post_without_event_id(
         self,
@@ -517,9 +517,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_check_autofix_status.assert_called_once_with(args=[123], countdown=900)
 
     @patch("sentry.models.Group.get_recommended_event_for_environments", return_value=None)
-    @patch("sentry.seer.autofix.get_from_profiling_service")
-    @patch("sentry.seer.autofix._call_autofix")
-    @patch("sentry.seer.autofix._get_trace_tree_for_event")
+    @patch("sentry.seer.autofix.autofix.get_from_profiling_service")
+    @patch("sentry.seer.autofix.autofix._call_autofix")
+    @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
     def test_ai_autofix_post_without_event_id_no_recommended_event(
         self,

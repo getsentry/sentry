@@ -115,7 +115,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
         }
 
     @patch(
-        "sentry.api.endpoints.group_autofix_setup_check.get_repos_and_access",
+        "sentry.seer.endpoints.group_autofix_setup_check.get_repos_and_access",
         return_value=[
             {
                 "provider": "github",
@@ -180,7 +180,7 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
         }
 
     @patch(
-        "sentry.api.endpoints.group_autofix_setup_check.get_repos_and_access",
+        "sentry.seer.endpoints.group_autofix_setup_check.get_repos_and_access",
         return_value=[
             {
                 "provider": "github",
@@ -226,7 +226,7 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
         }
 
     @patch(
-        "sentry.api.endpoints.group_autofix_setup_check.get_repos_and_access",
+        "sentry.seer.endpoints.group_autofix_setup_check.get_repos_and_access",
         return_value=[],
     )
     def test_repo_write_access_no_repos(self, mock_get_repos_and_access):
@@ -241,9 +241,9 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
             "repos": [],
         }
 
-    @patch("sentry.api.endpoints.group_autofix_setup_check.requests.post")
+    @patch("sentry.seer.endpoints.group_autofix_setup_check.requests.post")
     @patch(
-        "sentry.api.endpoints.group_autofix_setup_check.get_autofix_repos_from_project_code_mappings",
+        "sentry.seer.endpoints.group_autofix_setup_check.get_autofix_repos_from_project_code_mappings",
         return_value=[
             {
                 "provider": "github",
@@ -278,9 +278,9 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
         assert "headers" in call_kwargs
         assert "content-type" in call_kwargs["headers"]
 
-    @patch("sentry.api.endpoints.group_autofix_setup_check.requests.post")
+    @patch("sentry.seer.endpoints.group_autofix_setup_check.requests.post")
     @patch(
-        "sentry.api.endpoints.group_autofix_setup_check.get_autofix_repos_from_project_code_mappings",
+        "sentry.seer.endpoints.group_autofix_setup_check.get_autofix_repos_from_project_code_mappings",
         return_value=[
             {
                 "provider": "github",
