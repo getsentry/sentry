@@ -281,7 +281,7 @@ def save_issue_from_occurrence(
                 "save_issue_from_occurrence.category_mismatch",
                 extra={
                     "issue_category": group.issue_category,
-                    "occurrence_type": occurrence.type,
+                    "occurrence_type": occurrence.type.slug,
                     "event_type": "platform",
                     "group_id": group.id,
                 },
