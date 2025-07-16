@@ -21,6 +21,7 @@ def measure_storage_put(
     finally:
         elapsed = time.monotonic() - start
         metrics.timing("storage.put.latency", elapsed, tags={"usecase": usecase})
-        metrics.distribution(
-            "storage.put.throughput", upload_size / elapsed, tags={"usecase": usecase}
-        )
+        if elapsed > 0:
+            metrics.distribution(
+                "storage.put.throughput", upload_size / elapsed, tags={"usecase": usecase}
+            )
