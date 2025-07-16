@@ -2,13 +2,13 @@ import styled from '@emotion/styled';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
+import type {FlowDefinition} from 'sentry/views/codecov/flows/types';
 
 import {FlowsTableRow} from './row';
-import type {Flow} from '../types';
 
 interface Props {
   response: {
-    data: Flow[];
+    data: FlowDefinition[];
     isLoading: boolean;
     error?: Error | null;
   };
@@ -16,43 +16,38 @@ interface Props {
 }
 
 export default function FlowsTable({response, onDeleteFlow}: Props) {
-  const {data, isLoading} = response;
+  const {data, isLoading, error} = response;
 
+  let tableContent: React.ReactNode;
   if (isLoading) {
-    return <div>{t('Loading...')}</div>;
-  }
-
-  if (response.error) {
-    return <div>{t('Error loading flows')}</div>;
+    tableContent = <SimpleTable.Empty>{t('Loading...')}</SimpleTable.Empty>;
+  } else if (error) {
+    tableContent = <SimpleTable.Empty>{t('Error loading flows')}</SimpleTable.Empty>;
+  } else if (!data || data.length === 0) {
+    tableContent = (
+      <SimpleTable.Empty>{t("You haven't created any flows yet")}</SimpleTable.Empty>
+    );
+  } else {
+    tableContent = data.map((flow, index) => (
+      <FlowsTableRow
+        key={flow.id}
+        flow={flow}
+        index={index}
+        onDeleteFlow={onDeleteFlow}
+      />
+    ));
   }
 
   return (
     <FlowsSimpleTable>
       <SimpleTable.Header>
         <SimpleTable.HeaderCell>{t('Flow Name')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell style={{textAlign: 'center'}}>
-          {t('Created By')}
-        </SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell style={{textAlign: 'center'}}>
-          {t('Status')}
-        </SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell style={{textAlign: 'center'}}>
-          {t('Last Seen')}
-        </SimpleTable.HeaderCell>
-        {onDeleteFlow && (
-          <SimpleTable.HeaderCell style={{textAlign: 'center'}}>
-            {t('Actions')}
-          </SimpleTable.HeaderCell>
-        )}
+        <SimpleTable.HeaderCell>{t('Created By')}</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell>{t('Last Seen')}</SimpleTable.HeaderCell>
+        {onDeleteFlow && <SimpleTable.HeaderCell>{t('Actions')}</SimpleTable.HeaderCell>}
       </SimpleTable.Header>
-      {data.map((flow, index) => (
-        <FlowsTableRow
-          key={flow.id || index}
-          flow={flow}
-          index={index}
-          onDeleteFlow={onDeleteFlow}
-        />
-      ))}
+      {tableContent}
     </FlowsSimpleTable>
   );
 }

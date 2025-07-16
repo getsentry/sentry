@@ -11,11 +11,10 @@ import {space} from 'sentry/styles/space';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useLocalStorageFlows} from 'sentry/views/codecov/flows/hooks/useFlows';
 import ReplayDetailsProviders from 'sentry/views/replays/detail/body/replayDetailsProviders';
 import ReplayDetailsPageBreadcrumbs from 'sentry/views/replays/detail/header/replayDetailsPageBreadcrumbs';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
-
-import {useLocalStorageFlows} from '../hooks/useFlows';
 
 const StatusBadge = styled('span')<{status: string}>`
   display: inline-block;

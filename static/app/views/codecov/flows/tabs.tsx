@@ -4,7 +4,7 @@ import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 
 interface Props {
-  selected: 'flow-definitions' | 'flow-instances';
+  selected: 'flow-definitions';
 }
 
 export default function FlowsTabs({selected}: Props) {

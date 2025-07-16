@@ -1990,6 +1990,10 @@ function buildRoutes() {
       <Route path="flows/">
         <IndexRoute component={make(() => import('sentry/views/codecov/flows/index'))} />
         <Route
+          path="definitions/"
+          component={make(() => import('sentry/views/codecov/flows/list/table'))}
+        />
+        <Route
           path="select-replay/"
           component={make(() => import('sentry/views/codecov/flows/create/selectReplay'))}
         />

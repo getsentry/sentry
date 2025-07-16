@@ -11,12 +11,11 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {useLocation} from 'sentry/utils/useLocation';
+import {FlowCreateForm} from 'sentry/views/codecov/flows/create/adf';
 import ReplayDetailsProviders from 'sentry/views/replays/detail/body/replayDetailsProviders';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import useBreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/useBreadcrumbFilters';
 import ReplayDetailsPageBreadcrumbs from 'sentry/views/replays/detail/header/replayDetailsPageBreadcrumbs';
-
-import {FlowCreateForm} from '../detail/create';
 
 const LayoutContainer = styled('div')`
   display: flex;
@@ -252,27 +251,16 @@ export default function New() {
   }, [location.search]);
 
   // For the new flow page, we'll use a default flow or create a new one
-  const flow = flowId
-    ? sampleFlows.find(f => f.id === flowId) || {
-        id: 'new-flow',
-        name: 'New Flow',
-        createdBy: 'Current User',
-        status: 'Active',
-        lastSeen: new Date().toISOString(),
-        lastChecked: new Date().toISOString(),
-        failures: 0,
-        linkedIssues: [],
-      }
-    : {
-        id: 'new-flow',
-        name: 'New Flow',
-        createdBy: 'Current User',
-        status: 'Active',
-        lastSeen: new Date().toISOString(),
-        lastChecked: new Date().toISOString(),
-        failures: 0,
-        linkedIssues: [],
-      };
+  const flow = {
+    id: 'new-flow',
+    name: 'New Flow',
+    createdBy: 'Current User',
+    status: 'Active',
+    lastSeen: new Date().toISOString(),
+    lastChecked: new Date().toISOString(),
+    failures: 0,
+    linkedIssues: [],
+  };
 
   const orgSlug = 'codecov';
 
