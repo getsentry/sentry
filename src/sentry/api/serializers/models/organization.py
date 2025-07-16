@@ -515,10 +515,7 @@ class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResp
     planSampleRate: float
     desiredSampleRate: float
     ingestThroughTrustedRelaysOnly: bool
-    playstationPlatformEnabled: bool
-    switchOnePlatformEnabled: bool
-    switchTwoPlatformEnabled: bool
-    xboxPlatformEnabled: bool
+    enabledConsolePlatforms: set[str]
 
 
 @extend_schema_serializer(exclude_fields=["availableRoles"])
@@ -789,10 +786,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "rollbackEnabled",
         "streamlineOnly",
         "ingestThroughTrustedRelaysOnly",
-        "playstationPlatformEnabled",
-        "switchOnePlatformEnabled",
-        "switchTwoPlatformEnabled",
-        "xboxPlatformEnabled",
+        "enabledConsolePlatforms",
     ]
 )
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(
