@@ -35,6 +35,8 @@ export function useInfiniteRepositoryBranches({term}: Props) {
   const {integratedOrg, repository} = useCodecovContext();
   const organization = useOrganization();
 
+  const isEnabled = Boolean(integratedOrg) && Boolean(repository);
+
   const {data, ...rest} = useInfiniteQuery<
     ApiResult<RepositoryBranches>,
     Error,
@@ -78,7 +80,7 @@ export function useInfiniteRepositoryBranches({term}: Props) {
         : undefined;
     },
     initialPageParam: undefined,
-    enabled: Boolean(integratedOrg),
+    enabled: isEnabled,
   });
 
   const memoizedData = useMemo(
