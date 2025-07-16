@@ -21,6 +21,6 @@ class WorkflowFireHistory(DefaultFieldsModel):
     class Meta:
         db_table = "workflow_engine_workflowfirehistory"
         app_label = "workflow_engine"
-        indexes = [Index(fields=["date_added"]), Index(fields=["workflow", "date_added"])]
+        indexes = [Index(fields=["workflow", "date_added"])]
 
     __repr__ = sane_repr("workflow_id", "group_id", "event_id", "date_added")
