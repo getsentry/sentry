@@ -14,6 +14,7 @@ from sentry.codecov.endpoints.TestResultsAggregates.serializers import (
     TestResultAggregatesSerializer,
 )
 from sentry.codecov.enums import MeasurementInterval
+from sentry.integrations.services.integration.model import RpcIntegration
 
 
 @extend_schema(tags=["Prevent"])
@@ -42,21 +43,23 @@ class TestResultsAggregatesEndpoint(CodecovEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, owner: str, repository: str, **kwargs) -> Response:
+    def get(self, request: Request, owner: RpcIntegration, repository: str, **kwargs) -> Response:
         """
         Retrieves aggregated test result metrics for a given repository and owner.
         Also accepts a query parameter to specify the time period for the metrics.
         """
 
+        owner_slug = owner.name
+
         variables = {
-            "owner": owner,
+            "owner": owner_slug,
             "repo": repository,
             "interval": request.query_params.get(
                 "interval", MeasurementInterval.INTERVAL_30_DAY.value
             ),
         }
 
-        client = CodecovApiClient(git_provider_org=owner)
+        client = CodecovApiClient(git_provider_org=owner_slug)
         graphql_response = client.query(query=query, variables=variables)
         test_results = TestResultAggregatesSerializer().to_representation(graphql_response.json())
 

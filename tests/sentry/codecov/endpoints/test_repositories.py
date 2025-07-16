@@ -74,7 +74,7 @@ class RepositoriesEndpointTest(APITestCase):
             self.endpoint,
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "owner": owner,
+                "owner": self.integration.id,
             },
         )
 

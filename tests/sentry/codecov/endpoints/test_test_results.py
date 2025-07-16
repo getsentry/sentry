@@ -93,7 +93,8 @@ class TestResultsEndpointTest(APITestCase):
         self.organization = self.create_organization(owner=self.user)
         self.integration = self.create_integration(
             organization=self.organization,
-            external_id="testowner",
+            external_id="1234",
+            name="testowner",
             provider="github",
         )
         self.login_as(user=self.user)
@@ -104,7 +105,7 @@ class TestResultsEndpointTest(APITestCase):
             self.endpoint,
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "owner": owner,
+                "owner": self.integration.id,
                 "repository": repository,
             },
         )

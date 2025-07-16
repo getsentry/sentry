@@ -20,16 +20,24 @@ class CodecovEndpoint(OrganizationEndpoint):
         owner = parsed_kwargs.get("owner")
         organization = parsed_kwargs.get("organization")
 
-        if owner and organization:
+        try:
+            owner_id = int(owner)  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            raise ResourceDoesNotExist
+
+        if owner_id and organization:
             integration = integration_service.get_integration(
                 provider=IntegrationProviderSlug.GITHUB,
-                external_id=owner,
+                integration_id=owner_id,
                 organization_id=organization.id,
             )
             if not integration:
                 raise ResourceDoesNotExist
 
+        request._request.integration = integration  # type: ignore[attr-defined]
+
         # Note: Currently we will allow all users to access all the repos of the org.
         # We might want to add a permission check for the repos that the user have acces to in the future.
 
+        parsed_kwargs["owner"] = integration
         return (parsed_args, parsed_kwargs)

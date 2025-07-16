@@ -35,6 +35,30 @@ class CodecovEndpointPermissionTest(APITestCase):
         response = self.client.get(self.endpoint_url)
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
+    def test_integration_not_in_org_denied(self):
+        # Create a different organization and integration
+        other_user = Factories.create_user(email="other2@example.com")
+        other_org = Factories.create_organization(owner=other_user)
+        other_integration = Factories.create_integration(
+            organization=other_org,
+            external_id="9999",
+            name=self.owner_slug,
+            provider="github",
+        )
+        # Log in as a user in the original org
+        self.login_as(self.user)
+        # Use the integration id from the other org in the URL
+        endpoint_url = reverse(
+            "sentry-api-0-test-results",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "owner": other_integration.id,
+                "repository": "testrepo",
+            },
+        )
+        response = self.client.get(endpoint_url)
+        assert response.status_code in (status.HTTP_403_FORBIDDEN, status.HTTP_404_NOT_FOUND)
+
     def test_auth_token_denied(self):
         token = Factories.create_user_auth_token(self.user, scope_list=["org:read"])
         response = self.client.get(self.endpoint_url, HTTP_AUTHORIZATION=f"Bearer {token.token}")
