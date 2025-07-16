@@ -233,3 +233,28 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
         app_label = "preprod"
         db_table = "sentry_preprodartifactsizemetrics"
         unique_together = ("preprod_artifact", "metrics_artifact_type")
+
+
+@region_silo_model
+class InstallablePreprodArtifact(DefaultFieldsModel):
+    """
+    A model that represents an installable preprod artifact with an expiring URL.
+    This is created when a user generates a download QR code for a preprod artifact.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    preprod_artifact = FlexibleForeignKey("preprod.PreprodArtifact")
+
+    # A random string used in the URL path for secure access
+    url_path = models.CharField(max_length=255, unique=True, db_index=True)
+
+    # When the install link expires
+    expiration_date = models.DateTimeField(null=True)
+
+    # Number of times the IPA was downloaded
+    download_count = models.PositiveIntegerField(default=0, null=True)
+
+    class Meta:
+        app_label = "preprod"
+        db_table = "sentry_installablepreprodartifact"
