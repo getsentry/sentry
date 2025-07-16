@@ -3504,7 +3504,7 @@ SENTRY_SYNTHETIC_MONITORING_PROJECT_ID: int | None = None
 SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
 
 # How long the migration phase for grouping lasts
-SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 30 * 24 * 3600  # 30 days
+SENTRY_GROUPING_CONFIG_TRANSITION_DURATION = 30 * 24 * 3600  # 30 days
 
 SENTRY_USE_UWSGI = True
 
@@ -3610,6 +3610,8 @@ SEER_ALERT_DELETION_URL = (
 SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994
 
 SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
+
+SEER_GHE_ENCRYPT_KEY: str | None = None  # For encrypting the access token for the GHE integration
 
 
 # This is the URL to the profiling service

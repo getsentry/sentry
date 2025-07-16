@@ -45,22 +45,7 @@ function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
 
 export function MetricDetectorDetailsDetect({detector}: MetricDetectorDetectProps) {
   const dataSource = detector.dataSources?.[0];
-  if (dataSource?.type === 'snuba_query_subscription') {
-    return <SnubaQueryDetails dataSource={dataSource} />;
-  }
-
-  return (
-    <Container>
-      <Flex direction="column" gap={space(0.5)}>
-        <Heading>{t('Query:')}</Heading>
-        <Query>
-          <Label>{t('visualize:')}</Label> <Value>placeholder</Value>
-          <Label>{t('where:')}</Label> <Value>placeholder</Value>
-        </Query>
-      </Flex>
-      <Heading>{t('Threshold:')}</Heading>
-    </Container>
-  );
+  return <SnubaQueryDetails dataSource={dataSource} />;
 }
 
 const Heading = styled('h4')`

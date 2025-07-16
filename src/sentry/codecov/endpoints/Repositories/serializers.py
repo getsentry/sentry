@@ -3,7 +3,7 @@ import logging
 import sentry_sdk
 from rest_framework import serializers
 
-from sentry.codecov.endpoints.common.serializers import PageInfoTempSerializer
+from sentry.codecov.endpoints.serializers import PageInfoSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class RepositoriesSerializer(serializers.Serializer):
     __test__ = False
 
     results = RepositoryNodeSerializer(many=True)
-    pageInfo = PageInfoTempSerializer()
+    pageInfo = PageInfoSerializer()
     totalCount = serializers.IntegerField()
 
     def to_representation(self, graphql_response):
