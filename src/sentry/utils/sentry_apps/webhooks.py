@@ -123,7 +123,7 @@ def send_and_save_webhook_request(
             raise
         except RestrictedIPAddress:
             lifecycle.record_halt(
-                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.RESTRICED_IP}"
+                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.RESTRICTED_IP}"
             )
             raise
 
