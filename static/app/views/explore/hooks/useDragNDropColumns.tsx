@@ -37,7 +37,9 @@ export function useDragNDropColumns<T>({
 
   function deleteColumnAtIndex(i: number) {
     setColumns(
-      columns.filter((_: T, j: number) => i !== j),
+      columns.length === 1
+        ? [defaultColumn()]
+        : columns.filter((_: T, j: number) => i !== j),
       'delete'
     );
   }
