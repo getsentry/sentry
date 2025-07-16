@@ -213,30 +213,6 @@ jest.mock('sentry/views/insights/common/queries/useDiscoverSeries', () => ({
     isPending: false,
     error: null,
   })),
-  useMetricsSeries: jest.fn(() => ({
-    data: {
-      'performance_score(measurements.score.lcp)': {
-        data: [],
-      },
-      'performance_score(measurements.score.fcp)': {
-        data: [],
-      },
-      'performance_score(measurements.score.cls)': {
-        data: [],
-      },
-      'performance_score(measurements.score.inp)': {
-        data: [],
-      },
-      'performance_score(measurements.score.ttfb)': {
-        data: [],
-      },
-      'count()': {
-        data: [],
-      },
-    },
-    isPending: false,
-    error: null,
-  })),
   useSpanMetricsSeries: jest.fn(() => ({
     data: {
       'cache_miss_rate()': {},
