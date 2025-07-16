@@ -257,7 +257,7 @@ def get_event_file_committers(
         frames = munged[1]
     app_frames = [frame for frame in frames if frame and frame.get("in_app")][-frame_limit:]
     if not app_frames:
-        app_frames = [frame for frame in frames][-frame_limit:]
+        app_frames = [frame for frame in frames if frame][-frame_limit:]
 
     # TODO(maxbittker) return this set instead of annotated frames
     # XXX(dcramer): frames may not define a filepath. For example, in Java its common
