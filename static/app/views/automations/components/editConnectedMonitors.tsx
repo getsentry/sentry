@@ -10,6 +10,7 @@ import {Container} from 'sentry/components/workflowEngine/ui/container';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {getApiQueryData, setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -18,8 +19,8 @@ import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
 import {makeDetectorListQueryKey, useDetectorsQuery} from 'sentry/views/detectors/hooks';
 
 interface Props {
-  connectedIds: Set<string>;
-  setConnectedIds: (ids: Set<string>) => void;
+  connectedIds: Automation['detectorIds'];
+  setConnectedIds: (ids: Automation['detectorIds']) => void;
 }
 
 function SelectedMonitors({
@@ -27,21 +28,14 @@ function SelectedMonitors({
   toggleConnected,
   ...props
 }: React.HTMLAttributes<HTMLDivElement> & {
-  connectedIds: Set<string>;
+  connectedIds: Automation['detectorIds'];
   toggleConnected?: (params: {detector: Detector}) => void;
 }) {
   const {
     data: monitors = [],
     isLoading,
     isError,
-  } = useDetectorsQuery(
-    {
-      ids: Array.from(connectedIds).sort(),
-    },
-    {
-      enabled: connectedIds.size > 0,
-    }
-  );
+  } = useDetectorsQuery({ids: connectedIds}, {enabled: connectedIds.length > 0});
 
   return (
     <Section title={t('Connected Monitors')}>
@@ -51,7 +45,7 @@ function SelectedMonitors({
         isLoading={isLoading}
         isError={isError}
         toggleConnected={toggleConnected}
-        numSkeletons={connectedIds.size}
+        numSkeletons={connectedIds.length}
         {...props}
       />
     </Section>
@@ -62,7 +56,7 @@ function AllMonitors({
   connectedIds,
   toggleConnected,
 }: {
-  connectedIds: Set<string>;
+  connectedIds: Automation['detectorIds'];
   toggleConnected: (params: {detector: Detector}) => void;
 }) {
   const [query, setQuery] = useState('');
@@ -99,23 +93,23 @@ function ConnectMonitorsDrawer({
   initialIds,
   saveConnectedIds,
 }: {
-  initialIds: Set<string>;
-  saveConnectedIds: (ids: Set<string>) => void;
+  initialIds: Automation['detectorIds'];
+  saveConnectedIds: (ids: Automation['detectorIds']) => void;
 }) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   // Because GlobalDrawer is rendered outside of our form context, we need to duplicate the state here
-  const [connectedIds, setConnectedIds] = useState<Set<string>>(initialIds);
+  const [connectedIds, setConnectedIds] = useState<Automation['detectorIds']>(
+    initialIds.toSorted()
+  );
 
   const toggleConnected = ({detector}: {detector: Detector}) => {
-    const sortedIds = Array.from(connectedIds).sort();
-
     const oldDetectorsData =
       getApiQueryData<Detector[]>(
         queryClient,
         makeDetectorListQueryKey({
           orgSlug: organization.slug,
-          ids: sortedIds,
+          ids: connectedIds,
         })
       ) ?? [];
 
@@ -125,7 +119,7 @@ function ConnectMonitorsDrawer({
         : [...oldDetectorsData, detector]
     )
       // API will return ID ascending, so this avoids re-ordering
-      .sort((a, b) => a.id.localeCompare(b.id));
+      .toSorted((a, b) => a.id.localeCompare(b.id));
     const newDetectorIds = newDetectors.map(d => d.id);
 
     // Update the query cache to prevent the list from being fetched anew
@@ -138,15 +132,15 @@ function ConnectMonitorsDrawer({
       newDetectors
     );
 
-    setConnectedIds(new Set(newDetectorIds));
-    saveConnectedIds(new Set(newDetectorIds));
+    setConnectedIds(newDetectorIds);
+    saveConnectedIds(newDetectorIds);
   };
 
   return (
     <Fragment>
       <DrawerHeader hideBar />
       <DrawerContent>
-        {connectedIds.size > 0 && (
+        {connectedIds.length > 0 && (
           <SelectedMonitors
             data-test-id="drawer-connected-monitors-list"
             connectedIds={connectedIds}
@@ -188,7 +182,7 @@ export default function EditConnectedMonitors({connectedIds, setConnectedIds}: P
     );
   };
 
-  if (connectedIds.size > 0) {
+  if (connectedIds.length > 0) {
     return (
       <Container>
         <SelectedMonitors connectedIds={connectedIds} />

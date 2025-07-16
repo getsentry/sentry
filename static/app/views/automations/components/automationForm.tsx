@@ -27,11 +27,10 @@ const FREQUENCY_OPTIONS = [
 ];
 
 export default function AutomationForm({model}: {model: FormModel}) {
-  const initialConnectedIds = useFormField('detectorIds') as Automation['detectorIds'];
-  const connectedIdsSet = new Set(initialConnectedIds);
+  const initialConnectedIds = useFormField<Automation['detectorIds']>('detectorIds');
   const setConnectedIds = useCallback(
-    (ids: Set<string>) => {
-      model.setValue('detectorIds', Array.from(ids));
+    (ids: Automation['detectorIds']) => {
+      model.setValue('detectorIds', ids);
     },
     [model]
   );
@@ -45,7 +44,7 @@ export default function AutomationForm({model}: {model: FormModel}) {
   return (
     <Flex direction="column" gap={space(1.5)}>
       <EditConnectedMonitors
-        connectedIds={connectedIdsSet}
+        connectedIds={initialConnectedIds || []}
         setConnectedIds={setConnectedIds}
       />
       <Card>

@@ -91,7 +91,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
                   detectors={detectors ?? []}
                   isLoading={isLoading}
                   isError={isError}
-                  connectedDetectorIds={new Set(automation.detectorIds)}
+                  connectedDetectorIds={automation.detectorIds}
                   numSkeletons={Math.min(
                     automation.detectorIds.length,
                     AUTOMATION_DETECTORS_LIMIT

@@ -8,6 +8,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
 import {DetectorAssigneeCell} from 'sentry/views/detectors/components/detectorListTable/detectorAssigneeCell';
@@ -20,7 +21,7 @@ type Props = React.HTMLAttributes<HTMLDivElement> & {
   detectors: Detector[];
   isError: boolean;
   isLoading: boolean;
-  connectedDetectorIds?: Set<string>;
+  connectedDetectorIds?: Automation['detectorIds'];
   emptyMessage?: string;
   numSkeletons?: number;
   toggleConnected?: (params: {detector: Detector}) => void;
@@ -107,7 +108,7 @@ export default function ConnectedMonitorsList({
             {canEdit && (
               <SimpleTable.RowCell data-column-name="connected" justify="flex-end">
                 <Button onClick={() => toggleConnected?.({detector})} size="sm">
-                  {connectedDetectorIds?.has(detector.id)
+                  {connectedDetectorIds?.includes(detector.id)
                     ? t('Disconnect')
                     : t('Connect')}
                 </Button>

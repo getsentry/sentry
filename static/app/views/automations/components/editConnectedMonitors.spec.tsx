@@ -30,9 +30,7 @@ describe('EditConnectedMonitors', function () {
 
   it('can connect an existing monitor', async function () {
     const setConnectedIds = jest.fn();
-    render(
-      <EditConnectedMonitors connectedIds={new Set()} setConnectedIds={setConnectedIds} />
-    );
+    render(<EditConnectedMonitors connectedIds={[]} setConnectedIds={setConnectedIds} />);
 
     expect(screen.getByText('Connected Monitors')).toBeInTheDocument();
 
@@ -55,14 +53,14 @@ describe('EditConnectedMonitors', function () {
     );
     expect(within(connectedMonitorsList).getByText(detector1.name)).toBeInTheDocument();
 
-    expect(setConnectedIds).toHaveBeenCalledWith(new Set([detector1.id]));
+    expect(setConnectedIds).toHaveBeenCalledWith([detector1.id]);
   });
 
   it('can disconnect an existing monitor', async function () {
     const setConnectedIds = jest.fn();
     render(
       <EditConnectedMonitors
-        connectedIds={new Set([detector1.id])}
+        connectedIds={[detector1.id]}
         setConnectedIds={setConnectedIds}
       />
     );
@@ -91,6 +89,6 @@ describe('EditConnectedMonitors', function () {
       ).not.toBeInTheDocument();
     });
 
-    expect(setConnectedIds).toHaveBeenCalledWith(new Set());
+    expect(setConnectedIds).toHaveBeenCalledWith([]);
   });
 });

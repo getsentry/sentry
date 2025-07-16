@@ -13,6 +13,7 @@ import {
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import EditConnectedMonitors from 'sentry/views/automations/components/editConnectedMonitors';
@@ -35,18 +36,18 @@ export default function AutomationNew() {
   const organization = useOrganization();
   useWorkflowEngineFeatureGate({redirect: true});
 
-  const [connectedIds, setConnectedIds] = useState<Set<string>>(() => {
+  const [connectedIds, setConnectedIds] = useState<Automation['detectorIds']>(() => {
     const connectedIdsQuery = location.query.connectedIds as
       | string
       | string[]
       | undefined;
     if (!connectedIdsQuery) {
-      return new Set<string>();
+      return [];
     }
     const connectedIdsArray = Array.isArray(connectedIdsQuery)
       ? connectedIdsQuery
       : [connectedIdsQuery];
-    return new Set(connectedIdsArray);
+    return connectedIdsArray;
   });
 
   return (
@@ -80,8 +81,8 @@ export default function AutomationNew() {
             priority="primary"
             to={{
               pathname: `${makeAutomationBasePathname(organization.slug)}new/settings/`,
-              ...(connectedIds.size > 0 && {
-                query: {connectedIds: Array.from(connectedIds)},
+              ...(connectedIds.length > 0 && {
+                query: {connectedIds},
               }),
             }}
           >
