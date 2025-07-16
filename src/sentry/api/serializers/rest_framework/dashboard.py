@@ -293,7 +293,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
                 config.has_metrics = use_metrics
                 if use_metrics:
                     QueryBuilder = MetricsUnresolvedQuery
-                    dataset = Dataset.Metrics
+                    dataset = Dataset.PerformanceMetrics
             builder = QueryBuilder(
                 dataset=dataset,
                 params=params,
