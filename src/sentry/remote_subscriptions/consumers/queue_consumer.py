@@ -44,11 +44,11 @@ class OffsetTracker:
         self.all_offsets: dict[Partition, set[int]] = defaultdict(set)
         self.outstanding: dict[Partition, set[int]] = defaultdict(set)
         self.last_committed: dict[Partition, int] = {}
-        self.partition_locks: dict[Partition, threading.Lock] = {}
+        self.partition_locks: dict[Partition, threading.Lock] = defaultdict(threading.Lock)
 
     def _get_partition_lock(self, partition: Partition) -> threading.Lock:
         """Get or create a lock for a partition."""
-        return self.partition_locks.setdefault(partition, threading.Lock())
+        return self.partition_locks[partition]
 
     def add_offset(self, partition: Partition, offset: int) -> None:
         """Record that we've started processing an offset."""
