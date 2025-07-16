@@ -62,17 +62,20 @@ class AuthMergeUserAccountsEndpoint(Endpoint):
                 data={"error": "You must be authenticated to use this endpoint"},
             )
 
+        validator = AuthMergeUserAccountsValidator(data=request.data)
+        if not validator.is_valid():
+            return Response(validator.errors, status=400)
+        result = validator.validated_data
+
         primary_user = User.objects.get(id=user.id)
         verification_code = UserMergeVerificationCode.objects.filter(user_id=user.id).first()
-        if verification_code is None or verification_code.token != request.data.get(
-            "verification_code", ""
-        ):
+        if verification_code is None or verification_code.token != result["verification_code"]:
             return Response(
                 status=403,
                 data={"error": "Incorrect verification code"},
             )
 
-        ids_to_merge = request.data.get("ids_to_merge", [])
+        ids_to_merge = result["ids_to_merge"]
         if user.id in ids_to_merge:
             return Response(
                 status=400,
