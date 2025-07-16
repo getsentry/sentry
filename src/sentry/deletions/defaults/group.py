@@ -24,8 +24,8 @@ from ..manager import DeletionTaskManager
 
 logger = logging.getLogger(__name__)
 
-GROUP_CHUNK_SIZE = 10
-EVENTS_CHUNK_SIZE = 1000
+GROUP_CHUNK_SIZE = 1000
+EVENT_CHUNK_SIZE = 10000
 
 # Group models that relate only to groups and not to events. We assume those to
 # be safe to delete/mutate within a single transaction for user-triggered
@@ -69,7 +69,7 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
     """
 
     # Number of events fetched from eventstore per chunk() call.
-    DEFAULT_CHUNK_SIZE = EVENTS_CHUNK_SIZE
+    DEFAULT_CHUNK_SIZE = 10000
     referrer = "deletions.group"
     dataset: Dataset
 
@@ -259,7 +259,7 @@ class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):
 
 class GroupDeletionTask(ModelDeletionTask[Group]):
     # Delete groups in blocks of GROUP_CHUNK_SIZE. Using GROUP_CHUNK_SIZE aims to
-    # balance the number of Snuba replacements with memory limits.
+    # balance the number of snuba replacements with memory limits.
     DEFAULT_CHUNK_SIZE = GROUP_CHUNK_SIZE
 
     def delete_bulk(self, instance_list: Sequence[Group]) -> bool:
