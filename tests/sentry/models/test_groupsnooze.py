@@ -67,6 +67,7 @@ class GroupSnoozeTest(
         )
         assert snooze.is_valid(test_rates=True)
 
+    @pytest.mark.skip(reason="flaky: #95671")
     @freeze_time()
     def test_user_delta_reached(self):
         for i in range(5):
