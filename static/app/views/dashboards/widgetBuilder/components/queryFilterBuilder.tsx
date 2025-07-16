@@ -177,6 +177,7 @@ function WidgetBuilderQueryFilterBuilder({
                 ? getOnDemandFilterWarning
                 : undefined
             }
+            disabled={disableTransactionWidget}
             pageFilters={selection}
             onClose={handleClose(index)}
             onSearch={queryString => {
