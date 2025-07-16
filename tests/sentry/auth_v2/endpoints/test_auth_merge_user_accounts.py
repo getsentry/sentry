@@ -2,7 +2,6 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.user import User
 from sentry.users.models.user_merge_verification_code import UserMergeVerificationCode
-from sentry.users.models.useremail import UserEmail
 
 
 @control_silo_test
@@ -85,19 +84,6 @@ class MergeUserAccountsWithSharedEmailTest(APITestCase):
         response = self.get_error_response(**data)
         assert response.status_code == 403
         assert response.data == {"error": "Incorrect verification code"}
-
-    def test_primary_email_unverified(self):
-        user_email = UserEmail.objects.get(user_id=self.user1.id, email="mifu@email.com")
-        user_email.update(is_verified=False)
-        data = {
-            "ids_to_merge": [self.user2.id],
-            "verification_code": self.verification_code.token,
-        }
-        response = self.get_error_response(**data)
-        assert response.status_code == 403
-        assert response.data == {
-            "error": "You must verify your primary email address to use this endpoint"
-        }
 
     def test_merge_unrelated_account(self):
         data = {

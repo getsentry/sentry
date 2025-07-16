@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -12,7 +13,11 @@ from sentry.api.serializers import serialize
 from sentry.users.api.serializers.user import UserSerializerWithOrgMemberships
 from sentry.users.models.user import User
 from sentry.users.models.user_merge_verification_code import UserMergeVerificationCode
-from sentry.users.models.useremail import UserEmail
+
+
+class AuthMergeUserAccountsValidator(serializers.Serializer):
+    verification_code = serializers.CharField(required=True)
+    ids_to_merge = serializers.ListField(required=True)
 
 
 @control_silo_endpoint
@@ -65,13 +70,6 @@ class AuthMergeUserAccountsEndpoint(Endpoint):
             return Response(
                 status=403,
                 data={"error": "Incorrect verification code"},
-            )
-
-        user_email = UserEmail.objects.get(user_id=primary_user.id, email=primary_user.email)
-        if not user_email.is_verified:
-            return Response(
-                status=403,
-                data={"error": "You must verify your primary email address to use this endpoint"},
             )
 
         ids_to_merge = request.data.get("ids_to_merge", [])
