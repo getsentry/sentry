@@ -11,17 +11,18 @@ These tests verify the complete OAuth flow including:
 This ensures the OAuth state validation works correctly in a complete flow.
 """
 
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
 import responses
 from django.contrib.sessions.middleware import SessionMiddleware
-from django.http import HttpResponse
-from django.test import Client, RequestFactory, TestCase
+from django.http import HttpResponse, HttpResponseRedirect
+from django.test import Client, RequestFactory
 
 import sentry.identity
 from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView, OAuth2Provider
 from sentry.identity.pipeline import IdentityPipeline
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
@@ -68,6 +69,7 @@ class OAuth2IntegrationE2ETest(TestCase):
         """Helper to create a request with session support."""
         request = self.factory.get(url)
         request.subdomain = None
+        request.user = self.create_user()  # Add user for pipeline initialization
         # Add session support
         middleware = SessionMiddleware(lambda r: HttpResponse())
         middleware.process_request(request)
@@ -95,6 +97,35 @@ class OAuth2IntegrationE2ETest(TestCase):
             request=request,
             provider_key=self.provider.key,
             config={},
+        )
+
+    def _create_initialized_pipeline(self, request, provider_key=None):
+        """Create a fully initialized real pipeline for testing."""
+        pipeline = IdentityPipeline(
+            request=request,
+            provider_key=provider_key or self.provider.key,
+            config={},
+        )
+        pipeline.initialize()
+        return pipeline
+
+    def _create_real_next_step_response(self, redirect_url=None):
+        """Create a real HttpResponse for next_step instead of Mock."""
+        if redirect_url:
+            return HttpResponseRedirect(redirect_url)
+        return HttpResponse(status=200)
+
+    def _mock_oauth_endpoints(self, access_token="test-access-token", user_id="test-user-123"):
+        """Helper to set up common OAuth endpoint mocks."""
+        responses.add(
+            responses.POST,
+            self.provider.oauth_access_token_url,
+            json={
+                "access_token": access_token,
+                "token_type": "Bearer",
+                "expires_in": 3600,
+            },
+            status=200,
         )
 
     @responses.activate
@@ -172,35 +203,26 @@ class OAuth2IntegrationE2ETest(TestCase):
             client_secret="test-secret",
         )
 
-        # Store state in callback request session for validation
-        self._save_session_state(
-            callback_request,
-            {
-                "state": oauth_state,
-                "code": "PROMO2024",
-            },
-        )
+        # Create real initialized pipeline for callback processing
+        real_callback_pipeline = self._create_initialized_pipeline(callback_request)
+        real_callback_pipeline.bind_state("state", oauth_state)
+        real_callback_pipeline.bind_state("code", "PROMO2024")
 
-        # Process callback with real session state validation
-        with patch.object(pipeline, "next_step") as mock_next:
-            # Mock pipeline to use real session state instead of fetch_state
-            def real_fetch_state(key):
-                return self._get_session_state(callback_request, key)
+        # Process callback with real pipeline state validation
+        with patch.object(real_callback_pipeline, "next_step") as mock_next:
+            mock_next.return_value = HttpResponse(status=200)
+            callback_view.dispatch(callback_request, real_callback_pipeline)
 
-            with patch.object(pipeline, "fetch_state", side_effect=real_fetch_state):
-                mock_next.return_value = Mock(status_code=200)
-                callback_view.dispatch(callback_request, pipeline)
+            # Verify token exchange happened
+            assert len(responses.calls) == 1
+            assert responses.calls[0].request.url == self.provider.oauth_access_token_url
 
-                # Verify token exchange happened
-                assert len(responses.calls) == 1
-                assert responses.calls[0].request.url == self.provider.oauth_access_token_url
+            # Verify next step was called
+            mock_next.assert_called_once()
 
-                # Verify next step was called
-                mock_next.assert_called_once()
-
-                # Verify promo code is still available after OAuth completion
-                final_promo = real_fetch_state("code")
-                assert final_promo == "PROMO2024", "Promo code should survive OAuth flow"
+            # Verify promo code is still available after OAuth completion using real pipeline
+            final_promo = real_callback_pipeline.fetch_state("code")
+            assert final_promo == "PROMO2024", "Promo code should survive OAuth flow"
 
     @responses.activate
     def test_promo_code_does_not_trigger_token_exchange(self):
@@ -317,21 +339,17 @@ class OAuth2IntegrationE2ETest(TestCase):
         error_request = self._get_request_with_session(error_url)
         error_request.session = initial_request.session  # Use same session
 
-        # Store the OAuth state in error request session
-        self._save_session_state(error_request, {"state": oauth_state})
+        # Create real initialized pipeline for error callback processing
+        real_error_pipeline = self._create_initialized_pipeline(error_request)
+        real_error_pipeline.bind_state("state", oauth_state)
 
         # This should be processed as valid callback
-        with patch.object(pipeline, "next_step") as mock_next:
-            # Use real session state instead of mocking fetch_state
-            def real_fetch_state(key):
-                return self._get_session_state(error_request, key)
+        with patch.object(real_error_pipeline, "next_step") as mock_next:
+            mock_next.return_value = HttpResponse(status=200)
+            login_view.dispatch(error_request, real_error_pipeline)
 
-            with patch.object(pipeline, "fetch_state", side_effect=real_fetch_state):
-                mock_next.return_value = Mock(status_code=200)
-                login_view.dispatch(error_request, pipeline)
-
-                # Should process the error callback
-                mock_next.assert_called_once()
+            # Should process the error callback
+            mock_next.assert_called_once()
 
     @responses.activate
     def test_multiple_oauth_flows_isolated(self):
@@ -422,20 +440,19 @@ class OAuth2IntegrationE2ETest(TestCase):
             client_secret="test-secret",
         )
 
-        # First flow completes with its own state
-        with patch.object(pipeline1, "next_step") as mock_next1:
-            # Use real session state instead of mocking
-            def real_fetch_state1(key):
-                return self._get_session_state(callback1, key)
+        # First flow completes with its own state using real initialized pipeline
+        real_callback1_pipeline = self._create_initialized_pipeline(callback1)
+        real_callback1_pipeline.bind_state("state", state1)
+        real_callback1_pipeline.bind_state("code", "promo1")
 
-            with patch.object(pipeline1, "fetch_state", side_effect=real_fetch_state1):
-                mock_next1.return_value = Mock(status_code=200)
-                callback_view.dispatch(callback1, pipeline1)
-                mock_next1.assert_called_once()
+        with patch.object(real_callback1_pipeline, "next_step") as mock_next1:
+            mock_next1.return_value = HttpResponse(status=200)
+            callback_view.dispatch(callback1, real_callback1_pipeline)
+            mock_next1.assert_called_once()
 
-                # Verify promo code isolation
-                promo1 = real_fetch_state1("code")
-                assert promo1 == "promo1", "First pipeline should have promo1"
+            # Verify promo code isolation using real pipeline
+            promo1 = real_callback1_pipeline.fetch_state("code")
+            assert promo1 == "promo1", "First pipeline should have promo1"
 
         # Second flow completes with its own state
         callback2 = self._get_request_with_session(
@@ -450,19 +467,19 @@ class OAuth2IntegrationE2ETest(TestCase):
             },
         )
 
-        with patch.object(pipeline2, "next_step") as mock_next2:
-            # Use real session state instead of mocking
-            def real_fetch_state2(key):
-                return self._get_session_state(callback2, key)
+        # Second flow completes with its own state using real initialized pipeline
+        real_callback2_pipeline = self._create_initialized_pipeline(callback2)
+        real_callback2_pipeline.bind_state("state", state2)
+        real_callback2_pipeline.bind_state("code", "promo2")
 
-            with patch.object(pipeline2, "fetch_state", side_effect=real_fetch_state2):
-                mock_next2.return_value = Mock(status_code=200)
-                callback_view.dispatch(callback2, pipeline2)
-                mock_next2.assert_called_once()
+        with patch.object(real_callback2_pipeline, "next_step") as mock_next2:
+            mock_next2.return_value = HttpResponse(status=200)
+            callback_view.dispatch(callback2, real_callback2_pipeline)
+            mock_next2.assert_called_once()
 
-                # Verify promo code isolation
-                promo2 = real_fetch_state2("code")
-                assert promo2 == "promo2", "Second pipeline should have promo2"
+            # Verify promo code isolation using real pipeline
+            promo2 = real_callback2_pipeline.fetch_state("code")
+            assert promo2 == "promo2", "Second pipeline should have promo2"
 
         # Verify both flows made token exchange requests
         assert len(responses.calls) == 2
@@ -504,13 +521,14 @@ class OAuth2IntegrationE2ETest(TestCase):
         )
 
         # This should fail validation and start new OAuth flow due to state mismatch
-        def cross_fetch_state(key):
-            return self._get_session_state(callback_cross, key)
+        # Create pipeline with mismatched state (simulating cross-session contamination)
+        real_cross_pipeline = self._create_initialized_pipeline(callback_cross)
+        real_cross_pipeline.bind_state("state", state1)  # request1's state
+        real_cross_pipeline.bind_state("code", "promo1")
 
-        with patch.object(pipeline1, "fetch_state", side_effect=cross_fetch_state):
-            cross_response = login_view.dispatch(callback_cross, pipeline1)
-            assert cross_response.status_code == 302
-            assert self.provider.oauth_authorize_url in cross_response["Location"]
+        cross_response = login_view.dispatch(callback_cross, real_cross_pipeline)
+        assert cross_response.status_code == 302
+        assert self.provider.oauth_authorize_url in cross_response["Location"]
 
         # Verify that each pipeline maintains isolation by checking session data
         session1_state = self._get_session_state(request1, "state")
