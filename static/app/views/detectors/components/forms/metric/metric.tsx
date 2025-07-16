@@ -25,6 +25,7 @@ import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
 } from 'sentry/views/alerts/rules/metric/types';
+import {hasLogAlerts} from 'sentry/views/alerts/wizard/utils';
 import {AssigneeField} from 'sentry/views/detectors/components/forms/assigneeField';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
@@ -193,7 +194,7 @@ function useDatasetChoices() {
       ...(organization.features.includes('visibility-explore-view')
         ? [{value: DetectorDataset.SPANS, label: t('Spans')}]
         : []),
-      ...(organization.features.includes('ourlogs-alerts')
+      ...(hasLogAlerts(organization)
         ? [
             {
               value: DetectorDataset.LOGS,
