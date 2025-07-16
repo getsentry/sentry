@@ -299,7 +299,14 @@ OPERATOR_NEGATION_MAP = {
     "IN": "NOT IN",
     "NOT IN": "IN",
 }
-OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt", "=": "exact"}
+OPERATOR_TO_DJANGO = {
+    ">=": "gte",
+    "<=": "lte",
+    ">": "gt",
+    "<": "lt",
+    "=": "exact",
+    "IN": "in",
+}
 
 MAX_SEARCH_RELEASES = 1000
 SEMVER_EMPTY_RELEASE = "____SENTRY_EMPTY_RELEASE____"
