@@ -5,6 +5,7 @@ import isEqual from 'lodash/isEqual';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
@@ -41,6 +42,7 @@ import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualiz
 import WidgetTemplatesList from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
+import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
@@ -83,6 +85,7 @@ function WidgetBuilderSlideout({
   const theme = useTheme();
   const isEditing = useIsEditingWidget();
   const source = useDashboardWidgetSource();
+  const disableTransactionWidget = useDisableTransactionWidget();
   const validatedWidgetResponse = useValidateWidgetQuery(
     convertBuilderStateToWidget(state)
   );
@@ -262,6 +265,15 @@ function WidgetBuilderSlideout({
             {isSmallScreen && (
               <Section>
                 <WidgetBuilderFilterBar releases={dashboard.filters?.release ?? []} />
+              </Section>
+            )}
+            {disableTransactionWidget && isEditing && (
+              <Section>
+                <Alert type="info" showIcon>
+                  {t(
+                    'Transaction widgets are deprecated. Please use the spans dataset moving forward.'
+                  )}
+                </Alert>
               </Section>
             )}
             <Section>
