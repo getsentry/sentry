@@ -621,6 +621,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     }
   };
 
+  console.log({allSeries});
   return (
     <BaseChart
       ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}

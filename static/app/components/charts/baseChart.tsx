@@ -76,6 +76,7 @@ import {
 //
 // Calls "onClick" inside of series data
 const handleClick = (clickSeries: any, instance: ECharts) => {
+  console.log('handleClick', {clickSeries, instance});
   if (clickSeries.data) {
     clickSeries.data.onClick?.(clickSeries, instance);
   }
@@ -355,6 +356,7 @@ function BaseChart({
   end,
   period,
   utc,
+  singleAxis,
   yAxes,
   xAxes,
 
@@ -571,6 +573,7 @@ function BaseChart({
       grid: Array.isArray(grid) ? grid.map(Grid) : Grid(grid),
       tooltip: tooltipOrNone,
       legend: legend ? Legend({theme, ...legend}) : undefined,
+      singleAxis,
       yAxis: yAxisOrCustom,
       xAxis: xAxisOrCustom,
       series: resolvedSeries,
@@ -603,6 +606,7 @@ function BaseChart({
     isGroupedByDate,
     useShortDate,
     useMultilineDate,
+    singleAxis,
     start,
     end,
     period,
@@ -622,6 +626,7 @@ function BaseChart({
     () =>
       ({
         click: (props: any, instance: ECharts) => {
+          console.log('click', {props, instance});
           handleClick(props, instance);
           onClick?.(props, instance);
         },

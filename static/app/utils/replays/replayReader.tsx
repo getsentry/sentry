@@ -744,6 +744,32 @@ export default class ReplayReader {
     )
   );
 
+  getTimelineFrames = memoize(() =>
+    this._trimFramesToClipWindow(
+      [
+        ...this.getPerfFrames(),
+        // ...this.getWebVitalFrames(),
+        ...this.getCustomFrames(),
+        ...this._sortedBreadcrumbFrames.filter(frame =>
+          [
+            'replay.hydrate-error',
+            // 'replay.init',
+            'replay.mutations',
+            'feedback',
+            // 'device.battery',
+            // 'device.connectivity',
+            // 'device.orientation',
+            // 'app.foreground',
+            // 'app.background',
+          ].includes(frame.category)
+        ),
+        // ...this._errors,
+      ].sort(sortFrames),
+      this.getStartTimestampMs(),
+      this.getStartTimestampMs() + this.getDurationMs()
+    )
+  );
+
   getPerfFrames = memoize(() => {
     const crumbs = removeDuplicateClicks(
       this._sortedBreadcrumbFrames.filter(
@@ -786,6 +812,24 @@ export default class ReplayReader {
   });
 
   getVideoEvents = () => this._videoEvents;
+
+  getUserInteractionEvents = memoize(() =>
+    this._sortedRRWebEvents.filter(e => {
+      return (
+        e.type === EventType.IncrementalSnapshot &&
+        [
+          IncrementalSource.MouseMove, // 1
+          IncrementalSource.MouseInteraction, // 2
+          IncrementalSource.Scroll, // 3
+          IncrementalSource.Input, // 5
+          IncrementalSource.TouchMove, // 6
+          IncrementalSource.MediaInteraction, // 7
+          IncrementalSource.Drag, // 12
+          IncrementalSource.Selection, // 14
+        ].includes(e.data.source)
+      );
+    })
+  );
 
   getPaintFrames = memoize(() => this._sortedSpanFrames.filter(isPaintFrame));
 

@@ -161,7 +161,6 @@ const BodyContent = styled('main')`
   height: 100%;
   display: grid;
   grid-template-rows: 1fr auto;
-  gap: ${space(2)};
   overflow: hidden;
   padding: ${space(2)};
 `;
