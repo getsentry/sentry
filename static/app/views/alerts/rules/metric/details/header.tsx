@@ -67,6 +67,7 @@ function DetailsHeader({
       aggregate: rule.aggregate,
       dataset: rule.dataset,
       eventTypes: rule.eventTypes,
+      organization,
     });
 
   return (
