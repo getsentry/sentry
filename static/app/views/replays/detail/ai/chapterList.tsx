@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -101,14 +101,29 @@ function ChapterRow({
   const {onClickTimestamp} = useCrumbHandlers();
   const [currentHoverTime] = useCurrentHoverTime();
   const [isHovered, setIsHovered] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const detailsRef = useRef<HTMLDetailsElement>(null);
 
   const startOffset = Math.max(start - (replay?.getStartTimestampMs() ?? 0), 0);
   const endOffset = Math.max(end - (replay?.getStartTimestampMs() ?? 0), 0);
   const hasOccurred = currentTime >= startOffset;
   const isBeforeHover = currentHoverTime === undefined || currentHoverTime >= startOffset;
 
+  useEffect(() => {
+    const details = detailsRef.current;
+    if (details) {
+      const handleToggle = () => setIsOpen(details.open);
+      details.addEventListener('toggle', handleToggle);
+      return () => details.removeEventListener('toggle', handleToggle);
+    }
+    return undefined;
+  }, []);
+
   return (
     <ChapterWrapper
+      ref={detailsRef}
+      error={error}
+      feedback={feedback}
       className={classNames(className, {
         beforeCurrentTime: hasOccurred,
         afterCurrentTime: !hasOccurred,
@@ -122,13 +137,13 @@ function ChapterRow({
       <Chapter error={error} feedback={feedback}>
         <ChapterIconWrapper>
           {error ? (
-            isHovered ? (
-              <ChapterIconArrow direction="right" size="xs" color="errorText" />
+            isOpen || isHovered ? (
+              <ChapterIconArrow direction="right" size="xs" color="red300" />
             ) : (
-              <IconFire size="xs" color="errorText" />
+              <IconFire size="xs" color="red300" />
             )
           ) : feedback ? (
-            isHovered ? (
+            isOpen || isHovered ? (
               <ChapterIconArrow direction="right" size="xs" color="pink300" />
             ) : (
               <IconMegaphone size="xs" color="pink300" />
@@ -196,7 +211,7 @@ const ChaptersList = styled('div')`
   overflow: auto;
 `;
 
-const ChapterWrapper = styled('details')`
+const ChapterWrapper = styled('details')<{error?: boolean; feedback?: boolean}>`
   width: 100%;
   position: relative;
   margin: 0;
@@ -224,6 +239,18 @@ const ChapterWrapper = styled('details')`
   &.activeChapter .beforeCurrentTime:last-child {
     border-bottom-color: ${p => p.theme.purple300};
   }
+
+  &:hover {
+    margin-top: 0px;
+    /* eliminate some of the top gap */
+    border-top: 1px solid
+      ${p =>
+        p.error
+          ? p.theme.red100
+          : p.feedback
+            ? p.theme.pink100
+            : p.theme.backgroundSecondary};
+  }
 `;
 
 const ChapterBreadcrumbRow = styled(BreadcrumbRow)`
@@ -232,11 +259,9 @@ const ChapterBreadcrumbRow = styled(BreadcrumbRow)`
   &::before {
     display: none;
   }
-  &:last-child {
-    background-color: transparent;
-  }
-  details[open]:last-child &:last-child {
-    background-color: ${p => p.theme.background};
+
+  &:hover {
+    background-color: ${p => p.theme.backgroundSecondary};
   }
 `;
 
@@ -247,7 +272,8 @@ const Chapter = styled('summary')<{error?: boolean; feedback?: boolean}>`
   font-size: ${p => p.theme.fontSize.lg};
   padding: 0 ${space(0.75)};
   color: ${p =>
-    p.error ? p.theme.errorText : p.feedback ? p.theme.pink300 : p.theme.textColor};
+    p.error ? p.theme.red300 : p.feedback ? p.theme.pink300 : p.theme.textColor};
+
   &:hover {
     background-color: ${p =>
       p.error
@@ -282,6 +308,7 @@ const ChapterTitle = styled('div')`
   }
 
   border-bottom: 1px solid ${p => p.theme.innerBorder};
+  margin-bottom: -1px; /* Compensate for border to fully eliminate gap */
 
   details:last-child:not([open]) & {
     border-bottom: none;
