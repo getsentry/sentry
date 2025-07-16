@@ -20,6 +20,7 @@ from sentry.models.files.file import File
 from sentry.models.files.utils import get_storage
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.utils import metrics
+from sentry.utils.storage import measure_storage_put
 
 logger = logging.getLogger()
 
@@ -206,13 +207,7 @@ class SimpleStorageBlob:
     def set(self, key: str, value: bytes) -> None:
         storage = get_storage(self._make_storage_options())
         try:
-            metrics.distribution(
-                "storage.put.size",
-                len(value),
-                tags={"usecase": "replays", "compression": "gzip"},
-                unit="byte",
-            )
-            with metrics.timer("storage.put.latency", tags={"usecase": "replays"}):
+            with measure_storage_put(len(value), "replays", "gzip"):
                 storage.save(key, BytesIO(value))
         except TooManyRequests:
             # if we 429 because of a dupe segment problem, ignore it
