@@ -723,7 +723,9 @@ def fire_actions_for_groups(
                 filtered_actions = filter_recently_fired_workflow_actions(
                     action_filters_for_group | workflows_actions, workflow_event_data
                 )
-                create_workflow_fire_histories(detector, filtered_actions, workflow_event_data)
+                create_workflow_fire_histories(
+                    detector, filtered_actions, workflow_event_data, should_trigger_actions
+                )
 
                 metrics.incr(
                     "workflow_engine.delayed_workflow.triggered_actions",
