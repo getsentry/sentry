@@ -65,7 +65,7 @@ def execute_via_group_type_registry(
             event_data.event.type in SUPPORTED_ACTIVITIES
             and event_data.group.type == MetricIssue.type_id
         ):
-            execute_via_metric_alert_handler(event_data, action, detector)
+            return execute_via_metric_alert_handler(event_data, action, detector)
         return event_data.event.send_notification()
 
     try:
