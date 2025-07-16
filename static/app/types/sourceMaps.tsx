@@ -1,6 +1,7 @@
 export type DebugIdBundleAssociation = {
   dist: string[] | string | null;
   release: string;
+  exists?: boolean;
 };
 
 export type DebugIdBundle = {

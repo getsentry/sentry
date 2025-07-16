@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from urllib.parse import urlencode, urlparse
 
 import orjson
@@ -9,7 +10,9 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pagerduty.integration import PagerDutyIntegrationProvider
 from sentry.integrations.pagerduty.utils import get_services
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.testutils.asserts import assert_count_of_metric, assert_success_metric
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -36,7 +39,8 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
             % (self.app_id, self.setup_path),
         )
 
-    def assert_setup_flow(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def assert_setup_flow(self, mock_record):
         resp = self.client.get(self.init_path)
         assert resp.status_code == 302
         redirect = urlparse(resp["Location"])
@@ -67,6 +71,18 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         )
 
         self.assertDialogSuccess(resp)
+
+        # SLO assertions
+        # INSTALLATION_REDIRECT (success) -> POST_INSTALL (success) -> FINISH_PIPELINE (success) -> INSTALLATION_REDIRECT (success)
+        # The first INSTALLATION_REDIRECT exits early because we redirect the user, the second INSTALLATION_REDIRECT is the last layer of the onion
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=4
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
+        )
+        assert_success_metric(mock_record)
+
         return resp
 
     def assert_add_service_flow(self, integration):

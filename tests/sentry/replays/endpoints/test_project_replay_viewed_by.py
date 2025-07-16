@@ -140,7 +140,7 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
             assert publish_replay_event.called
 
             replay_event = json.loads(publish_replay_event.call_args[0][0])
-            payload = json.loads(bytes(replay_event["payload"]))
+            payload = replay_event["payload"]
             assert payload["type"] == "replay_viewed"
             assert payload["viewed_by_id"] == self.user.id
             assert isinstance(payload["timestamp"], float)

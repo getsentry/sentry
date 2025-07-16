@@ -85,6 +85,13 @@ def update_remote_uptime_subscription(uptime_subscription_id, **kwargs):
         metrics.incr("uptime.subscriptions.update.subscription_does_not_exist", sample_rate=1.0)
         return
     if subscription.status != UptimeSubscription.Status.UPDATING.value:
+        logger.info(
+            "uptime.subscriptions.update_remote_uptime_subscription.incorrect_status",
+            extra={
+                "subscription_id": subscription.subscription_id,
+                "subscription_status": subscription.status,
+            },
+        )
         metrics.incr("uptime.subscriptions.update.incorrect_status", sample_rate=1.0)
         return
 

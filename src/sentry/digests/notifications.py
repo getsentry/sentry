@@ -68,6 +68,8 @@ def unsplit_key(
 def event_to_record(
     event: Event, rules: Sequence[Rule], notification_uuid: str | None = None
 ) -> Record:
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
     if not rules:
         logger.warning("Creating record for %s that does not contain any rules!", event)
 
@@ -77,7 +79,7 @@ def event_to_record(
         identifier_key = IdentifierKey.WORKFLOW
         for rule in rules:
             rule_ids.append(int(get_key_from_rule_data(rule, "workflow_id")))
-    elif features.has("organizations:workflow-engine-trigger-actions", event.organization):
+    elif should_fire_workflow_actions(event.organization):
         for rule in rules:
             rule_ids.append(int(get_key_from_rule_data(rule, "legacy_rule_id")))
     else:
@@ -166,6 +168,8 @@ def _build_digest_impl(
 
 
 def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[int, Rule]:
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
     rules: dict[int, Rule] = {}
     if not workflow_ids:
         return rules
@@ -219,7 +223,7 @@ def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[i
 
             assert rule.project_id == project.id, "Rule must belong to Project"
 
-            if features.has("organizations:workflow-engine-trigger-actions", project.organization):
+            if should_fire_workflow_actions(project.organization):
                 rule.data["actions"][0]["legacy_rule_id"] = rule.id
 
             rules[workflow_id] = rule
@@ -227,6 +231,8 @@ def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[i
 
 
 def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
     if not records:
         return DigestInfo({}, {}, {})
 
@@ -253,7 +259,7 @@ def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
     group_ids = list(groups)
     rules = Rule.objects.in_bulk(rule_ids)
 
-    if features.has("organizations:workflow-engine-trigger-actions", project.organization):
+    if should_fire_workflow_actions(project.organization):
         for rule in rules.values():
             rule.data["actions"][0]["legacy_rule_id"] = rule.id
 

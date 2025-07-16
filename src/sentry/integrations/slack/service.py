@@ -9,8 +9,8 @@ import orjson
 import sentry_sdk
 from slack_sdk.errors import SlackApiError
 
-from sentry import features
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
+from sentry.incidents.grouptype import MetricIssue
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
@@ -44,6 +44,7 @@ from sentry.models.group import Group
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
+from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.notifications.activity.archive import ArchiveActivityNotification
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
 from sentry.notifications.notifications.activity.base import GroupActivityNotification
@@ -63,6 +64,7 @@ from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.silo.base import SiloMode
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
 
 _default_logger = getLogger(__name__)
 
@@ -152,8 +154,22 @@ class SlackService:
 
         uptime_resolved_notification = (
             activity.type == ActivityType.SET_RESOLVED.value
-            and activity.group.issue_category == GroupCategory.UPTIME
+            and activity.group.issue_type.type_id == UptimeDomainCheckFailure.type_id
         )
+
+        metric_resolved_notification = (
+            activity.type == ActivityType.SET_RESOLVED.value
+            and activity.group.issue_type.type_id == MetricIssue.type_id
+        )
+
+        if activity.user_id is None and metric_resolved_notification:
+            # For Metric Issue resolved notifications triggered by the workflow engine, we don't need to send a notification here -
+            # It will be sent via action.trigger.
+            self._logger.info(
+                "metric resolved notification, will be sent via action.trigger - nothing to do here",
+                extra=log_params,
+            )
+            return None
 
         if activity.user_id is None and not uptime_resolved_notification:
             # This is a machine/system update, so we don't need to send a notification
@@ -232,13 +248,11 @@ class SlackService:
             parent_notifications: Generator[
                 NotificationActionNotificationMessage | IssueAlertNotificationMessage
             ]
+            will_fire_workflow_actions = should_fire_workflow_actions(group.organization)
             if group.issue_category == GroupCategory.UPTIME:
                 use_open_period_start = True
                 open_period_start = open_period_start_for_group(group)
-                if features.has(
-                    "organizations:workflow-engine-trigger-actions",
-                    group.organization,
-                ):
+                if will_fire_workflow_actions:
                     parent_notifications = self._notification_action_repository.get_all_parent_notification_messages_by_filters(
                         group_ids=[group.id],
                         open_period_start=open_period_start,
@@ -250,10 +264,7 @@ class SlackService:
                         open_period_start=open_period_start,
                     )
             else:
-                if features.has(
-                    "organizations:workflow-engine-trigger-actions",
-                    group.organization,
-                ):
+                if will_fire_workflow_actions:
                     parent_notifications = self._notification_action_repository.get_all_parent_notification_messages_by_filters(
                         group_ids=[group.id],
                     )

@@ -4,6 +4,7 @@ from unittest import mock
 import pytest
 
 from sentry import eventstore, nodestore
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.db.models.fields.node import NodeData, NodeIntegrityFailure
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.grouping.api import GroupingConfig, get_grouping_variants_for_event
@@ -13,7 +14,6 @@ from sentry.grouping.variants import ComponentVariant
 from sentry.interfaces.user import User
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.environment import Environment
-from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now

@@ -599,9 +599,11 @@ register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("alerts.issue_summary_timeout", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Issue Summary Auto-trigger rate (max number of autofix runs auto-triggered per project per hour)
 register("seer.max_num_autofix_autotriggered_per_hour", default=20, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Seer Scanner Auto-trigger rate (max number of scans auto-triggered per project per minute)
+# Seer Scanner Auto-trigger rate (max number of scans auto-triggered per project per 10 seconds)
 register(
-    "seer.max_num_scanner_autotriggered_per_minute", default=50, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "seer.max_num_scanner_autotriggered_per_ten_seconds",
+    default=15,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Codecov Integration
@@ -2605,14 +2607,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rate at which to run split enhancements and compare the results to the default enhancements
-register(
-    "grouping.split_enhancements.sample_rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 register(
     "metrics.sample-list.sample-rate",
     type=Float,
@@ -3184,32 +3178,24 @@ register(
 
 # Taskbroker flags
 register(
-    "taskworker.try_compress.profile_metrics",
-    default=0.0,
-    type=Float,
+    "taskworker.route.overrides",
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-register(
-    "taskworker.try_compress.profile_metrics.rollout",
-    default=0.0,
-    type=Float,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Taskbroker flags
 register(
     "taskworker.try_compress.profile_metrics.level",
     default=6,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
 register(
-    "taskworker.route.overrides",
-    default={},
+    "taskworker.fetch_next.disabled_pools",
+    default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+
+# Taskbroker rollout flags
 register(
     "taskworker.deletions.rollout",
     default={},
@@ -3458,6 +3444,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Taskbroker compression flag
+register(
+    "taskworker.enable_compression.rollout",
+    default=0.0,
+    type=Float,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Orgs for which compression should be disabled in the chunk upload endpoint.
 # This is intended to circumvent sporadic 503 errors reported by some customers.
 register("chunk-upload.no-compression", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -3484,5 +3478,13 @@ register(
     "issues.browser_reporting.collector_endpoint_enabled",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rollout for inferring project platform from events received
+register(
+    "sentry:infer_project_platform",
+    type=Float,
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

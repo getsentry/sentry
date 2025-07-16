@@ -3,8 +3,6 @@ import {css} from '@emotion/react';
 
 // eslint-disable-next-line boundaries/element-types
 import {type SVGIconProps} from 'sentry/icons/svgIcon';
-// eslint-disable-next-line boundaries/element-types
-import {space} from 'sentry/styles/space';
 
 import type {
   DO_NOT_USE_ButtonProps as ButtonProps,
@@ -27,7 +25,7 @@ const getBoxShadow = ({
   }
 
   const themeName = disabled ? 'disabled' : priority || 'default';
-  const {borderTranslucent} = theme.button[themeName];
+  const {borderTranslucent} = theme.button[themeName] ?? theme.button.default;
   const translucentBorderString = translucentBorder
     ? `0 0 0 1px ${borderTranslucent},`
     : '';
@@ -51,7 +49,7 @@ const getColors = ({
 }: (ButtonProps | LinkButtonProps) & {theme: Theme}): SerializedStyles => {
   const themeName = disabled ? 'disabled' : priority || 'default';
   const {color, colorActive, background, border, borderActive, focusBorder, focusShadow} =
-    theme.button[themeName];
+    theme.button[themeName] ?? theme.button.default;
 
   const getFocusState = (): SerializedStyles => {
     switch (priority) {
@@ -211,7 +209,7 @@ export function DO_NOT_USE_getButtonStyles(
     css`
       height: auto;
       min-height: auto;
-      padding: ${space(0.25)};
+      padding: ${p.theme.space['2xs']};
     `}
 
   &:focus {

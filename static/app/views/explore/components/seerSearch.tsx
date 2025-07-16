@@ -281,7 +281,7 @@ export function SeerSearch({initialQuery = ''}: SeerSearchProps) {
             </QueryResultsSection>
           ) : (
             <SeerContent>
-              <SeerHeader title={t("Type something in and I'll do my best to help")} />
+              <SeerHeader title={t("Describe what you're looking for!")} />
             </SeerContent>
           )}
 

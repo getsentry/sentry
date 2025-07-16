@@ -6,36 +6,37 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {WebVitalsWeightList} from 'sentry/views/insights/browser/webVitals/components/charts/webVitalWeightList';
+import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {getWeights} from 'sentry/views/insights/browser/webVitals/utils/getWeights';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import {useDefaultWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/utils/useDefaultQuery';
 import {InsightsTimeSeriesWidget} from 'sentry/views/insights/common/components/insightsTimeSeriesWidget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {
   type DiscoverSeries,
   useMetricsSeries,
 } from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
 
 export default function PerformanceScoreBreakdownChartWidget(
   props: LoadableChartWidgetProps
 ) {
   const {
     transaction,
-    [SpanIndexedField.BROWSER_NAME]: browserTypes,
-    [SpanIndexedField.USER_GEO_SUBREGION]: subregions,
+    [SpanFields.BROWSER_NAME]: browserTypes,
+    [SpanFields.USER_GEO_SUBREGION]: subregions,
   } = useLocationQuery({
     fields: {
-      [SpanIndexedField.BROWSER_NAME]: decodeBrowserTypes,
-      [SpanIndexedField.USER_GEO_SUBREGION]: decodeList,
+      [SpanFields.BROWSER_NAME]: decodeBrowserTypes,
+      [SpanFields.USER_GEO_SUBREGION]: decodeList,
       transaction: decodeList,
     },
   });
   const theme = useTheme();
   const segmentColors = theme.chart.getColorPalette(4).slice(0, 5);
-  const defaultQuery = useDefaultWebVitalsQuery();
-  const search = new MutableSearch(`${defaultQuery} has:measurements.score.total`);
+  const search = new MutableSearch(
+    `${DEFAULT_QUERY_FILTER} has:measurements.score.total`
+  );
 
   if (transaction.length && transaction[0]) {
     search.addFilterValue('transaction', transaction[0]);

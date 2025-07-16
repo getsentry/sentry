@@ -331,7 +331,7 @@ SENTRY_APP_ACTIONS = frozenset(
 # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
 HTTP_METHODS = ("GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH")
 
-# See https://github.com/getsentry/relay/blob/master/relay-general/src/protocol/constants.rs
+# See https://github.com/getsentry/relay/blob/master/relay-event-schema/src/protocol/constants.rs
 VALID_PLATFORMS = sentry_relay.processing.VALID_PLATFORMS
 
 OK_PLUGIN_ENABLED = _("The {name} integration has been enabled.")
@@ -640,6 +640,7 @@ class InsightModules(Enum):
     QUEUE = "queue"
     LLM_MONITORING = "llm_monitoring"
     AGENTS = "agents"
+    MCP = "mcp"
 
 
 INSIGHT_MODULE_FILTERS = {
@@ -676,6 +677,7 @@ INSIGHT_MODULE_FILTERS = {
     InsightModules.AGENTS: lambda spans: any(
         span.get("op").startswith("gen_ai.") for span in spans
     ),
+    InsightModules.MCP: lambda spans: any(span.get("op").startswith("mcp.") for span in spans),
 }
 
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
@@ -729,6 +731,7 @@ ROLLBACK_ENABLED_DEFAULT = True
 DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT = AutofixAutomationTuningSettings.OFF
 DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT = True
 INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT = False
+ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT = True
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True

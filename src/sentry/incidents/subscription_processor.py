@@ -51,10 +51,11 @@ from sentry.incidents.utils.types import (
 )
 from sentry.models.project import Project
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer_legacy
-from sentry.seer.anomaly_detection.get_historical_anomalies import (
+from sentry.seer.anomaly_detection.utils import (
+    anomaly_has_confidence,
     get_anomaly_evaluation_from_workflow_engine,
+    has_anomaly,
 )
-from sentry.seer.anomaly_detection.utils import anomaly_has_confidence, has_anomaly
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.subscriptions import delete_snuba_subscription
@@ -452,6 +453,14 @@ class SubscriptionProcessor:
                         raise ResourceDoesNotExist("Detector not found, cannot evaluate anomaly")
 
                     is_anomalous = get_anomaly_evaluation_from_workflow_engine(detector, results)
+                    logger.info(
+                        "dual processing anomaly detection alert",
+                        extra={
+                            "rule_id": self.alert_rule.id,
+                            "detector_id": detector.id,
+                            "anomaly_evaluation": is_anomalous,
+                        },
+                    )
                     if is_anomalous is None:
                         # we only care about True and False — None indicates no change
                         continue

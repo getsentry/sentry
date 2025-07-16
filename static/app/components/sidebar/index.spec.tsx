@@ -32,11 +32,10 @@ const ALL_AVAILABLE_FEATURES = [
   'discover-query',
   'dashboards-basic',
   'dashboards-edit',
-  'user-feedback-ui',
   'session-replay-ui',
   'performance-view',
-  'performance-trace-explorer',
   'profiling',
+  'visibility-explore-view',
 ];
 
 jest.mock('sentry/utils/demoMode');

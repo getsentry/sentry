@@ -14,6 +14,7 @@ from sentry.replays.endpoints.project_replay_summarize_breadcrumbs import (
     GroupEvent,
     as_log_message,
     get_request_data,
+    parse_timestamp,
 )
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
 from sentry.replays.testutils import mock_replay
@@ -349,6 +350,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         span_id = "1" + uuid.uuid4().hex[:15]
         event_id = uuid.uuid4().hex
         error_timestamp = now.timestamp() - 1
+        project_2 = self.create_project()
 
         self.store_event(
             data={
@@ -370,7 +372,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
                     }
                 },
             },
-            project_id=self.project.id,
+            project_id=project_2.id,
         )
 
         self.store_replays(
@@ -447,6 +449,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         connected_event_id = uuid.uuid4().hex
         span_id = "1" + uuid.uuid4().hex[:15]
         connected_error_timestamp = now.timestamp() - 1
+        project_2 = self.create_project()
         self.store_event(
             data={
                 "event_id": connected_event_id,
@@ -467,7 +470,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
                     }
                 },
             },
-            project_id=self.project.id,
+            project_id=project_2.id,
         )
 
         # Store the replay with both error IDs and trace IDs
@@ -815,3 +818,31 @@ def test_as_log_message():
     }
     assert as_log_message(event) is None
     assert as_log_message({}) is None
+
+
+def test_parse_timestamp():
+    # Test None input
+    assert parse_timestamp(None, "ms") == 0.0
+    assert parse_timestamp(None, "s") == 0.0
+
+    # Test numeric input
+    assert parse_timestamp(123.456, "ms") == 123.456
+    assert parse_timestamp(123, "s") == 123.0
+
+    # Test string input with ISO format without timezone
+    assert parse_timestamp("2023-01-01T12:00:00", "ms") == 1672574400.0 * 1000
+    assert parse_timestamp("2023-01-01T12:00:00", "s") == 1672574400.0
+
+    # Test string input with ISO format with timezone offset
+    assert parse_timestamp("2023-01-01T12:00:00+00:00", "ms") == 1672574400.0 * 1000
+    assert parse_timestamp("2023-01-01T12:00:00.123+00:00", "ms") == 1672574400.123 * 1000
+    assert parse_timestamp("2023-01-01T12:00:00+00:00", "s") == 1672574400.0
+
+    # Test string input with ISO format with 'Z' timezone suffix
+    assert parse_timestamp("2023-01-01T12:00:00Z", "s") == 1672574400.0
+    assert parse_timestamp("2023-01-01T12:00:00.123Z", "ms") == 1672574400.123 * 1000
+
+    # Test invalid input
+    assert parse_timestamp("invalid timestamp", "ms") == 0.0
+    assert parse_timestamp("", "ms") == 0.0
+    assert parse_timestamp("2023-13-01T12:00:00Z", "ms") == 0.0

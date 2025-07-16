@@ -1,11 +1,10 @@
 import {getInterval} from 'sentry/components/charts/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import {useDefaultWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/utils/useDefaultQuery';
 import {useMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
-import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
+import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
   browserTypes?: BrowserType[];
@@ -19,26 +18,22 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
   subregions,
 }: Props) => {
   const pageFilters = usePageFilters();
-  const defaultQuery = useDefaultWebVitalsQuery();
-  const useEap = useInsightsEap();
   const search = new MutableSearch([]);
 
   if (transaction) {
     search.addFilterValue('transaction', transaction);
   }
   if (browserTypes) {
-    search.addDisjunctionFilterValues(SpanIndexedField.BROWSER_NAME, browserTypes);
+    search.addDisjunctionFilterValues(SpanFields.BROWSER_NAME, browserTypes);
   }
   if (subregions) {
-    search.addDisjunctionFilterValues(SpanIndexedField.USER_GEO_SUBREGION, subregions);
+    search.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
   }
-
-  const interval = useEap ? 'spans-low' : 'low';
 
   const result = useMetricsSeries(
     {
-      search: [defaultQuery, search.formatString()].join(' ').trim(),
-      interval: getInterval(pageFilters.selection.datetime, interval),
+      search: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
+      interval: getInterval(pageFilters.selection.datetime, 'spans-low'),
       yAxis: [
         'p75(measurements.lcp)',
         'p75(measurements.fcp)',

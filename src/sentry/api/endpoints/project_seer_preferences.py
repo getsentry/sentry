@@ -50,7 +50,12 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
             RateLimitCategory.IP: RateLimit(limit=20, window=60),
             RateLimitCategory.USER: RateLimit(limit=20, window=60),
             RateLimitCategory.ORGANIZATION: RateLimit(limit=60, window=60),
-        }
+        },
+        "GET": {
+            RateLimitCategory.IP: RateLimit(limit=1000, window=60, concurrent_limit=500),
+            RateLimitCategory.USER: RateLimit(limit=1000, window=60, concurrent_limit=500),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=5000, window=60, concurrent_limit=1000),
+        },
     }
 
     def post(self, request: Request, project: Project) -> Response:

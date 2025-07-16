@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -9,26 +11,35 @@ import {space} from 'sentry/styles/space';
 interface RowProps {
   children: React.ReactNode;
   onDelete: () => void;
-  isConflicting?: boolean;
+  errorMessage?: string;
+  hasError?: boolean;
 }
 
 export default function AutomationBuilderRow({
   onDelete,
   children,
-  isConflicting,
+  hasError,
+  errorMessage,
 }: RowProps) {
   return (
-    <RowContainer incompatible={isConflicting}>
-      <RowLine>{children}</RowLine>
-      <DeleteButton
-        aria-label={t('Delete row')}
-        size="sm"
-        icon={<IconDelete />}
-        borderless
-        onClick={onDelete}
-        className={'delete-row'}
-      />
-    </RowContainer>
+    <Flex direction="column" gap={space(0.5)}>
+      <RowContainer incompatible={hasError}>
+        <RowLine>{children}</RowLine>
+        <DeleteButton
+          aria-label={t('Delete row')}
+          size="sm"
+          icon={<IconDelete />}
+          borderless
+          onClick={onDelete}
+          className={'delete-row'}
+        />
+      </RowContainer>
+      {hasError && errorMessage && (
+        <Alert type={'error'} showIcon>
+          {errorMessage}
+        </Alert>
+      )}
+    </Flex>
   );
 }
 

@@ -91,6 +91,7 @@ function NotesField() {
   return (
     <AutomationBuilderInput
       name={`${actionId}.data.notes`}
+      aria-label={t('Notes')}
       placeholder={t('example notes')}
       value={action.data.notes}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -100,4 +101,14 @@ function NotesField() {
       }}
     />
   );
+}
+
+export function validateSlackAction(action: Action): string | undefined {
+  if (!action.integrationId) {
+    return t('You must specify a Slack workspace.');
+  }
+  if (!action.config.target_display) {
+    return t('You must specify a channel name or ID.');
+  }
+  return undefined;
 }

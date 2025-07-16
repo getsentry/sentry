@@ -2193,6 +2193,24 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         # The timestamp of the last event should be 22:00 and there should also only be 1 event
         assert data[-1] == ((self.day_ago + timedelta(hours=12)).timestamp(), [{"count": 1}])
 
+    def test_top_events_with_timestamp(self):
+        """Users shouldn't groupby timestamp for top events"""
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=6),
+                "interval": "1m",
+                "yAxis": "count()",
+                "field": ["timestamp", "sum(span.self_time)"],
+                "orderby": ["-sum_span_self_time"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "excludeOther": 0,
+                "topEvents": 2,
+            },
+        )
+        assert response.status_code == 400, response.content
+
     def test_simple_equation(self):
         self.store_spans(
             [

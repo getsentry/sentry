@@ -25,7 +25,6 @@ from sentry.digests import backend as digests
 from sentry.dynamic_sampling.utils import (
     has_custom_dynamic_sampling,
     has_dynamic_sampling,
-    has_dynamic_sampling_minimum_sample_rate,
     is_project_mode_sampling,
 )
 from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
@@ -285,6 +284,7 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     hasInsightsQueues: bool
     hasInsightsLlmMonitoring: bool
     hasInsightsAgentMonitoring: bool
+    hasInsightsMCP: bool
 
 
 class ProjectSerializerResponse(ProjectSerializerBaseResponse):
@@ -553,6 +553,7 @@ class ProjectSerializer(Serializer):
             "hasInsightsQueues": bool(obj.flags.has_insights_queues),
             "hasInsightsLlmMonitoring": bool(obj.flags.has_insights_llm_monitoring),
             "hasInsightsAgentMonitoring": bool(obj.flags.has_insights_agent_monitoring),
+            "hasInsightsMCP": bool(obj.flags.has_insights_mcp),
             "isInternal": obj.is_internal_project(),
             "isPublic": obj.public,
             # Projects don't have avatar uploads, but we need to maintain the payload shape for
@@ -801,6 +802,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasInsightsQueues=bool(obj.flags.has_insights_queues),
             hasInsightsLlmMonitoring=bool(obj.flags.has_insights_llm_monitoring),
             hasInsightsAgentMonitoring=bool(obj.flags.has_insights_agent_monitoring),
+            hasInsightsMCP=bool(obj.flags.has_insights_mcp),
             platform=obj.platform,
             platforms=attrs["platforms"],
             latestRelease=attrs["latest_release"],
@@ -938,7 +940,6 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     groupingConfig: str
     derivedGroupingEnhancements: str
     groupingEnhancements: str
-    groupingEnhancementsBase: str | None
     secondaryGroupingExpiry: int
     secondaryGroupingConfig: str | None
     fingerprintingRules: str
@@ -950,7 +951,6 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     relayPiiConfig: str | None
     builtinSymbolSources: list[str]
     dynamicSamplingBiases: list[dict[str, str | bool]]
-    dynamicSamplingMinimumSampleRate: bool
     eventProcessing: dict[str, bool]
     symbolSources: str
     isDynamicallySampled: bool
@@ -1066,9 +1066,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "groupingEnhancements": self.get_value_with_default(
                 attrs, "sentry:grouping_enhancements"
             ),
-            "groupingEnhancementsBase": self.get_value_with_default(
-                attrs, "sentry:grouping_enhancements_base"
-            ),
             "derivedGroupingEnhancements": self.get_value_with_default(
                 attrs, "sentry:derived_grouping_enhancements"
             ),
@@ -1101,9 +1098,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "dynamicSamplingBiases": self.get_value_with_default(
                 attrs, "sentry:dynamic_sampling_biases"
             ),
-            "dynamicSamplingMinimumSampleRate": self.get_value_with_default(
-                attrs, "sentry:dynamic_sampling_minimum_sample_rate"
-            ),
             "eventProcessing": {
                 "symbolicationDegraded": False,
             },
@@ -1122,11 +1116,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "sentry:tempest_fetch_screenshots", False
             )
             data["tempestFetchDumps"] = attrs["options"].get("sentry:tempest_fetch_dumps", False)
-
-        if has_dynamic_sampling_minimum_sample_rate(obj.organization, user):
-            data["dynamicSamplingMinimumSampleRate"] = bool(
-                obj.get_option("sentry:dynamic_sampling_minimum_sample_rate")
-            )
 
         return data
 

@@ -28,7 +28,6 @@ export function getTraceQueryParams(
   limit: number;
   targetId: string | undefined;
   timestamp: string | undefined;
-  useSpans: number;
   demo?: string;
   pageEnd?: string;
   pageStart?: string;
@@ -71,7 +70,6 @@ export function getTraceQueryParams(
     limit,
     timestamp: timestamp?.toString(),
     targetId,
-    useSpans: 1,
   };
   for (const key in queryParams) {
     if (
@@ -172,6 +170,7 @@ function useDemoTrace(
 }
 
 type UseTraceParams = {
+  additionalAttributes?: string[];
   limit?: number;
   timestamp?: number;
   traceSlug?: string;
@@ -215,7 +214,13 @@ export function useTrace(
   const eapTraceQuery = useApiQuery<TraceTree.EAPTrace>(
     [
       `/organizations/${organization.slug}/trace/${options.traceSlug ?? ''}/`,
-      {query: {...queryParams, project: -1}},
+      {
+        query: {
+          ...queryParams,
+          project: -1,
+          additional_attributes: options.additionalAttributes,
+        },
+      },
     ],
     {
       staleTime: Infinity,
