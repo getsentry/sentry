@@ -515,7 +515,7 @@ class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResp
     planSampleRate: float
     desiredSampleRate: float
     ingestThroughTrustedRelaysOnly: bool
-    enabledConsolePlatforms: set[str]
+    enabledConsolePlatforms: list[str]
 
 
 @extend_schema_serializer(exclude_fields=["availableRoles"])

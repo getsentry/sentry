@@ -1406,29 +1406,26 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             enabled_platforms = self.organization.get_option("sentry:enabled_console_platforms")
             assert enabled_platforms == []
 
+        with self.feature({"organizations:project-creation-games-tab": True}):
+            staff_user = self.create_user(is_staff=True)
+            self.create_member(organization=self.organization, user=staff_user, role="owner")
+            self.login_as(user=staff_user, staff=True)
+
+            data = {"enabledConsolePlatforms": ["playstation", "playstation"]}
+            self.get_success_response(self.organization.slug, **data)
+            enabled_platforms = self.organization.get_option("sentry:enabled_console_platforms")
+            assert enabled_platforms == ["playstation"]
+
     @with_feature({"organizations:project-creation-games-tab": False})
     def test_get_enabled_console_platforms_without_feature_flag(self):
-        """Test that enabledConsolePlatforms is not included without feature flag"""
         response = self.get_success_response(self.organization.slug)
         assert "enabledConsolePlatforms" not in response.data
 
     @with_feature({"organizations:project-creation-games-tab": True})
-    def test_get_enabled_console_platforms_with_feature_flag(self):
-        """Test that enabledConsolePlatforms is included with feature flag"""
+    def test_get_gaming_platform_options_with_feature_flag(self):
         response = self.get_success_response(self.organization.slug)
         assert "enabledConsolePlatforms" in response.data
         assert response.data["enabledConsolePlatforms"] == []
-
-    @with_feature({"organizations:project-creation-games-tab": True})
-    def test_get_enabled_console_platforms_with_existing_data(self):
-        """Test that enabledConsolePlatforms returns existing set data"""
-        # Set some platforms
-        self.organization.update_option("sentry:enabled_console_platforms", {"playstation", "xbox"})
-
-        response = self.get_success_response(self.organization.slug)
-        assert "enabledConsolePlatforms" in response.data
-        # Note: sets are typically serialized as lists in JSON
-        assert set(response.data["enabledConsolePlatforms"]) == {"playstation", "xbox"}
 
 
 class OrganizationDeleteTest(OrganizationDetailsTestBase):

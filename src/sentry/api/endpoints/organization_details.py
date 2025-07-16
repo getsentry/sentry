@@ -253,7 +253,7 @@ ORG_OPTIONS = (
     (
         "enabledConsolePlatforms",
         "sentry:enabled_console_platforms",
-        set,
+        list,
         ENABLED_CONSOLE_PLATFORMS_DEFAULT,
     ),
 )
@@ -428,6 +428,11 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             )
         if not is_active_staff(request):
             raise serializers.ValidationError("Only staff members can toggle console platforms.")
+
+        # Remove duplicates by converting to set and back to list
+        if value is not None:
+            value = list(set(value))
+
         return value
 
     def validate_accountRateLimit(self, value):
