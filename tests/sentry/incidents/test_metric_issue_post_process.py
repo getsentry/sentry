@@ -214,6 +214,6 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
             with self.tasks():
                 update_status(group, message)
             mock_incr.assert_any_call(
-                "workflow_engine.process_workflow.activity_update.executed",
+                "workflow_engine.tasks.process_workflows.activity_update.executed",
                 tags={"activity_type": ActivityType.SET_RESOLVED.value},
             )
