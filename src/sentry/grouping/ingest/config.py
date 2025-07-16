@@ -76,7 +76,7 @@ def update_or_set_grouping_config_if_needed(project: Project, source: str) -> st
                 # This is when we will stop calculating the old hash in cases where we don't find the
                 # new hash (which we do in an effort to preserve group continuity).
                 transition_expiry = (
-                    int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
+                    int(time.time()) + settings.SENTRY_GROUPING_CONFIG_TRANSITION_DURATION
                 )
 
                 changes.update(
@@ -139,6 +139,10 @@ def update_or_set_grouping_config_if_needed(project: Project, source: str) -> st
 
 
 def is_in_transition(project: Project) -> bool:
+    """
+    Determine if a project is currently in a grouping transition, i.e., that it has a valid
+    secondary grouping config defined and that it's secondary grouping expiry date hasn't passed.
+    """
     secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
     secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
 
