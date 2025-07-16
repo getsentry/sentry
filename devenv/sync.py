@@ -200,6 +200,7 @@ def main(context: dict[str, str]) -> int:
                     "uv",
                     "sync",
                     "--frozen",
+                    "--quiet",
                 ),
                 {},
             ),
