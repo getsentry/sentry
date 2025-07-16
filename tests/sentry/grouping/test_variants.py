@@ -6,12 +6,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.eventstore.models import Event
 from sentry.grouping.fingerprinting import FingerprintRuleJSON
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.variants import CustomFingerprintVariant, expose_fingerprint_dict
 from sentry.models.project import Project
-from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from tests.sentry.grouping import (
     GROUPING_INPUTS_DIR,

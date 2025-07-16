@@ -4,11 +4,11 @@ from time import time
 from typing import Any
 from unittest.mock import ANY, MagicMock, patch
 
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.eventstore.models import Event
 from sentry.grouping.ingest.grouphash_metadata import create_or_update_grouphash_metadata_if_needed
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GROUPHASH_METADATA_SCHEMA_VERSION, HashBasis
-from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.options import override_options
