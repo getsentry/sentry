@@ -47,6 +47,7 @@ from sentry.constants import (
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
+    ENABLED_CONSOLE_PLATFORMS_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
     GITLAB_COMMENT_BOT_DEFAULT,
@@ -56,7 +57,6 @@ from sentry.constants import (
     JOIN_REQUESTS_DEFAULT,
     LEGACY_RATE_LIMIT_OPTIONS,
     METRIC_ALERTS_THREAD_DEFAULT,
-    PLAYSTATION_PLATFORM_ENABLED_DEFAULT,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
@@ -64,10 +64,7 @@ from sentry.constants import (
     ROLLBACK_ENABLED_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
-    SWITCH_ONE_PLATFORM_ENABLED_DEFAULT,
-    SWITCH_TWO_PLATFORM_ENABLED_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
-    XBOX_PLATFORM_ENABLED_DEFAULT,
     ObjectStatus,
 )
 from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
@@ -254,28 +251,10 @@ ORG_OPTIONS = (
         INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
     ),
     (
-        "playstationPlatformEnabled",
-        "sentry:playstation_platform_enabled",
-        bool,
-        PLAYSTATION_PLATFORM_ENABLED_DEFAULT,
-    ),
-    (
-        "switchOnePlatformEnabled",
-        "sentry:switch_one_platform_enabled",
-        bool,
-        SWITCH_ONE_PLATFORM_ENABLED_DEFAULT,
-    ),
-    (
-        "switchTwoPlatformEnabled",
-        "sentry:switch_two_platform_enabled",
-        bool,
-        SWITCH_TWO_PLATFORM_ENABLED_DEFAULT,
-    ),
-    (
-        "xboxPlatformEnabled",
-        "sentry:xbox_platform_enabled",
-        bool,
-        XBOX_PLATFORM_ENABLED_DEFAULT,
+        "enabledConsolePlatforms",
+        "sentry:enabled_console_platforms",
+        set,
+        ENABLED_CONSOLE_PLATFORMS_DEFAULT,
     ),
 )
 
@@ -346,10 +325,11 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     )
     defaultSeerScannerAutomation = serializers.BooleanField(required=False)
     ingestThroughTrustedRelaysOnly = serializers.BooleanField(required=False)
-    playstationPlatformEnabled = serializers.BooleanField(required=False)
-    switchOnePlatformEnabled = serializers.BooleanField(required=False)
-    switchTwoPlatformEnabled = serializers.BooleanField(required=False)
-    xboxPlatformEnabled = serializers.BooleanField(required=False)
+    enabledConsolePlatforms = serializers.ListField(
+        child=serializers.ChoiceField(choices=["playstation", "xbox", "switch_one", "switch_two"]),
+        required=False,
+        allow_empty=True,
+    )
 
     @cached_property
     def _has_legacy_rate_limits(self):
@@ -437,7 +417,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             )
         return value
 
-    def validate_playstationPlatformEnabled(self, value):
+    def validate_enabledConsolePlatforms(self, value):
         organization = self.context["organization"]
         request = self.context["request"]
         if not features.has(
@@ -447,46 +427,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "Organization does not have the project creation games tab feature enabled."
             )
         if not is_active_staff(request):
-            raise serializers.ValidationError("Only staff members can toggle this platform.")
-        return value
-
-    def validate_switchOnePlatformEnabled(self, value):
-        organization = self.context["organization"]
-        request = self.context["request"]
-        if not features.has(
-            "organizations:project-creation-games-tab", organization, actor=request.user
-        ):
-            raise serializers.ValidationError(
-                "Organization does not have the project creation games tab feature enabled."
-            )
-        if not is_active_staff(request):
-            raise serializers.ValidationError("Only staff members can toggle this platform.")
-        return value
-
-    def validate_switchTwoPlatformEnabled(self, value):
-        organization = self.context["organization"]
-        request = self.context["request"]
-        if not features.has(
-            "organizations:project-creation-games-tab", organization, actor=request.user
-        ):
-            raise serializers.ValidationError(
-                "Organization does not have the project creation games tab feature enabled."
-            )
-        if not is_active_staff(request):
-            raise serializers.ValidationError("Only staff members can toggle this platform.")
-        return value
-
-    def validate_xboxPlatformEnabled(self, value):
-        organization = self.context["organization"]
-        request = self.context["request"]
-        if not features.has(
-            "organizations:project-creation-games-tab", organization, actor=request.user
-        ):
-            raise serializers.ValidationError(
-                "Organization does not have the project creation games tab feature enabled."
-            )
-        if not is_active_staff(request):
-            raise serializers.ValidationError("Only staff members can toggle this platform.")
+            raise serializers.ValidationError("Only staff members can toggle console platforms.")
         return value
 
     def validate_accountRateLimit(self, value):
@@ -784,10 +725,7 @@ def post_org_pending_deletion(
         "defaultAutofixAutomationTuning",
         "defaultSeerScannerAutomation",
         "ingestThroughTrustedRelaysOnly",
-        "playstationPlatformEnabled",
-        "switchOnePlatformEnabled",
-        "switchTwoPlatformEnabled",
-        "xboxPlatformEnabled",
+        "enabledConsolePlatforms",
     ]
 )
 class OrganizationDetailsPutSerializer(serializers.Serializer):
