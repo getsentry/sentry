@@ -706,17 +706,21 @@ def _set_project_platform_if_needed(project: Project, event: Event) -> None:
     if event.platform not in VALID_PLATFORMS or event.get_tag("sample_event") == "yes":
         return
 
-    updated = Project.objects.filter(
-        Q(id=project.id) & (Q(platform__isnull=True) | Q(platform=""))
-    ).update(platform=event.platform)
+    try:
+        updated = Project.objects.filter(
+            Q(id=project.id) & (Q(platform__isnull=True) | Q(platform=""))
+        ).update(platform=event.platform)
 
-    if updated:
-        create_system_audit_entry(
-            organization=project.organization,
-            target_object=project.id,
-            event=audit_log.get_event_id("PROJECT_EDIT"),
-            data={**project.get_audit_log_data(), "platform": event.platform},
-        )
+        if updated:
+            create_system_audit_entry(
+                organization=project.organization,
+                target_object=project.id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+                data={**project.get_audit_log_data(), "platform": event.platform},
+            )
+
+    except Exception:
+        logger.exception("Failed to infer and set project platform")
 
 
 @sentry_sdk.tracing.trace
