@@ -651,9 +651,8 @@ describe('token', function () {
       expect(await screen.findByRole('row', {name: '10'})).toBeInTheDocument();
     });
 
-    // This function seems to work in the browser but there's an error in these test about async updates
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('completes literal with enter', async function () {
+    it('completes literal with enter', async function () {
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const dispatch = jest.fn();
       render(<Tokens expression="1" dispatch={dispatch} />);
 
@@ -675,6 +674,7 @@ describe('token', function () {
 
       await userEvent.type(getLastInput(), '{Escape}');
       expect(await screen.findByRole('row', {name: '10'})).toBeInTheDocument();
+      errorSpy.mockRestore();
     });
 
     it('completes literal with escape', async function () {
