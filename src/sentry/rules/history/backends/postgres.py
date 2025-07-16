@@ -154,19 +154,72 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
     ) -> Sequence[TimeSeriesValue]:
         start = start.replace(tzinfo=timezone.utc)
         end = end.replace(tzinfo=timezone.utc)
-        qs = (
-            RuleFireHistory.objects.filter(
-                rule=rule,
-                date_added__gte=start,
-                date_added__lt=end,
-            )
-            .annotate(bucket=TruncHour("date_added"))
-            .order_by("bucket")
-            .values("bucket")
-            .annotate(count=Count("id"))
-        )
-        existing_data = {row["bucket"]: TimeSeriesValue(row["bucket"], row["count"]) for row in qs}
 
+        existing_data: dict[datetime, TimeSeriesValue] = {}
+
+        if features.has(
+            "organizations:workflow-engine-single-process-workflows", rule.project.organization
+        ):
+            try:
+                alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
+                workflow = alert_rule_workflow.workflow
+
+                # Use raw SQL to combine data from both tables
+                with connection.cursor() as db_cursor:
+                    db_cursor.execute(
+                        """
+                        SELECT
+                            DATE_TRUNC('hour', date_added) as bucket,
+                            COUNT(*) as count
+                        FROM (
+                            SELECT date_added
+                            FROM sentry_rulefirehistory
+                            WHERE rule_id = %s
+                                AND date_added >= %s
+                                AND date_added < %s
+
+                            UNION ALL
+
+                            SELECT date_added
+                            FROM workflow_engine_workflowfirehistory
+                            WHERE workflow_id = %s
+                                AND is_single_written = true
+                                AND date_added >= %s
+                                AND date_added < %s
+                        ) combined_data
+                        GROUP BY DATE_TRUNC('hour', date_added)
+                        ORDER BY bucket
+                        """,
+                        [rule.id, start, end, workflow.id, start, end],
+                    )
+
+                    results = db_cursor.fetchall()
+
+                # Convert raw SQL results to the expected format
+                existing_data = {row[0]: TimeSeriesValue(row[0], row[1]) for row in results}
+
+            except AlertRuleWorkflow.DoesNotExist:
+                # If no workflow is associated with this rule, just use the original behavior
+                logger.exception("No workflow associated with rule", extra={"rule_id": rule.id})
+                pass
+
+        if not existing_data:
+            qs = (
+                RuleFireHistory.objects.filter(
+                    rule=rule,
+                    date_added__gte=start,
+                    date_added__lt=end,
+                )
+                .annotate(bucket=TruncHour("date_added"))
+                .order_by("bucket")
+                .values("bucket")
+                .annotate(count=Count("id"))
+            )
+            existing_data = {
+                row["bucket"]: TimeSeriesValue(row["bucket"], row["count"]) for row in qs
+            }
+
+        # Fill in gaps with zero values for missing hours
         results = []
         current = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
         while current <= end.replace(minute=0, second=0, microsecond=0):
