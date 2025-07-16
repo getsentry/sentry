@@ -2198,7 +2198,7 @@ describe('GSBanner Overage Alerts', function () {
       expect.objectContaining({
         pathname: `/organizations/${organization.slug}/stats/`,
         query: {
-          dataCategory: 'profileDuration',
+          dataCategory: 'profileDuration', // doesn't use monitorSeat because it does not have a stats page
           pageStart: '2025-01-01',
           pageEnd: '2025-01-31',
           pageUtc: 'true',

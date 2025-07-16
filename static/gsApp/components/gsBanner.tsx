@@ -942,6 +942,15 @@ class GSBanner extends Component<Props, State> {
       return null;
     }
 
+    // we should only ever specify an event type that has an external stats page
+    // in the stats link
+    const eventTypeForStatsPage = strictlySeatOverage
+      ? null
+      : (eventTypes.find(
+          eventType =>
+            getCategoryInfoFromEventType(eventType)?.statsInfo.showExternalStats
+        ) ?? null);
+
     return (
       <Alert
         system
@@ -953,7 +962,7 @@ class GSBanner extends Component<Props, State> {
             {!strictlySeatOverage && (
               <LinkButton
                 size="xs"
-                to={`/organizations/${organization.slug}/stats/?dataCategory=${eventTypes.find(eventType => getCategoryInfoFromEventType(eventType)?.tallyType !== 'seat')}&pageStart=${subscription.onDemandPeriodStart}&pageEnd=${subscription.onDemandPeriodEnd}&pageUtc=true`}
+                to={`/organizations/${organization.slug}/stats/?${eventTypeForStatsPage ? `dataCategory=${eventTypeForStatsPage}&` : ''}pageStart=${subscription.onDemandPeriodStart}&pageEnd=${subscription.onDemandPeriodEnd}&pageUtc=true`}
                 onClick={() => {
                   trackGetsentryAnalytics('quota_alert.clicked_see_usage', {
                     organization,
