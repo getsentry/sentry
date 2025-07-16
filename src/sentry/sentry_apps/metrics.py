@@ -133,3 +133,6 @@ class SentryAppEventType(StrEnum):
     REQUESTS = "requests"
     WEBHOOK_UPDATE = "webhook_update"
     INSTALLATION_CREATE = "install_create"
+
+    # seer webhooks
+    SEER_ISSUE_READY_TO_FIX = "seer.issue.ready_to_fix"

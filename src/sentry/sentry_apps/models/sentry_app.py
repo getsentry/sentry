@@ -47,6 +47,7 @@ EVENT_EXPANSION = {
     ],
     "error": ["error.created"],
     "comment": ["comment.created", "comment.deleted", "comment.updated"],
+    "seer": ["seer.issue.ready_to_fix"],
 }
 
 # We present Webhook Subscriptions per-resource (Issue, Project, etc.), not

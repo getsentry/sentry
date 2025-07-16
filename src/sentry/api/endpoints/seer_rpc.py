@@ -43,11 +43,17 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.organization_trace_item_attributes import as_attribute_key
 from sentry.constants import ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT, ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
-from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
+from sentry.hybridcloud.rpc.service import (
+    RpcAuthenticationSetupException,
+    RpcResolutionException,
+)
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
-from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
+from sentry.integrations.github_enterprise.integration import (
+    GitHubEnterpriseIntegration,
+)
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
@@ -64,6 +70,8 @@ from sentry.seer.fetch_issues.fetch_issues_given_exception_type import (
     get_latest_issue_event,
 )
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
+from sentry.sentry_apps.metrics import SentryAppEventType
+from sentry.sentry_apps.tasks.sentry_apps import send_resource_change_webhook
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
@@ -543,6 +551,38 @@ def get_github_enterprise_integration_config(
         "encrypted_access_token": encrypted_access_token,
     }
 
+def send_seer_issue_ready_to_fix_webhook(*, group_id: int, user_id: int | None = None) -> dict:
+    """
+    Send a seer.issue.ready_to_fix webhook event for a given group (issue).
+
+    Args:
+        group_id: The ID of the group/issue to send the webhook for
+        user_id: The ID of the user triggering the webhook (optional)
+
+    Returns:
+        dict: Status of the webhook sending operation
+    """
+    try:
+        group = Group.objects.get(id=group_id)
+
+        # Send the webhook using the existing webhook infrastructure
+        send_resource_change_webhook.delay(
+            installation_id=None,  # Will be determined by the task based on subscriptions
+            issue_id=group.id,
+            event_type=SentryAppEventType.SEER_ISSUE_READY_TO_FIX,
+            user_id=user_id,
+        )
+
+        return {
+            "success": True,
+            "message": f"Seer issue ready-to-fix webhook queued for group {group_id}",
+        }
+    except Group.DoesNotExist:
+        return {"success": False, "error": f"Group with ID {group_id} not found"}
+    except Exception as e:
+        logger.exception("Failed to send seer issue ready-to-fix webhook")
+        return {"success": False, "error": f"Failed to send webhook: {str(e)}"}
+
 
 seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_organization_slug": get_organization_slug,
@@ -558,6 +598,7 @@ seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_attribute_values_with_substring": get_attribute_values_with_substring,
     "get_attributes_and_values": get_attributes_and_values,
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
+    "send_seer_issue_ready_to_fix_webhook": send_seer_issue_ready_to_fix_webhook,
 }
 
 
