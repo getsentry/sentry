@@ -87,7 +87,7 @@ def at_most_once_task() -> None:
 @exampletasks.register(name="examples.timed")
 def timed_task(sleep_seconds: float | str, *args: list[Any], **kwargs: dict[str, Any]) -> None:
     sleep(float(sleep_seconds))
-    logger.debug("timed_task complete")
+    logger.info("timed_task complete")
 
 
 @exampletasks.register(name="examples.simple_task", compression_type=CompressionType.ZSTD)
