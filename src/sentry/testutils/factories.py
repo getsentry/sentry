@@ -1118,6 +1118,11 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
+    def create_group_activity(group, *args, **kwargs):
+        return Activity.objects.create(group=group, project=group.project, *args, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_file(**kwargs):
         return File.objects.create(**kwargs)
 

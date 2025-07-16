@@ -1,14 +1,17 @@
 import logging
 
 from sentry import features
+from sentry.incidents.grouptype import MetricIssue
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.notifications.notification_action.registry import (
     group_type_notification_registry,
     issue_alert_handler_registry,
+    metric_alert_handler_registry,
 )
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action, Detector
+from sentry.workflow_engine.tasks.workflows import SUPPORTED_ACTIVITIES
 from sentry.workflow_engine.types import WorkflowEventData
 
 logger = logging.getLogger(__name__)
@@ -37,6 +40,13 @@ def execute_via_group_type_registry(
         # We'll need to update this in the future to read the notification configuration
         # from the Action, then get the template for the activity, and send it to that
         # integration.
+        # If it is a metric issue resolution, we need to execute the metric alert handler
+        # Else we can use the activity.send_notification() method to send the notification.
+        if (
+            event_data.event.type in SUPPORTED_ACTIVITIES
+            and event_data.group.type == MetricIssue.type_id
+        ):
+            execute_via_metric_alert_handler(event_data, action, detector)
         return event_data.event.send_notification()
 
     try:
@@ -66,6 +76,30 @@ def execute_via_issue_alert_handler(
     """
     try:
         handler = issue_alert_handler_registry.get(action.type)
+        handler.invoke_legacy_registry(job, action, detector)
+    except NoRegistrationExistsError:
+        logger.exception(
+            "No notification handler found for action type: %s",
+            action.type,
+            extra={"action_id": action.id, "detector_id": detector.id},
+        )
+        raise
+    except Exception:
+        logger.exception(
+            "Error executing via issue alert handler",
+            extra={"action_id": action.id, "detector_id": detector.id},
+        )
+        raise
+
+
+def execute_via_metric_alert_handler(
+    job: WorkflowEventData, action: Action, detector: Detector
+) -> None:
+    """
+    This exists so that all metric alert resolution actions can use the same handler as metric alerts
+    """
+    try:
+        handler = metric_alert_handler_registry.get(action.type)
         handler.invoke_legacy_registry(job, action, detector)
     except NoRegistrationExistsError:
         logger.exception(
