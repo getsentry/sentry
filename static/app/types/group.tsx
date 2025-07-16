@@ -210,7 +210,6 @@ export enum IssueTitle {
   REPLAY_RAGE_CLICK = 'Rage Click Detected',
   REPLAY_HYDRATION_ERROR = 'Hydration Error Detected',
 
-  DB_QUERY_INJECTION_VULNERABILITY = 'Potential Database Query Injection Vulnerability',
   QUERY_INJECTION_VULNERABILITY = 'Potential Query Injection Vulnerability',
 }
 
@@ -238,7 +237,6 @@ export const ISSUE_TYPE_TO_ISSUE_TITLE = {
   profile_frame_drop_experimental: IssueTitle.PROFILE_FRAME_DROP,
   profile_function_regression: IssueTitle.PROFILE_FUNCTION_REGRESSION,
 
-  db_query_injection_vulnerability: IssueTitle.DB_QUERY_INJECTION_VULNERABILITY,
   query_injection_vulnerability: IssueTitle.QUERY_INJECTION_VULNERABILITY,
 
   replay_click_rage: IssueTitle.REPLAY_RAGE_CLICK,
