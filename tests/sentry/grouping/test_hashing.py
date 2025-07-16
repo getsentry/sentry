@@ -3,7 +3,7 @@ from __future__ import annotations
 from time import time
 from unittest.mock import MagicMock, patch
 
-from sentry.conf.server import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.eventstore.models import Event
 from sentry.grouping.api import GroupingConfig
 from sentry.grouping.ingest.hashing import (
@@ -19,12 +19,13 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.skips import requires_snuba
+from tests.sentry.grouping import NO_MSG_PARAM_CONFIG
 
 pytestmark = [requires_snuba]
 
 
 class BackgroundGroupingTest(TestCase):
-    @override_options({"store.background-grouping-config-id": LEGACY_GROUPING_CONFIG})
+    @override_options({"store.background-grouping-config-id": NO_MSG_PARAM_CONFIG})
     @patch("sentry.grouping.ingest.hashing._calculate_background_grouping")
     def test_background_grouping_sample_rate(
         self, mock_calc_background_grouping: MagicMock
@@ -37,7 +38,7 @@ class BackgroundGroupingTest(TestCase):
             save_new_event({"message": "Dogs are great! 1121"}, self.project)
             assert mock_calc_background_grouping.call_count == 1
 
-    @override_options({"store.background-grouping-config-id": LEGACY_GROUPING_CONFIG})
+    @override_options({"store.background-grouping-config-id": NO_MSG_PARAM_CONFIG})
     @override_options({"store.background-grouping-sample-rate": 1.0})
     @patch("sentry_sdk.capture_exception")
     def test_handles_errors_with_background_grouping(
@@ -59,12 +60,12 @@ class BackgroundGroupingTest(TestCase):
 class SecondaryGroupingTest(TestCase):
     def test_applies_secondary_grouping(self) -> None:
         project = self.project
-        project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
+        project.update_option("sentry:grouping_config", NO_MSG_PARAM_CONFIG)
 
         event = save_new_event({"message": "Dogs are great! 1121"}, project)
 
         project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
-        project.update_option("sentry:secondary_grouping_config", LEGACY_GROUPING_CONFIG)
+        project.update_option("sentry:secondary_grouping_config", NO_MSG_PARAM_CONFIG)
         project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
 
         # Switching to newstyle grouping changes the hash because now '123' will be parametrized
@@ -105,14 +106,14 @@ class SecondaryGroupingTest(TestCase):
         ) -> tuple[list[str], dict[str, BaseVariant]]:
             # We only want `_calculate_event_grouping` to error inside of `_calculate_secondary_hash`,
             # not anywhere else it's called
-            if grouping_config["id"] == LEGACY_GROUPING_CONFIG:
+            if grouping_config["id"] == NO_MSG_PARAM_CONFIG:
                 raise secondary_grouping_error
             else:
                 return _calculate_event_grouping(project, event, grouping_config)
 
         project = self.project
         project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
-        project.update_option("sentry:secondary_grouping_config", LEGACY_GROUPING_CONFIG)
+        project.update_option("sentry:secondary_grouping_config", NO_MSG_PARAM_CONFIG)
         project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
 
         with patch(
@@ -132,7 +133,7 @@ class SecondaryGroupingTest(TestCase):
     ) -> None:
         project = self.project
         project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
-        project.update_option("sentry:secondary_grouping_config", LEGACY_GROUPING_CONFIG)
+        project.update_option("sentry:secondary_grouping_config", NO_MSG_PARAM_CONFIG)
         project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
 
         # Include a number so the two configs will produce different hashes (since the new config
@@ -156,13 +157,11 @@ class SecondaryGroupingTest(TestCase):
         grouphashes_for_group = GroupHash.objects.filter(project=project, group_id=event.group_id)
         assert grouphashes_for_group.count() == 1
         assert grouphashes_for_group.filter(hash=hashes_by_config[DEFAULT_GROUPING_CONFIG]).exists()
-        assert not grouphashes_for_group.filter(
-            hash=hashes_by_config[LEGACY_GROUPING_CONFIG]
-        ).exists()
+        assert not grouphashes_for_group.filter(hash=hashes_by_config[NO_MSG_PARAM_CONFIG]).exists()
 
     def test_filters_new_secondary_hashes_when_creating_grouphashes(self) -> None:
         project = self.project
-        project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
+        project.update_option("sentry:grouping_config", NO_MSG_PARAM_CONFIG)
 
         # Include a number so the two configs will produce different hashes (since the new config
         # will parameterize the number and the legacy config won't)
@@ -172,7 +171,7 @@ class SecondaryGroupingTest(TestCase):
 
         # Update the project's grouping config and set it in transition
         project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
-        project.update_option("sentry:secondary_grouping_config", LEGACY_GROUPING_CONFIG)
+        project.update_option("sentry:secondary_grouping_config", NO_MSG_PARAM_CONFIG)
         project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
 
         with (
@@ -195,7 +194,7 @@ class SecondaryGroupingTest(TestCase):
                 project,
                 {},
                 [legacy_config_hash, "new_legacy_hash_value"],
-                LEGACY_GROUPING_CONFIG,
+                NO_MSG_PARAM_CONFIG,
             )
             assert set(GroupHash.objects.all().values_list("hash", flat=True)) == {
                 legacy_config_hash,

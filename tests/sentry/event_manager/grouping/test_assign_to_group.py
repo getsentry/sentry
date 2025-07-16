@@ -7,7 +7,7 @@ from unittest import mock
 
 import pytest
 
-from sentry.conf.server import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.event_manager import _create_group
 from sentry.eventstore.models import Event
 from sentry.grouping.ingest.hashing import (
@@ -22,6 +22,7 @@ from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.pytest.mocking import capture_results
 from sentry.testutils.skips import requires_snuba
+from tests.sentry.grouping import NO_MSG_PARAM_CONFIG
 
 pytestmark = [requires_snuba]
 
@@ -265,7 +266,7 @@ def test_new_group(
         event_data=event_data,
         project=project,
         primary_config=DEFAULT_GROUPING_CONFIG,
-        secondary_config=LEGACY_GROUPING_CONFIG,
+        secondary_config=NO_MSG_PARAM_CONFIG,
         in_transition=in_transition,
     )
 
@@ -316,14 +317,14 @@ def test_existing_group_no_new_hash(
     event_data = {"message": "testing, testing, 123"}
 
     # Set the stage by creating a group with the soon-to-be-secondary hash
-    existing_event = save_event_with_grouping_config(event_data, project, LEGACY_GROUPING_CONFIG)
+    existing_event = save_event_with_grouping_config(event_data, project, NO_MSG_PARAM_CONFIG)
 
     # Now save a new, identical, event with an updated grouping config
     results = get_results_from_saving_event(
         event_data=event_data,
         project=project,
         primary_config=DEFAULT_GROUPING_CONFIG,
-        secondary_config=LEGACY_GROUPING_CONFIG,
+        secondary_config=NO_MSG_PARAM_CONFIG,
         in_transition=in_transition,
         existing_group_id=existing_event.group_id,
     )
@@ -381,10 +382,10 @@ def test_existing_group_new_hash_exists(
     # Set the stage by creating a group tied to the new hash (and possibly the legacy hash as well)
     if secondary_hash_exists:
         existing_event_with_secondary_hash = save_event_with_grouping_config(
-            event_data, project, LEGACY_GROUPING_CONFIG
+            event_data, project, NO_MSG_PARAM_CONFIG
         )
         existing_event_with_primary_hash = save_event_with_grouping_config(
-            event_data, project, DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG, True
+            event_data, project, DEFAULT_GROUPING_CONFIG, NO_MSG_PARAM_CONFIG, True
         )
         group_id = existing_event_with_primary_hash.group_id
 
@@ -407,7 +408,7 @@ def test_existing_group_new_hash_exists(
         event_data=event_data,
         project=project,
         primary_config=DEFAULT_GROUPING_CONFIG,
-        secondary_config=LEGACY_GROUPING_CONFIG,
+        secondary_config=NO_MSG_PARAM_CONFIG,
         in_transition=in_transition,
         existing_group_id=group_id,
     )
