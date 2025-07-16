@@ -10,7 +10,7 @@ from django.db.models import Count, Max, OuterRef, Subquery
 from django.db.models.functions import TruncHour
 
 from sentry import features
-from sentry.api.paginator import OffsetPaginator
+from sentry.api.paginator import GenericOffsetPaginator, OffsetPaginator
 from sentry.models.group import Group
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.history.base import RuleGroupHistory, RuleHistoryBackend, TimeSeriesValue
@@ -76,49 +76,51 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
                 alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
                 workflow = alert_rule_workflow.workflow
 
-                # Use raw SQL to combine data from both tables and aggregate
-                with connection.cursor() as db_cursor:
-                    db_cursor.execute(
-                        """
-                        SELECT
-                            group_id as group,
-                            COUNT(*) as count,
-                            MAX(date_added) as last_triggered,
-                            (ARRAY_AGG(event_id ORDER BY date_added DESC))[1] as event_id
-                        FROM (
-                            SELECT group_id, date_added, event_id
-                            FROM sentry_rulefirehistory
-                            WHERE rule_id = %s
-                                AND date_added >= %s
-                                AND date_added < %s
+                # Performs the raw SQL query with pagination
+                def data_fn(offset: int, limit: int):
+                    with connection.cursor() as db_cursor:
+                        db_cursor.execute(
+                            """
+                            SELECT
+                                group_id as group,
+                                COUNT(*) as count,
+                                MAX(date_added) as last_triggered,
+                                (ARRAY_AGG(event_id ORDER BY date_added DESC))[1] as event_id
+                            FROM (
+                                SELECT group_id, date_added, event_id
+                                FROM sentry_rulefirehistory
+                                WHERE rule_id = %s
+                                    AND date_added >= %s
+                                    AND date_added < %s
 
-                            UNION ALL
+                                UNION ALL
 
-                            SELECT group_id, date_added, event_id
-                            FROM workflow_engine_workflowfirehistory
-                            WHERE workflow_id = %s
-                                AND is_single_written = true
-                                AND date_added >= %s
-                                AND date_added < %s
-                        ) combined_data
-                        GROUP BY group_id
-                        ORDER BY count DESC, last_triggered DESC
-                    """,
-                        [rule.id, start, end, workflow.id, start, end],
-                    )
+                                SELECT group_id, date_added, event_id
+                                FROM workflow_engine_workflowfirehistory
+                                WHERE workflow_id = %s
+                                    AND is_single_written = true
+                                    AND date_added >= %s
+                                    AND date_added < %s
+                            ) combined_data
+                            GROUP BY group_id
+                            ORDER BY count DESC, last_triggered DESC
+                            LIMIT %s OFFSET %s
+                        """,
+                            [rule.id, start, end, workflow.id, start, end, limit, offset],
+                        )
 
-                    results = db_cursor.fetchall()
+                        results = db_cursor.fetchall()
 
-                # Convert to expected format (already ordered)
-                final_results = [
-                    _Result(group=row[0], count=row[1], last_triggered=row[2], event_id=row[3])
-                    for row in results
-                ]
+                    # Convert to expected format
+                    return [
+                        _Result(group=row[0], count=row[1], last_triggered=row[2], event_id=row[3])
+                        for row in results
+                    ]
 
-                return OffsetPaginator(
-                    final_results,
-                    on_results=convert_results,
-                ).get_result(per_page, cursor)
+                result = GenericOffsetPaginator(data_fn=data_fn).get_result(per_page, cursor)
+                result.results = convert_results(result.results)
+
+                return result
 
             except AlertRuleWorkflow.DoesNotExist:
                 # If no workflow is associated with this rule, just use the original behavior
