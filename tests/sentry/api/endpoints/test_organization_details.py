@@ -1369,63 +1369,67 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_success_response(self.organization.slug, **data)
         assert self.organization.get_option("sentry:default_seer_scanner_automation") is True
 
-    def test_enabled_console_platforms_option(self):
-        assert not self.organization.get_option("sentry:enabled_console_platforms")
-
-        with self.feature({"organizations:project-creation-games-tab": False}):
-            data = {"enabledConsolePlatforms": ["playstation", "xbox"]}
-            response = self.get_error_response(self.organization.slug, status_code=400, **data)
-            assert response.data["enabledConsolePlatforms"] == [
-                "Organization does not have the project creation games tab feature enabled."
-            ]
-
-        with self.feature({"organizations:project-creation-games-tab": True}):
-            data = {"enabledConsolePlatforms": ["playstation", "xbox"]}
-            response = self.get_error_response(self.organization.slug, status_code=400, **data)
-            assert response.data["enabledConsolePlatforms"] == [
-                "Only staff members can toggle console platforms."
-            ]
-
-        with self.feature({"organizations:project-creation-games-tab": True}):
-            staff_user = self.create_user(is_staff=True)
-            self.create_member(organization=self.organization, user=staff_user, role="owner")
-            self.login_as(user=staff_user, staff=True)
-
-            data = {"enabledConsolePlatforms": ["playstation", "xbox"]}
-            self.get_success_response(self.organization.slug, **data)
-            enabled_platforms = self.organization.get_option("sentry:enabled_console_platforms")
-            assert len(enabled_platforms) == 2 and set(enabled_platforms) == {"playstation", "xbox"}
-
-        with self.feature({"organizations:project-creation-games-tab": True}):
-            staff_user = self.create_user(is_staff=True)
-            self.create_member(organization=self.organization, user=staff_user, role="owner")
-            self.login_as(user=staff_user, staff=True)
-
-            data = {"enabledConsolePlatforms": []}
-            self.get_success_response(self.organization.slug, **data)
-            enabled_platforms = self.organization.get_option("sentry:enabled_console_platforms")
-            assert enabled_platforms == []
-
-        with self.feature({"organizations:project-creation-games-tab": True}):
-            staff_user = self.create_user(is_staff=True)
-            self.create_member(organization=self.organization, user=staff_user, role="owner")
-            self.login_as(user=staff_user, staff=True)
-
-            data = {"enabledConsolePlatforms": ["playstation", "playstation"]}
-            self.get_success_response(self.organization.slug, **data)
-            enabled_platforms = self.organization.get_option("sentry:enabled_console_platforms")
-            assert enabled_platforms == ["playstation"]
-
     @with_feature({"organizations:project-creation-games-tab": False})
-    def test_get_enabled_console_platforms_without_feature_flag(self):
+    def test_enabled_console_platforms_feature_not_enabled(self):
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=staff_user, role="owner")
+        self.login_as(user=staff_user, staff=True)
+
+        data = {"enabledConsolePlatforms": ["playstation", "xbox"]}
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert response.data["enabledConsolePlatforms"] == [
+            "Organization does not have the project creation games tab feature enabled."
+        ]
+
         response = self.get_success_response(self.organization.slug)
         assert "enabledConsolePlatforms" not in response.data
 
     @with_feature({"organizations:project-creation-games-tab": True})
-    def test_get_gaming_platform_options_with_feature_flag(self):
+    def test_enabled_console_platforms_feature_enabled(self):
         response = self.get_success_response(self.organization.slug)
         assert "enabledConsolePlatforms" in response.data
         assert response.data["enabledConsolePlatforms"] == []
+
+    @with_feature({"organizations:project-creation-games-tab": False})
+    def test_enabled_console_platforms_no_staff_member(self):
+        data = {"enabledConsolePlatforms": ["playstation", "xbox"]}
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert response.data["enabledConsolePlatforms"] == [
+            "Only staff members can toggle console platforms."
+        ]
+
+    @with_feature({"organizations:project-creation-games-tab": True})
+    def test_enabled_console_platforms_multiple_platforms_parameter(self):
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=staff_user, role="owner")
+        self.login_as(user=staff_user, staff=True)
+
+        data = {"enabledConsolePlatforms": ["playstation", "xbox"]}
+        self.get_success_response(self.organization.slug, **data)
+        enabled_platforms = self.organization.get_option("sentry:enabled_console_platforms")
+        assert len(enabled_platforms) == 2 and set(enabled_platforms) == {"playstation", "xbox"}
+
+    @with_feature({"organizations:project-creation-games-tab": True})
+    def test_enabled_console_platforms_empty_platforms_parameter(self):
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=staff_user, role="owner")
+        self.login_as(user=staff_user, staff=True)
+
+        data = {"enabledConsolePlatforms": []}
+        self.get_success_response(self.organization.slug, **data)
+        enabled_platforms = self.organization.get_option("sentry:enabled_console_platforms")
+        assert enabled_platforms == []
+
+    @with_feature({"organizations:project-creation-games-tab": True})
+    def test_enabled_console_platforms_duplicate_platform_parameter(self):
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=staff_user, role="owner")
+        self.login_as(user=staff_user, staff=True)
+
+        data = {"enabledConsolePlatforms": ["playstation", "playstation"]}
+        self.get_success_response(self.organization.slug, **data)
+        enabled_platforms = self.organization.get_option("sentry:enabled_console_platforms")
+        assert enabled_platforms == ["playstation"]
 
     def test_enable_pr_review_test_generation_default_true(self):
         response = self.get_success_response(self.organization.slug)
