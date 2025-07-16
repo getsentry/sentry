@@ -93,7 +93,7 @@ def trigger_action(
     metrics.incr(
         "workflow_engine.tasks.trigger_action_task_started",
         1,
-        tags={"action_type": action.type},
+        tags={"action_type": action.type, "detector_type": detector.type},
         sample_rate=1.0,
     )
 
