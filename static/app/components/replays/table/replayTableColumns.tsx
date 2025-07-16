@@ -440,8 +440,6 @@ export const ReplaySessionColumn: ReplayTableColumn = {
     const analyticsArea = useAnalyticsArea();
     const project = useProjectFromId({project_id: replay.project_id ?? undefined});
 
-    // TODO(ryan953): This is a janky way to detect the current page.
-    const isIssuesReplayList = location.pathname.includes('issues');
     const isSelectorWidget = analyticsArea.endsWith('example-replays-list');
 
     if (replay.is_archived) {
@@ -494,18 +492,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
       });
 
     return (
-      <CellLink
-        to={
-          isIssuesReplayList
-            ? // if on the issues replay list, don't redirect to the details tab. this causes URL flickering
-              {
-                pathname: location.pathname,
-                query: location.query,
-              }
-            : detailsTab()
-        }
-        onClick={trackNavigationEvent}
-      >
+      <CellLink to={detailsTab()} onClick={trackNavigationEvent}>
         <Flex key="session" align="center" gap={space(1)}>
           <UserAvatar
             user={{
