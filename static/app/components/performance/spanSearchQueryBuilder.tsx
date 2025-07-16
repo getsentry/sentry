@@ -27,7 +27,7 @@ import {
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 import {
   useSpanFieldCustomTags,
   useSpanFieldSupportedTags,
@@ -218,7 +218,7 @@ export function useEAPSpanSearchQueryBuilderProps(props: EAPSpanSearchQueryBuild
 
   const numberAttributes = numberTags;
   const stringAttributes = useMemo(() => {
-    if (stringTags.hasOwnProperty(SpanIndexedField.RELEASE)) {
+    if (stringTags.hasOwnProperty(SpanFields.RELEASE)) {
       return {
         ...stringTags,
         ...STATIC_SEMVER_TAGS,

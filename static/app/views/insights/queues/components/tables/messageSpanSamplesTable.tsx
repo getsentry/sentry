@@ -16,59 +16,59 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
 import {MessageActorType} from 'sentry/views/insights/queues/settings';
-import type {SpanIndexedResponse} from 'sentry/views/insights/types';
-import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
+import type {EAPSpanResponse} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 type DataRowKeys =
-  | SpanIndexedField.PROJECT
-  | SpanIndexedField.TRANSACTION_SPAN_ID
-  | SpanIndexedField.TRACE
-  | SpanIndexedField.TIMESTAMP
-  | SpanIndexedField.SPAN_ID
-  | SpanIndexedField.SPAN_DESCRIPTION
-  | SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE
-  | SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY
-  | SpanIndexedField.MESSAGING_MESSAGE_ID
-  | SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT
-  | SpanIndexedField.TRACE_STATUS
-  | SpanIndexedField.SPAN_DURATION;
+  | SpanFields.PROJECT
+  | SpanFields.TRANSACTION_SPAN_ID
+  | SpanFields.TRACE
+  | SpanFields.TIMESTAMP
+  | SpanFields.SPAN_ID
+  | SpanFields.SPAN_DESCRIPTION
+  | SpanFields.MESSAGING_MESSAGE_BODY_SIZE
+  | SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY
+  | SpanFields.MESSAGING_MESSAGE_ID
+  | SpanFields.MESSAGING_MESSAGE_RETRY_COUNT
+  | SpanFields.TRACE_STATUS
+  | SpanFields.SPAN_DURATION;
 
 type ColumnKeys =
-  | SpanIndexedField.SPAN_ID
-  | SpanIndexedField.MESSAGING_MESSAGE_ID
-  | SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE
-  | SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT
-  | SpanIndexedField.TRACE_STATUS
-  | SpanIndexedField.SPAN_DURATION;
+  | SpanFields.SPAN_ID
+  | SpanFields.MESSAGING_MESSAGE_ID
+  | SpanFields.MESSAGING_MESSAGE_BODY_SIZE
+  | SpanFields.MESSAGING_MESSAGE_RETRY_COUNT
+  | SpanFields.TRACE_STATUS
+  | SpanFields.SPAN_DURATION;
 
-type DataRow = Pick<SpanIndexedResponse, DataRowKeys>;
+type DataRow = Pick<EAPSpanResponse, DataRowKeys>;
 
 type Column = GridColumnHeader<ColumnKeys>;
 
 const CONSUMER_COLUMN_ORDER: Column[] = [
   {
-    key: SpanIndexedField.SPAN_ID,
+    key: SpanFields.SPAN_ID,
     name: t('Span ID'),
     width: 150,
   },
   {
-    key: SpanIndexedField.MESSAGING_MESSAGE_ID,
+    key: SpanFields.MESSAGING_MESSAGE_ID,
     name: t('Message ID'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: SpanIndexedField.SPAN_DURATION,
+    key: SpanFields.SPAN_DURATION,
     name: t('Span Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,
+    key: SpanFields.MESSAGING_MESSAGE_RETRY_COUNT,
     name: t('Retries'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: SpanIndexedField.TRACE_STATUS,
+    key: SpanFields.TRACE_STATUS,
     name: t('Status'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -76,22 +76,22 @@ const CONSUMER_COLUMN_ORDER: Column[] = [
 
 const PRODUCER_COLUMN_ORDER: Column[] = [
   {
-    key: SpanIndexedField.SPAN_ID,
+    key: SpanFields.SPAN_ID,
     name: t('Span ID'),
     width: 150,
   },
   {
-    key: SpanIndexedField.MESSAGING_MESSAGE_ID,
+    key: SpanFields.MESSAGING_MESSAGE_ID,
     name: t('Message ID'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
+    key: SpanFields.MESSAGING_MESSAGE_BODY_SIZE,
     name: t('Message Size'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: SpanIndexedField.TRACE_STATUS,
+    key: SpanFields.TRACE_STATUS,
     name: t('Status'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -164,14 +164,14 @@ function renderBodyCell(
     );
   }
 
-  if (key === SpanIndexedField.SPAN_ID) {
+  if (key === SpanFields.SPAN_ID) {
     return (
       <SpanIdCell
         moduleName={ModuleName.QUEUE}
         traceId={row.trace}
         timestamp={row.timestamp}
-        transactionSpanId={row[SpanIndexedField.TRANSACTION_SPAN_ID]}
-        spanId={row[SpanIndexedField.SPAN_ID]}
+        transactionSpanId={row[SpanFields.TRANSACTION_SPAN_ID]}
+        spanId={row[SpanFields.SPAN_ID]}
         source={TraceViewSources.QUEUES_MODULE}
         location={location}
       />

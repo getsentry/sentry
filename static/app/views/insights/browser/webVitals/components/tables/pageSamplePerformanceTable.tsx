@@ -60,7 +60,7 @@ import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/us
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   ModuleName,
-  SpanIndexedField,
+  SpanFields,
   SpanMetricsField,
   type SubregionCode,
 } from 'sentry/views/insights/types';
@@ -88,12 +88,12 @@ const INTERACTION_SAMPLES_COLUMN_ORDER: Array<
   GridColumnOrder<keyof SpanSampleRowWithScore>
 > = [
   {
-    key: SpanIndexedField.SPAN_DESCRIPTION,
+    key: SpanFields.SPAN_DESCRIPTION,
     width: COL_WIDTH_UNDEFINED,
     name: t('Description'),
   },
   {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: t('User')},
-  {key: SpanIndexedField.INP, width: COL_WIDTH_UNDEFINED, name: 'INP'},
+  {key: SpanFields.INP, width: COL_WIDTH_UNDEFINED, name: 'INP'},
   {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: t('Profile')},
   {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: t('Replay')},
   {key: 'totalScore', width: COL_WIDTH_UNDEFINED, name: t('Score')},
@@ -104,7 +104,7 @@ const SPANS_SAMPLES_WITH_DESCRIPTION_COLUMN_ORDER: Array<
 > = [
   {key: 'id', width: COL_WIDTH_UNDEFINED, name: t('Trace')},
   {
-    key: SpanIndexedField.SPAN_DESCRIPTION,
+    key: SpanFields.SPAN_DESCRIPTION,
     width: COL_WIDTH_UNDEFINED,
     name: t('Description'),
   },
@@ -168,7 +168,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     'performance-vitals-standalone-cls-lcp'
   );
 
-  const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
+  const browserTypes = decodeBrowserTypes(location.query[SpanFields.BROWSER_NAME]);
   const subregions = decodeList(
     location.query[SpanMetricsField.USER_GEO_SUBREGION]
   ) as SubregionCode[];
@@ -345,7 +345,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       return <AlignRight>{datatype.toUpperCase()}</AlignRight>;
     }
 
-    if (col.key === SpanIndexedField.SPAN_DESCRIPTION) {
+    if (col.key === SpanFields.SPAN_DESCRIPTION) {
       if (datatype === Datatype.LCP) {
         return <span>{t('LCP Element')}</span>;
       }
@@ -458,7 +458,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         (row['transaction.duration'] !== undefined ||
           // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          row[SpanIndexedField.SPAN_SELF_TIME] !== undefined) &&
+          row[SpanFields.SPAN_SELF_TIME] !== undefined) &&
         replayLinkGenerator(
           organization,
           {
@@ -467,7 +467,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
             'transaction.duration':
               datatype === Datatype.INTERACTIONS
                 ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                  row[SpanIndexedField.SPAN_SELF_TIME]
+                  row[SpanFields.SPAN_SELF_TIME]
                 : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   row['transaction.duration'],
             timestamp: row.timestamp,
@@ -493,7 +493,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       );
     }
 
-    if (key === 'id' || key === SpanIndexedField.SPAN_DESCRIPTION) {
+    if (key === 'id' || key === SpanFields.SPAN_DESCRIPTION) {
       const traceViewLink = generateLinkToEventInTraceView({
         traceSlug: row.trace,
         eventId: row.id,
@@ -514,14 +514,14 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         );
       }
 
-      if (key === SpanIndexedField.SPAN_DESCRIPTION) {
+      if (key === SpanFields.SPAN_DESCRIPTION) {
         const description =
           datatype === 'lcp' &&
-          (row as SpanSampleRowWithScore)[SpanIndexedField.SPAN_OP] === 'pageload'
-            ? (row as SpanSampleRowWithScore)[SpanIndexedField.LCP_ELEMENT]
+          (row as SpanSampleRowWithScore)[SpanFields.SPAN_OP] === 'pageload'
+            ? (row as SpanSampleRowWithScore)[SpanFields.LCP_ELEMENT]
             : datatype === 'cls' &&
-                (row as SpanSampleRowWithScore)[SpanIndexedField.SPAN_OP] === 'pageload'
-              ? (row as SpanSampleRowWithScore)[SpanIndexedField.CLS_SOURCE]
+                (row as SpanSampleRowWithScore)[SpanFields.SPAN_OP] === 'pageload'
+              ? (row as SpanSampleRowWithScore)[SpanFields.CLS_SOURCE]
               : (row as SpanSampleRowWithScore)[key];
 
         if (description) {

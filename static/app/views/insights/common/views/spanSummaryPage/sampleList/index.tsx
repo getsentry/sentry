@@ -30,11 +30,7 @@ import SampleInfo from 'sentry/views/insights/common/views/spanSummaryPage/sampl
 import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
 import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {
-  ModuleName,
-  SpanIndexedField,
-  SpanMetricsField,
-} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
@@ -103,11 +99,11 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
 
   let columnOrder = DEFAULT_COLUMN_ORDER;
 
-  const additionalFields: NonDefaultSpanSampleFields[] = [SpanIndexedField.TRACE];
+  const additionalFields: NonDefaultSpanSampleFields[] = [SpanFields.TRACE];
 
   if (moduleName === ModuleName.RESOURCE) {
-    additionalFields?.push(SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH);
-    additionalFields?.push(SpanIndexedField.SPAN_DESCRIPTION);
+    additionalFields?.push(SpanFields.HTTP_RESPONSE_CONTENT_LENGTH);
+    additionalFields?.push(SpanFields.SPAN_DESCRIPTION);
 
     columnOrder = [
       ...DEFAULT_COLUMN_ORDER,

@@ -22,12 +22,12 @@ import {
   isValidJson,
   prettyPrintJsonString,
 } from 'sentry/views/insights/database/utils/jsonUtils';
-import type {SpanIndexedFieldTypes} from 'sentry/views/insights/types';
+import type {EAPSpanResponse} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
 interface Props {
-  groupId: SpanIndexedFieldTypes[SpanFields.SPAN_GROUP];
-  op: SpanIndexedFieldTypes[SpanFields.SPAN_OP];
+  groupId: EAPSpanResponse[SpanFields.SPAN_GROUP];
+  op: EAPSpanResponse[SpanFields.SPAN_OP];
   preliminaryDescription?: string;
 }
 

@@ -12,7 +12,7 @@ import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/us
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   type EAPSpanProperty,
-  SpanIndexedField,
+  SpanFields,
   type SubregionCode,
 } from 'sentry/views/insights/types';
 
@@ -60,10 +60,10 @@ export const useTransactionWebVitalsScoresQuery = ({
     search.addFilterValue('transaction', transaction, shouldEscapeFilters);
   }
   if (browserTypes) {
-    search.addDisjunctionFilterValues(SpanIndexedField.BROWSER_NAME, browserTypes);
+    search.addDisjunctionFilterValues(SpanFields.BROWSER_NAME, browserTypes);
   }
   if (subregions) {
-    search.addDisjunctionFilterValues(SpanIndexedField.USER_GEO_SUBREGION, subregions);
+    search.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
   }
 
   const {data, isPending, ...rest} = useSpans(

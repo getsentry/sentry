@@ -71,7 +71,7 @@ export type TabularMeta<TFields extends string = string> = {
 
 export type TabularRow<TFields extends string = string> = Record<
   TFields,
-  number | string | string[] | null
+  number | string | string[] | boolean | null
 >;
 
 export type TabularData<TFields extends string = string> = {

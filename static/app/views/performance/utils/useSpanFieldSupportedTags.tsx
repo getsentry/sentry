@@ -7,10 +7,10 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
 
 const DATASET_TO_FIELDS = {
-  [DiscoverDatasets.SPANS_INDEXED]: SpanIndexedField,
+  [DiscoverDatasets.SPANS_INDEXED]: SpanFields,
   [DiscoverDatasets.SPANS_METRICS]: SpanMetricsField,
 };
 
@@ -97,9 +97,9 @@ function useSpanFieldStaticTags(options?: {
   // we do not yet support span field search by SPAN_AI_PIPELINE_GROUP and SPAN_CATEGORY should not be surfaced to users
   const staticTags: TagCollection = useSpanFieldBaseTags(
     [
-      SpanIndexedField.SPAN_AI_PIPELINE_GROUP,
-      SpanIndexedField.SPAN_CATEGORY,
-      SpanIndexedField.SPAN_GROUP,
+      SpanFields.SPAN_AI_PIPELINE_GROUP,
+      SpanFields.SPAN_CATEGORY,
+      SpanFields.SPAN_GROUP,
       ...excludedTags,
     ],
     dataset

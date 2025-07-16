@@ -56,7 +56,6 @@ import {
   ModuleName,
   SpanFields,
   SpanFunction,
-  SpanIndexedField,
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
@@ -207,7 +206,7 @@ export function HTTPSamplesPanel() {
   } = useTopNSpanMetricsSeries(
     {
       search,
-      fields: [SpanFields.RESPONSE_CODE, 'count()'],
+      fields: [SpanFields.SPAN_STATUS_CODE, 'count()'],
       yAxis: ['count()'],
       topN: 5,
       sort: {
@@ -229,10 +228,10 @@ export function HTTPSamplesPanel() {
   } = useSpanSamples({
     search,
     fields: [
-      SpanIndexedField.ID,
-      SpanIndexedField.TRACE,
-      SpanIndexedField.SPAN_DESCRIPTION,
-      SpanIndexedField.RESPONSE_CODE,
+      SpanFields.ID,
+      SpanFields.TRACE,
+      SpanFields.SPAN_DESCRIPTION,
+      SpanFields.SPAN_STATUS_CODE,
     ],
     min: 0,
     max: durationAxisMax,
@@ -259,7 +258,7 @@ export function HTTPSamplesPanel() {
         SpanFields.SPAN_ID,
         SpanFields.TIMESTAMP,
         SpanFields.SPAN_DESCRIPTION,
-        SpanFields.RESPONSE_CODE,
+        SpanFields.SPAN_STATUS_CODE,
       ],
       sorts: [SPAN_SAMPLES_SORT],
       limit: SPAN_SAMPLE_LIMIT,
@@ -434,7 +433,7 @@ export function HTTPSamplesPanel() {
                   <ResponseCodeCountChart
                     search={search}
                     referrer={Referrer.SAMPLES_PANEL_RESPONSE_CODE_CHART}
-                    groupBy={[SpanFields.RESPONSE_CODE]}
+                    groupBy={[SpanFields.SPAN_STATUS_CODE]}
                     series={Object.values(responseCodeData).filter(Boolean)}
                     isLoading={isResponseCodeDataLoading}
                     error={responseCodeError}

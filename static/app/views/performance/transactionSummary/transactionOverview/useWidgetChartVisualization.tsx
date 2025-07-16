@@ -9,7 +9,7 @@ import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 import {
   filterToColor,
   type SpanOperationBreakdownFilter,
@@ -74,9 +74,7 @@ function useDurationBreakdownVisualization({
   query,
 }: DurationBreakdownVisualizationOptions) {
   const location = useLocation();
-  const spanCategoryUrlParam = decodeScalar(
-    location.query?.[SpanIndexedField.SPAN_CATEGORY]
-  );
+  const spanCategoryUrlParam = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
   const {selection} = usePageFilters();
 
   const {releases: releasesWithDate} = useReleaseStats(selection);
@@ -153,9 +151,7 @@ function useDurationPercentilesVisualization({
   const {selection} = usePageFilters();
   const theme = useTheme();
 
-  const spanCategoryUrlParam = decodeScalar(
-    location.query?.[SpanIndexedField.SPAN_CATEGORY]
-  );
+  const spanCategoryUrlParam = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
 
   const newQuery = new MutableSearch(query);
   newQuery.addFilterValue('transaction', transactionName);
