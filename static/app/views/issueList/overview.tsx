@@ -311,7 +311,7 @@ function IssueListOverview({
 
     // only include defined values.
     return pickBy(params, v => defined(v)) as EndpointParams;
-  }, [selection, location, query, sort, getGroupStatsPeriod]);
+  }, [selection, query, sort, getGroupStatsPeriod]);
 
   const requestParams = useMemo(() => {
     // Used for Issue Stream Performance project, enabled means we are doing saved search look up in the backend
