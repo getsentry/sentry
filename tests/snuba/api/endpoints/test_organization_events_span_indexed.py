@@ -5810,9 +5810,9 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
     def test_short_trace_id_filter(self):
         trace_ids = [
             "0" * 32,
-            ("7" * 8) + ("0" * 24),
+            ("7" * 31) + "0",
             "7" * 32,
-            ("7" * 8) + ("f" * 24),
+            ("7" * 31) + "f",
             "f" * 32,
         ]
         self.store_spans(
@@ -5826,24 +5826,25 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
             is_eap=self.is_eap,
         )
 
-        response = self.do_request(
-            {
-                "field": ["trace"],
-                "project": self.project.id,
-                "dataset": self.dataset,
-                "query": f"trace:{'7' * 8}",
-                "orderby": "trace",
-            }
-        )
+        for i in range(8, 32):
+            response = self.do_request(
+                {
+                    "field": ["trace"],
+                    "project": self.project.id,
+                    "dataset": self.dataset,
+                    "query": f"trace:{'7' * i}",
+                    "orderby": "trace",
+                }
+            )
 
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 3
-        assert {row["trace"] for row in data} == {
-            ("7" * 8) + ("0" * 24),
-            "7" * 32,
-            ("7" * 8) + ("f" * 24),
-        }
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 3
+            assert {row["trace"] for row in data} == {
+                ("7" * 31) + "0",
+                "7" * 32,
+                ("7" * 31) + "f",
+            }
 
     def test_eps(self):
         self.store_spans(

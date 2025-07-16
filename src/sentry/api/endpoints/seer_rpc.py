@@ -228,10 +228,10 @@ def get_organization_seer_consent_by_org_name(
 
 
 def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: str) -> dict:
-    field_types = [
-        AttributeKey.Type.TYPE_STRING,
-        AttributeKey.Type.TYPE_DOUBLE,
-    ]
+    type_mapping = {
+        AttributeKey.Type.TYPE_STRING: "string",
+        AttributeKey.Type.TYPE_DOUBLE: "number",
+    }
 
     period = parse_stats_period(stats_period)
     if period is None:
@@ -245,9 +245,9 @@ def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: st
     end_time_proto = ProtobufTimestamp()
     end_time_proto.FromDatetime(end)
 
-    fields = []
+    fields: dict[str, list[str]] = {type_str: [] for type_str in type_mapping.values()}
 
-    for attr_type in field_types:
+    for attr_type, type_str in type_mapping.items():
         req = TraceItemAttributeNamesRequest(
             meta=RequestMeta(
                 organization_id=org_id,
@@ -269,11 +269,12 @@ def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: st
                 attr.name,
                 "string" if attr_type == AttributeKey.Type.TYPE_STRING else "number",
                 SupportedTraceItemType.SPANS,
-            )["key"]
+            )["name"]
             for attr in fields_resp.attributes
             if attr.name and can_expose_attribute(attr.name, SupportedTraceItemType.SPANS)
         ]
-        fields.extend(parsed_fields)
+
+        fields[type_str].extend(parsed_fields)
 
     return {"fields": fields}
 

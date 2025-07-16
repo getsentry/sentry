@@ -169,7 +169,8 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       const columns = decodeColumnOrder(
         fields.map(field => ({
           field,
-        }))
+        })),
+        tableResults[i]?.meta
       ).map(column => ({
         key: column.key,
         name: column.name,
@@ -177,7 +178,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         type: column.type === 'never' ? null : column.type,
       }));
       const aliases = decodeColumnAliases(columns, fieldAliases, fieldHeaderMap);
-      const tableData = convertTableDataToTabularData(tableResults?.[0]);
+      const tableData = convertTableDataToTabularData(tableResults?.[i]);
 
       return (
         <TableWrapper key={`table:${result.title}`}>

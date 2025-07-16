@@ -1614,6 +1614,10 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     ):
         return
 
+    gen_ai_allowed = not group.organization.get_option("sentry:hide_ai_features")
+    if not gen_ai_allowed:
+        return
+
     project = group.project
     if not project.get_option("sentry:seer_scanner_automation"):
         return
