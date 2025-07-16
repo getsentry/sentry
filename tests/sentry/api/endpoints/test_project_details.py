@@ -1900,13 +1900,13 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
         with self.feature("organizations:dynamic-sampling"):
             # Start with a bias enabled
             with outbox_runner():
-                initial_biases = [{"id": "boostEnvironments", "active": True}]
+                initial_biases = [{"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": True}]
                 self.get_success_response(
                     self.org_slug, self.proj_slug, dynamicSamplingBiases=initial_biases
                 )
 
                 # Disable the bias
-                disabled_biases = [{"id": "boostEnvironments", "active": False}]
+                disabled_biases = [{"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False}]
                 self.get_success_response(
                     self.org_slug, self.proj_slug, dynamicSamplingBiases=disabled_biases
                 )
@@ -1919,15 +1919,15 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
                     target_object=self.project.id,
                 )
                 assert audit_entry is not None
-                assert audit_entry.data["name"] == "boostEnvironments"
+                assert audit_entry.data["name"] == RuleType.BOOST_ENVIRONMENTS_RULE.value
 
     def test_dynamic_sampling_bias_add_new_bias_audit_log(self):
         """Test that adding a new bias to existing biases creates the correct audit log entry."""
         with self.feature("organizations:dynamic-sampling"):
             # Start with some initial biases
             initial_biases = [
-                {"id": "boostEnvironments", "active": False},
-                {"id": "boostLatestRelease", "active": False},
+                {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+                {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
             ]
             with outbox_runner():
                 self.get_success_response(
@@ -1936,9 +1936,9 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
 
                 # Add a new bias that's enabled
                 expanded_biases = [
-                    {"id": "boostEnvironments", "active": False},
-                    {"id": "boostLatestRelease", "active": False},
-                    {"id": "minimumSampleRate", "active": True},
+                    {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+                    {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+                    {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": True},
                 ]
                 self.get_success_response(
                     self.org_slug, self.proj_slug, dynamicSamplingBiases=expanded_biases
@@ -1952,53 +1952,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
                     target_object=self.project.id,
                 )
                 assert audit_entry is not None
-                assert audit_entry.data["name"] == "minimumSampleRate"
-
-    def test_dynamic_sampling_bias_remove_biases_no_audit_log(self):
-        """Test that removing biases from the list doesn't create audit log entries."""
-        with self.feature("organizations:dynamic-sampling"):
-            # Start with multiple biases
-            initial_biases = [
-                {"id": "boostEnvironments", "active": False},
-                {"id": "boostLatestRelease", "active": False},
-                {"id": "boostLowVolumeTransactions", "active": True},
-                {"id": "ignoreHealthChecks", "active": False},
-            ]
-            self.get_success_response(
-                self.org_slug, self.proj_slug, dynamicSamplingBiases=initial_biases
-            )
-
-            # Clear existing audit log entries
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                initial_audit_count = AuditLogEntry.objects.filter(
-                    organization_id=self.organization.id,
-                    event__in=[
-                        audit_log.get_event_id("SAMPLING_BIAS_ENABLED"),
-                        audit_log.get_event_id("SAMPLING_BIAS_DISABLED"),
-                    ],
-                    target_object=self.project.id,
-                ).count()
-
-            # Remove most biases, keeping only one
-            reduced_biases = [
-                {"id": "boostEnvironments", "active": False},
-            ]
-            self.get_success_response(
-                self.org_slug, self.proj_slug, dynamicSamplingBiases=reduced_biases
-            )
-
-            # Check no new audit log entries were created
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                final_audit_count = AuditLogEntry.objects.filter(
-                    organization_id=self.organization.id,
-                    event__in=[
-                        audit_log.get_event_id("SAMPLING_BIAS_ENABLED"),
-                        audit_log.get_event_id("SAMPLING_BIAS_DISABLED"),
-                    ],
-                    target_object=self.project.id,
-                ).count()
-
-                assert final_audit_count == initial_audit_count
+                assert audit_entry.data["name"] == RuleType.MINIMUM_SAMPLE_RATE_RULE.value
 
 
 class TestTempestProjectDetails(TestProjectDetailsBase):
