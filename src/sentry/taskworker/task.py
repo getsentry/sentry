@@ -194,12 +194,20 @@ class Task(Generic[P, R]):
                 metrics.distribution(
                     "taskworker.producer.compressed_parameters_size",
                     len(parameters_str),
-                    tags={"namespace": self._namespace.name, "taskname": self.name},
+                    tags={
+                        "namespace": self._namespace.name,
+                        "taskname": self.name,
+                        "topic": self._namespace.topic.value,
+                    },
                 )
                 metrics.distribution(
                     "taskworker.producer.compression_time",
                     end_time - start_time,
-                    tags={"namespace": self._namespace.name, "taskname": self.name},
+                    tags={
+                        "namespace": self._namespace.name,
+                        "taskname": self.name,
+                        "topic": self._namespace.topic.value,
+                    },
                 )
             else:
                 parameters_str = parameters_json.decode("utf8")
