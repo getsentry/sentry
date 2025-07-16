@@ -547,7 +547,7 @@ describe('WidgetBuilderSlideout', () => {
     expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();
   });
 
-  it('should show deprecation alert when when flag enabled', async () => {
+  it('should show deprecation alert when flag enabled', async () => {
     const organizationWithFeature = OrganizationFixture({
       features: ['discover-saved-queries-deprecation'],
     });
@@ -589,7 +589,7 @@ describe('WidgetBuilderSlideout', () => {
     ).toBeInTheDocument();
   });
 
-  it('should not show deprecation alert when when flag enabled', async () => {
+  it('should not show deprecation alert when flag enabled', async () => {
     jest.mocked(useParams).mockReturnValue({widgetIndex: '1'});
     render(
       <WidgetBuilderProvider>
