@@ -90,7 +90,9 @@ export function CronsBillingBanner({organization, subscription}: Props) {
     daysSinceTrial <= 7 &&
     !subscription.planDetails.allowOnDemand
   ) {
-    return <TrialEndedBanner hasBillingAccess={hasBillingAccess} />;
+    return (
+      <TrialEndedBanner hasBillingAccess={hasBillingAccess} subscription={subscription} />
+    );
   }
 
   return null;
@@ -98,10 +100,12 @@ export function CronsBillingBanner({organization, subscription}: Props) {
 
 interface BannerProps {
   hasBillingAccess: boolean;
+  subscription?: Subscription;
 }
 
 interface TrialEndingBannerProps extends BannerProps {
   currentUsage: number;
+  subscription: Subscription;
   trialDaysLeft: number;
 }
 
@@ -110,10 +114,10 @@ function TrialEndingBanner({
   currentUsage,
   trialDaysLeft,
   subscription,
-}: TrialEndingBannerProps & {subscription: Subscription}) {
+}: TrialEndingBannerProps) {
   const budgetType = subscription.planDetails.budgetTerm;
   return (
-    <TrialBanner hasBillingAccess={hasBillingAccess}>
+    <TrialBanner hasBillingAccess={hasBillingAccess} subscription={subscription}>
       {hasBillingAccess
         ? tct(
             "Your organization's free business trial ends in [trialDaysLeft]. To continue monitoring your cron jobs, make sure your [budgetType] budget is set to a minimum of $[currentUsage].",
@@ -131,9 +135,12 @@ function TrialEndingBanner({
   );
 }
 
-function TrialEndedBanner({hasBillingAccess}: BannerProps) {
+function TrialEndedBanner({
+  hasBillingAccess,
+  subscription,
+}: BannerProps & {subscription: Subscription}) {
   return (
-    <TrialBanner hasBillingAccess={hasBillingAccess}>
+    <TrialBanner hasBillingAccess={hasBillingAccess} subscription={subscription}>
       {hasBillingAccess
         ? t(
             'Your free business trial has ended. One cron job monitor is included in your current plan. If you want to monitor more than one cron job, please increase your on-demand budget.'
@@ -147,14 +154,20 @@ function TrialEndedBanner({hasBillingAccess}: BannerProps) {
 
 function TrialBanner({
   hasBillingAccess,
+  subscription,
   children,
-}: BannerProps & {children?: React.ReactNode}) {
+}: BannerProps & {subscription: Subscription; children?: React.ReactNode}) {
   return (
     <Alert.Container>
       <NoBorderRadiusAlert
         type="warning"
         showIcon
-        trailingItems={<CronsBannerUpgradeCTA hasBillingAccess={hasBillingAccess} />}
+        trailingItems={
+          <CronsBannerUpgradeCTA
+            hasBillingAccess={hasBillingAccess}
+            subscription={subscription}
+          />
+        }
       >
         {children}
       </NoBorderRadiusAlert>

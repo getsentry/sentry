@@ -55,6 +55,7 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
 
   const isPaid = subscription.planDetails?.price > 0;
   const hasBillingRole = organization.access?.includes('org:billing');
+  const canRequestUpgrade = subscription.canSelfServe && !subscription.isManaged;
 
   let alertText: string | null = null;
   let alertHeader: string | null = null;
@@ -111,19 +112,21 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
 
     alertButton =
       isPaid && !hasBillingRole ? (
-        <Button
-          size="sm"
-          disabled={isUpgradeSent}
-          onClick={() => {
-            sendUpgradeRequest({
-              api,
-              organization,
-              handleSuccess: () => setIsUpgradeSent(true),
-            });
-          }}
-        >
-          {t('Request Upgrade')}
-        </Button>
+        canRequestUpgrade ? (
+          <Button
+            size="sm"
+            disabled={isUpgradeSent}
+            onClick={() => {
+              sendUpgradeRequest({
+                api,
+                organization,
+                handleSuccess: () => setIsUpgradeSent(true),
+              });
+            }}
+          >
+            {t('Request Upgrade')}
+          </Button>
+        ) : null
       ) : (
         <Button
           priority="primary"
@@ -145,19 +148,21 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
 
     alertButton =
       isPaid && !hasBillingRole ? (
-        <Button
-          size="sm"
-          disabled={isUpgradeSent}
-          onClick={() => {
-            sendUpgradeRequest({
-              api,
-              organization,
-              handleSuccess: () => setIsUpgradeSent(true),
-            });
-          }}
-        >
-          {t('Request Upgrade')}
-        </Button>
+        canRequestUpgrade ? (
+          <Button
+            size="sm"
+            disabled={isUpgradeSent}
+            onClick={() => {
+              sendUpgradeRequest({
+                api,
+                organization,
+                handleSuccess: () => setIsUpgradeSent(true),
+              });
+            }}
+          >
+            {t('Request Upgrade')}
+          </Button>
+        ) : null
       ) : (
         <Button
           priority="primary"
