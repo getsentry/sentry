@@ -26,7 +26,7 @@ type AddEventCTA = HasSub & {
 
 type OnDemandBudgetStrategy = 'per_category' | 'shared';
 
-type OnDemandCategory = EventType | `previous_${EventType}`; // for whatever reason, we used singular category names historically :( so we use EventType to retain that
+type OnDemandCategory = `${EventType}_budget` | `previous_${EventType}_budget`; // for whatever reason, we used singular category names historically :( so we use EventType to retain that
 
 type OnDemandBudgetUpdate = Partial<Record<OnDemandCategory, number>> & {
   previous_strategy: OnDemandBudgetStrategy;
