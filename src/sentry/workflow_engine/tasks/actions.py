@@ -4,13 +4,12 @@ from django.db.models import Value
 
 from sentry.eventstore.models import GroupEvent
 from sentry.eventstream.base import GroupState
-from sentry.incidents.grouptype import MetricIssue
 from sentry.models.activity import Activity
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker import config, namespaces
 from sentry.taskworker.retry import Retry
-from sentry.utils import metrics
+from sentry.utils import metrics, options
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.tasks.utils import build_workflow_event_data_from_event
 from sentry.workflow_engine.types import WorkflowEventData
@@ -117,7 +116,9 @@ def trigger_action(
 
     should_trigger_actions = should_fire_workflow_actions(detector.project.organization)
 
-    if should_trigger_actions and event_data.group.type != MetricIssue.type_id:
+    issue_type_ids = options.get("workflow_engine.metric_issue.trigger_actions.issue_type_ids")
+
+    if should_trigger_actions and event_data.group.type not in issue_type_ids:
         action.trigger(event_data, detector)
     else:
         logger.info(
