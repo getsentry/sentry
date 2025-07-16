@@ -2532,7 +2532,6 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
 
 export enum FeedbackFieldKey {
   BROWSER_NAME = 'browser.name',
-  BROWSER_VERSION = 'browser.version',
   LOCALE_LANG = 'locale.lang',
   LOCALE_TIMEZONE = 'locale.timezone',
   MESSAGE = 'message',
@@ -2544,10 +2543,8 @@ export enum FeedbackFieldKey {
 export const FEEDBACK_FIELDS = [
   FieldKey.ASSIGNED,
   FeedbackFieldKey.BROWSER_NAME,
-  FeedbackFieldKey.BROWSER_VERSION,
   FieldKey.DEVICE_BRAND,
   FieldKey.DEVICE_FAMILY,
-  FieldKey.DEVICE_MODEL_ID,
   FieldKey.DEVICE_NAME,
   FieldKey.DIST,
   FieldKey.ENVIRONMENT,
@@ -2582,11 +2579,6 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FeedbackFieldKey.BROWSER_VERSION]: {
-    desc: t('Version number of the browser'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
   [FeedbackFieldKey.LOCALE_LANG]: {
     desc: t('Language preference of the user'),
     kind: FieldKind.FIELD,
@@ -2598,7 +2590,9 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FeedbackFieldKey.MESSAGE]: {
-    desc: t('Message written by the user providing feedback.'),
+    desc: t(
+      'Message written by the user providing feedback. Search is case insensitive and supports substrings.'
+    ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowWildcard: true,
