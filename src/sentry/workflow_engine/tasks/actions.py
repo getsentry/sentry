@@ -2,6 +2,7 @@ from dataclasses import asdict
 
 from django.db.models import Value
 
+from sentry import options
 from sentry.eventstore.models import GroupEvent
 from sentry.eventstream.base import GroupState
 from sentry.models.activity import Activity
@@ -9,7 +10,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker import config, namespaces
 from sentry.taskworker.retry import Retry
-from sentry.utils import metrics, options
+from sentry.utils import metrics
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.tasks.utils import build_workflow_event_data_from_event
 from sentry.workflow_engine.types import WorkflowEventData
