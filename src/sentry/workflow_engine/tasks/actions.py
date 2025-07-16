@@ -92,7 +92,6 @@ def trigger_action(
 
     metrics.incr(
         "workflow_engine.tasks.trigger_action_task_started",
-        1,
         tags={"action_type": action.type, "detector_type": detector.type},
         sample_rate=1.0,
     )
@@ -115,7 +114,6 @@ def trigger_action(
         # Here, we probably build the event data from the activity
         raise NotImplementedError("Activity ID is not supported yet")
 
-    # Check feature flag inside the task
     should_trigger_actions = should_fire_workflow_actions(detector.project.organization)
 
     if should_trigger_actions:
