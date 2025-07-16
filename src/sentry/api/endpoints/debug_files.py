@@ -273,7 +273,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
             # that the debug id does not perfectly match due to 'age' differences, but the code-id
             # will match.
             q = Q(debug_id__exact=debug_id) | Q(code_id__exact=code_id)
-        if debug_id:
+        elif debug_id:
             q = Q(debug_id__exact=debug_id)
         elif code_id:
             q = Q(code_id__exact=code_id)
