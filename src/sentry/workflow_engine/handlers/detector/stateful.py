@@ -281,7 +281,14 @@ class StatefulDetectorHandler(
     Stateful Detectors are provided as a base class for new detectors that need to track state.
     """
 
-    def __init__(self, detector: Detector, thresholds: DetectorThresholds | None = None):
+    has_grouping: bool
+
+    def __init__(
+        self,
+        detector: Detector,
+        thresholds: DetectorThresholds | None = None,
+        has_grouping: bool = True,
+    ):
         super().__init__(detector)
 
         # Default to 1 for all the possible levels on a given detector
@@ -295,6 +302,7 @@ class StatefulDetectorHandler(
         }
 
         self.state_manager = DetectorStateManager(detector, list(self._thresholds.keys()))
+        self.has_grouping = has_grouping
 
     @property
     def thresholds(self) -> DetectorThresholds:
@@ -314,6 +322,13 @@ class StatefulDetectorHandler(
         self, data_packet: DataPacket[DataPacketType]
     ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
         dedupe_value = self.extract_dedupe_value(data_packet)
+
+        if self.has_grouping:
+            # TODO -- figure out how to change processing from here with grouping info
+            # This should get the data from the data packet, and use the keys for state data if grouping is enabled
+            # otherwise, it should extract the value and use `None` as the group key.
+            pass
+
         group_data_values = self._extract_value_from_packet(data_packet)
         state = self.state_manager.get_state_data(list(group_data_values.keys()))
         results: dict[DetectorGroupKey, DetectorEvaluationResult] = {}
