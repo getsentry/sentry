@@ -22,8 +22,8 @@ import {
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
   EAPSpanProperty,
+  SpanFields,
   SpanFunctions,
-  SpanIndexedField,
   SpanMetricsProperty,
 } from 'sentry/views/insights/types';
 
@@ -62,7 +62,7 @@ export const useTopNSpanEAPSeries = <
   Fields extends
     | EAPSpanProperty[]
     | SpanMetricsProperty[]
-    | SpanIndexedField[]
+    | SpanFields[]
     | SpanFunctions[]
     | string[],
 >(

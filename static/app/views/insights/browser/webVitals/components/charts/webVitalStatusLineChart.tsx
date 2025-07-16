@@ -21,7 +21,7 @@ import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/i
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import type {SubregionCode} from 'sentry/views/insights/types';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 interface Props {
   webVital: WebVitals | null;
@@ -46,10 +46,10 @@ export function WebVitalStatusLineChart({
     search.addFilterValue('transaction', transaction);
   }
   if (browserTypes) {
-    search.addDisjunctionFilterValues(SpanIndexedField.BROWSER_NAME, browserTypes);
+    search.addDisjunctionFilterValues(SpanFields.BROWSER_NAME, browserTypes);
   }
   if (subregions) {
-    search.addDisjunctionFilterValues(SpanIndexedField.USER_GEO_SUBREGION, subregions);
+    search.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
   }
 
   const {
