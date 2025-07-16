@@ -6,7 +6,7 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from sentry_sdk import set_tag
+from sentry_sdk import set_tag, start_span
 from snuba_sdk import DeleteQuery, Request
 
 from sentry import eventstore, eventstream, models, nodestore
@@ -138,7 +138,11 @@ class ErrorEventsDeletionTask(EventsBaseDeletionTask):
         if the deletion has completed and if it needs to be called again."""
         events = self.get_unfetched_events()
         if events:
-            self.delete_events_from_nodestore(events)
+            with start_span(op="nodestore", description="Delete events from nodestore"):
+                logger.info(
+                    "deletions.delete_events_from_nodestore", extra={"node_ids_count": len(events)}
+                )
+                self.delete_events_from_nodestore(events)
             self.delete_dangling_attachments_and_user_reports(events)
             # This value will be used in the next call to chunk
             self.last_event = events[-1]
