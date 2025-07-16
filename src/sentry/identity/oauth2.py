@@ -245,10 +245,36 @@ class OAuth2LoginView:
     @method_decorator(csrf_exempt)
     def dispatch(self, request: HttpRequest, pipeline: IdentityPipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.OAUTH_LOGIN, pipeline.provider.key).capture():
-            for param in ("code", "error", "state"):
-                if param in request.GET:
-                    return pipeline.next_step()
+            oauth_code = request.GET.get("code")
+            oauth_error = request.GET.get("error")
+            oauth_state = request.GET.get("state")
+            stored_state = pipeline.fetch_state("state")
 
+            # Only treat as OAuth callback if:
+            # 1. We have a code OR error parameter AND
+            # 2. We have a state parameter AND
+            # 3. The state matches what we stored
+            is_oauth_callback = (
+                (oauth_code or oauth_error) and oauth_state and oauth_state == stored_state
+            )
+
+            # Log OAuth callback detection for monitoring
+            logger.debug(
+                "OAuth callback detection",
+                extra={
+                    "provider": pipeline.provider.key,
+                    "has_code": bool(oauth_code),
+                    "has_error": bool(oauth_error),
+                    "has_state": bool(oauth_state),
+                    "state_matches": oauth_state == stored_state,
+                    "is_callback": is_oauth_callback,
+                },
+            )
+
+            if is_oauth_callback:
+                return pipeline.next_step()
+
+            # Otherwise, start new OAuth flow
             state = secrets.token_hex()
 
             params = self.get_authorize_params(
