@@ -77,7 +77,7 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
                 workflow = alert_rule_workflow.workflow
 
                 # Performs the raw SQL query with pagination
-                def data_fn(offset: int, limit: int):
+                def data_fn(offset: int, limit: int) -> list[_Result]:
                     with connection.cursor() as db_cursor:
                         db_cursor.execute(
                             """
