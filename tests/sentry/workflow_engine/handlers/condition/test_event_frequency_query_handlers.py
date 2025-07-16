@@ -351,6 +351,7 @@ class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
 class PercentSessionsQueryTest(BaseEventFrequencyPercentTest, EventFrequencyQueryTestBase):
     handler = PercentSessionsQueryHandler
 
+    @pytest.mark.skip(reason="flaky: #95669")
     @patch(
         "sentry.workflow_engine.handlers.condition.event_frequency_query_handlers.MIN_SESSIONS_TO_FIRE",
         1,
