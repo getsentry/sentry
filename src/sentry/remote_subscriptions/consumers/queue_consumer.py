@@ -126,27 +126,30 @@ class OrderedQueueWorker(threading.Thread, Generic[T]):
         while not self.shutdown:
             try:
                 work_item = self.work_queue.get()
+            except queue.ShutDown:
+                break
+
+            try:
                 with sentry_sdk.start_transaction(
                     op="queue_worker.process",
                     name=f"monitors.{self.identifier}.worker_{self.worker_id}",
                 ):
                     self.result_processor(self.identifier, work_item.result)
 
+            except queue.ShutDown:
+                break
+            except Exception:
+                logger.exception(
+                    "Unexpected error in queue worker", extra={"worker_id": self.worker_id}
+                )
+            finally:
                 self.offset_tracker.complete_offset(work_item.partition, work_item.offset)
-
                 metrics.gauge(
                     "remote_subscriptions.queue_worker.queue_depth",
                     self.work_queue.qsize(),
                     tags={
                         "identifier": self.identifier,
                     },
-                )
-
-            except queue.ShutDown:
-                break
-            except Exception:
-                logger.exception(
-                    "Unexpected error in queue worker", extra={"worker_id": self.worker_id}
                 )
 
 
