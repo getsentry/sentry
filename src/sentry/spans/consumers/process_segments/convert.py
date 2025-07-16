@@ -4,6 +4,7 @@ from typing import Any
 import orjson
 import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
+from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SpanLink
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import (
     AnyValue,
@@ -131,7 +132,7 @@ def _timestamp(value: float) -> Timestamp:
 ALLOWED_LINK_ATTRIBUTE_KEYS = ["sentry.link.type"]
 
 
-def _sanitize_span_link(link):
+def _sanitize_span_link(link: SpanLink) -> SpanLink:
     """
     Prepares a span link for storage in EAP. EAP does not support array
     attributes, so span links are stored as a JSON-encoded string. In order to
