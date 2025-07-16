@@ -13,7 +13,7 @@ from sentry.testutils.cases import APITestCase
 class AutofixPrWebhookTest(APITestCase):
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
     @patch(
-        "sentry.autofix.webhooks.get_autofix_state_from_pr_id",
+        "sentry.seer.autofix.webhooks.get_autofix_state_from_pr_id",
         return_value=AutofixState(
             run_id=1,
             request={"project_id": 2, "issue": {"id": 3}},
@@ -21,8 +21,8 @@ class AutofixPrWebhookTest(APITestCase):
             status=AutofixStatus.PROCESSING,
         ),
     )
-    @patch("sentry.autofix.webhooks.analytics.record")
-    @patch("sentry.autofix.webhooks.metrics.incr")
+    @patch("sentry.seer.autofix.webhooks.analytics.record")
+    @patch("sentry.seer.autofix.webhooks.metrics.incr")
     def test_opened(
         self, mock_metrics_incr, mock_analytics_record, mock_get_autofix_state_from_pr_id
     ):
@@ -45,7 +45,7 @@ class AutofixPrWebhookTest(APITestCase):
 
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
     @patch(
-        "sentry.autofix.webhooks.get_autofix_state_from_pr_id",
+        "sentry.seer.autofix.webhooks.get_autofix_state_from_pr_id",
         return_value=AutofixState(
             run_id=1,
             request={"project_id": 2, "issue": {"id": 3}},
@@ -53,8 +53,8 @@ class AutofixPrWebhookTest(APITestCase):
             status=AutofixStatus.PROCESSING,
         ),
     )
-    @patch("sentry.autofix.webhooks.analytics.record")
-    @patch("sentry.autofix.webhooks.metrics.incr")
+    @patch("sentry.seer.autofix.webhooks.analytics.record")
+    @patch("sentry.seer.autofix.webhooks.metrics.incr")
     def test_closed(
         self, mock_metrics_incr, mock_analytics_record, mock_get_autofix_state_from_pr_id
     ):
@@ -77,7 +77,7 @@ class AutofixPrWebhookTest(APITestCase):
 
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
     @patch(
-        "sentry.autofix.webhooks.get_autofix_state_from_pr_id",
+        "sentry.seer.autofix.webhooks.get_autofix_state_from_pr_id",
         return_value=AutofixState(
             run_id=1,
             request={"project_id": 2, "issue": {"id": 3}},
@@ -85,8 +85,8 @@ class AutofixPrWebhookTest(APITestCase):
             status=AutofixStatus.PROCESSING,
         ),
     )
-    @patch("sentry.autofix.webhooks.analytics.record")
-    @patch("sentry.autofix.webhooks.metrics.incr")
+    @patch("sentry.seer.autofix.webhooks.analytics.record")
+    @patch("sentry.seer.autofix.webhooks.metrics.incr")
     def test_merged(
         self, mock_metrics_incr, mock_analytics_record, mock_get_autofix_state_from_pr_id
     ):
@@ -108,11 +108,11 @@ class AutofixPrWebhookTest(APITestCase):
 
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
     @patch(
-        "sentry.autofix.webhooks.get_autofix_state_from_pr_id",
+        "sentry.seer.autofix.webhooks.get_autofix_state_from_pr_id",
         return_value=None,
     )
-    @patch("sentry.autofix.webhooks.analytics.record")
-    @patch("sentry.autofix.webhooks.metrics.incr")
+    @patch("sentry.seer.autofix.webhooks.analytics.record")
+    @patch("sentry.seer.autofix.webhooks.metrics.incr")
     def test_no_run(
         self, mock_metrics_incr, mock_analytics_record, mock_get_autofix_state_from_pr_id
     ):
@@ -129,11 +129,11 @@ class AutofixPrWebhookTest(APITestCase):
 
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID=None)
     @patch(
-        "sentry.autofix.webhooks.get_autofix_state_from_pr_id",
+        "sentry.seer.autofix.webhooks.get_autofix_state_from_pr_id",
         return_value=None,
     )
-    @patch("sentry.autofix.webhooks.analytics.record")
-    @patch("sentry.autofix.webhooks.metrics.incr")
+    @patch("sentry.seer.autofix.webhooks.analytics.record")
+    @patch("sentry.seer.autofix.webhooks.metrics.incr")
     def test_no_settings_github_app_id_set(
         self, mock_metrics_incr, mock_analytics_record, mock_get_autofix_state_from_pr_id
     ):
@@ -150,11 +150,11 @@ class AutofixPrWebhookTest(APITestCase):
 
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
     @patch(
-        "sentry.autofix.webhooks.get_autofix_state_from_pr_id",
+        "sentry.seer.autofix.webhooks.get_autofix_state_from_pr_id",
         return_value=None,
     )
-    @patch("sentry.autofix.webhooks.analytics.record")
-    @patch("sentry.autofix.webhooks.metrics.incr")
+    @patch("sentry.seer.autofix.webhooks.analytics.record")
+    @patch("sentry.seer.autofix.webhooks.metrics.incr")
     def test_no_different_github_app(
         self, mock_metrics_incr, mock_analytics_record, mock_get_autofix_state_from_pr_id
     ):
