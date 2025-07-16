@@ -519,8 +519,7 @@ function useTrackView({
   project?: Project;
 }) {
   const location = useLocation();
-  const {alert_date, alert_rule_id, alert_type, ref_fallback, stream_index, query} =
-    location.query;
+  const {alert_date, alert_rule_id, alert_type, ref_fallback, query} = location.query;
   const groupEventType = useLoadedEventType();
   const user = useUser();
   const hasStreamlinedUI = useHasStreamlinedUI();
@@ -531,7 +530,6 @@ function useTrackView({
     ...getAnalyticsDataForEvent(event),
     ...getAnalyicsDataForProject(project),
     tab,
-    stream_index: typeof stream_index === 'string' ? Number(stream_index) : undefined,
     query: typeof query === 'string' ? query : undefined,
     // Alert properties track if the user came from email/slack alerts
     alert_date:

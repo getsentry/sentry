@@ -233,7 +233,6 @@ export function createIssueLink({
   data,
   eventId,
   referrer,
-  streamIndex,
   location,
   query,
 }: {
@@ -243,7 +242,6 @@ export function createIssueLink({
   eventId?: string;
   query?: string;
   referrer?: string;
-  streamIndex?: number;
 }): LocationDescriptorObject {
   const {id, project} = data as Group;
   const {eventID: latestEventId, groupID} = data as Event;
@@ -257,7 +255,6 @@ export function createIssueLink({
     }/${finalEventId ? `events/${finalEventId}/` : ''}`,
     query: {
       referrer: referrer || 'event-or-group-header',
-      stream_index: streamIndex,
       query,
       // Add environment to the query if it was selected
       ...(location.query.environment === undefined
