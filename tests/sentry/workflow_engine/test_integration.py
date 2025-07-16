@@ -197,7 +197,6 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
             mock_process_workflow.assert_not_called()
 
 
-@with_feature("organizations:workflow-engine-action-trigger-async")
 @mock.patch("sentry.workflow_engine.processors.workflow.trigger_action.delay")
 @mock_redis_buffer()
 class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationTest):
@@ -222,6 +221,11 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
                 "organizations:workflow-engine-trigger-actions": True,
             }
         ):
+            yield
+
+    @pytest.fixture(autouse=True)
+    def with_tasks(self):
+        with self.tasks():
             yield
 
     def create_error_event(
