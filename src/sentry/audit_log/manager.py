@@ -89,23 +89,23 @@ class AuditLogEventManager:
         self._api_name_lookup: dict[str, AuditLogEvent] = {}
 
     @overload
-    def add(self, audit_log_event: AuditLogEvent) -> None: ...
+    def add(self, event_id: AuditLogEvent) -> None: ...
 
     @overload
     def add(self, event_id: int, name: str, api_name: str, template: str | None = None) -> None: ...
 
     def add(
         self,
-        audit_log_event_or_event_id: AuditLogEvent | int,
+        event_id: AuditLogEvent | int,
         name: str | None = None,
         api_name: str | None = None,
         template: str | None = None,
     ) -> None:
-        if isinstance(audit_log_event_or_event_id, AuditLogEvent):
-            audit_log_event = audit_log_event_or_event_id
+        if isinstance(event_id, AuditLogEvent):
+            audit_log_event = event_id
         else:
             audit_log_event = AuditLogEvent(
-                event_id=audit_log_event_or_event_id,
+                event_id=event_id,
                 name=name,
                 api_name=api_name,
                 template=template,
@@ -126,27 +126,27 @@ class AuditLogEventManager:
 
     @overload
     def add_with_render_func(
-        self, audit_log_event: AuditLogEvent
-    ) -> Callable[[AuditLogEntry], AuditLogEvent]: ...
+        self, event_id: AuditLogEvent
+    ) -> Callable[[Callable[[AuditLogEntry], str]], AuditLogEvent]: ...
 
     @overload
     def add_with_render_func(
         self, event_id: int, name: str, api_name: str, template: str | None = None
-    ) -> Callable[[AuditLogEntry], AuditLogEvent]: ...
+    ) -> Callable[[Callable[[AuditLogEntry], str]], AuditLogEvent]: ...
 
     def add_with_render_func(
         self,
-        audit_log_event_or_event_id: AuditLogEvent | int,
+        event_id: AuditLogEvent | int,
         name: str | None = None,
         api_name: str | None = None,
         template: str | None = None,
-    ) -> Callable[[AuditLogEntry], AuditLogEvent]:
+    ) -> Callable[[Callable[[AuditLogEntry], str]], AuditLogEvent]:
         """Decorator to add an audit log event with a custom render function"""
-        if isinstance(audit_log_event_or_event_id, AuditLogEvent):
-            audit_log_event = audit_log_event_or_event_id
+        if isinstance(event_id, AuditLogEvent):
+            audit_log_event = event_id
         else:
             audit_log_event = AuditLogEvent(
-                event_id=audit_log_event_or_event_id,
+                event_id=event_id,
                 name=name,
                 api_name=api_name,
                 template=template,
