@@ -6,7 +6,7 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from sentry_sdk import set_tag, start_span
+from sentry_sdk import set_tag
 from snuba_sdk import DeleteQuery, Request
 
 from sentry import eventstore, eventstream, models, nodestore
@@ -26,6 +26,8 @@ logger = logging.getLogger(__name__)
 
 GROUP_CHUNK_SIZE = 1000
 EVENT_CHUNK_SIZE = 10000
+# https://github.com/getsentry/snuba/blob/54feb15b7575142d4b3af7f50d2c2c865329f2db/snuba/datasets/configuration/issues/storages/search_issues.yaml#L139
+ISSUE_PLATFORM_MAX_ROWS_TO_DELETE = 2000000
 
 # Group models that relate only to groups and not to events. We assume those to
 # be safe to delete/mutate within a single transaction for user-triggered
@@ -69,7 +71,7 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
     """
 
     # Number of events fetched from eventstore per chunk() call.
-    DEFAULT_CHUNK_SIZE = 10000
+    DEFAULT_CHUNK_SIZE = EVENT_CHUNK_SIZE
     referrer = "deletions.group"
     dataset: Dataset
 
@@ -138,11 +140,7 @@ class ErrorEventsDeletionTask(EventsBaseDeletionTask):
         if the deletion has completed and if it needs to be called again."""
         events = self.get_unfetched_events()
         if events:
-            with start_span(op="nodestore", description="Delete events from nodestore"):
-                logger.info(
-                    "deletions.delete_events_from_nodestore", extra={"node_ids_count": len(events)}
-                )
-                self.delete_events_from_nodestore(events)
+            self.delete_events_from_nodestore(events)
             self.delete_dangling_attachments_and_user_reports(events)
             # This value will be used in the next call to chunk
             self.last_event = events[-1]
@@ -184,8 +182,7 @@ class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):
     """
 
     dataset = Dataset.IssuePlatform
-    # https://github.com/getsentry/snuba/blob/54feb15b7575142d4b3af7f50d2c2c865329f2db/snuba/datasets/configuration/issues/storages/search_issues.yaml#L139
-    max_rows_to_delete = 2000000
+    max_rows_to_delete = ISSUE_PLATFORM_MAX_ROWS_TO_DELETE
 
     def chunk(self) -> bool:
         """This method is called to delete chunks of data. It returns a boolean to say
