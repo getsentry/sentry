@@ -368,11 +368,9 @@ const ActionMenuTrigger = styled(Button)`
   }
 `;
 
-const ActionMenuTriggerV2 = styled('div')<{text?: string}>`
+const ActionMenuTriggerV2 = styled('div')`
   :hover {
     cursor: pointer;
     font-weight: ${p => p.theme.fontWeight.bold};
   }
-  padding: ${p => p.theme.space.md};
-  margin: -${p => p.theme.space.md};
 `;
