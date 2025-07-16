@@ -32,7 +32,7 @@ from sentry.api.exceptions import DataSecrecyError, SentryAPIException
 from sentry.auth.elevated_mode import ElevatedMode, InactiveReason
 from sentry.auth.services.auth.model import RpcAuthState
 from sentry.auth.system import is_system_auth
-from sentry.data_secrecy.data_secrecy_logic import should_allow_superuser_access
+from sentry.data_secrecy.logic import should_allow_superuser_access
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcUserOrganizationContext
 from sentry.types.request import _HttpRequestWithUser, _RequestWithUser

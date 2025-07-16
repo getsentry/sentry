@@ -1,11 +1,11 @@
 from datetime import datetime, timezone
 
 from django.conf import settings
-from django.core.cache import cache
 
 from sentry import features
+from sentry.data_secrecy.cache import effective_grant_status_cache
 from sentry.data_secrecy.service.service import data_access_grant_service
-from sentry.data_secrecy.types import CACHE_KEY_PATTERN, NEGATIVE_CACHE_TTL, NEGATIVE_CACHE_VALUE
+from sentry.data_secrecy.types import EffectiveGrantStatus, GrantCacheStatus
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 
@@ -73,35 +73,6 @@ def should_allow_superuser_access_v2(
     return False
 
 
-def _get_cached_grant_status(organization_id: int) -> bool | None:
-    """
-    Retrieve cached grant status for an organization.
-
-    :param organization_id: The ID of the organization to get the cached grant status for.
-    :return:
-        - False if negative cache hit.
-        - True if cached data is valid and not expired.
-        - None if not cached.
-    """
-    cache_key = CACHE_KEY_PATTERN.format(organization_id=organization_id)
-    cached_data = cache.get(cache_key)
-
-    if cached_data:
-        # Check if it's negative cache
-        if cached_data == NEGATIVE_CACHE_VALUE:
-            return False
-
-        # Verify the cached data hasn't logically expired
-        access_end = cached_data["access_end"]
-        if access_end > datetime.now(timezone.utc):
-            return True
-        else:
-            # Cached data is stale, remove it
-            cache.delete(cache_key)
-
-    return None
-
-
 def data_access_grant_exists(organization_id: int) -> bool:
     """
     Determines if a data access grant exists for an organization.
@@ -110,45 +81,29 @@ def data_access_grant_exists(organization_id: int) -> bool:
     :param organization_id: The ID of the organization to check.
     :return: True if a data access grant exists for the organization, False otherwise.
     """
-    # Try cache first
-    cached_status = _get_cached_grant_status(organization_id)
-    if cached_status is not None:
-        return cached_status
+    cached_status = effective_grant_status_cache.get(organization_id)
 
-    # Cache miss or expired, calculate fresh
-    grant_status = data_access_grant_service.get_effective_grant_status(
+    if cached_status.cache_status == GrantCacheStatus.VALID_WINDOW:
+        return True
+
+    if cached_status.cache_status == GrantCacheStatus.NEGATIVE_CACHE:
+        return False
+
+    if cached_status.cache_status == GrantCacheStatus.EXPIRED_WINDOW:
+        effective_grant_status_cache.delete(organization_id)
+
+    # We have a cache miss or the entry is expired
+    current_time = datetime.now(timezone.utc)
+
+    # Calculate fresh grant status
+    rpc_grant_status = data_access_grant_service.get_effective_grant_status(
         organization_id=organization_id
     )
 
-    if grant_status:
-        # Calculate TTL first to avoid race condition where grant expires between checks
-        current_time = datetime.now(timezone.utc)
-        ttl_seconds = int((grant_status.access_end - current_time).total_seconds())
+    effective_grant_status = EffectiveGrantStatus.from_rpc_grant_status(
+        rpc_grant_status, current_time
+    )
 
-        # If the grant is expired or about to expire (TTL <= 0), cache the negative result
-        if ttl_seconds <= 0:
-            cache.set(
-                CACHE_KEY_PATTERN.format(organization_id=organization_id),
-                NEGATIVE_CACHE_VALUE,
-                timeout=NEGATIVE_CACHE_TTL,
-            )
-            return False
+    effective_grant_status_cache.set(organization_id, effective_grant_status, current_time)
 
-        # Grant is still valid, cache the positive result with calculated TTL
-        serialized_grant_status = grant_status.dict()
-        cache.set(
-            CACHE_KEY_PATTERN.format(organization_id=organization_id),
-            serialized_grant_status,
-            timeout=ttl_seconds,
-        )
-        return True
-
-    # Cache the negative result for 15 minutes
-    else:
-        cache.set(
-            CACHE_KEY_PATTERN.format(organization_id=organization_id),
-            NEGATIVE_CACHE_VALUE,
-            timeout=NEGATIVE_CACHE_TTL,
-        )
-
-    return False
+    return effective_grant_status.cache_status == GrantCacheStatus.VALID_WINDOW
