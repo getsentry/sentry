@@ -243,7 +243,7 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
   },
   trace_item_logs: {
     description: t(
-      'Alert on logs counts and log attributes such as severity, message and log level.'
+      'Alert on log counts and log attributes such as severity, message and log level.'
     ),
     examples: [t('When the number of error level logs exceeds 10 in 5 minutes.')],
     illustration: diagramThroughput,
