@@ -170,7 +170,6 @@ DETAILED_PROJECT = {
     "scrapeJavaScript": True,
     "groupingConfig": "newstyle:2012-12-31",
     "groupingEnhancements": "",
-    "groupingEnhancementsBase": None,
     "derivedGroupingEnhancements": "",
     "secondaryGroupingExpiry": 1687010243,
     "secondaryGroupingConfig": "newstyle:2012-11-21",

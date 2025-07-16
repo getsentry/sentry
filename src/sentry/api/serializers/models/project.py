@@ -940,7 +940,6 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     groupingConfig: str
     derivedGroupingEnhancements: str
     groupingEnhancements: str
-    groupingEnhancementsBase: str | None
     secondaryGroupingExpiry: int
     secondaryGroupingConfig: str | None
     fingerprintingRules: str
@@ -1066,9 +1065,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "groupingConfig": self.get_value_with_default(attrs, "sentry:grouping_config"),
             "groupingEnhancements": self.get_value_with_default(
                 attrs, "sentry:grouping_enhancements"
-            ),
-            "groupingEnhancementsBase": self.get_value_with_default(
-                attrs, "sentry:grouping_enhancements_base"
             ),
             "derivedGroupingEnhancements": self.get_value_with_default(
                 attrs, "sentry:derived_grouping_enhancements"

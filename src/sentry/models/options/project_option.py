@@ -50,7 +50,6 @@ OPTION_KEYS = frozenset(
         "sentry:scrub_ip_address",
         "sentry:grouping_config",
         "sentry:grouping_enhancements",
-        "sentry:grouping_enhancements_base",
         "sentry:derived_grouping_enhancements",
         "sentry:secondary_grouping_config",
         "sentry:secondary_grouping_expiry",
