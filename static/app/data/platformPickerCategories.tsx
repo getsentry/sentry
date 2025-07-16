@@ -200,7 +200,7 @@ const categoryList = [
   },
 ];
 
-export default function getCategoryList(organization?: Organization) {
+export function getCategoryList(organization?: Organization) {
   return categoryList.filter(({display}) => display?.(organization) ?? true);
 }
 

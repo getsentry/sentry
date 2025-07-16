@@ -9,9 +9,10 @@ import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingMask from 'sentry/components/loadingMask';
 import SearchBar from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import getCategoryList, {
+import {
   createablePlatforms,
   filterAliases,
+  getCategoryList,
 } from 'sentry/data/platformPickerCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconClose, IconProject} from 'sentry/icons';
@@ -81,7 +82,9 @@ function PlatformPicker({
   showFilterBar = true,
   showOther = true,
 }: PlatformPickerProps) {
-  const categories = getCategoryList(organization);
+  const categories = useMemo(() => {
+    return getCategoryList(organization);
+  }, [organization]);
 
   const [category, setCategory] = useState(defaultCategory ?? categories[0]!.id);
   const [filter, setFilter] = useState(

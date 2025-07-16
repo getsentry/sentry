@@ -10,7 +10,7 @@ import {useOnboardingContext} from 'sentry/components/onboarding/onboardingConte
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
 import Redirect from 'sentry/components/redirect';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import categoryList from 'sentry/data/platformPickerCategories';
+import {getCategoryList} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -87,8 +87,8 @@ function Onboarding(props: Props) {
 
   const {activateSidebar} = useOnboardingSidebar();
 
-  const filteredCategoryList = useMemo(() => {
-    return categoryList(organization);
+  const categories = useMemo(() => {
+    return getCategoryList(organization);
   }, [organization]);
 
   useEffect(() => {
@@ -117,7 +117,7 @@ function Onboarding(props: Props) {
       }
 
       const frameworkCategory =
-        filteredCategoryList.find(category => {
+        categories.find(category => {
           return category.platforms?.has(platform.id);
         })?.id ?? 'all';
 
@@ -136,7 +136,7 @@ function Onboarding(props: Props) {
     onboardingContext,
     organization.slug,
     props.location.pathname,
-    filteredCategoryList,
+    categories,
   ]);
 
   const shallProjectBeDeleted =
