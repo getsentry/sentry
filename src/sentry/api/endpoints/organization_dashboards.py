@@ -1,17 +1,7 @@
 from __future__ import annotations
 
 from django.db import IntegrityError, router, transaction
-from django.db.models import (
-    Case,
-    DateTimeField,
-    Exists,
-    F,
-    IntegerField,
-    OrderBy,
-    OuterRef,
-    Value,
-    When,
-)
+from django.db.models import Case, Exists, IntegerField, OuterRef, Value, When
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -143,7 +133,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         else:
             desc = False
 
-        order_by: list[Case | str | OrderBy]
+        order_by: list[Case | str]
         if sort_by == "title":
             order_by = [
                 "-title" if desc else "title",
@@ -160,29 +150,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             ]
 
         elif sort_by == "recentlyViewed":
-            if features.has(
-                "organizations:dashboards-starred-reordering", organization, actor=request.user
-            ):
-                dashboards = dashboards.annotate(
-                    user_last_visited=Case(
-                        When(
-                            dashboardlastvisited__member__user_id=request.user.id,
-                            then=F("dashboardlastvisited__last_visited"),
-                        ),
-                        default=None,
-                        output_field=DateTimeField(null=True),
-                    )
-                )
-                order_by = [
-                    (
-                        F("user_last_visited").asc(nulls_last=True)
-                        if desc
-                        else F("user_last_visited").desc(nulls_last=True)
-                    ),
-                    "-date_added",
-                ]
-            else:
-                order_by = ["last_visited" if desc else "-last_visited"]
+            order_by = ["last_visited" if desc else "-last_visited"]
 
         elif sort_by == "mydashboards":
             user_name_dict = {
