@@ -27,7 +27,7 @@ preprod: 0011_add_preprod_artifact_app_name_and_app_id_fields
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0951_delete_ds_waiver
+sentry: 0952_fix_span_item_event_type_alerts
 
 social_auth: 0003_social_auth_json_field
 
@@ -35,4 +35,4 @@ tempest: 0001_squashed_0002_make_message_type_nullable
 
 uptime: 0001_squashed_0042_extra_uptime_indexes
 
-workflow_engine: 0076_add_detector_group_table
+workflow_engine: 0077_add_wfh_single_write_col

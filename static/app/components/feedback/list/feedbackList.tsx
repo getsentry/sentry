@@ -35,8 +35,9 @@ export default function FeedbackList() {
     enabled: Boolean(listQueryKey),
   });
 
+  // Deduplicated issues. In case one page overlaps with another.
   const issues = useMemo(
-    () => uniqBy(queryResult.data?.pages.flatMap(([pageData]) => pageData) ?? [], 'id'),
+    () => uniqBy(queryResult.data?.pages.flatMap(result => result[0]) ?? [], 'id'),
     [queryResult.data?.pages]
   );
   const checkboxState = useListItemCheckboxContext({
@@ -57,6 +58,7 @@ export default function FeedbackList() {
           loadingMessage={() => <LoadingIndicator />}
         >
           <InfiniteListItems<FeedbackIssueListItem>
+            deduplicateItems={items => uniqBy(items, 'id')}
             estimateSize={() => 24}
             queryResult={queryResult}
             itemRenderer={({item}) => (
