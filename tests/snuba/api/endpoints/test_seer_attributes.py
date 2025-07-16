@@ -166,7 +166,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 is_eap=True,
             )
 
-        with patch("sentry.api.endpoints.seer_rpc.ThreadPoolExecutor") as mock_executor:
+        with patch("sentry.seer.endpoints.seer_rpc.ThreadPoolExecutor") as mock_executor:
             mock_executor_instance = Mock()
             mock_executor.return_value.__enter__.return_value = mock_executor_instance
 
