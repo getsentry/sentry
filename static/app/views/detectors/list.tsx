@@ -95,7 +95,7 @@ function TableHeader() {
   const onSearch = (searchQuery: string) => {
     navigate({
       pathname: location.pathname,
-      query: {...location.query, query: searchQuery},
+      query: {...location.query, query: searchQuery, cursor: undefined},
     });
   };
 
