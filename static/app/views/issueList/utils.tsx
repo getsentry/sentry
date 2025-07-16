@@ -1,11 +1,12 @@
 import type {Location, LocationDescriptorObject} from 'history';
 
 import ExternalLink from 'sentry/components/links/externalLink';
-import {DEFAULT_QUERY} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupTombstoneHelper} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+
+export const DEFAULT_QUERY = 'is:unresolved issue.priority:[high, medium]';
 
 export enum Query {
   FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',

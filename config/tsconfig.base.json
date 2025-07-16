@@ -91,6 +91,7 @@
     "esModuleInterop": true,
     "experimentalDecorators": true,
     "resolveJsonModule": true,
+    "verbatimModuleSyntax": true,
 
     "paths": {
       "sentry/*": ["../static/app/*"],

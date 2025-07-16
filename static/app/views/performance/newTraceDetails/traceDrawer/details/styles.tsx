@@ -47,6 +47,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {ellipsize} from 'sentry/utils/string/ellipsize';
 import type {Color, ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -1288,7 +1289,7 @@ function MultilineText({children}: {children: string}) {
       {isExpanded || !needsTruncation ? (
         children
       ) : (
-        <Fragment>{children.slice(0, truncatePosition) + '...'}</Fragment>
+        <Fragment>{ellipsize(children, truncatePosition)}</Fragment>
       )}
       {needsTruncation ? (
         <Flex style={{justifyContent: 'center', paddingTop: space(1)}}>

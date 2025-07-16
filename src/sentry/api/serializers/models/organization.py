@@ -36,6 +36,7 @@ from sentry.constants import (
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
+    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
     GITLAB_COMMENT_BOT_DEFAULT,
@@ -560,6 +561,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     streamlineOnly: bool
     defaultAutofixAutomationTuning: str
     defaultSeerScannerAutomation: bool
+    enablePrReviewTestGeneration: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -716,6 +718,12 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             "defaultSeerScannerAutomation": obj.get_option(
                 "sentry:default_seer_scanner_automation",
                 DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
+            ),
+            "enablePrReviewTestGeneration": bool(
+                obj.get_option(
+                    "sentry:enable_pr_review_test_generation",
+                    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+                )
             ),
             "streamlineOnly": obj.get_option("sentry:streamline_ui_only", None),
             "trustedRelays": [

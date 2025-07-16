@@ -333,7 +333,7 @@ export function PagePerformanceTable() {
         disabled button bar if pageLinks is not defined to minimize ui shifting */}
         {!pageLinks && (
           <Wrapper>
-            <ButtonBar merged>
+            <ButtonBar merged gap="none">
               <Button
                 icon={<IconChevron direction="left" />}
                 disabled

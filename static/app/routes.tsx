@@ -272,7 +272,7 @@ function buildRoutes() {
         <IndexRoute component={make(() => import('sentry/views/onboarding'))} />
       </Route>
       <Route
-        path="/stories/:category?/:topic?"
+        path="/stories/:storyType?/:storySlug?/"
         component={make(() => import('sentry/stories/view/index'))}
         withOrgPath
       />
@@ -2011,7 +2011,11 @@ function buildRoutes() {
   );
 
   const preprodRoutes = (
-    <Route path="/preprod/" component={make(() => import('sentry/views/preprod/index'))}>
+    <Route
+      path="/preprod/"
+      component={make(() => import('sentry/views/preprod/index'))}
+      withOrgPath
+    >
       <IndexRoute component={make(() => import('sentry/views/preprod/sizeAnalysis'))} />
     </Route>
   );

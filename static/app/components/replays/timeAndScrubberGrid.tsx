@@ -51,7 +51,7 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
   }, [timelineScale, maxScale, setTimelineScale, organization]);
 
   return (
-    <ButtonBar gap={0.5}>
+    <ButtonBar gap="xs">
       <Button
         size="xs"
         title={t('Zoom out')}
