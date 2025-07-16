@@ -28,9 +28,7 @@ export function useDragNDropColumns<T>({
 
   function updateColumnAtIndex(i: number, column: T) {
     setColumns(
-      columns.map((col: T, j: number) => {
-        return i === j ? column : col;
-      }),
+      columns.map((col: T, j: number) => (i === j ? column : col)),
       'update'
     );
   }
