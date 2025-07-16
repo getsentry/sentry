@@ -43,14 +43,9 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.organization_trace_item_attributes import as_attribute_key
 from sentry.constants import ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT, ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
-from sentry.hybridcloud.rpc.service import (
-    RpcAuthenticationSetupException,
-    RpcResolutionException,
-)
+from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
-from sentry.integrations.github_enterprise.integration import (
-    GitHubEnterpriseIntegration,
-)
+from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
@@ -550,6 +545,7 @@ def get_github_enterprise_integration_config(
         "verify_ssl": installation.model.metadata["installation"]["verify_ssl"],
         "encrypted_access_token": encrypted_access_token,
     }
+
 
 def send_seer_issue_ready_to_fix_webhook(*, group_id: int, user_id: int | None = None) -> dict:
     """
