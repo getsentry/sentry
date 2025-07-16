@@ -333,7 +333,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     defaultSeerScannerAutomation = serializers.BooleanField(required=False)
     ingestThroughTrustedRelaysOnly = serializers.BooleanField(required=False)
     enabledConsolePlatforms = serializers.ListField(
-        child=serializers.ChoiceField(choices=["playstation", "xbox", "switch"]),
+        child=serializers.ChoiceField(choices=["playstation", "xbox", "nintendo-switch"]),
         required=False,
         allow_empty=True,
     )
