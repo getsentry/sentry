@@ -1415,7 +1415,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.create_member(organization=self.organization, user=staff_user, role="owner")
         self.login_as(user=staff_user, staff=True)
 
-        data = {"enabledConsolePlatforms": []}
+        data: dict[str, list[str]] = {"enabledConsolePlatforms": []}
         self.get_success_response(self.organization.slug, **data)
         enabled_platforms = self.organization.get_option("sentry:enabled_console_platforms")
         assert enabled_platforms == []
