@@ -4,6 +4,7 @@ from django.db.models import Value
 
 from sentry.eventstore.models import GroupEvent
 from sentry.eventstream.base import GroupState
+from sentry.incidents.grouptype import MetricIssue
 from sentry.models.activity import Activity
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -116,7 +117,7 @@ def trigger_action(
 
     should_trigger_actions = should_fire_workflow_actions(detector.project.organization)
 
-    if should_trigger_actions:
+    if should_trigger_actions and event_data.group.type != MetricIssue.type_id:
         action.trigger(event_data, detector)
     else:
         logger.info(
