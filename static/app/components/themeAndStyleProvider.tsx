@@ -37,11 +37,7 @@ export function ThemeAndStyleProvider({children}: Props) {
 
   return (
     <ThemeProvider theme={theme as Theme}>
-      <GlobalStyles
-        key={`${theme.isChonk} ${theme.type}`}
-        isDark={config.theme === 'dark'}
-        theme={theme as Theme}
-      />
+      <GlobalStyles isDark={config.theme === 'dark'} theme={theme as Theme} />
       <CacheProvider value={cache}>{children}</CacheProvider>
       {createPortal(
         <Fragment>
