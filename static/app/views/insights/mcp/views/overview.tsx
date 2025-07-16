@@ -16,6 +16,9 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -105,18 +108,35 @@ function decodeViewType(value: unknown): ViewType | undefined {
 function McpOverviewPage() {
   const organization = useOrganization();
   const showOnboarding = useShowOnboarding();
+  const location = useLocation();
+  const navigate = useNavigate();
   const datePageFilterProps = limitMaxPickableDays(organization);
   const [searchQuery, setSearchQuery] = useLocationSyncedState('query', decodeScalar);
-  const [view, setView] = useLocationSyncedState('view', decodeViewType);
+  const {view} = useLocationQuery({
+    fields: {
+      view: decodeViewType,
+    },
+  });
   const activeView = view ?? ViewType.TOOL;
 
   useEffect(() => {}, [organization, showOnboarding]);
 
   const handleTableSwitch = useCallback(
     (newTable: ViewType) => {
-      setView(newTable);
+      navigate(
+        {
+          ...location,
+          query: {
+            ...location.query,
+            view: newTable,
+            // Clear the tableCursor param when switching tables
+            tableCursor: undefined,
+          },
+        },
+        {replace: true}
+      );
     },
-    [setView]
+    [location, navigate]
   );
 
   const {tags: numberTags} = useTraceItemTags('number');
