@@ -119,7 +119,7 @@ def trigger_action(
 
     issue_type_ids = options.get("workflow_engine.metric_issue.trigger_actions.issue_type_ids")
 
-    if should_trigger_actions and event_data.group.type not in issue_type_ids:
+    if should_trigger_actions and event_data.group.type in issue_type_ids:
         action.trigger(event_data, detector)
     else:
         logger.info(
