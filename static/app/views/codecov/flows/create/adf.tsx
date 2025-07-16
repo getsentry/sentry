@@ -17,7 +17,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useLocalStorageFlows} from 'sentry/views/codecov/flows/hooks/useFlows';
-import type {Flow} from 'sentry/views/codecov/flows/types';
+import type {FlowDefinition} from 'sentry/views/codecov/flows/types';
 
 function FlowCreateForm({
   onCreatedFlow,
@@ -26,7 +26,7 @@ function FlowCreateForm({
   replaySlug,
   organization,
 }: {
-  onCreatedFlow: (flow: Flow) => void;
+  onCreatedFlow: (flow: FlowDefinition) => void;
   organization: Organization;
   endBreadcrumb?: string | null;
   orgSlug?: string;
@@ -76,7 +76,17 @@ function FlowCreateForm({
     } finally {
       setIsSubmitting(false);
     }
-  }, [createFlow, user.email, user.id, user.name, user.avatarUrl, organization.id, replaySlug, onCreatedFlow, navigate]);
+  }, [
+    createFlow,
+    user.email,
+    user.id,
+    user.name,
+    user.avatarUrl,
+    organization.id,
+    replaySlug,
+    onCreatedFlow,
+    navigate,
+  ]);
 
   const isFormValid = () => {
     const nameField = document.querySelector('input[name="name"]') as HTMLInputElement;
@@ -137,7 +147,7 @@ export default function FlowCreatePage() {
   const _handleGoBack = useCallback(() => navigate(`/codecov/flows/`), [navigate]);
 
   const handleCreatedFlow = useCallback(
-    (flow: Flow) => {
+    (flow: FlowDefinition) => {
       navigate(`/codecov/flows/${flow.id}`);
     },
     [navigate]
