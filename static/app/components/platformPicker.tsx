@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
@@ -144,21 +144,30 @@ function PlatformPicker({
     });
   }, [filter, category, organization?.features, showOther]);
 
-  const logSearch = useCallback(() => {
-    if (filter) {
-      trackAnalytics('growth.platformpicker_search', {
-        search: filter.toLowerCase(),
-        num_results: platformList.length,
-        source,
-        organization: organization ?? null,
-      });
-    }
-  }, [filter, platformList.length, source, organization]);
+  const latestValuesRef = useRef({filter, platformList, source, organization});
 
-  const debounceLogSearch = useMemo(
-    () => debounce(logSearch, DEFAULT_DEBOUNCE_DURATION),
-    [logSearch]
-  );
+  useEffect(() => {
+    latestValuesRef.current = {filter, platformList, source, organization};
+  });
+
+  const debounceLogSearch = useRef(
+    debounce(() => {
+      const {
+        filter: currentFilter,
+        platformList: currentPlatformList,
+        source: currentSource,
+        organization: currentOrganization,
+      } = latestValuesRef.current;
+      if (currentFilter) {
+        trackAnalytics('growth.platformpicker_search', {
+          search: currentFilter.toLowerCase(),
+          num_results: currentPlatformList.length,
+          source: currentSource,
+          organization: currentOrganization ?? null,
+        });
+      }
+    }, DEFAULT_DEBOUNCE_DURATION)
+  ).current;
 
   return (
     <Fragment>
