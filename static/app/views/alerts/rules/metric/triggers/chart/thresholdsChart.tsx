@@ -21,11 +21,7 @@ import {
 } from 'sentry/views/alerts/rules/metric/types';
 import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
 import type {Anomaly} from 'sentry/views/alerts/types';
-import {
-  alertAxisFormatter,
-  alertTooltipValueFormatter,
-  isSessionAggregate,
-} from 'sentry/views/alerts/utils';
+import {alertAxisFormatter, alertTooltipValueFormatter} from 'sentry/views/alerts/utils';
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 
 type DefaultProps = {
@@ -194,16 +190,6 @@ export default class ThresholdsChart extends PureComponent<Props> {
       },
     ];
   };
-
-  clampMaxValue(value: number) {
-    // When we apply top buffer to the crash free percentage (99.7% * 1.03), it
-    // can cross 100%, so we clamp it
-    if (isSessionAggregate(this.props.aggregate) && value > 100) {
-      return 100;
-    }
-
-    return value;
-  }
 
   render() {
     const {
