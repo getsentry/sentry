@@ -1,5 +1,5 @@
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {SpanFields, SpanFields} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 export const SENTRY_SEARCHABLE_SPAN_STRING_TAGS: string[] = [
   // NOTE: intentionally choose to not expose transaction id

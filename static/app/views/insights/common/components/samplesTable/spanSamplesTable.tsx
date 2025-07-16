@@ -185,7 +185,7 @@ export function SpanSamplesTable({
     }
 
     if (column.key === HTTP_RESPONSE_CONTENT_LENGTH) {
-      const size = parseInt(row[HTTP_RESPONSE_CONTENT_LENGTH], 10);
+      const size = row[HTTP_RESPONSE_CONTENT_LENGTH];
       return <ResourceSizeCell bytes={size} />;
     }
 

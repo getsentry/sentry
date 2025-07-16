@@ -49,7 +49,7 @@ type DataRowKeys =
   | SpanFields.SPAN_ID
   | SpanFields.TIMESTAMP
   | SpanFields.SPAN_DURATION
-  | SpanFields.TRANSACTION_ID
+  | SpanFields.TRANSACTION_SPAN_ID
   | SpanFields.TRACE
   | SpanFields.PROJECT;
 
@@ -123,7 +123,7 @@ export default function SpanSummaryTable(props: Props) {
     {
       fields: [
         SpanFields.SPAN_ID,
-        SpanFields.TRANSACTION_ID,
+        SpanFields.TRANSACTION_SPAN_ID,
         SpanFields.TIMESTAMP,
         SpanFields.SPAN_DURATION,
         SpanFields.TRACE,
@@ -137,7 +137,7 @@ export default function SpanSummaryTable(props: Props) {
     SpanSummaryReferrer.SPAN_SUMMARY_TABLE
   );
 
-  const transactionIds = rowData?.map(row => row[SpanFields.TRANSACTION_ID]);
+  const transactionIds = rowData?.map(row => row[SpanFields.TRANSACTION_SPAN_ID]);
 
   const eventView = EventView.fromNewQueryWithLocation(
     {
@@ -187,7 +187,7 @@ export default function SpanSummaryTable(props: Props) {
 
   const mergedData: DataRow[] =
     rowData?.map((row: Pick<EAPSpanResponse, DataRowKeys>) => {
-      const transactionId = row[SpanFields.TRANSACTION_ID];
+      const transactionId = row[SpanFields.TRANSACTION_SPAN_ID];
       const newRow = {
         ...row,
         'transaction.duration': transactionDurationMap[transactionId]!,
@@ -275,7 +275,7 @@ function renderBodyCell(
   return function (column: Column, dataRow: DataRow): React.ReactNode {
     const {timestamp, span_id, trace} = dataRow;
     const spanDuration = dataRow[SpanFields.SPAN_DURATION];
-    const transactionId = dataRow[SpanFields.TRANSACTION_ID];
+    const transactionId = dataRow[SpanFields.TRANSACTION_SPAN_ID];
     const transactionDuration = dataRow['transaction.duration'];
 
     if (column.key === SpanFields.SPAN_DURATION) {

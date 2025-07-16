@@ -49,14 +49,14 @@ export function useFindNextTrace({
         },
       },
       search: MutableSearch.fromQueryObject({is_transaction: 1}),
-      fields: [SpanFields.TRANSACTION_ID, SpanFields.PROJECT_ID, SpanFields.PROJECT],
+      fields: [SpanFields.TRANSACTION_SPAN_ID, SpanFields.PROJECT_ID, SpanFields.PROJECT],
     },
     'api.trace-view.linked-traces'
   );
 
   const traceData = indexedSpans.map(span => ({
     projectSlug: span.project,
-    eventId: span['transaction.id'],
+    eventId: span['transaction.span_id'],
   }));
 
   const rootEvents = useTraceRootEvents(traceData);
