@@ -143,6 +143,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
                 {"name": "trace", "type": "str", "value": self.trace_uuid},
             ],
             "meta": {},
+            "links": None,
             "itemId": item_id,
             "timestamp": self.one_min_ago.replace(
                 microsecond=0,
@@ -340,6 +341,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
                 "tags[float_attr,number]": {"unit": "float"},
                 "message": {"length": 300, "reason": "value too long"},
             },
+            "links": None,
             "itemId": item_id,
             "timestamp": self.one_min_ago.replace(
                 microsecond=0,
@@ -386,6 +388,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
                 {"name": "trace", "type": "str", "value": self.trace_uuid},
             ],
             "meta": {},
+            "links": None,
             "itemId": item_id,
             "timestamp": self.one_min_ago.replace(
                 microsecond=0,
