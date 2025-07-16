@@ -93,9 +93,6 @@ def assert_alert_rule_migrated(alert_rule, project_id):
     assert detector.owner_team == alert_rule.team
     assert detector.type == MetricIssue.slug
     assert detector.config == {
-        "threshold_period": alert_rule.threshold_period,
-        "sensitivity": alert_rule.sensitivity,
-        "seasonality": alert_rule.seasonality,
         "comparison_delta": alert_rule.comparison_delta,
         "detection_type": alert_rule.detection_type,
     }

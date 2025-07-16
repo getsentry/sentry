@@ -184,7 +184,6 @@ class MetricIssue(GroupType):
             "type": "object",
             "required": ["threshold_period", "detection_type"],
             "properties": {
-                "threshold_period": {"type": "integer", "minimum": 1, "maximum": 20},
                 "comparison_delta": {
                     "type": ["integer", "null"],
                     "enum": COMPARISON_DELTA_CHOICES,
@@ -193,8 +192,6 @@ class MetricIssue(GroupType):
                     "type": "string",
                     "enum": [detection_type.value for detection_type in AlertRuleDetectionType],
                 },
-                "sensitivity": {"type": ["string", "null"]},
-                "seasonality": {"type": ["string", "null"]},
             },
         },
     )
