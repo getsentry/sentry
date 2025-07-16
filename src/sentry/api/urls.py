@@ -1071,7 +1071,7 @@ PREVENT_URLS = [
     re_path(
         r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/branches/$",
         BranchesEndpoint.as_view(),
-        name="sentry-api-0-branches",
+        name="sentry-api-0-repository-branches",
     ),
     re_path(
         r"^owner/(?P<owner>[^/]+)/repositories/$",

@@ -23,6 +23,12 @@ mock_graphql_response_populated: dict[str, Any] = {
                             }
                         },
                     ],
+                    "pageInfo": {
+                        "endCursor": "cursor123",
+                        "hasNextPage": False,
+                        "hasPreviousPage": False,
+                        "startCursor": None,
+                    },
                 }
             }
         }
@@ -43,7 +49,7 @@ mock_graphql_response_empty: dict[str, Any] = {
 
 
 class BranchesEndpointTest(APITestCase):
-    endpoint = "sentry-api-0-branches"
+    endpoint = "sentry-api-0-repository-branches"
 
     def setUp(self):
         super().setUp()
@@ -92,6 +98,11 @@ class BranchesEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert len(response.data["results"]) == 2
+        assert response.data["pageInfo"]["endCursor"] == "cursor123"
+        assert response.data["pageInfo"]["hasNextPage"] is False
+        assert response.data["pageInfo"]["hasPreviousPage"] is False
+        assert response.data["pageInfo"]["startCursor"] is None
+        assert response.data["totalCount"] == 2
 
         serializer_fields = set(NodeSerializer().fields.keys())
         response_keys = set(response.data["results"][0].keys())
@@ -111,7 +122,7 @@ class BranchesEndpointTest(APITestCase):
         url = self.reverse_url()
         query_params = {
             "term": "search-term",
-            "first": "3",
+            "limit": "3",
         }
         response = self.client.get(url, query_params)
 
@@ -133,7 +144,7 @@ class BranchesEndpointTest(APITestCase):
         assert response.status_code == 200
 
     @patch("sentry.codecov.endpoints.Branches.branches.CodecovApiClient")
-    def test_get_with_last_parameter(self, mock_codecov_client_class):
+    def test_get_with_cursor_and_direction(self, mock_codecov_client_class):
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
         mock_response.json.return_value = mock_graphql_response_empty
@@ -141,10 +152,9 @@ class BranchesEndpointTest(APITestCase):
         mock_codecov_client_class.return_value = mock_codecov_client_instance
 
         url = self.reverse_url()
-        query_params = {"last": "5"}
+        query_params = {"cursor": "cursor123", "limit": "10", "navigation": "prev"}
         response = self.client.get(url, query_params)
 
-        # Verify the correct variables are passed with last parameter
         expected_variables = {
             "owner": "testowner",
             "repo": "testrepo",
@@ -152,29 +162,27 @@ class BranchesEndpointTest(APITestCase):
                 "searchValue": None,
             },
             "first": None,
-            "last": 5,
             "after": None,
-            "before": None,
+            "last": 10,
+            "before": "cursor123",
         }
 
         call_args = mock_codecov_client_instance.query.call_args
         assert call_args[1]["variables"] == expected_variables
         assert response.status_code == 200
 
-    def test_when_first_is_not_integer_returns_bad_request(self):
-        """Test that providing first as a non numerical string value returns a 400 Bad Request error"""
+    def test_get_with_negative_limit_returns_bad_request(self):
         url = self.reverse_url()
-        query_params = {"first": "abc"}
+        query_params = {"limit": "-5"}
         response = self.client.get(url, query_params)
 
         assert response.status_code == 400
-        assert response.data == {"details": "Query parameters 'first' and 'last' must be integers."}
+        assert response.data == {"details": "provided `limit` parameter must be a positive integer"}
 
-    def test_when_both_first_and_last_returns_bad_request(self):
-        """Test that providing both first and last parameters returns a 400 Bad Request error"""
+    def test_get_with_limit_as_string_returns_bad_request(self):
         url = self.reverse_url()
-        query_params = {"first": "10", "last": "5"}
+        query_params = {"limit": "asdf"}
         response = self.client.get(url, query_params)
 
         assert response.status_code == 400
-        assert response.data == {"details": "Cannot specify both `first` and `last`"}
+        assert response.data == {"details": "provided `limit` parameter must be a positive integer"}

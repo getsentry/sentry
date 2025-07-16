@@ -3,7 +3,7 @@ import logging
 import sentry_sdk
 from rest_framework import serializers
 
-from sentry.codecov.endpoints.common.serializers import PageInfoTempSerializer
+from sentry.codecov.endpoints.common.serializers import PageInfoSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -13,20 +13,16 @@ class BranchNodeSerializer(serializers.Serializer):
     Serializer for individual branch nodes from GraphQL response
     """
 
-    __test__ = False
-
     name = serializers.CharField()
 
 
 class BranchesSerializer(serializers.Serializer):
     """
-    Serializer for repositories response
+    Serializer for repository branches response
     """
 
-    __test__ = False
-
     results = BranchNodeSerializer(many=True)
-    pageInfo = PageInfoTempSerializer()
+    pageInfo = PageInfoSerializer()
     totalCount = serializers.IntegerField()
 
     def to_representation(self, graphql_response):

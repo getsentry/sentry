@@ -1,12 +1,12 @@
 from rest_framework import serializers
 
 
-class PageInfoTempSerializer(serializers.Serializer):
+class PageInfoSerializer(serializers.Serializer):
     """
     Serializer for pagination information
     """
 
-    startCursor = serializers.CharField(allow_null=True)
     endCursor = serializers.CharField(allow_null=True)
-    hasNextPage = serializers.BooleanField()
+    startCursor = serializers.CharField(allow_null=True)
     hasPreviousPage = serializers.BooleanField()
+    hasNextPage = serializers.BooleanField()

@@ -21,11 +21,8 @@ query = """query GetBranches(
           edges {
             node {
               name
-                head {
-                  commitid
-                }
-              }
             }
+          }
           pageInfo {
             startCursor
             endCursor
@@ -34,12 +31,6 @@ query = """query GetBranches(
           }
           totalCount
         }
-      }
-      ... on NotFoundError {
-        message
-      }
-      ... on OwnerNotActivatedError {
-        message
       }
     }
   }
