@@ -10,6 +10,7 @@ import usePrevious from 'sentry/utils/usePrevious';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   useLogsAutoRefresh,
+  useLogsGroupBy,
   useLogsRefreshInterval,
   useLogsSortBys,
   useSetLogsAutoRefresh,
@@ -27,12 +28,20 @@ type DisableReason = 'sort' | 'timeout' | 'rateLimit' | 'error';
 
 const SWITCH_DISABLE_REASONS: DisableReason[] = ['sort'];
 
-export function AutorefreshToggle() {
-  const {selection} = usePageFilters();
-  const previousProjects = usePrevious(selection.projects);
+interface AutorefreshToggleProps {
+  disabled?: boolean;
+}
+
+export function AutorefreshToggle({
+  disabled: externallyDisabled,
+}: AutorefreshToggleProps) {
   const checked = useLogsAutoRefresh();
   const setChecked = useSetLogsAutoRefresh();
   const sortBys = useLogsSortBys();
+  const groupBy = useLogsGroupBy();
+  const {selection} = usePageFilters();
+  const previousSelection = usePrevious(selection);
+  const previousGroupBy = usePrevious(groupBy);
   const refreshInterval = useLogsRefreshInterval();
   const {infiniteLogsQueryResult} = useLogsPageData();
   const {fetchPreviousPage, isError} = infiniteLogsQueryResult;
@@ -50,16 +59,25 @@ export function AutorefreshToggle() {
   const isRefreshRunningRef = useRef(false);
   const consecutivePagesWithMoreDataRef = useRef(0);
 
-  const statsPeriod = usePageFilters().selection.datetime.period;
+  const statsPeriod = selection.datetime.period;
   const isDescendingTimeBasedSort = checkSortIsTimeBasedDescending(sortBys);
-  const enabled = isDescendingTimeBasedSort && checked && defined(statsPeriod);
+  const enabled =
+    isDescendingTimeBasedSort && checked && defined(statsPeriod) && !externallyDisabled;
 
-  // Disable auto-refresh if the project changes
+  // Disable auto-refresh if anything in the selection changes
   useEffect(() => {
-    if (!isEqual(selection.projects, previousProjects)) {
+    const selectionChanged = !isEqual(previousSelection, selection);
+    if (selectionChanged) {
       setChecked(false);
     }
-  }, [selection.projects, previousProjects, setChecked]);
+  }, [selection, previousSelection, setChecked]);
+
+  // Disable auto-refresh if the group-by changes
+  useEffect(() => {
+    if (groupBy && groupBy !== previousGroupBy) {
+      setChecked(false);
+    }
+  }, [groupBy, previousGroupBy, setChecked]);
 
   // Reset disableReason when sort bys change
   useEffect(() => {
@@ -67,6 +85,13 @@ export function AutorefreshToggle() {
       setDisableReason(isDescendingTimeBasedSort ? undefined : 'sort');
     }
   }, [sortBysString, previousSortBysString, isDescendingTimeBasedSort]);
+
+  // Disable auto-refresh when externally disabled
+  useEffect(() => {
+    if (externallyDisabled && checked) {
+      setChecked(false);
+    }
+  }, [externallyDisabled, checked, setChecked]);
 
   useEffect(() => {
     if (isError && enabled) {
@@ -209,6 +234,9 @@ export function AutorefreshToggle() {
   }, [enabled, refreshInterval]);
 
   const getTooltipMessage = (): string => {
+    if (externallyDisabled) {
+      return t('Auto-refresh is not available in the aggregates view.');
+    }
     switch (disableReason) {
       case 'rateLimit':
         return t(
@@ -235,11 +263,14 @@ export function AutorefreshToggle() {
       <AutoRefreshLabel>
         <Tooltip
           title={getTooltipMessage()}
-          disabled={disableReason === undefined}
+          disabled={disableReason === undefined && !externallyDisabled}
           skipWrapper
         >
           <Switch
-            disabled={disableReason && SWITCH_DISABLE_REASONS.includes(disableReason)}
+            disabled={
+              externallyDisabled ||
+              (disableReason && SWITCH_DISABLE_REASONS.includes(disableReason))
+            }
             checked={checked}
             onChange={() => {
               if (!checked) {
