@@ -38,6 +38,10 @@ DATASET_OPTIONS = {
     "spansMetrics": spans_metrics,
     "transactions": transactions,
 }
+RPC_DATASETS = {
+    spans_rpc,
+    ourlogs,
+}
 DATASET_LABELS = {value: key for key, value in DATASET_OPTIONS.items()}
 
 

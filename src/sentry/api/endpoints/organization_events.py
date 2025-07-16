@@ -40,7 +40,7 @@ from sentry.snuba import (
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.types import DatasetQuery
-from sentry.snuba.utils import dataset_split_decision_inferred_from_query, get_dataset
+from sentry.snuba.utils import RPC_DATASETS, dataset_split_decision_inferred_from_query, get_dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.snuba import SnubaError
 
@@ -568,8 +568,18 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             discover_saved_query_id = request.GET.get("discoverSavedQueryId", None)
 
             def fn(offset, limit):
-                if scoped_dataset == spans_rpc:
-                    return spans_rpc.run_table_query(
+                if scoped_dataset in RPC_DATASETS:
+                    if scoped_dataset == spans_rpc:
+                        config = SearchResolverConfig(
+                            auto_fields=True,
+                            use_aggregate_conditions=use_aggregate_conditions,
+                            fields_acl=FieldsACL(functions={"time_spent_percentage"}),
+                            disable_aggregate_extrapolation="disableAggregateExtrapolation"
+                            in request.GET,
+                        )
+                    else:
+                        config = SearchResolverConfig()
+                    return scoped_dataset.run_table_query(
                         params=snuba_params,
                         query_string=scoped_query or "",
                         selected_columns=self.get_field_list(organization, request),
@@ -578,14 +588,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         offset=offset,
                         limit=limit,
                         referrer=referrer,
+                        config=config,
                         debug=debug,
-                        config=SearchResolverConfig(
-                            auto_fields=True,
-                            use_aggregate_conditions=use_aggregate_conditions,
-                            fields_acl=FieldsACL(functions={"time_spent_percentage"}),
-                            disable_aggregate_extrapolation="disableAggregateExtrapolation"
-                            in request.GET,
-                        ),
                         sampling_mode=snuba_params.sampling_mode,
                     )
 
