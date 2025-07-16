@@ -4,9 +4,9 @@ from unittest.mock import patch
 import orjson
 from django.utils import timezone
 
-from sentry.api.endpoints.group_autofix_setup_check import get_repos_and_access
 from sentry.models.promptsactivity import PromptsActivity
 from sentry.models.repository import Repository
+from sentry.seer.endpoints.group_autofix_setup_check import get_repos_and_access
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls

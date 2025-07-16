@@ -13,11 +13,6 @@ from django.contrib.auth.models import AnonymousUser
 from sentry import eventstore, features, quotas
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
-from sentry.autofix.utils import (
-    SeerAutomationSource,
-    get_autofix_state,
-    is_seer_autotriggered_autofix_rate_limited,
-)
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.locks import locks
@@ -25,10 +20,12 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
 from sentry.seer.autofix.autofix import trigger_autofix
-from sentry.seer.autofix.seer_utils import (
+from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
     FixabilityScoreThresholds,
+    SeerAutomationSource,
 )
+from sentry.seer.autofix.utils import get_autofix_state, is_seer_autotriggered_autofix_rate_limited
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret

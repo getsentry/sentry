@@ -1,6 +1,6 @@
 from unittest.mock import ANY, patch
 
-from sentry.autofix.utils import SeerAutomationSource
+from sentry.seer.autofix.constants import SeerAutomationSource
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.skips import requires_snuba

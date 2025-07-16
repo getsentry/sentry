@@ -1614,7 +1614,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if not has_budget:
         return
 
-    from sentry.autofix.utils import is_seer_scanner_rate_limited
+    from sentry.seer.autofix.utils import is_seer_scanner_rate_limited
 
     if is_seer_scanner_rate_limited(project, group.organization):
         return

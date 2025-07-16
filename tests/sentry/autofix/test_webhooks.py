@@ -4,8 +4,9 @@ from unittest.mock import call, patch
 from django.conf import settings
 from django.test import override_settings
 
-from sentry.autofix.utils import AutofixState, AutofixStatus
-from sentry.autofix.webhooks import handle_github_pr_webhook_for_autofix
+from sentry.seer.autofix.constants import AutofixStatus
+from sentry.seer.autofix.utils import AutofixState
+from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.testutils.cases import APITestCase
 
 

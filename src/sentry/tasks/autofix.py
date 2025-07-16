@@ -1,8 +1,9 @@
 import logging
 from datetime import datetime, timedelta
 
-from sentry.autofix.utils import AutofixStatus, SeerAutomationSource, get_autofix_state
 from sentry.models.group import Group
+from sentry.seer.autofix.constants import AutofixStatus, SeerAutomationSource
+from sentry.seer.autofix.utils import get_autofix_state
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import ingest_errors_tasks, issues_tasks
