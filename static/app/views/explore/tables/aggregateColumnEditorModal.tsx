@@ -48,6 +48,7 @@ import {
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
+import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 
@@ -425,13 +426,20 @@ function EquationSelector({
     [onChange, visualize]
   );
 
+  const getSuggestedAttribute = useExploreSuggestedAttribute({
+    numberAttributes: numberTags,
+    stringAttributes: stringTags,
+  });
+
   return (
     <ArithmeticBuilder
+      data-test-id="editor-visualize-equation"
       aggregations={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
       functionArguments={functionArguments}
       getFieldDefinition={getSpanFieldDefinition}
       expression={expression}
       setExpression={handleExpressionChange}
+      getSuggestedKey={getSuggestedAttribute}
     />
   );
 }
