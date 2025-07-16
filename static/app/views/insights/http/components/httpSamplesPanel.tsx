@@ -206,7 +206,7 @@ export function HTTPSamplesPanel() {
   } = useTopNSpanMetricsSeries(
     {
       search,
-      fields: [SpanFields.SPAN_STATUS, 'count()'],
+      fields: [SpanFields.SPAN_STATUS_CODE, 'count()'],
       yAxis: ['count()'],
       topN: 5,
       sort: {
@@ -231,7 +231,7 @@ export function HTTPSamplesPanel() {
       SpanFields.ID,
       SpanFields.TRACE,
       SpanFields.SPAN_DESCRIPTION,
-      SpanFields.SPAN_STATUS,
+      SpanFields.SPAN_STATUS_CODE,
     ],
     min: 0,
     max: durationAxisMax,
@@ -258,7 +258,7 @@ export function HTTPSamplesPanel() {
         SpanFields.SPAN_ID,
         SpanFields.TIMESTAMP,
         SpanFields.SPAN_DESCRIPTION,
-        SpanFields.SPAN_STATUS,
+        SpanFields.SPAN_STATUS_CODE,
       ],
       sorts: [SPAN_SAMPLES_SORT],
       limit: SPAN_SAMPLE_LIMIT,
@@ -433,7 +433,7 @@ export function HTTPSamplesPanel() {
                   <ResponseCodeCountChart
                     search={search}
                     referrer={Referrer.SAMPLES_PANEL_RESPONSE_CODE_CHART}
-                    groupBy={[SpanFields.SPAN_STATUS]}
+                    groupBy={[SpanFields.SPAN_STATUS_CODE]}
                     series={Object.values(responseCodeData).filter(Boolean)}
                     isLoading={isResponseCodeDataLoading}
                     error={responseCodeError}

@@ -26,12 +26,12 @@ type DataRowKeys =
   | SpanFields.TIMESTAMP
   | SpanFields.SPAN_ID
   | SpanFields.SPAN_DESCRIPTION
-  | SpanFields.SPAN_STATUS;
+  | SpanFields.SPAN_STATUS_CODE;
 
 type ColumnKeys =
   | SpanFields.SPAN_ID
   | SpanFields.SPAN_DESCRIPTION
-  | SpanFields.SPAN_STATUS;
+  | SpanFields.SPAN_STATUS_CODE;
 
 type DataRow = Pick<EAPSpanResponse, DataRowKeys>;
 
@@ -44,7 +44,7 @@ const COLUMN_ORDER: Column[] = [
     width: 150,
   },
   {
-    key: SpanFields.SPAN_STATUS,
+    key: SpanFields.SPAN_STATUS_CODE,
     name: t('Status'),
     width: 50,
   },

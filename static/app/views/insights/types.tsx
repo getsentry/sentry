@@ -96,11 +96,11 @@ export enum SpanFields {
   SPAN_OP = 'span.op',
   NAME = 'span.name',
   KIND = 'span.kind',
-  STATUS = 'span.status',
+  SPAN_STATUS = 'span.status',
   STATUS_MESSAGE = 'span.status_message',
   RELEASE = 'release',
   PROJECT_ID = 'project.id',
-  SPAN_STATUS = 'span.status_code',
+  SPAN_STATUS_CODE = 'span.status_code',
   DEVICE_CLASS = 'device.class',
   SPAN_SYSTEM = 'span.system',
   SPAN_CATEGORY = 'span.category',
@@ -264,7 +264,6 @@ export type SpanStringFields =
   | SpanFields.ID
   | SpanFields.NAME
   | SpanFields.KIND
-  | SpanFields.STATUS
   | SpanFields.STATUS_MESSAGE
   | SpanFields.GEN_AI_AGENT_NAME
   | SpanFields.GEN_AI_REQUEST_MODEL
@@ -468,6 +467,25 @@ type EAPSpanResponseRaw = {
     [SpanFields.USER_GEO_SUBREGION]: SubregionCode;
   } & {
     [SpanFields.DB_SYSTEM]: SupportedDatabaseSystem;
+  } & {
+    [SpanFields.SPAN_STATUS]:
+      | 'ok'
+      | 'cancelled'
+      | 'unknown'
+      | 'invalid_argument'
+      | 'deadline_exceeded'
+      | 'not_found'
+      | 'already_exists'
+      | 'permission_denied'
+      | 'resource_exhausted'
+      | 'failed_precondition'
+      | 'aborted'
+      | 'out_of_range'
+      | 'unimplemented'
+      | 'internal_error'
+      | 'unavailable'
+      | 'data_loss'
+      | 'unauthenticated';
   } & {
     [Property in SpanFields as `count_unique(${Property})`]: number;
   } & {

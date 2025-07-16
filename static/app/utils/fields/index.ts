@@ -1204,6 +1204,7 @@ type TraceFields =
   // TODO: Remove self time field when it is deprecated
   | SpanFields.SPAN_SELF_TIME
   | SpanFields.SPAN_STATUS
+  | SpanFields.SPAN_STATUS_CODE
   | SpanFields.CACHE_HIT;
 
 const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
@@ -1262,6 +1263,11 @@ const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
     valueType: FieldValueType.DURATION,
   },
   [SpanFields.SPAN_STATUS]: {
+    desc: t('Status of the operation the span represents'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanFields.SPAN_STATUS_CODE]: {
     desc: t('The HTTP response status code'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
@@ -1922,7 +1928,7 @@ const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [SpanFields.STATUS]: {
+  [SpanFields.SPAN_STATUS]: {
     desc: t('Span status. Indicates whether the span operation was successful.'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
