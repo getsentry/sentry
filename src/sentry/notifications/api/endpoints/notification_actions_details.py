@@ -61,23 +61,24 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
             raise ResourceDoesNotExist
 
         parsed_kwargs["action"] = action
+        action_projects = action.projects.all()
 
         # If the action has no projects, skip the project access check
-        if not action.projects.exists():
+        if not action_projects:
             return (parsed_args, parsed_kwargs)
 
         if request.method == "GET":
             # If we're reading the action, the user must have access to one of the associated projects
             if not any(
                 request.access.has_project_scope(project, "project:read")
-                for project in action.projects.all()
+                for project in action_projects
             ):
                 raise PermissionDenied
         else:
             # If we're modifying the action, the user must have access to all associated projects
             if not all(
                 request.access.has_project_scope(project, "project:write")
-                for project in action.projects.all()
+                for project in action_projects
             ):
                 raise PermissionDenied(
                     detail="You don't have sufficient permissions to all the projects associated with this action."
