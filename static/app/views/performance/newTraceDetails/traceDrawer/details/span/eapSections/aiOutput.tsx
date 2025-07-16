@@ -4,11 +4,11 @@ import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
 import {
   getIsAiNode,
   getTraceNodeAttribute,
-} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
+} from 'sentry/views/insights/agentMonitoring/utils/aiTraceNodes';
+import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
