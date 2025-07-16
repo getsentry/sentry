@@ -7,7 +7,7 @@ import {
 import {mapWebVitalToOrderBy} from 'sentry/views/insights/browser/webVitals/utils/mapWebVitalToOrderBy';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
@@ -60,7 +60,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
     );
   }
 
-  const result = useEAPSpans(
+  const result = useSpans(
     {
       sorts: [sort],
       search: mutableSearch.formatString(),

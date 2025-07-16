@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 from sentry.feedback.lib.types import UserReportDict
-from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
+from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.ingest.userreport import save_userreport
 from sentry.models.group import GroupStatus
 from sentry.models.userreport import UserReport

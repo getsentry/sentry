@@ -157,7 +157,7 @@ describe('AccountSecurityEnroll', function () {
       expect(fetchOrgsMock).toHaveBeenCalledTimes(1);
       expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
       expect(testableWindowLocation.assign).toHaveBeenCalledWith(
-        'http://us-org.example.test/'
+        'https://us-org.example.test/'
       );
     });
 

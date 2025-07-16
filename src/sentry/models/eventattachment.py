@@ -17,6 +17,7 @@ from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, s
 from sentry.db.models.fields.bounded import BoundedIntegerField
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.files.utils import get_size_and_checksum, get_storage
+from sentry.utils import metrics
 
 # Attachment file types that are considered a crash report (PII relevant)
 CRASH_REPORT_TYPES = ("event.minidump", "event.applecrashreport")
@@ -147,14 +148,29 @@ class EventAttachment(Model):
         blob = BytesIO(data)
         size, checksum = get_size_and_checksum(blob)
 
+        metrics.distribution(
+            "storage.put.size",
+            size,
+            tags={"usecase": "attachments", "compression": "none"},
+            unit="byte",
+        )
+
         if can_store_inline(data):
             blob_path = ":" + data.decode()
         else:
             blob_path = "eventattachments/v1/" + FileBlob.generate_unique_path()
 
             storage = get_storage()
-            compressed_blob = BytesIO(zstandard.compress(data))
-            storage.save(blob_path, compressed_blob)
+            compressed_blob = zstandard.compress(data)
+
+            metrics.distribution(
+                "storage.put.size",
+                len(compressed_blob),
+                tags={"usecase": "attachments", "compression": "zstd"},
+                unit="byte",
+            )
+            with metrics.timer("storage.put.latency", tags={"usecase": "attachments"}):
+                storage.save(blob_path, BytesIO(compressed_blob))
 
         return PutfileResult(
             content_type=content_type, size=size, sha1=checksum, blob_path=blob_path

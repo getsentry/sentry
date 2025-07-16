@@ -13,9 +13,9 @@ from sentry.grouping.component import FrameGroupingComponent, StacktraceGrouping
 from sentry.grouping.enhancer import (
     ENHANCEMENT_BASES,
     Enhancements,
+    _is_valid_profiling_action,
+    _is_valid_profiling_matcher,
     _split_rules,
-    is_valid_profiling_action,
-    is_valid_profiling_matcher,
     keep_profiling_rules,
 )
 from sentry.grouping.enhancer.actions import EnhancementAction
@@ -104,7 +104,7 @@ def assert_no_matching_frame_found(
     assert not bool(get_matching_frame_actions(rule, frames, platform, exception_data, cache))
 
 
-@pytest.mark.parametrize("version", [2, 3])
+@pytest.mark.parametrize("version", [3])
 def test_basic_parsing(insta_snapshot, version):
     enhancements = Enhancements.from_rules_text(
         """
@@ -493,7 +493,7 @@ def test_cached_with_kwargs():
     ],
 )
 def test_valid_profiling_matchers(test_input, expected):
-    assert is_valid_profiling_matcher(test_input) == expected
+    assert _is_valid_profiling_matcher(test_input) == expected
 
 
 @pytest.mark.parametrize(
@@ -508,7 +508,7 @@ def test_valid_profiling_matchers(test_input, expected):
     ],
 )
 def test_valid_profiling_action(test_input, expected):
-    assert is_valid_profiling_action(test_input) == expected
+    assert _is_valid_profiling_action(test_input) == expected
 
 
 @pytest.mark.parametrize(

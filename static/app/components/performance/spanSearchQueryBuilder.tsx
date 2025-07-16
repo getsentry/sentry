@@ -190,7 +190,7 @@ function IndexedSpanSearchQueryBuilder({
   return <SearchQueryBuilder {...searchQueryBuilderProps} />;
 }
 
-function EapSpanSearchQueryBuilderWrapper(props: SpanSearchQueryBuilderProps) {
+export function EapSpanSearchQueryBuilderWrapper(props: SpanSearchQueryBuilderProps) {
   const {tags: numberTags} = useTraceItemTags('number');
   const {tags: stringTags} = useTraceItemTags('string');
 

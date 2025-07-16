@@ -1,4 +1,5 @@
 from django.db import router, transaction
+from google.api_core.exceptions import RetryError
 
 from sentry import features
 from sentry.eventstream.base import GroupState
@@ -9,7 +10,7 @@ from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker import config, namespaces
-from sentry.taskworker.retry import Retry
+from sentry.taskworker.retry import Retry, retry_task
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.workflow_engine.models import Detector
@@ -139,15 +140,20 @@ def process_workflows_event(
     **kwargs,
 ) -> None:
 
-    event_data = build_workflow_event_data_from_event(
-        project_id=project_id,
-        event_id=event_id,
-        group_id=group_id,
-        occurrence_id=occurrence_id,
-        group_state=group_state,
-        has_reappeared=has_reappeared,
-        has_escalated=has_escalated,
-    )
+    try:
+        event_data = build_workflow_event_data_from_event(
+            project_id=project_id,
+            event_id=event_id,
+            group_id=group_id,
+            occurrence_id=occurrence_id,
+            group_state=group_state,
+            has_reappeared=has_reappeared,
+            has_escalated=has_escalated,
+        )
+    except RetryError as e:
+        # We want to quietly retry these.
+        retry_task(e)
+
     process_workflows(event_data)
 
     metrics.incr("workflow_engine.tasks.process_workflow_task_executed", sample_rate=1.0)

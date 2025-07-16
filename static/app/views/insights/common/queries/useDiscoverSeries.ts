@@ -19,7 +19,7 @@ import {
 } from 'sentry/views/insights/common/utils/retryHandlers';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
-  MetricsProperty,
+  EAPSpanProperty,
   SpanFunctions,
   SpanIndexedField,
   SpanMetricsProperty,
@@ -57,13 +57,8 @@ export const useSpanMetricsSeries = <Fields extends SpanMetricsProperty[]>(
   );
 };
 
-export const useEAPSeries = <
-  Fields extends
-    | MetricsProperty[]
-    | SpanMetricsProperty[]
-    | SpanIndexedField[]
-    | SpanFunctions[]
-    | string[],
+export const useSpanSeries = <
+  Fields extends SpanMetricsProperty[] | SpanIndexedField[] | SpanFunctions[] | string[],
 >(
   options: UseMetricsSeriesOptions<Fields> = {},
   referrer: string,
@@ -77,7 +72,7 @@ export const useEAPSeries = <
   );
 };
 
-export const useMetricsSeries = <Fields extends MetricsProperty[]>(
+export const useMetricsSeries = <Fields extends EAPSpanProperty[]>(
   options: UseMetricsSeriesOptions<Fields> = {},
   referrer: string,
   pageFilters?: PageFilters

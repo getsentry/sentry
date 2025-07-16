@@ -7,8 +7,8 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useEAPSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 import {
   filterToColor,
@@ -100,7 +100,7 @@ function useDurationBreakdownVisualization({
     data: spanSeriesData,
     isPending: isSpanSeriesPending,
     isError: isSpanSeriesError,
-  } = useEAPSeries(
+  } = useSpanSeries(
     {
       yAxis: [
         'avg(span.duration)',
@@ -165,7 +165,7 @@ function useDurationPercentilesVisualization({
     data: durationPercentilesData,
     isPending: isDurationPercentilesPending,
     isError: isDurationPercentilesError,
-  } = useEAPSpans(
+  } = useSpans(
     {
       fields: [
         'p50(span.duration)',

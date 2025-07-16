@@ -1,0 +1,7 @@
+You've initiated an account merger which requires verification. Please use the code below to confirm:
+
+{{code}}
+
+This code expires in {{mins_valid}} minutes.
+
+If you didn't attempt this action, please contact support@sentry.io immediately.
