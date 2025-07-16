@@ -192,7 +192,7 @@ def get_grouping_config_dict_for_event_data(data: NodeData, project: Project) ->
 
 def _get_default_enhancements(config_id: str | None = None) -> str:
     base: str | None = DEFAULT_ENHANCEMENTS_BASE
-    if config_id is not None:
+    if config_id is not None and config_id in CONFIGURATIONS.keys():
         base = CONFIGURATIONS[config_id].enhancements_base
     return Enhancements.from_rules_text("", bases=[base] if base else []).base64_string
 
