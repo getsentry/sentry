@@ -34,7 +34,7 @@ from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.constants import DataCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.testutils.abstract import Abstract
-from sentry.testutils.cases import TestCase, UptimeTestCase
+from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.skips import requires_kafka
@@ -2009,7 +2009,7 @@ class ProcessResultParallelTest(ProcessResultTest):
     strategy_processing_mode = "parallel"
 
 
-class ProcessResultThreadQueueParallelKafkaTest(TestCase):
+class ProcessResultThreadQueueParallelKafkaTest(UptimeTestCase):
     """
     Integration test for thread-queue-parallel consumer with actual Kafka offset verification.
     """
@@ -2020,14 +2020,12 @@ class ProcessResultThreadQueueParallelKafkaTest(TestCase):
         """
         Test that offsets are actually committed to Kafka consumer group.
         """
-        uptime_test = UptimeTestCase()
-        uptime_test.setUp()
-        subscription = uptime_test.create_uptime_subscription(
+        subscription = self.create_uptime_subscription(
             subscription_id=uuid.uuid4().hex, interval_seconds=300, region_slugs=["default"]
         )
         self.create_project_uptime_subscription(
             uptime_subscription=subscription,
-            owner=uptime_test.user,
+            owner=self.user,
         )
 
         test_id = uuid.uuid4().hex[:8]
@@ -2046,7 +2044,7 @@ class ProcessResultThreadQueueParallelKafkaTest(TestCase):
 
             codec = kafka_definition.get_topic_codec(kafka_definition.Topic.UPTIME_RESULTS)
             for i in range(5):
-                result = uptime_test.create_uptime_result(
+                result = self.create_uptime_result(
                     subscription.subscription_id,
                     scheduled_check_time=datetime.now() - timedelta(minutes=5 - i),
                 )
