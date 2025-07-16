@@ -23,6 +23,8 @@ RUN : \
 WORKDIR /usr/src/sentry
 
 ENV PATH=/.venv/bin:$PATH UV_COMPILE_BYTECODE=1 UV_NO_CACHE=1
+# We want to use the image's python for the venv rather
+# than have uv manage it.
 RUN python3 -m venv /.venv
 COPY --from=ghcr.io/astral-sh/uv:0.7.15 /uv /bin/
 
@@ -35,7 +37,7 @@ ENV \
   GRPC_POLL_STRATEGY=epoll1
 
 # Install dependencies first to leverage Docker layer caching.
-COPY requirements-frozen.txt /tmp/requirements-frozen.txt
+COPY uv.lock pyproject.toml .
 RUN set -x \
   # uwsgi-dogstatsd
   && buildDeps=" \
@@ -46,7 +48,7 @@ RUN set -x \
   " \
   && apt-get update \
   && apt-get install -y --no-install-recommends $buildDeps \
-  && uv pip install -r /tmp/requirements-frozen.txt \
+  && uv sync --frozen --quiet \
   && mkdir /tmp/uwsgi-dogstatsd \
   # pinned the same as in getsentry
   && wget -O - https://github.com/DataDog/uwsgi-dogstatsd/archive/1a04f784491ab0270b4e94feb94686b65d8d2db1.tar.gz | \
