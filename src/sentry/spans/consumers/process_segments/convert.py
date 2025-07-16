@@ -77,9 +77,13 @@ def convert_span_to_item(span: Span) -> TraceItem:
             attributes[attribute_name] = _anyvalue(v)
 
     if links := span.get("links"):
-        sanitized_links = [_sanitize_span_link(link) for link in links]
-        v = orjson.dumps(sanitized_links).decode()
-        attributes["sentry.links"] = AnyValue(string_value=v)
+        try:
+            sanitized_links = [_sanitize_span_link(link) for link in links]
+            v = orjson.dumps(sanitized_links).decode()
+            attributes["sentry.links"] = AnyValue(string_value=v)
+        except Exception:
+            sentry_sdk.capture_exception()
+            attributes["sentry.dropped_links_count"] = AnyValue(int_value=len(links))
 
     return TraceItem(
         organization_id=span["organization_id"],
