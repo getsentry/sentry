@@ -433,6 +433,7 @@ function EquationSelector({
 
   return (
     <ArithmeticBuilder
+      data-test-id="editor-visualize-equation"
       aggregations={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
       functionArguments={functionArguments}
       getFieldDefinition={getSpanFieldDefinition}
