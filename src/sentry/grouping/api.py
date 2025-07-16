@@ -145,6 +145,7 @@ class ProjectGroupingConfigLoader(GroupingConfigLoader):
         return project.get_option(
             self.option_name,
             validate=lambda x: isinstance(x, str) and x in CONFIGURATIONS,
+            default=DEFAULT_GROUPING_CONFIG,
         )
 
 
