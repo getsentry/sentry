@@ -270,7 +270,7 @@ function CellAction(props: Props) {
       <Container
         data-test-id={cellActions === null ? undefined : 'cell-action-container'}
       >
-        {cellActions?.length && (
+        {cellActions?.length ? (
           <DropdownMenu
             items={cellActions}
             usePortal
@@ -297,6 +297,8 @@ function CellAction(props: Props) {
             menuWidth={'fit-content'}
             minMenuWidth={0}
           />
+        ) : (
+          children
         )}
       </Container>
     );
