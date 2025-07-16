@@ -5,12 +5,18 @@ from typing import Any
 
 from django.urls import reverse
 
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardTombstone
+from sentry.models.dashboard import (
+    Dashboard,
+    DashboardFavoriteUser,
+    DashboardLastVisited,
+    DashboardTombstone,
+)
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetTypes,
 )
+from sentry.models.organizationmember import OrganizationMember
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
 
