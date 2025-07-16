@@ -28,6 +28,7 @@ from sentry.api.serializers.rest_framework import (
 from sentry.api.utils import get_auth_api_token_type
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.activity import Activity
+from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus
@@ -268,7 +269,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             include_all_accessible=False,
         )
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List an Organization's Releases
         ```````````````````````````````
@@ -444,7 +445,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             **paginator_kwargs,
         )
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Create a New Release for an Organization
         ````````````````````````````````````````
@@ -649,7 +650,7 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List an Organization's Releases specifically for building timeseries
         ```````````````````````````````
