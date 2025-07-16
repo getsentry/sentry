@@ -953,7 +953,7 @@ class GSBanner extends Component<Props, State> {
         showIcon
         data-test-id={'overage-banner-' + eventTypes.join('-')}
         trailingItems={
-          <ButtonBar gap={1}>
+          <ButtonBar>
             {!strictlySeatOverage && (
               <LinkButton
                 size="xs"
@@ -1206,7 +1206,7 @@ class GSBanner extends Component<Props, State> {
               system
               type="muted"
               trailingItems={
-                <ButtonBar gap={1}>
+                <ButtonBar>
                   <LinkButton
                     to={checkoutUrl}
                     onClick={this.handleUpgradeLinkClick}

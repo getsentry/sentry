@@ -1,6 +1,7 @@
 import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
+import type {LocationDescriptorObject} from 'history';
+import kebabCase from 'lodash/kebabCase';
 
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
@@ -14,6 +15,8 @@ export class StoryTreeNode {
   public label: string;
   public path: string;
   public filesystemPath: string;
+  public category: StoryCategory;
+  public location: LocationDescriptorObject;
 
   public visible = true;
   public expanded = false;
@@ -26,6 +29,19 @@ export class StoryTreeNode {
     this.label = normalizeFilename(name);
     this.path = path;
     this.filesystemPath = filesystemPath;
+    this.category = inferFileCategory(filesystemPath);
+    this.location = this.getLocation();
+  }
+
+  private getLocation(): LocationDescriptorObject {
+    const state = {storyPath: this.filesystemPath};
+    if (this.category === 'shared') {
+      return {pathname: '/stories/', query: {name: this.filesystemPath}, state};
+    }
+    return {
+      pathname: `/stories/${this.category}/${kebabCase(this.label)}`,
+      state,
+    };
   }
 
   find(predicate: (node: StoryTreeNode) => boolean): StoryTreeNode | undefined {
@@ -111,10 +127,10 @@ function folderOrSearchScoreFirst(
   return a[0].localeCompare(b[0]);
 }
 
-const order: FileCategory[] = ['components', 'hooks', 'views', 'assets', 'styles'];
+const order: StoryCategory[] = ['foundations', 'core', 'shared'];
 function rootCategorySort(
-  a: [FileCategory | string, StoryTreeNode],
-  b: [FileCategory | string, StoryTreeNode]
+  a: [StoryCategory | string, StoryTreeNode],
+  b: [StoryCategory | string, StoryTreeNode]
 ) {
   if (isFolderNode(a[1]) && isFolderNode(b[1])) {
     return a[0].localeCompare(b[0]);
@@ -128,8 +144,8 @@ function rootCategorySort(
     return -1;
   }
 
-  if (order.includes(a[0] as FileCategory) && order.includes(b[0] as FileCategory)) {
-    return order.indexOf(a[0] as FileCategory) - order.indexOf(b[0] as FileCategory);
+  if (order.includes(a[0] as StoryCategory) && order.includes(b[0] as StoryCategory)) {
+    return order.indexOf(a[0] as StoryCategory) - order.indexOf(b[0] as StoryCategory);
   }
 
   return a[0].localeCompare(b[0]);
@@ -148,28 +164,26 @@ function normalizeFilename(filename: string) {
   );
 }
 
-type FileCategory = 'hooks' | 'components' | 'views' | 'styles' | 'assets';
+export type StoryCategory = 'foundations' | 'core' | 'shared';
 
-function inferFileCategory(path: string): FileCategory {
-  const parts = path.split('/');
-  const filename = parts.at(-1);
-  if (filename?.startsWith('use')) {
-    return 'hooks';
+function inferFileCategory(path: string): StoryCategory {
+  if (isCoreFile(path)) {
+    return 'core';
   }
 
-  if (parts[1]?.startsWith('icons') || path.endsWith('images.stories.tsx')) {
-    return 'assets';
+  if (isFoundationFile(path)) {
+    return 'foundations';
   }
 
-  if (parts[1]?.startsWith('views')) {
-    return 'views';
-  }
+  return 'shared';
+}
 
-  if (parts[1]?.startsWith('styles')) {
-    return 'styles';
-  }
+function isCoreFile(file: string) {
+  return file.includes('components/core');
+}
 
-  return 'components';
+function isFoundationFile(file: string) {
+  return file.includes('app/styles') || file.includes('app/icons');
 }
 
 function inferComponentName(path: string): string {
@@ -467,12 +481,13 @@ function Folder(props: {node: StoryTreeNode}) {
 
 function File(props: {node: StoryTreeNode}) {
   const location = useLocation();
-  const query = qs.stringify({...location.query, name: props.node.filesystemPath});
+  const {state, ...to} = props.node.location;
 
   return (
     <li>
       <FolderLink
-        to={`/stories/?${query}`}
+        to={to}
+        state={state}
         active={
           props.node.filesystemPath === (location.state?.storyPath ?? location.query.name)
         }

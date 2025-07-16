@@ -31,7 +31,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
-import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
   ModuleName,
@@ -122,7 +122,7 @@ export default function SpanSummaryTable(props: Props) {
     data: rowData,
     pageLinks,
     isPending: isRowDataLoading,
-  } = useSpansIndexed(
+  } = useSpans(
     {
       fields: [
         SpanIndexedField.SPAN_ID,
