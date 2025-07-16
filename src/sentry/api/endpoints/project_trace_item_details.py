@@ -165,7 +165,11 @@ def serialize_links(attributes: list[dict]) -> dict | None:
         return None
 
     try:
-        return json.loads(link_attribute["value"]["valStr"])
+        value = link_attribute.get("value", {}).get("valStr", None)
+        if value is not None:
+            return json.loads(value)
+        else:
+            return None
     except json.JSONDecodeError:
         return None
 
