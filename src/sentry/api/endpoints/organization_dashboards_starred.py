@@ -62,12 +62,7 @@ class OrganizationDashboardsStarredEndpoint(OrganizationEndpoint):
         return self.paginate(
             request=request,
             paginator=GenericOffsetPaginator(data_fn=data_fn),
-            on_results=lambda x: serialize(
-                x,
-                request.user,
-                serializer=DashboardListSerializer(),
-                context={"organization": organization},
-            ),
+            on_results=lambda x: serialize(x, request.user, serializer=DashboardListSerializer()),
             default_per_page=25,
         )
 
