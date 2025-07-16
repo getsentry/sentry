@@ -109,8 +109,8 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   trace_item_lcp: t('Largest Contentful Paint'),
   trace_item_fid: t('First Input Delay'),
   trace_item_cls: t('Cumulative Layout Shift'),
-  eap_metrics: t('Spans'),
-  trace_item_logs: t('Logs'),
+  eap_metrics: t('Span Metrics'),
+  trace_item_logs: t('Custom Metrics'),
   crons_monitor: t('Cron Monitor'),
 };
 
@@ -162,7 +162,10 @@ export const getAlertWizardCategories = (org: Organization) => {
       'trace_item_cls',
     ];
     result.push({
-      categoryHeading: t('Performance'),
+      categoryHeading:
+        deprecateTransactionAlerts(org) && hasEAPAlerts(org)
+          ? t('Spans')
+          : t('Performance'),
       options: [
         ...(deprecateTransactionAlerts(org) && hasEAPAlerts(org)
           ? traceItemAggregationOptions
