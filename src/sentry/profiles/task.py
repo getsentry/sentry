@@ -58,6 +58,7 @@ from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.sdk import set_span_attribute
+from sentry.utils.storage import measure_storage_put
 
 REVERSE_DEVICE_CLASS = {next(iter(tags)): label for label, tags in DEVICE_CLASS.items()}
 
@@ -1420,14 +1421,7 @@ def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
             with sentry_sdk.start_span(op="gcs.write", name="compress and write"):
                 storage = get_profiles_storage()
                 compressed_chunk = chunk.compress()
-
-                metrics.distribution(
-                    "storage.put.size",
-                    len(compressed_chunk),
-                    tags={"usecase": "profiling", "compression": "lz4"},
-                    unit="byte",
-                )
-                with metrics.timer("storage.put.latency", tags={"usecase": "profiling"}):
+                with measure_storage_put(len(compressed_chunk), "profiling", "lz4"):
                     storage.save(chunk.storage_path(), io.BytesIO(compressed_chunk))
             with sentry_sdk.start_span(op="processing", name="send chunk to kafka"):
                 payload = build_chunk_kafka_message(chunk)
