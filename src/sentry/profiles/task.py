@@ -1360,9 +1360,8 @@ def _process_vroomrs_transaction_profile(profile: Profile) -> bool:
                 with sentry_sdk.start_span(op="processing", name="find occurrences"):
                     occurrences = prof.find_occurrences()
                     occurrences.filter_none_type_issues()
-                    occs = occurrences.occurrences
-                    if occs is not None and len(occs) > 0:
-                        payload = KafkaPayload(None, occurrences.to_json_str().encode("utf-8"), [])
+                    for occurrence in occurrences.occurrences:
+                        payload = KafkaPayload(None, occurrence.to_json_str().encode("utf-8"), [])
                         topic = ArroyoTopic(
                             get_topic_definition(Topic.INGEST_OCCURRENCES)["real_topic_name"]
                         )
