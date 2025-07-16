@@ -23,7 +23,7 @@ import useProjects from 'sentry/utils/useProjects';
 import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
 import {BREAKDOWN_SLICES} from 'sentry/views/explore/hooks/useTraces';
 import type {SpanResult} from 'sentry/views/explore/hooks/useTraceSpans';
-import type {SpanIndexedField, SpanIndexedResponse} from 'sentry/views/insights/types';
+import type {EAPSpanResponse, SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
@@ -482,7 +482,7 @@ export function SpanTimeRenderer({
   );
 }
 
-type SpanStatus = SpanIndexedResponse[SpanIndexedField.SPAN_STATUS];
+type SpanStatus = EAPSpanResponse[SpanFields.SPAN_STATUS];
 
 const STATUS_TO_TAG_TYPE: Record<SpanStatus, keyof Theme['tag']> = {
   ok: 'success',
@@ -505,7 +505,6 @@ const STATUS_TO_TAG_TYPE: Record<SpanStatus, keyof Theme['tag']> = {
 };
 
 function statusToTagType(status: string) {
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return STATUS_TO_TAG_TYPE[status];
 }
 

@@ -6,7 +6,7 @@ import {useApiQueries} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 
 import type {ConnectedTraceConnection} from './traceLinkNavigationButton';
@@ -49,11 +49,7 @@ export function useFindNextTrace({
         },
       },
       search: MutableSearch.fromQueryObject({is_transaction: 1}),
-      fields: [
-        SpanIndexedField.TRANSACTION_ID,
-        SpanIndexedField.PROJECT_ID,
-        SpanIndexedField.PROJECT,
-      ],
+      fields: [SpanFields.TRANSACTION_ID, SpanFields.PROJECT_ID, SpanFields.PROJECT],
     },
     'api.trace-view.linked-traces'
   );
