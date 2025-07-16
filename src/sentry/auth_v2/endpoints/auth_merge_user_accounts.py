@@ -1,4 +1,3 @@
-from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -34,11 +33,8 @@ class AuthMergeUserAccountsEndpoint(Endpoint):
 
     def get(self, request: Request) -> Response:
         user = request.user
-        if isinstance(user, AnonymousUser):
-            return Response(
-                status=401,
-                data={"error": "You must be authenticated to use this endpoint"},
-            )
+        if not user.is_authenticated:
+            return Response(status=401)
 
         shared_email = user.email
         if not shared_email:
@@ -56,11 +52,8 @@ class AuthMergeUserAccountsEndpoint(Endpoint):
 
     def post(self, request: Request) -> Response:
         user = request.user
-        if isinstance(user, AnonymousUser):
-            return Response(
-                status=401,
-                data={"error": "You must be authenticated to use this endpoint"},
-            )
+        if not user.is_authenticated:
+            return Response(status=401)
 
         validator = AuthMergeUserAccountsValidator(data=request.data)
         if not validator.is_valid():
