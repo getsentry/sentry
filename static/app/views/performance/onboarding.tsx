@@ -280,7 +280,7 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
             'Something seem slow? Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
           )}
         </p>
-        <ButtonList gap={1}>
+        <ButtonList>
           {setupButton}
           <SampleButton
             triggerText={t('View Sample Transaction')}

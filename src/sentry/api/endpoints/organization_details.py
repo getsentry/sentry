@@ -47,6 +47,7 @@ from sentry.constants import (
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
+    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
     ENABLED_CONSOLE_PLATFORMS_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
@@ -245,6 +246,12 @@ ORG_OPTIONS = (
         DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     ),
     (
+        "enablePrReviewTestGeneration",
+        "sentry:enable_pr_review_test_generation",
+        bool,
+        ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+    ),
+    (
         "ingestThroughTrustedRelaysOnly",
         "sentry:ingest-through-trusted-relays-only",
         bool,
@@ -330,6 +337,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         required=False,
         allow_empty=True,
     )
+    enablePrReviewTestGeneration = serializers.BooleanField(required=False)
 
     @cached_property
     def _has_legacy_rate_limits(self):

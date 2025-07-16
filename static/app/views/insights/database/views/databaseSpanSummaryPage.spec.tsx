@@ -15,6 +15,7 @@ jest.mock('sentry/utils/usePageFilters');
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 jest.mock('sentry/utils/useReleaseStats');
 
@@ -226,10 +227,11 @@ describe('DatabaseSpanSummaryPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansIndexed',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           field: [
-            'project_id',
+            'project.id',
             'span.description',
             'db.system',
             'code.filepath',
