@@ -48,7 +48,7 @@ import decodeRetryCount from 'sentry/views/insights/queues/utils/queryParameterD
 import decodeTraceStatus from 'sentry/views/insights/queues/utils/queryParameterDecoders/traceStatus';
 import {
   ModuleName,
-  SpanIndexedField,
+  SpanFields,
   type SpanMetricsResponse,
 } from 'sentry/views/insights/types';
 
@@ -192,15 +192,15 @@ export function MessageSpanSamplesPanel() {
     max: durationAxisMax,
     enabled: isPanelOpen && durationAxisMax > 0,
     fields: [
-      SpanIndexedField.ID,
-      SpanIndexedField.TRACE,
-      SpanIndexedField.SPAN_DESCRIPTION,
-      SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
-      SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY,
-      SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,
-      SpanIndexedField.MESSAGING_MESSAGE_ID,
-      SpanIndexedField.TRACE_STATUS,
-      SpanIndexedField.SPAN_DURATION,
+      SpanFields.ID,
+      SpanFields.TRACE,
+      SpanFields.SPAN_DESCRIPTION,
+      SpanFields.MESSAGING_MESSAGE_BODY_SIZE,
+      SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY,
+      SpanFields.MESSAGING_MESSAGE_RETRY_COUNT,
+      SpanFields.MESSAGING_MESSAGE_ID,
+      SpanFields.TRACE_STATUS,
+      SpanFields.SPAN_DURATION,
     ],
   });
 
@@ -342,13 +342,13 @@ export function MessageSpanSamplesPanel() {
                 // Samples endpoint doesn't provide meta data, so we need to provide it here
                 meta={{
                   fields: {
-                    [SpanIndexedField.SPAN_DURATION]: 'duration',
-                    [SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE]: 'size',
-                    [SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT]: 'number',
+                    [SpanFields.SPAN_DURATION]: 'duration',
+                    [SpanFields.MESSAGING_MESSAGE_BODY_SIZE]: 'size',
+                    [SpanFields.MESSAGING_MESSAGE_RETRY_COUNT]: 'number',
                   },
                   units: {
-                    [SpanIndexedField.SPAN_DURATION]: DurationUnit.MILLISECOND,
-                    [SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE]: SizeUnit.BYTE,
+                    [SpanFields.SPAN_DURATION]: DurationUnit.MILLISECOND,
+                    [SpanFields.MESSAGING_MESSAGE_BODY_SIZE]: SizeUnit.BYTE,
                   },
                 }}
                 type={messageActorType}

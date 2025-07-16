@@ -432,19 +432,15 @@ def process_workflows(
         # If there aren't any actions on the associated workflows, there's nothing to trigger
         return triggered_workflows
 
-    create_workflow_fire_histories(detector, actions, event_data)
+    should_trigger_actions = should_fire_workflow_actions(organization)
+
+    create_workflow_fire_histories(detector, actions, event_data, should_trigger_actions)
 
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.trigger_actions"):
-        if should_fire_workflow_actions(organization):
+        if should_trigger_actions:
             for action in actions:
-                if features.has(
-                    "organizations:workflow-engine-action-trigger-async",
-                    organization,
-                ):
-                    task_params = build_trigger_action_task_params(action, detector, event_data)
-                    trigger_action.delay(**task_params)
-                else:
-                    action.trigger(event_data, detector)
+                task_params = build_trigger_action_task_params(action, detector, event_data)
+                trigger_action.delay(**task_params)
         else:
             logger.info(
                 "workflow_engine.triggered_actions",
