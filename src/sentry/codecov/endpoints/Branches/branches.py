@@ -19,7 +19,7 @@ MAX_RESULTS_PER_PAGE = 50
 
 @extend_schema(tags=["Prevent"])
 @region_silo_endpoint
-class BranchesEndpoint(CodecovEndpoint):
+class RepositoryBranchesEndpoint(CodecovEndpoint):
     owner = ApiOwner.CODECOV
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
