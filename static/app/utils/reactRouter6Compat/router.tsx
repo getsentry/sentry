@@ -8,6 +8,7 @@ import {
 } from 'react-router-dom';
 import * as Sentry from '@sentry/react';
 
+import type {SentryRouteObject} from 'sentry/components/route';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -113,6 +114,46 @@ function getElement(Component: React.ComponentType<any> | undefined) {
 }
 
 /**
+ * Converts a SentryRouteObject tree into a react-router RouteObject tree.
+ */
+function translateSentryRoute(tree: SentryRouteObject): RouteObject {
+  const {name, path, withOrgPath, component} = tree;
+
+  // XXX(epurkhiser)
+  //
+  // - Store the name prop that we use for breadcrumbs in the handle.
+  //
+  // - We also store the unresolved path in the handle, since we'll need that
+  //   to shim the `useRoutes` hook to act like it did n react-router 3,
+  //   where the path was not resolved (looks like /issues/:issueId). Once we
+  //   remove usages of useRoutes we can remove this value from the handle.
+  const handle = {name, path};
+
+  const element = withOrgPath
+    ? USING_CUSTOMER_DOMAIN
+      ? getElement(withDomainRequired(component ?? NoOp))
+      : getElement(withDomainRedirect(component ?? NoOp))
+    : getElement(component);
+
+  const route: RouteObject = tree.index
+    ? {
+        index: true,
+        path,
+        element,
+        handle,
+      }
+    : {
+        index: false,
+        path,
+        element,
+        handle,
+        children: tree.children?.map(translateSentryRoute),
+      };
+
+  return route;
+}
+
+/**
  * Transforms a react-router 3 style route tree into a valid react-router 6
  * router tree.
  */
@@ -150,7 +191,14 @@ export function buildReactRouter6Routes(tree: React.JSX.Element) {
       return;
     }
 
-    const {path, component: Component, children, name, withOrgPath} = routeNode.props;
+    const {
+      path,
+      component: Component,
+      children,
+      name,
+      withOrgPath,
+      newStyleChildren,
+    } = routeNode.props;
     const element = getElement(Component);
 
     // XXX(epurkhiser)
@@ -169,8 +217,12 @@ export function buildReactRouter6Routes(tree: React.JSX.Element) {
       return;
     }
 
+    const routeChildren = newStyleChildren
+      ? translateSentryRoute({children: newStyleChildren}).children
+      : buildReactRouter6Routes(children);
+
     if (!withOrgPath) {
-      routes.push({path, element, handle, children: buildReactRouter6Routes(children)});
+      routes.push({path, element, handle, children: routeChildren});
       return;
     }
 
@@ -182,7 +234,7 @@ export function buildReactRouter6Routes(tree: React.JSX.Element) {
       routes.push({
         path,
         element: getElement(withDomainRequired(Component ?? NoOp) as any),
-        children: buildReactRouter6Routes(children),
+        children: routeChildren,
         handle,
       });
     }
@@ -190,7 +242,7 @@ export function buildReactRouter6Routes(tree: React.JSX.Element) {
     routes.push({
       path: `/organizations/:orgId${path}`,
       element: getElement(withDomainRedirect(Component ?? NoOp)),
-      children: buildReactRouter6Routes(children),
+      children: routeChildren,
       handle,
     });
   });
