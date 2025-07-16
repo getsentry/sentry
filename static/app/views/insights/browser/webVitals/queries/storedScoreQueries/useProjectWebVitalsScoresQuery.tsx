@@ -4,7 +4,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import {useMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
@@ -37,7 +37,7 @@ export const useProjectWebVitalsScoresQuery = ({
     search.addDisjunctionFilterValues(SpanIndexedField.USER_GEO_SUBREGION, subregions);
   }
 
-  const result = useMetrics(
+  const result = useSpans(
     {
       cursor: '',
       limit: 50,

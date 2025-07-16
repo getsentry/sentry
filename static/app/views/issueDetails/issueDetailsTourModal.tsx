@@ -1,14 +1,12 @@
-import {css} from '@emotion/react';
+import {css, ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import issueDetailsPreviewDark from 'sentry-images/issue_details/issue-details-preview-dark.png';
-import issueDetailsPreviewLight from 'sentry-images/issue_details/issue-details-preview-light.png';
+import issueDetailsPreview from 'sentry-images/issue_details/issue-details-preview.png';
 
 import {TextTourAction, TourAction} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
+import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 
 interface IssueDetailsTourModalProps {
   handleDismissTour: () => void;
@@ -19,32 +17,33 @@ export function IssueDetailsTourModal({
   handleDismissTour,
   handleStartTour,
 }: IssueDetailsTourModalProps) {
-  const config = useLegacyStore(ConfigStore);
-  const prefersDarkMode = config.theme === 'dark';
+  const invertedTheme = useInvertedTheme();
 
   return (
-    <TourContainer>
-      <ImageContainer
-        alt={t('Preview of the issue details experience')}
-        src={prefersDarkMode ? issueDetailsPreviewLight : issueDetailsPreviewDark}
-      />
-      <TextContainer>
-        <Header>{t('Welcome to Issue Details')}</Header>
-        <Description>
-          {t(
-            "New around here? Tour the issue experience - we promise you'll be less confused."
-          )}
-        </Description>
-        <Footer>
-          <TextTourAction size="sm" onClick={handleDismissTour} borderless>
-            {t('Maybe later')}
-          </TextTourAction>
-          <TourAction size="sm" onClick={handleStartTour} borderless autoFocus>
-            {t('Take tour')}
-          </TourAction>
-        </Footer>
-      </TextContainer>
-    </TourContainer>
+    <ThemeProvider theme={invertedTheme}>
+      <TourContainer>
+        <ImageContainer
+          alt={t('Preview of the issue details experience')}
+          src={issueDetailsPreview}
+        />
+        <TextContainer>
+          <Header>{t('Welcome to Issue Details')}</Header>
+          <Description>
+            {t(
+              "New around here? Tour the issue experience - we promise you'll be less confused."
+            )}
+          </Description>
+          <Footer>
+            <TextTourAction onClick={handleDismissTour}>
+              {t('Maybe later')}
+            </TextTourAction>
+            <TourAction onClick={handleStartTour} autoFocus>
+              {t('Take a tour')}
+            </TourAction>
+          </Footer>
+        </TextContainer>
+      </TourContainer>
+    </ThemeProvider>
   );
 }
 
@@ -55,7 +54,7 @@ const ImageContainer = styled('img')`
   margin: ${space(1.5)} auto 0;
   background-size: cover;
   background-position: center;
-  border: 1px solid ${p => p.theme.inverted.translucentBorder};
+  border: 1px solid ${p => p.theme.translucentBorder};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
 `;
@@ -67,7 +66,7 @@ const TourContainer = styled('div')`
     margin: -${space(4)};
   }
   border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.tour.background};
+  background: ${p => p.theme.tokens.background.primary};
   overflow: hidden;
 `;
 
@@ -76,15 +75,14 @@ const TextContainer = styled('div')`
 `;
 
 const Header = styled('div')`
-  color: ${p => p.theme.tour.header};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.headerFontSize};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const Description = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.tour.text};
-  opacity: 0.8;
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const Footer = styled('div')`
@@ -96,4 +94,7 @@ const Footer = styled('div')`
 
 export const IssueDetailsTourModalCss = css`
   width: 545px;
+  [role='document'] {
+    box-shadow: none;
+  }
 `;

@@ -218,7 +218,9 @@ class GroupType:
         registry.add(cls)
 
         if not cls.released:
-            features.add(cls.build_visible_feature_name(), OrganizationFeature, True)
+            features.add(
+                cls.build_visible_feature_name(), OrganizationFeature, True, api_expose=True
+            )
             features.add(cls.build_ingest_feature_name(), OrganizationFeature, True)
             features.add(cls.build_post_process_group_feature_name(), OrganizationFeature, True)
 

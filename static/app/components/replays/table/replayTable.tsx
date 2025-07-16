@@ -46,7 +46,12 @@ export default function ReplayTable({
         data-test-id="replay-table-loading"
         style={{gridTemplateColumns}}
       >
-        <ReplayTableHeader columns={columns} onSortClick={onSortClick} sort={sort} />
+        <ReplayTableHeader
+          columns={columns}
+          replays={replays}
+          onSortClick={onSortClick}
+          sort={sort}
+        />
         <SimpleTable.Empty>
           <LoadingIndicator />
         </SimpleTable.Empty>
@@ -60,7 +65,13 @@ export default function ReplayTable({
         data-test-id="replay-table-errored"
         style={{gridTemplateColumns}}
       >
-        <ReplayTableHeader columns={columns} onSortClick={onSortClick} sort={sort} />
+        <ReplayTableHeader
+          columns={columns}
+          onSortClick={onSortClick}
+          replays={replays}
+          sort={sort}
+        />
+
         <SimpleTable.Empty>
           <Alert type="error" showIcon>
             {t('Sorry, the list of replays could not be loaded. ')}
@@ -73,7 +84,12 @@ export default function ReplayTable({
 
   return (
     <StyledSimpleTable data-test-id="replay-table" style={{gridTemplateColumns}}>
-      <ReplayTableHeader columns={columns} onSortClick={onSortClick} sort={sort} />
+      <ReplayTableHeader
+        columns={columns}
+        onSortClick={onSortClick}
+        replays={replays}
+        sort={sort}
+      />
       {replays.length === 0 && (
         <SimpleTable.Empty>{t('No replays found')}</SimpleTable.Empty>
       )}
