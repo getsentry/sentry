@@ -95,7 +95,10 @@ export function getAlertTypeFromAggregateDataset({
 }
 
 export function hasLogAlerts(organization: Organization): boolean {
-  return organization.features.includes('ourlogs-alerts');
+  return (
+    organization.features.includes('ourlogs-alerts') &&
+    organization.features.includes('ourlogs-enabled')
+  );
 }
 
 export function getTraceItemTypeForDatasetAndEventType(
