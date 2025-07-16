@@ -1,11 +1,4 @@
-import {
-  createContext,
-  type CSSProperties,
-  Fragment,
-  useContext,
-  useMemo,
-  useRef,
-} from 'react';
+import {createContext, Fragment, useContext, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
@@ -72,27 +65,17 @@ export interface DropdownMenuListProps
    * Title to display on top of the menu
    */
   menuTitle?: React.ReactNode;
-  /**
-   * Set the menu width
-   */
-  menuWidth?: CSSProperties['width'];
-  /**
-   * Minimum menu width
-   */
-  minMenuWidth?: number;
   size?: MenuItemProps['size'];
 }
 
 function DropdownMenuList({
   closeOnSelect = true,
   onClose,
-  minMenuWidth,
   size,
   menuTitle,
   menuFooter,
   overlayState,
   overlayPositionProps,
-  menuWidth,
   ...props
 }: DropdownMenuListProps) {
   const {rootOverlayState, parentMenuState} = useContext(DropdownMenuContext);
@@ -245,15 +228,7 @@ function DropdownMenuList({
   );
   return (
     <FocusScope restoreFocus autoFocus>
-      <PositionWrapper
-        zIndex={theme.zIndex.dropdown}
-        {...overlayPositionProps}
-        style={{
-          ...overlayPositionProps.style,
-          width: menuWidth ?? overlayPositionProps.style?.width,
-          minWidth: minMenuWidth ?? overlayPositionProps.style?.minWidth,
-        }}
-      >
+      <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayPositionProps}>
         <DropdownMenuContext value={contextValue}>
           <StyledOverlay>
             {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}

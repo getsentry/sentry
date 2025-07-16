@@ -1,4 +1,4 @@
-import {useContext, useMemo} from 'react';
+import {type CSSProperties, useContext, useMemo} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
@@ -85,6 +85,14 @@ export interface DropdownMenuProps
    */
   menuTitle?: React.ReactNode;
   /**
+   * Set the menu width
+   */
+  menuWidth?: CSSProperties['width'];
+  /**
+   * Minimum menu width
+   */
+  minMenuWidth?: number;
+  /**
    * Reference to the container element that the portal should be rendered into.
    */
   portalContainerRef?: React.RefObject<HTMLElement | null>;
@@ -117,7 +125,6 @@ export interface DropdownMenuProps
    * component.
    */
   triggerProps?: DropdownButtonProps;
-
   /**
    * Whether to render the menu inside a React portal (false by default). This should
    * only be enabled if necessary, e.g. when the dropdown menu is inside a small,
@@ -157,6 +164,7 @@ function DropdownMenu({
   portalContainerRef,
   shouldApplyMinWidth,
   menuWidth,
+  minMenuWidth,
   ...props
 }: DropdownMenuProps) {
   const isDisabled = disabledProp ?? (!items || items.length === 0);
@@ -242,10 +250,16 @@ function DropdownMenu({
         {...menuProps}
         size={size}
         disabledKeys={disabledKeys ?? defaultDisabledKeys}
-        overlayPositionProps={overlayProps}
+        overlayPositionProps={{
+          ...overlayProps,
+          style: {
+            ...overlayProps.style,
+            width: menuWidth ?? overlayProps.style?.width,
+            minWidth: minMenuWidth ?? overlayProps.style?.minWidth,
+          },
+        }}
         overlayState={overlayState}
         items={activeItems}
-        menuWidth={menuWidth}
       >
         {(item: MenuItemProps) => {
           if (item.children && item.children.length > 0 && !item.isSubmenu) {
