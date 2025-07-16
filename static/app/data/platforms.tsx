@@ -413,9 +413,16 @@ export const platforms: PlatformIntegration[] = [
   {
     id: 'nintendo-switch',
     name: 'Nintendo Switch',
-    type: 'framework',
+    type: 'console',
     language: 'native',
     link: 'https://docs.sentry.io/platforms/nintendo-switch/',
+  },
+  {
+    id: 'nintendo-switch-2',
+    name: 'Nintendo Switch 2',
+    type: 'console',
+    language: 'native',
+    link: 'https://docs.sentry.io/platforms/nintendo-switch-2/',
   },
   {
     id: 'node',
@@ -521,6 +528,13 @@ export const platforms: PlatformIntegration[] = [
     type: 'framework',
     language: 'php',
     link: 'https://docs.sentry.io/platforms/php/guides/symfony/',
+  },
+  {
+    id: 'playstation',
+    name: 'Playstation',
+    type: 'console',
+    language: 'native',
+    link: 'https://docs.sentry.io/platforms/playstation/',
   },
   {
     id: 'powershell',
@@ -738,6 +752,13 @@ export const platforms: PlatformIntegration[] = [
     type: 'framework',
     language: 'unreal',
     link: 'https://docs.sentry.io/platforms/unreal/',
+  },
+  {
+    id: 'xbox',
+    name: 'Xbox',
+    type: 'console',
+    language: 'native',
+    link: 'https://docs.sentry.io/platforms/xbox/',
   },
 ];
 

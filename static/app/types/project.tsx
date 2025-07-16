@@ -246,6 +246,7 @@ export type PlatformKey =
   | 'native-minidump'
   | 'native-qt'
   | 'nintendo-switch'
+  | 'nintendo-switch-2'
   | 'node'
   | 'node-awslambda'
   | 'node-azurefunctions'
@@ -269,6 +270,7 @@ export type PlatformKey =
   | 'php-monolog'
   | 'php-symfony'
   | 'php-symfony2'
+  | 'playstation'
   | 'powershell'
   | 'python'
   | 'python-aiohttp'
@@ -309,7 +311,8 @@ export type PlatformKey =
   | 'swift'
   | 'switt'
   | 'unity'
-  | 'unreal';
+  | 'unreal'
+  | 'xbox';
 
 export type PlatformIntegration = {
   id: PlatformKey;
