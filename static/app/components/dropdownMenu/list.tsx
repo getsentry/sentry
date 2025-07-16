@@ -104,14 +104,6 @@ function DropdownMenuList({
   const {menuProps} = useMenu({...props, selectionMode: 'single'}, state, menuRef);
   const {separatorProps} = useSeparator({elementType: 'li'});
 
-  if (menuWidth) {
-    overlayPositionProps.style = {
-      ...overlayPositionProps.style,
-      width: menuWidth,
-      minWidth: minMenuWidth ?? overlayPositionProps.style?.minWidth,
-    };
-  }
-
   // If this is a submenu, pressing arrow left should close it (but not the
   // root menu).
   const {keyboardProps} = useKeyboard({
@@ -253,7 +245,15 @@ function DropdownMenuList({
   );
   return (
     <FocusScope restoreFocus autoFocus>
-      <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayPositionProps}>
+      <PositionWrapper
+        zIndex={theme.zIndex.dropdown}
+        {...overlayPositionProps}
+        style={{
+          ...overlayPositionProps.style,
+          width: menuWidth ?? overlayPositionProps.style?.width,
+          minWidth: minMenuWidth ?? overlayPositionProps.style?.minWidth,
+        }}
+      >
         <DropdownMenuContext value={contextValue}>
           <StyledOverlay>
             {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
@@ -263,7 +263,6 @@ function DropdownMenuList({
               {...mergeProps(modifiedMenuProps, keyboardProps)}
               style={{
                 maxHeight: overlayPositionProps.style?.maxHeight,
-                minWidth: minMenuWidth ?? overlayPositionProps.style?.minWidth,
               }}
             >
               {renderCollection(stateCollection)}
