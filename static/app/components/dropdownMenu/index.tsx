@@ -1,4 +1,4 @@
-import {type CSSProperties, useContext, useMemo} from 'react';
+import {useContext, useMemo} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
@@ -85,10 +85,6 @@ export interface DropdownMenuProps
    */
   menuTitle?: React.ReactNode;
   /**
-   * Set the menu width
-   */
-  menuWidth?: CSSProperties['width'];
-  /**
    * Minimum menu width
    */
   minMenuWidth?: number;
@@ -163,7 +159,6 @@ function DropdownMenu({
   flipOptions,
   portalContainerRef,
   shouldApplyMinWidth,
-  menuWidth,
   minMenuWidth,
   ...props
 }: DropdownMenuProps) {
@@ -254,7 +249,6 @@ function DropdownMenu({
           ...overlayProps,
           style: {
             ...overlayProps.style,
-            width: menuWidth ?? overlayProps.style?.width,
             minWidth: minMenuWidth ?? overlayProps.style?.minWidth,
           },
         }}

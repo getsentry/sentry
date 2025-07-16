@@ -294,7 +294,6 @@ function CellAction(props: Props) {
               </ActionMenuTriggerV2>
             )}
             // So the menu doesn't fill the entire row which can lead to extremely wide menus
-            menuWidth={'fit-content'}
             minMenuWidth={0}
           />
         ) : (
