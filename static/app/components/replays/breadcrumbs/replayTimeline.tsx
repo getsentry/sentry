@@ -40,24 +40,24 @@ type Frame = BreadcrumbFrame | SpanFrame;
 
 // Helper function to create stacked area chart data from chapter frames
 function createStackedChartData({
-  bucketCount: _bucketCount,
+  bucketCount: bucketCountParams,
   durationMs,
   startTimestampMs,
   frames,
   getTimestamp = (frame: Frame) => frame.timestamp || frame.startTimestamp,
 }: {
-  bucketCount: number;
   durationMs: number;
   frames: unknown[];
   startTimestampMs: number;
+  bucketCount?: number;
   getTimestamp?: (frame: Frame) => number;
 }) {
   if (!frames?.length) {
     return [];
   }
 
-  const bucketSizeMs = 1000;
-  const bucketCount = Math.ceil(durationMs / bucketSizeMs);
+  const bucketSizeMs = bucketCountParams ? durationMs / bucketCountParams : 1000;
+  const bucketCount = bucketCountParams ?? Math.ceil(durationMs / bucketSizeMs);
   const buckets = Array.from(
     {length: bucketCount},
     (_, index) => startTimestampMs + index * bucketSizeMs
@@ -177,7 +177,7 @@ function ReplayTimeline({replay}: {replay: ReplayReader}) {
     const data = categories.map(category => [
       category,
       createStackedChartData({
-        bucketCount: 1000,
+        // bucketCount: 1000,
         frames: chapterFrames.filter(frame => getGroupedCategories(frame) === category),
         durationMs,
         startTimestampMs,
@@ -189,7 +189,7 @@ function ReplayTimeline({replay}: {replay: ReplayReader}) {
   const issuesStackedData = useMemo(
     () =>
       createStackedChartData({
-        bucketCount: 1000,
+        // bucketCount: 1000,
         frames: issueFrames,
         durationMs,
         startTimestampMs,
@@ -200,7 +200,7 @@ function ReplayTimeline({replay}: {replay: ReplayReader}) {
   const userInteractionStackedData = useMemo(
     () =>
       createStackedChartData({
-        bucketCount: 1000,
+        bucketCount: 100,
         frames: userInteractionEvents,
         durationMs,
         startTimestampMs,
