@@ -26,7 +26,7 @@ class EffectiveGrantStatusCache:
         cache_key = CACHE_KEY_PATTERN.format(organization_id=organization_id)
         cache.set(
             cache_key,
-            grant_status.to_cache(),
+            grant_status,
             timeout=grant_status.cache_ttl(current_time),
         )
 

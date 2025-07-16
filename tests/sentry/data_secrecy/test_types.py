@@ -3,12 +3,7 @@ from datetime import datetime, timezone
 import pytest
 
 from sentry.data_secrecy.service.model import RpcEffectiveGrantStatus
-from sentry.data_secrecy.types import (
-    NEGATIVE_CACHE_TTL,
-    NEGATIVE_CACHE_VALUE,
-    EffectiveGrantStatus,
-    GrantCacheStatus,
-)
+from sentry.data_secrecy.types import NEGATIVE_CACHE_TTL, EffectiveGrantStatus, GrantCacheStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
@@ -28,41 +23,46 @@ class EffectiveGrantStatusTest(TestCase):
         assert result.access_end is None
         assert result.access_start is None
 
-    def test_from_cache_with_negative_cache_value(self):
-        """Test from_cache with negative cache value returns NEGATIVE_CACHE status"""
-        result = EffectiveGrantStatus.from_cache(NEGATIVE_CACHE_VALUE)
+    def test_from_cache_with_negative_cache_object(self):
+        """Test from_cache with negative cache object returns the same object"""
+        cached_object = EffectiveGrantStatus(cache_status=GrantCacheStatus.NEGATIVE_CACHE)
+        result = EffectiveGrantStatus.from_cache(cached_object)
 
         assert result.cache_status == GrantCacheStatus.NEGATIVE_CACHE
         assert result.access_end is None
         assert result.access_start is None
+        assert result is cached_object  # Should return the same object
 
     @freeze_time("2025-01-01 12:00:00")
-    def test_from_cache_with_expired_grant(self):
-        """Test from_cache with expired grant returns EXPIRED_GRANT status"""
-        cached_data = {
-            "access_start": self.access_start,
-            "access_end": self.expired_access_end,  # expired
-        }
+    def test_from_cache_with_expired_grant_object(self):
+        """Test from_cache with expired grant object returns EXPIRED_WINDOW status"""
+        cached_object = EffectiveGrantStatus(
+            cache_status=GrantCacheStatus.VALID_WINDOW,
+            access_start=self.access_start,
+            access_end=self.expired_access_end,  # expired
+        )
 
-        result = EffectiveGrantStatus.from_cache(cached_data)
+        result = EffectiveGrantStatus.from_cache(cached_object)
 
         assert result.cache_status == GrantCacheStatus.EXPIRED_WINDOW
         assert result.access_end is None
         assert result.access_start is None
 
     @freeze_time("2025-01-01 12:00:00")
-    def test_from_cache_with_valid_grant(self):
-        """Test from_cache with valid grant returns VALID_GRANT status"""
-        cached_data = {
-            "access_start": self.access_start,
-            "access_end": self.access_end,  # future time
-        }
+    def test_from_cache_with_valid_grant_object(self):
+        """Test from_cache with valid grant object returns the same object"""
+        cached_object = EffectiveGrantStatus(
+            cache_status=GrantCacheStatus.VALID_WINDOW,
+            access_start=self.access_start,
+            access_end=self.access_end,  # future time
+        )
 
-        result = EffectiveGrantStatus.from_cache(cached_data)
+        result = EffectiveGrantStatus.from_cache(cached_object)
 
         assert result.cache_status == GrantCacheStatus.VALID_WINDOW
         assert result.access_end == self.access_end
         assert result.access_start == self.access_start
+        assert result is cached_object  # Should return the same object
 
     def test_from_rpc_grant_status_with_none(self):
         """Test from_rpc_grant_status with None returns NEGATIVE_CACHE status"""
@@ -87,7 +87,7 @@ class EffectiveGrantStatusTest(TestCase):
         assert result.access_start is None
 
     def test_from_rpc_grant_status_with_valid_grant(self):
-        """Test from_rpc_grant_status with valid grant returns VALID_GRANT status"""
+        """Test from_rpc_grant_status with valid grant returns VALID_WINDOW status"""
         rpc_grant = RpcEffectiveGrantStatus(
             organization_id=1,
             access_start=self.access_start,
@@ -143,47 +143,29 @@ class EffectiveGrantStatusTest(TestCase):
             cache_status=GrantCacheStatus.CACHE_MISS,
         )
 
-        with pytest.raises(ValueError) as cm:
+        with pytest.raises(ValueError):
             grant_status.cache_ttl(self.current_time)
 
-        assert str(cm.exception) == "Invalid cache status"
+    def test_post_init_validation_valid_window_without_access_times(self):
+        """Test that __post_init__ raises error when VALID_WINDOW lacks access times"""
+        with pytest.raises(ValueError):
+            EffectiveGrantStatus(cache_status=GrantCacheStatus.VALID_WINDOW)
 
-    def test_to_cache_for_negative_cache(self):
-        """Test to_cache for negative cache returns NEGATIVE_CACHE_VALUE"""
-        grant_status = EffectiveGrantStatus(
-            cache_status=GrantCacheStatus.NEGATIVE_CACHE,
-        )
+    def test_post_init_validation_valid_window_without_access_end(self):
+        """Test that __post_init__ raises error when VALID_WINDOW lacks access_end"""
+        with pytest.raises(ValueError):
+            EffectiveGrantStatus(
+                cache_status=GrantCacheStatus.VALID_WINDOW,
+                access_start=self.access_start,
+            )
 
-        cache_data = grant_status.to_cache()
-
-        assert cache_data == NEGATIVE_CACHE_VALUE
-
-    def test_to_cache_for_valid_grant(self):
-        """Test to_cache for valid grant returns grant data"""
-        grant_status = EffectiveGrantStatus(
-            cache_status=GrantCacheStatus.VALID_WINDOW,
-            access_end=self.access_end,
-            access_start=self.access_start,
-        )
-
-        cache_data = grant_status.to_cache()
-
-        expected_data = {
-            "access_end": self.access_end,
-            "access_start": self.access_start,
-        }
-        assert cache_data == expected_data
-
-    def test_to_cache_for_invalid_status_raises_error(self):
-        """Test to_cache raises ValueError for invalid cache status"""
-        grant_status = EffectiveGrantStatus(
-            cache_status=GrantCacheStatus.CACHE_MISS,
-        )
-
-        with pytest.raises(ValueError) as cm:
-            grant_status.to_cache()
-
-        assert str(cm.exception) == "Invalid cache status"
+    def test_post_init_validation_valid_window_without_access_start(self):
+        """Test that __post_init__ raises error when VALID_WINDOW lacks access_start"""
+        with pytest.raises(ValueError):
+            EffectiveGrantStatus(
+                cache_status=GrantCacheStatus.VALID_WINDOW,
+                access_end=self.access_end,
+            )
 
 
 class GrantCacheStatusTest(TestCase):
