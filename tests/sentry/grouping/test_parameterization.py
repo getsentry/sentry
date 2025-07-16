@@ -125,6 +125,16 @@ def test_parameterize_standard(
     assert f"prefix {expected} suffix" == f"prefix {parameterizer.parameterize_all(input)} suffix"
 
 
+@pytest.mark.parametrize(("name", "input", "expected"), experimental_cases)
+def test_parameterize_standard_not_experimental(
+    name: str, input: str, expected: str, parameterizer: Parameterizer
+) -> None:
+    assert expected != parameterizer.parameterize_all(input)
+    assert f"prefix {expected}" != f"prefix {parameterizer.parameterize_all(input)}"
+    assert f"{expected} suffix" != f"{parameterizer.parameterize_all(input)} suffix"
+    assert f"prefix {expected} suffix" != f"prefix {parameterizer.parameterize_all(input)} suffix"
+
+
 @pytest.mark.parametrize(("name", "input", "expected"), standard_cases + experimental_cases)
 def test_parameterize_experimental(
     name: str, input: str, expected: str, experimental_parameterizer: Parameterizer
