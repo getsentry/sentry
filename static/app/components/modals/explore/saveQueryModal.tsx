@@ -126,7 +126,7 @@ function SaveQueryModal({
       </Body>
 
       <Footer>
-        <StyledButtonBar gap={1.5}>
+        <StyledButtonBar gap="lg">
           <Button onClick={closeModal} disabled={isSaving}>
             {t('Cancel')}
           </Button>

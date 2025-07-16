@@ -2936,7 +2936,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.6.2"
+SELF_HOSTED_STABLE_VERSION = "25.7.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3504,7 +3504,7 @@ SENTRY_SYNTHETIC_MONITORING_PROJECT_ID: int | None = None
 SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
 
 # How long the migration phase for grouping lasts
-SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 30 * 24 * 3600  # 30 days
+SENTRY_GROUPING_CONFIG_TRANSITION_DURATION = 30 * 24 * 3600  # 30 days
 
 SENTRY_USE_UWSGI = True
 
@@ -3610,6 +3610,8 @@ SEER_ALERT_DELETION_URL = (
 SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994
 
 SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
+
+SEER_GHE_ENCRYPT_KEY: str | None = None  # For encrypting the access token for the GHE integration
 
 
 # This is the URL to the profiling service
