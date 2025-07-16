@@ -29,11 +29,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
-import {
-  useDiscoverOrEap,
-  useSpanMetrics,
-  useSpans,
-} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpanMetrics, useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   DataTitles,
   getThroughputTitle,
@@ -46,7 +42,6 @@ import type {
   SpanQueryFilters,
 } from 'sentry/views/insights/types';
 import {
-  MetricsFields,
   ModuleName,
   SpanFields,
   SpanFunction,
@@ -198,7 +193,7 @@ export function CacheSamplePanel() {
     data: transactionData,
     error: transactionError,
     isFetching: isFetchingTransactions,
-  } = useDiscoverOrEap(
+  } = useSpans(
     {
       search: transactionDurationSearch,
       enabled: Boolean(transactionIds.length),
@@ -318,7 +313,7 @@ export function CacheSamplePanel() {
                 />
 
                 <MetricReadout
-                  title={DataTitles[`avg(${MetricsFields.TRANSACTION_DURATION})`]}
+                  title={DataTitles['avg(transaction.duration)']}
                   value={
                     transactionDurationData?.[0]?.[`avg(${SpanFields.SPAN_DURATION})`]
                   }
