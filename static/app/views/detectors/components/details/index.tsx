@@ -18,9 +18,10 @@ export function DetectorDetailsContent({detector, project}: DetectorDetailsConte
       return <MetricDetectorDetails detector={detector} project={project} />;
     case 'uptime_domain_failure':
       return <UptimeDetectorDetails detector={detector} project={project} />;
-    case 'uptime_subscription':
     case 'error':
       return <ErrorDetectorDetails detector={detector} project={project} />;
+    case 'uptime_subscription':
+      return <FallbackDetectorDetails detector={detector} project={project} />;
     default:
       unreachable(detectorType);
       return <FallbackDetectorDetails detector={detector} project={project} />;
