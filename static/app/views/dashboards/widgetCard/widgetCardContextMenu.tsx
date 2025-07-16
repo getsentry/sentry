@@ -401,6 +401,10 @@ export function getMenuOptions(
     menuOptions.push({
       key: 'add-to-dashboard',
       label: t('Add to Dashboard'),
+      disabled: disableTransactionEdit,
+      tooltip: disableTransactionEdit
+        ? t('This dataset is is no longer supported. Please use the Spans dataset.')
+        : undefined,
       onAction: () => {
         openAddToDashboardModal({
           organization,

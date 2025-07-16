@@ -271,7 +271,7 @@ function WidgetBuilderSlideout({
               <Section>
                 <Alert type="info" showIcon>
                   {t(
-                    'Transaction widgets are deprecated. Please use the spans dataset moving forward.'
+                    'Transaction widgets are being deprecated. Please use the spans dataset moving forward.'
                   )}
                 </Alert>
               </Section>
