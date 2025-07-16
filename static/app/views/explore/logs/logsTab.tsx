@@ -67,6 +67,7 @@ import {LogsInfiniteTable as LogsInfiniteTable} from 'sentry/views/explore/logs/
 import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
 import {useStreamingTimeseriesResult} from 'sentry/views/explore/logs/useStreamingTimeseriesResult';
+import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {PickableDays} from 'sentry/views/explore/utils';
@@ -132,6 +133,8 @@ export function LogsTabContent({
     useTraceItemAttributes('string');
   const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
     useTraceItemAttributes('number');
+
+  const averageLogsPerSecond = calculateAverageLogsPerSecond(timeseriesResult);
 
   useLogAnalytics({
     logsTableResult: tableData,
@@ -270,7 +273,10 @@ export function LogsTabContent({
               </Feature>
               <TableActionsContainer>
                 <Feature features="organizations:ourlogs-live-refresh">
-                  <AutorefreshToggle disabled={tableTab === 'aggregates'} />
+                  <AutorefreshToggle
+                    disabled={tableTab === 'aggregates'}
+                    averageLogsPerSecond={averageLogsPerSecond}
+                  />
                 </Feature>
                 <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
                   {t('Edit Table')}
