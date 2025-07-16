@@ -33,21 +33,17 @@ class EffectiveGrantStatus:
                 )
 
     @classmethod
-    def from_cache(cls, cached_data: dict[str, datetime] | str | None) -> EffectiveGrantStatus:
+    def from_cache(cls, cached_data: EffectiveGrantStatus | None) -> EffectiveGrantStatus:
         if cached_data is None:
             return cls(cache_status=GrantCacheStatus.CACHE_MISS)
-        if cached_data == NEGATIVE_CACHE_VALUE:
-            return cls(cache_status=GrantCacheStatus.NEGATIVE_CACHE)
+        if cached_data.cache_status == GrantCacheStatus.NEGATIVE_CACHE:
+            return cached_data
 
-        if cached_data["access_end"] <= datetime.now(timezone.utc):
+        if cached_data.access_end <= datetime.now(timezone.utc):
             return cls(cache_status=GrantCacheStatus.EXPIRED_WINDOW)
 
         # Grant is still valid
-        return cls(
-            cache_status=GrantCacheStatus.VALID_WINDOW,
-            access_start=cached_data["access_start"],
-            access_end=cached_data["access_end"],
-        )
+        return cached_data
 
     @classmethod
     def from_rpc_grant_status(
@@ -77,18 +73,3 @@ class EffectiveGrantStatus:
             return NEGATIVE_CACHE_TTL
         else:
             raise ValueError("Invalid cache status")
-
-    def to_cache(self) -> dict[str, datetime] | str:
-        if self.cache_status == GrantCacheStatus.NEGATIVE_CACHE:
-            return NEGATIVE_CACHE_VALUE
-
-        if self.cache_status == GrantCacheStatus.VALID_WINDOW:
-            assert self.access_end is not None
-            assert self.access_start is not None
-
-            return {
-                "access_end": self.access_end,
-                "access_start": self.access_start,
-            }
-
-        raise ValueError("Invalid cache status")
