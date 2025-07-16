@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Index
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import CharField, FlexibleForeignKey, Model, region_silo_model, sane_repr
@@ -21,5 +22,6 @@ class WorkflowFireHistory(Model):
     class Meta:
         db_table = "workflow_engine_workflowfirehistory"
         app_label = "workflow_engine"
+        indexes = [Index(fields=["workflow", "date_added"])]
 
     __repr__ = sane_repr("workflow_id", "group_id", "event_id", "date_added")
