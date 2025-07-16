@@ -2,7 +2,7 @@ from concurrent.futures import TimeoutError
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
-from sentry.api.endpoints.seer_rpc import (
+from sentry.seer.endpoints.seer_rpc import (
     get_attribute_names,
     get_attribute_values_with_substring,
     get_attributes_and_values,

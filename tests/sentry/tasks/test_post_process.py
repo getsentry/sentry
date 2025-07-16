@@ -2671,7 +2671,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     def test_kick_off_seer_automation_skips_with_existing_fixability_score(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
-        from sentry.seer.issue_summary import get_issue_summary_cache_key
+        from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
 
         self.project.update_option("sentry:seer_scanner_automation", True)
         event = self.create_event(
@@ -2804,7 +2804,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
         """Test that seer automation is skipped when another task is already processing the same issue"""
-        from sentry.seer.issue_summary import get_issue_summary_lock_key
+        from sentry.seer.autofix.issue_summary import get_issue_summary_lock_key
         from sentry.tasks.post_process import locks
 
         self.project.update_option("sentry:seer_scanner_automation", True)

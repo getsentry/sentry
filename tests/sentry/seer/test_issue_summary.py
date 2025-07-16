@@ -6,7 +6,7 @@ from unittest.mock import ANY, Mock, call, patch
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.autofix.utils import SeerAutomationSource
 from sentry.locks import locks
-from sentry.seer.issue_summary import (
+from sentry.seer.autofix.issue_summary import (
     _get_event,
     _get_trace_connected_issues,
     _run_automation,

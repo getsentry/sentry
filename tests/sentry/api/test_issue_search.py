@@ -27,7 +27,7 @@ from sentry.issues.grouptype import registry as GROUP_TYPE_REGISTRY
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES, GroupStatus
 from sentry.models.release import ReleaseStatus
 from sentry.search.utils import get_teams_for_users
-from sentry.seer.seer_utils import FixabilityScoreThresholds
+from sentry.seer.autofix.seer_utils import FixabilityScoreThresholds
 from sentry.testutils.cases import TestCase
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus, PriorityLevel
 

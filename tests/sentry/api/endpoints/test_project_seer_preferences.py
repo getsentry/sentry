@@ -5,7 +5,7 @@ import requests
 from django.conf import settings
 from django.urls import reverse
 
-from sentry.api.endpoints.project_seer_preferences import PreferenceResponse, SeerProjectPreference
+from sentry.seer.endpoints.project_seer_preferences import PreferenceResponse, SeerProjectPreference
 from sentry.seer.models import SeerRepoDefinition
 from sentry.testutils.cases import APITestCase
 

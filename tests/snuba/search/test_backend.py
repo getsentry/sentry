@@ -30,7 +30,7 @@ from sentry.models.groupowner import GroupOwner
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend, SnubaSearchBackendBase
 from sentry.search.snuba.executors import TrendsSortWeights
-from sentry.seer.seer_utils import FixabilityScoreThresholds
+from sentry.seer.autofix.seer_utils import FixabilityScoreThresholds
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import SnubaTestCase, TestCase, TransactionTestCase
 from sentry.testutils.helpers import Feature, apply_feature_flag_on_cls

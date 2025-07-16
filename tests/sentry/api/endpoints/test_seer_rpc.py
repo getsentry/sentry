@@ -9,13 +9,13 @@ from cryptography.fernet import Fernet
 from django.test import override_settings
 from django.urls import reverse
 
-from sentry.api.endpoints.seer_rpc import (
+from sentry.constants import ObjectStatus
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.seer.endpoints.seer_rpc import (
     generate_request_signature,
     get_github_enterprise_integration_config,
     get_organization_seer_consent_by_org_name,
 )
-from sentry.constants import ObjectStatus
-from sentry.models.options.organization_option import OrganizationOption
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options

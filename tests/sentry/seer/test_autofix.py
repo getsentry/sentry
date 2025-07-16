@@ -5,7 +5,7 @@ import orjson
 import pytest
 from django.contrib.auth.models import AnonymousUser
 
-from sentry.seer.autofix import (
+from sentry.seer.autofix.autofix import (
     TIMEOUT_SECONDS,
     _call_autofix,
     _convert_profile_to_execution_tree,

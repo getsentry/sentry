@@ -37,7 +37,7 @@ from sentry.search.utils import (
     parse_substatus_value,
     parse_user_value,
 )
-from sentry.seer.seer_utils import FixabilityScoreThresholds
+from sentry.seer.autofix.seer_utils import FixabilityScoreThresholds
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, PriorityLevel
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser

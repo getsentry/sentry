@@ -2,7 +2,7 @@ from datetime import datetime
 from unittest.mock import Mock, patch
 
 from sentry.autofix.utils import AutofixState, AutofixStatus, CodebaseState
-from sentry.seer.autofix import TIMEOUT_SECONDS
+from sentry.seer.autofix.autofix import TIMEOUT_SECONDS
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls

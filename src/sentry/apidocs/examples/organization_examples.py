@@ -1,6 +1,6 @@
 from drf_spectacular.utils import OpenApiExample
 
-from sentry.seer.seer_utils import AutofixAutomationTuningSettings
+from sentry.seer.autofix.seer_utils import AutofixAutomationTuningSettings
 
 ORG_ROLE_LIST = [
     {

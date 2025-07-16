@@ -8,7 +8,7 @@ from sentry import features, options
 from sentry.autofix.utils import SeerAutomationSource, is_seer_scanner_rate_limited
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
-from sentry.seer.issue_summary import get_issue_summary
+from sentry.seer.autofix.issue_summary import get_issue_summary
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 
 logger = logging.getLogger(__name__)

@@ -15,7 +15,7 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.group import Group
 from sentry.models.repository import Repository
-from sentry.seer.autofix import trigger_autofix
+from sentry.seer.autofix.autofix import trigger_autofix
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
