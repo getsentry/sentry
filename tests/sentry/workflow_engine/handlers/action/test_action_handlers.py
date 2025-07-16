@@ -3,7 +3,7 @@ from unittest import mock
 import pytest
 
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.issues.grouptype import MetricIssuePOC
+from sentry.incidents.grouptype import MetricIssue
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowEventData
@@ -48,8 +48,8 @@ class TestNotificationActionHandler(BaseWorkflowTest):
         "sentry.notifications.notification_action.registry.group_type_notification_registry.get"
     )
     def test_execute_metric_alert_type(self, mock_registry_get):
-        """Test that execute calls correct handler for MetricIssuePOC"""
-        self.detector.type = MetricIssuePOC.slug
+        """Test that execute calls correct handler for MetricIssue"""
+        self.detector.type = MetricIssue.slug
         self.detector.save()
 
         mock_handler = mock.Mock()
@@ -57,7 +57,7 @@ class TestNotificationActionHandler(BaseWorkflowTest):
 
         self.action.trigger(self.event_data, self.detector)
 
-        mock_registry_get.assert_called_once_with(MetricIssuePOC.slug)
+        mock_registry_get.assert_called_once_with(MetricIssue.slug)
         mock_handler.handle_workflow_action.assert_called_once_with(
             self.event_data, self.action, self.detector
         )

@@ -9,7 +9,6 @@ from sentry.issues.grouptype import (
     GroupCategory,
     GroupType,
     GroupTypeRegistry,
-    MetricIssuePOC,
     NoiseConfig,
     PerformanceGroupTypeDefaults,
     PerformanceNPlusOneGroupType,
@@ -180,7 +179,6 @@ class GroupRegistryTest(BaseGroupTypeTest):
 
         registry = GroupTypeRegistry()
         registry.add(UnreleasedGroupType)
-        registry.add(MetricIssuePOC)
         assert registry.get_visible(self.organization) == []
         with self.feature(UnreleasedGroupType.build_visible_feature_name()):
             assert registry.get_visible(self.organization) == [UnreleasedGroupType]
