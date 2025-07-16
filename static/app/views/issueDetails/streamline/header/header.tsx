@@ -85,9 +85,7 @@ export default function StreamlinedGroupHeader({
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
   ].includes(groupReprocessingStatus);
 
-  const isQueryInjection =
-    group.issueType === IssueType.DB_QUERY_INJECTION_VULNERABILITY ||
-    group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY;
+  const isQueryInjection = group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY;
   const openForm = useFeedbackForm();
   const feedbackButton = openForm ? (
     <Button

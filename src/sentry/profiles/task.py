@@ -101,15 +101,20 @@ profile_occurrences_producer = SingletonProducer(
 logger = logging.getLogger(__name__)
 
 
-def decode_payload(encoded: str) -> dict[str, Any]:
-    try:
-        res = msgpack.unpackb(zlib.decompress(b64decode(encoded.encode("utf-8"))), use_list=False)
-        metrics.incr("profiling.profile_metrics.decompress", tags={"status": "ok"})
-        return res
-    except Exception as e:
-        logger.exception("Failed to decompress compressed profile", extra={"error": e})
-        metrics.incr("profiling.profile_metrics.decompress", tags={"status": "err"})
-        raise
+def decode_payload(encoded: str, compressed_profile: bool) -> dict[str, Any]:
+    if compressed_profile:
+        try:
+            res = msgpack.unpackb(
+                zlib.decompress(b64decode(encoded.encode("utf-8"))), use_list=False
+            )
+            metrics.incr("profiling.profile_metrics.decompress", tags={"status": "ok"})
+            return res
+        except Exception as e:
+            logger.exception("Failed to decompress compressed profile", extra={"error": e})
+            metrics.incr("profiling.profile_metrics.decompress", tags={"status": "err"})
+            raise
+    else:
+        return msgpack.unpackb(b64decode(encoded.encode("utf-8")), use_list=False)
 
 
 def encode_payload(message: dict[str, Any]) -> str:
@@ -146,13 +151,14 @@ def process_profile_task(
     profile: Profile | None = None,
     payload: str | None = None,
     sampled: bool = True,
+    compressed_profile: bool = True,
     **kwargs: Any,
 ) -> None:
     if not sampled and not options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
         return
 
     if payload:
-        message_dict = decode_payload(payload)
+        message_dict = decode_payload(payload, compressed_profile)
 
         profile = json.loads(message_dict["payload"], use_rapid_json=True)
 
@@ -1360,9 +1366,8 @@ def _process_vroomrs_transaction_profile(profile: Profile) -> bool:
                 with sentry_sdk.start_span(op="processing", name="find occurrences"):
                     occurrences = prof.find_occurrences()
                     occurrences.filter_none_type_issues()
-                    occs = occurrences.occurrences
-                    if occs is not None and len(occs) > 0:
-                        payload = KafkaPayload(None, occurrences.to_json_str().encode("utf-8"), [])
+                    for occurrence in occurrences.occurrences:
+                        payload = KafkaPayload(None, occurrence.to_json_str().encode("utf-8"), [])
                         topic = ArroyoTopic(
                             get_topic_definition(Topic.INGEST_OCCURRENCES)["real_topic_name"]
                         )
