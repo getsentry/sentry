@@ -247,6 +247,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         assert self.queue_pool is not None
 
         def commit_offsets(offsets: dict[Partition, int]):
+            # We add + 1 here because the committed offset should represent the next offset to read from
             commit_data = {partition: offset + 1 for partition, offset in offsets.items()}
             commit(commit_data)
 
