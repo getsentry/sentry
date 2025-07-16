@@ -5,10 +5,13 @@ import {Switch} from 'sentry/components/core/switch';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
+  useLogsAnalyticsPageSource,
   useLogsAutoRefresh,
   useLogsGroupBy,
   useLogsRefreshInterval,
@@ -35,6 +38,8 @@ interface AutorefreshToggleProps {
 export function AutorefreshToggle({
   disabled: externallyDisabled,
 }: AutorefreshToggleProps) {
+  const organization = useOrganization();
+  const analyticsPageSource = useLogsAnalyticsPageSource();
   const checked = useLogsAutoRefresh();
   const setChecked = useSetLogsAutoRefresh();
   const sortBys = useLogsSortBys();
@@ -113,8 +118,17 @@ export function AutorefreshToggle({
     const timeSinceStart = Date.now() - intervalStartTime.current;
 
     // Check if we've exceeded the absolute max timeout
-    return timeSinceStart > ABSOLUTE_MAX_AUTO_REFRESH_TIME_MS;
-  }, []);
+    const hasTimedOut = timeSinceStart > ABSOLUTE_MAX_AUTO_REFRESH_TIME_MS;
+
+    if (hasTimedOut) {
+      trackAnalytics('logs.auto_refresh.timeout', {
+        organization,
+        page_source: analyticsPageSource,
+      });
+    }
+
+    return hasTimedOut;
+  }, [organization, analyticsPageSource]);
 
   // Our querying is currently at 5000 max logs per page, and our default refresh interval is 5 seconds.
   // This means each page if at it's max logs, we're getting 1000 logs per second.
@@ -273,11 +287,19 @@ export function AutorefreshToggle({
             }
             checked={checked}
             onChange={() => {
+              const newChecked = !checked;
+
+              trackAnalytics('logs.auto_refresh.toggled', {
+                enabled: newChecked,
+                organization,
+                page_source: analyticsPageSource,
+              });
+
               if (!checked) {
                 // When enabling auto-refresh, reset the disable reason
                 setDisableReason(undefined);
               }
-              setChecked(!checked);
+              setChecked(newChecked);
             }}
           />
         </Tooltip>
