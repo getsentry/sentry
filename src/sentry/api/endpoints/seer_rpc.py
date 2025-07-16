@@ -48,6 +48,7 @@ from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
@@ -64,6 +65,8 @@ from sentry.seer.fetch_issues.fetch_issues_given_exception_type import (
     get_latest_issue_event,
 )
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
+from sentry.sentry_apps.metrics import SentryAppEventType
+from sentry.sentry_apps.tasks.sentry_apps import send_resource_change_webhook
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
@@ -544,6 +547,76 @@ def get_github_enterprise_integration_config(
     }
 
 
+def send_seer_issue_ready_to_fix_webhook(
+    *,
+    group_id: int,
+    root_cause: dict[str, str],
+    solution: dict[str, str],
+) -> dict:
+    """
+    Send a seer.issue.ready_to_fix webhook event for a given group (issue).
+
+    Args:
+        group_id: The ID of the group/issue to send the webhook for
+        root_cause: Dict with 'content' and 'context' string fields
+        solution: Dict with 'content' and 'context' string fields
+
+    Returns:
+        dict: Status of the webhook sending operation
+    """
+    try:
+        # Validate required fields in root_cause and solution
+        for field_name, field_data in [("root_cause", root_cause), ("solution", solution)]:
+            if not isinstance(field_data, dict):
+                return {
+                    "success": False,
+                    "error": f"{field_name} must be a dictionary",
+                }
+            if "content" not in field_data or "context" not in field_data:
+                return {
+                    "success": False,
+                    "error": f"{field_name} must contain 'content' and 'context' fields",
+                }
+            if not isinstance(field_data["content"], str) or not isinstance(
+                field_data["context"], str
+            ):
+                return {
+                    "success": False,
+                    "error": f"{field_name} 'content' and 'context' must be strings",
+                }
+
+        # Build custom data payload
+        custom_data = {
+            "group_id": group_id,
+            "root_cause": {
+                "content": root_cause["content"],
+                "context": root_cause["context"],
+            },
+            "solution": {
+                "content": solution["content"],
+                "context": solution["context"],
+            },
+            "analysis_timestamp": datetime.utcnow().isoformat(),
+        }
+
+        # Send the webhook using the existing webhook infrastructure
+        send_resource_change_webhook.delay(
+            installation_id=None,  # Will be determined by the task based on subscriptions
+            event=SentryAppEventType.SEER_ISSUE_READY_TO_FIX,
+            data=custom_data,
+        )
+
+        return {
+            "success": True,
+            "message": f"Seer issue ready-to-fix webhook queued for group {group_id}",
+        }
+    except Group.DoesNotExist:
+        return {"success": False, "error": f"Group with ID {group_id} not found"}
+    except Exception as e:
+        logger.exception("Failed to send seer issue ready-to-fix webhook")
+        return {"success": False, "error": f"Failed to send webhook: {str(e)}"}
+
+
 seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_organization_slug": get_organization_slug,
     "get_organization_autofix_consent": get_organization_autofix_consent,
@@ -558,6 +631,7 @@ seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_attribute_values_with_substring": get_attribute_values_with_substring,
     "get_attributes_and_values": get_attributes_and_values,
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
+    "send_seer_issue_ready_to_fix_webhook": send_seer_issue_ready_to_fix_webhook,
 }
 
 
