@@ -4478,9 +4478,16 @@ describe('SearchQueryBuilder', function () {
 
     describe('user clicks on enable gen ai button', () => {
       it('calls promptsUpdate', async () => {
-        const organization = OrganizationFixture();
+        const organization = OrganizationFixture({
+          slug: 'org-slug',
+          features: ['gen-ai-features', 'gen-ai-explore-traces'],
+        });
+        const promptsUpdateMock = MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/prompts-activity/`,
+          method: 'PUT',
+        });
         MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/seer/setup-check/',
+          url: `/organizations/${organization.slug}/seer/setup-check/`,
           body: AutofixSetupFixture({
             setupAcknowledgement: {
               orgHasAcknowledged: false,
@@ -4489,21 +4496,15 @@ describe('SearchQueryBuilder', function () {
           }),
         });
 
-        const promptsUpdateMock = MockApiClient.addMockResponse({
-          url: `/organizations/${organization.slug}/prompts-activity/`,
-          method: 'PUT',
-        });
-
-        render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
-          organization: {features: ['gen-ai-features', 'gen-ai-explore-traces']},
-        });
+        render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {organization});
 
         await userEvent.click(getLastInput());
 
-        const enableAi = await screen.findByText(/Enable Gen AI/);
+        const enableAi = await screen.findByRole('option', {name: /Enable Gen AI/});
         expect(enableAi).toBeInTheDocument();
 
-        await userEvent.click(enableAi);
+        await userEvent.hover(enableAi);
+        await userEvent.keyboard('{enter}');
 
         await waitFor(() => {
           expect(promptsUpdateMock).toHaveBeenCalledWith(
