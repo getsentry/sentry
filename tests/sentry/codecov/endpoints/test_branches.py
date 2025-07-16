@@ -3,39 +3,33 @@ from unittest.mock import Mock, patch
 
 from django.urls import reverse
 
-from sentry.codecov.endpoints.Repositories.serializers import (
-    RepositoryNodeSerializer as NodeSerializer,
-)
+from sentry.codecov.endpoints.Branches.serializers import BranchNodeSerializer as NodeSerializer
 from sentry.testutils.cases import APITestCase
 
 mock_graphql_response_populated: dict[str, Any] = {
     "data": {
         "owner": {
-            "repositories": {
-                "edges": [
-                    {
-                        "node": {
-                            "name": "test-repo-one",
-                            "updatedAt": "2025-05-22T16:21:18.763951+00:00",
-                            "latestCommitAt": "2025-05-21T16:21:18.763951+00:00",
-                            "defaultBranch": "branch-one",
-                        }
+            "repository": {
+                "branches": {
+                    "edges": [
+                        {
+                            "node": {
+                                "name": "main",
+                            }
+                        },
+                        {
+                            "node": {
+                                "name": "random branch",
+                            }
+                        },
+                    ],
+                    "pageInfo": {
+                        "endCursor": "cursor123",
+                        "hasNextPage": False,
+                        "hasPreviousPage": False,
+                        "startCursor": None,
                     },
-                    {
-                        "node": {
-                            "name": "test-repo-one",
-                            "updatedAt": "2025-05-22T16:21:18.763951+00:00",
-                            "latestCommitAt": "2025-05-21T16:21:18.763951+00:00",
-                            "defaultBranch": "branch-one",
-                        }
-                    },
-                ],
-                "pageInfo": {
-                    "endCursor": "cursor123",
-                    "hasNextPage": False,
-                    "hasPreviousPage": False,
-                    "startCursor": None,
-                },
+                }
             }
         }
     }
@@ -44,32 +38,35 @@ mock_graphql_response_populated: dict[str, Any] = {
 mock_graphql_response_empty: dict[str, Any] = {
     "data": {
         "owner": {
-            "repositories": {
-                "edges": [],
+            "repository": {
+                "branches": {
+                    "edges": [],
+                }
             }
         }
     }
 }
 
 
-class RepositoriesEndpointTest(APITestCase):
-    endpoint = "sentry-api-0-repositories"
+class BranchesEndpointTest(APITestCase):
+    endpoint = "sentry-api-0-repository-branches"
 
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
 
-    def reverse_url(self, owner="testowner"):
+    def reverse_url(self, owner="testowner", repository="testrepo"):
         """Custom reverse URL method to handle required URL parameters"""
         return reverse(
             self.endpoint,
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "owner": owner,
+                "repository": repository,
             },
         )
 
-    @patch("sentry.codecov.endpoints.Repositories.repositories.CodecovApiClient")
+    @patch("sentry.codecov.endpoints.Branches.branches.CodecovApiClient")
     def test_get_returns_mock_response_with_default_variables(self, mock_codecov_client_class):
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
@@ -85,11 +82,10 @@ class RepositoriesEndpointTest(APITestCase):
         # Verify the correct variables are passed to the GraphQL query
         expected_variables = {
             "owner": "testowner",
+            "repo": "testrepo",
             "filters": {
-                "term": None,
+                "searchValue": None,
             },
-            "direction": "DESC",
-            "ordering": "COMMIT_DATE",
             "first": 50,
             "last": None,
             "after": None,
@@ -115,7 +111,7 @@ class RepositoriesEndpointTest(APITestCase):
             response_keys == serializer_fields
         ), f"Response keys {response_keys} don't match serializer fields {serializer_fields}"
 
-    @patch("sentry.codecov.endpoints.Repositories.repositories.CodecovApiClient")
+    @patch("sentry.codecov.endpoints.Branches.branches.CodecovApiClient")
     def test_get_with_query_parameters(self, mock_codecov_client_class):
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
@@ -133,11 +129,10 @@ class RepositoriesEndpointTest(APITestCase):
         # Verify the correct variables are passed with custom query parameters
         expected_variables = {
             "owner": "testowner",
+            "repo": "testrepo",
             "filters": {
-                "term": "search-term",
+                "searchValue": "search-term",
             },
-            "direction": "DESC",
-            "ordering": "COMMIT_DATE",
             "first": 3,
             "last": None,
             "after": None,
@@ -148,7 +143,7 @@ class RepositoriesEndpointTest(APITestCase):
         assert call_args[1]["variables"] == expected_variables
         assert response.status_code == 200
 
-    @patch("sentry.codecov.endpoints.Repositories.repositories.CodecovApiClient")
+    @patch("sentry.codecov.endpoints.Branches.branches.CodecovApiClient")
     def test_get_with_cursor_and_direction(self, mock_codecov_client_class):
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
@@ -162,15 +157,14 @@ class RepositoriesEndpointTest(APITestCase):
 
         expected_variables = {
             "owner": "testowner",
+            "repo": "testrepo",
             "filters": {
-                "term": None,
+                "searchValue": None,
             },
-            "direction": "DESC",
-            "ordering": "COMMIT_DATE",
             "first": None,
+            "after": None,
             "last": 10,
             "before": "cursor123",
-            "after": None,
         }
 
         call_args = mock_codecov_client_instance.query.call_args
