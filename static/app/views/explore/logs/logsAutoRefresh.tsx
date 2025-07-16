@@ -1,9 +1,17 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {
+  Fragment,
+  type ReactNode,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {Switch} from 'sentry/components/core/switch';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -26,17 +34,30 @@ import {
 
 const ABSOLUTE_MAX_AUTO_REFRESH_TIME_MS = 1000 * 60 * 10; // 10 minutes absolute max
 const CONSECUTIVE_PAGES_WITH_MORE_DATA = 3; // Number of consecutive requests with more data before disabling
+const MAX_LOGS_PER_SECOND = 100; // Rate limit for initial check
 
-type DisableReason = 'sort' | 'timeout' | 'rateLimit' | 'error';
+type DisableReason =
+  | 'sort'
+  | 'timeout'
+  | 'rateLimitInitial'
+  | 'rateLimitDuring'
+  | 'error'
+  | 'absoluteTime';
 
-const SWITCH_DISABLE_REASONS: DisableReason[] = ['sort'];
+const SWITCH_DISABLE_REASONS: DisableReason[] = [
+  'sort',
+  'rateLimitInitial',
+  'absoluteTime',
+];
 
 interface AutorefreshToggleProps {
+  averageLogsPerSecond?: number | null;
   disabled?: boolean;
 }
 
 export function AutorefreshToggle({
   disabled: externallyDisabled,
+  averageLogsPerSecond = 0,
 }: AutorefreshToggleProps) {
   const organization = useOrganization();
   const analyticsPageSource = useLogsAnalyticsPageSource();
@@ -65,9 +86,18 @@ export function AutorefreshToggle({
   const consecutivePagesWithMoreDataRef = useRef(0);
 
   const statsPeriod = selection.datetime.period;
+  const hasAbsoluteDates = selection.datetime.start && selection.datetime.end;
   const isDescendingTimeBasedSort = checkSortIsTimeBasedDescending(sortBys);
+  const isRateLimitedInitially =
+    averageLogsPerSecond !== null && averageLogsPerSecond > MAX_LOGS_PER_SECOND; // null indicates the data is not available yet (eg. loading)
+
   const enabled =
-    isDescendingTimeBasedSort && checked && defined(statsPeriod) && !externallyDisabled;
+    isDescendingTimeBasedSort &&
+    checked &&
+    defined(statsPeriod) &&
+    !hasAbsoluteDates &&
+    !externallyDisabled &&
+    !isRateLimitedInitially;
 
   // Disable auto-refresh if anything in the selection changes
   useEffect(() => {
@@ -90,6 +120,24 @@ export function AutorefreshToggle({
       setDisableReason(isDescendingTimeBasedSort ? undefined : 'sort');
     }
   }, [sortBysString, previousSortBysString, isDescendingTimeBasedSort]);
+
+  // Check for absolute time period
+  useEffect(() => {
+    if (hasAbsoluteDates && !statsPeriod) {
+      setDisableReason('absoluteTime');
+    } else if (disableReason === 'absoluteTime' && statsPeriod && !hasAbsoluteDates) {
+      setDisableReason(undefined);
+    }
+  }, [hasAbsoluteDates, statsPeriod, disableReason]);
+
+  // Check for initial rate limiting
+  useEffect(() => {
+    if (isRateLimitedInitially) {
+      setDisableReason('rateLimitInitial');
+    } else if (disableReason === 'rateLimitInitial' && !isRateLimitedInitially) {
+      setDisableReason(undefined);
+    }
+  }, [isRateLimitedInitially, disableReason]);
 
   // Disable auto-refresh when externally disabled
   useEffect(() => {
@@ -179,7 +227,7 @@ export function AutorefreshToggle({
 
     // Check rate limit using the pageResult we just fetched
     if (shouldDisableForRateLimit(previousPage)) {
-      setDisableReason('rateLimit');
+      setDisableReason('rateLimitDuring');
       setChecked(false);
       return;
     }
@@ -247,12 +295,19 @@ export function AutorefreshToggle({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, refreshInterval]);
 
-  const getTooltipMessage = (): string => {
+  const getTooltipMessage = (): ReactNode => {
     if (externallyDisabled) {
       return t('Auto-refresh is not available in the aggregates view.');
     }
     switch (disableReason) {
-      case 'rateLimit':
+      case 'rateLimitInitial':
+        return tct(
+          'Auto-refresh is disabled due to high data volume ([maxLogsPerSecond] logs per second). Try adding a filter to reduce the number of logs.',
+          {
+            maxLogsPerSecond: MAX_LOGS_PER_SECOND,
+          }
+        );
+      case 'rateLimitDuring':
         return t(
           'Auto-refresh was disabled due to high data volume. Try adding a filter to reduce the number of logs.'
         );
@@ -263,6 +318,10 @@ export function AutorefreshToggle({
       case 'error':
         return t(
           'Auto-refresh was disabled due to an error fetching logs. If the issue persists, please contact support.'
+        );
+      case 'absoluteTime':
+        return t(
+          'Auto-refresh is only supported when using a relative time period, not absolute dates.'
         );
       case 'sort':
       default:
