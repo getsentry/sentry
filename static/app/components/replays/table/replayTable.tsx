@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {ReplayTableColumn} from 'sentry/components/replays/table/replayTableColumns';
 import ReplayTableHeader from 'sentry/components/replays/table/replayTableHeader';
@@ -25,14 +24,12 @@ type Props = SortProps & {
   isPending: boolean;
   replays: ReplayListRecord[];
   showDropdownFilters: boolean;
-  onClickRow?: (props: {replay: ReplayListRecord; rowIndex: number}) => void;
 };
 
 export default function ReplayTable({
   columns,
   error,
   isPending,
-  onClickRow,
   onSortClick,
   replays,
   showDropdownFilters,
@@ -93,33 +90,23 @@ export default function ReplayTable({
       {replays.length === 0 && (
         <SimpleTable.Empty>{t('No replays found')}</SimpleTable.Empty>
       )}
-      {replays.map((replay, rowIndex) => {
-        const rows = columns.map((column, columnIndex) => (
-          <RowCell key={`${replay.id}-${column.sortKey}`}>
-            <column.Component
-              columnIndex={columnIndex}
-              replay={replay}
-              rowIndex={rowIndex}
-              showDropdownFilters={showDropdownFilters}
-            />
-          </RowCell>
-        ));
-        return (
-          <SimpleTable.Row
-            key={replay.id}
-            variant={replay.is_archived ? 'faded' : 'default'}
-          >
-            {onClickRow ? (
-              <RowContentButton as="div" onClick={() => onClickRow({replay, rowIndex})}>
-                <InteractionStateLayer />
-                {rows}
-              </RowContentButton>
-            ) : (
-              rows
-            )}
-          </SimpleTable.Row>
-        );
-      })}
+      {replays.map((replay, rowIndex) => (
+        <SimpleTable.Row
+          key={replay.id}
+          variant={replay.is_archived ? 'faded' : 'default'}
+        >
+          {columns.map((column, columnIndex) => (
+            <RowCell key={`${replay.id}-${column.sortKey}`}>
+              <column.Component
+                columnIndex={columnIndex}
+                replay={replay}
+                rowIndex={rowIndex}
+                showDropdownFilters={showDropdownFilters}
+              />
+            </RowCell>
+          ))}
+        </SimpleTable.Row>
+      ))}
     </StyledSimpleTable>
   );
 }
@@ -149,16 +136,6 @@ function getErrorMessage(fetchError: RequestError) {
     'This could be due to invalid search parameters or an internal systems error.'
   );
 }
-
-const RowContentButton = styled('button')`
-  display: contents;
-  cursor: pointer;
-
-  border: none;
-  background: transparent;
-  margin: 0;
-  padding: 0;
-`;
 
 const RowCell = styled(SimpleTable.RowCell)`
   position: relative;

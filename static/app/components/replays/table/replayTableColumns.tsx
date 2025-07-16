@@ -494,50 +494,48 @@ export const ReplaySessionColumn: ReplayTableColumn = {
       });
 
     return (
-      <Flex key="session" align="center" gap={space(1)}>
-        <UserAvatar
-          user={{
-            username: replay.user?.display_name || '',
-            email: replay.user?.email || '',
-            id: replay.user?.id || '',
-            ip_address: replay.user?.ip || '',
-            name: replay.user?.username || '',
-          }}
-          size={24}
-        />
-        <SubText>
-          <Flex gap={space(0.5)} align="flex-start">
-            <DisplayNameLink
-              data-underline-on-hover
-              to={
-                isIssuesReplayList
-                  ? // if on the issues replay list, don't redirect to the details tab. this causes URL flickering
-                    {
-                      pathname: location.pathname,
-                      query: location.query,
-                    }
-                  : detailsTab()
+      <CellLink
+        to={
+          isIssuesReplayList
+            ? // if on the issues replay list, don't redirect to the details tab. this causes URL flickering
+              {
+                pathname: location.pathname,
+                query: location.query,
               }
-              onClick={trackNavigationEvent}
-              data-has-viewed={replay.has_viewed}
-            >
-              {replay.user.display_name || t('Anonymous User')}
-            </DisplayNameLink>
-          </Flex>
-          <Flex gap={space(0.5)}>
-            {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
-            {project ? <ProjectAvatar size={12} project={project} /> : null}
-            {project ? project.slug : null}
-            <Link to={detailsTab()} onClick={trackNavigationEvent}>
-              {getShortEventId(replay.id)}
-            </Link>
-            <Flex gap={space(0.5)}>
-              <IconCalendar color="gray300" size="xs" />
-              <TimeSince date={replay.started_at} />
+            : detailsTab()
+        }
+        onClick={trackNavigationEvent}
+      >
+        <Flex key="session" align="center" gap={space(1)}>
+          <UserAvatar
+            user={{
+              username: replay.user?.display_name || '',
+              email: replay.user?.email || '',
+              id: replay.user?.id || '',
+              ip_address: replay.user?.ip || '',
+              name: replay.user?.username || '',
+            }}
+            size={24}
+          />
+          <SubText>
+            <Flex gap={space(0.5)} align="flex-start">
+              <DisplayName data-underline-on-hover>
+                {replay.user.display_name || t('Anonymous User')}
+              </DisplayName>
             </Flex>
-          </Flex>
-        </SubText>
-      </Flex>
+            <Flex gap={space(0.5)}>
+              {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
+              {project ? <ProjectAvatar size={12} project={project} /> : null}
+              {project ? <span>{project.slug}</span> : null}
+              <span>{getShortEventId(replay.id)}</span>
+              <Flex gap={space(0.5)}>
+                <IconCalendar color="gray300" size="xs" />
+                <TimeSince date={replay.started_at} />
+              </Flex>
+            </Flex>
+          </SubText>
+        </Flex>
+      </CellLink>
     );
   },
 };
@@ -584,6 +582,12 @@ const TabularNumber = styled('div')`
   font-variant-numeric: tabular-nums;
 `;
 
+const CellLink = styled(Link)`
+  margin: -${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.xl};
+  flex-grow: 1;
+`;
+
 const SubText = styled('div')`
   font-size: 0.875em;
   line-height: normal;
@@ -595,7 +599,7 @@ const SubText = styled('div')`
   align-items: flex-start;
 `;
 
-const DisplayNameLink = styled(Link)`
+const DisplayName = styled('span')`
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
