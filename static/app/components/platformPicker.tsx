@@ -9,9 +9,10 @@ import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingMask from 'sentry/components/loadingMask';
 import SearchBar from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import categoryList, {
+import {
   createablePlatforms,
   filterAliases,
+  getCategoryList,
 } from 'sentry/data/platformPickerCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconClose, IconProject} from 'sentry/icons';
@@ -40,7 +41,7 @@ function startsWithPunctuation(name: string) {
   return /^[\p{P}]/u.test(name);
 }
 
-export type Category = (typeof categoryList)[number]['id'];
+export type Category = ReturnType<typeof getCategoryList>[number]['id'];
 
 export type Platform = PlatformIntegration & {
   category: Category;
@@ -81,17 +82,21 @@ function PlatformPicker({
   showFilterBar = true,
   showOther = true,
 }: PlatformPickerProps) {
-  const [category, setCategory] = useState(defaultCategory ?? categoryList[0]!.id);
+  const categories = useMemo(() => {
+    return getCategoryList(organization);
+  }, [organization]);
+
+  const [category, setCategory] = useState(defaultCategory ?? categories[0]!.id);
   const [filter, setFilter] = useState(
     noAutoFilter ? '' : (platform || '').split('-')[0]!
   );
 
   useEffect(() => {
-    setCategory(defaultCategory ?? categoryList[0]!.id);
-  }, [defaultCategory]);
+    setCategory(defaultCategory ?? categories[0]!.id);
+  }, [defaultCategory, categories]);
 
   const platformList = useMemo(() => {
-    const currentCategory = categoryList.find(({id}) => id === category);
+    const currentCategory = categories.find(({id}) => id === category);
 
     const subsetMatch = (platformIntegration: PlatformIntegration) =>
       platformIntegration.id.includes(filter.toLowerCase()) ||
@@ -142,7 +147,7 @@ function PlatformPicker({
       }
       return a.name.localeCompare(b.name);
     });
-  }, [filter, category, organization?.features, showOther]);
+  }, [filter, category, organization?.features, showOther, categories]);
 
   const latestValuesRef = useRef({filter, platformList, source, organization});
 
@@ -186,7 +191,7 @@ function PlatformPicker({
             }}
           >
             <TabList>
-              {categoryList.map(({id, name}) => (
+              {categories.map(({id, name}) => (
                 <TabList.Item key={id}>{name}</TabList.Item>
               ))}
             </TabList>
