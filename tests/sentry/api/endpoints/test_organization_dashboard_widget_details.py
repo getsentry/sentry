@@ -16,7 +16,7 @@ from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 
-pytestmark = [requires_snuba]
+pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 ONDEMAND_FEATURES = [
     "organizations:on-demand-metrics-extraction",
     "organizations:on-demand-metrics-extraction-widgets",
@@ -1350,4 +1350,27 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             self.url(),
             data=data,
         )
+        assert response.status_code == 200, response.data
+
+    def test_can_save_metrics_enhanced_webvitals_total_score_widget(self):
+        data = {
+            "title": "Metrics Enhanced Web Vitals Total Score",
+            "displayType": "table",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": ['performance_score("measurements.score.total")'],
+                    "columns": [],
+                    "aggregates": ["performance_score(measurements.score.total)"],
+                },
+            ],
+            "widgetType": "transaction-like",
+        }
+        with self.feature("organizations:dashboards-mep"):
+            response = self.do_request(
+                "post",
+                self.url(),
+                data=data,
+            )
         assert response.status_code == 200, response.data

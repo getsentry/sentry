@@ -32,6 +32,7 @@ from sentry.models.organization import Organization
 from sentry.models.team import Team
 from sentry.relay.config.metric_extraction import get_current_widget_specs, widget_exceeds_max_specs
 from sentry.search.events.builder.discover import UnresolvedQuery
+from sentry.search.events.builder.metrics import UnresolvedQuery as MetricsUnresolvedQuery
 from sentry.search.events.fields import is_function
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
@@ -280,6 +281,8 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
                 },
                 use_aggregate_conditions=True,
             )
+            QueryBuilder = UnresolvedQuery
+            dataset = Dataset.Discover
             if self.context.get("widget_type") == DashboardWidgetTypes.get_type_name(
                 DashboardWidgetTypes.ERROR_EVENTS
             ):
@@ -288,8 +291,11 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
                 DashboardWidgetTypes.TRANSACTION_LIKE
             ):
                 config.has_metrics = use_metrics
-            builder = UnresolvedQuery(
-                dataset=Dataset.Discover,
+                if use_metrics:
+                    QueryBuilder = MetricsUnresolvedQuery
+                    dataset = Dataset.Metrics
+            builder = QueryBuilder(
+                dataset=dataset,
                 params=params,
                 config=config,
             )

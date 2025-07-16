@@ -2121,3 +2121,15 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
                 "data": list(time_map.values()),
                 "meta": [{"name": key, "type": value} for key, value in meta_dict.items()],
             }
+
+
+class UnresolvedQuery(MetricsQueryBuilder):
+    def resolve_query(
+        self,
+        query: str | None = None,
+        selected_columns: list[str] | None = None,
+        groupby_columns: list[str] | None = None,
+        equations: list[str] | None = None,
+        orderby: list[str] | str | None = None,
+    ) -> None:
+        pass
