@@ -8,7 +8,11 @@ from unittest.mock import ANY, MagicMock, patch
 import pytest
 
 from sentry import audit_log
-from sentry.conf.server import SENTRY_GROUPING_CONFIG_TRANSITION_DURATION
+from sentry.conf.server import (
+    DEFAULT_GROUPING_CONFIG,
+    LEGACY_GROUPING_CONFIG,
+    SENTRY_GROUPING_CONFIG_TRANSITION_DURATION,
+)
 from sentry.event_manager import _get_updated_group_title
 from sentry.eventtypes.base import DefaultEvent
 from sentry.grouping.api import get_grouping_config_dict_for_project
@@ -17,7 +21,6 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
-from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.pytest.fixtures import django_db_all

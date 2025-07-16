@@ -9,11 +9,11 @@ from django.conf import settings
 from django.core.cache import cache
 
 from sentry import audit_log, options
+from sentry.conf.server import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.locks import locks
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
-from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.utils import metrics
 from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.locking import UnableToAcquireLock
