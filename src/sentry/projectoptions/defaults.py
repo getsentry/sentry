@@ -1,3 +1,4 @@
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT
 from sentry.projectoptions import register
 from sentry.seer.seer_utils import AutofixAutomationTuningSettings
@@ -6,9 +7,6 @@ from sentry.seer.seer_utils import AutofixAutomationTuningSettings
 # The epoch of a project will determine what options are valid options for that specific project
 LATEST_EPOCH = 13
 
-LEGACY_GROUPING_CONFIG = "legacy:2019-03-12"
-DEFAULT_GROUPING_CONFIG = "newstyle:2023-01-11"
-BETA_GROUPING_CONFIG = ""
 register(key="sentry:grouping_config", default=DEFAULT_GROUPING_CONFIG)
 register(key="sentry:grouping_enhancements", default="")
 register(key="sentry:derived_grouping_enhancements", default="")
