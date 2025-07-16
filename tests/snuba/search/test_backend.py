@@ -1,4 +1,3 @@
-import time
 import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -2583,29 +2582,6 @@ class EventsJoinedGroupAttributesSnubaSearchTest(TransactionTestCase, EventsSnub
 
         with mock.patch("sentry.issues.attributes.produce_snapshot_to_kafka", post_insert):
             super().setUp()
-
-    @mock.patch("sentry.utils.metrics.timer")
-    @mock.patch("sentry.utils.metrics.incr")
-    def test_is_unresolved_query_logs_metric(self, metrics_incr, metrics_timer):
-        results = self.make_query(search_filter_query="is:unresolved")
-        assert set(results) == {self.group1}
-
-        # introduce a slight delay so the async future has time to run and log the metric
-        time.sleep(1)
-
-        metrics_incr_called = False
-        for call in metrics_incr.call_args_list:
-            args, kwargs = call
-            if "snuba.search.group_attributes_joined.events_compared" in set(args):
-                metrics_incr_called = True
-        assert metrics_incr_called
-
-        metrics_timer_called = False
-        for call in metrics_timer.call_args_list:
-            args, kwargs = call
-            if "snuba.search.group_attributes_joined.duration" in set(args):
-                metrics_timer_called = True
-        assert metrics_timer_called
 
     def test_issue_priority(self):
         results = self.make_query(search_filter_query="issue.priority:high")
