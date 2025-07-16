@@ -439,14 +439,8 @@ def process_workflows(
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.trigger_actions"):
         if should_trigger_actions:
             for action in actions:
-                if features.has(
-                    "organizations:workflow-engine-action-trigger-async",
-                    organization,
-                ):
-                    task_params = build_trigger_action_task_params(action, detector, event_data)
-                    trigger_action.delay(**task_params)
-                else:
-                    action.trigger(event_data, detector)
+                task_params = build_trigger_action_task_params(action, detector, event_data)
+                trigger_action.delay(**task_params)
         else:
             logger.info(
                 "workflow_engine.triggered_actions",
