@@ -590,7 +590,7 @@ describe('getOnDemandBudget', function () {
 });
 
 describe('trackOnDemandBudgetAnalytics', function () {
-  it('tracks LOG_BYTE budget in analytics when budget changes', function () {
+  it('tracks all budget categories in analytics when budget changes', function () {
     const organization = OrganizationFixture();
 
     const previousBudget: OnDemandBudgets = {
@@ -627,7 +627,13 @@ describe('trackOnDemandBudgetAnalytics', function () {
       'ondemand_budget_modal.ondemand_budget.update',
       expect.objectContaining({
         organization,
+        error_budget: 150,
+        transaction_budget: 250,
+        attachment_budget: 350,
         log_byte_budget: 500,
+        previous_error_budget: 100,
+        previous_transaction_budget: 200,
+        previous_attachment_budget: 300,
         previous_log_byte_budget: 400,
       })
     );
