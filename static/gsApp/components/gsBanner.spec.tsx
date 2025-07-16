@@ -2168,4 +2168,67 @@ describe('GSBanner Overage Alerts', function () {
       )
     ).toBe(false);
   });
+
+  it('shows see usage button for overages that are not strictly seat-based', async function () {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+      categories: {
+        monitorSeats: MetricHistoryFixture({usageExceeded: true}),
+        profileDuration: MetricHistoryFixture({usageExceeded: true}),
+      },
+      onDemandPeriodStart: '2025-01-01',
+      onDemandPeriodEnd: '2025-01-31',
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+
+    const {router} = render(<GSBanner organization={organization} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByTestId('overage-banner-monitorSeat-profileDuration')
+    ).toBeInTheDocument();
+
+    const seeUsageButton = await screen.findByRole('button', {name: 'See Usage'});
+    await userEvent.click(seeUsageButton);
+
+    expect(router.location).toEqual(
+      expect.objectContaining({
+        pathname: `/organizations/${organization.slug}/stats/`,
+        query: {
+          dataCategory: 'profileDuration',
+          pageStart: '2025-01-01',
+          pageEnd: '2025-01-31',
+          pageUtc: 'true',
+        },
+      })
+    );
+  });
+
+  it('does not show see usage button for overages that are strictly seat-based', async function () {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+      categories: {
+        monitorSeats: MetricHistoryFixture({usageExceeded: true}),
+        uptime: MetricHistoryFixture({usageExceeded: true}),
+      },
+      onDemandPeriodStart: '2025-01-01',
+      onDemandPeriodEnd: '2025-01-31',
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+
+    render(<GSBanner organization={organization} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByTestId('overage-banner-monitorSeat-uptime')
+    ).toBeInTheDocument();
+
+    expect(screen.queryByRole('button', {name: 'See Usage'})).not.toBeInTheDocument();
+  });
 });

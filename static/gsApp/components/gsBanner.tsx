@@ -902,14 +902,10 @@ class GSBanner extends Component<Props, State> {
         .map(([key, _]) => key as EventType);
 
       // Make an exception for when only seat-based categories have an overage to disable the See Usage button
-      strictlySeatOverage =
-        eventTypes.length <= 2 &&
-        every(eventTypes, eventType =>
-          [
-            DATA_CATEGORY_INFO.monitor_seat.singular as EventType,
-            DATA_CATEGORY_INFO.uptime.singular as EventType,
-          ].includes(eventType)
-        );
+      strictlySeatOverage = every(
+        eventTypes,
+        eventType => getCategoryInfoFromEventType(eventType)?.tallyType === 'seat'
+      );
 
       // Make an exception for when only crons has an overage to change the language to be more fitting and hide See Usage
       if (strictlySeatOverage) {
@@ -957,7 +953,7 @@ class GSBanner extends Component<Props, State> {
             {!strictlySeatOverage && (
               <LinkButton
                 size="xs"
-                to={`/organizations/${organization.slug}/stats/?dataCategory=${eventTypes[0]}s&pageStart=${subscription.onDemandPeriodStart}&pageEnd=${subscription.onDemandPeriodEnd}&pageUtc=true`}
+                to={`/organizations/${organization.slug}/stats/?dataCategory=${eventTypes.find(eventType => getCategoryInfoFromEventType(eventType)?.tallyType !== 'seat')}&pageStart=${subscription.onDemandPeriodStart}&pageEnd=${subscription.onDemandPeriodEnd}&pageUtc=true`}
                 onClick={() => {
                   trackGetsentryAnalytics('quota_alert.clicked_see_usage', {
                     organization,
