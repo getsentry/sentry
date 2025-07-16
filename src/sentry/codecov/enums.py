@@ -25,3 +25,8 @@ class MeasurementInterval(Enum):
     INTERVAL_30_DAY = "INTERVAL_30_DAY"
     INTERVAL_7_DAY = "INTERVAL_7_DAY"
     INTERVAL_1_DAY = "INTERVAL_1_DAY"
+
+
+class NavigationParameter(Enum):
+    NEXT = "next"
+    PREV = "prev"

@@ -236,12 +236,6 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         # tracking now is whether compression is on or not for the data column.
         flags = self.Flags(0)
 
-        metrics.distribution(
-            "storage.put.size",
-            len(value),
-            tags={"usecase": "nodestore", "compression": "none"},
-            unit="byte",
-        )
         if self.compression:
             compression_flag, strategy = self.compression_strategies[self.compression]
             flags |= compression_flag
