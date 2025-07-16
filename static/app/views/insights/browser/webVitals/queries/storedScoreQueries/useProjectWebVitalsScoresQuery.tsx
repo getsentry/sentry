@@ -5,7 +5,7 @@ import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/sett
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
+import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
   browserTypes?: BrowserType[];
@@ -31,10 +31,10 @@ export const useProjectWebVitalsScoresQuery = ({
     search.addFilterValue(tag.key, tag.name);
   }
   if (browserTypes) {
-    search.addDisjunctionFilterValues(SpanIndexedField.BROWSER_NAME, browserTypes);
+    search.addDisjunctionFilterValues(SpanFields.BROWSER_NAME, browserTypes);
   }
   if (subregions) {
-    search.addDisjunctionFilterValues(SpanIndexedField.USER_GEO_SUBREGION, subregions);
+    search.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
   }
 
   const result = useSpans(
