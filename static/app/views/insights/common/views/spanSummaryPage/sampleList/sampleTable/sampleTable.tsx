@@ -22,7 +22,7 @@ import type {
   SpanMetricsQueryFilters,
   SubregionCode,
 } from 'sentry/views/insights/types';
-import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
@@ -119,7 +119,7 @@ function SampleTable({
 
   const isTransactionsEnabled = Boolean(transactionIds.length);
 
-  const search = `${SpanIndexedField.TRANSACTION_SPAN_ID}:[${transactionIds.join(',')}] is_transaction:true`;
+  const search = `${SpanFields.TRANSACTION_SPAN_ID}:[${transactionIds.join(',')}] is_transaction:true`;
 
   const {
     data: transactions,
