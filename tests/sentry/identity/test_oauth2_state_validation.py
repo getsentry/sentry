@@ -9,7 +9,7 @@ from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlparse
 
 from django.contrib.sessions.middleware import SessionMiddleware
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.test import RequestFactory, TestCase
 
 import sentry.identity
@@ -42,7 +42,7 @@ class OAuth2LoginViewStateValidationTest(TestCase):
         request = self.factory.get(url)
         request.subdomain = None
         # Add session support
-        middleware = SessionMiddleware(lambda r: None)
+        middleware = SessionMiddleware(lambda r: HttpResponse())
         middleware.process_request(request)
         request.session.save()
         return request
