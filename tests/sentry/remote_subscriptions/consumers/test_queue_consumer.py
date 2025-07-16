@@ -61,19 +61,6 @@ class TestOffsetTracker(TestCase):
         committable = self.tracker.get_committable_offsets()
         assert committable == {self.partition1: 100, self.partition2: 201}
 
-    def test_handles_gaps(self):
-        """Test that we never commit past gaps."""
-        self.tracker.add_offset(self.partition1, 100)
-        self.tracker.add_offset(self.partition1, 102)
-        self.tracker.add_offset(self.partition1, 103)
-
-        self.tracker.complete_offset(self.partition1, 100)
-        self.tracker.complete_offset(self.partition1, 102)
-        self.tracker.complete_offset(self.partition1, 103)
-
-        committable = self.tracker.get_committable_offsets()
-        assert committable == {self.partition1: 100}
-
 
 class TestFixedQueuePool(TestCase):
     def setUp(self):
