@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("sentry", "0950_safe_del_dswaiver"),
-        ("workflow_engine", "0076_add_detector_group_table"),
+        ("workflow_engine", "0077_add_wfh_single_write_col"),
     ]
 
     operations = [
