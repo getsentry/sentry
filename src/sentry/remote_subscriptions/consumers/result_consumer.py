@@ -115,6 +115,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
     ) -> None:
         self.mode = mode
         metric_tags = {"identifier": self.identifier, "mode": self.mode}
+        self.result_processor = self.result_processor_cls()
         if mode == "batched-parallel":
             self.batched_parallel = True
             self.parallel_executor = ThreadPoolExecutor(max_workers=max_workers)
@@ -130,7 +131,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         if mode == "thread-queue-parallel":
             self.thread_queue_parallel = True
             self.queue_pool = FixedQueuePool(
-                result_processor=self.result_processor_cls(),
+                result_processor=self.result_processor,
                 identifier=self.identifier,
                 num_queues=max_workers or 20,  # Number of parallel queues
             )
@@ -149,8 +150,6 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
             self.input_block_size = input_block_size
         if output_block_size is not None:
             self.output_block_size = output_block_size
-
-        self.result_processor = self.result_processor_cls()
 
     @property
     @abc.abstractmethod
