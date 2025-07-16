@@ -19,6 +19,10 @@ from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
+from sentry.remote_subscriptions.consumers.queue_consumer import (
+    FixedQueuePool,
+    SimpleQueueProcessingStrategy,
+)
 from sentry.remote_subscriptions.models import BaseRemoteSubscription
 from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
@@ -89,13 +93,19 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
     Does the consumer process all messages in parallel.
     """
 
+    thread_queue_parallel = False
+    """
+    Does the consumer use thread-queue-parallel processing?
+    """
+
     multiprocessing_pool: MultiprocessingPool | None = None
+    queue_pool: FixedQueuePool | None = None
     input_block_size: int | None = None
     output_block_size: int | None = None
 
     def __init__(
         self,
-        mode: Literal["batched-parallel", "parallel", "serial"] = "serial",
+        mode: Literal["batched-parallel", "parallel", "serial", "thread-queue-parallel"] = "serial",
         max_batch_size: int | None = None,
         max_batch_time: int | None = None,
         max_workers: int | None = None,
@@ -117,6 +127,13 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
             if num_processes is None:
                 num_processes = multiprocessing.cpu_count()
             self.multiprocessing_pool = MultiprocessingPool(num_processes)
+        if mode == "thread-queue-parallel":
+            self.thread_queue_parallel = True
+            self.queue_pool = FixedQueuePool(
+                result_processor=self.result_processor_cls(),
+                identifier=self.identifier,
+                num_queues=max_workers or 20,  # Number of parallel queues
+            )
 
         metrics.incr(
             "remote_subscriptions.result_consumer.start",
@@ -164,6 +181,9 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
     def shutdown(self) -> None:
         if self.parallel_executor:
             self.parallel_executor.shutdown()
+        if self.queue_pool:
+            self.queue_pool.shutdown()
+            self.queue_pool = None
 
     def decode_payload(self, topic_for_codec, payload: KafkaPayload | FilteredPayload) -> T | None:
         assert not isinstance(payload, FilteredPayload)
@@ -187,6 +207,8 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
             return self.create_thread_parallel_worker(commit)
         if self.parallel:
             return self.create_multiprocess_worker(commit)
+        if self.thread_queue_parallel:
+            return self.create_thread_queue_parallel_worker(commit)
         else:
             return self.create_serial_worker(commit)
 
@@ -218,6 +240,22 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
             max_batch_size=self.max_batch_size,
             max_batch_time=self.max_batch_time,
             next_step=batch_processor,
+        )
+
+    def create_thread_queue_parallel_worker(
+        self, commit: Commit
+    ) -> ProcessingStrategy[KafkaPayload]:
+        assert self.queue_pool is not None
+
+        def commit_offsets(offsets: dict[Partition, int]):
+            commit_data = {partition: offset + 1 for partition, offset in offsets.items()}
+            commit(commit_data)
+
+        return SimpleQueueProcessingStrategy(
+            queue_pool=self.queue_pool,
+            decoder=partial(self.decode_payload, self.topic_for_codec),
+            grouping_fn=self.build_payload_grouping_key,
+            commit_function=commit_offsets,
         )
 
     def partition_message_batch(self, message: Message[ValuesBatch[KafkaPayload]]) -> list[list[T]]:
