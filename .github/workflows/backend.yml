@@ -229,9 +229,9 @@ jobs:
 
       - name: check requirements
         run: |
-          python -S -m tools.freeze_requirements
+          uv sync
           if ! git diff --exit-code; then
-            echo $'\n\nrun `make freeze-requirements` locally to update requirements'
+            echo $'\n\nrun `uv sync` locally to update requirements'
             exit 1
           fi
       - name: apply any requirements changes

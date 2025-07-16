@@ -3,9 +3,6 @@ all: develop
 
 WEBPACK := pnpm run build-acceptance
 
-freeze-requirements:
-	@python3 -S -m tools.freeze_requirements
-
 bootstrap:
 	@echo "devenv bootstrap is typically run on new machines."
 	@echo "you probably want to run devenv sync to bring the"

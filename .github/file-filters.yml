@@ -36,7 +36,7 @@ frontend_all: &frontend_all
 
 # Also used in `getsentry-dispatch.yml` to dispatch backend tests on getsentry
 backend_dependencies: &backend_dependencies
-  - 'requirements-*.txt'
+  - 'pyproject.toml'
 
 backend_build_changes: &backend_build_changes
   - '.github/workflows/backend.yml'
