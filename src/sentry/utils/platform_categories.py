@@ -158,7 +158,7 @@ DESKTOP = {
     "unreal",
 }
 
-GAME = {
+GAMING = {
     "godot",
     "native",
     "nintendo-switch",
@@ -175,7 +175,7 @@ CATEGORY_LIST = [
     {id: "mobile", "name": _("Mobile"), "platforms": MOBILE},
     {id: "desktop", "name": _("Desktop"), "platforms": DESKTOP},
     {id: "serverless", "name": _("Serverless"), "platforms": SERVERLESS},
-    {id: "game", "name": _("Game"), "platforms": GAME},
+    {id: "gaming", "name": _("Gaming"), "platforms": GAMING},
 ]
 
 # Mirrors `const sourceMaps` in sentry/static/app/data/platformCategories.tsx
