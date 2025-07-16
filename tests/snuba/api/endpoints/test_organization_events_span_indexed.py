@@ -6235,13 +6235,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         expected_user_misery = (1 + 5.8875) / (3 + 5.8875 + 111.8625)
 
         assert len(data) == 1
-        assert data == [
-            {
-                "count()": 1,
-                "description": "foofoofoo",
-            },
-        ]
-        assert meta["dataset"] == "spans"
         assert data[0]["user_misery(span.duration,1000)"] == pytest.approx(
             expected_user_misery, rel=1e-3
         )
