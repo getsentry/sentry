@@ -7,6 +7,7 @@ import {
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -41,6 +42,7 @@ const rightAlignColumns = new Set([
 ]);
 
 export function McpResourcesTable() {
+  const organization = useOrganization();
   const query = useCombinedQuery(`span.op:mcp.server has:${SpanFields.MCP_RESOURCE_URI}`);
   const tableDataRequest = useSpanTableData({
     query,
@@ -56,18 +58,34 @@ export function McpResourcesTable() {
     referrer: MCPReferrer.MCP_RESOURCE_TABLE,
   });
 
-  const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
-    return (
-      <HeadSortCell
-        sortKey={column.key}
-        align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
-        forceCellGrow={column.key === SpanFields.MCP_RESOURCE_URI}
-        cursorParamName="tableCursor"
-      >
-        {column.name}
-      </HeadSortCell>
-    );
-  }, []);
+  const handleSort = useCallback(
+    (column: string, direction: 'asc' | 'desc') => {
+      trackAnalytics('mcp-monitoring.column-sort', {
+        organization,
+        table: 'resources',
+        column,
+        direction,
+      });
+    },
+    [organization]
+  );
+
+  const renderHeadCell = useCallback(
+    (column: GridColumnHeader<string>) => {
+      return (
+        <HeadSortCell
+          sortKey={column.key}
+          align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
+          forceCellGrow={column.key === SpanFields.MCP_RESOURCE_URI}
+          cursorParamName="tableCursor"
+          onClick={handleSort}
+        >
+          {column.name}
+        </HeadSortCell>
+      );
+    },
+    [handleSort]
+  );
 
   const renderBodyCell = useCallback(
     (
