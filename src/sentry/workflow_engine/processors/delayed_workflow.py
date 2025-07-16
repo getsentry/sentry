@@ -65,7 +65,6 @@ from sentry.workflow_engine.processors.workflow import (
 )
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.tasks.actions import build_trigger_action_task_params, trigger_action
-from sentry.workflow_engine.tasks.utils import retry_timeouts
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 from sentry.workflow_engine.utils import log_context
 
@@ -794,8 +793,7 @@ def repr_keys[T, V](d: dict[T, V]) -> dict[str, V]:
         ),
     ),
 )
-@retry
-@retry_timeouts
+@retry(timeouts=True)
 @log_context.root()
 def process_delayed_workflows(
     project_id: int, batch_key: str | None = None, *args: Any, **kwargs: Any
