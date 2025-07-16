@@ -1,12 +1,4 @@
-import {
-  Fragment,
-  type ReactNode,
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import {Fragment, type ReactNode, useCallback, useEffect, useRef, useState} from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {Switch} from 'sentry/components/core/switch';
