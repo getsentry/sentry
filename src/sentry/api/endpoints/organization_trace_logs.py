@@ -90,7 +90,7 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
             offset,
             limit,
             Referrer.API_TRACE_VIEW_LOGS.value,
-            SearchResolverConfig(),
+            SearchResolverConfig(use_aggregate_conditions=False),
         )
         return results
 

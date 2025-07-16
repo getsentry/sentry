@@ -577,6 +577,11 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                             disable_aggregate_extrapolation="disableAggregateExtrapolation"
                             in request.GET,
                         )
+                    elif scoped_dataset == ourlogs:
+                        # ourlogs doesn't have use aggregate conditions
+                        config = SearchResolverConfig(
+                            use_aggregate_conditions=False,
+                        )
                     else:
                         config = SearchResolverConfig(
                             use_aggregate_conditions=use_aggregate_conditions,

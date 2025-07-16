@@ -73,7 +73,7 @@ def _get_logs_for_event(
         offset=0,
         limit=100,
         referrer=Referrer.API_GROUP_AI_AUTOFIX,
-        config=SearchResolverConfig(),
+        config=SearchResolverConfig(use_aggregate_conditions=False),
     )
     data = results["data"]
 
