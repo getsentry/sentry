@@ -110,7 +110,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   trace_item_fid: t('First Input Delay'),
   trace_item_cls: t('Cumulative Layout Shift'),
   eap_metrics: t('Span Metrics'),
-  trace_item_logs: t('Custom Metrics'),
+  trace_item_logs: t('Log Metrics'),
   crons_monitor: t('Cron Monitor'),
 };
 
