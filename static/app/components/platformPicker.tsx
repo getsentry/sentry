@@ -94,10 +94,10 @@ function PlatformPicker({
     const currentCategory = categoryList.find(({id}) => id === category);
 
     const subsetMatch = (platformIntegration: PlatformIntegration) =>
-      platformIntegration.id.includes(filter.toLocaleLowerCase()) ||
-      platformIntegration.name.toLowerCase().includes(filter.toLocaleLowerCase()) ||
+      platformIntegration.id.includes(filter.toLowerCase()) ||
+      platformIntegration.name.toLowerCase().includes(filter.toLowerCase()) ||
       filterAliases[platformIntegration.id]?.some(alias =>
-        alias.includes(filter.toLocaleLowerCase())
+        alias.includes(filter.toLowerCase())
       );
 
     const categoryMatch = (platformIntegration: PlatformIntegration) => {
@@ -119,7 +119,7 @@ function PlatformPicker({
     // 'other' is not part of the createablePlatforms list, therefore it won't be included in the filtered list
     const filtered = tempSelectablePlatforms.filter(filter ? subsetMatch : categoryMatch);
 
-    if (showOther && filter.toLocaleLowerCase() === 'other') {
+    if (showOther && filter.toLowerCase() === 'other') {
       // We only show 'Other' if users click on the 'Other' suggestion rendered in the not found state or type this word in the search bar
       return [otherPlatform];
     }
