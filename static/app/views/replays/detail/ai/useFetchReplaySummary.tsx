@@ -217,7 +217,7 @@ function asLogMessage(payload: BreadcrumbFrame | SpanFrame): string | null {
       case EventType.UI_FOCUS:
         return `User returned to tab at ${timestamp}.`;
       case EventType.FEEDBACK:
-        return 'User submitted feedback:';
+        return `User submitted feedback: ${payload.message} at ${timestamp}`;
       case EventType.MUTATIONS:
         return null;
       case EventType.HYDRATION_ERROR:
