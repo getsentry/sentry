@@ -34,12 +34,13 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 
 // const USER_INTERACTION_CATEGORY = 'user.action';
 const ISSUE_CATEGORY = 'issue';
+const HEIGHT = 60;
 
 type Frame = BreadcrumbFrame | SpanFrame;
 
 // Helper function to create stacked area chart data from chapter frames
 function createStackedChartData({
-  bucketCount: _,
+  bucketCount: _bucketCount,
   durationMs,
   startTimestampMs,
   frames,
@@ -136,7 +137,7 @@ function getGroupedCategories(frame: BreadcrumbFrame | SpanFrame) {
 export default function ReplayTimelineOrLoader() {
   const {replay} = useReplayContext();
   if (!replay) {
-    return <Placeholder height="48px" />;
+    return <Placeholder height={`${HEIGHT}px`} />;
   }
   return <ReplayTimeline replay={replay} />;
 }
@@ -366,7 +367,7 @@ function ReplayTimeline({replay}: {replay: ReplayReader}) {
   };
   const navigationSeries = {
     type: 'scatter' as const,
-    singleAxisIndex: 0,
+    singleAxisIndex: 1,
     coordinateSystem: 'singleAxis',
     showSymbol: true,
     // silent: true,
@@ -415,7 +416,7 @@ function ReplayTimeline({replay}: {replay: ReplayReader}) {
   const issueSeries = {
     type: 'scatter' as const,
     // silent: true,
-    singleAxisIndex: 1,
+    singleAxisIndex: 2,
     coordinateSystem: 'singleAxis',
     showSymbol: true,
     // tooltip: {show: false},
@@ -631,7 +632,7 @@ function ReplayTimeline({replay}: {replay: ReplayReader}) {
         <div>
           <BaseChart
             ref={handleChartRef}
-            height={48}
+            height={HEIGHT}
             tooltip={{
               trigger: 'item',
               appendToBody: true,
