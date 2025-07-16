@@ -3488,3 +3488,11 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Enable experimental message parameterization in grouping.
+register(
+    "grouping.experimental_parameterization",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

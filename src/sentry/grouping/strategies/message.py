@@ -12,6 +12,7 @@ from sentry.grouping.strategies.base import (
     strategy,
 )
 from sentry.interfaces.message import Message
+from sentry.options.rollout import in_rollout_group
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
@@ -51,7 +52,10 @@ def normalize_message_for_grouping(message: str, event: Event) -> str:
     if trimmed != message:
         trimmed += "..."
 
-    parameterizer = Parameterizer(regex_pattern_keys=REGEX_PATTERN_KEYS)
+    parameterizer = Parameterizer(
+        regex_pattern_keys=REGEX_PATTERN_KEYS,
+        experimental=in_rollout_group("grouping.experimental_parameterization", event.project_id),
+    )
 
     normalized = parameterizer.parameterize_all(trimmed)
 
