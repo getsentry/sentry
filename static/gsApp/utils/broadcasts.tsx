@@ -1,4 +1,4 @@
-import platformCategories from 'sentry/data/platformPickerCategories';
+import {getCategoryList} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 
 export const REGIONCHOICES = [
@@ -14,7 +14,7 @@ const exposedPlatformCategoriesSet = new Set([
   'serverless',
 ]);
 
-export const platformOptions = platformCategories()
+export const platformOptions = getCategoryList()
   .filter(({id}) => exposedPlatformCategoriesSet.has(id))
   .map(({name, platforms: platformKeys}) => ({
     label: name,
