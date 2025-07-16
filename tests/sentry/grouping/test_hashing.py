@@ -68,7 +68,7 @@ class SecondaryGroupingTest(TestCase):
         project.update_option("sentry:secondary_grouping_config", NO_MSG_PARAM_CONFIG)
         project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
 
-        # Switching to newstyle grouping changes the hash because now '123' will be parametrized
+        # Switching to default grouping changes the hash because now '123' will be parametrized
         event2 = save_new_event({"message": "Dogs are great! 1121"}, project)
 
         # Make sure that events did get into same group because of secondary grouping, not because
@@ -136,8 +136,8 @@ class SecondaryGroupingTest(TestCase):
         project.update_option("sentry:secondary_grouping_config", NO_MSG_PARAM_CONFIG)
         project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
 
-        # Include a number so the two configs will produce different hashes (since the new config
-        # will parameterize the number and the legacy config won't)
+        # Include a number so the two configs will produce different hashes (since the default
+        # config will parameterize the number but NO_MSG_PARAM_CONFIG won't)
         event = save_new_event({"message": "Dogs are great! 1121"}, project)
         assert event.group_id
 
@@ -163,11 +163,11 @@ class SecondaryGroupingTest(TestCase):
         project = self.project
         project.update_option("sentry:grouping_config", NO_MSG_PARAM_CONFIG)
 
-        # Include a number so the two configs will produce different hashes (since the new config
-        # will parameterize the number and the legacy config won't)
+        # Include a number so the two configs will produce different hashes (since the default
+        # config will parameterize the number but NO_MSG_PARAM_CONFIG won't)
         event1 = save_new_event({"message": "Dogs are great! 1231"}, project)
-        legacy_config_hash = event1.get_primary_hash()
-        assert set(GroupHash.objects.all().values_list("hash", flat=True)) == {legacy_config_hash}
+        no_msg_param_hash = event1.get_primary_hash()
+        assert set(GroupHash.objects.all().values_list("hash", flat=True)) == {no_msg_param_hash}
 
         # Update the project's grouping config and set it in transition
         project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
@@ -177,7 +177,7 @@ class SecondaryGroupingTest(TestCase):
         with (
             patch(
                 "sentry.grouping.ingest.hashing._calculate_secondary_hashes",
-                return_value=[legacy_config_hash, "new_legacy_hash_value"],
+                return_value=[no_msg_param_hash, "additional_secondary_hash_value"],
             ),
             patch(
                 "sentry.event_manager.get_or_create_grouphashes", wraps=get_or_create_grouphashes
@@ -185,18 +185,18 @@ class SecondaryGroupingTest(TestCase):
         ):
             event2 = save_new_event({"message": "Dogs are great! 1231"}, project)
             default_config_hash = event2.get_primary_hash()
-            assert legacy_config_hash != default_config_hash
+            assert no_msg_param_hash != default_config_hash
 
             # Even though `get_or_create_grouphashes` was called for secondary grouping, no
-            # grouphash was created for the new secondary hash "new_legacy_hash_value"
+            # grouphash was created for the new secondary hash "additional_secondary_hash_value"
             get_or_create_grouphashes_spy.assert_any_call(
                 event2,
                 project,
                 {},
-                [legacy_config_hash, "new_legacy_hash_value"],
+                [no_msg_param_hash, "additional_secondary_hash_value"],
                 NO_MSG_PARAM_CONFIG,
             )
             assert set(GroupHash.objects.all().values_list("hash", flat=True)) == {
-                legacy_config_hash,
+                no_msg_param_hash,
                 default_config_hash,
             }

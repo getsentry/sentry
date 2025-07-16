@@ -103,16 +103,17 @@ class GroupHashMetadataTest(TestCase):
 
         project.update_option("sentry:grouping_config", NO_MSG_PARAM_CONFIG)
 
-        # Ensure the legacy grouphash doesn't have metadata added when it's created as the primary
-        # grouphash, so we can test how the metadata code handles it when it's a seconary grouphash
+        # Ensure the older grouphash doesn't have metadata added when it's created as the primary
+        # grouphash, so we can test how the metadata code handles it when that same grouphash comes
+        # up as a secondary grouphash
         with override_options({"grouping.grouphash_metadata.ingestion_writes_enabled": False}):
             event1 = save_new_event(
                 {"message": "Dogs are great! 1231", "platform": "python"}, self.project
             )
-            legacy_config_grouphash = GroupHash.objects.filter(
+            older_config_grouphash = GroupHash.objects.filter(
                 project=self.project, hash=event1.get_primary_hash()
             ).first()
-            assert legacy_config_grouphash and not legacy_config_grouphash.metadata
+            assert older_config_grouphash and not older_config_grouphash.metadata
 
         # Update the project's grouping config, and set it in transition mode
         project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
@@ -125,19 +126,20 @@ class GroupHashMetadataTest(TestCase):
         default_config_grouphash = GroupHash.objects.filter(
             project=self.project, hash=event2.get_primary_hash()
         ).first()
-        # The events should end up in the same group, but their hashes should be different, because
-        # the legacy config won't parameterize the number in the message, while the new one will
+        # The events should end up in the same group, but their hashes should be different (because
+        # NO_MSG_PARAM_CONFIG won't parameterize the number in the message, while the default config
+        # will)
         assert event1.group_id == event2.group_id
         assert (
             default_config_grouphash
-            and default_config_grouphash.hash != legacy_config_grouphash.hash
+            and default_config_grouphash.hash != older_config_grouphash.hash
         )
 
         # This time metadata was added
-        legacy_config_grouphash.refresh_from_db()
-        assert legacy_config_grouphash.metadata
+        older_config_grouphash.refresh_from_db()
+        assert older_config_grouphash.metadata
         self.assert_metadata_values(
-            legacy_config_grouphash,
+            older_config_grouphash,
             {
                 "schema_version": GROUPHASH_METADATA_SCHEMA_VERSION,
                 "latest_grouping_config": NO_MSG_PARAM_CONFIG,
@@ -145,8 +147,8 @@ class GroupHashMetadataTest(TestCase):
             },
         )
         # No hash basis or hashing metadata because secondary grouphashes don't come with variants
-        assert legacy_config_grouphash.metadata.hash_basis is None
-        assert legacy_config_grouphash.metadata.hashing_metadata is None
+        assert older_config_grouphash.metadata.hash_basis is None
+        assert older_config_grouphash.metadata.hashing_metadata is None
 
     @override_options({"grouping.grouphash_metadata.backfill_sample_rate": 1.0})
     @patch("sentry.grouping.ingest.grouphash_metadata.metrics.incr")

@@ -379,7 +379,8 @@ def test_existing_group_new_hash_exists(
     project = default_project
     event_data = {"message": "testing, testing, 123"}
 
-    # Set the stage by creating a group tied to the new hash (and possibly the legacy hash as well)
+    # Set the stage by creating a group tied to the new hash (and, depending on the value of
+    # `secondary_hash_exists`, a secondary hash tied to the same group as well)
     if secondary_hash_exists:
         existing_event_with_secondary_hash = save_event_with_grouping_config(
             event_data, project, NO_MSG_PARAM_CONFIG
