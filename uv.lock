@@ -2395,6 +2395,16 @@ dependencies = [
     { name = "zstandard" },
 ]
 
+[package.optional-dependencies]
+getsentry = [
+    { name = "avalara" },
+    { name = "iso3166" },
+    { name = "pycountry" },
+    { name = "pyvat" },
+    { name = "reportlab" },
+    { name = "stripe" },
+]
+
 [package.dev-dependencies]
 dev = [
     { name = "black" },
@@ -2459,6 +2469,7 @@ requires-dist = [
     { name = "asgiref", specifier = "==3.8.1" },
     { name = "attrs", specifier = "==24.2.0" },
     { name = "avalara", specifier = "==20.9.0" },
+    { name = "avalara", marker = "extra == 'getsentry'", specifier = "==20.9.0" },
     { name = "beautifulsoup4", specifier = "==4.7.1" },
     { name = "billiard", specifier = "==4.2.1" },
     { name = "boto3", specifier = "==1.34.128" },
@@ -2517,6 +2528,7 @@ requires-dist = [
     { name = "idna", specifier = "==3.7" },
     { name = "inflection", specifier = "==0.5.1" },
     { name = "iso3166", specifier = "==2.1.1" },
+    { name = "iso3166", marker = "extra == 'getsentry'", specifier = ">=2.1.1" },
     { name = "isodate", specifier = "==0.6.1" },
     { name = "jmespath", specifier = "==0.10.0" },
     { name = "jsonschema", specifier = "==4.20.0" },
@@ -2544,6 +2556,7 @@ requires-dist = [
     { name = "pyasn1", specifier = "==0.4.5" },
     { name = "pyasn1-modules", specifier = "==0.2.4" },
     { name = "pycountry", specifier = "==17.5.14" },
+    { name = "pycountry", marker = "extra == 'getsentry'", specifier = "==17.5.14" },
     { name = "pycparser", specifier = "==2.21" },
     { name = "pydantic", specifier = "==1.10.20" },
     { name = "pyjwt", specifier = "==2.4.0" },
@@ -2554,6 +2567,7 @@ requires-dist = [
     { name = "python3-saml", specifier = "==1.15.0" },
     { name = "pyuwsgi", specifier = "==2.0.28.post1" },
     { name = "pyvat", specifier = "==1.3.15" },
+    { name = "pyvat", marker = "extra == 'getsentry'", specifier = "==1.3.15" },
     { name = "pyyaml", specifier = "==6.0.2" },
     { name = "rb", specifier = "==1.10.0" },
     { name = "redis", specifier = "==3.4.1" },
@@ -2561,6 +2575,7 @@ requires-dist = [
     { name = "referencing", specifier = "==0.30.2" },
     { name = "regex", specifier = "==2022.9.13" },
     { name = "reportlab", specifier = "==4.4.0" },
+    { name = "reportlab", marker = "extra == 'getsentry'", specifier = "==4.4.0" },
     { name = "requests", specifier = "==2.32.3" },
     { name = "requests-file", specifier = "==2.1.0" },
     { name = "requests-oauthlib", specifier = "==1.2.0" },
@@ -2588,6 +2603,7 @@ requires-dist = [
     { name = "sqlparse", specifier = "==0.5.0" },
     { name = "statsd", specifier = "==3.3.0" },
     { name = "stripe", specifier = "==6.7.0" },
+    { name = "stripe", marker = "extra == 'getsentry'", specifier = "==6.7.0" },
     { name = "structlog", specifier = "==22.1.0" },
     { name = "symbolic", specifier = "==12.14.1" },
     { name = "tiktoken", specifier = "==0.8.0" },
@@ -2606,6 +2622,7 @@ requires-dist = [
     { name = "xmlsec", specifier = "==1.3.14" },
     { name = "zstandard", specifier = "==0.18.0" },
 ]
+provides-extras = ["getsentry"]
 
 [package.metadata.requires-dev]
 dev = [
