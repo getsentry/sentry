@@ -8,6 +8,7 @@ from sentry.silo.base import SiloLimit, SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import test_tasks
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 
 
@@ -125,12 +126,13 @@ def test_exclude_exception_retry(capture_exception):
     }
 )
 @patch("sentry.tasks.base.metrics.distribution")
+@freeze_time("2025-01-01 00:00:00")  # so size of params isn't impacted by current time.
 def test_capture_payload_metrics(mock_distribution):
     region_task.apply_async(args=("bruh",))
 
     mock_distribution.assert_called_once_with(
         "celery.task.parameter_bytes",
-        71,
+        66,
         tags={"taskname": "test.tasks.test_base.region_task"},
         sample_rate=1.0,
     )
