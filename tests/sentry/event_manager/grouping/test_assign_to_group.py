@@ -7,6 +7,7 @@ from unittest import mock
 
 import pytest
 
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.event_manager import _create_group
 from sentry.eventstore.models import Event
 from sentry.grouping.ingest.hashing import (
@@ -17,7 +18,6 @@ from sentry.grouping.ingest.hashing import (
 from sentry.grouping.ingest.metrics import record_hash_calculation_metrics
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
-from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.pytest.mocking import capture_results

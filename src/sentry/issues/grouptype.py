@@ -193,6 +193,8 @@ class GroupType:
     # New issue category mapping (under the organizations:issue-taxonomy flag)
     # When GA'd, the original `category` will be removed and this will be renamed to `category`.
     category_v2: int
+    # Allows delayed creation of issues for this group type until the issue is seen `noise_config.ignore_limit` times.
+    # Then a new issue is created, ignoring past events.
     noise_config: NoiseConfig | None = None
     default_priority: int = PriorityLevel.MEDIUM
     # If True this group type should be released everywhere. If False, fall back to features to
@@ -218,7 +220,9 @@ class GroupType:
         registry.add(cls)
 
         if not cls.released:
-            features.add(cls.build_visible_feature_name(), OrganizationFeature, True)
+            features.add(
+                cls.build_visible_feature_name(), OrganizationFeature, True, api_expose=True
+            )
             features.add(cls.build_ingest_feature_name(), OrganizationFeature, True)
             features.add(cls.build_post_process_group_feature_name(), OrganizationFeature, True)
 

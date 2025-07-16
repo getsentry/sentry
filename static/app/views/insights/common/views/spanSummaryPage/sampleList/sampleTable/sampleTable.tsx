@@ -11,10 +11,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {SamplesTableColumnHeader} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
 import {SpanSamplesTable} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
-import {
-  useDiscoverOrEap,
-  useSpanMetrics,
-} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpanMetrics, useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {
   NonDefaultSpanSampleFields,
   SpanSample,
@@ -25,7 +22,7 @@ import type {
   SpanMetricsQueryFilters,
   SubregionCode,
 } from 'sentry/views/insights/types';
-import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
@@ -122,14 +119,14 @@ function SampleTable({
 
   const isTransactionsEnabled = Boolean(transactionIds.length);
 
-  const search = `${SpanIndexedField.TRANSACTION_SPAN_ID}:[${transactionIds.join(',')}] is_transaction:true`;
+  const search = `${SpanFields.TRANSACTION_SPAN_ID}:[${transactionIds.join(',')}] is_transaction:true`;
 
   const {
     data: transactions,
     isFetching: isFetchingTransactions,
     isPending: isLoadingTransactions,
     error: transactionError,
-  } = useDiscoverOrEap(
+  } = useSpans(
     {
       search,
       enabled: isTransactionsEnabled,

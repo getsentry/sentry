@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
+import {TooltipContext} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayCurrentScreen from 'sentry/components/replays/replayCurrentScreen';
@@ -119,63 +120,65 @@ export default function ReplayPreviewPlayer({
         </LinkButton>
       </HeaderWrapper>
       <PreviewPlayerContainer ref={fullscreenRef} isSidebarOpen={isSidebarOpen}>
-        <PlayerBreadcrumbContainer>
-          <PlayerContextContainer>
-            {isFullscreen ? (
-              <ContextContainer>
-                {isVideoReplay ? <ReplayCurrentScreen /> : <ReplayCurrentUrl />}
-                <BrowserOSIcons />
-                <ReplaySidebarToggleButton
-                  isOpen={isSidebarOpen}
-                  setIsOpen={setIsSidebarOpen}
+        <TooltipContext value={{container: fullscreenRef.current}}>
+          <PlayerBreadcrumbContainer>
+            <PlayerContextContainer>
+              {isFullscreen ? (
+                <ContextContainer>
+                  {isVideoReplay ? <ReplayCurrentScreen /> : <ReplayCurrentUrl />}
+                  <BrowserOSIcons />
+                  <ReplaySidebarToggleButton
+                    isOpen={isSidebarOpen}
+                    setIsOpen={setIsSidebarOpen}
+                  />
+                </ContextContainer>
+              ) : null}
+              <StaticPanel>
+                <ReplayPlayer overlayContent={overlayContent} isPreview />
+              </StaticPanel>
+            </PlayerContextContainer>
+            {isFullscreen && isSidebarOpen ? <Breadcrumbs /> : null}
+          </PlayerBreadcrumbContainer>
+          <ErrorBoundary mini>
+            <ButtonGrid>
+              {showNextAndPrevious && (
+                <Button
+                  size="sm"
+                  title={t('Previous Clip')}
+                  icon={<IconPrevious />}
+                  onClick={() => handleBackClick?.()}
+                  aria-label={t('Previous Clip')}
+                  disabled={!handleBackClick}
+                  analyticsEventName="Replay Preview Player: Clicked Previous Clip"
+                  analyticsEventKey="replay_preview_player.clicked_previous_clip"
                 />
-              </ContextContainer>
-            ) : null}
-            <StaticPanel>
-              <ReplayPlayer overlayContent={overlayContent} isPreview />
-            </StaticPanel>
-          </PlayerContextContainer>
-          {isFullscreen && isSidebarOpen ? <Breadcrumbs /> : null}
-        </PlayerBreadcrumbContainer>
-        <ErrorBoundary mini>
-          <ButtonGrid>
-            {showNextAndPrevious && (
-              <Button
-                size="sm"
-                title={t('Previous Clip')}
-                icon={<IconPrevious />}
-                onClick={() => handleBackClick?.()}
-                aria-label={t('Previous Clip')}
-                disabled={!handleBackClick}
-                analyticsEventName="Replay Preview Player: Clicked Previous Clip"
-                analyticsEventKey="replay_preview_player.clicked_previous_clip"
+              )}
+              <ReplayPlayPauseButton
+                analyticsEventName="Replay Preview Player: Clicked Play/Plause Clip"
+                analyticsEventKey="replay_preview_player.clicked_play_pause_clip"
+                priority={
+                  playPausePriority ?? (isFinished || isPlaying ? 'primary' : 'default')
+                }
               />
-            )}
-            <ReplayPlayPauseButton
-              analyticsEventName="Replay Preview Player: Clicked Play/Plause Clip"
-              analyticsEventKey="replay_preview_player.clicked_play_pause_clip"
-              priority={
-                playPausePriority ?? (isFinished || isPlaying ? 'primary' : 'default')
-              }
-            />
-            {showNextAndPrevious && (
-              <Button
-                size="sm"
-                title={t('Next Clip')}
-                icon={<IconNext />}
-                onClick={() => handleForwardClick?.()}
-                aria-label={t('Next Clip')}
-                disabled={!handleForwardClick}
-                analyticsEventName="Replay Preview Player: Clicked Next Clip"
-                analyticsEventKey="replay_preview_player.clicked_next_clip"
-              />
-            )}
-            <Container>
-              <TimeAndScrubberGrid />
-            </Container>
-            <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />
-          </ButtonGrid>
-        </ErrorBoundary>
+              {showNextAndPrevious && (
+                <Button
+                  size="sm"
+                  title={t('Next Clip')}
+                  icon={<IconNext />}
+                  onClick={() => handleForwardClick?.()}
+                  aria-label={t('Next Clip')}
+                  disabled={!handleForwardClick}
+                  analyticsEventName="Replay Preview Player: Clicked Next Clip"
+                  analyticsEventKey="replay_preview_player.clicked_next_clip"
+                />
+              )}
+              <Container>
+                <TimeAndScrubberGrid />
+              </Container>
+              <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />
+            </ButtonGrid>
+          </ErrorBoundary>
+        </TooltipContext>
       </PreviewPlayerContainer>
     </PlayerPanel>
   );
@@ -186,7 +189,6 @@ const PlayerPanel = styled('div')`
   gap: ${space(1)};
   flex-direction: column;
   flex-grow: 1;
-  overflow: hidden;
   height: 100%;
 `;
 
@@ -194,7 +196,13 @@ const PlayerBreadcrumbContainer = styled(FluidHeight)`
   position: relative;
 `;
 
-const PreviewPlayerContainer = styled(FluidHeight)<{isSidebarOpen: boolean}>`
+const PreviewPlayerContainer = styled('div')<{isSidebarOpen: boolean}>`
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  flex-grow: 1;
+  height: 100%;
+
   gap: ${space(2)};
   background: ${p => p.theme.background};
 

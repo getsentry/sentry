@@ -91,6 +91,7 @@ export function NewDetectorLayout({
       environment: (location.query.environment as string | undefined) || '',
       name: (location.query.name as string | undefined) || '',
       owner: (location.query.owner as string | undefined) || '',
+      workflowIds: [],
       ...config.getInitialFormData(),
     };
   }, [

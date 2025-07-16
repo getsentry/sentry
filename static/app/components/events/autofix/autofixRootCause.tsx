@@ -253,7 +253,7 @@ function AutofixRootCauseDisplay({
               <IconChat size="xs" />
             </ChatButton>
           </HeaderText>
-          <ButtonBar>
+          <ButtonBar gap="none">
             <CopyRootCauseButton cause={cause} />
           </ButtonBar>
         </HeaderWrapper>
