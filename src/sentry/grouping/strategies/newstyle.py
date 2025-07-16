@@ -296,7 +296,7 @@ def get_function_component(
     interface=Frame,
 )
 def frame(
-    interface: Frame, event: Event, context: GroupingContext, **meta: Any
+    interface: Frame, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
     frame = interface
     platform = frame.platform or event.platform
@@ -392,25 +392,27 @@ def get_contextline_component(
     if not line:
         return ContextLineGroupingComponent()
 
-    component = ContextLineGroupingComponent(values=[line])
+    context_line_component = ContextLineGroupingComponent(values=[line])
     if line:
         if len(frame.context_line) > 120:
-            component.update(hint="discarded because line too long", contributes=False)
+            context_line_component.update(hint="discarded because line too long", contributes=False)
         elif get_behavior_family_for_platform(platform) == "javascript":
             if context["with_context_line_file_origin_bug"]:
                 if has_url_origin(frame.abs_path, allow_file_origin=True):
-                    component.update(hint="discarded because from URL origin", contributes=False)
+                    context_line_component.update(
+                        hint="discarded because from URL origin", contributes=False
+                    )
             elif not function and has_url_origin(frame.abs_path):
-                component.update(
+                context_line_component.update(
                     hint="discarded because from URL origin and no function", contributes=False
                 )
 
-    return component
+    return context_line_component
 
 
 @strategy(ids=["stacktrace:v1"], interface=Stacktrace, score=1800)
 def stacktrace(
-    interface: Stacktrace, event: Event, context: GroupingContext, **meta: Any
+    interface: Stacktrace, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
     assert context["variant"] is None
 
@@ -420,12 +422,12 @@ def stacktrace(
         interface,
         event=event,
         context=context,
-        meta=meta,
+        kwargs=kwargs,
     )
 
 
 def _single_stacktrace_variant(
-    stacktrace: Stacktrace, event: Event, context: GroupingContext, meta: dict[str, Any]
+    stacktrace: Stacktrace, event: Event, context: GroupingContext, kwargs: dict[str, Any]
 ) -> ReturnedVariants:
     variant_name = context["variant"]
 
@@ -433,13 +435,13 @@ def _single_stacktrace_variant(
 
     frame_components = []
     prev_frame = None
-    frames_for_filtering = []
+    raw_frames = []
     found_in_app_frame = False
 
     for frame in frames:
         with context:
             context["is_recursion"] = is_recursive_frames(frame, prev_frame)
-            frame_component = context.get_single_grouping_component(frame, event=event, **meta)
+            frame_component = context.get_single_grouping_component(frame, event=event, **kwargs)
 
         if variant_name == "app":
             if frame.in_app:
@@ -448,7 +450,7 @@ def _single_stacktrace_variant(
                 frame_component.update(contributes=False)
 
         frame_components.append(frame_component)
-        frames_for_filtering.append(frame.get_raw_data())
+        raw_frames.append(frame.get_raw_data())
         prev_frame = frame
 
     # Special case for JavaScript where we want to ignore single frame
@@ -468,7 +470,7 @@ def _single_stacktrace_variant(
     stacktrace_component = context.config.enhancements.assemble_stacktrace_component(
         variant_name,
         frame_components,
-        frames_for_filtering,
+        raw_frames,
         event.platform,
         exception_data=context["exception_data"],
     )
@@ -498,7 +500,7 @@ def _single_stacktrace_variant(
 
 @stacktrace.variant_processor
 def stacktrace_variant_processor(
-    variants: ReturnedVariants, context: GroupingContext, **meta: Any
+    variants: ReturnedVariants, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
     return remove_non_stacktrace_variants(variants)
 
@@ -508,7 +510,7 @@ def stacktrace_variant_processor(
     interface=SingleException,
 )
 def single_exception(
-    interface: SingleException, event: Event, context: GroupingContext, **meta: Any
+    interface: SingleException, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
     exception = interface
 
@@ -541,7 +543,7 @@ def single_exception(
             context["exception_data"] = exception.to_json()
             stacktrace_components_by_variant: dict[str, StacktraceGroupingComponent] = (
                 context.get_grouping_components_by_variant(
-                    exception.stacktrace, event=event, **meta
+                    exception.stacktrace, event=event, **kwargs
                 )
             )
     else:
@@ -602,14 +604,14 @@ def single_exception(
 
 @strategy(ids=["chained-exception:v1"], interface=ChainedException, score=2000)
 def chained_exception(
-    interface: ChainedException, event: Event, context: GroupingContext, **meta: Any
+    interface: ChainedException, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
     # Get all the exceptions to consider.
     all_exceptions = interface.exceptions()
 
     # For each exception, create a dictionary of grouping components by variant name
     exception_components_by_exception = {
-        id(exception): context.get_grouping_components_by_variant(exception, event=event, **meta)
+        id(exception): context.get_grouping_components_by_variant(exception, event=event, **kwargs)
         for exception in all_exceptions
     }
 
@@ -733,9 +735,10 @@ def filter_exceptions_for_exception_groups(
         node = exception_tree.get(exception_id)
         return node.children if node else []
 
-    # This recursive generator gets the "top-level exceptions," and is used below.
-    # Top-level exceptions are those that are the first descendants of the root that are not exception groups.
-    # For examples, see https://github.com/getsentry/rfcs/blob/main/text/0079-exception-groups.md#sentry-issue-grouping
+    # This recursive generator gets the "top-level exceptions," and is used below. Top-level
+    # exceptions are those that are the direct descendants of an exception group that are not
+    # themselves exception groups. For examples, see
+    # https://github.com/getsentry/rfcs/blob/main/text/0079-exception-groups.md#sentry-issue-grouping
     def get_top_level_exceptions(
         exception: SingleException,
     ) -> Generator[SingleException]:
@@ -747,15 +750,16 @@ def filter_exceptions_for_exception_groups(
         else:
             yield exception
 
-    # This recursive generator gets the "first-path" of exceptions, and is used below.
-    # The first path follows from the root to a leaf node, but only following the first child of each node.
+    # This recursive generator gets the "first-path" of exceptions, and is used below. The first
+    # path follows from the root to a leaf node, but only following the first child of each node.
     def get_first_path(exception: SingleException) -> Generator[SingleException]:
         yield exception
         children = get_child_exceptions(exception)
         if children:
             yield from get_first_path(children[0])
 
-    # Traverse the tree recursively from the root exception to get all "top-level exceptions" and sort for consistency.
+    # Traverse the tree recursively from the root exception to get all "top-level exceptions" (see
+    # `get_top_level_exceptions` above) and sort by exception type for consistency.
     top_level_exceptions = []
     root_node = exception_tree.get(0)
     if root_node and root_node.exception:
@@ -801,26 +805,26 @@ def filter_exceptions_for_exception_groups(
 
 @chained_exception.variant_processor
 def chained_exception_variant_processor(
-    variants: ReturnedVariants, context: GroupingContext, **meta: Any
+    variants: ReturnedVariants, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
     return remove_non_stacktrace_variants(variants)
 
 
 @strategy(ids=["threads:v1"], interface=Threads, score=1900)
 def threads(
-    interface: Threads, event: Event, context: GroupingContext, **meta: Any
+    interface: Threads, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
     crashed_threads = [thread for thread in interface.values if thread.get("crashed")]
-    thread_variants = _filtered_threads(crashed_threads, event, context, meta)
+    thread_variants = _filtered_threads(crashed_threads, event, context, **kwargs)
     if thread_variants is not None:
         return thread_variants
 
     current_threads = [thread for thread in interface.values if thread.get("current")]
-    thread_variants = _filtered_threads(current_threads, event, context, meta)
+    thread_variants = _filtered_threads(current_threads, event, context, **kwargs)
     if thread_variants is not None:
         return thread_variants
 
-    thread_variants = _filtered_threads(interface.values, event, context, meta)
+    thread_variants = _filtered_threads(interface.values, event, context, **kwargs)
     if thread_variants is not None:
         return thread_variants
 
@@ -838,7 +842,7 @@ def threads(
 
 
 def _filtered_threads(
-    threads: list[dict[str, Any]], event: Event, context: GroupingContext, meta: dict[str, Any]
+    threads: list[dict[str, Any]], event: Event, context: GroupingContext, **kwargs: dict[str, Any]
 ) -> ReturnedVariants | None:
     if len(threads) != 1:
         return None
@@ -850,7 +854,7 @@ def _filtered_threads(
     thread_components_by_variant = {}
 
     for variant_name, stacktrace_component in context.get_grouping_components_by_variant(
-        stacktrace, event=event, **meta
+        stacktrace, event=event, **kwargs
     ).items():
         thread_components_by_variant[variant_name] = ThreadsGroupingComponent(
             values=[stacktrace_component], frame_counts=stacktrace_component.frame_counts
@@ -861,7 +865,7 @@ def _filtered_threads(
 
 @threads.variant_processor
 def threads_variant_processor(
-    variants: ReturnedVariants, context: GroupingContext, **meta: Any
+    variants: ReturnedVariants, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
     return remove_non_stacktrace_variants(variants)
 

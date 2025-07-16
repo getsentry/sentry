@@ -324,7 +324,7 @@ function ConfirmModal({
         {makeConfirmMessage()}
       </Body>
       <Footer>
-        <ButtonBar gap={2}>
+        <ButtonBar gap="xl">
           {renderCancelButton ? (
             renderCancelButton({
               closeModal,

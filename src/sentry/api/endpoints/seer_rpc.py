@@ -40,6 +40,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.organization_trace_item_attributes import as_attribute_key
+from sentry.constants import ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT
+from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.integrations.services.integration import integration_service
@@ -207,6 +209,7 @@ def get_organization_autofix_consent(*, org_id: int) -> dict:
     }
 
 
+# Used by the seer GH app to check for permissions before posting to an org
 def get_organization_seer_consent_by_org_name(
     *, org_name: str, provider: str = "github"
 ) -> dict[str, bool]:
@@ -219,10 +222,17 @@ def get_organization_seer_consent_by_org_name(
             org = Organization.objects.get(id=org_integration.organization_id)
             seer_org_acknowledgement = get_seer_org_acknowledgement(org_id=org.id)
             github_extension_enabled = org.id in options.get("github-extension.enabled-orgs")
+            pr_review_test_generation_enabled = bool(
+                org.get_option(
+                    "sentry:enable_pr_review_test_generation",
+                    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+                )
+            )
 
-            if seer_org_acknowledgement or github_extension_enabled:
+            if (
+                seer_org_acknowledgement or github_extension_enabled
+            ) and pr_review_test_generation_enabled:
                 return {"consent": True}
-
         except Organization.DoesNotExist:
             continue
 
@@ -455,16 +465,36 @@ def get_attributes_and_values(
     )
     rpc_response = snuba_rpc.trace_item_stats_rpc(rpc_request)
 
-    attributes_and_values = [
-        {
-            attribute.attribute_name: [
-                {"value": value.label, "count": value.value} for value in attribute.buckets
-            ]
-        }
-        for result in rpc_response.results
-        for attribute in result.attribute_distributions.attributes
-        if attribute.buckets
-    ]
+    resolver = SearchResolver(
+        params=SnubaParams(
+            start=start,
+            end=end,
+        ),
+        config=SearchResolverConfig(),
+        definitions=SPAN_DEFINITIONS,
+    )
+
+    attributes_and_values: dict[str, list[dict[str, Any]]] = {}
+    for result in rpc_response.results:
+        for attribute in result.attribute_distributions.attributes:
+            try:
+                resolved_attribute, _ = resolver.resolve_attribute(attribute.attribute_name)
+                attribute_name = resolved_attribute.public_alias
+            except InvalidSearchQuery:
+                attribute_name = attribute.attribute_name
+
+            if attribute.buckets:
+                if attribute_name not in attributes_and_values:
+                    attributes_and_values[attribute_name] = []
+                attributes_and_values[attribute_name].extend(
+                    [
+                        {
+                            "value": value.label,
+                            "count": value.value,
+                        }
+                        for value in attribute.buckets
+                    ]
+                )
 
     return {"attributes_and_values": attributes_and_values}
 

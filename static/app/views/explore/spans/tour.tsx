@@ -1,5 +1,5 @@
 import {createContext, useContext, useEffect, useRef} from 'react';
-import {css} from '@emotion/react';
+import {css, ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import exploreSpansTourSvg from 'sentry-images/spot/explore-spans-tour.svg';
@@ -10,6 +10,7 @@ import type {TourContextType} from 'sentry/components/tours/tourContext';
 import {useAssistant, useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import {useIsNavTourActive} from 'sentry/views/nav/tour/tour';
 
 export const enum ExploreSpansTour {
@@ -51,41 +52,42 @@ function ExploreSpansTourModal({
   handleDismissTour,
   handleStartTour,
 }: ExploreSpansTourModalProps) {
+  const invertedTheme = useInvertedTheme();
+
   return (
-    <TourContainer>
-      <ModalImage src={exploreSpansTourSvg} />
-      <TextContainer>
-        <Title>{t('How to Query')}</Title>
-        <Header>{t('Debug Like a Pro')}</Header>
-        <Description>
-          {t(
-            'Aggregate and visualize metrics with your span data in this new query builder. You’ll be able to drill into the exact problems causing your infra bills to spike and your users to grimace.'
-          )}
-        </Description>
-        <Footer>
-          <TextTourAction
-            size="sm"
-            onClick={() => {
-              handleDismissTour();
-              closeModal();
-            }}
-            borderless
-          >
-            {t('Maybe later')}
-          </TextTourAction>
-          <TourAction
-            size="sm"
-            onClick={() => {
-              handleStartTour();
-              closeModal();
-            }}
-            autoFocus
-          >
-            {t('Take a tour')}
-          </TourAction>
-        </Footer>
-      </TextContainer>
-    </TourContainer>
+    <ThemeProvider theme={invertedTheme}>
+      <TourContainer>
+        <ModalImage src={exploreSpansTourSvg} />
+        <TextContainer>
+          <Title>{t('How to Query')}</Title>
+          <Header>{t('Debug Like a Pro')}</Header>
+          <Description>
+            {t(
+              'Aggregate and visualize metrics with your span data in this new query builder. You’ll be able to drill into the exact problems causing your infra bills to spike and your users to grimace.'
+            )}
+          </Description>
+          <Footer>
+            <TextTourAction
+              onClick={() => {
+                handleDismissTour();
+                closeModal();
+              }}
+            >
+              {t('Maybe later')}
+            </TextTourAction>
+            <TourAction
+              onClick={() => {
+                handleStartTour();
+                closeModal();
+              }}
+              autoFocus
+            >
+              {t('Take a tour')}
+            </TourAction>
+          </Footer>
+        </TextContainer>
+      </TourContainer>
+    </ThemeProvider>
   );
 }
 
@@ -160,7 +162,7 @@ const TourContainer = styled('div')`
     margin: -${space(4)};
   }
   border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.tour.background};
+  background: ${p => p.theme.tokens.background.primary};
   overflow: hidden;
 `;
 
@@ -178,21 +180,20 @@ const TextContainer = styled('div')`
 `;
 
 const Title = styled('div')`
-  color: ${p => p.theme.tour.header};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const Header = styled('div')`
-  color: ${p => p.theme.tour.header};
+  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.headerFontSize};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const Description = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.white};
-  opacity: 0.8;
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const Footer = styled('div')`
@@ -204,4 +205,7 @@ const Footer = styled('div')`
 
 const navTourModalCss = css`
   width: 545px;
+  [role='document'] {
+    box-shadow: none;
+  }
 `;

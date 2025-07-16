@@ -35,10 +35,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
-import {
-  useSpanMetrics,
-  useSpansIndexed,
-} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpanMetrics, useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useTopNSpanMetricsSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {
@@ -252,17 +249,17 @@ export function HTTPSamplesPanel() {
     isFetching: isResponseCodeSamplesDataFetching,
     error: responseCodeSamplesDataError,
     refetch: refetchResponseCodeSpanSamples,
-  } = useSpansIndexed(
+  } = useSpans(
     {
       search,
       fields: [
-        SpanIndexedField.PROJECT,
-        SpanIndexedField.TRACE,
-        SpanIndexedField.TRANSACTION_SPAN_ID,
-        SpanIndexedField.SPAN_ID,
-        SpanIndexedField.TIMESTAMP,
-        SpanIndexedField.SPAN_DESCRIPTION,
-        SpanIndexedField.RESPONSE_CODE,
+        SpanFields.PROJECT,
+        SpanFields.TRACE,
+        SpanFields.TRANSACTION_SPAN_ID,
+        SpanFields.SPAN_ID,
+        SpanFields.TIMESTAMP,
+        SpanFields.SPAN_DESCRIPTION,
+        SpanFields.RESPONSE_CODE,
       ],
       sorts: [SPAN_SAMPLES_SORT],
       limit: SPAN_SAMPLE_LIMIT,
