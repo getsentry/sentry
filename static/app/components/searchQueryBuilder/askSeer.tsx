@@ -6,16 +6,12 @@ import type {ComboBoxState} from '@react-stately/combobox';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {makeOrganizationSeerSetupQueryKey} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import {
-  setupCheckQueryKey,
-  useSeerAcknowledgeMutation,
-} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
+import {setupCheckQueryKey} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useIsFetching, useIsMutating} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -24,10 +20,8 @@ export const ASK_SEER_ITEM_KEY = 'ask_seer';
 export const ASK_SEER_CONSENT_ITEM_KEY = 'ask_seer_consent';
 
 function AskSeerConsentOption<T>({state}: {state: ComboBoxState<T>}) {
-  const organization = useOrganization();
   const itemRef = useRef<HTMLDivElement>(null);
   const [optionDisableOverride, setOptionDisableOverride] = useState(false);
-  const {mutate: seerAcknowledgeMutate} = useSeerAcknowledgeMutation();
 
   const {optionProps, labelProps, isFocused, isPressed} = useOption(
     {
@@ -41,28 +35,15 @@ function AskSeerConsentOption<T>({state}: {state: ComboBoxState<T>}) {
     itemRef
   );
 
-  const handleClick = () => {
-    trackAnalytics('trace.explorer.ai_query_interface', {
-      organization,
-      action: 'consent_accepted',
-    });
-    seerAcknowledgeMutate();
-  };
-
   return (
-    <AskSeerListItem
-      ref={itemRef}
-      onClick={handleClick}
-      {...optionProps}
-      justifyContent="space-between"
-    >
+    <AskSeerListItem ref={itemRef} {...optionProps} justifyContent="space-between">
       <InteractionStateLayer isHovered={isFocused} isPressed={isPressed} />
-      <div style={{display: 'flex', alignItems: 'center', gap: space(1)}}>
+      <AskSeerConsentLabelWrapper>
         <IconSeer />
         <AskSeerLabel {...labelProps}>
           {t('Enable Gen AI')} <FeatureBadge type="beta" />
         </AskSeerLabel>
-      </div>
+      </AskSeerConsentLabelWrapper>
       <SeerConsentText>
         {tct(
           'Query assistant requires Generative AI which is subject to our [dataProcessingPolicy:data processing policy].',
@@ -188,7 +169,7 @@ const AskSeerListItem = styled('div')<{justifyContent?: 'flex-start' | 'space-be
   display: flex;
   align-items: center;
   width: 100%;
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   background: transparent;
   border-radius: 0;
   background-color: none;
@@ -198,7 +179,7 @@ const AskSeerListItem = styled('div')<{justifyContent?: 'flex-start' | 'space-be
   font-weight: ${p => p.theme.fontWeight.bold};
   text-align: left;
   justify-content: ${p => p.justifyContent ?? 'flex-start'};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   list-style: none;
   margin: 0;
 
@@ -220,6 +201,12 @@ const AskSeerLabel = styled('span')<{width?: 'auto'}>`
   font-weight: ${p => p.theme.fontWeight.bold};
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   width: ${p => p.width};
+`;
+
+const AskSeerConsentLabelWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.md};
 `;
