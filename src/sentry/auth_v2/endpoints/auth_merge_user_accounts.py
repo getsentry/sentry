@@ -17,7 +17,7 @@ from sentry.users.models.user_merge_verification_code import UserMergeVerificati
 
 class AuthMergeUserAccountsValidator(serializers.Serializer):
     verification_code = serializers.CharField(required=True)
-    ids_to_merge = serializers.ListField(required=True)
+    ids_to_merge = serializers.ListField(child=serializers.IntegerField(), required=True)
 
 
 @control_silo_endpoint
