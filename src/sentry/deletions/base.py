@@ -214,10 +214,8 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
         remaining = self.chunk_size
 
         while remaining > 0:
-            queryset = getattr(self.model, self.manager_name).filter(**self.query)
-            if self.order_by:
-                queryset = queryset.order_by(self.order_by)
-
+            # Fetch only a limited number of records in each iteration
+            queryset = self.get_queryset()
             queryset = list(queryset[:query_limit])
             # If there are no more rows we are all done.
             if not queryset:
@@ -228,6 +226,13 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
 
         # We have more work to do as we didn't run out of rows to delete.
         return True
+
+    def get_queryset(self):
+        # This helper method encapsulates the queryset creation
+        queryset = getattr(self.model, self.manager_name).filter(**self.query)
+        if self.order_by:
+            queryset = queryset.order_by(self.order_by)
+        return queryset
 
     def delete_instance(self, instance: ModelT) -> None:
         instance_id = instance.id
