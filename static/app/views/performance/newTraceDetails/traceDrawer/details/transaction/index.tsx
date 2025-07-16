@@ -17,7 +17,7 @@ import type {Organization} from 'sentry/types/organization';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {
   SpanMetricsQueryFilters,
   SpanMetricsResponse,
@@ -107,7 +107,7 @@ export function TransactionNodeDetails({
     project_slug: node.value.project_slug,
     organization,
   });
-  const {data: cacheMetrics} = useSpanMetrics(
+  const {data: cacheMetrics} = useSpans(
     {
       search: MutableSearch.fromQueryObject({
         transaction: node.value.transaction,

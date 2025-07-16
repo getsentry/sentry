@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {DatabaseSystemSelector} from 'sentry/views/insights/database/components/databaseSystemSelector';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
@@ -26,7 +26,7 @@ jest.mock('sentry/utils/useNavigate', () => ({
 }));
 
 const mockUseLocalStorageState = jest.mocked(useLocalStorageState);
-const mockUseSpanMetrics = jest.mocked(useSpanMetrics);
+const mockUseSpanMetrics = jest.mocked(useSpans);
 const mockUseLocation = jest.mocked(useLocation);
 const mockUseNavigate = jest.mocked(useNavigate);
 
