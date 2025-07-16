@@ -28,7 +28,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
 
-    @patch("sentry.api.endpoints.group_ai_autofix.get_autofix_state")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_state")
     def test_ai_autofix_get_endpoint_with_autofix(
         self, mock_get_autofix_state, mock_get_seer_org_acknowledgement
     ):
@@ -55,7 +55,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             group_id=group.id, check_repo_access=True, is_user_fetching=False
         )
 
-    @patch("sentry.api.endpoints.group_ai_autofix.get_autofix_state")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_state")
     def test_ai_autofix_get_endpoint_without_autofix(
         self, mock_get_autofix_state, mock_get_seer_org_acknowledgement
     ):
