@@ -584,7 +584,7 @@ describe('WidgetBuilderSlideout', () => {
 
     expect(
       await screen.findByText(
-        'Transaction widgets are deprecated. Please use the spans dataset moving forward.'
+        'Transaction widgets are being deprecated. Please use the spans dataset moving forward.'
       )
     ).toBeInTheDocument();
   });
@@ -624,7 +624,7 @@ describe('WidgetBuilderSlideout', () => {
     await waitFor(() => {
       expect(
         screen.queryByText(
-          'Transaction widgets are deprecated. Please use the spans dataset moving forward.'
+          'Transaction widgets are being deprecated. Please use the spans dataset moving forward.'
         )
       ).not.toBeInTheDocument();
     });
