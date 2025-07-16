@@ -186,6 +186,12 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
+            public_alias="sentry.links",
+            internal_name="sentry.links",
+            search_type="string",
+            private=True,
+        ),
+        ResolvedAttribute(
             public_alias="ai.total_tokens.used",
             internal_name="ai_total_tokens_used",
             search_type="integer",
