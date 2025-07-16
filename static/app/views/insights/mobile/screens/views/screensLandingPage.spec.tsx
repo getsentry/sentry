@@ -156,10 +156,10 @@ describe('Screens Landing Page', function () {
             isMetricsExtractedData: false,
             tips: {},
             datasetReason: 'unchanged',
-            dataset: 'spansMetrics',
+            dataset: 'spans',
           },
         },
-        match: [MockApiClient.matchQuery({dataset: 'spansMetrics'})],
+        match: [MockApiClient.matchQuery({dataset: 'spans'})],
       });
 
       render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});

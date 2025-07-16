@@ -206,7 +206,7 @@ describe('HTTPSamplesPanel', () => {
         expect.objectContaining({
           method: 'GET',
           query: {
-            dataset: 'spansMetrics',
+            dataset: 'spans',
             environment: [],
             field: [
               'epm()',

@@ -113,7 +113,7 @@ describe('useDiscover', () => {
         expect.objectContaining({
           method: 'GET',
           query: {
-            dataset: 'spansMetrics',
+            dataset: 'spans',
             environment: [],
             field: ['epm()'],
             per_page: 10,

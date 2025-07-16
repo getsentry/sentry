@@ -10,7 +10,7 @@ import {DatabaseSystemSelector} from 'sentry/views/insights/database/components/
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
 jest.mock('sentry/views/insights/common/queries/useDiscover', () => ({
-  useSpanMetrics: jest.fn(),
+  useSpans: jest.fn(),
 }));
 
 jest.mock('sentry/utils/useLocalStorageState', () => ({
@@ -26,7 +26,7 @@ jest.mock('sentry/utils/useNavigate', () => ({
 }));
 
 const mockUseLocalStorageState = jest.mocked(useLocalStorageState);
-const mockUseSpanMetrics = jest.mocked(useSpans);
+const mockUseSpans = jest.mocked(useSpans);
 const mockUseLocation = jest.mocked(useLocation);
 const mockUseNavigate = jest.mocked(useNavigate);
 
@@ -52,7 +52,7 @@ describe('DatabaseSystemSelector', function () {
   it('is disabled and does not select a system if there are none available', async function () {
     const mockSetState = jest.fn();
     mockUseLocalStorageState.mockReturnValue(['', mockSetState]);
-    mockUseSpanMetrics.mockReturnValue({
+    mockUseSpans.mockReturnValue({
       data: [],
       isLoading: false,
       isError: false,
@@ -69,7 +69,7 @@ describe('DatabaseSystemSelector', function () {
   it('is disabled when only one database system is present and shows that system as selected', async function () {
     const mockSetState = jest.fn();
     mockUseLocalStorageState.mockReturnValue(['', mockSetState]);
-    mockUseSpanMetrics.mockReturnValue({
+    mockUseSpans.mockReturnValue({
       data: [
         {
           'span.system': 'postgresql',
@@ -88,7 +88,7 @@ describe('DatabaseSystemSelector', function () {
   });
 
   it('renders all database system options correctly', async function () {
-    mockUseSpanMetrics.mockReturnValue({
+    mockUseSpans.mockReturnValue({
       data: [
         {
           'span.system': 'postgresql',
@@ -111,7 +111,7 @@ describe('DatabaseSystemSelector', function () {
 
     const dropdownSelector = await screen.findByRole('button');
     expect(dropdownSelector).toBeEnabled();
-    expect(mockUseSpanMetrics).toHaveBeenCalled();
+    expect(mockUseSpans).toHaveBeenCalled();
 
     const dropdownButton = await screen.findByRole('button');
     expect(dropdownButton).toBeInTheDocument();
@@ -127,7 +127,7 @@ describe('DatabaseSystemSelector', function () {
 
   it('chooses the currently selected system from localStorage', async function () {
     mockUseLocalStorageState.mockReturnValue(['mongodb', () => {}]);
-    mockUseSpanMetrics.mockReturnValue({
+    mockUseSpans.mockReturnValue({
       data: [
         {
           'span.system': 'postgresql',
@@ -154,7 +154,7 @@ describe('DatabaseSystemSelector', function () {
   it('does not set the value from localStorage if the value is invalid', async function () {
     const mockSetState = jest.fn();
     mockUseLocalStorageState.mockReturnValue(['chungusdb', mockSetState]);
-    mockUseSpanMetrics.mockReturnValue({
+    mockUseSpans.mockReturnValue({
       data: [
         {
           'span.system': 'postgresql',
@@ -187,7 +187,7 @@ describe('DatabaseSystemSelector', function () {
       key: '',
     });
 
-    mockUseSpanMetrics.mockReturnValue({
+    mockUseSpans.mockReturnValue({
       data: [
         {
           'span.system': 'postgresql',

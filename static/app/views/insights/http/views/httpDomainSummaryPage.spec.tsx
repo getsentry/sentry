@@ -296,7 +296,7 @@ describe('HTTPDomainSummaryPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
             'epm()',
@@ -321,7 +321,7 @@ describe('HTTPDomainSummaryPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
             'project.id',
@@ -350,7 +350,7 @@ describe('HTTPDomainSummaryPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: ['user.geo.subregion', 'count()'],
           per_page: 50,

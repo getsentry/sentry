@@ -198,7 +198,7 @@ describe('DatabaseSpanSummaryPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
             'span.op',
@@ -313,7 +313,7 @@ describe('DatabaseSpanSummaryPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
             'transaction',

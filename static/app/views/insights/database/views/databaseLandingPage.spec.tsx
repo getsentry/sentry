@@ -190,7 +190,7 @@ describe('DatabaseLandingPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
             'project.id',
@@ -308,7 +308,7 @@ describe('DatabaseLandingPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
             'project.id',

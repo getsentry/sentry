@@ -159,20 +159,6 @@ jest.mock('sentry/views/insights/common/queries/useDiscover', () => ({
     isPending: false,
     error: null,
   })),
-  useSpanMetrics: jest.fn(() => ({
-    data: [
-      {
-        'avg(span.duration)': 123,
-        'sum(span.duration)': 456,
-        'span.group': 'abc123',
-        'span.description': 'span1',
-        'sentry.normalized_description': 'span1',
-        transaction: 'transaction_a',
-      },
-    ],
-    isPending: false,
-    error: null,
-  })),
   useSpans: jest.fn(() => ({
     data: [
       {

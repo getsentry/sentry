@@ -291,7 +291,7 @@ describe('HTTPLandingPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: ['user.geo.subregion', 'count()'],
           per_page: 50,
@@ -365,7 +365,7 @@ describe('HTTPLandingPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
             'project',
@@ -456,7 +456,7 @@ describe('HTTPLandingPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
             'project',

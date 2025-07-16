@@ -154,10 +154,10 @@ describe('ScreensOverview', () => {
           isMetricsExtractedData: false,
           tips: {},
           datasetReason: 'unchanged',
-          dataset: 'spansMetrics',
+          dataset: 'spans',
         },
       },
-      match: [MockApiClient.matchQuery({dataset: 'spansMetrics'})],
+      match: [MockApiClient.matchQuery({dataset: 'spans'})],
     });
 
     render(<ScreensOverview />, {organization});
