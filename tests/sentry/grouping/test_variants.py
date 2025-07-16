@@ -15,6 +15,7 @@ from sentry.models.project import Project
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from tests.sentry.grouping import (
     GROUPING_INPUTS_DIR,
+    NO_MSG_PARAM_CONFIG,
     GroupingInput,
     dump_variant,
     get_snapshot_path,
@@ -26,7 +27,8 @@ from tests.sentry.grouping import (
 @with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
 @pytest.mark.parametrize(
     "config_name",
-    set(CONFIGURATIONS.keys()) - {DEFAULT_GROUPING_CONFIG},
+    # The default config is tested below, and NO_MSG_PARAM_CONFIG is only meant for use in unit tests
+    set(CONFIGURATIONS.keys()) - {DEFAULT_GROUPING_CONFIG, NO_MSG_PARAM_CONFIG},
     ids=lambda config_name: config_name.replace("-", "_"),
 )
 @patch("sentry.grouping.strategies.newstyle.logging.exception")
