@@ -43,9 +43,14 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.organization_trace_item_attributes import as_attribute_key
 from sentry.constants import ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT, ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
-from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
+from sentry.hybridcloud.rpc.service import (
+    RpcAuthenticationSetupException,
+    RpcResolutionException,
+)
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
-from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
+from sentry.integrations.github_enterprise.integration import (
+    GitHubEnterpriseIntegration,
+)
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
@@ -547,26 +552,63 @@ def get_github_enterprise_integration_config(
     }
 
 
-def send_seer_issue_ready_to_fix_webhook(*, group_id: int, user_id: int | None = None) -> dict:
+def send_seer_issue_ready_to_fix_webhook(
+    *,
+    group_id: int,
+    root_cause: dict[str, str],
+    solution: dict[str, str],
+) -> dict:
     """
     Send a seer.issue.ready_to_fix webhook event for a given group (issue).
 
     Args:
         group_id: The ID of the group/issue to send the webhook for
-        user_id: The ID of the user triggering the webhook (optional)
+        root_cause: Dict with 'content' and 'context' string fields
+        solution: Dict with 'content' and 'context' string fields
 
     Returns:
         dict: Status of the webhook sending operation
     """
     try:
-        group = Group.objects.get(id=group_id)
+        # Validate required fields in root_cause and solution
+        for field_name, field_data in [("root_cause", root_cause), ("solution", solution)]:
+            if not isinstance(field_data, dict):
+                return {
+                    "success": False,
+                    "error": f"{field_name} must be a dictionary",
+                }
+            if "content" not in field_data or "context" not in field_data:
+                return {
+                    "success": False,
+                    "error": f"{field_name} must contain 'content' and 'context' fields",
+                }
+            if not isinstance(field_data["content"], str) or not isinstance(
+                field_data["context"], str
+            ):
+                return {
+                    "success": False,
+                    "error": f"{field_name} 'content' and 'context' must be strings",
+                }
+
+        # Build custom data payload
+        custom_data = {
+            "group_id": group_id,
+            "root_cause": {
+                "content": root_cause["content"],
+                "context": root_cause["context"],
+            },
+            "solution": {
+                "content": solution["content"],
+                "context": solution["context"],
+            },
+            "analysis_timestamp": datetime.utcnow().isoformat(),
+        }
 
         # Send the webhook using the existing webhook infrastructure
         send_resource_change_webhook.delay(
             installation_id=None,  # Will be determined by the task based on subscriptions
-            issue_id=group.id,
-            event_type=SentryAppEventType.SEER_ISSUE_READY_TO_FIX,
-            user_id=user_id,
+            event=SentryAppEventType.SEER_ISSUE_READY_TO_FIX,
+            data=custom_data,
         )
 
         return {
