@@ -556,6 +556,9 @@ importers:
       '@types/gettext-parser':
         specifier: 8.0.0
         version: 8.0.0
+      '@types/mdx':
+        specifier: ^2.0.13
+        version: 2.0.13
       '@types/node':
         specifier: ^22.9.1
         version: 22.15.21

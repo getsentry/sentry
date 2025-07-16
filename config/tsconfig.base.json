@@ -119,6 +119,6 @@
       }
     ]
   },
-  "include": ["../static/app", "../static/gsApp", "../tests/js"],
+  "include": ["../static/app", "../static/gsApp", "../tests/js", "../static/app/**/*.mdx"],
   "exclude": ["../node_modules"]
 }
