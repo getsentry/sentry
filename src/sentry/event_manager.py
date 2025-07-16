@@ -82,7 +82,6 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
-from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.event import EventDict
@@ -701,38 +700,23 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
 
 
 def _set_project_platform_if_needed(project: Project, event: Event) -> None:
+    if project.platform:
+        return
+
     if event.platform not in VALID_PLATFORMS or event.get_tag("sample_event") == "yes":
         return
 
-    # Use a lock to prevent race conditions when multiple events are processed
-    # concurrently for a project with no initial platform
-    cache_key = f"project-platform-cache:{project.id}"
-    lock_key = f"project-platform-lock:{project.id}"
-    if cache.get(cache_key) is not None:
-        return
+    updated = Project.objects.filter(
+        Q(id=project.id) & (Q(platform__isnull=True) | Q(platform=""))
+    ).update(platform=event.platform)
 
-    try:
-        with locks.get(lock_key, duration=60, name="project-platform-lock").acquire():
-            if cache.get(cache_key) is not None:
-                return
-            else:
-                cache.set(cache_key, "1", 60 * 5)
-
-            if not project.platform:
-                updated = Project.objects.filter(
-                    Q(id=project.id) & (Q(platform__isnull=True) | Q(platform=""))
-                ).update(platform=event.platform)
-
-                if updated:
-                    create_system_audit_entry(
-                        organization=project.organization,
-                        target_object=project.id,
-                        event=audit_log.get_event_id("PROJECT_EDIT"),
-                        data={**project.get_audit_log_data(), "platform": event.platform},
-                    )
-
-    except Exception:
-        logger.exception("Failed to infer and set project platform")
+    if updated:
+        create_system_audit_entry(
+            organization=project.organization,
+            target_object=project.id,
+            event=audit_log.get_event_id("PROJECT_EDIT"),
+            data={**project.get_audit_log_data(), "platform": event.platform},
+        )
 
 
 @sentry_sdk.tracing.trace
