@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework.serializers import ListField
 
 from sentry import analytics, release_health
+from sentry.analytics.events.release_created import ReleaseCreatedEvent
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ReleaseAnalyticsMixin, region_silo_endpoint
 from sentry.api.bases import NoProjects
@@ -623,13 +624,14 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                 status = 201
 
             analytics.record(
-                "release.created",
-                user_id=request.user.id if request.user and request.user.id else None,
-                organization_id=organization.id,
-                project_ids=[project.id for project in projects],
-                user_agent=request.META.get("HTTP_USER_AGENT", ""),
-                created_status=status,
-                auth_type=get_auth_api_token_type(request.auth),
+                ReleaseCreatedEvent(
+                    user_id=request.user.id if request.user and request.user.id else None,
+                    organization_id=organization.id,
+                    project_ids=[project.id for project in projects],
+                    user_agent=request.META.get("HTTP_USER_AGENT", ""),
+                    created_status=status,
+                    auth_type=get_auth_api_token_type(request.auth),
+                )
             )
 
             if is_org_auth_token_auth(request.auth):
