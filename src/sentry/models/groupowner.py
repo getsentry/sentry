@@ -48,6 +48,11 @@ GROUP_OWNER_TYPE = {
 }
 
 
+class SuspectCommitStrategy(Enum):
+    LEGACY = 0
+    CURRENT = 1
+
+
 class OwnersSerialized(TypedDict):
     type: str
     owner: str
