@@ -3,8 +3,8 @@ from sentry import analytics
 
 @analytics.eventclass("relocation.created")
 class RelocationCreatedEvent(analytics.Event):
-    creator_id: str
-    owner_id: str
+    creator_id: int
+    owner_id: int
     uuid: str
 
 
