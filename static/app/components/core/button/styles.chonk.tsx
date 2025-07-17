@@ -4,8 +4,6 @@ import type {DO_NOT_USE_ButtonProps as ButtonProps} from 'sentry/components/core
 import {chonkFor} from 'sentry/components/core/chonk';
 // eslint-disable-next-line boundaries/element-types
 import type {StrictCSSObject} from 'sentry/utils/theme';
-// eslint-disable-next-line boundaries/element-types
-import {unreachable} from 'sentry/utils/unreachable';
 
 // @TODO: remove Link type in the future
 type ChonkButtonType =
@@ -35,21 +33,12 @@ function chonkPriorityToType(priority: ButtonProps['priority']): ChonkButtonType
   }
 }
 
-function chonkElevation(size: NonNullable<ButtonProps['size']>): string {
-  switch (size) {
-    case 'md':
-      return '3px';
-    case 'sm':
-      return '2px';
-    case 'xs':
-      return '1px';
-    case 'zero':
-      return '0px';
-    default:
-      unreachable(size);
-      throw new Error(`Unknown button size: ${size}`);
-  }
-}
+const chonkElevation = {
+  md: '3px',
+  sm: '2px',
+  xs: '1px',
+  zero: '0px',
+} satisfies Record<NonNullable<ButtonProps['size']>, string>;
 
 export function DO_NOT_USE_getChonkButtonStyles(
   p: Pick<ButtonProps, 'priority' | 'busy' | 'disabled' | 'borderless'> & {
@@ -70,6 +59,7 @@ export function DO_NOT_USE_getChonkButtonStyles(
   } as const;
 
   const chonkButtonTheme = getChonkButtonTheme(type, p.theme);
+  const elevation = chonkElevation[p.size];
 
   return {
     position: 'relative',
@@ -96,10 +86,10 @@ export function DO_NOT_USE_getChonkButtonStyles(
       display: 'block',
       position: 'absolute',
       inset: '0',
-      height: `calc(100% - ${chonkElevation(p.size)})`,
-      top: `${chonkElevation(p.size)}`,
-      transform: `translateY(-${chonkElevation(p.size)})`,
-      boxShadow: `0 ${chonkElevation(p.size)} 0 0px ${chonkButtonTheme.background}`,
+      height: `calc(100% - ${elevation})`,
+      top: `${elevation}`,
+      transform: `translateY(-${elevation})`,
+      boxShadow: `0 ${elevation} 0 0px ${chonkButtonTheme.background}`,
       background: chonkButtonTheme.background,
       borderRadius: 'inherit',
     },
@@ -112,7 +102,7 @@ export function DO_NOT_USE_getChonkButtonStyles(
       background: chonkButtonTheme.surface,
       borderRadius: 'inherit',
       border: `1px solid ${chonkButtonTheme.background}`,
-      transform: `translateY(-${chonkElevation(p.size)})`,
+      transform: `translateY(-${elevation})`,
       transition: 'transform 0.06s ease-in-out',
     },
 
@@ -138,7 +128,7 @@ export function DO_NOT_USE_getChonkButtonStyles(
       overflow: 'hidden',
 
       whiteSpace: 'nowrap',
-      transform: `translateY(-${chonkElevation(p.size)})`,
+      transform: `translateY(-${elevation})`,
       transition: 'transform 0.06s ease-in-out',
     },
 
@@ -146,10 +136,10 @@ export function DO_NOT_USE_getChonkButtonStyles(
       color: p.disabled || p.busy ? undefined : chonkButtonTheme.color,
 
       '&::after': {
-        transform: `translateY(calc(-${chonkElevation(p.size)} - 2px))`,
+        transform: `translateY(calc(-${elevation} - 2px))`,
       },
       '> span:last-child': {
-        transform: `translateY(calc(-${chonkElevation(p.size)} - 2px))`,
+        transform: `translateY(calc(-${elevation} - 2px))`,
       },
     },
 
