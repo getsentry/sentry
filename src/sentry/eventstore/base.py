@@ -61,7 +61,7 @@ class Filter:
     ) -> None:
         self.start = start
         self.end = end
-        self.conditions = conditions
+        self.conditions = conditions or []
         self.having = having
         self.user_id = user_id
         self.organization_id = organization_id
@@ -285,8 +285,8 @@ class EventStorage(Service):
         raise NotImplementedError
 
     def get_adjacent_event_ids(
-        self, event: Event, filter: Filter
-    ) -> tuple[tuple[int, str], tuple[int, str]]:
+        self, event: Event | GroupEvent, filter: Filter
+    ) -> tuple[tuple[int, str] | None, tuple[int, str] | None]:
         """
         Gets the previous and next event IDs given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id) for (prev_ids, next_ids)
