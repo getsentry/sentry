@@ -11,8 +11,8 @@ import {IconTool} from 'sentry/icons/iconTool';
 import {space} from 'sentry/styles/space';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {LLMCosts} from 'sentry/views/insights/agentMonitoring/components/llmCosts';
+import {getIsAiRunNode} from 'sentry/views/insights/agentMonitoring/utils/aiTraceNodes';
 import {getNodeId} from 'sentry/views/insights/agentMonitoring/utils/getNodeId';
-import {getIsAiRunNode} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
 import {
   AI_AGENT_NAME_ATTRIBUTE,
   AI_COST_ATTRIBUTE,
