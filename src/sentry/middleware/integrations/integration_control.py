@@ -48,8 +48,8 @@ class IntegrationControlMiddleware:
         cls.classifications += classifications
 
     def __call__(self, request: HttpRequest):
-        if not self._should_operate(request):
-            return self.get_response(request)
+        # if not self._should_operate(request):
+        #     return self.get_response(request)
 
         # Check request against each classification, if a match is found, return early
         for classification in self.classifications:

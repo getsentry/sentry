@@ -279,17 +279,6 @@ class BaseRequestParser(ABC):
         """
         return None
 
-    def get_organization_from_request(
-        self,
-        integration: Integration | RpcIntegration,
-        organization_integrations: list[OrganizationIntegration],
-    ) -> RpcOrganizationMapping | None:
-        """
-        Parse the request to retrieve the organization to forward the request to.
-        Should be overwritten by implementation.
-        """
-        return None
-
     # Optional Overrides
 
     def get_organizations_from_integration(
@@ -335,13 +324,18 @@ class BaseRequestParser(ABC):
             if not sample_modulo("hybrid_cloud.integration_region_targeting_rate", integration.id):
                 return all_organizations
 
-            # (TARGET_RATE)% of integrations will attempt to target a specific organization...
-            target_organization = self.get_organization_from_request(
-                integration=integration,
-                organization_integrations=list(organization_integrations),
-            )
-            # ... but fallback to all organizations if they don't find one
-            return [target_organization] if target_organization else all_organizations
+            # (TARGET_RATE)% of integrations will attempt to target a specific organization
+            return self.filter_organizations_from_request(organizations=all_organizations)
+
+    def filter_organizations_from_request(
+        self,
+        organizations: list[RpcOrganizationMapping],
+    ) -> list[RpcOrganizationMapping]:
+        """
+        Parse the request to retrieve the organization to forward the request to.
+        Should be overwritten by implementation.
+        """
+        return organizations
 
     def get_regions_from_organizations(
         self, organizations: list[RpcOrganizationMapping] | None = None
