@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -109,21 +109,11 @@ function ChapterRow({
   const hasOccurred = currentTime >= startOffset;
   const isBeforeHover = currentHoverTime === undefined || currentHoverTime >= startOffset;
 
-  useEffect(() => {
-    const details = detailsRef.current;
-    if (details) {
-      const handleToggle = () => setIsOpen(details.open);
-      details.addEventListener('toggle', handleToggle);
-      return () => details.removeEventListener('toggle', handleToggle);
-    }
-    return undefined;
-  }, []);
-
   return (
     <ChapterWrapper
       ref={detailsRef}
-      error={error}
-      feedback={feedback}
+      data-has-error={Boolean(error)}
+      data-has-feedback={Boolean(feedback)}
       className={classNames(className, {
         beforeCurrentTime: hasOccurred,
         afterCurrentTime: !hasOccurred,
@@ -133,8 +123,9 @@ function ChapterRow({
       })}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={() => setIsOpen(!isOpen)}
     >
-      <Chapter error={error} feedback={feedback}>
+      <Chapter>
         <ChapterIconWrapper>
           {error ? (
             isOpen || isHovered ? (
@@ -211,7 +202,7 @@ const ChaptersList = styled('div')`
   overflow: auto;
 `;
 
-const ChapterWrapper = styled('details')<{error?: boolean; feedback?: boolean}>`
+const ChapterWrapper = styled('details')`
   width: 100%;
   position: relative;
   margin: 0;
@@ -240,16 +231,24 @@ const ChapterWrapper = styled('details')<{error?: boolean; feedback?: boolean}>`
     border-bottom-color: ${p => p.theme.purple300};
   }
 
+  /* the border-top is used to eliminate some of the top gap */
+
   &:hover {
-    margin-top: 0px;
-    /* eliminate some of the top gap */
-    border-top: 1px solid
-      ${p =>
-        p.error
-          ? p.theme.red100
-          : p.feedback
-            ? p.theme.pink100
-            : p.theme.backgroundSecondary};
+    border-top: 1px solid ${p => p.theme.backgroundSecondary};
+  }
+
+  [data-has-error='true'] {
+    &:hover {
+      border-top: 1px solid ${p => p.theme.red100};
+    }
+    color: ${p => p.theme.errorText};
+  }
+
+  [data-has-feedback='true'] {
+    &:hover {
+      border-top: 1px solid ${p => p.theme.pink100};
+    }
+    color: ${p => p.theme.pink300};
   }
 `;
 
@@ -265,22 +264,16 @@ const ChapterBreadcrumbRow = styled(BreadcrumbRow)`
   }
 `;
 
-const Chapter = styled('summary')<{error?: boolean; feedback?: boolean}>`
+const Chapter = styled('summary')`
   cursor: pointer;
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.fontSize.lg};
   padding: 0 ${space(0.75)};
-  color: ${p =>
-    p.error ? p.theme.red300 : p.feedback ? p.theme.pink300 : p.theme.textColor};
+  color: ${p => p.theme.textColor};
 
   &:hover {
-    background-color: ${p =>
-      p.error
-        ? p.theme.red100
-        : p.feedback
-          ? p.theme.pink100
-          : p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.backgroundSecondary};
   }
 
   /* sorry */
@@ -291,6 +284,22 @@ const Chapter = styled('summary')<{error?: boolean; feedback?: boolean}>`
   list-style-type: none;
   &::-webkit-details-marker {
     display: none;
+  }
+
+  [data-has-error='true'] & {
+    color: ${p => p.theme.red300};
+
+    &:hover {
+      background-color: ${p => p.theme.red100};
+    }
+  }
+
+  [data-has-feedback='true'] & {
+    color: ${p => p.theme.pink300};
+
+    &:hover {
+      background-color: ${p => p.theme.pink100};
+    }
   }
 `;
 
