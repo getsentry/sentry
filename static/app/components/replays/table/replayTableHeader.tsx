@@ -26,15 +26,17 @@ export default function ReplayTableHeader({columns, replays, onSortClick, sort}:
 
   return (
     <SimpleTable.Header>
-      {columns.map((column, columnIndex) => (
+      {columns.map(({Header, sortKey}, columnIndex) => (
         <SimpleTable.HeaderCell
-          key={`${column.sortKey}-${columnIndex}`}
-          handleSortClick={() => column.sortKey && onSortClick?.(column.sortKey)}
-          sort={column.sortKey && sort?.field === column.sortKey ? sort.kind : undefined}
+          key={`${sortKey}-${columnIndex}`}
+          handleSortClick={
+            onSortClick && sortKey ? () => onSortClick(sortKey) : undefined
+          }
+          sort={sortKey && sort?.field === sortKey ? sort.kind : undefined}
         >
-          {typeof column.Header === 'function'
-            ? column.Header({columnIndex, listItemCheckboxState, replays})
-            : column.Header}
+          {typeof Header === 'function'
+            ? Header({columnIndex, listItemCheckboxState, replays})
+            : Header}
         </SimpleTable.HeaderCell>
       ))}
     </SimpleTable.Header>
