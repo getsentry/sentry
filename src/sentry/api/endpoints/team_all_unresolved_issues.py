@@ -69,7 +69,12 @@ def calculate_unresolved_counts(
     # (see ISWF-549); cannot do via DISTINCT ON state because of Django limitations.)
     bucketed_issues = (
         GroupHistory.objects.filter_to_team(team)
-        .filter(group_history_environment_filter, date_added__gte=start, date_added__lte=end)
+        .filter(
+            group_history_environment_filter,
+            date_added__gte=start,
+            date_added__lte=end,
+            status__in=OPEN_STATUSES + CLOSED_STATUSES,
+        )
         .annotate(
             bucket=TruncDay("date_added"),
             state=Case(
@@ -80,23 +85,25 @@ def calculate_unresolved_counts(
         )
         .order_by(
             "group_id",
-            "status",
             "bucket",
         )
-        .distinct("group_id", "status")
         .values("project", "group_id", "bucket", "state")
     )
 
-    # We only want one open & one close for each group_id
-    processed_groups = {"open": set(), "closed": set()}
+    most_recent_group_state = defaultdict(lambda: "other")
     # Project => Bucket => State => Count
     deduping_map = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
     for r in bucketed_issues:
-        if r["group_id"] in processed_groups[r["state"]]:
+        # Don't process the row if it doesn't set the group to open or closed.
+        if r["state"] == "other":
+            continue
+
+        # Don't process the row if it doesn't change the state.
+        if r["state"] == most_recent_group_state[r["group_id"]]:
             continue
 
         deduping_map[r["project"]][r["bucket"]][r["state"]] += 1
-        processed_groups[r["state"]].add(r["group_id"])
+        most_recent_group_state[r["group_id"]] = r["state"]
 
     deduped_bucketed_issues = []
     for p in deduping_map.keys():

@@ -1936,7 +1936,6 @@ SENTRY_EARLY_FEATURES = {
 SENTRY_FEATURES: dict[str, bool | None] = {
     # NOTE: Don't add feature defaults down here! Please add a default to
     # the manager.add() call that defines the feature.
-    "organizations:team-insights": True,
 }
 
 # Default time zone for localization in the UI.
