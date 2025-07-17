@@ -333,9 +333,6 @@ def get_enhancements_version(project: Project, grouping_config_id: str = "") -> 
     See https://github.com/getsentry/sentry/pull/91695 for a version of this function which
     incorporates sampling.
     """
-    if grouping_config_id.startswith("legacy"):
-        return 2
-
     return DEFAULT_ENHANCEMENTS_VERSION
 
 
