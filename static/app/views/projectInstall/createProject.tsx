@@ -414,12 +414,43 @@ export function CreateProject() {
   );
 
   const handlePlatformChange = useCallback(
-    (value: Platform | null) => {
+    async (value: Platform | null) => {
       if (!value) {
         updateFormData('platform', {
           // By unselecting a platform, we don't want to jump to another category
           category: formData.platform?.category,
         });
+        return;
+      }
+
+      if (
+        value.type === 'console' &&
+        !organization.enabledConsolePlatforms?.includes(value.id)
+      ) {
+        updateFormData('platform', {
+          category: formData.platform?.category,
+        });
+        const {ConsoleModal, modalCss} = await import(
+          'sentry/components/onboarding/consoleModal'
+        );
+        openModal(
+          deps => (
+            <ConsoleModal
+              {...deps}
+              selectedPlatform={{
+                key: value.id,
+                name: value.name,
+                type: value.type,
+                language: value.language,
+                category: value.category,
+                link: value.link,
+              }}
+            />
+          ),
+          {
+            modalCss,
+          }
+        );
         return;
       }
 
@@ -439,6 +470,7 @@ export function CreateProject() {
       formData.projectName,
       formData.platform?.key,
       formData.platform?.category,
+      organization.enabledConsolePlatforms,
     ]
   );
 

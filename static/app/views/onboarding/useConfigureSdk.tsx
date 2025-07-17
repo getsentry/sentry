@@ -94,6 +94,22 @@ export function useConfigureSdk({
       }
 
       if (
+        selectedPlatform.type === 'console' &&
+        !organization.enabledConsolePlatforms?.includes(selectedPlatform.key)
+      ) {
+        const {ConsoleModal, modalCss} = await import(
+          'sentry/components/onboarding/consoleModal'
+        );
+        openModal(
+          deps => <ConsoleModal {...deps} selectedPlatform={selectedPlatform} />,
+          {
+            modalCss,
+          }
+        );
+        return;
+      }
+
+      if (
         selectedPlatform.type !== 'language' ||
         !Object.values(SupportedLanguages).includes(
           selectedPlatform.language as SupportedLanguages
