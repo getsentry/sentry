@@ -233,8 +233,8 @@ function Title({children, project}: {children: React.ReactNode; project: Project
 const SimpleTableWithTwoColumns = styled(SimpleTable)`
   grid-template-columns: 1fr max-content;
 
-  max-height: 60vh;
-  min-height: 0;
+  max-height: calc(100vh - 315px);
+  min-height: 200px;
   overflow-y: auto;
 
   & > div:first-child {
