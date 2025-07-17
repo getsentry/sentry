@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
     ),
 )
 def cleanup_seer_repository_preferences(
-    organization_id: int, repo_external_id: str, repo_provider: str, repo_name: str
+    organization_id: int, repo_external_id: str, repo_provider: str
 ) -> None:
     """
     Clean up Seer preferences for a deleted repository.
@@ -40,11 +40,8 @@ def cleanup_seer_repository_preferences(
     body = orjson.dumps(
         {
             "organization_id": organization_id,
-            "repository": {
-                "provider": repo_provider,
-                "external_id": repo_external_id,
-                "name": repo_name,
-            },
+            "repo_provider": repo_provider,
+            "repo_external_id": repo_external_id,
         }
     )
 

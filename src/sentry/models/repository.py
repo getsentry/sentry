@@ -148,17 +148,6 @@ def on_delete(instance, actor: RpcUser | None = None, **kwargs):
         except Exception as exc:
             handle_exception(exc)
 
-    # Clean up Seer preferences
-    from sentry.tasks.seer import cleanup_seer_repository_preferences
-
-    # Trigger async cleanup for the organization
-    cleanup_seer_repository_preferences.delay(
-        organization_id=instance.organization_id,
-        repo_external_id=instance.external_id,
-        repo_provider=instance.provider,
-        repo_name=instance.name,
-    )
-
 
 pending_delete.connect(on_delete, sender=Repository, weak=False)
 pre_delete.connect(
