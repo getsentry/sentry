@@ -213,14 +213,7 @@ def main(context: dict[str, str]) -> int:
         repo,
         reporoot,
         venv_dir,
-        (
-            (
-                "python editable install",
-                ("python3", "-m", "tools.fast_editable", "--path", "."),
-                {},
-            ),
-            ("pre-commit dependencies", ("pre-commit", "install", "--install-hooks", "-f"), {}),
-        ),
+        (("pre-commit dependencies", ("pre-commit", "install", "--install-hooks", "-f"), {}),),
         verbose,
     ):
         return 1

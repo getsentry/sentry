@@ -2248,7 +2248,7 @@ wheels = [
 [[package]]
 name = "sentry"
 version = "0.0.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "amqp" },
     { name = "anyio" },

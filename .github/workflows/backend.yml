@@ -342,7 +342,6 @@ jobs:
 
       - name: setup sentry (lite)
         run: |
-          python3 -m tools.fast_editable --path .
           sentry init
 
       - run: PYTHONWARNINGS=error::RuntimeWarning mypy

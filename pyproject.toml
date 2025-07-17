@@ -165,6 +165,10 @@ getsentry = [
     "stripe==6.7.0",
 ]
 
+[build-system]
+requires = ["uv_build>=0.7.22,<0.8.0"]
+build-backend = "uv_build"
+
 [tool.black]
 # File filtering is taken care of in pre-commit.
 line-length = 100

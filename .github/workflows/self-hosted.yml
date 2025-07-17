@@ -71,7 +71,6 @@ jobs:
         run: pnpm install --frozen-lockfile --production
 
       - run: |
-          python3 -m tools.fast_editable --path .
           python3 -m sentry.build.main
 
       - run: docker login --username '${{ github.actor }}' --password '${{ github.token }}' ghcr.io

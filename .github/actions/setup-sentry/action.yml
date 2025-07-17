@@ -99,17 +99,6 @@ runs:
         echo "matrix-instance-number=$(($MATRIX_INSTANCE+1))" >> "$GITHUB_OUTPUT"
         echo "matrix-instance-total=$((${MATRIX_INSTANCE_TOTAL:-}))" >> "$GITHUB_OUTPUT"
 
-    - name: Install python dependencies
-      shell: bash --noprofile --norc -eo pipefail -ux {0}
-      env:
-        # This is necessary when other repositories (e.g. relay) want to take advantage of this workflow
-        # without needing to fork it. The path needed is the one where setup.py is located
-        WORKDIR: ${{ inputs.workdir }}
-      run: |
-        cd "$WORKDIR"
-        # We need to install editable otherwise things like check migration will fail.
-        python3 -m tools.fast_editable --path .
-
     - name: Start new devservices
       shell: bash --noprofile --norc -eo pipefail -ux {0}
       env:
