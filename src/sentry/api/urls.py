@@ -3,9 +3,6 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
-from sentry.api.endpoints.auth_merge_user_accounts import AuthMergeUserAccountsEndpoint
-from sentry.api.endpoints.group_ai_summary import GroupAiSummaryEndpoint
-from sentry.api.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.api.endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
 from sentry.api.endpoints.group_integrations import GroupIntegrationsEndpoint
 from sentry.api.endpoints.organization_auth_token_details import (
