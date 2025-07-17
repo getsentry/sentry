@@ -275,8 +275,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
     @override_options({"similarity.new_project_seer_grouping.enabled": True})
     def test_similarity_project_option_valid(self):
         """
-        Test that project option for similarity grouping is created when the project platform is
-        Seer-eligible.
+        Test that project creation works when similarity grouping is enabled.
         """
         response = self.get_success_response(
             self.organization.slug,
@@ -291,17 +290,17 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         assert project.platform == "python"
         assert project.teams.first() == self.team
 
+        # The similarity_backfill_completed option should not be set anymore
         assert (
             ProjectOption.objects.get_value(
                 project=project, key="sentry:similarity_backfill_completed"
             )
-            is not None
+            is None
         )
 
     def test_similarity_project_option_invalid(self):
         """
-        Test that project option for similarity grouping is not created when the project platform
-        is not seer eligible.
+        Test that project creation works when similarity grouping is disabled.
         """
         response = self.get_success_response(
             self.organization.slug,
@@ -318,6 +317,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         assert project.platform == "php"
         assert project.teams.first() == self.team
 
+        # The similarity_backfill_completed option should not be set anymore
         assert (
             ProjectOption.objects.get_value(
                 project=project, key="sentry:similarity_backfill_completed"

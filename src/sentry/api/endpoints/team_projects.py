@@ -46,9 +46,7 @@ def apply_default_project_settings(organization: Organization, project: Project)
 
     set_default_symbol_sources(project)
 
-    # Create project option to turn on ML similarity feature for new EA projects
-    if project_is_seer_eligible(project):
-        project.update_option("sentry:similarity_backfill_completed", int(time.time()))
+    # ML similarity feature is controlled by region-level settings
 
     set_default_project_autofix_automation_tuning(organization, project)
     set_default_project_seer_scanner_automation(organization, project)

@@ -44,7 +44,6 @@ from sentry.tasks.delete_seer_grouping_records import delete_seer_grouping_recor
 from sentry.tasks.embeddings_grouping.constants import (
     BACKFILL_BULK_DELETE_METADATA_CHUNK_SIZE,
     BACKFILL_NAME,
-    PROJECT_BACKFILL_COMPLETED,
 )
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
@@ -149,7 +148,8 @@ def create_project_cohort(
 
     query = Project.objects.filter(project_id_filter)
     if skip_processed_projects:
-        query = query.exclude(projectoption__key=PROJECT_BACKFILL_COMPLETED)
+        # Skip the exclusion since we're no longer tracking backfill completion
+        pass
     project_cohort_list = (
         query.values_list("id", flat=True)
         .extra(
@@ -253,7 +253,7 @@ def get_current_batch_groups_from_postgres(
                     "project_index_in_cohort": project_index_in_cohort,
                 },
             )
-            project.update_option(PROJECT_BACKFILL_COMPLETED, int(time.time()))
+            # Removed PROJECT_BACKFILL_COMPLETED option setting
 
         return ([], None)
 
