@@ -3,6 +3,7 @@ from unittest.mock import PropertyMock, patch
 
 import pytest
 
+from sentry.analytics.events.sentry_app_token_exchanged import SentryAppTokenExchangedEvent
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
@@ -17,6 +18,7 @@ from sentry.testutils.asserts import (
     assert_success_metric,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.silo import control_silo_test
 
 
@@ -271,10 +273,12 @@ class TestGrantExchanger(TestCase):
             install=self.install, client_id=self.client_id, code=self.code, user=self.user
         ).run()
 
-        record.assert_called_with(
-            "sentry_app.token_exchanged",
-            sentry_app_installation_id=self.install.id,
-            exchange_type="authorization",
+        assert_last_analytics_event(
+            record,
+            SentryAppTokenExchangedEvent(
+                sentry_app_installation_id=self.install.id,
+                exchange_type="authorization",
+            ),
         )
 
         # SLO assertions
