@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from unittest.mock import patch
-
 import orjson
 import pytest
 import responses
@@ -18,7 +16,6 @@ class TestSeerRepositoryCleanup(TestCase):
         self.project = self.create_project(organization=self.organization)
         self.repo_external_id = "12345"
         self.repo_provider = "github"
-        self.repo_name = "test-repo"
 
     @responses.activate
     def test_cleanup_seer_repository_preferences_success(self):
@@ -35,7 +32,6 @@ class TestSeerRepositoryCleanup(TestCase):
             organization_id=self.organization.id,
             repo_external_id=self.repo_external_id,
             repo_provider=self.repo_provider,
-            repo_name=self.repo_name,
         )
 
         # Verify the request was made with correct data
@@ -45,11 +41,8 @@ class TestSeerRepositoryCleanup(TestCase):
         expected_body = orjson.dumps(
             {
                 "organization_id": self.organization.id,
-                "repository": {
-                    "provider": self.repo_provider,
-                    "external_id": self.repo_external_id,
-                    "name": self.repo_name,
-                },
+                "repo_provider": self.repo_provider,
+                "repo_external_id": self.repo_external_id,
             }
         )
 
@@ -77,7 +70,6 @@ class TestSeerRepositoryCleanup(TestCase):
                 organization_id=self.organization.id,
                 repo_external_id=self.repo_external_id,
                 repo_provider=self.repo_provider,
-                repo_name=self.repo_name,
             )
 
     @responses.activate
@@ -98,7 +90,6 @@ class TestSeerRepositoryCleanup(TestCase):
             organization_id=nonexistent_organization_id,
             repo_external_id=self.repo_external_id,
             repo_provider=self.repo_provider,
-            repo_name=self.repo_name,
         )
 
         # The API call should be made regardless of local organization existence
@@ -108,36 +99,9 @@ class TestSeerRepositoryCleanup(TestCase):
         expected_body = orjson.dumps(
             {
                 "organization_id": nonexistent_organization_id,
-                "repository": {
-                    "provider": self.repo_provider,
-                    "external_id": self.repo_external_id,
-                    "name": self.repo_name,
-                },
+                "repo_provider": self.repo_provider,
+                "repo_external_id": self.repo_external_id,
             }
         )
 
         assert request.body == expected_body
-
-    @patch("sentry.tasks.seer.cleanup_seer_repository_preferences.delay")
-    def test_repository_deletion_triggers_cleanup(self, mock_cleanup_task):
-        """Test that repository deletion triggers Seer cleanup."""
-        from sentry.models.repository import Repository, on_delete
-
-        # Create a repository
-        repo = Repository.objects.create(
-            name=self.repo_name,
-            provider=self.repo_provider,
-            external_id=self.repo_external_id,
-            organization_id=self.organization.id,
-        )
-
-        # Trigger the on_delete function directly
-        on_delete(repo)
-
-        # Verify the cleanup task was called
-        mock_cleanup_task.assert_called_once_with(
-            organization_id=self.organization.id,
-            repo_external_id=self.repo_external_id,
-            repo_provider=self.repo_provider,
-            repo_name=self.repo_name,
-        )
