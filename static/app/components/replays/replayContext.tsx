@@ -7,6 +7,7 @@ import useReplayHighlighting from 'sentry/components/replays/useReplayHighlighti
 import {VideoReplayerWithInteractions} from 'sentry/components/replays/videoReplayerWithInteractions';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import clamp from 'sentry/utils/number/clamp';
+import type {useApiQuery} from 'sentry/utils/queryClient';
 import type useInitialOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useTouchEventsCheck from 'sentry/utils/replays/playback/hooks/useTouchEventsCheck';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
@@ -18,6 +19,7 @@ import usePrevious from 'sentry/utils/usePrevious';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import useRAF from 'sentry/utils/useRAF';
 import {useUser} from 'sentry/utils/useUser';
+import type {SummaryResponse} from 'sentry/views/replays/detail/ai/useFetchReplaySummary';
 
 import {CanvasReplayerPlugin} from './canvasReplayerPlugin';
 
@@ -29,6 +31,10 @@ type HighlightCallbacks = ReturnType<typeof useReplayHighlighting>;
 // It has state that, when changed, will not trigger a react render.
 // Instead only expose methods that wrap `Replayer` and manage state.
 interface ReplayPlayerContextProps extends HighlightCallbacks {
+  aiSummaryContext: {
+    apiQueryResult?: ReturnType<typeof useApiQuery<SummaryResponse>>;
+  };
+
   /**
    * The context in which the replay is being viewed.
    */
@@ -120,6 +126,7 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
 }
 
 const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
+  aiSummaryContext: {},
   analyticsContext: '',
   clearAllHighlights: () => {},
   currentTime: 0,
@@ -157,6 +164,8 @@ type Props = {
 
   replay: ReplayReader | null;
 
+  aiSummaryQueryResult?: ReturnType<typeof useApiQuery<SummaryResponse>>;
+
   /**
    * Start the video as soon as it's ready
    */
@@ -186,6 +195,7 @@ export function Provider({
   isFetching,
   replay,
   autoStart,
+  aiSummaryQueryResult,
   value = {},
 }: Props) {
   const user = useUser();
@@ -604,6 +614,7 @@ export function Provider({
     <ReplayCurrentTimeContextProvider>
       <ReplayPlayerContext
         value={{
+          aiSummaryContext: {apiQueryResult: aiSummaryQueryResult},
           analyticsContext,
           clearAllHighlights,
           currentTime,

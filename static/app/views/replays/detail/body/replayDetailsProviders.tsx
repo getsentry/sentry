@@ -12,6 +12,7 @@ import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/pr
 import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useFetchReplaySummary} from 'sentry/views/replays/detail/ai/useFetchReplaySummary';
 import ReplayTransactionContext from 'sentry/views/replays/detail/trace/replayTransactionContext';
 
 interface Props {
@@ -40,6 +41,17 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
 
   useLogReplayDataLoaded({projectId: replayRecord.project_id, replay});
 
+  const aiSummaryData = useFetchReplaySummary({
+    staleTime: 0,
+    enabled: Boolean(
+      replayRecord?.id &&
+        projectSlug &&
+        organization.features.includes('replay-ai-summaries') &&
+        organization.features.includes('gen-ai-features')
+    ),
+    retry: false,
+  });
+
   return (
     <ReplayPreferencesContextProvider prefsStrategy={LocalStorageReplayPreferences}>
       <ReplayPlayerPluginsContextProvider>
@@ -51,6 +63,7 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
                 initialTimeOffsetMs={initialTimeOffsetMs}
                 isFetching={false}
                 replay={replay}
+                aiSummaryQueryResult={aiSummaryData}
               >
                 <ReplayTransactionContext replayRecord={replayRecord}>
                   {children}
