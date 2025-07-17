@@ -4,7 +4,7 @@ import {
   getResourceTypeFilter,
 } from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
 const {SPAN_DOMAIN, SPAN_OP} = SpanMetricsField;
@@ -28,7 +28,7 @@ export const useResourcePagesQuery = (
       : []),
   ]; // TODO: We will need to consider other ops
 
-  const result = useSpanMetrics(
+  const result = useSpans(
     {
       fields: ['transaction', 'count()'],
       search: queryConditions.join(' '),
