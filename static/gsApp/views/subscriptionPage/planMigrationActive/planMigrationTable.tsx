@@ -60,7 +60,7 @@ function PlanMigrationTable({subscription, migration}: Props) {
     ? moment(migration.effectiveAt).format('ll')
     : moment(subscription.onDemandPeriodEnd).add(1, 'days').format('ll');
 
-  const getRowForCategory = (category: DataCategory) => {
+  const getRowParamsForCategory = (category: DataCategory) => {
     // for AM1/AM2 to AM3 migrations, we move from transactions-based billing to spans-based billing
     // so we render the row as a transition from reserved transactions volume to reserved spans volume
     const isSpans = category === DataCategory.SPANS;
@@ -83,25 +83,61 @@ function PlanMigrationTable({subscription, migration}: Props) {
       return null;
     }
 
-    const key = categoryInfo.name;
+    const type = categoryInfo.name;
 
     const nextValue = getNextDataCategoryValue(
       nextPlan,
       isAM3Migration, // update this if shouldUseExistingVolume should be true for future migrations
-      key,
+      type,
       subscription
     );
-    return (
-      <PlanMigrationRow
-        key={key}
-        previousType={previousType}
-        type={key}
-        currentValue={currentValue}
-        nextValue={nextValue}
-        hasCredits={!!nextPlan.categoryCredits?.[category]?.credits}
-        titleOverride={titleOverride}
-      />
-    );
+
+    return {
+      type,
+      previousType,
+      currentValue,
+      nextValue,
+      hasCredits: !!nextPlan.categoryCredits?.[category]?.credits,
+      titleOverride,
+    };
+  };
+
+  const sortRowParamMappings = (
+    rowParamsMapping: Array<ReturnType<typeof getRowParamsForCategory>>
+  ) => {
+    return rowParamsMapping
+      .filter(rowParams => !!rowParams)
+      .sort((a, b) => {
+        // sort based on order of the categories in the subscription's current plan
+        // if previousType exists, we need to use that since it means we're migrating
+        // from a category on the subscription's current plan that won't be available
+        // in the new plan
+        const aCategoryExact = a?.previousType ?? a?.type;
+        const bCategoryExact = b?.previousType ?? b?.type;
+        const aCategory = aCategoryExact
+          ? DATA_CATEGORY_INFO[aCategoryExact]?.plural
+          : null;
+        const bCategory = bCategoryExact
+          ? DATA_CATEGORY_INFO[bCategoryExact]?.plural
+          : null;
+        const aOrder = aCategory
+          ? (subscription.categories[aCategory]?.order ?? Infinity)
+          : Infinity;
+        const bOrder = bCategory
+          ? (subscription.categories[bCategory]?.order ?? Infinity)
+          : Infinity;
+        return aOrder - bOrder;
+      });
+  };
+
+  const getCategoryRows = () => {
+    const rowParamsMapping = Object.entries(nextPlan.reserved)
+      .filter(([_, value]) => value !== undefined && value !== null)
+      .map(([category, _]) => getRowParamsForCategory(category as DataCategory));
+
+    return sortRowParamMappings(rowParamsMapping).map(rowParams => (
+      <PlanMigrationRow key={rowParams.type} {...rowParams} />
+    ));
   };
 
   return (
@@ -144,12 +180,7 @@ function PlanMigrationTable({subscription, migration}: Props) {
               hasCredits={hasSecondDiscount}
             />
           )}
-          {Object.entries(nextPlan.reserved).map(
-            ([category, value]) =>
-              value !== undefined &&
-              value !== null &&
-              getRowForCategory(category as DataCategory)
-          )}
+          {getCategoryRows()}
         </tbody>
       </AlertStripedTable>
       {hasMonthlyDiscount && (
