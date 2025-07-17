@@ -209,6 +209,9 @@ class SQLInjectionDetector(PerformanceDetector):
         if not op or not op.startswith("db") or op.startswith("db.redis"):
             return False
 
+        if span.get("origin") == "auto.db.rails":
+            return False
+
         description = span.get("description", None)
         if not description:
             return False
