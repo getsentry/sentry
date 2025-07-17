@@ -7,8 +7,8 @@ import {
 import {mapWebVitalToOrderBy} from 'sentry/views/insights/browser/webVitals/utils/mapWebVitalToOrderBy';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
   transaction: string;
@@ -51,16 +51,13 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
     mutableSearch.addStringMultiFilter(query);
   }
   if (browserTypes) {
-    mutableSearch.addDisjunctionFilterValues(SpanIndexedField.BROWSER_NAME, browserTypes);
+    mutableSearch.addDisjunctionFilterValues(SpanFields.BROWSER_NAME, browserTypes);
   }
   if (subregions) {
-    mutableSearch.addDisjunctionFilterValues(
-      SpanIndexedField.USER_GEO_SUBREGION,
-      subregions
-    );
+    mutableSearch.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
   }
 
-  const result = useEAPSpans(
+  const result = useSpans(
     {
       sorts: [sort],
       search: mutableSearch.formatString(),

@@ -26,7 +26,7 @@ import {
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -114,7 +114,7 @@ export function SpanOperationTable({
     field: `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
   };
 
-  const {data, meta, isPending, pageLinks} = useSpanMetrics(
+  const {data, meta, isPending, pageLinks} = useSpans(
     {
       cursor,
       fields: [

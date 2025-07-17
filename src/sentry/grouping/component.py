@@ -25,6 +25,12 @@ KNOWN_MAJOR_COMPONENT_NAMES = {
 
 
 def _calculate_contributes[ValuesType](values: Sequence[ValuesType]) -> bool:
+    """
+    Determine the `contributes` value based on the given `values` list.
+
+    Returns True if the values are constants or if at least one grouping component in the list
+    contributes.
+    """
     for value in values or ():
         if not isinstance(value, BaseGroupingComponent) or value.contributes:
             return True

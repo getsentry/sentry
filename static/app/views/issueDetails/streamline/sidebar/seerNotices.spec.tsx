@@ -127,7 +127,7 @@ describe('SeerNotices', function () {
     render(<SeerNotices groupId="123" hasGithubIntegration project={project} />, {
       organization: {
         ...organization,
-        features: ['trigger-autofix-on-issue-summary'],
+        features: ['trigger-autofix-on-issue-summary', 'issue-views'],
       },
     });
     await waitFor(() => {

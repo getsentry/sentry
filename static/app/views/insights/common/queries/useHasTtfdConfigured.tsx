@@ -2,7 +2,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 
-import {useMetrics} from './useDiscover';
+import {useSpans} from './useDiscover';
 
 export function useTTFDConfigured(additionalFilters?: string[]) {
   const {
@@ -19,7 +19,7 @@ export function useTTFDConfigured(additionalFilters?: string[]) {
 
   const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
 
-  const result = useMetrics(
+  const result = useSpans(
     {
       search: queryString,
       enabled: !isReleasesLoading,

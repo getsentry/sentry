@@ -20,7 +20,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager.base import BaseManager
-from sentry.integrations.types import ExternalProviders
+from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.users.services.user import RpcUser
 
 if TYPE_CHECKING:
@@ -108,7 +108,7 @@ class IdentityManager(BaseManager["Identity"]):
 
         analytics.record(
             "integrations.identity_linked",
-            provider="slack",
+            provider=IntegrationProviderSlug.SLACK.value,
             # Note that prior to circa March 2023 this was user.actor_id. It changed
             # when actor ids were no longer stable between regions for the same user
             actor_id=user.id,

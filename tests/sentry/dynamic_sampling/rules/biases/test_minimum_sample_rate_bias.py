@@ -15,7 +15,7 @@ def test_generate_rules_with_different_sample_rates(default_project):
         expected_rules = [
             {
                 "samplingValue": {"type": "minimumSampleRate", "value": base_sample_rate},
-                "type": "trace",
+                "type": "transaction",
                 "condition": {
                     "inner": [],
                     "op": "and",

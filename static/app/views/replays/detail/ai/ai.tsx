@@ -47,7 +47,8 @@ function AiContent() {
     enabled: Boolean(
       replayRecord?.id &&
         project?.slug &&
-        organization.features.includes('replay-ai-summaries')
+        organization.features.includes('replay-ai-summaries') &&
+        organization.features.includes('gen-ai-features')
     ),
     retry: false,
   });
@@ -78,7 +79,10 @@ function AiContent() {
     ) : null;
   };
 
-  if (!organization.features.includes('replay-ai-summaries')) {
+  if (
+    !organization.features.includes('replay-ai-summaries') ||
+    !organization.features.includes('gen-ai-features')
+  ) {
     return (
       <SummaryContainer>
         <Alert type="info">
