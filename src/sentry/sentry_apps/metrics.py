@@ -69,6 +69,7 @@ class SentryAppWebhookHaltReason(StrEnum):
     INTEGRATOR_ERROR = "integrator_error"
     MISSING_INSTALLATION = "missing_installation"
     RESTRICTED_IP = "restricted_ip"
+    CONNECTION_RESET = "connection_reset"
 
 
 class SentryAppExternalRequestFailureReason(StrEnum):
