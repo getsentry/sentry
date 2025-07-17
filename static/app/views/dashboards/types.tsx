@@ -139,6 +139,7 @@ export type DashboardListItem = {
   createdBy?: User;
   dateCreated?: string;
   isFavorited?: boolean;
+  lastVisited?: string;
   permissions?: DashboardPermissions;
 };
 

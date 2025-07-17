@@ -64,7 +64,7 @@ export function DashboardTable({
             <SavedEntityTable.HeaderCell data-column="created-by">
               {t('Creator')}
             </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell data-column="last-viewed">
+            <SavedEntityTable.HeaderCell data-column="last-visited">
               {t('Last Viewed')}
             </SavedEntityTable.HeaderCell>
             <SavedEntityTable.HeaderCell data-column="created" noBorder>
@@ -118,9 +118,8 @@ export function DashboardTable({
                 <UserAvatar user={dashboard.createdBy} hasTooltip />
               ) : null}
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell data-column="last-viewed">
-              <SavedEntityTable.CellTimeSince date={null} />
-              {/* TODO: DAIN-713 Add last viewed after it is exposed in the API */}
+            <SavedEntityTable.Cell data-column="last-visited">
+              <SavedEntityTable.CellTimeSince date={dashboard.lastVisited ?? null} />
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell data-column="created">
               <SavedEntityTable.CellTimeSince date={dashboard.dateCreated ?? null} />
