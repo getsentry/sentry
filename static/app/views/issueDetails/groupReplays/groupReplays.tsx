@@ -16,6 +16,7 @@ import {
   ReplayActivityColumn,
   ReplayBrowserColumn,
   ReplayCountErrorsColumn,
+  ReplayDetailsLinkColumn,
   ReplayDurationColumn,
   ReplayOSColumn,
   ReplayPlayPauseColumn,
@@ -53,6 +54,7 @@ const VISIBLE_COLUMNS = [
   ReplayDurationColumn,
   ReplayCountErrorsColumn,
   ReplayActivityColumn,
+  ReplayDetailsLinkColumn,
 ];
 
 const VISIBLE_COLUMNS_MOBILE = [
@@ -61,6 +63,7 @@ const VISIBLE_COLUMNS_MOBILE = [
   ReplayDurationColumn,
   ReplayCountErrorsColumn,
   ReplayActivityColumn,
+  ReplayDetailsLinkColumn,
 ];
 
 function ReplayFilterMessage() {
@@ -222,8 +225,7 @@ function GroupReplaysTable({
 }) {
   const organization = useOrganization();
   const {allMobileProj} = useAllMobileProj({});
-  const {index: selectedReplayIndex, select: setSelectedReplayIndex} =
-    useSelectedReplayIndex();
+  const {index: selectedReplayIndex} = useSelectedReplayIndex();
 
   const {groupId} = useParams<{groupId: string}>();
   useCleanQueryParamsOnRouteLeave({
@@ -248,7 +250,6 @@ function GroupReplaysTable({
       ]}
       error={replayListData.fetchError}
       isPending={replayListData.isFetching}
-      onClickRow={({rowIndex}) => setSelectedReplayIndex(rowIndex)}
       replays={replays ?? []}
       showDropdownFilters={false}
     />
