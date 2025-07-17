@@ -51,6 +51,8 @@ import {issueEventMap} from './analytics/issueAnalyticsEvents';
 import type {LaravelInsightsEventParameters} from './analytics/laravelInsightsAnalyticsEvents';
 import {laravelInsightsEventMap} from './analytics/laravelInsightsAnalyticsEvents';
 import makeAnalyticsFunction from './analytics/makeAnalyticsFunction';
+import type {McpMonitoringEventParameters} from './analytics/mcpMonitoringAnalyticsEvents';
+import {mcpMonitoringEventMap} from './analytics/mcpMonitoringAnalyticsEvents';
 import type {MonitorsEventParameters} from './analytics/monitorsAnalyticsEvents';
 import {monitorsEventMap} from './analytics/monitorsAnalyticsEvents';
 import type {OnboardingEventParameters} from './analytics/onboardingAnalyticsEvents';
@@ -92,6 +94,7 @@ interface EventParameters
     InsightEventParameters,
     IssueEventParameters,
     LaravelInsightsEventParameters,
+    McpMonitoringEventParameters,
     MonitorsEventParameters,
     PerformanceEventParameters,
     ProfilingEventParameters,
@@ -149,6 +152,7 @@ const allEventMap: Record<string, string | null> = {
   ...quickStartEventMap,
   ...navigationAnalyticsEventMap,
   ...tempestEventMap,
+  ...mcpMonitoringEventMap,
 };
 
 /**

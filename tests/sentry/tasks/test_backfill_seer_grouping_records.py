@@ -868,7 +868,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         ]
         assert mock_utils_logger.info.call_args_list == expected_utils_call_args_list
 
-    @patch("sentry.tasks.embeddings_grouping.utils.delete_project_grouping_records")
+    @patch("sentry.tasks.embeddings_grouping.utils.call_seer_to_delete_project_grouping_records")
     def test_only_delete(self, mock_project_delete_grouping_records):
         """
         Test that when the only_delete flag is on, seer_similarity is deleted from the metadata
@@ -906,7 +906,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         for group in groups:
             assert group.data["metadata"] == default_metadata
 
-    @patch("sentry.tasks.embeddings_grouping.utils.delete_project_grouping_records")
+    @patch("sentry.tasks.embeddings_grouping.utils.call_seer_to_delete_project_grouping_records")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     def test_cohort_only_delete(
         self, mock_post_bulk_grouping_records, mock_delete_grouping_records

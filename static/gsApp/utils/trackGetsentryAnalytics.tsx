@@ -104,9 +104,11 @@ type GetsentryEventParameters = {
     // TODO(data categories): BIL-966
     attachments?: number;
     errors?: number;
+    logBytes?: number;
     monitorSeats?: number;
     previous_attachments?: number;
     previous_errors?: number;
+    previous_logBytes?: number;
     previous_monitorSeats?: number;
     previous_plan?: string;
     previous_profileDuration?: number;

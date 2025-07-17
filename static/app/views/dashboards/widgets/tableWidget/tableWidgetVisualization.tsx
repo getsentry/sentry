@@ -211,26 +211,25 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
             <SortLink
               align={align}
               canSort={column.sortable ?? false}
-              onClick={() => {
+              title={<StyledTooltip title={name}>{name}</StyledTooltip>}
+              onClick={e => {
+                if (!onChangeSort) return;
+                e.preventDefault();
                 const nextDirection = direction === 'desc' ? 'asc' : 'desc';
-
-                onChangeSort?.({
+                onChangeSort({
                   field: sortColumn,
                   kind: nextDirection,
                 });
               }}
-              title={<StyledTooltip title={name}>{name}</StyledTooltip>}
               direction={direction}
               generateSortLink={() => {
-                return onChangeSort
-                  ? location
-                  : {
-                      ...location,
-                      query: {
-                        ...location.query,
-                        sort: `${direction === 'desc' ? '' : '-'}${sortColumn}`,
-                      },
-                    };
+                return {
+                  ...location,
+                  query: {
+                    ...location.query,
+                    sort: `${direction === 'desc' ? '' : '-'}${sortColumn}`,
+                  },
+                };
               }}
             />
           );
@@ -280,9 +279,40 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
   );
 }
 
-TableWidgetVisualization.LoadingPlaceholder = function () {
+TableWidgetVisualization.LoadingPlaceholder = function ({
+  columns,
+  aliases,
+}: {
+  aliases?: Record<string, string>;
+  columns?: TabularColumn[];
+}) {
+  const columnsWithName = columns?.map(column => ({...column, name: column.key})) ?? [];
   return (
-    <GridEditable isLoading columnOrder={[]} columnSortBy={[]} data={[]} grid={{}} />
+    <GridEditable
+      isLoading
+      columnOrder={columnsWithName}
+      columnSortBy={[]}
+      data={[]}
+      resizable={false}
+      grid={{
+        renderHeadCell: (_tableColumn, columnIndex) => {
+          if (!columns) return null;
+          const column = columns[columnIndex]!;
+          const align = fieldAlignment(column.key, column.type as ColumnValueType);
+          const name = aliases?.[column.key] || column.key;
+
+          return (
+            <SortLink
+              canSort={false}
+              align={align}
+              title={<StyledTooltip title={name}>{name}</StyledTooltip>}
+              direction={undefined}
+              generateSortLink={() => undefined}
+            />
+          );
+        },
+      }}
+    />
   );
 };
 

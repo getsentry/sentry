@@ -13,7 +13,7 @@ from sentry.grouping.api import (
     BackgroundGroupingConfigLoader,
     GroupingConfig,
     SecondaryGroupingConfigLoader,
-    apply_server_fingerprinting,
+    apply_server_side_fingerprinting,
     get_fingerprinting_config_for_project,
     get_grouping_config_dict_for_project,
     load_grouping_config,
@@ -66,7 +66,7 @@ def _calculate_event_grouping(
             # removed it from the payload.  The call to `get_hashes_and_variants` will then
             # look at `grouping_config` to pick the right parameters.
             event.data["fingerprint"] = event.data.data.get("fingerprint") or ["{{ default }}"]
-            apply_server_fingerprinting(
+            apply_server_side_fingerprinting(
                 event.data.data, get_fingerprinting_config_for_project(project)
             )
 
@@ -214,9 +214,9 @@ def get_or_create_grouphashes(
     project: Project,
     variants: dict[str, BaseVariant],
     hashes: Iterable[str],
-    grouping_config: str,
+    grouping_config_id: str,
 ) -> list[GroupHash]:
-    is_secondary = grouping_config == project.get_option("sentry:secondary_grouping_config")
+    is_secondary = grouping_config_id == project.get_option("sentry:secondary_grouping_config")
     grouphashes: list[GroupHash] = []
 
     if is_secondary:
@@ -238,7 +238,7 @@ def get_or_create_grouphashes(
                 # We don't expect this to throw any errors, but collecting this metadata
                 # shouldn't ever derail ingestion, so better to be safe
                 create_or_update_grouphash_metadata_if_needed(
-                    event, project, grouphash, created, grouping_config, variants
+                    event, project, grouphash, created, grouping_config_id, variants
                 )
             except Exception as exc:
                 event_id = sentry_sdk.capture_exception(exc)

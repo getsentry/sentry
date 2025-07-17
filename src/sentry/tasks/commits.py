@@ -16,7 +16,7 @@ from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.releases.exceptions import ReleaseCommitError
 from sentry.models.repository import Repository
 from sentry.plugins.base import bindings
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError, IntegrationResourceNotFoundError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.config import TaskworkerConfig
@@ -159,6 +159,8 @@ def fetch_commits(release_id: int, user_id: int, refs, prev_release_id=None, **k
             else:
                 repo_commits = provider.compare_commits(repo, start_sha, end_sha, actor=user)
         except NotImplementedError:
+            pass
+        except IntegrationResourceNotFoundError:
             pass
         except Exception as e:
             logger.info(

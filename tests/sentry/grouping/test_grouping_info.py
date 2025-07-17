@@ -1,5 +1,5 @@
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.grouping.grouping_info import get_grouping_info
-from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 

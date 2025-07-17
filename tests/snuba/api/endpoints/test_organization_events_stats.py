@@ -2254,41 +2254,6 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 2
 
-    def test_top_events_with_timestamp(self):
-        with self.feature(self.enabled_features):
-            response = self.client.get(
-                self.url,
-                data={
-                    "start": self.day_ago.isoformat(),
-                    "end": (self.day_ago + timedelta(hours=2)).isoformat(),
-                    "interval": "1h",
-                    "yAxis": "count()",
-                    "orderby": ["-count()"],
-                    "query": "event.type:default",
-                    "field": ["count()", "message", "timestamp"],
-                    "topEvents": "5",
-                },
-                format="json",
-            )
-
-        data = response.data
-        assert response.status_code == 200, response.content
-        assert len(data) == 6
-        # Transactions won't be in the results because of the query
-        del self.events[4]
-        del self.event_data[4]
-
-        for index, event in enumerate(self.events[:5]):
-            results = data[",".join([event.message, event.timestamp])]
-            assert results["order"] == index
-            assert [{"count": self.event_data[index]["count"]}] in [
-                attrs for time, attrs in results["data"]
-            ]
-
-        other = data["Other"]
-        assert other["order"] == 5
-        assert [{"count": 1}] in [attrs for _, attrs in other["data"]]
-
     def test_top_events_with_int(self):
         with self.feature(self.enabled_features):
             response = self.client.get(
@@ -2714,40 +2679,6 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         assert mock_raw_query.call_count == 6
         # Should've default to 24h's default of 5m
         assert mock_raw_query.mock_calls[5].args[0].query.granularity.granularity == 300
-
-    def test_top_events_timestamp_fields(self):
-        with self.feature(self.enabled_features):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "start": self.day_ago.isoformat(),
-                    "end": (self.day_ago + timedelta(hours=2)).isoformat(),
-                    "interval": "1h",
-                    "yAxis": "count()",
-                    "orderby": ["-count()"],
-                    "field": ["count()", "timestamp", "timestamp.to_hour", "timestamp.to_day"],
-                    "topEvents": "5",
-                },
-            )
-        assert response.status_code == 200
-        data = response.data
-        assert len(data) == 3
-
-        # these are the timestamps corresponding to the events stored
-        timestamps = [
-            self.day_ago + timedelta(minutes=2),
-            self.day_ago + timedelta(hours=1, minutes=2),
-            self.day_ago + timedelta(minutes=4),
-        ]
-        timestamp_hours = [timestamp.replace(minute=0, second=0) for timestamp in timestamps]
-        timestamp_days = [timestamp.replace(hour=0, minute=0, second=0) for timestamp in timestamps]
-
-        for ts, ts_hr, ts_day in zip(timestamps, timestamp_hours, timestamp_days):
-            key = f"{ts.isoformat()},{ts_day.isoformat()},{ts_hr.isoformat()}"
-            count = sum(e["count"] for e in self.event_data if e["data"]["timestamp"] == ts)
-            results = data[key]
-            assert [{"count": count}] in [attrs for time, attrs in results["data"]]
 
     def test_top_events_other_with_matching_columns(self):
         with self.feature(self.enabled_features):

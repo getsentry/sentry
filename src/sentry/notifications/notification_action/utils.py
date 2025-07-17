@@ -1,6 +1,8 @@
 import logging
 
+from sentry import features
 from sentry.models.activity import Activity
+from sentry.models.organization import Organization
 from sentry.notifications.notification_action.registry import (
     group_type_notification_registry,
     issue_alert_handler_registry,
@@ -10,6 +12,12 @@ from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.types import WorkflowEventData
 
 logger = logging.getLogger(__name__)
+
+
+def should_fire_workflow_actions(org: Organization) -> bool:
+    return features.has(
+        "organizations:workflow-engine-single-process-workflows", org
+    ) or features.has("organizations:workflow-engine-trigger-actions", org)
 
 
 def execute_via_group_type_registry(
