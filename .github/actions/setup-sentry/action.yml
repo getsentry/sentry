@@ -38,7 +38,7 @@ runs:
         # isn't right because job-total will be 3x larger and you'd never run 2/3 of the tests.
         # MATRIX_INSTANCE_TOTAL: ${{ strategy.job-total }}
       run: |
-        echo "UV_DEFAULT_INDEX=https://pypi.devinfra.sentry.io/simple" >> $GITHUB_ENV
+        # echo "UV_DEFAULT_INDEX=https://pypi.devinfra.sentry.io/simple" >> $GITHUB_ENV
         echo "SENTRY_SKIP_BACKEND_VALIDATION=1" >> $GITHUB_ENV
 
         ### node configuration ###
