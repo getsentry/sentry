@@ -14,7 +14,7 @@ import {InsightsTimeSeriesWidget} from 'sentry/views/insights/common/components/
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {
   type DiscoverSeries,
-  useMetricsSeries,
+  useSpanSeries,
 } from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
 
@@ -54,7 +54,7 @@ export default function PerformanceScoreBreakdownChartWidget(
     data: vitalScoresData,
     isLoading: areVitalScoresLoading,
     error: vitalScoresError,
-  } = useMetricsSeries(
+  } = useSpanSeries(
     {
       search,
       yAxis: [
