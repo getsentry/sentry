@@ -169,6 +169,9 @@ getsentry = [
 requires = ["uv_build==0.7.22"]
 build-backend = "uv_build"
 
+[project.scripts]
+sentry = "sentry.__main__:main"
+
 [tool.black]
 # File filtering is taken care of in pre-commit.
 line-length = 100
