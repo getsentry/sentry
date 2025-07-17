@@ -725,9 +725,6 @@ class DualUpdateAlertRuleTest(BaseMetricAlertMigrationTest):
         updated_fields: dict[str, Any] = {}
         updated_fields = {
             "detection_type": "percent",
-            "threshold_period": 1,
-            "sensitivity": None,
-            "seasonality": None,
             "comparison_delta": 3600,
         }
 
@@ -1526,8 +1523,6 @@ class SinglePointOfEntryTest(BaseMetricAlertMigrationTest):
 
         # check detector
         detector = AlertRuleDetector.objects.get(alert_rule_id=self.dual_written_alert.id).detector
-        assert detector.config["sensitivity"] == self.dual_written_alert.sensitivity
-        assert detector.config["seasonality"] == self.dual_written_alert.seasonality
         assert detector.config["detection_type"] == AlertRuleDetectionType.DYNAMIC
 
         # check detector trigger
@@ -1563,8 +1558,6 @@ class SinglePointOfEntryTest(BaseMetricAlertMigrationTest):
         detector = AlertRuleDetector.objects.get(
             alert_rule_id=self.anomaly_detection_alert.id
         ).detector
-        assert detector.config["sensitivity"] is None
-        assert detector.config["seasonality"] is None
         assert detector.config["detection_type"] == AlertRuleDetectionType.STATIC
 
         # check detector trigger
@@ -1588,8 +1581,6 @@ class SinglePointOfEntryTest(BaseMetricAlertMigrationTest):
         self.anomaly_detection_alert.update(
             detection_type=AlertRuleDetectionType.PERCENT,
             comparison_delta=90,
-            sensitivity=None,
-            seasonality=None,
         )
         self.anomaly_detection_alert_trigger.update(alert_threshold=150)
         self.anomaly_detection_alert.refresh_from_db()
@@ -1601,8 +1592,6 @@ class SinglePointOfEntryTest(BaseMetricAlertMigrationTest):
         detector = AlertRuleDetector.objects.get(
             alert_rule_id=self.anomaly_detection_alert.id
         ).detector
-        assert detector.config["sensitivity"] is None
-        assert detector.config["seasonality"] is None
         assert detector.config["detection_type"] == AlertRuleDetectionType.PERCENT
         assert detector.config["comparison_delta"] == 90
 
@@ -1631,7 +1620,6 @@ class SinglePointOfEntryTest(BaseMetricAlertMigrationTest):
         detector = AlertRuleDetector.objects.get(
             alert_rule_id=self.anomaly_detection_alert.id
         ).detector
-        assert detector.config["sensitivity"] == AlertRuleSensitivity.LOW
 
         detector_trigger = DataCondition.objects.get(
             condition_group=detector.workflow_condition_group,
