@@ -2969,7 +2969,14 @@ register(
 )
 
 register(
-    "workflow_engine.metric_issue.trigger_actions.issue_type_ids",
+    "workflow_engine.issue_alert.group.type_id.rollout",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "workflow_engine.issue_alert.group.type_id.ga",
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,

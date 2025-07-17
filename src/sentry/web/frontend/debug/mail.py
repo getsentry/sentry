@@ -275,7 +275,7 @@ def make_feedback_issue(project):
 
 
 def get_shared_context(rule, org, project: Project, group, event):
-    rules = get_rules([rule], org, project)
+    rules = get_rules([rule], org, project, group.type)
     snooze_alert = len(rules) > 0
     snooze_alert_url = rules[0].status_url + urlencode({"mute": "1"}) if snooze_alert else ""
     return {
@@ -593,7 +593,7 @@ def digest(request):
     )
     start, end, counts = get_digest_metadata(digest.digest)
 
-    rule_details = get_rules(list(rules.values()), org, project)
+    rule_details = get_rules(list(rules.values()), org, project, groups[0].type)
     context = DigestNotification.build_context(digest, project, org, rule_details, 1337)
 
     context["show_replay_links"] = True

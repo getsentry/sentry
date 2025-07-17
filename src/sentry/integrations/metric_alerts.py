@@ -222,7 +222,8 @@ def incident_attachment_info(
     if notification_uuid:
         title_link_params["notification_uuid"] = notification_uuid
 
-    if should_fire_workflow_actions(organization):
+    # TODO(iamrajjoshi): This will need to be updated once we plan out Metric Alerts rollout
+    if should_fire_workflow_actions(organization, 8001):
         try:
             alert_rule_id = AlertRuleDetector.objects.values_list("alert_rule_id", flat=True).get(
                 detector_id=alert_context.action_identifier_id

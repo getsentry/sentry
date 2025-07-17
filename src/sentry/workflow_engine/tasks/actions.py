@@ -2,7 +2,6 @@ from dataclasses import asdict
 
 from django.db.models import Value
 
-from sentry import options
 from sentry.eventstore.models import GroupEvent
 from sentry.eventstream.base import GroupState
 from sentry.models.activity import Activity
@@ -115,11 +114,11 @@ def trigger_action(
         # Here, we probably build the event data from the activity
         raise NotImplementedError("Activity ID is not supported yet")
 
-    should_trigger_actions = should_fire_workflow_actions(detector.project.organization)
+    should_trigger_actions = should_fire_workflow_actions(
+        detector.project.organization, event_data.group.type
+    )
 
-    issue_type_ids = options.get("workflow_engine.metric_issue.trigger_actions.issue_type_ids")
-
-    if should_trigger_actions and event_data.group.type in issue_type_ids:
+    if should_trigger_actions:
         action.trigger(event_data, detector)
     else:
         logger.info(
