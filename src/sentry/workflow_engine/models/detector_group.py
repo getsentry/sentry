@@ -18,3 +18,4 @@ class DetectorGroup(DefaultFieldsModel):
     class Meta:
         db_table = "workflow_engine_detectorgroup"
         app_label = "workflow_engine"
+        unique_together = (("detector", "group"),)
