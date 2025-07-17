@@ -13,10 +13,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Flex} from 'sentry/components/core/layout';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {
-  makeProjectSeerPreferencesQueryKey,
-  useProjectSeerPreferences,
-} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -293,97 +290,6 @@ export function SeerAutomationProjectList() {
     }
   }
 
-  async function setAllToRecommended() {
-    addLoadingMessage('Setting all projects to recommended settings...', {
-      duration: 30000,
-    });
-    try {
-      // Get preferences for all filtered projects to check repo counts
-      const projectPreferences = await Promise.all(
-        filteredProjects.map(async project => {
-          try {
-            const response = await queryClient.fetchQuery({
-              queryKey: [
-                makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
-              ],
-              queryFn: () =>
-                api.requestPromise(
-                  makeProjectSeerPreferencesQueryKey(organization.slug, project.slug)
-                ),
-              staleTime: 60000,
-            });
-            return {
-              project,
-              repoCount: response[0].preference?.repositories?.length || 0,
-            };
-          } catch (err) {
-            // If we can't get preferences, assume no repos
-            return {
-              project,
-              repoCount: 0,
-            };
-          }
-        })
-      );
-
-      // Update all projects
-      await Promise.all(
-        projectPreferences.map(({project, repoCount}) => {
-          const updateData: any = {};
-
-          if (!project.seerScannerAutomation) {
-            updateData.seerScannerAutomation = true; // Set scanner to on for all projects
-          }
-
-          // Sets fixes to highly actionable if repos are connected and no automation already set
-          if (
-            (!project.autofixAutomationTuning ||
-              project.autofixAutomationTuning === 'off') &&
-            repoCount > 0
-          ) {
-            updateData.autofixAutomationTuning = 'low';
-          }
-
-          // no updates, so don't make a request
-          if (Object.keys(updateData).length === 0) {
-            return Promise.resolve();
-          }
-
-          // make the request
-          return api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
-            method: 'PUT',
-            data: updateData,
-          });
-        })
-      );
-
-      const projectsWithNoRepos = projectPreferences.filter(
-        ({repoCount}) => repoCount === 0
-      ).length;
-      const updatedProjectsCount = projectPreferences.length;
-
-      if (projectsWithNoRepos > 0) {
-        addSuccessMessage(
-          `Settings applied to ${updatedProjectsCount} project(s). ${projectsWithNoRepos} project(s) have no repos connected and were skipped.`
-        );
-      } else {
-        addSuccessMessage(`Settings applied to ${updatedProjectsCount} projects.`);
-      }
-    } catch (err) {
-      addErrorMessage('Failed to update some projects');
-    } finally {
-      // Invalidate queries for all filtered projects
-      filteredProjects.forEach(project => {
-        queryClient.invalidateQueries({
-          queryKey: makeDetailedProjectQueryKey({
-            orgSlug: organization.slug,
-            projectSlug: project.slug,
-          }),
-        });
-      });
-    }
-  }
-
   const actionMenuItems = SEER_THRESHOLD_MAP.map(key => ({
     key,
     label: getSeerDropdownLabel(key),
@@ -414,15 +320,11 @@ export function SeerAutomationProjectList() {
           />
         </SearchBarWrapper>
         <Button
-          size="sm"
+          size="md"
           priority="primary"
-          onClick={setAllToRecommended}
-          disabled={filteredProjects.length === 0}
-          title={t(
-            'For all projects, turns Issue Scans on, and if repos are connected, sets Issue Fixes to run automatically.'
-          )}
+          onClick={() => navigate('/settings/seer/onboarding')}
         >
-          {t('Turn On for Recommended Projects')}
+          {t('Open Setup Wizard')}
         </Button>
       </SearchWrapper>
       <Panel>

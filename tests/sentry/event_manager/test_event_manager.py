@@ -21,6 +21,7 @@ from django.utils import timezone
 
 from sentry import eventstore, nodestore, tsdb
 from sentry.attachments import CachedAttachment, attachment_cache
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.constants import MAX_VERSION_LENGTH, DataCategory, InsightModules
 from sentry.dynamic_sampling import (
     ExtendedBoostedRelease,
@@ -66,7 +67,6 @@ from sentry.models.pullrequest import PullRequest, PullRequestCommit
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
-from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.signals import (
     first_event_with_minified_stack_trace_received,
     first_insight_span_received,

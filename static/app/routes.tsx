@@ -998,6 +998,14 @@ function buildRoutes() {
           />
         </Route>
       </Route>
+      <Route path="seer/" name={t('Seer Automation')}>
+        <IndexRoute component={make(() => import('getsentry/views/seerAutomation'))} />
+        <Route
+          path="onboarding/"
+          name={t('Configure Seer for All Projects')}
+          component={make(() => import('getsentry/views/seerAutomation/onboarding'))}
+        />
+      </Route>
       <Route path="stats/" name={t('Stats')}>
         {statsChildRoutes}
       </Route>
@@ -2009,7 +2017,11 @@ function buildRoutes() {
   );
 
   const preprodRoutes = (
-    <Route path="/preprod/" component={make(() => import('sentry/views/preprod/index'))}>
+    <Route
+      path="/preprod/"
+      component={make(() => import('sentry/views/preprod/index'))}
+      withOrgPath
+    >
       <IndexRoute component={make(() => import('sentry/views/preprod/sizeAnalysis'))} />
     </Route>
   );
