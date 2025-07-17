@@ -75,6 +75,8 @@ class DetectorOccurrence:
         )
 
 
+# TODO - @saponifi3d - Change this class to be a pure ABC and remove the `__init__` method.
+# TODO - @saponifi3d - Once the change is made, we should introduce a `BaseDetector` class to evaluate simple cases
 class DetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationType]):
     def __init__(self, detector: Detector):
         self.detector = detector
@@ -85,8 +87,6 @@ class DetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationType]
                     hasattr(detector, "_prefetched_objects_cache")
                     and "workflow_condition_group" in detector._prefetched_objects_cache
                 ):
-                    group = detector.workflow_condition_group
-                elif Detector.workflow_condition_group.is_cached(detector):
                     group = detector.workflow_condition_group
                 else:
                     group = DataConditionGroup.objects.get_from_cache(
