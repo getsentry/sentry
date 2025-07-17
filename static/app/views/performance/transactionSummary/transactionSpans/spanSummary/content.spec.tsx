@@ -214,7 +214,7 @@ describe('SpanSummaryPage', function () {
           isMetricsExtractedData: false,
           tips: {},
           datasetReason: 'unchanged',
-          dataset: 'spansMetrics',
+          dataset: 'spans',
         },
       },
     });

@@ -878,7 +878,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: ['prod'],
           field: [
             'span.op',
@@ -925,7 +925,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: ['prod'],
           field: [
             'project.id',
@@ -969,7 +969,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: ['prod'],
           field: [
             'sentry.normalized_description',
@@ -1040,7 +1040,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           cursor: '0:0:1',
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: ['prod'],
           field: ['transaction', 'project.id', 'cache_miss_rate()'],
           noPagination: true,

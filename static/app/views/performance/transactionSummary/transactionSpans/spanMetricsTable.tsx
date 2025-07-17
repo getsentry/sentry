@@ -21,7 +21,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
   type DomainView,
@@ -129,7 +129,7 @@ export default function SpanMetricsTable(props: Props) {
   const mutableSearch = MutableSearch.fromQueryObject(filters);
   mutableSearch.addStringMultiFilter(search);
 
-  const {data, isPending, pageLinks} = useSpanMetrics(
+  const {data, isPending, pageLinks} = useSpans(
     {
       search: mutableSearch,
       fields: [

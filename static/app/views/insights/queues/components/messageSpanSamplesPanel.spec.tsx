@@ -176,7 +176,7 @@ describe('messageSpanSamplesPanel', () => {
       expect.objectContaining({
         method: 'GET',
         query: expect.objectContaining({
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
             'count()',
@@ -288,7 +288,7 @@ describe('messageSpanSamplesPanel', () => {
       expect.objectContaining({
         method: 'GET',
         query: expect.objectContaining({
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
             'count()',

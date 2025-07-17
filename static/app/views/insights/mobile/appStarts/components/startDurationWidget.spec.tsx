@@ -121,7 +121,7 @@ describe('StartDurationWidget', () => {
             isMetricsExtractedData: false,
             tips: {},
             datasetReason: 'unchanged',
-            dataset: 'spansMetrics',
+            dataset: 'spans',
           },
         },
         'com.example.vu.android@2.10.3+42': {
@@ -146,7 +146,7 @@ describe('StartDurationWidget', () => {
             isMetricsExtractedData: false,
             tips: {},
             datasetReason: 'unchanged',
-            dataset: 'spansMetrics',
+            dataset: 'spans',
           },
         },
       } as MultiSeriesEventsStats;

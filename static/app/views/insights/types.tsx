@@ -459,6 +459,19 @@ type EAPSpanResponseRaw = {
       | `${Property}(${string},${string})`
       | `${Property}(${string},${string},${string})`
       | `${Property}(${string},${string},${string},${string})`]: number;
+    // TODO: We should allow a nicer way to define functions with multiple arguments and different arg types
+  } & Record<`division(${SpanNumberFields},${SpanNumberFields})`, number> & {
+    // TODO: This should include all valid HTTP codes or just all integers
+    'http_response_count(2)': number;
+    'http_response_count(3)': number;
+    'http_response_count(4)': number;
+    'http_response_count(5)': number;
+    'http_response_rate(2)': number;
+    'http_response_rate(3)': number;
+    'http_response_rate(4)': number;
+    'http_response_rate(5)': number;
+    'ttfd_contribution_rate()': number;
+    'ttid_contribution_rate()': number;
   } & {
     [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
   } & {

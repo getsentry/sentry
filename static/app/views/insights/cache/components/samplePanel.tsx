@@ -29,7 +29,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
-import {useSpanMetrics, useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   DataTitles,
   getThroughputTitle,
@@ -93,7 +93,7 @@ export function CacheSamplePanel() {
   const search = MutableSearch.fromQueryObject(filters);
 
   const {data: cacheTransactionMetrics, isFetching: areCacheTransactionMetricsFetching} =
-    useSpanMetrics(
+    useSpans(
       {
         search,
         fields: [

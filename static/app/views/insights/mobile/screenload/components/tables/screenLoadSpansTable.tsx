@@ -27,7 +27,7 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTTFDConfigured} from 'sentry/views/insights/common/queries/useHasTtfdConfigured';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
@@ -99,7 +99,7 @@ export function ScreenLoadSpansTable({
     field: 'sum(span.self_time)',
   };
 
-  const {data, meta, isPending, pageLinks} = useSpanMetrics(
+  const {data, meta, isPending, pageLinks} = useSpans(
     {
       cursor,
       search: queryStringPrimary,

@@ -21,7 +21,7 @@ import {useHttpDomainSummaryChartFilter} from 'sentry/views/insights/common/comp
 import HttpDomainSummaryDurationChartWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryDurationChartWidget';
 import HttpDomainSummaryResponseCodesChartWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryResponseCodesChartWidget';
 import HttpDomainSummaryThroughputChartWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryThroughputChartWidget';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
@@ -83,7 +83,7 @@ export function HTTPDomainSummaryPage() {
 
   const project = projects.find(p => projectId === p.id);
 
-  const {data: domainMetrics, isPending: areDomainMetricsLoading} = useSpanMetrics(
+  const {data: domainMetrics, isPending: areDomainMetricsLoading} = useSpans(
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: [
@@ -104,7 +104,7 @@ export function HTTPDomainSummaryPage() {
     meta: transactionsListMeta,
     error: transactionsListError,
     pageLinks: transactionsListPageLinks,
-  } = useSpanMetrics(
+  } = useSpans(
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: [

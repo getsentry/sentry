@@ -11,7 +11,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {SamplesTableColumnHeader} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
 import {SpanSamplesTable} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
-import {useSpanMetrics, useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {
   NonDefaultSpanSampleFields,
   SpanSample,
@@ -79,7 +79,7 @@ function SampleTable({
     filters[SpanMetricsField.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
   }
 
-  const {data, isFetching: isFetchingSpanMetrics} = useSpanMetrics(
+  const {data, isFetching: isFetchingSpanMetrics} = useSpans(
     {
       search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
       fields: [`avg(${SPAN_SELF_TIME})`, SPAN_OP],

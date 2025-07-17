@@ -19,7 +19,7 @@ import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components
 import LlmGroupNumberOfPipelinesChartWidget from 'sentry/views/insights/common/components/widgets/llmGroupNumberOfPipelinesChartWidget';
 import LlmGroupPipelineDurationChartWidget from 'sentry/views/insights/common/components/widgets/llmGroupPipelineDurationChartWidget';
 import LlmGroupTotalTokensUsedChartWidget from 'sentry/views/insights/common/components/widgets/llmGroupTotalTokensUsedChartWidget';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {PipelineSpansTable} from 'sentry/views/insights/llmMonitoring/components/tables/pipelineSpansTable';
 import {RELEASE_LEVEL} from 'sentry/views/insights/llmMonitoring/settings';
 import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
@@ -53,7 +53,7 @@ function LLMMonitoringPage({params}: Props) {
     'span.category': 'ai.pipeline',
   };
 
-  const {data, isPending: areSpanMetricsLoading} = useSpanMetrics(
+  const {data, isPending: areSpanMetricsLoading} = useSpans(
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: [
@@ -69,7 +69,7 @@ function LLMMonitoringPage({params}: Props) {
 
   const spanMetrics = data[0] ?? {};
 
-  const {data: totalTokenData, isPending: isTotalTokenDataLoading} = useSpanMetrics(
+  const {data: totalTokenData, isPending: isTotalTokenDataLoading} = useSpans(
     {
       search: MutableSearch.fromQueryObject({
         'span.category': 'ai',

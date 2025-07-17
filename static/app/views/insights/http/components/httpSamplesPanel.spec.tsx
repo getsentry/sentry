@@ -206,7 +206,7 @@ describe('HTTPSamplesPanel', () => {
         expect.objectContaining({
           method: 'GET',
           query: {
-            dataset: 'spansMetrics',
+            dataset: 'spans',
             environment: [],
             field: [
               'epm()',
@@ -220,6 +220,7 @@ describe('HTTPSamplesPanel', () => {
             project: [],
             query: 'span.op:http.client !has:span.domain transaction:/api/0/users',
             referrer: 'api.performance.http.samples-panel-metrics-ribbon',
+            sampling: SAMPLING_MODE.NORMAL,
             statsPeriod: '10d',
           },
         })

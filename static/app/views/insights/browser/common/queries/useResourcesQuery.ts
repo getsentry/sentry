@@ -7,7 +7,7 @@ import {ResourceSpanOps} from 'sentry/views/insights/browser/resources/types';
 import type {ModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import type {ValidSort} from 'sentry/views/insights/browser/resources/utils/useResourceSort';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
 const {
@@ -72,7 +72,7 @@ export const useResourcesQuery = ({
     query,
   ];
 
-  return useSpanMetrics(
+  return useSpans(
     {
       sorts: [sort],
       search: queryConditions.join(' '),

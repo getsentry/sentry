@@ -82,7 +82,7 @@ describe('queuesTable', () => {
             'avg(messaging.message.receive.latency)',
             'trace_status_rate(ok)',
           ],
-          dataset: 'spansMetrics',
+          dataset: 'spans',
         }),
       })
     );
@@ -118,7 +118,7 @@ describe('queuesTable', () => {
             'avg(messaging.message.receive.latency)',
             'trace_status_rate(ok)',
           ],
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           sort: '-messaging.destination.name',
           query:
             'span.op:[queue.process,queue.publish] messaging.destination.name:*events*',

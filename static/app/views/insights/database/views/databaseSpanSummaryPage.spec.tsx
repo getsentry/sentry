@@ -198,7 +198,7 @@ describe('DatabaseSpanSummaryPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
             'span.op',
@@ -215,6 +215,7 @@ describe('DatabaseSpanSummaryPage', function () {
           project: [],
           query: 'span.group:1756baf8fd19c116',
           referrer: 'api.starfish.span-summary-page-metrics',
+          sampling: SAMPLING_MODE.NORMAL,
           statsPeriod: '10d',
         },
       })
@@ -298,6 +299,7 @@ describe('DatabaseSpanSummaryPage', function () {
           project: [],
           query: 'span.group:1756baf8fd19c116',
           referrer: 'api.insights.database.summary-duration-chart',
+          sampling: undefined,
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',
@@ -313,7 +315,7 @@ describe('DatabaseSpanSummaryPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
             'transaction',
@@ -329,6 +331,7 @@ describe('DatabaseSpanSummaryPage', function () {
           query: 'span.group:1756baf8fd19c116',
           sort: '-sum(span.self_time)',
           referrer: 'api.starfish.span-transaction-metrics',
+          sampling: SAMPLING_MODE.NORMAL,
           statsPeriod: '10d',
         },
       })

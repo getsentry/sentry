@@ -9,7 +9,7 @@ import {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottabl
 // TODO(release-drawer): Used in spanSummarPage/samplelist and spanSamplesPanelContainer
 // eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import type {
   NonDefaultSpanSampleFields,
@@ -99,7 +99,7 @@ function DurationChart({
     referrer
   );
 
-  const {data, error: spanMetricsError} = useSpanMetrics(
+  const {data, error: spanMetricsError} = useSpans(
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: [`avg(${SPAN_SELF_TIME})`, SPAN_OP],

@@ -21,7 +21,7 @@ import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components
 import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
 import DatabaseSummaryDurationChartWidget from 'sentry/views/insights/common/components/widgets/databaseSummaryDurationChartWidget';
 import DatabaseSummaryThroughputChartWidget from 'sentry/views/insights/common/components/widgets/databaseSummaryThroughputChartWidget';
-import {useSpanMetrics, useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
@@ -93,7 +93,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
       'api.starfish.span-description'
     );
 
-  const {data, isPending: areSpanMetricsLoading} = useSpanMetrics(
+  const {data, isPending: areSpanMetricsLoading} = useSpans(
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: [
@@ -120,7 +120,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
     meta: transactionsListMeta,
     error: transactionsListError,
     pageLinks: transactionsListPageLinks,
-  } = useSpanMetrics(
+  } = useSpans(
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: [
