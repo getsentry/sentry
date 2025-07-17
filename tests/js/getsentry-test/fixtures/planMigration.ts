@@ -157,6 +157,12 @@ const TenthCohort: Cohort = {
       attachments: 1,
       monitorSeats: 1,
     },
+    categoryCredits: {
+      replays: {
+        credits: 450,
+        months: 2,
+      },
+    },
     discountAmount: 0,
     discountMonths: 1,
     contractPeriod: 'annual',

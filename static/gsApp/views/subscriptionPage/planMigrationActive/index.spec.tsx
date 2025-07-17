@@ -604,6 +604,7 @@ describe('PlanMigrationActive cohort 8', function () {
     expect(screen.queryByTestId('current-renewal')).not.toBeInTheDocument();
   });
 
+  // TODO(isabella): condense category-specific assertions into a single test
   it('renders errors row', function () {
     renderSimple();
     expect(screen.getByTestId('current-errors')).toHaveTextContent(/100K errors/);
@@ -616,6 +617,7 @@ describe('PlanMigrationActive cohort 8', function () {
       /100K performance units/
     );
     expect(screen.getByTestId('new-spans')).toHaveTextContent(/10M spans/);
+    expect(screen.getByText(/Tracing and Performance Monitoring/)).toBeInTheDocument();
   });
 
   it('renders attachments row', function () {
@@ -727,6 +729,7 @@ describe('PlanMigrationActive cohort 9', function () {
       /100K performance units/
     );
     expect(screen.getByTestId('new-spans')).toHaveTextContent(/10M spans/);
+    expect(screen.getByText(/Tracing and Performance Monitoring/)).toBeInTheDocument();
   });
 
   it('renders attachments row', function () {
@@ -832,6 +835,7 @@ describe('PlanMigrationActive cohort 10', function () {
       /100K performance units/
     );
     expect(screen.getByTestId('new-spans')).toHaveTextContent(/10M spans/);
+    expect(screen.getByText(/Tracing and Performance Monitoring/)).toBeInTheDocument();
   });
 
   it('renders attachments row', function () {
@@ -881,10 +885,7 @@ describe('PlanMigrationActive cohort 111 -- TEST ONLY', function () {
 
   it('renders with active migration', function () {
     renderSimple();
-  });
-
-  it('renders plan migration table', function () {
-    renderSimple();
+    expect(screen.getByTestId('plan-migration-panel')).toBeInTheDocument();
     expect(screen.getByRole('table')).toBeInTheDocument();
     expect(screen.getAllByRole('row')).toHaveLength(8);
   });
@@ -896,11 +897,12 @@ describe('PlanMigrationActive cohort 111 -- TEST ONLY', function () {
     );
   });
 
-  it('renders monitor seats row', function () {
+  it('renders spans row with existing spans', function () {
     renderSimple();
-    expect(screen.getByTestId('current-monitorSeats')).toHaveTextContent(
-      /1 cron monitor/
-    );
-    expect(screen.getByTestId('new-monitorSeats')).toHaveTextContent(/1 cron monitor/);
+    expect(screen.getByTestId('current-spans')).toHaveTextContent(/10M spans/);
+    expect(screen.getByTestId('new-spans')).toHaveTextContent(/10M spans/);
+    expect(
+      screen.queryByText(/Tracing and Performance Monitoring/)
+    ).not.toBeInTheDocument();
   });
 });
