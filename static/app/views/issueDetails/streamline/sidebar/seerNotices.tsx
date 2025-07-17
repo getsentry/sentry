@@ -186,7 +186,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                       </span>
                       <span>
                         {tct(
-                          'Support for [githubEnterpriseLink:GitHub Enterprise], [bitbucketLink:BitBucket], and [gitlabLink:GitLab] is coming soon.',
+                          'Support for other source code providers are coming soon. You can keep up with progress on these GitHub issues: [githubEnterpriseLink:GitHub Enterprise], [bitbucketLink:BitBucket], [gitlabLink:GitLab], and [azureDevopsLink:Azure DevOps].',
                           {
                             githubEnterpriseLink: (
                               <ExternalLink href="https://github.com/getsentry/sentry/issues/95790" />
@@ -196,6 +196,9 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                             ),
                             gitlabLink: (
                               <ExternalLink href="https://github.com/getsentry/sentry/issues/93724" />
+                            ),
+                            azureDevopsLink: (
+                              <ExternalLink href="https://github.com/getsentry/sentry/issues/95796" />
                             ),
                           }
                         )}
