@@ -242,20 +242,66 @@ class OAuth2LoginView:
             "redirect_uri": redirect_uri,
         }
 
+    def _start_new_oauth_flow(
+        self, request: HttpRequest, pipeline: IdentityPipeline
+    ) -> HttpResponseRedirect:
+        """Start a new OAuth flow by generating state, building redirect URL, and binding state."""
+        state = secrets.token_hex()
+        params = self.get_authorize_params(
+            state=state, redirect_uri=absolute_uri(_redirect_url(pipeline))
+        )
+        redirect_uri = f"{self.get_authorize_url()}?{urlencode(params)}"
+
+        pipeline.bind_state("state", state)
+        if request.subdomain:
+            pipeline.bind_state("subdomain", request.subdomain)
+
+        return HttpResponseRedirect(redirect_uri)
+
     @method_decorator(csrf_exempt)
     def dispatch(self, request: HttpRequest, pipeline: IdentityPipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.OAUTH_LOGIN, pipeline.provider.key).capture():
-            oauth_code = request.GET.get("code")
-            oauth_error = request.GET.get("error")
-            oauth_state = request.GET.get("state")
+            # Detect parameter pollution attacks for critical OAuth parameters
+            code_values = request.GET.getlist("code")
+            error_values = request.GET.getlist("error")
+            state_values = request.GET.getlist("state")
+
+            # Check for parameter pollution on critical OAuth parameters
+            pollution_detected = (
+                len(code_values) > 1 or len(error_values) > 1 or len(state_values) > 1
+            )
+
+            if pollution_detected:
+                logger.warning(
+                    "OAuth parameter pollution attack detected",
+                    extra={
+                        "provider": pipeline.provider.key,
+                        "code_count": len(code_values),
+                        "error_count": len(error_values),
+                        "state_count": len(state_values),
+                        "remote_addr": request.META.get("REMOTE_ADDR"),
+                        "user_agent": request.META.get("HTTP_USER_AGENT"),
+                        "referer": request.META.get("HTTP_REFERER"),
+                    },
+                )
+                # Start new OAuth flow to prevent potential parameter pollution attack
+                return self._start_new_oauth_flow(request, pipeline)
+
+            # Safe to get single values now that we've validated no pollution
+            oauth_code = code_values[0] if code_values else None
+            oauth_error = error_values[0] if error_values else None
+            oauth_state = state_values[0] if state_values else None
             stored_state = pipeline.fetch_state("state")
 
             # Only treat as OAuth callback if:
-            # 1. We have a code OR error parameter AND
-            # 2. We have a state parameter AND
+            # 1. We have a code OR error parameter (but not both) AND
+            # 2. We have exactly ONE state parameter AND
             # 3. The state matches what we stored
             is_oauth_callback = (
-                (oauth_code or oauth_error) and oauth_state and oauth_state == stored_state
+                (oauth_code or oauth_error)
+                and not (oauth_code and oauth_error)  # RFC 6749: MUST NOT have both code and error
+                and oauth_state
+                and oauth_state == stored_state
             )
 
             # Log OAuth callback detection for monitoring
@@ -266,7 +312,10 @@ class OAuth2LoginView:
                     "has_code": bool(oauth_code),
                     "has_error": bool(oauth_error),
                     "has_state": bool(oauth_state),
-                    "state_matches": oauth_state == stored_state,
+                    "code_count": len(code_values),
+                    "error_count": len(error_values),
+                    "state_count": len(state_values),
+                    "state_matches": oauth_state == stored_state if oauth_state else False,
                     "is_callback": is_oauth_callback,
                 },
             )
@@ -275,18 +324,7 @@ class OAuth2LoginView:
                 return pipeline.next_step()
 
             # Otherwise, start new OAuth flow
-            state = secrets.token_hex()
-
-            params = self.get_authorize_params(
-                state=state, redirect_uri=absolute_uri(_redirect_url(pipeline))
-            )
-            redirect_uri = f"{self.get_authorize_url()}?{urlencode(params)}"
-
-            pipeline.bind_state("state", state)
-            if request.subdomain:
-                pipeline.bind_state("subdomain", request.subdomain)
-
-            return HttpResponseRedirect(redirect_uri)
+            return self._start_new_oauth_flow(request, pipeline)
 
 
 class OAuth2CallbackView:
