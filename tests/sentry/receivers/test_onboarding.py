@@ -31,6 +31,7 @@ from sentry.signals import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
@@ -907,13 +908,15 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
-        record_analytics.assert_called_with(
-            "first_event.sent",
-            user_id=self.user.id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=error_event.platform,
-            project_platform=project.platform,
+        assert_last_analytics_event(
+            record_analytics,
+            FirstEventSentEvent(
+                user_id=self.user.id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=error_event.platform,
+                project_platform=project.platform,
+            ),
         )
 
         # Configure an issue alert
