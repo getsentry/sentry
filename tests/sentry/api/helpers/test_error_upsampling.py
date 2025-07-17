@@ -7,7 +7,7 @@ from rest_framework.request import Request
 from sentry.api.helpers.error_upsampling import (
     _is_error_focused_query,
     _should_apply_sample_weight_transform,
-    are_all_projects_error_upsampled,
+    are_any_projects_error_upsampled,
     transform_query_columns_for_error_upsampling,
 )
 from sentry.models.organization import Organization
@@ -35,21 +35,21 @@ class ErrorUpsamplingTest(TestCase):
         self.request.GET = QueryDict("")
 
     @patch("sentry.api.helpers.error_upsampling.options")
-    def test_are_all_projects_error_upsampled(self, mock_options: Mock) -> None:
+    def test_are_any_projects_error_upsampled(self, mock_options: Mock) -> None:
         # Test when all projects are allowlisted
         mock_options.get.return_value = self.project_ids
-        assert are_all_projects_error_upsampled(self.project_ids) is True
+        assert are_any_projects_error_upsampled(self.project_ids) is True
 
-        # Test when some projects are not allowlisted
+        # Test when some projects are allowlisted
         mock_options.get.return_value = self.project_ids[:-1]
-        assert are_all_projects_error_upsampled(self.project_ids) is False
+        assert are_any_projects_error_upsampled(self.project_ids) is True
 
         # Test when no projects are allowlisted
         mock_options.get.return_value = []
-        assert are_all_projects_error_upsampled(self.project_ids) is False
+        assert are_any_projects_error_upsampled(self.project_ids) is False
 
         # Test when no project IDs provided
-        assert are_all_projects_error_upsampled([]) is False
+        assert are_any_projects_error_upsampled([]) is False
 
     def test_transform_query_columns_for_error_upsampling(self) -> None:
         # Test count() transformation

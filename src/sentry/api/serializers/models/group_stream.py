@@ -12,7 +12,7 @@ from django.utils import timezone
 from sentry import features, release_health, tsdb
 from sentry.api.helpers.error_upsampling import (
     UPSAMPLED_ERROR_AGGREGATION,
-    are_all_projects_error_upsampled,
+    are_any_projects_error_upsampled,
 )
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import (
@@ -395,8 +395,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         if self.stats_period and not self._collapse("stats"):
             aggregation_override = None
             if self.project_ids:
-                is_upsampled = are_all_projects_error_upsampled(self.project_ids)
-                if is_upsampled:
+                if are_any_projects_error_upsampled(self.project_ids):
                     aggregation_override = UPSAMPLED_ERROR_AGGREGATION
 
             partial_get_stats = functools.partial(

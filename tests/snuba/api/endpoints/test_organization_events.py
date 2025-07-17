@@ -6776,7 +6776,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             assert response.data["data"][0]["count()"] == 1
 
     def test_error_upsampling_with_partial_allowlist(self):
-        """Test that count() is not upsampled when only some projects are allowlisted."""
+        """Test that count() is upsampled when any project in the query is allowlisted."""
         # Create a second project
         project2 = self.create_project(organization=self.organization)
 
@@ -6819,8 +6819,8 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             features = {"organizations:discover-basic": True, "organizations:global-views": True}
             response = self.do_request(query, features=features)
             assert response.status_code == 200, response.content
-            # Expect no upsampling since not all projects are allowlisted
-            assert response.data["data"][0]["count()"] == 2
+            # Expect upsampling since any project is allowlisted (both events upsampled: 10 + 10 = 20)
+            assert response.data["data"][0]["count()"] == 20
 
     def test_is_status(self):
         self.store_event(

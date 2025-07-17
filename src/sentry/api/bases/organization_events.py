@@ -18,7 +18,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.base import CURSOR_LINK_HEADER
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import FilterParamsDateNotNull, OrganizationEndpoint
-from sentry.api.helpers.error_upsampling import are_all_projects_error_upsampled
+from sentry.api.helpers.error_upsampling import are_any_projects_error_upsampled
 from sentry.api.helpers.mobile import get_readable_device_name
 from sentry.api.helpers.teams import get_teams
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
@@ -431,7 +431,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         and update the meta fields to reflect the new field names. This works around a limitation in
         how aliases are handled in the SnQL parser.
         """
-        if are_all_projects_error_upsampled(project_ids):
+        if are_any_projects_error_upsampled(project_ids):
             data = results.get("data", [])
             fields_meta = results.get("meta", {}).get("fields", {})
 
