@@ -38,7 +38,7 @@ import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/qu
 import useProfileExists from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
+import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -55,7 +55,7 @@ const PAGELOADS_COLUMN_ORDER: GridColumnOrder[] = [
 const SPANS_SAMPLES_COLUMN_ORDER: GridColumnOrder[] = [
   {key: 'id', width: COL_WIDTH_UNDEFINED, name: t('Trace')},
   {
-    key: SpanIndexedField.SPAN_DESCRIPTION,
+    key: SpanFields.SPAN_DESCRIPTION,
     width: COL_WIDTH_UNDEFINED,
     name: t('Description'),
   },
@@ -84,10 +84,8 @@ export function PageOverviewWebVitalsDetailPanel({
   const {replayExists} = useReplayExists();
   const domainViewFilters = useDomainViewFilters();
 
-  const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
-  const subregions = location.query[
-    SpanIndexedField.USER_GEO_SUBREGION
-  ] as SubregionCode[];
+  const browserTypes = decodeBrowserTypes(location.query[SpanFields.BROWSER_NAME]);
+  const subregions = location.query[SpanFields.USER_GEO_SUBREGION] as SubregionCode[];
   const isSpansWebVital = defined(webVital) && ['inp', 'cls', 'lcp'].includes(webVital);
   const isInp = webVital === 'inp';
   const useSpansWebVitals = organization.features.includes(
@@ -148,7 +146,7 @@ export function PageOverviewWebVitalsDetailPanel({
       return <AlignCenter>{col.name}</AlignCenter>;
     }
 
-    if (col.key === SpanIndexedField.SPAN_DESCRIPTION) {
+    if (col.key === SpanFields.SPAN_DESCRIPTION) {
       if (webVital === 'lcp') {
         return <span>{t('LCP Element')}</span>;
       }
@@ -206,7 +204,7 @@ export function PageOverviewWebVitalsDetailPanel({
         {
           replayId: row.replayId,
           id: '', // id doesn't actually matter here. Just to satisfy type.
-          'transaction.duration': row[SpanIndexedField.SPAN_SELF_TIME],
+          'transaction.duration': row[SpanFields.SPAN_SELF_TIME],
           timestamp: row.timestamp,
         },
         undefined
@@ -247,12 +245,12 @@ export function PageOverviewWebVitalsDetailPanel({
       );
     }
 
-    if (key === SpanIndexedField.SPAN_DESCRIPTION) {
+    if (key === SpanFields.SPAN_DESCRIPTION) {
       const description =
-        webVital === 'lcp' && row[SpanIndexedField.SPAN_OP] === 'pageload'
-          ? row[SpanIndexedField.LCP_ELEMENT]
-          : webVital === 'cls' && row[SpanIndexedField.SPAN_OP] === 'pageload'
-            ? row[SpanIndexedField.CLS_SOURCE]
+        webVital === 'lcp' && row[SpanFields.SPAN_OP] === 'pageload'
+          ? row[SpanFields.LCP_ELEMENT]
+          : webVital === 'cls' && row[SpanFields.SPAN_OP] === 'pageload'
+            ? row[SpanFields.CLS_SOURCE]
             : row[key];
 
       if (description) {

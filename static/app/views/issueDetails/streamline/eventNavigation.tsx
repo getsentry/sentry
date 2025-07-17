@@ -271,7 +271,13 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
             <ButtonBar>
               {issueTypeConfig.discover.enabled && currentTab === Tab.EVENTS && (
                 <LinkButton
-                  to={discoverUrl}
+                  to={{
+                    pathname: discoverUrl.pathname,
+                    query: {
+                      ...discoverUrl.query,
+                      sort: location.query.sort ?? '-timestamp',
+                    },
+                  }}
                   aria-label={t('Open in Discover')}
                   size="xs"
                   icon={<IconTelescope />}

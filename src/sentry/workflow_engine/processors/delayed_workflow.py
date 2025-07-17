@@ -12,7 +12,7 @@ from celery import Task
 from django.utils import timezone
 from pydantic import BaseModel, validator
 
-from sentry import buffer, features, nodestore
+from sentry import buffer, nodestore
 from sentry.buffer.base import BufferField
 from sentry.db import models
 from sentry.eventstore.models import Event, GroupEvent
@@ -542,9 +542,9 @@ def get_groups_to_fire(
     return groups_to_fire
 
 
-def bulk_fetch_events(event_ids: list[str], project_id: int) -> dict[str, Event]:
+def bulk_fetch_events(event_ids: list[str], project: Project) -> dict[str, Event]:
     node_id_to_event_id = {
-        Event.generate_node_id(project_id, event_id=event_id): event_id for event_id in event_ids
+        Event.generate_node_id(project.id, event_id=event_id): event_id for event_id in event_ids
     }
     node_ids = list(node_id_to_event_id.keys())
     fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(1.00))
@@ -554,29 +554,31 @@ def bulk_fetch_events(event_ids: list[str], project_id: int) -> dict[str, Event]
         bulk_results = fetch_retry_policy(lambda: nodestore.backend.get_multi(node_id_chunk))
         bulk_data.update(bulk_results)
 
-    return {
-        node_id_to_event_id[node_id]: Event(
-            event_id=node_id_to_event_id[node_id], project_id=project_id, data=data
-        )
-        for node_id, data in bulk_data.items()
-        if data is not None
-    }
+    result: dict[str, Event] = {}
+    for node_id, data in bulk_data.items():
+        if data is not None:
+            event = Event(event_id=node_id_to_event_id[node_id], project_id=project.id, data=data)
+            # By setting a shared Project, we can ensure that the common pattern of retrieving
+            # the project (and fields thereof) from individual events doesn't duplicate work.
+            event.project = project
+            result[event.event_id] = event
+    return result
 
 
 @sentry_sdk.trace
 def get_group_to_groupevent(
     event_data: EventRedisData,
     groups_to_dcgs: dict[GroupId, set[DataConditionGroup]],
-    project_id: int,
+    project: Project,
 ) -> dict[Group, GroupEvent]:
     groups = Group.objects.filter(id__in=event_data.group_ids)
     group_id_to_group = {group.id: group for group in groups}
 
-    bulk_event_id_to_events = bulk_fetch_events(list(event_data.event_ids), project_id)
+    bulk_event_id_to_events = bulk_fetch_events(list(event_data.event_ids), project)
     bulk_occurrences: list[IssueOccurrence | None] = []
     if event_data.occurrence_ids:
         bulk_occurrences = IssueOccurrence.fetch_multi(
-            list(event_data.occurrence_ids), project_id=project_id
+            list(event_data.occurrence_ids), project_id=project.id
         )
 
     bulk_occurrence_id_to_occurrence = {
@@ -670,9 +672,6 @@ def fire_actions_for_groups(
 
     # Feature check caching to keep us within the trace budget.
     should_trigger_actions = should_fire_workflow_actions(organization)
-    should_trigger_actions_async = features.has(
-        "organizations:workflow-engine-action-trigger-async", organization
-    )
 
     total_actions = 0
     with track_batch_performance(
@@ -723,7 +722,9 @@ def fire_actions_for_groups(
                 filtered_actions = filter_recently_fired_workflow_actions(
                     action_filters_for_group | workflows_actions, workflow_event_data
                 )
-                create_workflow_fire_histories(detector, filtered_actions, workflow_event_data)
+                create_workflow_fire_histories(
+                    detector, filtered_actions, workflow_event_data, should_trigger_actions
+                )
 
                 metrics.incr(
                     "workflow_engine.delayed_workflow.triggered_actions",
@@ -749,13 +750,10 @@ def fire_actions_for_groups(
 
                 if should_trigger_actions:
                     for action in filtered_actions:
-                        if should_trigger_actions_async:
-                            task_params = build_trigger_action_task_params(
-                                action, detector, workflow_event_data
-                            )
-                            trigger_action.delay(**task_params)
-                        else:
-                            action.trigger(workflow_event_data, detector)
+                        task_params = build_trigger_action_task_params(
+                            action, detector, workflow_event_data
+                        )
+                        trigger_action.delay(**task_params)
 
     logger.info(
         "workflow_engine.delayed_workflow.triggered_actions_summary",
@@ -886,7 +884,7 @@ def process_delayed_workflows(
     group_to_groupevent = get_group_to_groupevent(
         event_data,
         groups_to_dcgs,
-        project_id,
+        project,
     )
 
     fire_actions_for_groups(project.organization, groups_to_dcgs, event_data, group_to_groupevent)

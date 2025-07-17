@@ -143,7 +143,7 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
 
 
 class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest):
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @with_feature("organizations:issue-metric-issue-post-process-group")
     @with_feature("organizations:workflow-engine-process-metric-issue-workflows")
     def test_workflow_engine__workflows(self):
         """
@@ -157,7 +157,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
             self.call_post_process_group(self.group.id)
             mock_process_workflow.assert_called_once()
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @with_feature("organizations:issue-metric-issue-post-process-group")
     def test_workflow_engine__workflows__other_events(self):
         """
         Ensure that the workflow engine only supports MetricIssue events for now.
@@ -197,7 +197,6 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
             mock_process_workflow.assert_not_called()
 
 
-@with_feature("organizations:workflow-engine-action-trigger-async")
 @mock.patch("sentry.workflow_engine.processors.workflow.trigger_action.delay")
 @mock_redis_buffer()
 class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationTest):
@@ -222,6 +221,11 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
                 "organizations:workflow-engine-trigger-actions": True,
             }
         ):
+            yield
+
+    @pytest.fixture(autouse=True)
+    def with_tasks(self):
+        with self.tasks():
             yield
 
     def create_error_event(
