@@ -12,6 +12,7 @@ from unittest.mock import patch
 from django.utils import timezone
 
 from sentry import eventstream, tsdb
+from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.eventstore.models import Event
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -31,6 +32,7 @@ from sentry.tasks.unmerge import (
     unmerge,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.tsdb.base import TSDBModel
@@ -452,10 +454,12 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             aggregate.add(
                 get_event_user_from_interface(event.data["user"], event.group.project).tag_value
             )
-            mock_record.assert_called_with(
-                "eventuser_endpoint.request",
-                project_id=event.group.project.id,
-                endpoint="sentry.tasks.unmerge.get_event_user_from_interface",
+            assert_last_analytics_event(
+                mock_record,
+                EventUserEndpointRequest(
+                    project_id=event.group.project.id,
+                    endpoint="sentry.tasks.unmerge.get_event_user_from_interface",
+                ),
             )
             return aggregate
 

@@ -1,5 +1,6 @@
 from unittest import mock
 
+from sentry.analytics.events.checkin_processing_error_stored import CheckinProcessingErrorStored
 from sentry.monitors.processing_errors.errors import (
     CheckinProcessingError,
     ProcessingErrorsException,
@@ -18,6 +19,7 @@ from sentry.monitors.processing_errors.manager import (
 )
 from sentry.monitors.testutils import build_checkin_item, build_checkin_processing_error
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 
 
 def assert_processing_errors_equal(
@@ -248,10 +250,12 @@ class HandleProcessingErrorsTest(TestCase):
         errors = get_errors_for_monitor(monitor)
         assert len(errors) == 1
 
-        mock_record.assert_called_with(
-            "checkin_processing_error.stored",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            monitor_slug=monitor.slug,
-            error_types=[ProcessingErrorType.CHECKIN_INVALID_GUID],
+        assert_last_analytics_event(
+            mock_record,
+            CheckinProcessingErrorStored(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                monitor_slug=monitor.slug,
+                error_types=[ProcessingErrorType.CHECKIN_INVALID_GUID],
+            ),
         )

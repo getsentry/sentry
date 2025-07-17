@@ -8,6 +8,10 @@ import responses
 from celery.exceptions import Retry
 from django.utils import timezone
 
+from sentry.analytics.events.integration_commit_context_all_frames import (
+    IntegrationsFailedToFetchCommitContextAllFrames,
+    IntegrationsSuccessfullyFetchedCommitContextAllFrames,
+)
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.services.integration import integration_service
@@ -35,6 +39,10 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.commit_context import PR_COMMENT_WINDOW, process_commit_context
 from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import IntegrationTestCase, TestCase
+from sentry.testutils.helpers.analytics import (
+    assert_any_analytics_event,
+    assert_last_analytics_event,
+)
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -240,19 +248,21 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         assert created_group_owner
         assert created_group_owner.context == {"commitId": existing_commit.id}
 
-        mock_record.assert_any_call(
-            "integrations.successfully_fetched_commit_context_all_frames",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            group_id=self.event.group_id,
-            event_id=self.event.event_id,
-            num_frames=1,
-            num_unique_commits=1,
-            num_unique_commit_authors=1,
-            num_successfully_mapped_frames=1,
-            selected_frame_index=0,
-            selected_provider="github",
-            selected_code_mapping_id=self.code_mapping.id,
+        assert_any_analytics_event(
+            mock_record,
+            IntegrationsSuccessfullyFetchedCommitContextAllFrames(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                group_id=self.event.group_id,
+                event_id=self.event.event_id,
+                num_frames=1,
+                num_unique_commits=1,
+                num_unique_commit_authors=1,
+                num_successfully_mapped_frames=1,
+                selected_frame_index=0,
+                selected_provider="github",
+                selected_code_mapping_id=self.code_mapping.id,
+            ),
         )
 
     @patch("sentry.analytics.record")
@@ -473,15 +483,17 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             sdk_name="sentry.python",
         )
 
-        mock_record.assert_any_call(
-            "integrations.failed_to_fetch_commit_context_all_frames",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            group_id=self.event.group_id,
-            event_id=self.event.event_id,
-            num_frames=0,
-            num_successfully_mapped_frames=0,
-            reason="could_not_find_in_app_stacktrace_frame",
+        assert_last_analytics_event(
+            mock_record,
+            IntegrationsFailedToFetchCommitContextAllFrames(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                group_id=self.event.group_id,
+                event_id=self.event.event_id,
+                num_frames=0,
+                num_successfully_mapped_frames=0,
+                reason="could_not_find_in_app_stacktrace_frame",
+            ),
         )
 
     @patch("sentry.integrations.utils.commit_context.logger.info")
@@ -520,15 +532,17 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             sdk_name="sentry.python",
         )
 
-        mock_record.assert_any_call(
-            "integrations.failed_to_fetch_commit_context_all_frames",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            group_id=self.event.group_id,
-            event_id=self.event.event_id,
-            num_frames=1,
-            num_successfully_mapped_frames=1,
-            reason="no_commit_found",
+        assert_last_analytics_event(
+            mock_record,
+            IntegrationsFailedToFetchCommitContextAllFrames(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                group_id=self.event.group_id,
+                event_id=self.event.event_id,
+                num_frames=1,
+                num_successfully_mapped_frames=1,
+                reason="no_commit_found",
+            ),
         )
 
         mock_logger_info.assert_any_call(
@@ -579,15 +593,17 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             sdk_name="sentry.python",
         )
 
-        mock_record.assert_any_call(
-            "integrations.failed_to_fetch_commit_context_all_frames",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            group_id=self.event.group_id,
-            event_id=self.event.event_id,
-            num_frames=1,
-            num_successfully_mapped_frames=1,
-            reason="commit_too_old",
+        assert_last_analytics_event(
+            mock_record,
+            IntegrationsFailedToFetchCommitContextAllFrames(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                group_id=self.event.group_id,
+                event_id=self.event.event_id,
+                num_frames=1,
+                num_successfully_mapped_frames=1,
+                reason="commit_too_old",
+            ),
         )
 
         mock_logger_info.assert_any_call(
@@ -817,21 +833,23 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
                 "organization": self.organization.id,
             },
         )
-        mock_record.assert_any_call(
-            "integrations.successfully_fetched_commit_context_all_frames",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            group_id=self.event.group_id,
-            event_id=self.event.event_id,
-            # 1 was a duplicate, 2 filtered out because of missing properties
-            num_frames=2,
-            num_unique_commits=1,
-            num_unique_commit_authors=1,
-            # Only 1 successfully mapped frame of the 6 total
-            num_successfully_mapped_frames=1,
-            selected_frame_index=0,
-            selected_provider="github",
-            selected_code_mapping_id=self.code_mapping.id,
+        assert_any_analytics_event(
+            mock_record,
+            IntegrationsSuccessfullyFetchedCommitContextAllFrames(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                group_id=self.event.group_id,
+                event_id=self.event.event_id,
+                # 1 was a duplicate, 2 filtered out because of missing properties
+                num_frames=2,
+                num_unique_commits=1,
+                num_unique_commit_authors=1,
+                # Only 1 successfully mapped frame of the 6 total
+                num_successfully_mapped_frames=1,
+                selected_frame_index=0,
+                selected_provider="github",
+                selected_code_mapping_id=self.code_mapping.id,
+            ),
         )
 
 
