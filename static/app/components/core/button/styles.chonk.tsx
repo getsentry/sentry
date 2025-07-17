@@ -34,7 +34,7 @@ function chonkPriorityToType(priority: ButtonProps['priority']): ChonkButtonType
 }
 
 const chonkElevation = {
-  md: '3px',
+  md: '2px',
   sm: '2px',
   xs: '1px',
   zero: '0px',
