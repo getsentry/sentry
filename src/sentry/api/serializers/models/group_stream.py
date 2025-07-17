@@ -285,7 +285,7 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     shortId: NotRequired[str]
     title: NotRequired[str]
     culprit: NotRequired[str | None]
-    permalink: NotRequired[str]
+    permalink: NotRequired[str | None]
     logger: NotRequired[str | None]
     level: NotRequired[str]
     status: NotRequired[str]

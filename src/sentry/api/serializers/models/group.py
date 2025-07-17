@@ -119,7 +119,7 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     shortId: str
     title: str
     culprit: str | None
-    permalink: str
+    permalink: str | None
     logger: str | None
     level: str
     status: str
@@ -749,7 +749,7 @@ class GroupSerializerBase(Serializer, ABC):
         )
 
     @staticmethod
-    def _get_permalink(attrs, obj: Group):
+    def _get_permalink(attrs, obj: Group) -> str | None:
         if attrs["authorized"]:
             with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink.build"):
                 return obj.get_absolute_url()
@@ -883,7 +883,7 @@ class SharedGroupSerializerResponse(TypedDict):
     id: str
     isUnhandled: bool | None
     issueCategory: str
-    permalink: str
+    permalink: str | None
     shortId: str
     title: str
     latestEvent: dict[str, Any]
