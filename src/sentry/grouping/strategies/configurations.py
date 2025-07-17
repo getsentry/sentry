@@ -69,29 +69,6 @@ def register_strategy_config(id: str, **kwargs) -> type[StrategyConfiguration]:
     return strategy_class
 
 
-# Legacy groupings
-#
-# These we do not plan on changing much, but bugfixes here might still go
-# into new grouping versions.
-
-register_strategy_config(
-    id="legacy:2019-03-12",
-    strategies=[
-        "threads:legacy",
-        "stacktrace:legacy",
-        "chained-exception:legacy",
-    ],
-    delegates=["frame:legacy", "stacktrace:legacy", "single-exception:legacy"],
-    changelog="""
-        * Traditional grouping algorithm
-        * Some known weaknesses with regards to grouping of native frames
-    """,
-    initial_context={
-        "normalize_message": False,
-    },
-    enhancements_base="legacy:2019-03-12",
-)
-
 # Simple newstyle grouping
 #
 # This is a grouping strategy that applies very simple rules and will
