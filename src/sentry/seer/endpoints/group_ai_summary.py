@@ -10,9 +10,9 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupAiEndpoint
-from sentry.autofix.utils import SeerAutomationSource
 from sentry.models.group import Group
-from sentry.seer.issue_summary import get_issue_summary
+from sentry.seer.autofix.constants import SeerAutomationSource
+from sentry.seer.autofix.issue_summary import get_issue_summary
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)

@@ -10,12 +10,12 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupAiEndpoint
-from sentry.autofix.utils import get_autofix_state
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.group import Group
 from sentry.models.repository import Repository
-from sentry.seer.autofix import trigger_autofix
+from sentry.seer.autofix.autofix import trigger_autofix
+from sentry.seer.autofix.utils import get_autofix_state
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache

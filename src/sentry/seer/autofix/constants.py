@@ -29,3 +29,18 @@ class AutofixAutomationTuningSettings(enum.StrEnum):
     MEDIUM = "medium"
     HIGH = "high"
     ALWAYS = "always"
+
+
+class AutofixStatus(str, enum.Enum):
+    COMPLETED = "COMPLETED"
+    ERROR = "ERROR"
+    PROCESSING = "PROCESSING"
+    NEED_MORE_INFORMATION = "NEED_MORE_INFORMATION"
+    CANCELLED = "CANCELLED"
+    WAITING_FOR_USER_RESPONSE = "WAITING_FOR_USER_RESPONSE"
+
+
+class SeerAutomationSource(enum.Enum):
+    ISSUE_DETAILS = "issue_details"
+    ALERT = "alert"
+    POST_PROCESS = "post_process"

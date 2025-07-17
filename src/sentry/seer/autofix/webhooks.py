@@ -3,9 +3,9 @@ from typing import Any
 from django.conf import settings
 
 from sentry import analytics
-from sentry.autofix.utils import AutofixState, get_autofix_state_from_pr_id
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
+from sentry.seer.autofix.utils import AutofixState, get_autofix_state_from_pr_id
 from sentry.utils import metrics
 
 

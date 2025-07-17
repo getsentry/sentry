@@ -5,7 +5,7 @@ import orjson
 import pytest
 from django.contrib.auth.models import AnonymousUser
 
-from sentry.seer.autofix import (
+from sentry.seer.autofix.autofix import (
     TIMEOUT_SECONDS,
     _call_autofix,
     _convert_profile_to_execution_tree,
@@ -861,7 +861,7 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
 @requires_snuba
 @pytest.mark.django_db
 class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
-    @patch("sentry.seer.autofix.get_from_profiling_service")
+    @patch("sentry.seer.autofix.autofix.get_from_profiling_service")
     def test_get_profile_from_trace_tree(self, mock_get_from_profiling_service):
         """
         Test the _get_profile_from_trace_tree method which finds a transaction
@@ -943,7 +943,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
             params={"format": "sample"},
         )
 
-    @patch("sentry.seer.autofix.get_from_profiling_service")
+    @patch("sentry.seer.autofix.autofix.get_from_profiling_service")
     def test_get_profile_from_trace_tree_matching_span_id(self, mock_get_from_profiling_service):
         """
         Test _get_profile_from_trace_tree with a transaction whose own span_id
@@ -1022,7 +1022,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
             params={"format": "sample"},
         )
 
-    @patch("sentry.seer.autofix.get_from_profiling_service")
+    @patch("sentry.seer.autofix.autofix.get_from_profiling_service")
     def test_get_profile_from_trace_tree_api_error(self, mock_get_from_profiling_service):
         """
         Test the behavior when the profiling service API returns an error.
@@ -1080,7 +1080,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
             params={"format": "sample"},
         )
 
-    @patch("sentry.seer.autofix.get_from_profiling_service")
+    @patch("sentry.seer.autofix.autofix.get_from_profiling_service")
     def test_get_profile_from_trace_tree_no_matching_transaction(
         self, mock_get_from_profiling_service
     ):
@@ -1130,7 +1130,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
         # API should not be called if no matching transaction is found
         mock_get_from_profiling_service.assert_not_called()
 
-    @patch("sentry.seer.autofix.get_from_profiling_service")
+    @patch("sentry.seer.autofix.autofix.get_from_profiling_service")
     def test_get_profile_from_trace_tree_no_span_id(self, mock_get_from_profiling_service):
         """
         Test the behavior when the event doesn't have a span_id.
@@ -1167,16 +1167,16 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
 @requires_snuba
 @pytest.mark.django_db
 @apply_feature_flag_on_cls("organizations:gen-ai-features")
-@patch("sentry.seer.autofix.get_seer_org_acknowledgement", return_value=True)
+@patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class TestTriggerAutofix(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
 
         self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
 
-    @patch("sentry.seer.autofix._get_profile_from_trace_tree")
-    @patch("sentry.seer.autofix._get_trace_tree_for_event")
-    @patch("sentry.seer.autofix._call_autofix")
+    @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
+    @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
+    @patch("sentry.seer.autofix.autofix._call_autofix")
     @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
     def test_trigger_autofix_with_event_id(
         self,
@@ -1240,7 +1240,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
 
     @patch("sentry.models.Group.get_recommended_event_for_environments")
     @patch("sentry.models.Group.get_latest_event")
-    @patch("sentry.seer.autofix._get_serialized_event")
+    @patch("sentry.seer.autofix.autofix._get_serialized_event")
     def test_trigger_autofix_without_event_id_no_events(
         self,
         mock_get_serialized_event,
@@ -1271,7 +1271,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
 @requires_snuba
 @pytest.mark.django_db
 @apply_feature_flag_on_cls("organizations:gen-ai-features")
-@patch("sentry.seer.autofix.get_seer_org_acknowledgement", return_value=False)
+@patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=False)
 class TestTriggerAutofixWithoutOrgAcknowledgement(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -1280,7 +1280,7 @@ class TestTriggerAutofixWithoutOrgAcknowledgement(APITestCase, SnubaTestCase):
 
     @patch("sentry.models.Group.get_recommended_event_for_environments")
     @patch("sentry.models.Group.get_latest_event")
-    @patch("sentry.seer.autofix._get_serialized_event")
+    @patch("sentry.seer.autofix.autofix._get_serialized_event")
     def test_trigger_autofix_without_org_acknowledgement(
         self,
         mock_get_serialized_event,
@@ -1311,7 +1311,7 @@ class TestTriggerAutofixWithoutOrgAcknowledgement(APITestCase, SnubaTestCase):
 @requires_snuba
 @pytest.mark.django_db
 @apply_feature_flag_on_cls("organizations:gen-ai-features")
-@patch("sentry.seer.autofix.get_seer_org_acknowledgement", return_value=True)
+@patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -1321,7 +1321,7 @@ class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
 
     @patch("sentry.models.Group.get_recommended_event_for_environments")
     @patch("sentry.models.Group.get_latest_event")
-    @patch("sentry.seer.autofix._get_serialized_event")
+    @patch("sentry.seer.autofix.autofix._get_serialized_event")
     def test_trigger_autofix_with_hide_ai_features_enabled(
         self,
         mock_get_serialized_event,
@@ -1347,8 +1347,8 @@ class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
 
 
 class TestCallAutofix(TestCase):
-    @patch("sentry.seer.autofix.requests.post")
-    @patch("sentry.seer.autofix.sign_with_seer_secret")
+    @patch("sentry.seer.autofix.autofix.requests.post")
+    @patch("sentry.seer.autofix.autofix.sign_with_seer_secret")
     def test_call_autofix(self, mock_sign, mock_post):
         """Tests the _call_autofix function makes the correct API call."""
         # Setup mocks
