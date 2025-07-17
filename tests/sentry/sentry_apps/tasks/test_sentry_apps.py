@@ -4,6 +4,7 @@ from unittest.mock import ANY, patch
 import pytest
 import responses
 from django.urls import reverse
+from requests import HTTPError
 from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
 
 from sentry.api.serializers import serialize
@@ -71,6 +72,10 @@ def raiseException():
     raise Exception
 
 
+def raiseHTTPError():
+    raise HTTPError()
+
+
 class RequestMock:
     def __init__(self):
         self.body = "blah blah"
@@ -101,7 +106,7 @@ MockResponseInstance = MockResponse({}, b"{}", "", True, 200, raiseStatusFalse, 
 MockResponse404 = MockResponse({}, b'{"bruh": "bruhhhhhhh"}', "", False, 404, raiseException, None)
 MockResponse504 = MockResponse(headers, json_content, "", False, 504, raiseStatusFalse, None)
 MockResponse503 = MockResponse(headers, json_content, "", False, 503, raiseStatusFalse, None)
-MockResponse502 = MockResponse(headers, json_content, "", False, 502, raiseStatusFalse, None)
+MockResponse502 = MockResponse(headers, json_content, "", False, 502, raiseHTTPError, None)
 
 
 class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
