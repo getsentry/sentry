@@ -888,7 +888,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     sortField: 'browser.name',
     renderFunc: data => {
       const browserName = data['browser.name'];
-      if (typeof browserName !== 'string') {
+      if (typeof browserName !== 'string' || !browserName) {
         return <Container>{emptyStringValue}</Container>;
       }
 
@@ -904,7 +904,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     sortField: 'browser',
     renderFunc: data => {
       const browser = data.browser;
-      if (typeof browser !== 'string') {
+      if (typeof browser !== 'string' || !browser) {
         return <Container>{emptyStringValue}</Container>;
       }
 
@@ -920,7 +920,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     sortField: 'os.name',
     renderFunc: data => {
       const osName = data['os.name'];
-      if (typeof osName !== 'string') {
+      if (typeof osName !== 'string' || !osName) {
         return <Container>{emptyStringValue}</Container>;
       }
 
@@ -936,7 +936,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     sortField: 'os',
     renderFunc: data => {
       const os = data.os;
-      if (typeof os !== 'string') {
+      if (typeof os !== 'string' || !os) {
         return <Container>{emptyStringValue}</Container>;
       }
 
