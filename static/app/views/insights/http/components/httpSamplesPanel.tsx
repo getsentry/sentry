@@ -35,7 +35,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
-import {useSpanMetrics, useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useTopNSpanMetricsSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {
@@ -169,7 +169,7 @@ export function HTTPSamplesPanel() {
   const {
     data: domainTransactionMetrics,
     isFetching: areDomainTransactionMetricsFetching,
-  } = useSpanMetrics(
+  } = useSpans(
     {
       search: MutableSearch.fromQueryObject(ribbonFilters),
       fields: [
