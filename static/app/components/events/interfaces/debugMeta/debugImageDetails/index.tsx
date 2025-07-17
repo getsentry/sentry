@@ -219,9 +219,11 @@ export function DebugImageDetails({
     refetch,
   } = useApiQuery<DebugFile[]>(
     [
-      `/projects/${organization.slug}/${projSlug}/files/dsyms/?debug_id=${image?.debug_id}&code_id=${image?.code_id}`,
+      `/projects/${organization.slug}/${projSlug}/files/dsyms/`,
       {
         query: {
+          debug_id: image?.debug_id,
+          code_id: image?.code_id,
           // FIXME(swatinem): Ideally we should not filter here at all,
           // though Symbolicator does not currently report `bcsymbolmap` and `il2cpp`
           // candidates, and we would thus show bogus "unapplied" entries for those,
