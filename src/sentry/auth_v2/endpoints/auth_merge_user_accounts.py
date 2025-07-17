@@ -1,4 +1,3 @@
-from django.db import router, transaction
 from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -100,8 +99,7 @@ class AuthMergeUserAccountsEndpoint(Endpoint):
 
         users_to_merge = User.objects.filter(id__in=ids_to_merge)
         for user in users_to_merge:
-            with transaction.atomic(router.db_for_write(User)):
-                user.merge_to(primary_user)
-                user.delete()
+            user.merge_to(primary_user)
+            user.delete()
 
         return Response("Successfully merged user accounts.")
