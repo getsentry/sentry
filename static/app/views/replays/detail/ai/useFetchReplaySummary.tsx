@@ -21,23 +21,42 @@ export interface SummaryResponse {
 function createAISummaryQueryKey(
   orgSlug: string,
   projectSlug: string | undefined,
-  replayId: string
+  replayId: string,
+  query: Record<string, any> = {}
 ): ApiQueryKey {
   return [
     `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/summarize/breadcrumbs/`,
+    {query},
   ];
 }
 
-export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryResponse>) {
+function useAISummaryQueryKey(query: Record<string, any> = {}): ApiQueryKey {
   const organization = useOrganization();
   const {replay} = useReplayContext();
   const replayRecord = replay?.getReplay();
   const project = useProjectFromId({project_id: replayRecord?.project_id});
-  return useApiQuery<SummaryResponse>(
-    createAISummaryQueryKey(organization.slug, project?.slug, replayRecord?.id ?? ''),
-    {
-      staleTime: 0,
-      ...options,
-    }
+  return createAISummaryQueryKey(
+    organization.slug,
+    project?.slug,
+    replayRecord?.id ?? '',
+    query
   );
+}
+
+export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryResponse>) {
+  const queryKey = useAISummaryQueryKey();
+  return useApiQuery<SummaryResponse>(queryKey, {
+    staleTime: 0,
+    ...options,
+  });
+}
+
+export function useFetchReplaySummaryForceRegenerate(
+  options?: UseApiQueryOptions<SummaryResponse>
+) {
+  const queryKey = useAISummaryQueryKey({regenerate: 'true'});
+  return useApiQuery<SummaryResponse>(queryKey, {
+    staleTime: 0,
+    ...options,
+  });
 }

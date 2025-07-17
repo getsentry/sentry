@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -14,6 +15,7 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {ChapterList} from 'sentry/views/replays/detail/ai/chapterList';
+import {useFetchReplaySummaryForceRegenerate} from 'sentry/views/replays/detail/ai/useFetchReplaySummary';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 
@@ -31,11 +33,26 @@ export default function Ai() {
 
 function AiContent() {
   const organization = useOrganization();
-  const {replay, aiSummaryContext} = useReplayContext(); // Data is queried in ReplayDetailsProviders.
+  const {replay, aiSummaryContext} = useReplayContext(); // Initial data is queried in ReplayDetailsProviders.
   const replayRecord = replay?.getReplay();
   const project = useProjectFromId({project_id: replayRecord?.project_id});
 
   const openForm = useFeedbackForm();
+
+  // Until the first regenerate request, we use the cached response in aiSummaryContext.
+  const [regenerate, setRegenerate] = useState(false);
+  const regeneratedResults = useFetchReplaySummaryForceRegenerate({
+    staleTime: 0,
+    enabled:
+      regenerate &&
+      Boolean(
+        replayRecord?.id &&
+          project?.slug &&
+          organization.features.includes('replay-ai-summaries') &&
+          organization.features.includes('gen-ai-features')
+      ),
+    retry: false,
+  });
 
   if (
     !organization.features.includes('replay-ai-summaries') ||
@@ -72,7 +89,7 @@ function AiContent() {
     isError,
     isRefetching,
     refetch,
-  } = aiSummaryContext.apiQueryResult;
+  } = regenerate ? regeneratedResults : aiSummaryContext.apiQueryResult;
 
   if (isPending || isRefetching) {
     return (
@@ -145,7 +162,13 @@ function AiContent() {
               priority="default"
               type="button"
               size="xs"
-              onClick={() => refetch()}
+              onClick={() => {
+                if (regenerate) {
+                  refetch();
+                } else {
+                  setRegenerate(true);
+                }
+              }}
               icon={<IconSync size="xs" />}
             >
               {t('Regenerate')}
