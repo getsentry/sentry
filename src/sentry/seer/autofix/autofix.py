@@ -13,13 +13,13 @@ from rest_framework.response import Response
 
 from sentry import eventstore, features, quotas
 from sentry.api.serializers import EventSerializer, serialize
-from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.search.events.types import EventsResponse, SnubaParams
+from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.snuba import ourlogs

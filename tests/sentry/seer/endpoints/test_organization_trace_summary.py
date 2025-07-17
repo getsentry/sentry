@@ -80,8 +80,8 @@ class OrganizationTraceSummaryEndpointTest(APITestCase, SnubaTestCase):
     def _get_url(self):
         return f"/api/0/organizations/{self.org.slug}/trace-summary/"
 
-    @patch("sentry.api.endpoints.organization_trace_summary.get_trace_summary")
-    @patch("sentry.api.endpoints.organization_trace_summary.OrganizationTraceEndpoint")
+    @patch("sentry.seer.endpoints.organization_trace_summary.get_trace_summary")
+    @patch("sentry.seer.endpoints.organization_trace_summary.OrganizationTraceEndpoint")
     def test_endpoint_calls_get_trace_summary(
         self, mock_trace_endpoint_class, mock_get_trace_summary
     ):
@@ -112,7 +112,7 @@ class OrganizationTraceSummaryEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400
         assert response.data == {"detail": "Missing traceSlug parameter"}
 
-    @patch("sentry.api.endpoints.organization_trace_summary.OrganizationTraceEndpoint")
+    @patch("sentry.seer.endpoints.organization_trace_summary.OrganizationTraceEndpoint")
     def test_endpoint_with_error_response(self, mock_trace_endpoint_class):
         mock_trace_endpoint_class.return_value.query_trace_data.side_effect = Exception(
             "Test exception"
@@ -121,7 +121,7 @@ class OrganizationTraceSummaryEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400
         assert response.data == {"detail": "Error fetching trace"}
 
-    @patch("sentry.api.endpoints.organization_trace_summary.OrganizationTraceEndpoint")
+    @patch("sentry.seer.endpoints.organization_trace_summary.OrganizationTraceEndpoint")
     def test_endpoint_with_missing_trace_tree(self, mock_organization_trace_endpoint):
         mock_organization_trace_endpoint.return_value.get_snuba_params.return_value = {}
         mock_organization_trace_endpoint.return_value.query_trace_data.return_value = []

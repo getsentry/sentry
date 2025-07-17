@@ -1,4 +1,3 @@
-import enum
 import logging
 from datetime import UTC, datetime
 from typing import TypedDict
@@ -14,7 +13,7 @@ from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_m
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
-from sentry.seer.seer_utils import AutofixAutomationTuningSettings
+from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -29,15 +28,6 @@ class AutofixIssue(TypedDict):
 class AutofixRequest(TypedDict):
     project_id: int
     issue: AutofixIssue
-
-
-class AutofixStatus(str, enum.Enum):
-    COMPLETED = "COMPLETED"
-    ERROR = "ERROR"
-    PROCESSING = "PROCESSING"
-    NEED_MORE_INFORMATION = "NEED_MORE_INFORMATION"
-    CANCELLED = "CANCELLED"
-    WAITING_FOR_USER_RESPONSE = "WAITING_FOR_USER_RESPONSE"
 
 
 class FileChange(BaseModel):
@@ -159,12 +149,6 @@ def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> AutofixState | No
         return None
 
     return AutofixState.validate(result.get("state", None))
-
-
-class SeerAutomationSource(enum.Enum):
-    ISSUE_DETAILS = "issue_details"
-    ALERT = "alert"
-    POST_PROCESS = "post_process"
 
 
 def is_seer_scanner_rate_limited(project: Project, organization: Organization) -> bool:

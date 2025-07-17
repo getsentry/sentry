@@ -1557,7 +1557,7 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 
 
 def kick_off_seer_automation(job: PostProcessJob) -> None:
-    from sentry.seer.issue_summary import get_issue_summary_lock_key
+    from sentry.seer.autofix.issue_summary import get_issue_summary_lock_key
     from sentry.seer.seer_setup import get_seer_org_acknowledgement
     from sentry.tasks.autofix import start_seer_automation
 
@@ -1614,7 +1614,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if not has_budget:
         return
 
-    from sentry.autofix.utils import is_seer_scanner_rate_limited
+    from sentry.seer.autofix.utils import is_seer_scanner_rate_limited
 
     if is_seer_scanner_rate_limited(project, group.organization):
         return

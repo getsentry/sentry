@@ -13,8 +13,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
-from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.models.project import Project
+from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.seer.models import SeerRepoDefinition
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory

@@ -16,7 +16,7 @@ import sentry_relay.processing
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
-from sentry.seer.seer_utils import AutofixAutomationTuningSettings
+from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.utils.geo import rust_geoip
 from sentry.utils.integrationdocs import load_doc
 

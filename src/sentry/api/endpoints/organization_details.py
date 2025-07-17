@@ -98,7 +98,7 @@ from sentry.organizations.services.organization.model import (
     RpcOrganizationDeleteResponse,
     RpcOrganizationDeleteState,
 )
-from sentry.seer.seer_utils import AutofixAutomationTuningSettings
+from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.services.organization.provisioning import (
     OrganizationSlugCollisionException,
     organization_provisioning_service,

@@ -1,7 +1,7 @@
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT
 from sentry.projectoptions import register
-from sentry.seer.seer_utils import AutofixAutomationTuningSettings
+from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 
 # This controls what sentry:option-epoch value is given to a project when it is created
 # The epoch of a project will determine what options are valid options for that specific project

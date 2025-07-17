@@ -3,7 +3,7 @@ import orjson
 from sentry import eventstore
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.profiles.utils import get_from_profiling_service
-from sentry.seer.autofix import _convert_profile_to_execution_tree
+from sentry.seer.autofix.autofix import _convert_profile_to_execution_tree
 
 
 def get_profile_details(organization_id: int, project_id: int, profile_id: str):
