@@ -209,6 +209,7 @@ class SQLInjectionDetector(PerformanceDetector):
         if not op or not op.startswith("db") or op.startswith("db.redis"):
             return False
 
+        # Auto-generated rails queries can contain interpolated values
         if span.get("origin") == "auto.db.rails":
             return False
 
