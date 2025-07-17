@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/core/alert';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {type ReplayTableColumn} from 'sentry/components/replays/table/replayTableColumns';
+import type {ReplayTableColumn} from 'sentry/components/replays/table/replayTableColumns';
 import ReplayTableHeader from 'sentry/components/replays/table/replayTableHeader';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
