@@ -16,7 +16,7 @@ import {
   type DiscoverSeries,
   useSpanSeries,
 } from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields, SpanFields} from 'sentry/views/insights/types';
 
 export default function PerformanceScoreBreakdownChartWidget(
   props: LoadableChartWidgetProps
@@ -43,11 +43,11 @@ export default function PerformanceScoreBreakdownChartWidget(
   }
 
   if (subregions) {
-    search.addDisjunctionFilterValues(SpanMetricsField.USER_GEO_SUBREGION, subregions);
+    search.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
   }
 
   if (browserTypes) {
-    search.addDisjunctionFilterValues(SpanMetricsField.BROWSER_NAME, browserTypes);
+    search.addDisjunctionFilterValues(SpanFields.BROWSER_NAME, browserTypes);
   }
 
   const {

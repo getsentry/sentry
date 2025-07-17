@@ -16,7 +16,7 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import {EventSamplesTable} from 'sentry/views/insights/mobile/screenload/components/tables/eventSamplesTable';
-import {SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields, SpanFields} from 'sentry/views/insights/types';
 
 const DEFAULT_SORT: Sort = {
   kind: 'desc',
@@ -45,15 +45,15 @@ export function EventSamples({
   const {primaryRelease} = useReleaseSelection();
   const cursor = decodeScalar(location.query?.[cursorName]);
 
-  const deviceClass = decodeScalar(location.query[SpanMetricsField.DEVICE_CLASS]) ?? '';
+  const deviceClass = decodeScalar(location.query[SpanFields.DEVICE_CLASS]) ?? '';
   const startType =
-    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
+    decodeScalar(location.query[SpanFields.APP_START_TYPE]) ?? COLD_START_TYPE;
 
   const searchQuery = new MutableSearch([
     `transaction:${transaction}`,
     `release:${release}`,
-    ...(startType ? [`${SpanMetricsField.APP_START_TYPE}:${startType}`] : []),
-    ...(deviceClass ? [`${SpanMetricsField.DEVICE_CLASS}:${deviceClass}`] : []),
+    ...(startType ? [`${SpanFields.APP_START_TYPE}:${startType}`] : []),
+    ...(deviceClass ? [`${SpanFields.DEVICE_CLASS}:${deviceClass}`] : []),
   ]);
 
   // TODO: Add this back in once os.name is available in the spansIndexed dataset

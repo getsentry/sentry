@@ -31,10 +31,10 @@ import {
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
 import {
+  type EAPSpanResponse,
   ModuleName,
   SpanFields,
-  SpanMetricsField,
-  type SpanMetricsResponse,
+  SpanFields,
 } from 'sentry/views/insights/types';
 
 const {
@@ -43,10 +43,10 @@ const {
   HTTP_RESPONSE_CONTENT_LENGTH,
   TRANSACTION,
   USER_GEO_SUBREGION,
-} = SpanMetricsField;
+} = SpanFields;
 
 type Row = Pick<
-  SpanMetricsResponse,
+  EAPSpanResponse,
   | 'avg(http.response_content_length)'
   | 'avg(span.self_time)'
   | 'epm()'

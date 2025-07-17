@@ -30,10 +30,10 @@ import SampleInfo from 'sentry/views/insights/common/views/spanSummaryPage/sampl
 import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
 import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {ModuleName, SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, SpanFields} from 'sentry/views/insights/types';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
-const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
+const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanFields;
 
 type Props = {
   groupId: string;
@@ -49,12 +49,12 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
   const {
     transaction: transactionName,
     transactionMethod,
-    [SpanMetricsField.USER_GEO_SUBREGION]: subregions,
+    [SpanFields.USER_GEO_SUBREGION]: subregions,
   } = useLocationQuery({
     fields: {
       transaction: decodeScalar,
       transactionMethod: decodeScalar,
-      [SpanMetricsField.USER_GEO_SUBREGION]: decodeSubregions,
+      [SpanFields.USER_GEO_SUBREGION]: decodeSubregions,
     },
   });
 

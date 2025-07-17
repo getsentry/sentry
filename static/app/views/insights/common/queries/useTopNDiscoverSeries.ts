@@ -22,9 +22,9 @@ import {
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
   EAPSpanProperty,
+  EAPSpanProperty,
   SpanFields,
   SpanFunctions,
-  SpanMetricsProperty,
 } from 'sentry/views/insights/types';
 
 import {convertDiscoverTimeseriesResponse} from './convertDiscoverTimeseriesResponse';
@@ -44,7 +44,7 @@ interface UseMetricsSeriesOptions<Fields> {
   transformAliasToInputFormat?: boolean;
 }
 
-export const useTopNSpanMetricsSeries = <Fields extends SpanMetricsProperty[]>(
+export const useTopNSpanMetricsSeries = <Fields extends EAPSpanProperty[]>(
   options: UseMetricsSeriesOptions<Fields>,
   referrer: string,
   pageFilters?: PageFilters
@@ -61,7 +61,7 @@ export const useTopNSpanMetricsSeries = <Fields extends SpanMetricsProperty[]>(
 export const useTopNSpanEAPSeries = <
   Fields extends
     | EAPSpanProperty[]
-    | SpanMetricsProperty[]
+    | EAPSpanProperty[]
     | SpanFields[]
     | SpanFunctions[]
     | string[],

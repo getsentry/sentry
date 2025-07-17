@@ -23,18 +23,18 @@ import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParam
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {
   type EAPSpanResponse,
+  type EAPSpanResponse,
   ModuleName,
   SpanFields,
+  SpanFields,
   SpanFunction,
-  SpanMetricsField,
-  type SpanMetricsResponse,
 } from 'sentry/views/insights/types';
 
 const {CACHE_MISS_RATE, EPM} = SpanFunction;
-const {CACHE_ITEM_SIZE} = SpanMetricsField;
+const {CACHE_ITEM_SIZE} = SpanFields;
 
 type Row = Pick<
-  SpanMetricsResponse,
+  EAPSpanResponse,
   | 'project'
   | 'project.id'
   | 'transaction'
