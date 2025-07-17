@@ -105,6 +105,8 @@ export type Widget = {
   layout?: WidgetLayout | null;
   // Used to define 'topEvents' when fetching time-series data for a widget
   limit?: number;
+  // Used for table widget column widths, currently is not saved
+  tableWidths?: number[];
   tempId?: string;
   thresholds?: ThresholdsConfig | null;
   widgetType?: WidgetType;

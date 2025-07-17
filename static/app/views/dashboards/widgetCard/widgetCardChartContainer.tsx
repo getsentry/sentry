@@ -23,6 +23,7 @@ import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 
 import WidgetCardChart from './chart';
 import {IssueWidgetCard} from './issueWidgetCard';
@@ -57,6 +58,7 @@ type Props = {
     type: 'legendselectchanged';
   }>;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
+  onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   onWidgetTableSort?: (sort: Sort) => void;
   onZoom?: EChartDataZoomHandler;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
@@ -92,6 +94,7 @@ export function WidgetCardChartContainer({
   disableZoom,
   showLoadingText,
   onWidgetTableSort,
+  onWidgetTableResizeColumn,
 }: Props) {
   const location = useLocation();
   const theme = useTheme();
@@ -173,6 +176,7 @@ export function WidgetCardChartContainer({
                 selection={selection}
                 theme={theme}
                 organization={organization}
+                onWidgetTableResizeColumn={onWidgetTableResizeColumn}
               />
             </Fragment>
           );
@@ -218,6 +222,7 @@ export function WidgetCardChartContainer({
               showLoadingText={showLoadingText}
               theme={theme}
               onWidgetTableSort={onWidgetTableSort}
+              onWidgetTableResizeColumn={onWidgetTableResizeColumn}
             />
           </Fragment>
         );

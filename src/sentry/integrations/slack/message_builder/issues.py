@@ -53,6 +53,7 @@ from sentry.models.release import Release
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.models.team import Team
+from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.notifications.utils.participants import (
@@ -321,7 +322,7 @@ def get_suspect_commit_text(group: Group) -> str | None:
         repo_base = repo.url
         provider = repo.provider
         if repo_base and provider in SUPPORTED_COMMIT_PROVIDERS:
-            if "bitbucket" in provider:
+            if IntegrationProviderSlug.BITBUCKET.value in provider:
                 commit_link = f"<{repo_base}/commits/{commit_id}"
             else:
                 commit_link = f"<{repo_base}/commit/{commit_id}"
@@ -615,9 +616,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if self.rules:
             if features.has("organizations:workflow-engine-ui-links", self.group.organization):
                 rule_id = int(get_key_from_rule_data(self.rules[0], "workflow_id"))
-            elif features.has(
-                "organizations:workflow-engine-trigger-actions", self.group.organization
-            ):
+            elif should_fire_workflow_actions(self.group.organization):
                 rule_id = int(get_key_from_rule_data(self.rules[0], "legacy_rule_id"))
             else:
                 rule_id = self.rules[0].id

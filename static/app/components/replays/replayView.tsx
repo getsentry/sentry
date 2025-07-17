@@ -2,6 +2,8 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -12,12 +14,14 @@ import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
 import {ReplaySidebarToggleButton} from 'sentry/components/replays/replaySidebarToggleButton';
 import TextCopyInput from 'sentry/components/textCopyInput';
+import {IconFatal} from 'sentry/icons/iconFatal';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import ReplayViewScale from 'sentry/views/replays/detail/replayViewScale';
 import {
   JetpackComposePiiNotice,
   useNeedsJetpackComposePiiNotice,
@@ -29,6 +33,14 @@ type Props = {
   isLoading: boolean;
   toggleFullscreen: () => void;
 };
+
+function FatalIconTooltip({error}: {error: Error | null}) {
+  return (
+    <Tooltip skipWrapper title={error?.message}>
+      <IconFatal size="sm" />
+    </Tooltip>
+  );
+}
 
 function ReplayView({toggleFullscreen, isLoading}: Props) {
   const isFullscreen = useIsFullscreen();
@@ -71,7 +83,13 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
             ) : (
               <ReplayCurrentUrl />
             )}
-            <BrowserOSIcons showBrowser={!isVideoReplay} isLoading={isLoading} />
+
+            <ErrorBoundary customComponent={FatalIconTooltip}>
+              <BrowserOSIcons showBrowser={!isVideoReplay} isLoading={isLoading} />
+            </ErrorBoundary>
+            <ErrorBoundary customComponent={FatalIconTooltip}>
+              <ReplayViewScale isLoading={isLoading} />
+            </ErrorBoundary>
             {isFullscreen ? (
               <ReplaySidebarToggleButton
                 isOpen={isSidebarOpen}
@@ -128,7 +146,7 @@ const ContextContainer = styled('div')`
   grid-auto-flow: column;
   grid-template-columns: 1fr max-content;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${space(1.5)};
 `;
 
 const ScreenNameContainer = styled('div')`

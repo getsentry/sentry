@@ -4,7 +4,7 @@ import keyBy from 'lodash/keyBy';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
-import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {EapSpanSearchQueryBuilderWrapper} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
@@ -29,32 +29,21 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
-import {
-  useDiscoverOrEap,
-  useEAPSpans,
-  useMetrics,
-  useSpanMetrics,
-  useSpansIndexed,
-} from 'sentry/views/insights/common/queries/useDiscover';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
+import {useSpanMetrics, useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
 import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import type {
-  MetricsQueryFilters,
-  SpanIndexedQueryFilters,
-  SpanIndexedResponse,
+  EAPSpanResponse,
   SpanMetricsQueryFilters,
   SpanQueryFilters,
 } from 'sentry/views/insights/types';
 import {
-  MetricsFields,
   ModuleName,
   SpanFields,
   SpanFunction,
-  SpanIndexedField,
   SpanMetricsField,
 } from 'sentry/views/insights/types';
 
@@ -64,7 +53,6 @@ export function CacheSamplePanel() {
   const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const useEap = useInsightsEap();
 
   const query = useLocationQuery({
     fields: {
@@ -119,41 +107,46 @@ export function CacheSamplePanel() {
     );
 
   const {data: transactionDurationData, isPending: isTransactionDurationLoading} =
-    useTransactionDuration({transaction: query.transaction});
+    useSpans(
+      {
+        search: MutableSearch.fromQueryObject({
+          transaction: query.transaction,
+          is_transaction: 'true',
+        } satisfies SpanQueryFilters),
+        fields: [`avg(${SpanFields.SPAN_DURATION})`],
+      },
+      Referrer.SAMPLES_CACHE_TRANSACTION_DURATION
+    );
 
-  const sampleFilters: SpanIndexedQueryFilters = {
+  const sampleFilters: SpanQueryFilters = {
     ...BASE_FILTERS,
     transaction: query.transaction,
-    project_id: query.project,
+    ['project.id']: query.project,
   };
 
-  const transactionIdField = useEap
-    ? SpanIndexedField.TRANSACTION_SPAN_ID
-    : SpanIndexedField.TRANSACTION_ID;
-
   const useIndexedCacheSpans = (
-    isCacheHit: SpanIndexedResponse['cache.hit'],
+    isCacheHit: EAPSpanResponse['cache.hit'],
     limit: number
   ) =>
-    useSpansIndexed(
+    useSpans(
       {
         search: MutableSearch.fromQueryObject({
           ...sampleFilters,
           ...new MutableSearch(query.spanSearchQuery).filters,
-          'cache.hit': isCacheHit,
+          'cache.hit': `${isCacheHit}`,
         }),
         fields: [
-          SpanIndexedField.PROJECT,
-          SpanIndexedField.TRACE,
-          SpanIndexedField.TRANSACTION_SPAN_ID,
-          SpanIndexedField.SPAN_ID,
-          SpanIndexedField.TIMESTAMP,
-          SpanIndexedField.SPAN_DESCRIPTION,
-          SpanIndexedField.CACHE_HIT,
-          SpanIndexedField.SPAN_OP,
-          SpanIndexedField.CACHE_ITEM_SIZE,
-          SpanIndexedField.TRACE,
-          ...(useEap ? [] : ([SpanIndexedField.TRANSACTION_ID] as const)),
+          SpanFields.ID,
+          SpanFields.PROJECT,
+          SpanFields.TRACE,
+          SpanFields.TRANSACTION_SPAN_ID,
+          SpanFields.SPAN_ID,
+          SpanFields.TIMESTAMP,
+          SpanFields.SPAN_DESCRIPTION,
+          SpanFields.CACHE_HIT,
+          SpanFields.SPAN_OP,
+          SpanFields.CACHE_ITEM_SIZE,
+          SpanFields.TRACE,
         ],
         sorts: [SPAN_SAMPLES_SORT],
         limit,
@@ -177,29 +170,28 @@ export function CacheSamplePanel() {
     data: cacheHitSamples,
     isFetching: isCacheHitsFetching,
     refetch: refetchCacheHits,
-  } = useIndexedCacheSpans('true', cacheHitSamplesLimit);
+  } = useIndexedCacheSpans(true, cacheHitSamplesLimit);
 
   const {
     data: cacheMissSamples,
     isFetching: isCacheMissesFetching,
     refetch: refetchCacheMisses,
-  } = useIndexedCacheSpans('false', cacheMissSamplesLimit);
+  } = useIndexedCacheSpans(false, cacheMissSamplesLimit);
 
   const cacheSamples = useMemo(() => {
     return [...(cacheHitSamples || []), ...(cacheMissSamples || [])];
   }, [cacheHitSamples, cacheMissSamples]);
 
-  const transactionIds = cacheSamples?.map(span => span[transactionIdField]) || [];
+  const transactionIds =
+    cacheSamples?.map(span => span[SpanFields.TRANSACTION_SPAN_ID]) || [];
   const traceIds = cacheSamples?.map(span => span.trace) || [];
-  const transactionDurationSearch = useEap
-    ? `${SpanIndexedField.TRANSACTION_SPAN_ID}:[${transactionIds.join(',')}] trace:[${traceIds.join(',')}] is_transaction:true`
-    : `id:[${transactionIds.join(',')}]`;
+  const transactionDurationSearch = `${SpanFields.TRANSACTION_SPAN_ID}:[${transactionIds.join(',')}] trace:[${traceIds.join(',')}] is_transaction:true`;
 
   const {
     data: transactionData,
     error: transactionError,
     isFetching: isFetchingTransactions,
-  } = useDiscoverOrEap(
+  } = useSpans(
     {
       search: transactionDurationSearch,
       enabled: Boolean(transactionIds.length),
@@ -212,10 +204,14 @@ export function CacheSamplePanel() {
     const transactionDurationsMap = keyBy(transactionData, 'id');
     return cacheSamples.map(span => ({
       ...span,
+      'cache.hit':
+        span['cache.hit'] === undefined
+          ? ''
+          : (`${span['cache.hit']}` as 'true' | 'false' | ''),
       'transaction.duration':
-        transactionDurationsMap[span[transactionIdField]]?.['span.duration']!,
+        transactionDurationsMap[span[SpanFields.TRANSACTION_SPAN_ID]]?.['span.duration']!,
     }));
-  }, [cacheSamples, transactionData, transactionIdField]);
+  }, [cacheSamples, transactionData]);
 
   const spanSamplesById = useMemo(() => {
     return keyBy(spansWithDuration, 'id');
@@ -313,7 +309,7 @@ export function CacheSamplePanel() {
                 />
 
                 <MetricReadout
-                  title={DataTitles[`avg(${MetricsFields.TRANSACTION_DURATION})`]}
+                  title={DataTitles['avg(transaction.duration)']}
                   value={
                     transactionDurationData?.[0]?.[`avg(${SpanFields.SPAN_DURATION})`]
                   }
@@ -356,13 +352,12 @@ export function CacheSamplePanel() {
             </ModuleLayout.Half>
 
             <ModuleLayout.Full>
-              <SpanSearchQueryBuilder
+              <EapSpanSearchQueryBuilderWrapper
                 searchSource={`${ModuleName.CACHE}-sample-panel`}
                 initialQuery={query.spanSearchQuery}
                 onSearch={handleSearch}
                 placeholder={t('Search for span attributes')}
                 projects={selection.projects}
-                useEap={useEap}
               />
             </ModuleLayout.Full>
 
@@ -374,9 +369,9 @@ export function CacheSamplePanel() {
                     // TODO: combine meta between samples and transactions response instead
                     fields: {
                       'transaction.duration': 'duration',
-                      [SpanIndexedField.CACHE_ITEM_SIZE]: 'size',
+                      [SpanFields.CACHE_ITEM_SIZE]: 'size',
                     },
-                    units: {[SpanIndexedField.CACHE_ITEM_SIZE]: 'byte'},
+                    units: {[SpanFields.CACHE_ITEM_SIZE]: 'byte'},
                   }}
                   isLoading={
                     isCacheHitsFetching || isCacheMissesFetching || isFetchingTransactions
@@ -432,38 +427,3 @@ const CACHE_STATUS_OPTIONS = [
     label: t('Miss'),
   },
 ];
-
-const useTransactionDuration = ({transaction}: {transaction: string}) => {
-  const useEap = useInsightsEap();
-
-  const metricsResult = useMetrics(
-    {
-      enabled: !useEap && Boolean(transaction),
-      search: MutableSearch.fromQueryObject({
-        transaction,
-      } satisfies MetricsQueryFilters),
-      fields: [`avg(${MetricsFields.TRANSACTION_DURATION})`],
-    },
-    Referrer.SAMPLES_CACHE_TRANSACTION_DURATION
-  );
-
-  const eapResult = useEAPSpans(
-    {
-      search: MutableSearch.fromQueryObject({
-        transaction,
-        is_transaction: 'true',
-      } satisfies SpanQueryFilters),
-      fields: [`avg(${SpanFields.SPAN_DURATION})`],
-    },
-    Referrer.SAMPLES_CACHE_TRANSACTION_DURATION
-  );
-
-  const result = useEap ? eapResult : metricsResult;
-  const finalData: Array<{[`avg(span.duration)`]: number}> = useEap
-    ? eapResult.data
-    : metricsResult.data.map(row => ({
-        'avg(span.duration)': row[`avg(${MetricsFields.TRANSACTION_DURATION})`],
-      }));
-
-  return {...result, data: finalData};
-};
