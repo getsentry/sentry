@@ -96,8 +96,7 @@ export default function Ai() {
               <Button
                 size="sm"
                 priority="primary"
-                external
-                href="https://sentry.io/settings/organization/"
+                to="/settings/organization/#hideAiFeatures"
               >
                 {t('Enable in Settings')}
               </Button>
