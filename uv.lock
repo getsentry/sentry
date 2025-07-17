@@ -1129,6 +1129,21 @@ wheels = [
 ]
 
 [[package]]
+name = "jsonschema-spec"
+version = "0.2.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pathable" },
+    { name = "pyyaml" },
+    { name = "referencing" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/85/bf/5e9a059f611e8950eec986385892f9d596e4936fa58a37bf295789197f77/jsonschema_spec-0.2.4.tar.gz", hash = "sha256:873e396ad1ba6edf9f52d6174c110d4fafb7b5f5894744246a53fe75e5251ec2", size = 11477, upload-time = "2023-08-16T17:47:24.747Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d9/a2/7759a4268e1d6d74559de8fb5be6c77d621b822ae64d28ab4f7467c22f63/jsonschema_spec-0.2.4-py3-none-any.whl", hash = "sha256:e6dcf7056734ec6854f7888da6c08ce6c421f28aeeddce96bb90de0fb6d711ef", size = 14739, upload-time = "2023-08-16T17:47:23.071Z" },
+]
+
+[[package]]
 name = "jsonschema-specifications"
 version = "2023.7.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1377,22 +1392,22 @@ wheels = [
 
 [[package]]
 name = "openapi-core"
-version = "0.19.5"
+version = "0.18.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "asgiref" },
     { name = "isodate" },
     { name = "jsonschema" },
-    { name = "jsonschema-path" },
+    { name = "jsonschema-spec" },
     { name = "more-itertools" },
     { name = "openapi-schema-validator" },
     { name = "openapi-spec-validator" },
     { name = "parse" },
-    { name = "typing-extensions" },
     { name = "werkzeug" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b1/35/1acaa5f2fcc6e54eded34a2ec74b479439c4e469fc4e8d0e803fda0234db/openapi_core-0.19.5.tar.gz", hash = "sha256:421e753da56c391704454e66afe4803a290108590ac8fa6f4a4487f4ec11f2d3", size = 103264, upload-time = "2025-03-20T20:17:28.193Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/44/9e/8d405fc2b9ab7dc515430095d23452625854bc3a5ce9fe786f2ddda33879/openapi_core-0.18.2.tar.gz", hash = "sha256:d4cc50f3ee03ae46313c83e97c6fbfe7e7ae9686741135eb0e4ed49e9d8ff08a", size = 84444, upload-time = "2023-11-06T13:30:28.895Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/27/6f/83ead0e2e30a90445ee4fc0135f43741aebc30cca5b43f20968b603e30b6/openapi_core-0.19.5-py3-none-any.whl", hash = "sha256:ef7210e83a59394f46ce282639d8d26ad6fc8094aa904c9c16eb1bac8908911f", size = 106595, upload-time = "2025-03-20T20:17:26.77Z" },
+    { url = "https://files.pythonhosted.org/packages/3c/b0/7e386f89c336d21577e01b77efbba60edfe1b5732124b746bc1d02efdd72/openapi_core-0.18.2-py3-none-any.whl", hash = "sha256:ec13d366766d564450de60374f59feb0b5ccb447aed642cdf0f1ecfcc6fbe80a", size = 82415, upload-time = "2023-11-06T13:30:26.862Z" },
 ]
 
 [[package]]
@@ -2648,7 +2663,7 @@ dev = [
     { name = "lxml-stubs", specifier = ">=0.5.1" },
     { name = "msgpack-types", specifier = ">=0.2.0" },
     { name = "mypy", specifier = ">=1.15" },
-    { name = "openapi-core", specifier = ">=0.18.2" },
+    { name = "openapi-core", specifier = "==0.18.2" },
     { name = "openapi-pydantic", specifier = ">=0.4.0" },
     { name = "packaging", specifier = ">=21.3" },
     { name = "pip-tools", specifier = ">=7.1.0" },

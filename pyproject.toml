@@ -256,7 +256,7 @@ dev = [
     "lxml-stubs>=0.5.1",
     "msgpack-types>=0.2.0",
     "mypy>=1.15",
-    "openapi-core>=0.18.2",
+    "openapi-core==0.18.2",
     "openapi-pydantic>=0.4.0",
     "packaging>=21.3",
     "pip-tools>=7.1.0",
