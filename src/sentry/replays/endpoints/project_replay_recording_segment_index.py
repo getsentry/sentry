@@ -1,4 +1,5 @@
 import functools
+from typing import Any
 
 from django.http import StreamingHttpResponse
 from drf_spectacular.utils import extend_schema
@@ -16,7 +17,6 @@ from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReplayParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.replays.lib.storage import storage
-from sentry.replays.types import ReplayRecordingSegment
 from sentry.replays.usecases.reader import download_segments, fetch_segments_metadata
 
 
@@ -43,7 +43,7 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
         ],
         responses={
             200: inline_sentry_response_serializer(
-                "ListReplayRecordingSegments", list[ReplayRecordingSegment]
+                "ListReplayRecordingSegments", list[list[dict[str, Any]]]
             ),
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,

@@ -62,7 +62,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
             adopted=self.now,
         )
 
-        self.event_data = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event, group=self.group_event.group)
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison={
@@ -107,25 +107,29 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         self.assert_does_not_pass(self.dc, self.event_data)
 
         self.create_group_release(group=self.group, release=self.newest_release)
-        self.assert_passes(self.dc, WorkflowEventData(event=self.group_event))
+        self.assert_passes(
+            self.dc, WorkflowEventData(event=self.group_event, group=self.group_event.group)
+        )
 
         group_2, group_event_2 = self.create_new_group_event("group2")
         self.create_group_release(group=group_2, release=self.newest_release)
         self.create_group_release(group=group_2, release=self.oldest_release)
-        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_2))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_2, group=group_2))
 
         group_3, group_event_3 = self.create_new_group_event("group3")
         self.create_group_release(group=group_3, release=self.middle_release)
-        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_3))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_3, group=group_3))
 
         # Check that the group cache invalidation works by adding an older release to the first group
         self.create_group_release(group=self.group, release=self.oldest_release)
-        self.assert_does_not_pass(self.dc, WorkflowEventData(event=self.group_event))
+        self.assert_does_not_pass(
+            self.dc, WorkflowEventData(event=self.group_event, group=self.group_event.group)
+        )
 
         # Check that the project cache invalidation works by adding a newer release to the project
         group_4, group_event_4 = self.create_new_group_event("group4")
         self.create_group_release(group=group_4, release=self.newest_release)
-        self.assert_passes(self.dc, WorkflowEventData(event=group_event_4))
+        self.assert_passes(self.dc, WorkflowEventData(event=group_event_4, group=group_4))
 
         self.create_release(
             project=self.event.group.project,
@@ -134,20 +138,22 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
             environments=[self.prod_env],
             adopted=self.now - timedelta(days=2),
         )
-        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_4))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_4, group=group_4))
 
     def test_date(self):
         self.create_group_release(group=self.group, release=self.newest_release)
-        self.assert_passes(self.dc, WorkflowEventData(event=self.group_event))
+        self.assert_passes(
+            self.dc, WorkflowEventData(event=self.group_event, group=self.group_event.group)
+        )
 
         group_2, group_event_2 = self.create_new_group_event("group2")
         self.create_group_release(group=group_2, release=self.newest_release)
         self.create_group_release(group=group_2, release=self.oldest_release)
-        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_2))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_2, group=group_2))
 
         group_3, group_event_3 = self.create_new_group_event("group3")
         self.create_group_release(group=group_3, release=self.middle_release)
-        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_3))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_3, group=group_3))
 
     def test_oldest_older(self):
         self.dc.update(
@@ -159,18 +165,20 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         )
 
         self.create_group_release(group=self.group, release=self.newest_release)
-        self.assert_does_not_pass(self.dc, WorkflowEventData(event=self.group_event))
+        self.assert_does_not_pass(
+            self.dc, WorkflowEventData(event=self.group_event, group=self.group_event.group)
+        )
 
         group_2, group_event_2 = self.create_new_group_event("group2")
 
         self.create_group_release(group=group_2, release=self.newest_release)
         self.create_group_release(group=group_2, release=self.oldest_release)
-        self.assert_passes(self.dc, WorkflowEventData(event=group_event_2))
+        self.assert_passes(self.dc, WorkflowEventData(event=group_event_2, group=group_2))
 
         group_3, group_event_3 = self.create_new_group_event("group3")
 
         self.create_group_release(group=group_3, release=self.middle_release)
-        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_3))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_3, group=group_3))
 
     def test_newest_newer(self):
         self.dc.update(
@@ -182,18 +190,20 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         )
 
         self.create_group_release(group=self.group, release=self.newest_release)
-        self.assert_passes(self.dc, WorkflowEventData(event=self.group_event))
+        self.assert_passes(
+            self.dc, WorkflowEventData(event=self.group_event, group=self.group_event.group)
+        )
 
         group_2, group_event_2 = self.create_new_group_event("group2")
 
         self.create_group_release(group=group_2, release=self.newest_release)
         self.create_group_release(group=group_2, release=self.oldest_release)
-        self.assert_passes(self.dc, WorkflowEventData(event=group_event_2))
+        self.assert_passes(self.dc, WorkflowEventData(event=group_event_2, group=group_2))
 
         group_3, group_event_3 = self.create_new_group_event("group3")
 
         self.create_group_release(group=group_3, release=self.middle_release)
-        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_3))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_3, group=group_3))
 
     def test_newest_older(self):
         self.dc.update(
@@ -205,16 +215,18 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         )
 
         self.create_group_release(group=self.event.group, release=self.newest_release)
-        self.assert_does_not_pass(self.dc, WorkflowEventData(event=self.event))
+        self.assert_does_not_pass(
+            self.dc, WorkflowEventData(event=self.event, group=self.group_event.group)
+        )
 
         group_2, group_event_2 = self.create_new_group_event("group2")
         self.create_group_release(group=group_2, release=self.newest_release)
         self.create_group_release(group=group_2, release=self.oldest_release)
-        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_2))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_2, group=group_2))
 
         group_3, group_event_3 = self.create_new_group_event("group3")
         self.create_group_release(group=group_3, release=self.middle_release)
-        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_3))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_3, group=group_3))
 
     def test_caching(self):
         cache_key = get_first_last_release_for_group_cache_key(

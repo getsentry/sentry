@@ -10,6 +10,7 @@ import {decodeList, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {defaultAggregateSortBys} from 'sentry/views/explore/contexts/pageParamsContext/aggregateSortBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {defaultSortBys} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {
@@ -46,8 +47,8 @@ function validateSortBys(
 ): Sort[] {
   const mode = getQueryMode(groupBys);
 
-  if (parsedSortBys.length > 0) {
-    if (mode === Mode.SAMPLES) {
+  if (mode === Mode.SAMPLES) {
+    if (parsedSortBys.length > 0) {
       if (parsedSortBys.every(sort => fields?.includes(sort.field))) {
         return parsedSortBys;
       }
@@ -59,16 +60,24 @@ function validateSortBys(
       ];
     }
 
-    if (
-      mode === Mode.AGGREGATE &&
-      parsedSortBys.every(
-        sort => groupBys?.includes(sort.field) || yAxes?.includes(sort.field)
-      )
-    ) {
-      return parsedSortBys;
-    }
+    return defaultSortBys(fields ?? []);
   }
-  return defaultSortBys(mode, fields ?? [], yAxes ?? []);
+
+  if (mode === Mode.AGGREGATE) {
+    if (parsedSortBys.length > 0) {
+      if (
+        parsedSortBys.every(
+          sort => groupBys?.includes(sort.field) || yAxes?.includes(sort.field)
+        )
+      ) {
+        return parsedSortBys;
+      }
+    }
+
+    return defaultAggregateSortBys(yAxes ?? []);
+  }
+
+  return [];
 }
 
 function parseQuery(raw: string): ReadableExploreQueryParts {

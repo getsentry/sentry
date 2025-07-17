@@ -1,6 +1,6 @@
 import {Flex} from 'sentry/components/core/layout';
 import ExternalLink from 'sentry/components/links/externalLink';
-import AutomationBuilderInputField from 'sentry/components/workflowEngine/form/automationBuilderInputField';
+import {AutomationBuilderInput} from 'sentry/components/workflowEngine/form/automationBuilderInput';
 import {
   OptionalRowLine,
   RowLine,
@@ -89,15 +89,26 @@ export function SlackNode() {
 function NotesField() {
   const {action, actionId, onUpdate} = useActionNodeContext();
   return (
-    <AutomationBuilderInputField
+    <AutomationBuilderInput
       name={`${actionId}.data.notes`}
+      aria-label={t('Notes')}
       placeholder={t('example notes')}
-      value={action.data.tags}
-      onChange={(value: string) => {
+      value={action.data.notes}
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({
-          data: {tags: value},
+          data: {...action.data, notes: e.target.value},
         });
       }}
     />
   );
+}
+
+export function validateSlackAction(action: Action): string | undefined {
+  if (!action.integrationId) {
+    return t('You must specify a Slack workspace.');
+  }
+  if (!action.config.target_display) {
+    return t('You must specify a channel name or ID.');
+  }
+  return undefined;
 }

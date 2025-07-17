@@ -14,7 +14,6 @@ describe('PlanMigrationActive cohort 2', function () {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     plan: 'mm2_b_100k',
-    reservedEvents: 100000,
     organization,
   });
   const renewalDate = moment(subscription.contractPeriodEnd).add(1, 'days').format('ll');
@@ -115,7 +114,6 @@ describe('PlanMigrationActive cohort 3', function () {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     plan: 'mm2_b_100k_ac',
-    reservedEvents: 100000,
     organization,
   });
   const renewalDate = moment(subscription.contractPeriodEnd).add(1, 'days').format('ll');
@@ -213,7 +211,6 @@ describe('PlanMigrationActive cohort 4', function () {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     plan: 'mm2_b_100k_auf',
-    reservedEvents: 100000,
     billingInterval: 'annual',
     organization,
   });
@@ -300,7 +297,6 @@ describe('PlanMigrationActive cohort 5', function () {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     plan: 'm1',
-    reservedEvents: 1_000_000,
     organization,
   });
   const renewalDate = moment(subscription.contractPeriodEnd).add(1, 'days').format('ll');
@@ -383,7 +379,6 @@ describe('PlanMigrationActive cohort 6', function () {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     plan: 's1_ac',
-    reservedEvents: 100000,
     organization,
   });
   const renewalDate = moment(subscription.contractPeriodEnd).add(1, 'days').format('ll');
@@ -463,7 +458,6 @@ describe('PlanMigrationActive cohort 7', function () {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     plan: 'm1_auf',
-    reservedEvents: 1_000_000,
     billingInterval: 'annual',
     organization,
   });
@@ -554,8 +548,6 @@ describe('PlanMigrationActive cohort 8', function () {
     planDetails: am2BusinessPlan,
     plan: 'am2_business',
     organization,
-    reservedEvents: 100_000,
-    reservedErrors: 100_000,
   });
   subscription.categories.errors!.reserved = 100_000; // test that it renders the correct next reserved values even if it's not the base volume
 
@@ -867,5 +859,48 @@ describe('PlanMigrationActive cohort 10', function () {
     expect(screen.getByTestId('recurring-credits')).toHaveTextContent(
       /\*You'll retain the same monthly replay quota throughout the remainder of your annual subscription./
     );
+  });
+});
+
+describe('PlanMigrationActive cohort 111 -- TEST ONLY', function () {
+  const organization = OrganizationFixture();
+  const subscription = SubscriptionFixture({
+    plan: 'am3_business_auf',
+    organization,
+  });
+
+  const migrationDate = moment().add(1, 'days').format('ll');
+  const migration = PlanMigrationFixture({
+    cohortId: CohortId.TEST_ONE,
+    effectiveAt: migrationDate,
+  });
+
+  function renderSimple() {
+    render(<PlanMigrationActive migration={migration} subscription={subscription} />);
+  }
+
+  it('renders with active migration', function () {
+    renderSimple();
+  });
+
+  it('renders plan migration table', function () {
+    renderSimple();
+    expect(screen.getByRole('table')).toBeInTheDocument();
+    expect(screen.getAllByRole('row')).toHaveLength(8);
+  });
+
+  it('renders combined credit message', function () {
+    renderSimple();
+    expect(screen.getByTestId('recurring-credits')).toHaveTextContent(
+      /\*We'll provide an additional 100000 errors for the next 1 months, 100000 replays for the next 1 months, and 100000 spans for the next 1 months following the end of your current annual contract, at no charge./
+    );
+  });
+
+  it('renders monitor seats row', function () {
+    renderSimple();
+    expect(screen.getByTestId('current-monitorSeats')).toHaveTextContent(
+      /1 cron monitor/
+    );
+    expect(screen.getByTestId('new-monitorSeats')).toHaveTextContent(/1 cron monitor/);
   });
 });

@@ -6,10 +6,10 @@ import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import IdBadge from 'sentry/components/idBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconGraph, IconSettings, IconWarning} from 'sentry/icons';
@@ -136,7 +136,7 @@ class UsageTable extends Component<Props> {
         )}
       </CellStat>,
       <CellStat key={6}>
-        <ButtonBar gap={1}>
+        <ButtonBar>
           <Button
             icon={<IconGraph type="bar" />}
             title="Go to project level stats"

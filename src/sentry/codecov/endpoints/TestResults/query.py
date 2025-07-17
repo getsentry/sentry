@@ -25,6 +25,7 @@ query = """query GetTestResults(
               node {
                 updatedAt
                 avgDuration
+                totalDuration
                 lastDuration
                 name
                 failureRate
@@ -39,6 +40,8 @@ query = """query GetTestResults(
             pageInfo {
               endCursor
               hasNextPage
+              hasPreviousPage
+              startCursor
             }
             totalCount
           }

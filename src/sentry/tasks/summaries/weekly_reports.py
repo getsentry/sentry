@@ -63,7 +63,11 @@ logger = logging.getLogger(__name__)
     max_retries=5,
     acks_late=True,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=reports_tasks, retry=Retry(times=5)),
+    taskworker_config=TaskworkerConfig(
+        namespace=reports_tasks,
+        retry=Retry(times=5),
+        processing_deadline_duration=timedelta(minutes=10),
+    ),
 )
 @retry
 def schedule_organizations(
@@ -126,6 +130,7 @@ def schedule_organizations(
         processing_deadline_duration=60 * 10,
         retry=Retry(
             times=5,
+            delay=5,
         ),
     ),
 )

@@ -40,13 +40,32 @@ export function parseOnDemandBudgets(
 ): OnDemandBudgets {
   if (onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
     const parsedBudgets: Partial<Record<DataCategory, number>> = {};
+    const categoryBudgets: Partial<
+      Omit<PerCategoryOnDemandBudget, 'budgetMode' | 'budgets'>
+    > = {};
     for (const category in onDemandBudgets.budgets) {
       parsedBudgets[category as DataCategory] =
+        onDemandBudgets.budgets[category as DataCategory] ?? 0;
+      const key = `${category}Budget`;
+      (categoryBudgets as Partial<Record<string, number>>)[key] =
         onDemandBudgets.budgets[category as DataCategory] ?? 0;
     }
 
     return {
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+      // Set defaults for all possible categories to satisfy the type.
+      // TODO: refactor this out later in the future.
+      errorsBudget: 0,
+      transactionsBudget: 0,
+      attachmentsBudget: 0,
+      replaysBudget: 0,
+      monitorSeatsBudget: 0,
+      profileDurationBudget: 0,
+      profileDurationUIBudget: 0,
+      uptimeBudget: 0,
+      logBytesBudget: 0,
+      // Spread the calculated values over the defaults
+      ...categoryBudgets,
       budgets: parsedBudgets,
     };
   }
@@ -132,10 +151,7 @@ function getBudgetMode(budget: OnDemandBudgets) {
 }
 
 export function getOnDemandBudget(budget: OnDemandBudgets, dataCategory: DataCategory) {
-  if (
-    budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY &&
-    dataCategory in budget.budgets
-  ) {
+  if (budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
     return budget.budgets[dataCategory] ?? 0;
   }
   return getTotalBudget(budget);
@@ -238,6 +254,7 @@ export function convertOnDemandBudget(
       uptime: 0,
       profileDuration: 0,
       profileDurationUI: 0,
+      logBytes: 0,
     };
 
     if (currentOnDemandBudget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
@@ -251,8 +268,28 @@ export function convertOnDemandBudget(
       newBudgets.transactions = transactionsBudget;
     }
 
+    const categoryBudgets: Partial<Record<string, number>> = Object.fromEntries(
+      Object.entries(newBudgets).map(([category, value]) => [
+        `${category}Budget`,
+        value ?? 0,
+      ])
+    );
+
     return {
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+      // Set defaults for all possible categories to satisfy the type.
+      // TODO: refactor this out later in the future.
+      errorsBudget: 0,
+      transactionsBudget: 0,
+      attachmentsBudget: 0,
+      replaysBudget: 0,
+      monitorSeatsBudget: 0,
+      uptimeBudget: 0,
+      profileDurationBudget: 0,
+      profileDurationUIBudget: 0,
+      logBytesBudget: 0,
+      // Spread the calculated values over the defaults
+      ...categoryBudgets,
       budgets: newBudgets,
     };
   }

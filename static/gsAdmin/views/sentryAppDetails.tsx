@@ -7,7 +7,7 @@ import {
 import {openModal} from 'sentry/actionCreators/modal';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {

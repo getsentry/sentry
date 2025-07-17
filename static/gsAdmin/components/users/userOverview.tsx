@@ -3,8 +3,8 @@ import moment from 'moment-timezone';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import {Link} from 'sentry/components/core/link';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconNot} from 'sentry/icons';
 import type {UserIdentityConfig} from 'sentry/types/auth';

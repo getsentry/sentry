@@ -372,6 +372,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
                     "issue_category": group_info.group.issue_category,
                     "event_type": "platform",
                     "group_id": group_info.group.id,
+                    "occurrence_type": "monitor_check_in_failure",
                 },
             )
 
@@ -418,7 +419,9 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
             occurrence = self.build_occurrence(type=TestGroupType.type_id)
             with mock.patch("sentry.issues.ingest.metrics") as metrics:
                 assert save_issue_from_occurrence(occurrence, event, None) is None
-                metrics.incr.assert_called_once_with("issues.issue.dropped.noise_reduction")
+                metrics.incr.assert_called_once_with(
+                    "issues.issue.dropped.noise_reduction", tags={"group_type": "test"}
+                )
 
             new_event = self.store_event(data={}, project_id=self.project.id)
             new_occurrence = self.build_occurrence(type=TestGroupType.type_id)

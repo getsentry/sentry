@@ -142,7 +142,7 @@ def filter_recently_fired_workflow_actions(
 
     action_to_statuses = get_workflow_action_group_statuses(
         action_to_workflows_ids=action_to_workflows_ids,
-        group=event_data.event.group,
+        group=event_data.group,
         workflow_ids=workflow_ids,
     )
     now = timezone.now()
@@ -151,7 +151,7 @@ def filter_recently_fired_workflow_actions(
             action_to_workflows_ids=action_to_workflows_ids,
             action_to_statuses=action_to_statuses,
             workflows=workflows,
-            group=event_data.event.group,
+            group=event_data.group,
             now=now,
         )
     )
@@ -239,7 +239,7 @@ def _get_integration_features(action_type: Action.Type) -> frozenset[Integration
     return integration.features
 
 
-# The features that are relevent to Action behaviors;
+# The features that are relevant to Action behaviors;
 # if the organization doesn't have access to all of the features an integration
 # requires that are in this list, the action should not be permitted.
 _ACTION_RELEVANT_INTEGRATION_FEATURES = {

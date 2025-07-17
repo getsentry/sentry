@@ -43,9 +43,9 @@ class AssignedToConditionHandler(DataConditionHandler[WorkflowEventData]):
 
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
-        event = event_data.event
+        group = event_data.group
         target_type = AssigneeTargetType(comparison.get("target_type"))
-        assignees = AssignedToConditionHandler.get_assignees(event.group)
+        assignees = AssignedToConditionHandler.get_assignees(group)
 
         if target_type == AssigneeTargetType.UNASSIGNED:
             return len(assignees) == 0

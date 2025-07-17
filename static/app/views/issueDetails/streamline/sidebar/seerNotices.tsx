@@ -23,6 +23,7 @@ import {FieldKey} from 'sentry/utils/fields';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useHasIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useHasIssueViews';
 import {useStarredIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useStarredIssueViews';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
@@ -62,11 +63,8 @@ function CustomStepButtons({
 export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNoticesProps) {
   const organization = useOrganization();
   const {repos} = useAutofixRepos(groupId);
-  const {
-    preference,
-    codeMappingRepos,
-    isLoading: isLoadingPreferences,
-  } = useProjectSeerPreferences(project);
+  const {preference, isLoading: isLoadingPreferences} =
+    useProjectSeerPreferences(project);
   const {starredViews: views} = useStarredIssueViews();
 
   const detailedProject = useDetailedProject({
@@ -77,8 +75,9 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   const isAutomationAllowed = organization.features.includes(
     'trigger-autofix-on-issue-summary'
   );
-  const prefersStackedNav = usePrefersStackedNav();
-  const isStarredViewAllowed = prefersStackedNav;
+  const hasStackedNav = usePrefersStackedNav();
+  const hasIssueViews = useHasIssueViews();
+  const isStarredViewAllowed = hasStackedNav && hasIssueViews;
 
   const unreadableRepos = repos.filter(repo => repo.is_readable === false);
   const githubRepos = unreadableRepos.filter(repo => repo.provider.includes('github'));
@@ -88,8 +87,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
 
   // Onboarding conditions
   const needsGithubIntegration = !hasGithubIntegration;
-  const needsRepoSelection =
-    repos.length === 0 && !preference?.repositories?.length && !codeMappingRepos?.length;
+  const needsRepoSelection = repos.length === 0 && !preference?.repositories?.length;
   const needsAutomation =
     detailedProject?.data &&
     (detailedProject?.data?.autofixAutomationTuning === 'off' ||
@@ -182,6 +180,25 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                               <ExternalLink
                                 href={`/settings/${organization.slug}/integrations/github/`}
                               />
+                            ),
+                          }
+                        )}
+                      </span>
+                      <span>
+                        {tct(
+                          'Support for other source code providers are coming soon. You can keep up with progress on these GitHub issues: [githubEnterpriseLink:GitHub Enterprise], [bitbucketLink:BitBucket], [gitlabLink:GitLab], and [azureDevopsLink:Azure DevOps].',
+                          {
+                            githubEnterpriseLink: (
+                              <ExternalLink href="https://github.com/getsentry/sentry/issues/95790" />
+                            ),
+                            bitbucketLink: (
+                              <ExternalLink href="https://github.com/getsentry/sentry/issues/92317" />
+                            ),
+                            gitlabLink: (
+                              <ExternalLink href="https://github.com/getsentry/sentry/issues/93724" />
+                            ),
+                            azureDevopsLink: (
+                              <ExternalLink href="https://github.com/getsentry/sentry/issues/95796" />
                             ),
                           }
                         )}

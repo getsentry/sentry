@@ -1,0 +1,50 @@
+import logging
+
+import sentry_sdk
+
+from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.types import EAPResponse, SearchResolverConfig
+from sentry.search.eap.uptime_results.definitions import UPTIME_RESULT_DEFINITIONS
+from sentry.search.events.types import SAMPLING_MODES, SnubaParams
+from sentry.snuba import rpc_dataset_common
+
+logger = logging.getLogger("sentry.snuba.uptime_results")
+
+
+def get_resolver(params: SnubaParams, config: SearchResolverConfig) -> SearchResolver:
+    return SearchResolver(
+        params=params,
+        config=config,
+        definitions=UPTIME_RESULT_DEFINITIONS,
+    )
+
+
+@sentry_sdk.trace
+def run_table_query(
+    params: SnubaParams,
+    query_string: str,
+    selected_columns: list[str],
+    orderby: list[str] | None,
+    offset: int,
+    limit: int,
+    referrer: str,
+    config: SearchResolverConfig,
+    sampling_mode: SAMPLING_MODES | None = None,
+    equations: list[str] | None = None,
+    search_resolver: SearchResolver | None = None,
+    debug: bool = False,
+) -> EAPResponse:
+    return rpc_dataset_common.run_table_query(
+        rpc_dataset_common.TableQuery(
+            query_string=query_string,
+            selected_columns=selected_columns,
+            equations=equations,
+            orderby=orderby,
+            offset=offset,
+            limit=limit,
+            referrer=referrer,
+            sampling_mode=sampling_mode,
+            resolver=search_resolver or get_resolver(params, config),
+        ),
+        debug,
+    )

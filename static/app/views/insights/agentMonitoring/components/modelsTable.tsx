@@ -27,6 +27,7 @@ import {
 } from 'sentry/views/insights/agentMonitoring/components/headSortCell';
 import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
+import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
 import {
   AI_INPUT_TOKENS_ATTRIBUTE_SUM,
   AI_MODEL_ID_ATTRIBUTE,
@@ -35,11 +36,10 @@ import {
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 // import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
-import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 interface TableData {
   avg: number;
@@ -77,9 +77,8 @@ export function ModelsTable() {
   const location = useLocation();
   const organization = useOrganization();
   const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
-  const {query} = useTransactionNameQuery();
 
-  const fullQuery = `${getAIGenerationsFilter()} ${query}`.trim();
+  const fullQuery = useCombinedQuery(getAIGenerationsFilter());
 
   const handleCursor: CursorHandler = (cursor, pathname, previousQuery) => {
     navigate(
@@ -96,7 +95,7 @@ export function ModelsTable() {
 
   const {sortField, sortOrder} = useTableSortParams();
 
-  const modelsRequest = useEAPSpans(
+  const modelsRequest = useSpans(
     {
       fields: [
         AI_MODEL_ID_ATTRIBUTE,
@@ -211,6 +210,10 @@ const BodyCell = memo(function BodyCell({
       {
         chartType: ChartType.BAR,
         yAxes: ['count(span.duration)'],
+      },
+      {
+        chartType: ChartType.LINE,
+        yAxes: ['avg(span.duration)'],
       },
     ],
     query: `${AI_MODEL_ID_ATTRIBUTE}:${dataRow.model}`,

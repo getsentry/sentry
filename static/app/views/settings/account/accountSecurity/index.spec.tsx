@@ -12,6 +12,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ModalStore from 'sentry/stores/modalStore';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import AccountSecurity from 'sentry/views/settings/account/accountSecurity';
 import AccountSecurityWrapper from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
 
@@ -402,7 +403,7 @@ describe('AccountSecurity', function () {
 
     expect(mock).toHaveBeenCalled();
     await waitFor(() =>
-      expect(window.location.assign).toHaveBeenCalledWith('/auth/login/')
+      expect(testableWindowLocation.assign).toHaveBeenCalledWith('/auth/login/')
     );
   });
 });

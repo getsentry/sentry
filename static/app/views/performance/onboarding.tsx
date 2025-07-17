@@ -27,15 +27,17 @@ import FeatureTourModal, {
   TourText,
 } from 'sentry/components/modals/featureTourModal';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
+import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
-  type Configuration,
+  OnboardingCodeSnippet,
   TabbedCodeSnippet,
-} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
-  type DocsParams,
-  ProductSolution,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
+import type {
+  Configuration,
+  ContentBlock,
+  DocsParams,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import LegacyOnboardingPanel from 'sentry/components/onboardingPanel';
@@ -62,6 +64,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import {decodeInteger} from 'sentry/utils/queryString';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -168,7 +171,6 @@ function SampleButton({
             generateLinkToEventInTraceView({
               eventId: eventData.eventID,
               location,
-              projectSlug: project.slug,
               organization,
               timestamp: eventData.endTimestamp,
               traceSlug,
@@ -278,7 +280,7 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
             'Something seem slow? Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
           )}
         </p>
-        <ButtonList gap={1}>
+        <ButtonList>
           {setupButton}
           <SampleButton
             triggerText={t('View Sample Transaction')}
@@ -369,6 +371,19 @@ function WaitingIndicator({
   );
 }
 
+function RenderBlocksOrFallback({
+  contentBlocks,
+  children,
+}: {
+  children: React.ReactNode;
+  contentBlocks?: ContentBlock[];
+}) {
+  if (contentBlocks && contentBlocks.length > 0) {
+    return <ContentBlocksRenderer spacing={space(1)} contentBlocks={contentBlocks} />;
+  }
+  return children;
+}
+
 type ConfigurationStepProps = {
   api: Client;
   configuration: Configuration;
@@ -377,6 +392,7 @@ type ConfigurationStepProps = {
   showWaitingIndicator: boolean;
   stepKey: string;
   title: React.ReactNode;
+  contentBlocks?: ContentBlock[];
 };
 
 function ConfigurationStep({
@@ -385,13 +401,14 @@ function ConfigurationStep({
   api,
   organization,
   project,
+  contentBlocks,
   configuration,
   showWaitingIndicator,
 }: ConfigurationStepProps) {
   return (
     <GuidedSteps.Step stepKey={stepKey} title={title}>
       <div>
-        <div>
+        <RenderBlocksOrFallback contentBlocks={contentBlocks}>
           <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
           <CodeSnippetWrapper>
             {configuration.code ? (
@@ -415,7 +432,7 @@ function ConfigurationStep({
           {showWaitingIndicator ? (
             <WaitingIndicator api={api} organization={organization} project={project} />
           ) : null}
-        </div>
+        </RenderBlocksOrFallback>
         <GuidedSteps.ButtonWrapper>
           <GuidedSteps.BackButton size="md" />
           <GuidedSteps.NextButton size="md" />
@@ -673,7 +690,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
       >
         <GuidedSteps.Step stepKey="install-sentry" title={t('Install Sentry')}>
           <div>
-            <div>
+            <RenderBlocksOrFallback contentBlocks={installStep.content}>
               <DescriptionWrapper>{installStep.description}</DescriptionWrapper>
               {installStep.configurations?.map((configuration, index) => (
                 <div key={index}>
@@ -694,7 +711,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
               {!configureStep.configurations && !verifyStep.configurations
                 ? eventWaitingIndicator
                 : null}
-            </div>
+            </RenderBlocksOrFallback>
             <GuidedSteps.ButtonWrapper>
               <GuidedSteps.BackButton size="md" />
               <GuidedSteps.NextButton size="md" />
@@ -727,7 +744,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
         ) : null}
         {verifyStep.configurations || verifyStep.description ? (
           <GuidedSteps.Step stepKey="verify-sentry" title={t('Verify')}>
-            <div>
+            <RenderBlocksOrFallback contentBlocks={verifyStep.content}>
               <DescriptionWrapper>{verifyStep.description}</DescriptionWrapper>
               {verifyStep.configurations?.map((configuration, index) => (
                 <div key={index}>
@@ -746,7 +763,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
                 </div>
               ))}
               {eventWaitingIndicator}
-            </div>
+            </RenderBlocksOrFallback>
             <GuidedSteps.ButtonWrapper>
               <GuidedSteps.BackButton size="md" />
               {received ? (
@@ -759,7 +776,9 @@ export function Onboarding({organization, project}: OnboardingProps) {
                     params.set('table', Tab.TRACE);
                     params.set('query', `trace:${traceId}`);
                     params.delete('guidedStep');
-                    window.location.href = `${window.location.pathname}?${params.toString()}`;
+                    testableWindowLocation.assign(
+                      `${window.location.pathname}?${params.toString()}`
+                    );
                   }}
                 >
                   {t('Take me to my trace')}

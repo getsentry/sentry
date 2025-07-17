@@ -106,7 +106,7 @@ export function BaseChartActionDropdown({
       to: exploreUrl,
       onAction: () => {
         trackAnalytics('insights.open_in_explore', {
-          organization: organization.slug,
+          organization,
           referrer,
         });
       },
@@ -123,7 +123,7 @@ export function BaseChartActionDropdown({
         onAction: () => {
           option.onAction?.();
           trackAnalytics('insights.create_alert', {
-            organization: organization.slug,
+            organization,
             referrer,
           });
         },

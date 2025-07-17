@@ -170,7 +170,7 @@ function EventDetailsContent(props: Props) {
                     </Layout.Title>
                   </Layout.HeaderContent>
                   <Layout.HeaderActions>
-                    <ButtonBar gap={1}>
+                    <ButtonBar>
                       <Button
                         size="sm"
                         onClick={() => setIsSidebarVisible(prev => !prev)}
@@ -208,7 +208,6 @@ function EventDetailsContent(props: Props) {
                         projectId={projectId}
                         location={location}
                         errorDest="issue"
-                        transactionDest="performance"
                       />
                     </Layout.Main>
                   )}

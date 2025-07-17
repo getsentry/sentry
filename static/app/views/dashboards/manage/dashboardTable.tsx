@@ -16,8 +16,8 @@ import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
+import {Link} from 'sentry/components/core/link';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import Link from 'sentry/components/links/link';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnOrder,

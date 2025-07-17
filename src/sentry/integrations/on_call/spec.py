@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.models.notificationaction import ActionService
 
 
@@ -18,7 +19,7 @@ class OnCallSpec(ABC):
 class OpsgenieOnCallSpec(OnCallSpec):
     @property
     def provider_slug(self):
-        return "opsgenie"
+        return IntegrationProviderSlug.OPSGENIE
 
     @property
     def action_service(self):
@@ -28,7 +29,7 @@ class OpsgenieOnCallSpec(OnCallSpec):
 class PagerDutyOnCallSpec(OnCallSpec):
     @property
     def provider_slug(self):
-        return "pagerduty"
+        return IntegrationProviderSlug.PAGERDUTY
 
     @property
     def action_service(self):

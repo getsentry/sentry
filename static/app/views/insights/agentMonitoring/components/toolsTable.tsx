@@ -25,17 +25,17 @@ import {
   useTableSortParams,
 } from 'sentry/views/insights/agentMonitoring/components/headSortCell';
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
+import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
 import {
   AI_TOOL_NAME_ATTRIBUTE,
   getAIToolCallsFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 // import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
-import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 interface TableData {
   avg: number;
@@ -68,9 +68,8 @@ export function ToolsTable() {
   const organization = useOrganization();
 
   const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
-  const {query} = useTransactionNameQuery();
 
-  const fullQuery = `${getAIToolCallsFilter()} ${query}`.trim();
+  const fullQuery = useCombinedQuery(getAIToolCallsFilter());
 
   const handleCursor: CursorHandler = (cursor, pathname, previousQuery) => {
     navigate(
@@ -87,7 +86,7 @@ export function ToolsTable() {
 
   const {sortField, sortOrder} = useTableSortParams();
 
-  const toolsRequest = useEAPSpans(
+  const toolsRequest = useSpans(
     {
       fields: [
         AI_TOOL_NAME_ATTRIBUTE,
@@ -198,6 +197,10 @@ const BodyCell = memo(function BodyCell({
       {
         chartType: ChartType.BAR,
         yAxes: ['count(span.duration)'],
+      },
+      {
+        chartType: ChartType.LINE,
+        yAxes: ['avg(span.duration)'],
       },
     ],
     query: `${AI_TOOL_NAME_ATTRIBUTE}:${dataRow.tool}`,

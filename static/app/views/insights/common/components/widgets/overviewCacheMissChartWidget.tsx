@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {t} from 'sentry/locale';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -12,7 +12,7 @@ import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTopNSpanEAPSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
@@ -40,7 +40,7 @@ export default function OverviewCacheMissChartWidget(props: LoadableChartWidgetP
   const releaseBubbleProps = useReleaseBubbleProps(props);
   const pageFilterChartParams = usePageFilterChartParams(props);
 
-  const cachesRequest = useEAPSpans(
+  const cachesRequest = useSpans(
     {
       fields: ['transaction', 'project.id', 'cache_miss_rate()', 'count()'],
       sorts: [{field: 'cache_miss_rate()', kind: 'desc'}],

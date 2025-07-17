@@ -224,6 +224,8 @@ describe('utils', function () {
       expect(utils.getEventsWithUnit(4_000, DataCategory.ATTACHMENTS)).toBe('4,000GB');
       expect(utils.getEventsWithUnit(1_000_000_000, DataCategory.ERRORS)).toBe('1B');
       expect(utils.getEventsWithUnit(10_000_000_000, DataCategory.ERRORS)).toBe('10B');
+      expect(utils.getEventsWithUnit(1, DataCategory.LOG_BYTE)).toBe('1GB');
+      expect(utils.getEventsWithUnit(25, DataCategory.LOG_BYTE)).toBe('25GB');
     });
   });
 

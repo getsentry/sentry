@@ -1,10 +1,10 @@
 from unittest.mock import Mock, patch
 
 import pytest
-from django.test import TestCase
 from jsonschema import ValidationError
 
 from sentry.eventstore.models import GroupEvent
+from sentry.testutils.cases import TestCase
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
@@ -12,7 +12,10 @@ from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
 
 class TestAction(TestCase):
     def setUp(self):
-        self.mock_event = WorkflowEventData(event=Mock(spec=GroupEvent))
+        mock_group_event = Mock(spec=GroupEvent)
+        self.group = self.create_group()
+
+        self.mock_event = WorkflowEventData(event=mock_group_event, group=self.group)
         self.mock_detector = Mock(name="detector")
         self.action = Action(type=Action.Type.SLACK)
         self.config_schema = {
@@ -85,6 +88,19 @@ class TestAction(TestCase):
         with patch.object(self.action, "get_handler", return_value=mock_handler):
             with pytest.raises(Exception, match="Handler failed"):
                 self.action.trigger(self.mock_event, self.mock_detector)
+
+    @patch("sentry.utils.metrics.incr")
+    def test_trigger_metrics(self, mock_incr):
+        mock_handler = Mock(spec=ActionHandler)
+
+        with patch.object(self.action, "get_handler", return_value=mock_handler):
+            self.action.trigger(self.mock_event, self.mock_detector)
+
+            mock_handler.execute.assert_called_once()
+            mock_incr.assert_called_once_with(
+                "workflow_engine.action.trigger",
+                tags={"action_type": self.action.type, "detector_type": self.mock_detector.type},
+            )
 
     def test_config_schema(self):
         mock_handler = Mock(spec=ActionHandler)

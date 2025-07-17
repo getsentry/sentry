@@ -11,13 +11,13 @@ import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKey
 import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type useListItemCheckboxState from 'sentry/utils/list/useListItemCheckboxState';
+import type {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import useUrlParams from 'sentry/utils/useUrlParams';
+import useUrlParams from 'sentry/utils/url/useUrlParams';
 
 interface Props
   extends Pick<
-    ReturnType<typeof useListItemCheckboxState>,
+    ReturnType<typeof useListItemCheckboxContext>,
     | 'countSelected'
     | 'deselectAll'
     | 'isAllSelected'

@@ -2,6 +2,8 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Link} from 'sentry/components/core/link';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import {t} from 'sentry/locale';
@@ -135,42 +137,100 @@ export default Storybook.story('SimpleTable', story => {
     );
   });
 
-  story('Custom widths and hidden columns', () => {
-    const tableContent = (
+  story('Clickable rows', () => {
+    return (
       <Fragment>
-        <SimpleTable.Header>
-          {headers.map(header => (
-            <SimpleTable.HeaderCell key={header.key}>
-              {header.label}
-            </SimpleTable.HeaderCell>
-          ))}
-        </SimpleTable.Header>
-        {data.map(row => (
-          <SimpleTable.Row key={row.name}>
-            <SimpleTable.RowCell>{row.name}</SimpleTable.RowCell>
-            <SimpleTable.RowCell>{row.monitors.length} monitors</SimpleTable.RowCell>
-            <SimpleTable.RowCell>{row.action}</SimpleTable.RowCell>
-            <SimpleTable.RowCell>
-              <TimeAgoCell date={row.lastTriggered} />
-            </SimpleTable.RowCell>
+        <p>
+          If you want to make a row clickable then you can wrap it in a{' '}
+          <Storybook.JSXNode name="Link" /> or a raw <Storybook.JSXNode name="button" />,
+          but be sure to set <code>display: contents; pointer: cursor;</code> in the css
+        </p>
+        <SimpleTableWithColumns>
+          <SimpleTable.Header>
+            {headers.map(header => (
+              <SimpleTable.HeaderCell key={header.key}>
+                {header.label}
+              </SimpleTable.HeaderCell>
+            ))}
+          </SimpleTable.Header>
+          <SimpleTable.Row>
+            <Link
+              to="#"
+              onClick={e => {
+                // eslint-disable-next-line no-console
+                console.log('clicked a link');
+                e.preventDefault();
+              }}
+              style={{display: 'contents', cursor: 'pointer'}}
+            >
+              <InteractionStateLayer />
+              <SimpleTable.RowCell>
+                Clickable <Storybook.JSXNode name="Link" />
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell>123</SimpleTable.RowCell>
+              <SimpleTable.RowCell>123</SimpleTable.RowCell>
+              <SimpleTable.RowCell>123</SimpleTable.RowCell>
+            </Link>
           </SimpleTable.Row>
-        ))}
+          <SimpleTable.Row>
+            <button
+              onClick={e => {
+                // eslint-disable-next-line no-console
+                console.log('clicked a button');
+                e.preventDefault();
+              }}
+              style={{display: 'contents', cursor: 'pointer'}}
+            >
+              <InteractionStateLayer />
+              <SimpleTable.RowCell>
+                Clickable <Storybook.JSXNode name="button" />
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell>123</SimpleTable.RowCell>
+              <SimpleTable.RowCell>123</SimpleTable.RowCell>
+              <SimpleTable.RowCell>123</SimpleTable.RowCell>
+            </button>
+          </SimpleTable.Row>
+        </SimpleTableWithColumns>
       </Fragment>
     );
+  });
 
+  story('Custom widths and hidden columns', () => {
     return (
       <Fragment>
         <p>
           Set custom widths for columns by styling SimpleTable with{' '}
           <code>grid-template-columns</code>.
         </p>
-
-        <SimpleTableWithCustomWidths>{tableContent}</SimpleTableWithCustomWidths>
         <p>
-          You can also hide columns by targeting the column's class name, which is useful
-          for creating responsive tables.
+          You can also hide columns by targeting the column in css, usually with a{' '}
+          <Storybook.JSXProperty name="data-*" value="string" />
+          attribute. This is useful for creating responsive tables.
         </p>
-        <SimpleTableWithHiddenColumns>{tableContent}</SimpleTableWithHiddenColumns>
+        <p>This table has 4 columns, but will hide some as it gets narrower.</p>
+        <SizingWindowContainer>
+          <SimpleTableWithHiddenColumns>
+            <SimpleTable.Header>
+              {headers.map(header => (
+                <SimpleTable.HeaderCell key={header.key} data-column-name={header.key}>
+                  {header.label}
+                </SimpleTable.HeaderCell>
+              ))}
+            </SimpleTable.Header>
+            {data.map(row => (
+              <SimpleTable.Row key={row.name}>
+                <SimpleTable.RowCell>{row.name}</SimpleTable.RowCell>
+                <SimpleTable.RowCell>{row.monitors.length} monitors</SimpleTable.RowCell>
+                <SimpleTable.RowCell data-column-name="action">
+                  {row.action}
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell data-column-name="lastTriggered">
+                  <TimeAgoCell date={row.lastTriggered} />
+                </SimpleTable.RowCell>
+              </SimpleTable.Row>
+            ))}
+          </SimpleTableWithHiddenColumns>
+        </SizingWindowContainer>
       </Fragment>
     );
   });
@@ -243,14 +303,26 @@ const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: 1fr 1fr 1fr 1fr;
 `;
 
-const SimpleTableWithCustomWidths = styled(SimpleTable)`
-  grid-template-columns: 2fr min-content auto 256px;
+const SizingWindowContainer = styled(Storybook.SizingWindow)`
+  container-type: inline-size;
 `;
 
-const SimpleTableWithHiddenColumns = styled(SimpleTableWithCustomWidths)`
-  grid-template-columns: 2fr min-content auto;
+const SimpleTableWithHiddenColumns = styled(SimpleTable)`
+  grid-template-columns: 2fr min-content auto 256px;
 
-  .lastTriggered {
-    display: none;
+  @container (max-width: ${p => p.theme.breakpoints.sm}) {
+    grid-template-columns: 2fr min-content auto;
+
+    [data-column-name='action'] {
+      display: none;
+    }
+  }
+
+  @container (max-width: ${p => p.theme.breakpoints.xs}) {
+    grid-template-columns: 2fr min-content;
+
+    [data-column-name='lastTriggered'] {
+      display: none;
+    }
   }
 `;

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import type {
@@ -32,7 +32,7 @@ import {
 } from 'sentry/views/insights/common/views/spans/types';
 import {
   ModuleName,
-  SpanIndexedField,
+  SpanFields,
   SpanMetricsField,
   type SpanMetricsResponse,
 } from 'sentry/views/insights/types';
@@ -138,9 +138,9 @@ function ResourceSummaryTable() {
                   group={groupId}
                   moduleName={ModuleName.RESOURCE}
                   filters={{
-                    [SpanIndexedField.RESOURCE_RENDER_BLOCKING_STATUS]:
+                    [SpanFields.RESOURCE_RENDER_BLOCKING_STATUS]:
                       row[RESOURCE_RENDER_BLOCKING_STATUS],
-                    [SpanIndexedField.TRANSACTION]: row[TRANSACTION],
+                    [SpanFields.TRANSACTION]: row[TRANSACTION],
                   }}
                 />
               </Fragment>

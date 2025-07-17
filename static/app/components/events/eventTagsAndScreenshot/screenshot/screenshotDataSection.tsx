@@ -6,11 +6,11 @@ import {
 } from 'sentry/actionCreators/events';
 import {openModal} from 'sentry/actionCreators/modal';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import Screenshot from 'sentry/components/events/eventTagsAndScreenshot/screenshot';
 import ScreenshotModal, {
   modalCss,
 } from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
-import Link from 'sentry/components/links/link';
 import {t, tn} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {EventAttachment} from 'sentry/types/group';

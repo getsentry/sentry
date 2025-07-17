@@ -69,7 +69,7 @@ export function PlatformLandingPageLayout({
             <ModuleLayout.Full>
               <ToolRibbon>
                 <PageFilterBar condensed>
-                  <InsightsProjectSelector resetParamsOnChange={['starred']} />
+                  <InsightsProjectSelector />
                   <EnvironmentPageFilter />
                   <DatePageFilter />
                 </PageFilterBar>

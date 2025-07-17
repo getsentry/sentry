@@ -1,5 +1,3 @@
-import pytest
-
 from sentry.models.project import Project
 from sentry.testutils.asserts import assert_existing_projects_status
 from sentry.testutils.cases import AcceptanceTestCase
@@ -36,9 +34,8 @@ class CreateProjectTest(AcceptanceTestCase):
         self.browser.click('[data-test-id="create-project"]')
         self.browser.wait_until(xpath="//h2[text()='Configure React SDK']")
 
-    @pytest.mark.skip(reason="flaky: #93634")
     def test_project_deletion_on_going_back(self):
-        self.create_team(organization=self.org, name="team three")
+        self.create_team(organization=self.org, name="team three", members=[self.user])
         self.load_project_creation_page()
         self.browser.click("[data-test-id='platform-php-laravel']")
         self.browser.click('[data-test-id="create-project"]')

@@ -17,7 +17,7 @@ interface OrganizationSeerSetupResponse {
   };
 }
 
-function makeOrganizationSeerSetupQueryKey(orgSlug: string): ApiQueryKey {
+export function makeOrganizationSeerSetupQueryKey(orgSlug: string): ApiQueryKey {
   return [`/organizations/${orgSlug}/seer/setup-check/`];
 }
 
@@ -47,9 +47,6 @@ export function useOrganizationSeerSetup(
     setupAcknowledgement: {
       orgHasAcknowledged: Boolean(
         queryData.data?.setupAcknowledgement?.orgHasAcknowledged
-      ),
-      userHasAcknowledged: Boolean(
-        queryData.data?.setupAcknowledgement?.userHasAcknowledged
       ),
     },
   };

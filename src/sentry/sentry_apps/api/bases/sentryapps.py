@@ -245,7 +245,6 @@ class SentryAppPermission(SentryPermission):
                     message="User must be in the app owner's organization for unpublished apps",
                     status_code=403,
                     public_context={
-                        "integration": sentry_app.slug,
                         "user_organizations": [org.slug for org in organizations],
                     },
                 )

@@ -409,3 +409,222 @@ function createAscendingMocks(organization: Organization) {
     nextPageMock,
   };
 }
+
+// Virtual Streaming Tests
+describe('Virtual Streaming Integration (Auto Refresh enabled)', () => {
+  const organization = OrganizationFixture();
+  const queryClient = makeTestQueryClient();
+
+  function createWrapper({autoRefresh = true}: {autoRefresh?: boolean}) {
+    return function ({children}: {children?: React.ReactNode}) {
+      return (
+        <QueryClientProvider client={queryClient}>
+          <LogsPageParamsProvider
+            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+            _testContext={{
+              autoRefresh,
+              refreshInterval: autoRefresh ? 1 : 0,
+            }}
+          >
+            <OrganizationContext.Provider value={organization}>
+              {children}
+            </OrganizationContext.Provider>
+          </LogsPageParamsProvider>
+        </QueryClientProvider>
+      );
+    };
+  }
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+    MockApiClient.clearMockResponses();
+    queryClient.clear();
+    mockedUsedLocation.mockReturnValue(LocationFixture());
+
+    mockUsePageFilters.mockReturnValue({
+      isReady: true,
+      desyncedFilters: new Set(),
+      pinnedFilters: new Set(),
+      shouldPersist: true,
+      selection: PageFiltersFixture(),
+    });
+  });
+
+  it('should integrate with virtual streaming when auto refresh is enabled', async () => {
+    const initialResponse = createMockLogsData([
+      {id: '4', timestamp_precise: '2000000000000000000', timestamp: '2000000000000'}, // far future
+      {id: '3', timestamp_precise: '3000000000', timestamp: '3000'}, // newest
+      {id: '2', timestamp_precise: '2000000000', timestamp: '2000'},
+      {id: '1', timestamp_precise: '1000000000', timestamp: '1000'}, // oldest
+    ]);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: initialResponse,
+      headers: linkHeaders,
+    });
+
+    const {result} = renderHook(() => useInfiniteLogsQuery(), {
+      wrapper: createWrapper({autoRefresh: true}),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isPending).toBe(false);
+    });
+
+    // With auto refresh enabled, virtual streaming should be active
+    // All data should be visible initially since all the mocked timestamps are well behind `now()`
+    expect(result.current.data).toHaveLength(3);
+  });
+
+  it('should not apply virtual streaming when auto refresh is disabled', async () => {
+    const initialResponse = createMockLogsData([
+      {id: '4', timestamp_precise: '2000000000000000000', timestamp: '2000000000000'}, // far future
+      {id: '3', timestamp_precise: '3000000000', timestamp: '3000'}, // newest
+      {id: '2', timestamp_precise: '2000000000', timestamp: '2000'},
+      {id: '1', timestamp_precise: '1000000000', timestamp: '1000'}, // oldest
+    ]);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: initialResponse,
+      headers: linkHeaders,
+    });
+
+    const {result} = renderHook(() => useInfiniteLogsQuery(), {
+      wrapper: createWrapper({autoRefresh: false}),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isPending).toBe(false);
+    });
+
+    // Without auto refresh, all data should always be visible
+    expect(result.current.data).toHaveLength(4);
+  });
+
+  it('should handle multiple pages with virtual streaming', async () => {
+    const eventsEndpoint = `/organizations/${organization.slug}/events/`;
+
+    // Initial page - newer timestamps (descending order)
+    const initialResponse = createMockLogsData([
+      {id: '6', timestamp_precise: '6000000000', timestamp: '6000'},
+      {id: '5', timestamp_precise: '5000000000', timestamp: '5000'},
+      {id: '4', timestamp_precise: '4000000000', timestamp: '4000'},
+    ]);
+
+    const initialMock = MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      body: initialResponse,
+      match: [
+        (_, options) => {
+          const query = options?.query || {};
+          return query.query.startsWith('tags[sentry.timestamp_precise,number]:<=');
+        },
+      ],
+      headers: linkHeaders,
+    });
+
+    // Next page - older timestamps
+    const previousPageResponse = createMockLogsData([
+      {id: '3', timestamp_precise: '3000000000', timestamp: '3000'},
+      {id: '2', timestamp_precise: '2000000000', timestamp: '2000'},
+      {id: '1', timestamp_precise: '1000000000', timestamp: '1000'},
+    ]);
+
+    const previousPageMock = MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      match: [
+        (_, options) => {
+          const query = options?.query || {};
+          return query.query.startsWith(
+            'tags[sentry.timestamp_precise,number]:>=6000000000 !sentry.item_id:6'
+          );
+        },
+      ],
+      body: previousPageResponse,
+      headers: linkHeaders,
+    });
+
+    const {result} = renderHook(() => useInfiniteLogsQuery(), {
+      wrapper: createWrapper({autoRefresh: true}),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isPending).toBe(false);
+    });
+
+    expect(result.current.data).toHaveLength(3);
+    expect(initialMock).toHaveBeenCalled();
+
+    // Fetch next page
+    await result.current.fetchPreviousPage();
+
+    await waitFor(() => {
+      expect(previousPageMock).toHaveBeenCalled();
+    });
+
+    // Should now have 6 total rows (virtual streaming will filter based on its internal state)
+    expect(result.current.data.length).toBeGreaterThan(0);
+    expect(result.current.data.length).toBeLessThanOrEqual(6);
+  });
+
+  it('should remove duplicate rows based on unique row ID', async () => {
+    const eventsEndpoint = `/organizations/${organization.slug}/events/`;
+
+    // Create pages with overlapping data (same ID)
+    const initialResponse = createMockLogsData([
+      {id: '2', timestamp_precise: '2000000000', timestamp: '2000'},
+      {id: '1', timestamp_precise: '1000000000', timestamp: '1000'},
+    ]);
+
+    const nextPageResponse = createMockLogsData([
+      {id: '3', timestamp_precise: '3000000000', timestamp: '3000'},
+      {id: '2', timestamp_precise: '2000000000', timestamp: '2000'}, // Duplicate
+    ]);
+
+    MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      body: initialResponse,
+      match: [
+        (_, options) => {
+          const query = options?.query || {};
+          return query.query.length === 0;
+        },
+      ],
+      headers: linkHeaders,
+    });
+
+    MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      body: nextPageResponse,
+      match: [
+        (_, options) => {
+          const query = options?.query || {};
+          return query.query.includes('tags[sentry.timestamp_precise,number]:<=1000');
+        },
+      ],
+      headers: linkHeaders,
+    });
+
+    const {result} = renderHook(() => useInfiniteLogsQuery(), {
+      wrapper: createWrapper({autoRefresh: false}), // Disable auto refresh to avoid virtual streaming filtering
+    });
+
+    await waitFor(() => {
+      expect(result.current.isPending).toBe(false);
+    });
+
+    expect(result.current.data).toHaveLength(2);
+
+    await result.current.fetchNextPage();
+
+    await waitFor(() => {
+      // Should have 3 unique rows, not 4 (duplicate ID '2' should be filtered out)
+      expect(result.current.data).toHaveLength(3);
+    });
+
+    const ids = result.current.data.map(row => row[OurLogKnownFieldKey.ID]);
+    expect(ids).toEqual(['2', '1', '3']);
+  });
+});

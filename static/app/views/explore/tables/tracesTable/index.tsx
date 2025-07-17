@@ -260,7 +260,7 @@ function TraceRow({
         )}
       </StyledPanelItem>
       <StyledPanelItem align="right">
-        <SpanTimeRenderer timestamp={trace.end} tooltipShowSeconds />
+        <SpanTimeRenderer timestamp={trace.start} tooltipShowSeconds />
       </StyledPanelItem>
       {expanded && <SpanTable trace={trace} />}
     </Fragment>

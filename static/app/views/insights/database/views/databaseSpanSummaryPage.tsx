@@ -21,10 +21,9 @@ import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components
 import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
 import DatabaseSummaryDurationChartWidget from 'sentry/views/insights/common/components/widgets/databaseSummaryDurationChartWidget';
 import DatabaseSummaryThroughputChartWidget from 'sentry/views/insights/common/components/widgets/databaseSummaryThroughputChartWidget';
-import {
-  useSpanMetrics,
-  useSpansIndexed,
-} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpanMetrics, useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
@@ -38,8 +37,8 @@ import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHead
 import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 import {
   ModuleName,
+  SpanFields,
   SpanFunction,
-  SpanIndexedField,
   SpanMetricsField,
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -54,6 +53,8 @@ type Query = {
 type Props = RouteComponentProps<{groupId: string}, Record<string, unknown>, any, Query>;
 
 export function DatabaseSpanSummaryPage({params}: Props) {
+  const moduleTitle = useModuleTitle(ModuleName.DB);
+  const moduleURL = useModuleURL(ModuleName.DB);
   const location = useLocation<Query>();
 
   const {groupId} = params;
@@ -71,23 +72,22 @@ export function DatabaseSpanSummaryPage({params}: Props) {
   const sort = decodeSorts(sortField).find(isAValidSort) ?? DEFAULT_SORT;
 
   const {data: indexedSpansByGroupId, isPending: areIndexedSpansByGroupIdLoading} =
-    useSpansIndexed(
+    useSpans(
       {
         search: MutableSearch.fromQueryObject({'span.group': params.groupId}),
         limit: 1,
-        sorts: [{field: SpanIndexedField.CODE_FILEPATH, kind: 'desc'}],
+        sorts: [{field: SpanFields.CODE_FILEPATH, kind: 'desc'}],
         fields: [
-          SpanIndexedField.PROJECT_ID,
-          SpanIndexedField.TRANSACTION_ID, // TODO: remove this with `useInsightsEap`, it's only needed to get the full event when eap is off
-          SpanIndexedField.SPAN_DESCRIPTION,
-          SpanIndexedField.DB_SYSTEM,
-          SpanIndexedField.CODE_FILEPATH,
-          SpanIndexedField.CODE_LINENO,
-          SpanIndexedField.CODE_FUNCTION,
-          SpanIndexedField.SDK_NAME,
-          SpanIndexedField.SDK_VERSION,
-          SpanIndexedField.RELEASE,
-          SpanIndexedField.PLATFORM,
+          SpanFields.PROJECT_ID,
+          SpanFields.SPAN_DESCRIPTION,
+          SpanFields.DB_SYSTEM,
+          SpanFields.CODE_FILEPATH,
+          SpanFields.CODE_LINENO,
+          SpanFields.CODE_FUNCTION,
+          SpanFields.SDK_NAME,
+          SpanFields.SDK_VERSION,
+          SpanFields.RELEASE,
+          SpanFields.PLATFORM,
         ],
       },
       'api.starfish.span-description'
@@ -167,10 +167,15 @@ export function DatabaseSpanSummaryPage({params}: Props) {
         headerTitle={t('Query Summary')}
         breadcrumbs={[
           {
+            label: moduleTitle,
+            to: moduleURL,
+          },
+          {
             label: t('Query Summary'),
           },
         ]}
         module={ModuleName.DB}
+        hideDefaultTabs
       />
 
       <ModuleBodyUpsellHook moduleName={ModuleName.DB}>

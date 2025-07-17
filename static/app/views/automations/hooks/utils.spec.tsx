@@ -1,3 +1,5 @@
+import {DataConditionFixture} from 'sentry-fixture/automations';
+
 import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
 import {
   DataConditionGroupLogicType,
@@ -40,8 +42,8 @@ describe('findConflictingConditions', () => {
 
     const result = findConflictingConditions(triggers, actionFilters);
     expect(result).toEqual({
-      conflictingTriggers: [],
-      conflictingActionFilters: {},
+      conflictingConditionGroups: {},
+      conflictReason: null,
     });
   });
 
@@ -73,8 +75,12 @@ describe('findConflictingConditions', () => {
 
     const anyShortCircuitResult = findConflictingConditions(triggers, actionFilters);
     expect(anyShortCircuitResult).toEqual({
-      conflictingTriggers: ['1'],
-      conflictingActionFilters: {actionFilter1: ['2']},
+      conflictingConditionGroups: {
+        triggers: new Set(['1']),
+        actionFilter1: new Set(['2']),
+      },
+      conflictReason:
+        'The conditions highlighted in red are in conflict with "A new issue is created."',
     });
 
     const allResult = findConflictingConditions(
@@ -82,8 +88,12 @@ describe('findConflictingConditions', () => {
       actionFilters
     );
     expect(allResult).toEqual({
-      conflictingTriggers: ['1'],
-      conflictingActionFilters: {actionFilter1: ['2']},
+      conflictingConditionGroups: {
+        triggers: new Set(['1']),
+        actionFilter1: new Set(['2']),
+      },
+      conflictReason:
+        'The conditions highlighted in red are in conflict with "A new issue is created."',
     });
   });
 
@@ -121,8 +131,11 @@ describe('findConflictingConditions', () => {
 
     const result = findConflictingConditions(triggers, actionFilters);
     expect(result).toEqual({
-      conflictingTriggers: ['1', '2'],
-      conflictingActionFilters: {},
+      conflictingConditionGroups: {
+        triggers: new Set(['1', '2']),
+      },
+      conflictReason:
+        'The triggers highlighted in red are mutually exclusive and cannot be used together with "All" logic.',
     });
   });
 
@@ -183,8 +196,12 @@ describe('findConflictingConditions', () => {
       anyShortCircuitActionFilters
     );
     expect(anyShortCircuitResult).toEqual({
-      conflictingTriggers: ['1'],
-      conflictingActionFilters: {actionFilter1: ['2', '3', '4', '5', '6', '7']},
+      conflictingConditionGroups: {
+        triggers: new Set(['1']),
+        actionFilter1: new Set(['2', '3', '4', '5', '6', '7']),
+      },
+      conflictReason:
+        'The conditions highlighted in red are in conflict with "A new issue is created."',
     });
 
     const allActionFilters = [
@@ -196,8 +213,12 @@ describe('findConflictingConditions', () => {
     ];
     const allResult = findConflictingConditions(triggers, allActionFilters);
     expect(allResult).toEqual({
-      conflictingTriggers: ['1'],
-      conflictingActionFilters: {actionFilter1: ['2', '3', '4', '5', '6', '7']},
+      conflictingConditionGroups: {
+        triggers: new Set(['1']),
+        actionFilter1: new Set(['2', '3', '4', '5', '6', '7']),
+      },
+      conflictReason:
+        'The conditions highlighted in red are in conflict with "A new issue is created."',
     });
   });
 
@@ -238,8 +259,8 @@ describe('findConflictingConditions', () => {
     ];
     const result = findConflictingConditions(triggers, anyShortCircuitActionFilters);
     expect(result).toEqual({
-      conflictingTriggers: [],
-      conflictingActionFilters: {},
+      conflictingConditionGroups: {},
+      conflictReason: null,
     });
 
     // Test with ALL logic type
@@ -253,8 +274,12 @@ describe('findConflictingConditions', () => {
     ];
     const resultWithAllLogic = findConflictingConditions(triggers, allActionFilters);
     expect(resultWithAllLogic).toEqual({
-      conflictingTriggers: ['1'],
-      conflictingActionFilters: {actionFilter1: ['2']},
+      conflictingConditionGroups: {
+        triggers: new Set(['1']),
+        actionFilter1: new Set(['2']),
+      },
+      conflictReason:
+        'The conditions highlighted in red are in conflict with "A new issue is created."',
     });
   });
 
@@ -315,12 +340,36 @@ describe('findConflictingConditions', () => {
 
     const result = findConflictingConditions(triggers, actionFilters);
     expect(result).toEqual({
-      conflictingTriggers: ['1'],
-      conflictingActionFilters: {
-        actionFilter1: ['2'],
-        actionFilter2: ['3'],
-        actionFilter3: ['4'],
+      conflictingConditionGroups: {
+        triggers: new Set(['1']),
+        actionFilter1: new Set(['2']),
+        actionFilter2: new Set(['3']),
+        actionFilter3: new Set(['4']),
       },
+      conflictReason:
+        'The conditions highlighted in red are in conflict with \"A new issue is created.\"',
+    });
+  });
+
+  it('correctly handles duplicate trigger conditions', () => {
+    const triggers: DataConditionGroup = {
+      id: 'triggers',
+      logicType: DataConditionGroupLogicType.ALL,
+      conditions: [
+        DataConditionFixture({id: '1', type: DataConditionType.FIRST_SEEN_EVENT}),
+        DataConditionFixture({id: '2', type: DataConditionType.FIRST_SEEN_EVENT}),
+        DataConditionFixture({id: '3', type: DataConditionType.FIRST_SEEN_EVENT}),
+        DataConditionFixture({id: '4', type: DataConditionType.REAPPEARED_EVENT}),
+        DataConditionFixture({id: '5', type: DataConditionType.REAPPEARED_EVENT}),
+      ],
+    };
+
+    const result = findConflictingConditions(triggers, []);
+    expect(result).toEqual({
+      conflictingConditionGroups: {
+        triggers: new Set(['1', '2', '3', '4', '5']),
+      },
+      conflictReason: 'Delete duplicate triggers to continue.',
     });
   });
 });

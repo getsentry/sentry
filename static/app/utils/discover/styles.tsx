@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
-import Link from 'sentry/components/links/link';
 import ShortId, {StyledAutoSelectText} from 'sentry/components/shortId';
 import {IconUser} from 'sentry/icons/iconUser';
 import {space} from 'sentry/styles/space';
@@ -61,4 +61,11 @@ export const FlexContainer = styled('div')`
 export const UserIcon = styled(IconUser)`
   margin-left: ${space(1)};
   color: ${p => p.theme.gray400};
+`;
+
+export const IconContainer = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

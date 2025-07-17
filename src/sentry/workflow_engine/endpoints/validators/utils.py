@@ -4,8 +4,16 @@ from django.forms import ValidationError
 from jsonschema import ValidationError as JsonValidationError
 from jsonschema import validate
 
+from sentry.constants import ObjectStatus
 from sentry.issues import grouptype
 from sentry.models.organization import Organization
+from sentry.workflow_engine.models.detector import Detector
+
+
+def toggle_detector(detector: Detector, enabled: bool) -> None:
+    updated_detector_status = ObjectStatus.ACTIVE if enabled else ObjectStatus.DISABLED
+    detector.update(status=updated_detector_status)
+    detector.update(enabled=enabled)
 
 
 def validate_json_schema(value, schema):

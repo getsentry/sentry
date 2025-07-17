@@ -24,6 +24,8 @@ enum DiscardReason {
   INVALID_REPLAY_VIDEO = 'invalid_replay_video',
   PAYLOAD = 'payload',
   INVALID_COMPRESSION = 'invalid_compression',
+  INVALID_SIGNATURE = 'invalid_signature',
+  MISSING_SIGNATURE = 'missing_signature',
   TOO_LARGE = 'too_large', // Left for backwards compatibility
   // All the too_large we want to communicate to the end-user
   TOO_LARGE_EVENT = 'too_large:event',
@@ -115,6 +117,7 @@ const invalidReasonsGroup: Record<string, DiscardReason[]> = {
     DiscardReason.INVALID_REPLAY_RECORDING,
     DiscardReason.INVALID_REPLAY_VIDEO,
   ],
+  invalid_signature: [DiscardReason.INVALID_SIGNATURE, DiscardReason.MISSING_SIGNATURE],
   payload: [DiscardReason.PAYLOAD, DiscardReason.INVALID_COMPRESSION],
   too_large_other: [DiscardReason.TOO_LARGE],
   too_large_event: [DiscardReason.TOO_LARGE_EVENT],

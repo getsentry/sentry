@@ -19,10 +19,11 @@ def parameterizer() -> Parameterizer:
         ("hostname - subdomain", "www.example.net", "<hostname>"),
         ("ip", "0.0.0.0", "<ip>"),
         (
-            "traceparent",
+            "traceparent - header",
             "traceparent: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
             "traceparent: <traceparent>",
         ),
+        ("traceparent - aws", "1-67891233-abcdef012345678912345678", "<traceparent>"),
         ("uuid", "7c1811ed-e98f-4c9c-a9f9-58c757ff494f", "<uuid>"),
         (
             "uuid - multiple",
@@ -73,6 +74,11 @@ def parameterizer() -> Parameterizer:
         ("int", "23", "<int>"),
         ("int - separator", "0:17502", "<int>:<int>"),
         ("int - parens", '{"msg" => "(#239323)', '{"msg" => "(#<int>)'),
+        (
+            "int - traceparent word boundary",
+            "abcd1-67891233-abcdef012345678912345678",
+            "abcd1<int>-abcdef012345678912345678",
+        ),
         ("int - date - invalid day", "2006-01-40", "<int><int><int>"),
         ("int - date - invalid month", "2006-20-02", "<int><int><int>"),
         ("int - date - invalid year", "10000-01-02", "<int><int><int>"),

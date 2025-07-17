@@ -7,6 +7,8 @@ import type {
   SearchKeyItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {
+  createAskSeerConsentItem,
+  createAskSeerItem,
   createFilterValueItem,
   createItem,
   createRawSearchFilterValueItem,
@@ -135,8 +137,12 @@ export function useSortedFilterKeyItems({
     filterKeySections,
     disallowFreeText,
     replaceRawSearchKeys,
+    enableAISearch,
+    gaveSeerConsent,
   } = useSearchQueryBuilder();
-  const hasRawSearchReplacement = useOrganization().features.includes(
+  const organization = useOrganization();
+
+  const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
   );
 
@@ -241,6 +247,13 @@ export function useSortedFilterKeyItems({
         type: 'section',
       };
 
+      const askSeerItem = [];
+      if (enableAISearch) {
+        askSeerItem.push(
+          gaveSeerConsent ? createAskSeerItem() : createAskSeerConsentItem()
+        );
+      }
+
       const {shouldShowAtTop, suggestedFiltersSection} =
         getValueSuggestionsFromSearchResult(searched);
 
@@ -250,21 +263,24 @@ export function useSortedFilterKeyItems({
         ...(shouldIncludeRawSearch ? [rawSearchSection] : []),
         keyItemsSection,
         ...(!shouldShowAtTop && suggestedFiltersSection ? [suggestedFiltersSection] : []),
+        ...askSeerItem,
       ];
     }
 
     return keyItems;
   }, [
-    filterValue,
-    search,
-    includeSuggestions,
-    filterKeySections,
-    flatKeys,
-    getFieldDefinition,
-    filterKeys,
-    inputValue,
     disallowFreeText,
-    replaceRawSearchKeys,
+    enableAISearch,
+    filterKeySections,
+    filterKeys,
+    filterValue,
+    flatKeys,
+    gaveSeerConsent,
+    getFieldDefinition,
     hasRawSearchReplacement,
+    includeSuggestions,
+    inputValue,
+    replaceRawSearchKeys,
+    search,
   ]);
 }

@@ -546,4 +546,87 @@ describe('WidgetBuilderSlideout', () => {
     expect(await screen.findByText('Widget Library')).toBeInTheDocument();
     expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();
   });
+
+  it('should show deprecation alert when flag enabled', async () => {
+    const organizationWithFeature = OrganizationFixture({
+      features: ['discover-saved-queries-deprecation'],
+    });
+    jest.mocked(useParams).mockReturnValue({widgetIndex: '1'});
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid={false}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization: organizationWithFeature,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+            },
+          }),
+        }),
+        deprecatedRouterMocks: true,
+      }
+    );
+    renderGlobalModal();
+
+    expect(
+      await screen.findByText(
+        'Transaction widgets are being deprecated. Please use the spans dataset moving forward.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('should not show deprecation alert when flag enabled', async () => {
+    jest.mocked(useParams).mockReturnValue({widgetIndex: '1'});
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid={false}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+            },
+          }),
+        }),
+        deprecatedRouterMocks: true,
+      }
+    );
+    renderGlobalModal();
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText(
+          'Transaction widgets are being deprecated. Please use the spans dataset moving forward.'
+        )
+      ).not.toBeInTheDocument();
+    });
+  });
 });

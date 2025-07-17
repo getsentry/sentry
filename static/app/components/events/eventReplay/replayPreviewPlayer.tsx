@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
+import {TooltipContext} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayCurrentScreen from 'sentry/components/replays/replayCurrentScreen';
@@ -13,15 +14,14 @@ import {ReplayFullscreenButton} from 'sentry/components/replays/replayFullscreen
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import {ReplaySidebarToggleButton} from 'sentry/components/replays/replaySidebarToggleButton';
+import {ReplaySessionColumn} from 'sentry/components/replays/table/replayTableColumns';
 import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
 import {IconNext, IconPrevious} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import EventView from 'sentry/utils/discover/eventView';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -31,7 +31,6 @@ import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
-import {ReplayCell} from 'sentry/views/replays/replayTable/tableCell';
 import type {ReplayListRecord, ReplayRecord} from 'sentry/views/replays/types';
 
 export default function ReplayPreviewPlayer({
@@ -56,12 +55,10 @@ export default function ReplayPreviewPlayer({
   showNextAndPrevious?: boolean;
 }) {
   const routes = useRoutes();
-  const location = useLocation();
   const organization = useOrganization();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const {replay, currentTime, isFetching, isFinished, isPlaying, isVideoReplay} =
     useReplayContext();
-  const eventView = EventView.fromLocation(location);
 
   const fullscreenRef = useRef<HTMLDivElement | null>(null);
   const {toggle: toggleFullscreen} = useFullscreen({
@@ -97,12 +94,11 @@ export default function ReplayPreviewPlayer({
         </StyledAlert>
       )}
       <HeaderWrapper>
-        <StyledReplayCell
-          eventView={eventView}
-          key="session"
-          referrer="issue-details-replay-header"
+        <ReplaySessionColumn.Component
           replay={replayRecord as ReplayListRecord}
           rowIndex={0}
+          columnIndex={0}
+          showDropdownFilters={false}
         />
         <LinkButton
           size="sm"
@@ -124,63 +120,65 @@ export default function ReplayPreviewPlayer({
         </LinkButton>
       </HeaderWrapper>
       <PreviewPlayerContainer ref={fullscreenRef} isSidebarOpen={isSidebarOpen}>
-        <PlayerBreadcrumbContainer>
-          <PlayerContextContainer>
-            {isFullscreen ? (
-              <ContextContainer>
-                {isVideoReplay ? <ReplayCurrentScreen /> : <ReplayCurrentUrl />}
-                <BrowserOSIcons />
-                <ReplaySidebarToggleButton
-                  isOpen={isSidebarOpen}
-                  setIsOpen={setIsSidebarOpen}
+        <TooltipContext value={{container: fullscreenRef.current}}>
+          <PlayerBreadcrumbContainer>
+            <PlayerContextContainer>
+              {isFullscreen ? (
+                <ContextContainer>
+                  {isVideoReplay ? <ReplayCurrentScreen /> : <ReplayCurrentUrl />}
+                  <BrowserOSIcons />
+                  <ReplaySidebarToggleButton
+                    isOpen={isSidebarOpen}
+                    setIsOpen={setIsSidebarOpen}
+                  />
+                </ContextContainer>
+              ) : null}
+              <StaticPanel>
+                <ReplayPlayer overlayContent={overlayContent} isPreview />
+              </StaticPanel>
+            </PlayerContextContainer>
+            {isFullscreen && isSidebarOpen ? <Breadcrumbs /> : null}
+          </PlayerBreadcrumbContainer>
+          <ErrorBoundary mini>
+            <ButtonGrid>
+              {showNextAndPrevious && (
+                <Button
+                  size="sm"
+                  title={t('Previous Clip')}
+                  icon={<IconPrevious />}
+                  onClick={() => handleBackClick?.()}
+                  aria-label={t('Previous Clip')}
+                  disabled={!handleBackClick}
+                  analyticsEventName="Replay Preview Player: Clicked Previous Clip"
+                  analyticsEventKey="replay_preview_player.clicked_previous_clip"
                 />
-              </ContextContainer>
-            ) : null}
-            <StaticPanel>
-              <ReplayPlayer overlayContent={overlayContent} isPreview />
-            </StaticPanel>
-          </PlayerContextContainer>
-          {isFullscreen && isSidebarOpen ? <Breadcrumbs /> : null}
-        </PlayerBreadcrumbContainer>
-        <ErrorBoundary mini>
-          <ButtonGrid>
-            {showNextAndPrevious && (
-              <Button
-                size="sm"
-                title={t('Previous Clip')}
-                icon={<IconPrevious />}
-                onClick={() => handleBackClick?.()}
-                aria-label={t('Previous Clip')}
-                disabled={!handleBackClick}
-                analyticsEventName="Replay Preview Player: Clicked Previous Clip"
-                analyticsEventKey="replay_preview_player.clicked_previous_clip"
+              )}
+              <ReplayPlayPauseButton
+                analyticsEventName="Replay Preview Player: Clicked Play/Plause Clip"
+                analyticsEventKey="replay_preview_player.clicked_play_pause_clip"
+                priority={
+                  playPausePriority ?? (isFinished || isPlaying ? 'primary' : 'default')
+                }
               />
-            )}
-            <ReplayPlayPauseButton
-              analyticsEventName="Replay Preview Player: Clicked Play/Plause Clip"
-              analyticsEventKey="replay_preview_player.clicked_play_pause_clip"
-              priority={
-                playPausePriority ?? (isFinished || isPlaying ? 'primary' : 'default')
-              }
-            />
-            {showNextAndPrevious && (
-              <Button
-                size="sm"
-                title={t('Next Clip')}
-                icon={<IconNext />}
-                onClick={() => handleForwardClick?.()}
-                aria-label={t('Next Clip')}
-                disabled={!handleForwardClick}
-                analyticsEventName="Replay Preview Player: Clicked Next Clip"
-                analyticsEventKey="replay_preview_player.clicked_next_clip"
-              />
-            )}
-            <Container>
-              <TimeAndScrubberGrid />
-            </Container>
-            <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />
-          </ButtonGrid>
-        </ErrorBoundary>
+              {showNextAndPrevious && (
+                <Button
+                  size="sm"
+                  title={t('Next Clip')}
+                  icon={<IconNext />}
+                  onClick={() => handleForwardClick?.()}
+                  aria-label={t('Next Clip')}
+                  disabled={!handleForwardClick}
+                  analyticsEventName="Replay Preview Player: Clicked Next Clip"
+                  analyticsEventKey="replay_preview_player.clicked_next_clip"
+                />
+              )}
+              <Container>
+                <TimeAndScrubberGrid />
+              </Container>
+              <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />
+            </ButtonGrid>
+          </ErrorBoundary>
+        </TooltipContext>
       </PreviewPlayerContainer>
     </PlayerPanel>
   );
@@ -246,10 +244,6 @@ const ContextContainer = styled('div')`
   grid-template-columns: 1fr max-content max-content;
   align-items: center;
   gap: ${space(1)};
-`;
-
-const StyledReplayCell = styled(ReplayCell)`
-  padding: 0 0 ${space(1)};
 `;
 
 const HeaderWrapper = styled('div')`

@@ -17,6 +17,7 @@ class TestNewHighPriorityIssueCondition(ConditionTestCase):
         super().setUp()
         self.event_data = WorkflowEventData(
             event=self.group_event,
+            group=self.group_event.group,
             group_state=GroupState(
                 {
                     "id": 1,

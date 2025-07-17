@@ -1,9 +1,15 @@
 import styled from '@emotion/styled';
 
 import {getEscapedKey} from 'sentry/components/core/compactSelect/utils';
+import {
+  ASK_SEER_CONSENT_ITEM_KEY,
+  ASK_SEER_ITEM_KEY,
+} from 'sentry/components/searchQueryBuilder/askSeer';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import type {
+  AskSeerConsentItem,
+  AskSeerItem,
   FilterValueItem,
   KeyItem,
   KeySectionItem,
@@ -194,6 +200,28 @@ export function createRecentQueryItem({
         fieldDefinitionGetter={getFieldDefinition}
       />
     ),
+    hideCheck: true,
+  };
+}
+
+export function createAskSeerItem(): AskSeerItem {
+  return {
+    key: getEscapedKey(ASK_SEER_ITEM_KEY),
+    value: ASK_SEER_ITEM_KEY,
+    textValue: 'Ask Seer',
+    type: 'ask-seer' as const,
+    label: t('Ask Seer'),
+    hideCheck: true,
+  };
+}
+
+export function createAskSeerConsentItem(): AskSeerConsentItem {
+  return {
+    key: getEscapedKey(ASK_SEER_CONSENT_ITEM_KEY),
+    value: ASK_SEER_CONSENT_ITEM_KEY,
+    textValue: 'Enable Gen AI',
+    type: 'ask-seer-consent' as const,
+    label: t('Enable Gen AI'),
     hideCheck: true,
   };
 }

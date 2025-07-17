@@ -42,6 +42,7 @@ ConfidenceData = list[dict[str, Confidence]]
 class SupportedTraceItemType(str, Enum):
     LOGS = "logs"
     SPANS = "spans"
+    UPTIME_RESULTS = "uptime_results"
 
 
 class TraceItemAttribute(TypedDict):

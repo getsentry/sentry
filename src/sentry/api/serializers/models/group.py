@@ -14,6 +14,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import Min, prefetch_related_objects
 
 from sentry import features, tagstore
+from sentry.api.helpers.error_upsampling import are_all_projects_error_upsampled
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
@@ -106,10 +107,10 @@ class GroupProjectResponse(TypedDict):
 
 class BaseGroupResponseOptional(TypedDict, total=False):
     isUnhandled: bool
-    count: int
+    count: str
     userCount: int
-    firstSeen: datetime
-    lastSeen: datetime
+    firstSeen: datetime | None
+    lastSeen: datetime | None
 
 
 class BaseGroupSerializerResponse(BaseGroupResponseOptional):
@@ -149,6 +150,13 @@ class SeenStats(TypedDict):
     first_seen: datetime | None
     last_seen: datetime | None
     user_count: int
+
+
+class SeenStatsResponse(TypedDict):
+    count: str
+    userCount: int
+    firstSeen: datetime | None
+    lastSeen: datetime | None
 
 
 def is_seen_stats(o: object) -> TypeGuard[SeenStats]:
@@ -749,7 +757,7 @@ class GroupSerializerBase(Serializer, ABC):
             return None
 
     @staticmethod
-    def _convert_seen_stats(attrs: SeenStats):
+    def _convert_seen_stats(attrs: SeenStats) -> SeenStatsResponse:
         return {
             "count": str(attrs["times_seen"]),
             "userCount": attrs["user_count"],
@@ -1066,6 +1074,11 @@ class GroupSerializerSnuba(GroupSerializerBase):
             ["max", "timestamp", "last_seen"],
             ["uniq", "tags[sentry:user]", "count"],
         ]
+        # Check if all projects are allowlisted for error upsampling
+        is_upsampled = are_all_projects_error_upsampled(project_ids)
+        if is_upsampled:
+            aggregations[0] = ["upsampled_count", "", "times_seen"]
+
         filters = {"project_id": project_ids, "group_id": group_ids}
         if environment_ids:
             filters["environment"] = environment_ids

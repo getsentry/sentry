@@ -10,7 +10,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscriptionDataSourceHandler, SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
-from sentry.testutils.factories import default_detector_config_data
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
 from sentry.workflow_engine.endpoints.serializers import (
@@ -45,7 +44,10 @@ class TestDetectorSerializer(TestCase):
             "dataSources": None,
             "conditionGroup": None,
             "workflowIds": [],
-            "config": default_detector_config_data[MetricIssue.slug],
+            "config": {
+                "thresholdPeriod": 1,
+                "detectionType": "static",
+            },
             "owner": None,
             "enabled": detector.enabled,
         }
@@ -126,6 +128,7 @@ class TestDetectorSerializer(TestCase):
                             "id": str(snuba_query.id),
                             "query": "hello",
                             "timeWindow": 60,
+                            "eventTypes": ["error"],
                         },
                         "status": 1,
                         "subscription": None,
@@ -150,12 +153,15 @@ class TestDetectorSerializer(TestCase):
                         "type": "email",
                         "data": {},
                         "integrationId": None,
-                        "config": {"target_type": 1, "target_identifier": "123"},
+                        "config": {"targetType": 1, "targetIdentifier": "123"},
                     }
                 ],
             },
             "workflowIds": [str(workflow.id)],
-            "config": default_detector_config_data[MetricIssue.slug],
+            "config": {
+                "thresholdPeriod": 1,
+                "detectionType": "static",
+            },
             "owner": self.user.get_actor_identifier(),
             "enabled": detector.enabled,
         }
@@ -214,6 +220,7 @@ class TestDataSourceSerializer(TestCase):
                     "id": str(snuba_query.id),
                     "query": "hello",
                     "timeWindow": 60,
+                    "eventTypes": ["error"],
                 },
                 "status": 1,
                 "subscription": None,
@@ -281,7 +288,7 @@ class TestDataConditionGroupSerializer(TestCase):
                     "type": "email",
                     "data": {},
                     "integrationId": None,
-                    "config": {"target_type": 1, "target_identifier": "123"},
+                    "config": {"targetType": 1, "targetIdentifier": "123"},
                 }
             ],
         }
@@ -333,11 +340,10 @@ class TestActionSerializer(TestCase):
             "type": "opsgenie",
             "data": {"priority": "P1"},
             "integrationId": str(self.integration.id),
-            "config": {"target_type": 0, "target_identifier": "123"},
+            "config": {"targetType": 0, "targetIdentifier": "123"},
         }
 
     def test_serialize_with_integration_and_config(self):
-
         action2 = self.create_action(
             type=Action.Type.SLACK,
             data={"tags": "bar"},
@@ -357,9 +363,9 @@ class TestActionSerializer(TestCase):
             "data": {"tags": "bar"},
             "integrationId": str(self.integration.id),
             "config": {
-                "target_type": 0,
-                "target_display": "freddy frog",
-                "target_identifier": "123-id",
+                "targetType": 0,
+                "targetDisplay": "freddy frog",
+                "targetIdentifier": "123-id",
             },
         }
 
@@ -490,7 +496,7 @@ class TestWorkflowSerializer(TestCase):
                             "type": "email",
                             "data": {},
                             "integrationId": None,
-                            "config": {"target_type": 1, "target_identifier": "123"},
+                            "config": {"targetType": 1, "targetIdentifier": "123"},
                         }
                     ],
                 },

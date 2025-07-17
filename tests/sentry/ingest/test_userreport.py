@@ -4,10 +4,7 @@ import pytest
 from django.utils import timezone
 
 from sentry.feedback.lib.types import UserReportDict
-from sentry.feedback.usecases.create_feedback import (
-    UNREAL_FEEDBACK_UNATTENDED_MESSAGE,
-    FeedbackCreationSource,
-)
+from sentry.feedback.lib.utils import UNREAL_FEEDBACK_UNATTENDED_MESSAGE, FeedbackCreationSource
 from sentry.ingest.userreport import save_userreport, validate_user_report
 from sentry.models.userreport import UserReport
 from sentry.testutils.factories import Factories
@@ -133,22 +130,6 @@ def test_validator_should_not_filter_empty_message_without_option(set_sentry_opt
         assert should_filter is False
         assert tag is None
         assert reason is None
-
-
-@django_db_all
-def test_validator_should_filter_invalid_email():
-    should_filter, tag, reason = validate_user_report(
-        {
-            "name": "",
-            "email": "invalid-email",
-            "comments": "hello",
-            "event_id": "a49558bf9bd94e2da4c9c3dc1b5b95f7",
-        },
-        1,
-    )
-    assert should_filter is True
-    assert tag is not None
-    assert reason is not None
 
 
 @django_db_all

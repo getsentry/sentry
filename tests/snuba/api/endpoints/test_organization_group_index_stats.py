@@ -237,3 +237,31 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert response_data[0]["count"] == "2"
         assert response_data[0]["filtered"]["count"] == "1"
         assert response_data[0]["lifetime"]["count"] == "1"
+
+    def test_error_upsampling_with_allowlisted_project(self):
+        """Test that count is upsampled for allowlisted projects in group index stats."""
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            project = self.project
+            event_data = {
+                "timestamp": before_now(seconds=30).isoformat(),
+                "message": "Error event for upsampling",
+                "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+            }
+            event = self.store_event(
+                data=event_data,
+                project_id=project.id,
+            )
+
+            group = event.group
+            self.login_as(user=self.user)
+
+            with self.feature("organizations:error-upsampling"):
+                response = self.get_response(query="is:unresolved", groups=[group.id])
+                assert response.status_code == 200
+                assert len(response.data) == 1
+                # Expect the count to be upsampled (1 / 0.1 = 10) - count is a string
+                assert response.data[0]["count"] == "10"
+                # Also check that lifetime stats are upsampled
+                assert response.data[0]["lifetime"]["count"] == "10"
+                # Also check that stats are upsampled, latest time bucket should contain upsampled event
+                assert response.data[0]["stats"]["24h"][-1][1] == 10

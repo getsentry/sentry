@@ -51,13 +51,13 @@ export function JetpackComposePiiNotice() {
 export function useNeedsJetpackComposePiiNotice({
   replays,
 }: {
-  replays: undefined | ReplayListRecord[];
+  replays: ReplayListRecord[];
 }) {
-  const needsJetpackComposePiiWarning = replays?.find(replay => {
+  const needsJetpackComposePiiWarning = replays.find(replay => {
     return (
-      replay?.sdk.name === 'sentry.java.android' &&
+      replay.sdk.name === 'sentry.java.android' &&
       semverCompare(
-        replay?.sdk.version ?? '',
+        replay.sdk.version ?? '',
         MIN_JETPACK_COMPOSE_VIEW_HIERARCHY_PII_FIX.minVersion
       ) === -1
     );

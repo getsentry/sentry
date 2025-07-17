@@ -29,8 +29,8 @@ import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import useUrlParams from 'sentry/utils/url/useUrlParams';
 import useOrganization from 'sentry/utils/useOrganization';
-import useUrlParams from 'sentry/utils/useUrlParams';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 export function useFeatureFlagOnboardingDrawer() {

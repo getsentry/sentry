@@ -19,7 +19,7 @@ from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
-from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import build_query_strings
 from sentry.users.models.user import User
@@ -252,6 +252,12 @@ def build_metric_alert_chart(
     else:
         if query_type == SnubaQuery.Type.PERFORMANCE and dataset == Dataset.PerformanceMetrics:
             query_params["dataset"] = "metrics"
+        elif (
+            query_type == SnubaQuery.Type.PERFORMANCE
+            and dataset == Dataset.EventsAnalyticsPlatform
+            and snuba_query.event_types == [SnubaQueryEventType.EventType.TRACE_ITEM_LOG]
+        ):
+            query_params["dataset"] = "ourlogs"
         elif (
             query_type == SnubaQuery.Type.PERFORMANCE and dataset == Dataset.EventsAnalyticsPlatform
         ):

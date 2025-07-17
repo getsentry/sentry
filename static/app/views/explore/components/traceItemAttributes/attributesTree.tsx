@@ -1,11 +1,10 @@
 import {Fragment, useMemo, useRef, useState} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -15,11 +14,10 @@ import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import {
-  getAttributeItem,
-  prettifyAttributeName,
-} from 'sentry/views/explore/components/traceItemAttributes/utils';
+import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+
+import {AttributesTreeValue} from './attributesTreeValue';
 
 const MAX_TREE_DEPTH = 4;
 const INVALID_BRANCH_REGEX = /\.{2,}/;
@@ -59,7 +57,10 @@ export type AttributesFieldRendererProps<RendererExtra extends RenderFunctionBag
   meta?: EventsMetaType;
 };
 
-interface AttributesFieldRender<RendererExtra extends RenderFunctionBaggage> {
+export interface AttributesFieldRender<RendererExtra extends RenderFunctionBaggage> {
+  /**
+   * Extra data that gets passed to the renderer function for every attribute in the tree. If any of your field renderers rely on data that isn't related to the attributes (e.g., the current theme or location) or data that lives in another attribute (e.g., using the log level attribute to render the log text attribute) you should pass that data as here.
+   */
   rendererExtra: RendererExtra;
   renderers?: Record<
     string,
@@ -69,13 +70,15 @@ interface AttributesFieldRender<RendererExtra extends RenderFunctionBaggage> {
 
 interface AttributesTreeProps<RendererExtra extends RenderFunctionBaggage>
   extends AttributesFieldRender<RendererExtra> {
+  /**
+   * The attributes to show in the attribute tree. If you need to hide any attributes, filter them out before passing them here. If you need extra attribute information for rendering but you don't want to show those attributes, pass that information in the `rendererExtra` prop.
+   */
   attributes: TraceItemResponseAttribute[];
   // If provided, locks the number of columns to this number. If not provided, the number of columns will be dynamic based on width.
   columnCount?: number;
   config?: AttributesTreeRowConfig;
   getAdjustedAttributeKey?: (attribute: TraceItemResponseAttribute) => string;
   getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
-  hiddenAttributes?: string[];
 }
 
 interface AttributesTreeColumnsProps<RendererExtra extends RenderFunctionBaggage>
@@ -83,7 +86,7 @@ interface AttributesTreeColumnsProps<RendererExtra extends RenderFunctionBaggage
   columnCount: number;
 }
 
-interface AttributesTreeRowConfig {
+export interface AttributesTreeRowConfig {
   // Omits the dropdown of actions applicable to this attribute
   disableActions?: boolean;
   // Omit error styling from being displayed, even if context is invalid
@@ -212,7 +215,6 @@ function getAttributesTreeRows<RendererExtra extends RenderFunctionBaggage>({
 function AttributesTreeColumns<RendererExtra extends RenderFunctionBaggage>({
   attributes,
   columnCount,
-  hiddenAttributes = [],
   renderers = {},
   rendererExtra: renderExtra,
   config = {},
@@ -226,7 +228,7 @@ function AttributesTreeColumns<RendererExtra extends RenderFunctionBaggage>({
 
     // Convert attributes record to the format expected by addToAttributeTree
     const visibleAttributes = attributes
-      .map(key => getAttribute(key, hiddenAttributes, getAdjustedAttributeKey))
+      .map(key => getAttribute(key, getAdjustedAttributeKey))
       .filter(defined);
 
     // Create the AttributeTree data structure using all the given attributes
@@ -289,7 +291,6 @@ function AttributesTreeColumns<RendererExtra extends RenderFunctionBaggage>({
   }, [
     attributes,
     columnCount,
-    hiddenAttributes,
     renderers,
     renderExtra,
     config,
@@ -441,67 +442,13 @@ function AttributesTreeRowDropdown({
   );
 }
 
-function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>({
-  config,
-  content,
-  renderers = {},
-  rendererExtra: renderExtra,
-}: {
-  content: AttributesTreeContent;
-  config?: AttributesTreeRowConfig;
-} & AttributesFieldRender<RendererExtra> & {theme: Theme}) {
-  const {originalAttribute} = content;
-  if (!originalAttribute) {
-    return null;
-  }
-
-  // Check if we have a custom renderer for this attribute
-  const attributeKey = originalAttribute.original_attribute_key;
-  const renderer = renderers[attributeKey];
-
-  const defaultValue = <span>{String(content.value)}</span>;
-
-  if (config?.disableRichValue) {
-    return String(content.value);
-  }
-
-  if (renderer) {
-    return renderer({
-      item: getAttributeItem(attributeKey, content.value),
-      basicRendered: defaultValue,
-      extra: renderExtra,
-    });
-  }
-
-  return isUrl(String(content.value)) ? (
-    <AttributeLinkText>
-      <ExternalLink
-        onClick={e => {
-          e.preventDefault();
-          openNavigateToExternalLinkModal({linkText: String(content.value)});
-        }}
-      >
-        {defaultValue}
-      </ExternalLink>
-    </AttributeLinkText>
-  ) : (
-    defaultValue
-  );
-}
-
 /**
- * Filters out hidden attributes, replaces sentry. prefixed keys, and simplifies the value
+ * Replaces sentry. prefixed keys, and simplifies the value
  */
 function getAttribute(
   attribute: TraceItemResponseAttribute,
-  hiddenAttributes: string[],
   getAdjustedAttributeKey?: (attribute: TraceItemResponseAttribute) => string
 ): Attribute | undefined {
-  // Filter out hidden attributes
-  if (hiddenAttributes.includes(attribute.name)) {
-    return undefined;
-  }
-
   const attributeValue =
     attribute.type === 'bool' ? String(attribute.value) : attribute.value;
 
@@ -641,19 +588,5 @@ const TreeValueDropdown = styled(DropdownMenu)`
     padding: 0 ${space(0.75)};
     border-radius: ${space(0.5)};
     z-index: 0;
-  }
-`;
-
-const AttributeLinkText = styled('span')`
-  color: ${p => p.theme.linkColor};
-  text-decoration: ${p => p.theme.linkUnderline} underline dotted;
-  margin: 0;
-  &:hover,
-  &:focus {
-    text-decoration: none;
-  }
-
-  div {
-    white-space: normal;
   }
 `;

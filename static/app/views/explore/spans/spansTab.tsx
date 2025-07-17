@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -31,9 +31,12 @@ import {
   type AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
 } from 'sentry/utils/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -61,6 +64,7 @@ import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTa
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
 import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
+import {useTraceExploreAiQuerySetup} from 'sentry/views/explore/hooks/useTraceExploreAiQuerySetup';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {ExploreTables} from 'sentry/views/explore/tables';
@@ -100,6 +104,27 @@ export function SpansTabOnboarding({
   );
 }
 
+function useControlSectionExpanded() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const controlSectionExpanded = decodeScalar(location.query.toolbar);
+  const setControlSectionExpanded = useCallback(
+    (expanded: boolean) => {
+      const newControlSectionExpanded = expanded ? undefined : 'collapsed';
+      navigate({
+        ...location,
+        query: {
+          ...location.query,
+          toolbar: newControlSectionExpanded,
+        },
+      });
+    },
+    [location, navigate]
+  );
+
+  return [controlSectionExpanded !== 'collapsed', setControlSectionExpanded] as const;
+}
+
 interface SpanTabProps {
   datePageFilterProps: PickableDays;
 }
@@ -108,7 +133,7 @@ export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
   useVisitExplore();
 
   const organization = useOrganization();
-  const [controlSectionExpanded, setControlSectionExpanded] = useState(true);
+  const [controlSectionExpanded, setControlSectionExpanded] = useControlSectionExpanded();
 
   return (
     <Fragment>
@@ -164,6 +189,12 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
   const query = useExploreQuery();
   const setExplorePageParams = useSetExplorePageParams();
 
+  const organization = useOrganization();
+  const areAiFeaturesAllowed =
+    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
+
+  useTraceExploreAiQuerySetup({enableAISearch: areAiFeaturesAllowed});
+
   const {tags: numberTags, isLoading: numberTagsLoading} = useTraceItemTags('number');
   const {tags: stringTags, isLoading: stringTagsLoading} = useTraceItemTags('string');
 
@@ -215,7 +246,10 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
 
   return (
     <Layout.Main fullWidth>
-      <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
+      <SearchQueryBuilderProvider
+        enableAISearch={areAiFeaturesAllowed}
+        {...eapSpanSearchQueryProviderProps}
+      >
         <TourElement<ExploreSpansTour>
           tourContext={ExploreSpansTourContext}
           id={ExploreSpansTour.SEARCH_BAR}

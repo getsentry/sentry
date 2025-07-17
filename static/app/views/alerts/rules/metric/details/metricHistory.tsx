@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import CollapsePanel from 'sentry/components/collapsePanel';
+import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
-import Link from 'sentry/components/links/link';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {StatusIndicator} from 'sentry/components/statusIndicator';
 import {t, tn} from 'sentry/locale';

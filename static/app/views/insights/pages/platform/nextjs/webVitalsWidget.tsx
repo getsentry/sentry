@@ -11,7 +11,7 @@ import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webV
 import type {ProjectData} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
@@ -63,7 +63,7 @@ type ProjectScoreQuery = {
 function usePerformanceScoreData({query}: {query?: string}): ProjectScoreQuery {
   const {interval: _, ...pageFilterChartParams} = usePageFilterChartParams();
 
-  const currentRequest = useEAPSpans(
+  const currentRequest = useSpans(
     {
       search: query,
       fields: FIELDS,
@@ -85,7 +85,7 @@ function usePerformanceScoreData({query}: {query?: string}): ProjectScoreQuery {
     ]
   );
 
-  const previousRequest = useEAPSpans(
+  const previousRequest = useSpans(
     {
       pageFilters: {
         projects: pageFilterChartParams.project,
@@ -202,7 +202,7 @@ function WebVitalsWidgetVisualization({
         differenceToPreviousPeriod={differenceToPreviousPeriod}
         text={text}
         width={260}
-        height={220}
+        height={240}
         y={46}
         x={60}
         size={130}

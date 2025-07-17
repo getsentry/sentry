@@ -165,9 +165,6 @@ describe('Subscription > PendingChanges', function () {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am1_team_auf',
-      reservedErrors: 100_000,
-      reservedTransactions: 100_000,
-      reservedAttachments: 25,
       categories: {
         errors: MetricHistoryFixture({reserved: 100_000}),
         transactions: MetricHistoryFixture({reserved: 100_000}),
@@ -283,6 +280,10 @@ describe('Subscription > PendingChanges', function () {
         onDemandBudgets: {
           enabled: true,
           budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+          errorsBudget: 1000,
+          transactionsBudget: 2000,
+          attachmentsBudget: 3000,
+          replaysBudget: 0,
           budgets: {errors: 1000, transactions: 2000, attachments: 3000},
         },
         effectiveDate: '2021-02-01',
@@ -391,10 +392,12 @@ describe('Subscription > PendingChanges', function () {
       onDemandBudgets: {
         enabled: true,
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+        errorsBudget: 1000,
+        replaysBudget: 0,
+        transactionsBudget: 0,
+        attachmentsBudget: 0,
         budgets: {
           errors: 1000,
-          transactions: 0,
-          attachments: 0,
         },
         attachmentSpendUsed: 0,
         errorSpendUsed: 0,

@@ -1,0 +1,149 @@
+---
+title: Button
+description: Buttons are clickable elements that trigger an action that does not change the current URL.
+source: 'sentry/components/core/button'
+resources:
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
+  js: https://github.com/getsentry/sentry/blob/481d8d642e9cf549eb46fbaac1d0527395e8b490/static/app/components/core/button/index.tsx#L22
+  a11y:
+    WCAG 1.4.3: https://www.w3.org/TR/WCAG22/#contrast-minimum
+    WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
+    WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
+    WCAG 2.5.8: https://www.w3.org/TR/WCAG22/#target-size-minimum
+    WAI-ARIA Button Practices: https://www.w3.org/WAI/ARIA/apg/patterns/button/
+---
+
+import {Button} from 'sentry/components/core/button';
+import {
+  IconAdd,
+  IconArrow,
+  IconChevron,
+  IconClock,
+  IconClose,
+  IconDelete,
+  IconDocs,
+  IconEdit,
+  IconEllipsis,
+  IconLightning,
+  IconLink,
+  IconOpen,
+  IconStar,
+  IconZoom,
+} from 'sentry/icons';
+import * as Storybook from 'sentry/stories';
+
+import APIReference from '!!type-loader!sentry/components/core/button/index';
+
+export const types = {Button: APIReference.Button};
+
+To create a basic button, wrap text in a `<Button>` and pass an `onClick` callback.
+
+```jsx
+<Button onClick={() => alert('Hello world')}>Click here</Button>
+```
+
+### Priorities
+
+Buttons come in a few different styles: `muted` (default), `primary`, `warning`, `danger`, `transparent` and `link`.
+
+<Storybook.Demo>
+  <Button priority="muted">Muted (default)</Button>
+  <Button priority="primary">Primary</Button>
+  <Button priority="warning">Warning</Button>
+  <Button priority="danger">Danger</Button>
+  <Button priority="transparent">Transparent</Button>
+  <div style={{alignSelf: 'center'}}>
+    <Button priority="link">Link</Button>
+  </div>
+</Storybook.Demo>
+```jsx
+<Button priority="muted">Muted (default)</Button>
+<Button priority="primary">Primary</Button>
+<Button priority="warning">Warning</Button>
+<Button priority="danger">Danger</Button>
+<Button priority="transparent">Transparent</Button>
+<Button priority="link">Link</Button>
+```
+
+### Sizes
+
+Buttons are available in different sizes: `md` (default), `sm`, `xs`, and `zero`.
+
+<Storybook.Demo>
+  <Button size="md">Medium (default)</Button>
+  <Button size="sm">Small</Button>
+  <Button size="xs">Extra small</Button>
+  <Button size="zero">Zero</Button>
+</Storybook.Demo>
+```jsx
+<Button size="md">Medium (default)</Button>
+<Button size="sm">Small</Button>
+<Button size="xs">Extra small</Button>
+<Button size="zero">Zero</Button>
+```
+
+### Icons
+
+Buttons support an optional leading icon.
+
+<Storybook.Demo>
+  <Button icon={<IconAdd />} priority="primary">
+    Add
+  </Button>
+</Storybook.Demo>
+```jsx
+<Button icon={<IconAdd />} priority="primary">
+  Add
+</Button>
+```
+
+We have standardized call to action copy and specific icon pairings. When creating an icon button, please use a pairing from the following list.
+
+| Icon                                       | Name        | Copy                                   | Meaning                                                   |
+| ------------------------------------------ | ----------- | -------------------------------------- | --------------------------------------------------------- |
+| <IconAdd />                                | `add`       | Create                                 | Spawn something from nothing                              |
+| <IconAdd />                                | `add`       | Add                                    | Append another thing in the group                         |
+| <IconDelete />                             | `trash`     | Delete                                 | Destroy thing in the group                                |
+|                                            |             | Manage                                 | Broader meaning, includes bulk order, add, remove, etc.   |
+| <IconEdit />                               | `edit`      | Edit                                   | Modifies fundamental attribute of the thing               |
+| <IconOpen />                               | `open`      | Open in `Product`                      | Leaves existing view and goes to another product          |
+| <IconClose />                              | `close`     | Close                                  | Potentially reopen this again later                       |
+| <IconDocs />                               | `docs`      | Read Docs                              | Similar to “Open In” but always goes to Sentry Docs       |
+| <IconEllipsis />                           | `ellipses`  | More `Samples`                         | See more of the same thing                                |
+|                                            | Show More   | Accordions down to reveal more content |
+| <IconChevron direction="up" />             | `chevron`   | Expand                                 | Content is completely hidden except for title             |
+| <IconChevron direction='down' />           | `chevron`   | Collapse                               | Content is completely shown and need to hide except title |
+| <IconChevron isDouble direction="left" />  | `chevron`   | Expand                                 | Content is completely hidden (depends on direction)       |
+| <IconChevron isDouble direction="right" /> | `chevron`   | Collapse                               | Content is completely shown (depends on direction)        |
+|                                            |             | Dismiss                                | Get rid of forever                                        |
+| <IconClock />                              | `clock`     | Remind Me Later                        | Get rid of temporarily                                    |
+| <IconArrow />                              | `arrow`     | Back                                   | Go to previous screen                                     |
+| <IconLightning />                          | `lightning` | Upgrade                                | Upgrade to Business Plan                                  |
+|                                            |             | Save `Item`                            | Preserve changes                                          |
+| <IconClose />                              | `close`     | Cancel                                 | Exit without saving changes                               |
+| <IconLink />                               | `link`      | Share                                  | Copies link to paste anywhere                             |
+|                                            |             | Connect                                | Create link between two objects                           |
+|                                            |             | Disconnect                             | Break link between two objects                            |
+| <IconZoom isZoomIn />                      | `zoom`      | Zoom In                                | Applies to charts and zooms to fit                        |
+| <IconZoom />                               | `zoom`      | Zoom Out                               | Applies to charts and zooms out (i.e. 200%)               |
+| <IconStar />                               | `star`      | Favorite                               | Hoisting item to primary view                             |
+
+### Icon-only Buttons
+
+In scenarios where high information density is critical, buttons may be displayed without text.
+
+> [!WARNING]
+> Buttons with icons and no `children` **must** include a `aria-label` for screen readers!
+
+<Storybook.Demo>
+  <Button icon={<IconAdd />} aria-label="Add" />
+</Storybook.Demo>
+```jsx
+<Button icon={<IconAdd />} aria-label="Add" />
+```
+
+### Accessibility
+
+To meet WCAG 2.2 AA compliance, `<Button>` automatically meets the [WCAG 1.4.3](https://www.w3.org/TR/WCAG22/#contrast-minimum), [WCAG 2.1.1](https://www.w3.org/TR/WCAG22/#keyboard), [WCAG 2.4.7](https://www.w3.org/TR/WCAG22/#focus-visible), [WCAG 2.5.8](https://www.w3.org/TR/WCAG22/#target-size-minimum) success criteria.
+
+Developers should take care to ensure that their implementations additionally follow the [WAI-ARIA Button Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/button/) and properly handle focus changes when an action is triggered.

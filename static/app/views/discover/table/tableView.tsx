@@ -5,8 +5,8 @@ import * as Sentry from '@sentry/react';
 import type {Location, LocationDescriptorObject} from 'history';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import Link from 'sentry/components/links/link';
 import GridEditable, {
   COL_WIDTH_MINIMUM,
   COL_WIDTH_UNDEFINED,
@@ -143,8 +143,7 @@ function TableView(props: TableViewProps) {
     dataRow?: any,
     rowIndex?: number
   ): React.ReactNode[] {
-    const {organization, eventView, tableData, location, isHomepage, queryDataset} =
-      props;
+    const {organization, eventView, tableData, location, queryDataset} = props;
     const hasAggregates = eventView.hasAggregateField();
     const hasIdField = eventView.hasIdField();
 
@@ -233,13 +232,10 @@ function TableView(props: TableViewProps) {
         target = generateLinkToEventInTraceView({
           traceSlug: dataRow.trace,
           eventId: dataRow.id,
-          projectSlug: dataRow.project || dataRow['project.name'],
           timestamp: dataRow.timestamp,
           organization,
-          isHomepage,
           location,
           eventView,
-          type: 'discover',
           source: TraceViewSources.DISCOVER,
         });
       }
@@ -325,15 +321,8 @@ function TableView(props: TableViewProps) {
     rowIndex: number,
     columnIndex: number
   ): React.ReactNode {
-    const {
-      isFirstPage,
-      eventView,
-      location,
-      organization,
-      tableData,
-      isHomepage,
-      queryDataset,
-    } = props;
+    const {isFirstPage, eventView, location, organization, tableData, queryDataset} =
+      props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -380,13 +369,10 @@ function TableView(props: TableViewProps) {
         target = generateLinkToEventInTraceView({
           traceSlug: dataRow.trace?.toString(),
           eventId: dataRow.id,
-          projectSlug: (dataRow.project || dataRow['project.name']!).toString(),
           timestamp: dataRow.timestamp!,
           organization,
-          isHomepage,
           location,
           eventView,
-          type: 'discover',
           source: TraceViewSources.DISCOVER,
         });
       }

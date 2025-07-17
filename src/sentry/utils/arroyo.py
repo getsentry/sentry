@@ -5,6 +5,7 @@ from collections.abc import Callable, Mapping
 from functools import partial
 from typing import TYPE_CHECKING, Any
 
+from arroyo.processing.strategies.abstract import ProcessingStrategy
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.processing.strategies.run_task_with_multiprocessing import (
     MultiprocessingPool as ArroyoMultiprocessingPool,
@@ -221,3 +222,32 @@ def run_with_initialized_sentry(main_fn: Callable[..., None], *args: Any) -> Cal
     return partial(
         _import_and_run, _get_arroyo_subprocess_initializer(None), main_fn_pickle, args_pickle
     )
+
+
+class SetJoinTimeout(ProcessingStrategy[TStrategyPayload]):
+    """
+    A strategy for setting and re-setting the join timeout for individual
+    sub-sections of the processing chain. This way one can granularly disable
+    join() for steps that are idempotent anyway, making rebalancing faster and simpler.
+    """
+
+    def __init__(
+        self, timeout: float | None, next_step: ProcessingStrategy[TStrategyPayload]
+    ) -> None:
+        self.timeout = timeout
+        self.next_step = next_step
+
+    def submit(self, message: Message[TStrategyPayload]) -> None:
+        self.next_step.submit(message)
+
+    def poll(self) -> None:
+        self.next_step.poll()
+
+    def join(self, timeout: float | None = None) -> None:
+        self.next_step.join(self.timeout)
+
+    def close(self) -> None:
+        self.next_step.close()
+
+    def terminate(self) -> None:
+        self.next_step.terminate()

@@ -2121,7 +2121,7 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
           {useFormWrapper ? <form onSubmit={this.onSubmit}>{input}</form> : input}
         </InputWrapper>
 
-        <ActionsBar gap={0.5}>
+        <ActionsBar gap="xs">
           {query !== '' && !disabled && (
             <ActionButton
               type="button"

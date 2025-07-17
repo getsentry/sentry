@@ -33,6 +33,7 @@ from sentry.models.team import Team, TeamStatus
 from sentry.roles import organization_roles, team_roles
 from sentry.search.utils import tokenize_query
 from sentry.signals import member_invited
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.api.parsers.email import AllowedEmailField
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
@@ -57,12 +58,12 @@ class OrganizationMemberRequestSerializer(serializers.Serializer):
         help_text="The organization-level role of the new member. Roles include:",  # choices will follow in the docs
     )
     teams = serializers.ListField(
-        required=False, allow_null=False, default=[]
+        required=False, allow_null=False, default=list
     )  # deprecated, use teamRoles
     teamRoles = serializers.ListField(
         required=False,
         allow_null=True,
-        default=[],
+        default=list,
         child=serializers.JSONField(),
         help_text="""The team and team-roles assigned to the member. Team roles can be either:
         - `contributor` - Can view and act on issues. Depending on organization settings, they can also add team members.
@@ -160,6 +161,20 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(limit=40, window=1),
+            RateLimitCategory.USER: RateLimit(limit=40, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
+        },
+        "POST": {
+            RateLimitCategory.IP: RateLimit(limit=40, window=1),
+            RateLimitCategory.USER: RateLimit(limit=40, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
+        },
+    }
+
     permission_classes = (MemberAndStaffPermission,)
     owner = ApiOwner.ENTERPRISE
 

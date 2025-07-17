@@ -1,8 +1,6 @@
 import {Fragment, useEffect, useRef} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
@@ -13,13 +11,13 @@ import FeedbackActivitySection from 'sentry/components/feedback/feedbackItem/fee
 import FeedbackItemHeader from 'sentry/components/feedback/feedbackItem/feedbackItemHeader';
 import FeedbackItemSection from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import FeedbackReplay from 'sentry/components/feedback/feedbackItem/feedbackReplay';
+import FeedbackUrl from 'sentry/components/feedback/feedbackItem/feedbackUrl';
 import MessageSection from 'sentry/components/feedback/feedbackItem/messageSection';
 import TraceDataSection from 'sentry/components/feedback/feedbackItem/traceDataSection';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import PanelItem from 'sentry/components/panels/panelItem';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import TextCopyInput from 'sentry/components/textCopyInput';
-import {IconChat, IconFire, IconLink, IconTag} from 'sentry/icons';
+import {IconChat, IconFire, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -35,11 +33,7 @@ interface Props {
 
 export default function FeedbackItem({feedbackItem, eventData}: Props) {
   const organization = useOrganization();
-  const url =
-    eventData?.contexts?.feedback?.url ??
-    eventData?.tags?.find(tag => tag.key === 'url')?.value;
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
-  const theme = useTheme();
 
   const overflowRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -51,11 +45,6 @@ export default function FeedbackItem({feedbackItem, eventData}: Props) {
     }, 100);
   }, [feedbackItem.id, overflowRef]);
 
-  const URL_NOT_FOUND = t('URL not found');
-  const displayUrl =
-    eventData?.contexts?.feedback || eventData?.tags ? (url ?? URL_NOT_FOUND) : '';
-  const urlIsLink = displayUrl.length && displayUrl !== URL_NOT_FOUND;
-
   return (
     <Fragment>
       <AnalyticsArea name="details">
@@ -65,28 +54,7 @@ export default function FeedbackItem({feedbackItem, eventData}: Props) {
             <MessageSection eventData={eventData} feedbackItem={feedbackItem} />
           </FeedbackItemSection>
 
-          {!crashReportId || (crashReportId && url) ? (
-            <FeedbackItemSection
-              collapsible
-              icon={<IconLink size="xs" />}
-              sectionKey="url"
-              title={t('URL')}
-            >
-              <TextCopyInput
-                style={urlIsLink ? {color: theme.blue400} : undefined}
-                onClick={
-                  urlIsLink
-                    ? e => {
-                        e.preventDefault();
-                        openNavigateToExternalLinkModal({linkText: displayUrl});
-                      }
-                    : () => {}
-                }
-              >
-                {displayUrl}
-              </TextCopyInput>
-            </FeedbackItemSection>
-          ) : null}
+          <FeedbackUrl eventData={eventData} feedbackItem={feedbackItem} />
 
           {crashReportId && feedbackItem.project ? (
             <FeedbackItemSection

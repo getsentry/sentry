@@ -1,5 +1,7 @@
 from unittest import mock
 
+from rest_framework.exceptions import ErrorDetail
+
 from sentry.api.serializers import serialize
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
@@ -13,11 +15,13 @@ from sentry.snuba.models import (
     SnubaQueryEventType,
 )
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -233,9 +237,15 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         # Query for multiple types.
         response2 = self.get_success_response(
             self.organization.slug,
-            qs_params={"project": self.project.id, "query": "type:error type:metric_issue"},
+            qs_params={"project": self.project.id, "query": "type:[error, metric_issue]"},
         )
         assert {d["name"] for d in response2.data} == {detector.name, detector2.name}
+
+        response3 = self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id, "query": "!type:metric_issue"},
+        )
+        assert {d["name"] for d in response3.data} == {detector2.name}
 
     def test_general_query(self):
         detector = self.create_detector(
@@ -267,11 +277,15 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
 
 
 @region_silo_test
+@apply_feature_flag_on_cls("organizations:incidents")
 class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
     method = "POST"
 
     def setUp(self):
         super().setUp()
+        self.connected_workflow = self.create_workflow(
+            organization_id=self.organization.id,
+        )
         self.valid_data = {
             "name": "Test Detector",
             "type": MetricIssue.slug,
@@ -299,9 +313,10 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
                 ],
             },
             "config": {
-                "threshold_period": 1,
-                "detection_type": AlertRuleDetectionType.STATIC.value,
+                "thresholdPeriod": 1,
+                "detectionType": AlertRuleDetectionType.STATIC.value,
             },
+            "workflowIds": [self.connected_workflow.id],
         }
 
     def test_missing_group_type(self):
@@ -366,6 +381,17 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         )
         assert response.data == {"projectId": ["Project not found"]}
 
+    def test_without_feature_flag(self):
+        with self.feature({"organizations:incidents": False}):
+            response = self.get_error_response(
+                self.organization.slug,
+                **self.valid_data,
+                status_code=404,
+            )
+        assert response.data == {
+            "detail": ErrorDetail(string="The requested resource does not exist", code="error")
+        }
+
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_valid_creation(self, mock_audit):
         with self.tasks():
@@ -412,6 +438,13 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         assert condition.comparison == 100
         assert condition.condition_result == DetectorPriorityLevel.HIGH
 
+        # Verify connected workflows
+        detector_workflow = DetectorWorkflow.objects.get(
+            detector=detector, workflow=self.connected_workflow
+        )
+        assert detector_workflow.detector == detector
+        assert detector_workflow.workflow == self.connected_workflow
+
         # Verify audit log
         mock_audit.assert_called_once_with(
             request=mock.ANY,
@@ -420,6 +453,43 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             event=mock.ANY,
             data=detector.get_audit_log_data(),
         )
+
+    def test_invalid_workflow_ids(self):
+        # Workflow doesn't exist at all
+        data = {**self.valid_data, "workflowIds": [999999]}
+        response = self.get_error_response(
+            self.organization.slug,
+            **data,
+            status_code=400,
+        )
+        assert "Some workflows do not exist" in str(response.data)
+
+        # Workflow that exists but is in another org should also fail validation
+        other_org = self.create_organization()
+        other_workflow = self.create_workflow(organization_id=other_org.id)
+        data = {**self.valid_data, "workflowIds": [other_workflow.id]}
+        response = self.get_error_response(
+            self.organization.slug,
+            **data,
+            status_code=400,
+        )
+        assert "Some workflows do not exist" in str(response.data)
+
+    def test_transaction_rollback_on_workflow_validation_failure(self):
+        initial_detector_count = Detector.objects.filter(project=self.project).count()
+
+        # Try to create detector with invalid workflow, get an error response back
+        data = {**self.valid_data, "workflowIds": [999999]}
+        response = self.get_error_response(
+            self.organization.slug,
+            **data,
+            status_code=400,
+        )
+
+        # Verify that the detector was never created (same number of detectors as before)
+        final_detector_count = Detector.objects.filter(project=self.project).count()
+        assert final_detector_count == initial_detector_count
+        assert "Some workflows do not exist" in str(response.data)
 
     def test_missing_required_field(self):
         response = self.get_error_response(

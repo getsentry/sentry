@@ -2,6 +2,8 @@ import dataclasses
 import logging
 from typing import TypeVar
 
+import sentry_sdk
+
 from sentry.utils.function_cache import cache_func_for_models
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import is_slow_condition
@@ -43,6 +45,7 @@ def get_data_conditions_for_group(data_condition_group_id: int) -> list[DataCond
     return list(DataCondition.objects.filter(condition_group_id=data_condition_group_id))
 
 
+@sentry_sdk.trace
 def get_slow_conditions_for_groups(
     data_condition_group_ids: list[int],
 ) -> dict[int, list[DataCondition]]:
@@ -104,8 +107,8 @@ def evaluate_data_conditions(
     logic_type: DataConditionGroup.Type,
 ) -> ProcessedDataConditionGroup:
     """
-    Evaluate a list of conditions, each condition is a tuple with the value to evalute the condition against.
-    Then we apply the logic_type to get the results of the list of conditions.
+    Evaluate a list of conditions. Each condition is a tuple with the value to evaluate the condition against.
+    Next we apply the logic_type to get the results of the list of conditions.
     """
     condition_results: list[ProcessedDataCondition] = []
 

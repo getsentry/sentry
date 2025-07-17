@@ -5,6 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
@@ -19,7 +20,14 @@ describe('Screens Landing Page', function () {
   const organization = OrganizationFixture({
     features: [MODULE_FEATURE],
   });
-  const project = ProjectFixture({platform: 'react-native'});
+
+  const project = ProjectFixture({
+    hasInsightsScreenLoad: true,
+    firstTransactionEvent: true,
+    platform: 'react-native',
+  });
+
+  ProjectsStore.loadInitialData([project]);
 
   jest.mocked(useLocation).mockReturnValue({
     action: 'PUSH',
@@ -117,10 +125,10 @@ describe('Screens Landing Page', function () {
             isMetricsExtractedData: false,
             tips: {},
             datasetReason: 'unchanged',
-            dataset: 'metrics',
+            dataset: 'spans',
           },
         },
-        match: [MockApiClient.matchQuery({dataset: 'metrics'})],
+        match: [MockApiClient.matchQuery({dataset: 'spans'})],
       });
 
       const spanMetricsMock = MockApiClient.addMockResponse({

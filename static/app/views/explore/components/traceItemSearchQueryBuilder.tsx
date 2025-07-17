@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useMemo} from 'react';
 
 import {getHasTag} from 'sentry/components/events/searchBar';
 import type {EAPSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
 import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -64,7 +64,6 @@ export function useSearchQueryBuilderProps({
   supportedAggregates = [],
   replaceRawSearchKeys,
 }: TraceItemSearchQueryBuilderProps) {
-  const organization = useOrganization();
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
   const functionTags = useFunctionTags(itemType, supportedAggregates);
   const filterKeySections = useFilterKeySections(itemType, stringAttributes);
@@ -76,27 +75,12 @@ export function useSearchQueryBuilderProps({
     projectIds: projects,
   });
 
-  const getSuggestedFilterKey = useCallback(
-    (key: string) => {
-      // prioritize exact matches first
-      if (filterTags.hasOwnProperty(key)) {
-        return key;
-      }
-
-      // try to see if there's numeric attribute by the same name
-      const explicitNumberTag = `tags[${key},number]`;
-      if (filterTags.hasOwnProperty(explicitNumberTag)) {
-        return explicitNumberTag;
-      }
-
-      // give up, and fall back to the default behaviour
-      return null;
-    },
-    [filterTags]
-  );
+  const getSuggestedAttribute = useExploreSuggestedAttribute({
+    numberAttributes,
+    stringAttributes,
+  });
 
   return {
-    searchOnChange: organization.features.includes('ui-search-on-change'),
     placeholder: placeholderText,
     filterKeys: filterTags,
     initialQuery,
@@ -107,7 +91,7 @@ export function useSearchQueryBuilderProps({
     getFilterTokenWarning,
     searchSource,
     filterKeySections,
-    getSuggestedFilterKey,
+    getSuggestedFilterKey: getSuggestedAttribute,
     getTagValues: getTraceItemAttributeValues,
     disallowUnsupportedFilters: true,
     recentSearches: itemTypeToRecentSearches(itemType),

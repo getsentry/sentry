@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Link from 'sentry/components/links/link';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import PerformanceDuration from 'sentry/components/performanceDuration';
@@ -23,7 +23,7 @@ import useProjects from 'sentry/utils/useProjects';
 import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
 import {BREAKDOWN_SLICES} from 'sentry/views/explore/hooks/useTraces';
 import type {SpanResult} from 'sentry/views/explore/hooks/useTraceSpans';
-import type {SpanIndexedField, SpanIndexedResponse} from 'sentry/views/insights/types';
+import type {EAPSpanResponse, SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
@@ -392,7 +392,6 @@ const BreakdownSlice = styled('div')<{
 `;
 
 interface SpanIdRendererProps {
-  projectSlug: string;
   spanId: string;
   timestamp: string;
   traceId: string;
@@ -401,7 +400,6 @@ interface SpanIdRendererProps {
 }
 
 export function SpanIdRenderer({
-  projectSlug,
   spanId,
   timestamp,
   traceId,
@@ -412,7 +410,6 @@ export function SpanIdRenderer({
   const organization = useOrganization();
 
   const target = generateLinkToEventInTraceView({
-    projectSlug,
     traceSlug: traceId,
     timestamp,
     eventId: transactionId,
@@ -485,7 +482,7 @@ export function SpanTimeRenderer({
   );
 }
 
-type SpanStatus = SpanIndexedResponse[SpanIndexedField.SPAN_STATUS];
+type SpanStatus = EAPSpanResponse[SpanFields.SPAN_STATUS];
 
 const STATUS_TO_TAG_TYPE: Record<SpanStatus, keyof Theme['tag']> = {
   ok: 'success',

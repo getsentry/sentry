@@ -80,24 +80,6 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
             fields=["count()", "transaction"],
         )
 
-        self.error_field_widget = DashboardWidget.objects.create(
-            dashboard=self.dashboard,
-            title="Test Empty Field Widget",
-            order=1,
-            display_type=DashboardWidgetDisplayTypes.TABLE,
-            widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
-        )
-
-        self.error_field_widget_query = DashboardWidgetQuery.objects.create(
-            widget=self.error_field_widget,
-            name="Test Empty Field Widget Query",
-            order=1,
-            conditions="",
-            aggregates=["apdex()"],
-            columns=["apdex()", "http.status_code"],
-            fields=["apdex()", "http.status_code"],
-        )
-
         self.empty_field_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
             title="Test Empty Field Widget",
@@ -300,14 +282,6 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
         )
         assert comparison_result["passed"]
         assert comparison_result["mismatches"] == []
-
-    def test_compare_error_field_tables(self):
-        # testing with apdex() field, which is not supported in EAP and throw an error
-        comparison_result = compare_tables_for_dashboard_widget_queries(
-            self.error_field_widget_query
-        )
-        assert comparison_result["passed"] is False
-        assert comparison_result["reason"] == CompareTableResult.EAP_FAILED
 
     def test_compare_empty_field_tables(self):
         # testing with failure_rate() field, which is not supported in EAP

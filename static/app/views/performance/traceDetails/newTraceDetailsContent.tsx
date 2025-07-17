@@ -5,13 +5,13 @@ import omit from 'lodash/omit';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Alert} from 'sentry/components/core/alert';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import DiscoverButton from 'sentry/components/discoverButton';
 import EventVitals from 'sentry/components/events/eventVitals';
 import type {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconPlay} from 'sentry/icons';
@@ -444,7 +444,7 @@ function NewTraceDetailsContent(props: Props) {
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <ButtonBar gap={1}>
+          <ButtonBar>
             <DiscoverButton
               size="sm"
               to={traceEventView.getResultsViewUrlTarget(organization)}

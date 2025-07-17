@@ -1,13 +1,10 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {flattie} from 'flattie';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
-import EditableText from 'sentry/components/editableText';
-import FormField from 'sentry/components/forms/formField';
 import FormModel from 'sentry/components/forms/model';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -26,12 +23,16 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   AutomationBuilderContext,
-  initialAutomationBuilderState,
   useAutomationBuilderReducer,
 } from 'sentry/views/automations/components/automationBuilderContext';
+import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import AutomationForm from 'sentry/views/automations/components/automationForm';
 import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
-import {getNewAutomationData} from 'sentry/views/automations/components/automationFormData';
+import {
+  getNewAutomationData,
+  validateAutomationBuilderState,
+} from 'sentry/views/automations/components/automationFormData';
+import {EditableAutomationName} from 'sentry/views/automations/components/editableAutomationName';
 import {useCreateAutomation} from 'sentry/views/automations/hooks';
 import {
   makeAutomationBasePathname,
@@ -60,32 +61,9 @@ function AutomationBreadcrumbs() {
   );
 }
 
-function EditableAutomationName() {
-  return (
-    <FormField name="name" inline={false} flexibleControlStateSize stacked>
-      {({onChange, value}) => (
-        <EditableText
-          isDisabled={false}
-          value={value || ''}
-          onChange={newValue => {
-            onChange(newValue, {
-              target: {
-                value: newValue,
-              },
-            });
-          }}
-          errorMessage={t('Please set a name for your automation.')}
-          placeholder={t('New Automation')}
-        />
-      )}
-    </FormField>
-  );
-}
-
 const initialData = {
-  ...flattie(initialAutomationBuilderState),
   environment: null,
-  frequency: '1440',
+  frequency: 1440,
 };
 
 export default function AutomationNewSettings() {
@@ -95,6 +73,16 @@ export default function AutomationNewSettings() {
   useWorkflowEngineFeatureGate({redirect: true});
   const model = useMemo(() => new FormModel(), []);
   const {state, actions} = useAutomationBuilderReducer();
+
+  const [automationBuilderErrors, setAutomationBuilderErrors] = useState<
+    Record<string, string>
+  >({});
+  const removeError = useCallback((errorId: string) => {
+    setAutomationBuilderErrors(prev => {
+      const {[errorId]: _removedError, ...remainingErrors} = prev;
+      return remainingErrors;
+    });
+  }, []);
 
   const initialConnectedIds = useMemo(() => {
     const connectedIdsQuery = location.query.connectedIds as
@@ -114,11 +102,15 @@ export default function AutomationNewSettings() {
 
   const handleSubmit = useCallback<OnSubmitCallback>(
     async (data, _, __, ___, ____) => {
-      // TODO: add form validation
-      const automation = await createAutomation(
-        getNewAutomationData(data as AutomationFormData, state)
-      );
-      navigate(makeAutomationDetailsPathname(organization.slug, automation.id));
+      const errors = validateAutomationBuilderState(state);
+      setAutomationBuilderErrors(errors);
+
+      if (Object.keys(errors).length === 0) {
+        const automation = await createAutomation(
+          getNewAutomationData(data as AutomationFormData, state)
+        );
+        navigate(makeAutomationDetailsPathname(organization.slug, automation.id));
+      }
     },
     [createAutomation, state, navigate, organization.slug]
   );
@@ -142,9 +134,17 @@ export default function AutomationNewSettings() {
         </StyledLayoutHeader>
         <Layout.Body>
           <Layout.Main fullWidth>
-            <AutomationBuilderContext.Provider value={{state, actions}}>
-              <AutomationForm model={model} />
-            </AutomationBuilderContext.Provider>
+            <AutomationBuilderErrorContext.Provider
+              value={{
+                errors: automationBuilderErrors,
+                setErrors: setAutomationBuilderErrors,
+                removeError,
+              }}
+            >
+              <AutomationBuilderContext.Provider value={{state, actions}}>
+                <AutomationForm model={model} />
+              </AutomationBuilderContext.Provider>
+            </AutomationBuilderErrorContext.Provider>
           </Layout.Main>
         </Layout.Body>
       </Layout.Page>

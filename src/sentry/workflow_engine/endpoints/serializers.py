@@ -12,6 +12,7 @@ from django.db.models.functions import TruncHour
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse
+from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
@@ -51,7 +52,7 @@ class ActionSerializer(Serializer):
             "type": obj.type,
             "integrationId": str(obj.integration_id) if obj.integration_id else None,
             "data": obj.data,
-            "config": obj.config,
+            "config": convert_dict_key_case(obj.config, snake_to_camel_case),
         }
 
 
@@ -353,7 +354,7 @@ class DetectorSerializer(Serializer):
             "dateUpdated": obj.date_updated,
             "dataSources": attrs.get("data_sources"),
             "conditionGroup": attrs.get("condition_group"),
-            "config": attrs.get("config"),
+            "config": convert_dict_key_case(attrs.get("config"), snake_to_camel_case),
             "enabled": obj.enabled,
         }
 
@@ -424,7 +425,7 @@ class WorkflowSerializer(Serializer):
             "triggers": attrs.get("triggers"),
             "actionFilters": attrs.get("actionFilters"),
             "environment": obj.environment.name if obj.environment else None,
-            "config": obj.config,
+            "config": convert_dict_key_case(obj.config, snake_to_camel_case),
             "detectorIds": attrs.get("detectorIds"),
             "enabled": obj.enabled,
             "lastTriggered": attrs.get("lastTriggered"),

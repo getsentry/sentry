@@ -16,7 +16,7 @@ import type {Series} from 'sentry/types/echarts';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {useExtractionStatus} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
@@ -40,6 +40,7 @@ import {
 import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
@@ -89,6 +90,8 @@ type Props = WithRouterProps & {
   onSetTransactionsDataset?: () => void;
   onUpdate?: (widget: Widget | null) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
+  onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
+  onWidgetTableSort?: (sort: Sort) => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   shouldResize?: boolean;
   showConfidenceWarning?: boolean;
@@ -156,6 +159,8 @@ function WidgetCard(props: Props) {
     disableZoom,
     showLoadingText,
     router,
+    onWidgetTableSort,
+    onWidgetTableResizeColumn,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -322,6 +327,8 @@ function WidgetCard(props: Props) {
             disableZoom={disableZoom}
             onDataFetchStart={onDataFetchStart}
             showLoadingText={showLoadingText && isLoadingTextVisible}
+            onWidgetTableSort={onWidgetTableSort}
+            onWidgetTableResizeColumn={onWidgetTableResizeColumn}
           />
         </WidgetFrame>
       </VisuallyCompleteWithData>
