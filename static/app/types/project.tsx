@@ -246,7 +246,6 @@ export type PlatformKey =
   | 'native-minidump'
   | 'native-qt'
   | 'nintendo-switch'
-  | 'nintendo-switch-2'
   | 'node'
   | 'node-awslambda'
   | 'node-azurefunctions'
