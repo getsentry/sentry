@@ -86,6 +86,7 @@ def calculate_unresolved_counts(
         .order_by(
             "group_id",
             "bucket",
+            "id",
         )
         .values("project", "group_id", "bucket", "state")
     )
