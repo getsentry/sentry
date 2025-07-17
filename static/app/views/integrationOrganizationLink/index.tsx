@@ -96,13 +96,11 @@ export default function IntegrationOrganizationLink() {
     {staleTime: Infinity, enabled: isOrganizationQueryEnabled}
   );
   const organization = organizationQuery.data ?? null;
-  const isPendingOrganization = isOrganizationQueryEnabled && organizationQuery.isPending;
-
   useEffect(() => {
-    if (organizationQuery.error) {
+    if (isOrganizationQueryEnabled && organizationQuery.error) {
       addErrorMessage(t('Failed to retrieve organization details'));
     }
-  }, [organizationQuery.error]);
+  }, [isOrganizationQueryEnabled, organizationQuery.error]);
 
   const isProviderQueryEnabled = !!selectedOrgSlug;
   const providerQuery = useApiQuery<{
@@ -115,14 +113,12 @@ export default function IntegrationOrganizationLink() {
     {staleTime: Infinity, enabled: isProviderQueryEnabled}
   );
   const provider = providerQuery.data?.providers[0] ?? null;
-  const isPendingProviders = isProviderQueryEnabled && providerQuery.isPending;
-
   useEffect(() => {
-    const hasEmptyProvider = !provider && !isPendingProviders;
-    if (providerQuery.error || hasEmptyProvider) {
+    const hasEmptyProvider = !provider && !providerQuery.isPending;
+    if (isProviderQueryEnabled && (providerQuery.error || hasEmptyProvider)) {
       addErrorMessage(t('Failed to retrieve integration details'));
     }
-  }, [providerQuery.error, isPendingProviders, provider]);
+  }, [isProviderQueryEnabled, providerQuery.error, providerQuery.isPending, provider]);
 
   const isInstallationQueryEnabled = !!installationId && integrationSlug === 'github';
   const installationQuery = useApiQuery<GitHubIntegrationInstallation>(
@@ -132,13 +128,15 @@ export default function IntegrationOrganizationLink() {
   const installationData = installationQuery.data ?? null;
 
   useEffect(() => {
-    if (installationQuery.error) {
+    if (isInstallationQueryEnabled && installationQuery.error) {
       addErrorMessage(t('Failed to retrieve GitHub installation details'));
     }
-  }, [installationQuery.error]);
+  }, [isInstallationQueryEnabled, installationQuery.error]);
 
   // These two queries are recomputed when an organization is selected
-  const isPendingSelection = isPendingOrganization || isPendingProviders;
+  const isPendingSelection =
+    (isOrganizationQueryEnabled && organizationQuery.isPending) ||
+    (isProviderQueryEnabled && providerQuery.isPending);
 
   const selectOrganization = useCallback(
     (orgSlug: string) => {
