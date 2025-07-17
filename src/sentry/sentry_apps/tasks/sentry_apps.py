@@ -161,7 +161,7 @@ def _webhook_issue_data(
             times=3,
             delay=60 * 5,
         ),
-        processing_deadline_duration=20,
+        processing_deadline_duration=30,
     ),
     **TASK_OPTIONS,
 )
@@ -664,6 +664,7 @@ def get_webhook_data(
             delay=60 * 5,
         ),
         compression_type=CompressionType.ZSTD,
+        processing_deadline_duration=30,
     ),
     **TASK_OPTIONS,
 )
