@@ -356,8 +356,6 @@ class Enhancements:
         self.version = version or DEFAULT_ENHANCEMENTS_VERSION
         self.bases = bases or []
 
-        self.rust_enhancements = _merge_rust_enhancements(self.bases, rust_enhancements)
-
         classifier_config, contributes_config = split_enhancement_configs or _split_rules(rules)
 
         self.classifier_rules = classifier_config.rules
