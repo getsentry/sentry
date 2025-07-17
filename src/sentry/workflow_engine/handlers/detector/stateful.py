@@ -322,13 +322,6 @@ class StatefulDetectorHandler(
         self, data_packet: DataPacket[DataPacketType]
     ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
         dedupe_value = self.extract_dedupe_value(data_packet)
-
-        if self.has_grouping:
-            # TODO -- figure out how to change processing from here with grouping info
-            # This should get the data from the data packet, and use the keys for state data if grouping is enabled
-            # otherwise, it should extract the value and use `None` as the group key.
-            pass
-
         group_data_values = self._extract_value_from_packet(data_packet)
         state = self.state_manager.get_state_data(list(group_data_values.keys()))
         results: dict[DetectorGroupKey, DetectorEvaluationResult] = {}
@@ -493,10 +486,7 @@ class StatefulDetectorHandler(
         """
         Check if value is dict[DetectorGroupKey, DataPacketEvaluationType]
         """
-        if not isinstance(value, dict):
-            return False
-
-        if not value:  # Empty dict case
+        if self.has_grouping is False:
             return False
 
         # Check if all keys are DetectorGroupKey instances
