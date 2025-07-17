@@ -23,10 +23,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
-export function hasProjectCreationGamesTabFeatureFlag(organization?: Organization) {
-  return organization?.features.includes('project-creation-games-tab') ?? false;
-}
-
 const PlatformList = styled('div')`
   display: grid;
   gap: ${space(1)};
@@ -100,7 +96,8 @@ function PlatformPicker({
     setCategory(defaultCategory ?? categories[0]!.id);
   }, [defaultCategory, categories]);
 
-  const includeGamingPlatforms = hasProjectCreationGamesTabFeatureFlag(organization);
+  const includeGamingPlatforms =
+    organization?.features.includes('project-creation-games-tab') ?? false;
 
   const availablePlatforms = useMemo(() => {
     if (!includeGamingPlatforms) {

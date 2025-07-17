@@ -1,4 +1,3 @@
-import {hasProjectCreationGamesTabFeatureFlag} from 'sentry/components/platformPicker';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
@@ -199,7 +198,7 @@ const categoryList = [
     name: t('Gaming'),
     platforms: gaming,
     display: (organization?: Organization) =>
-      hasProjectCreationGamesTabFeatureFlag(organization),
+      organization?.features.includes('project-creation-games-tab') ?? false,
   },
   {
     id: 'all',
