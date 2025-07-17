@@ -98,13 +98,14 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
                 elif repo.status == ObjectStatus.HIDDEN and old_status != repo.status:
                     repository_cascade_delete_on_hide.apply_async(kwargs={"repo_id": repo.id})
 
-                    cleanup_seer_repository_preferences.apply_async(
-                        kwargs={
-                            "organization_id": repo.organization_id,
-                            "repo_external_id": repo.external_id,
-                            "repo_provider": repo.provider,
-                        }
-                    )
+                    if repo.external_id and repo.provider:
+                        cleanup_seer_repository_preferences.apply_async(
+                            kwargs={
+                                "organization_id": repo.organization_id,
+                                "repo_external_id": repo.external_id,
+                                "repo_provider": repo.provider,
+                            }
+                        )
 
         return Response(serialize(repo, request.user))
 
