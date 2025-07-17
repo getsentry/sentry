@@ -41,6 +41,8 @@ DATASET_OPTIONS = {
 RPC_DATASETS = {
     spans_rpc,
     ourlogs,
+    uptime_results,
+    uptime_checks,
 }
 DATASET_LABELS = {value: key for key, value in DATASET_OPTIONS.items()}
 
