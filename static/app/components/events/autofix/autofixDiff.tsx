@@ -123,7 +123,7 @@ const SyntaxHighlightedCode = styled('div')`
   white-space: pre;
 
   pre[class*='language-'],
-  code[class*='language-'] {
+  code {
     margin: 0;
     padding: 0;
     background: transparent;
