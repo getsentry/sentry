@@ -113,7 +113,11 @@ describe('ScreensOverview', () => {
           dataset: 'spans',
         },
       },
-      match: [MockApiClient.matchQuery({dataset: 'spans'})],
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.starfish.mobile-screens-screen-table-metrics',
+        }),
+      ],
     });
 
     const spanMetricsMock = MockApiClient.addMockResponse({
@@ -157,7 +161,11 @@ describe('ScreensOverview', () => {
           dataset: 'spans',
         },
       },
-      match: [MockApiClient.matchQuery({dataset: 'spans'})],
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.starfish.mobile-screens-screen-table-span-metrics',
+        }),
+      ],
     });
 
     render(<ScreensOverview />, {organization});

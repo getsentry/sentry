@@ -229,7 +229,7 @@ function ScreensLandingPage() {
       limit: 25,
       fields: spanMetricsFields,
     },
-    Referrer.SCREENS_METRICS
+    Referrer.SCREENS_SPAN_METRICS
   );
 
   const metricsData = {...metricsResult.data[0], ...spanMetricsResult.data[0]};

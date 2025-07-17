@@ -119,7 +119,7 @@ export function ScreensOverview() {
       sorts: spanMetricsSorts,
       enabled: isSpanPrimary || hasVisibleScreens,
     },
-    Referrer.SCREENS_SCREEN_TABLE
+    Referrer.SCREENS_SCREEN_TABLE_SPAN_METRICS
   );
 
   const metricsResult = useSpans(

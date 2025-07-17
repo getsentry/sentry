@@ -121,6 +121,7 @@ describe('useDiscover', () => {
             sort: '-epm()',
             query: `span.group:221aa7ebd216 transaction:/api/details release:0.0.1`,
             referrer: 'api-spec',
+            sampling: SAMPLING_MODE.NORMAL,
             statsPeriod: '10d',
           },
         })
