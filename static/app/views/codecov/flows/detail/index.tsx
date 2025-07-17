@@ -11,7 +11,7 @@ import {space} from 'sentry/styles/space';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useFlowTemp} from 'sentry/views/codecov/flows/hooks/useFlow';
+import {useFlowTemp} from 'sentry/views/codecov/flows/hooks';
 import ReplayDetailsProviders from 'sentry/views/replays/detail/body/replayDetailsProviders';
 import ReplayDetailsPageBreadcrumbs from 'sentry/views/replays/detail/header/replayDetailsPageBreadcrumbs';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
@@ -144,7 +144,7 @@ export default function FlowDetail() {
   // If not, fallback to defaults
   // @ts-expect-error: FlowDefinition may not have these fields, fallback to defaults
   const replaySlug =
-    (flow && (flow.replaySlug ?? flow.metadata?.replaySlug)) ||
+    (flow && (flow.sourceReplaySlug ?? flow.metadata?.replaySlug)) ||
     '135fc779c3894f5682bf0e3a76060469';
   // @ts-expect-error: FlowDefinition may not have these fields, fallback to defaults
   const orgSlug = (flow && (flow.orgSlug ?? flow.metadata?.orgSlug)) || 'codecov';

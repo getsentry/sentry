@@ -1,16 +1,12 @@
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import type {FlowDefinition} from '../types';
+import type {FlowDefinition} from 'sentry/views/codecov/flows/types';
 
 export interface FlowApiResponse {
   data: FlowDefinition;
 }
 
-/**
- * Custom hook to get a single flow by ID.
- */
-export function useFlow(flowId: string) {
+export function useGetFlowById(flowId: string) {
   const organization = useOrganization();
 
   const {data, isLoading, isError, error, refetch} = useApiQuery<FlowApiResponse>(
@@ -30,10 +26,8 @@ export function useFlow(flowId: string) {
   };
 }
 
-/**
- * Custom hook to get a single flow by ID from local storage.
- */
-export function useFlowTemp(flowId: string) {
+
+export function useGetFlowByIdTemp(flowId: string) {
   // Mimic the API response structure
   function getFlowFromLocalStorage(id: string): FlowDefinition | null {
     try {

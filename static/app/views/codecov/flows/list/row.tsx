@@ -1,6 +1,3 @@
-import styled from '@emotion/styled';
-
-import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import Confirm from 'sentry/components/confirm';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
@@ -39,7 +36,7 @@ export function FlowsTableRow({flow, onDeleteFlow}: FlowsTableRowProps) {
             disabledAbsoluteTooltip={false}
           />
         ) : (
-          <span>{t('Not seen yet!')}</span>
+          <span>{t('Not seen yet')}</span>
         )}
       </SimpleTable.RowCell>
       {onDeleteFlow && (

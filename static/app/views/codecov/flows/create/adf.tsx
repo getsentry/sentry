@@ -14,8 +14,9 @@ import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
-import {useCreateFlow} from 'sentry/views/codecov/flows/hooks/useCreateFlow';
+import {useCreateFlowTemp} from 'sentry/views/codecov/flows/hooks';
 import type {FlowDefinition} from 'sentry/views/codecov/flows/types';
 
 function FlowCreateForm({
@@ -30,7 +31,10 @@ function FlowCreateForm({
   replaySlug?: string;
   startBreadcrumb?: string | null;
 }) {
-  const {mutateAsync: createFlow, isPending: isCreating} = useCreateFlow();
+  const {selection} = usePageFilters();
+  const {mutateAsync: createFlow, isPending: isCreating} = useCreateFlowTemp({
+    pageFilters: selection,
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const user = useUser();

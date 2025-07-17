@@ -14,15 +14,18 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {FLOWS_PAGE_TITLE} from 'sentry/views/codecov/settings';
 
-import {useDeleteFlow} from './hooks/useDeleteFlow';
-import {useFlows} from './hooks/useFlows';
 import FlowsTable from './list/table';
+import {useDeleteFlowTemp, useFlowsTemp} from './hooks';
 
 export default function FlowsPage() {
-  const {data, isLoading, isError} = useFlows();
-  const {mutate: deleteFlow, isPending: isDeleting} = useDeleteFlow();
+  const {selection} = usePageFilters();
+  const {data, isLoading, isError} = useFlowsTemp({
+    pageFilters: selection,
+  });
+  const {mutate: deleteFlow, isPending: isDeleting} = useDeleteFlowTemp();
   const navigate = useNavigate();
 
   const onCreate = () => {
