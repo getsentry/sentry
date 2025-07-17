@@ -74,7 +74,7 @@ const consoleConfig = {
         </p>
         <p>
           {tct(
-            "It can be done directly on Nintendo's CRPORTAL. The two environments available are lp1 for retail devices and dd1 for devkits. In both cases you can configure Nintendo's servers to start forwarding your crashes directly to Sentry.",
+            "It can be done directly on Nintendo's CRPORTAL. The two environments available are [lp1Link:lp1 for retail devices] and [dd1Link:dd1 for devkits]. In both cases you can configure Nintendo's servers to start forwarding your crashes directly to Sentry.It can be done directly on Nintendo's CRPORTAL. The two environments available are lp1 for retail devices and dd1 for devkits. In both cases you can configure Nintendo's servers to start forwarding your crashes directly to Sentry.",
             {
               lp1Link: (
                 <ExternalLink href="https://crash-report.wc.lp1.er.srv.nintendo.net/sentry/get_started" />
@@ -132,7 +132,7 @@ const consoleConfig = {
         </p>
         <p>
           {tct(
-            'You can also use Sentry’s [unityLink:Unity] and [unrealLink:Unreal Engine] SDKs with Xbox.',
+            "You can also use Sentry's [unityLink:Unity] and [unrealLink:Unreal Engine] SDKs with Xbox.",
             {
               unityLink: (
                 <ExternalLink href="https://docs.sentry.io/platforms/unity/game-consoles/" />
