@@ -45,7 +45,7 @@ export default Storybook.story('ButtonBar', (story, APIReference) => {
           is handled by the parent component, not the{' '}
           <Storybook.JSXNode name="ButtonBar" /> itself.
         </p>
-        <ButtonBar>
+        <ButtonBar gap="none">
           {['One', 'Two', 'Three'].map(id => (
             <Button key={id} {...makeProps(id)}>
               {id}
@@ -57,7 +57,7 @@ export default Storybook.story('ButtonBar', (story, APIReference) => {
           You can also pass the 'merged' prop to the{' '}
           <Storybook.JSXNode name="ButtonBar" /> to merge the buttons together.
         </p>
-        <ButtonBar merged>
+        <ButtonBar merged gap="none">
           {['One', 'Two', 'Three'].map(id => (
             <Button key={id} {...makeMergedProps(id)}>
               {id}
@@ -69,7 +69,7 @@ export default Storybook.story('ButtonBar', (story, APIReference) => {
           Managing the active state is optional, and you can also just use the buttonbar
           to manage the button layout.
         </p>
-        <ButtonBar merged>
+        <ButtonBar merged gap="none">
           {['One', 'Two', 'Three'].map(id => (
             <Button key={id}>{id}</Button>
           ))}
@@ -79,7 +79,7 @@ export default Storybook.story('ButtonBar', (story, APIReference) => {
           <Storybook.JSXNode name="ButtonBar" />s can have a single button in which case
           it looks like a button.
         </p>
-        <ButtonBar>
+        <ButtonBar gap="none">
           <Button>One Lonely Button</Button>
         </ButtonBar>
       </Fragment>

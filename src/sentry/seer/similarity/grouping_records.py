@@ -51,7 +51,7 @@ seer_grouping_connection_pool = connection_from_url(settings.SEER_GROUPING_URL)
 def post_bulk_grouping_records(
     grouping_records_request: CreateGroupingRecordsRequest,
 ) -> BulkCreateGroupingRecordsResponse:
-    """Call /v0/issues/similar-issues/grouping-record endpoint from seer."""
+    """Call Seer's /v0/issues/similar-issues/grouping-record endpoint"""
     if not grouping_records_request.get("data"):
         return {"success": True}
 
@@ -85,7 +85,7 @@ def post_bulk_grouping_records(
         return {"success": False, "reason": response.reason}
 
 
-def delete_project_grouping_records(
+def call_seer_to_delete_project_grouping_records(
     project_id: int,
 ) -> bool:
     try:

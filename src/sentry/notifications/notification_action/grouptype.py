@@ -13,6 +13,7 @@ from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models.organization import Organization
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.utils.samples import load_data
+from sentry.workflow_engine.tasks.utils import fetch_event
 
 
 @dataclass(frozen=True)
@@ -73,6 +74,10 @@ def get_test_notification_event_data(project) -> GroupEvent | None:
         return None
 
     generic_group = group_info.group
-    group_event = generic_group.get_latest_event()
 
-    return group_event
+    event = fetch_event(occurrence.event_id, occurrence.project_id)
+
+    if event is None:
+        return None
+
+    return GroupEvent.from_event(event, generic_group)

@@ -1,26 +1,16 @@
-from __future__ import annotations
-
 import dataclasses
 import logging
 import time
 import zlib
 from datetime import datetime, timezone
-from typing import Any, TypedDict, cast
+from typing import Any, TypedDict
 
 import sentry_sdk
-from sentry_kafka_schemas.codecs import Codec, ValidationError
-from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
-from sentry_sdk import set_tag
 
-from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.constants import DataCategory
 from sentry.logging.handlers import SamplingFilter
 from sentry.models.project import Project
-from sentry.replays.lib.storage import (
-    RecordingSegmentStorageMeta,
-    make_recording_filename,
-    storage_kv,
-)
+from sentry.replays.lib.storage import _make_recording_filename, storage_kv
 from sentry.replays.usecases.ingest.event_logger import (
     emit_click_events,
     emit_request_response_metrics,
@@ -38,119 +28,132 @@ from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 
 LOG_SAMPLE_RATE = 0.01
-RECORDINGS_CODEC: Codec[ReplayRecording] = get_topic_codec(Topic.INGEST_REPLAYS_RECORDINGS)
 
 logger = logging.getLogger("sentry.replays")
 logger.addFilter(SamplingFilter(LOG_SAMPLE_RATE))
 
 
-class DropSilently(Exception):
+class DropEvent(Exception):
     pass
 
 
-class RecordingSegmentHeaders(TypedDict):
+class EventContext(TypedDict):
+    key_id: int | None
+    org_id: int
+    project_id: int
+    received: int
+    replay_id: str
+    retention_days: int
     segment_id: int
 
 
-@dataclasses.dataclass
-class RecordingIngestMessage:
-    retention_days: int
-    org_id: int
-    project_id: int
-    replay_id: str
-    key_id: int | None
-    received: int
-    payload_with_headers: bytes
-    replay_event: bytes | None
+class Event(TypedDict):
+    context: EventContext
+    payload_compressed: bytes
+    payload: bytes
+    replay_event: dict[str, Any] | None
     replay_video: bytes | None
 
 
-def _track_initial_segment_event(
-    org_id: int,
-    project: Project,
-    replay_id,
-    key_id: int | None,
-    received: int,
-) -> None:
-    set_project_flag_and_signal(project, "has_replays", first_replay_received)
-
-    track_outcome(
-        org_id=org_id,
-        project_id=project.id,
-        key_id=key_id,
-        outcome=Outcome.ACCEPTED,
-        reason=None,
-        timestamp=datetime.fromtimestamp(received, timezone.utc),
-        event_id=replay_id,
-        category=DataCategory.REPLAY,
-        quantity=1,
-    )
-
-
-def _report_size_metrics(
-    size_compressed: int | None = None, size_uncompressed: int | None = None
-) -> None:
-    if size_compressed:
-        metrics.distribution(
-            "replays.usecases.ingest.size_compressed", size_compressed, unit="byte"
-        )
-    if size_uncompressed:
-        metrics.distribution(
-            "replays.usecases.ingest.size_uncompressed", size_uncompressed, unit="byte"
-        )
+@dataclasses.dataclass
+class ProcessedEvent:
+    actions_event: ParsedEventMeta | None
+    context: EventContext
+    filedata: bytes
+    filename: str
+    recording_size_uncompressed: int
+    recording_size: int
+    replay_event: dict[str, Any] | None
+    video_size: int | None
 
 
 @sentry_sdk.trace
-def parse_recording_message(message: bytes) -> RecordingIngestMessage:
-    try:
-        message_dict: ReplayRecording = RECORDINGS_CODEC.decode(message)
-    except ValidationError:
-        logger.exception("Could not decode recording message.")
-        raise DropSilently()
+def process_recording_event(message: Event) -> ProcessedEvent:
+    replay_events = parse_replay_events(message)
 
-    return RecordingIngestMessage(
-        replay_id=message_dict["replay_id"],
-        key_id=message_dict.get("key_id"),
-        org_id=message_dict["org_id"],
-        project_id=message_dict["project_id"],
-        received=message_dict["received"],
-        retention_days=message_dict["retention_days"],
-        payload_with_headers=cast(bytes, message_dict["payload"]),
-        replay_event=cast(bytes | None, message_dict.get("replay_event")),
-        replay_video=cast(bytes | None, message_dict.get("replay_video")),
+    filename = _make_recording_filename(
+        project_id=message["context"]["project_id"],
+        replay_id=message["context"]["replay_id"],
+        segment_id=message["context"]["segment_id"],
+        retention_days=message["context"]["retention_days"],
+    )
+
+    if message["replay_video"]:
+        filedata = pack_replay_video(message["payload"], message["replay_video"])
+        video_size = len(message["replay_video"])
+    else:
+        filedata = message["payload_compressed"]
+        video_size = None
+
+    return ProcessedEvent(
+        actions_event=replay_events,
+        context=message["context"],
+        filedata=filedata,
+        filename=filename,
+        recording_size_uncompressed=len(message["payload"]),
+        recording_size=len(message["payload_compressed"]),
+        replay_event=message["replay_event"],
+        video_size=video_size,
     )
 
 
-@sentry_sdk.trace
-def parse_headers(recording: bytes, replay_id: str) -> tuple[RecordingSegmentHeaders, bytes]:
+def parse_replay_events(message: Event) -> ParsedEventMeta | None:
     try:
-        recording_headers_json, recording_segment = recording.split(b"\n", 1)
-        recording_headers = json.loads(recording_headers_json)
-        assert isinstance(recording_headers.get("segment_id"), int)
-        return recording_headers, recording_segment
+        return parse_events(json.loads(message["payload"]))
     except Exception:
-        logger.exception("Recording headers could not be extracted %s", replay_id)
-        raise DropSilently()
-
-
-@dataclasses.dataclass(frozen=True)
-class Segment:
-    compressed: bytes
-    decompressed: bytes
+        logger.exception(
+            "Failed to parse recording org=%s, project=%s, replay=%s, segment=%s",
+            message["context"]["org_id"],
+            message["context"]["project_id"],
+            message["context"]["replay_id"],
+            message["context"]["segment_id"],
+        )
+        return None
 
 
 @sentry_sdk.trace
-def decompress_segment(segment: bytes) -> Segment:
+def pack_replay_video(recording: bytes, video: bytes):
+    return zlib.compress(pack(rrweb=recording, video=video))
+
+
+@sentry_sdk.trace
+def commit_recording_message(recording: ProcessedEvent) -> None:
+    # Write to GCS.
+    storage_kv.set(recording.filename, recording.filedata)
+
     try:
-        decompressed_segment = zlib.decompress(segment)
-        return Segment(segment, decompressed_segment)
-    except zlib.error:
-        if segment[0] == ord("["):
-            compressed_segment = zlib.compress(segment)
-            return Segment(compressed_segment, segment)
-        else:
-            logger.exception("Invalid recording body.")
-            raise DropSilently()
+        project = Project.objects.get_from_cache(id=recording.context["project_id"])
+        assert isinstance(project, Project)
+    except Project.DoesNotExist as exc:
+        logger.warning(
+            "Recording segment was received for a project that does not exist.",
+            extra={
+                "project_id": recording.context["project_id"],
+                "replay_id": recording.context["replay_id"],
+            },
+        )
+        raise DropEvent("Could not find project.") from exc
+
+    # Write to billing consumer if its a billable event.
+    if recording.context["segment_id"] == 0:
+        _track_initial_segment_event(
+            recording.context["org_id"],
+            project,
+            recording.context["replay_id"],
+            recording.context["key_id"],
+            recording.context["received"],
+        )
+
+    # Write to replay-event consumer.
+    if recording.actions_event:
+        emit_replay_events(
+            recording.actions_event,
+            recording.context["org_id"],
+            project,
+            recording.context["replay_id"],
+            recording.context["retention_days"],
+            recording.replay_event,
+        )
 
 
 @sentry_sdk.trace
@@ -186,139 +189,41 @@ def emit_replay_events(
     report_rage_click(event_meta, project, replay_id, replay_event)
 
 
-# Separated I/O and compute branch.
+def _track_initial_segment_event(
+    org_id: int,
+    project: Project,
+    replay_id,
+    key_id: int | None,
+    received: int,
+) -> None:
+    set_project_flag_and_signal(project, "has_replays", first_replay_received)
 
-
-class CouldNotFindProject(DropSilently):
-    pass
-
-
-@dataclasses.dataclass
-class ProcessedRecordingMessage:
-    actions_event: ParsedEventMeta | None
-    filedata: bytes
-    filename: str
-    key_id: int | None
-    org_id: int
-    project_id: int
-    received: int
-    recording_size_uncompressed: int
-    recording_size: int
-    retention_days: int
-    replay_event: dict[str, Any] | None
-    replay_id: str
-    segment_id: int
-    video_size: int | None
-
-
-@sentry_sdk.trace
-def process_recording_message(message: RecordingIngestMessage) -> ProcessedRecordingMessage:
-    set_tag("org_id", message.org_id)
-    set_tag("project_id", message.project_id)
-
-    headers, segment_bytes = parse_headers(message.payload_with_headers, message.replay_id)
-    segment = decompress_segment(segment_bytes)
-
-    replay_events = parse_replay_events(message, headers, segment.decompressed)
-
-    with sentry_sdk.start_span(name="Parse replay event"):
-        replay_event = json.loads(message.replay_event) if message.replay_event else None
-
-    filename = make_recording_filename(
-        RecordingSegmentStorageMeta(
-            project_id=message.project_id,
-            replay_id=message.replay_id,
-            segment_id=headers["segment_id"],
-            retention_days=message.retention_days,
-        )
-    )
-
-    if message.replay_video:
-        with sentry_sdk.start_span(name="Compress video event"):
-            filedata = zlib.compress(pack(rrweb=segment.decompressed, video=message.replay_video))
-        video_size = len(message.replay_video)
-    else:
-        filedata = segment.compressed
-        video_size = None
-
-    return ProcessedRecordingMessage(
-        replay_events,
-        filedata,
-        filename,
-        key_id=message.key_id,
-        org_id=message.org_id,
-        project_id=message.project_id,
-        received=message.received,
-        recording_size_uncompressed=len(segment.decompressed),
-        recording_size=len(segment.compressed),
-        replay_event=replay_event,
-        replay_id=message.replay_id,
-        retention_days=message.retention_days,
-        segment_id=headers["segment_id"],
-        video_size=video_size,
+    track_outcome(
+        org_id=org_id,
+        project_id=project.id,
+        key_id=key_id,
+        outcome=Outcome.ACCEPTED,
+        reason=None,
+        timestamp=datetime.fromtimestamp(received, timezone.utc),
+        event_id=replay_id,
+        category=DataCategory.REPLAY,
+        quantity=1,
     )
 
 
 @sentry_sdk.trace
-def commit_recording_message(recording: ProcessedRecordingMessage) -> None:
-    # Write to GCS.
-    storage_kv.set(recording.filename, recording.filedata)
-
-    try:
-        project = Project.objects.get_from_cache(id=recording.project_id)
-        assert isinstance(project, Project)
-    except Project.DoesNotExist:
-        logger.warning(
-            "Recording segment was received for a project that does not exist.",
-            extra={
-                "project_id": recording.project_id,
-                "replay_id": recording.replay_id,
-            },
-        )
-        raise CouldNotFindProject()
-
-    # Write to billing consumer if its a billable event.
-    if recording.segment_id == 0:
-        _track_initial_segment_event(
-            recording.org_id,
-            project,
-            recording.replay_id,
-            recording.key_id,
-            recording.received,
-        )
-
-    # Write to replay-event consumer.
-    if recording.actions_event:
-        emit_replay_events(
-            recording.actions_event,
-            recording.org_id,
-            project,
-            recording.replay_id,
-            recording.retention_days,
-            recording.replay_event,
-        )
-
-
-@sentry_sdk.trace
-def track_recording_metadata(recording: ProcessedRecordingMessage) -> None:
+def track_recording_metadata(recording: ProcessedEvent) -> None:
     # Report size metrics to determine usage patterns.
-    _report_size_metrics(
-        size_compressed=recording.recording_size,
-        size_uncompressed=recording.recording_size_uncompressed,
+    metrics.distribution(
+        "replays.usecases.ingest.size_compressed", recording.recording_size, unit="byte"
+    )
+    metrics.distribution(
+        "replays.usecases.ingest.size_uncompressed",
+        recording.recording_size_uncompressed,
+        unit="byte",
     )
 
     if recording.video_size:
-        # Logging org info for bigquery
-        logger.info(
-            "sentry.replays.slow_click",
-            extra={
-                "event_type": "mobile_event",
-                "org_id": recording.org_id,
-                "project_id": recording.project_id,
-                "size": len(recording.filedata),
-            },
-        )
-
         # Track the number of replay-video events we receive.
         metrics.incr("replays.recording_consumer.replay_video_count")
 
@@ -335,19 +240,3 @@ def track_recording_metadata(recording: ProcessedRecordingMessage) -> None:
             len(recording.filedata),
             unit="byte",
         )
-
-
-def parse_replay_events(
-    message: RecordingIngestMessage, headers: RecordingSegmentHeaders, segment_bytes: bytes
-) -> ParsedEventMeta | None:
-    try:
-        return parse_events(json.loads(segment_bytes))
-    except Exception:
-        logging.exception(
-            "Failed to parse recording org=%s, project=%s, replay=%s, segment=%s",
-            message.org_id,
-            message.project_id,
-            message.replay_id,
-            headers["segment_id"],
-        )
-        return None

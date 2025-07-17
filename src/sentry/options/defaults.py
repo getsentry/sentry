@@ -2607,14 +2607,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rate at which to run split enhancements and compare the results to the default enhancements
-register(
-    "grouping.split_enhancements.sample_rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 register(
     "metrics.sample-list.sample-rate",
     type=Float,
@@ -3486,5 +3478,13 @@ register(
     "issues.browser_reporting.collector_endpoint_enabled",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rollout for inferring project platform from events received
+register(
+    "sentry:infer_project_platform",
+    type=Float,
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

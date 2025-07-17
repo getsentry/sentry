@@ -10,11 +10,12 @@ import pytest
 from django.utils.functional import cached_property
 
 from sentry import eventstore
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.event_manager import EventManager, get_event_type, materialize_metadata
 from sentry.eventstore.models import Event
 from sentry.grouping.api import (
     GroupingConfig,
-    apply_server_fingerprinting,
+    apply_server_side_fingerprinting,
     get_default_grouping_config_dict,
     load_grouping_config,
 )
@@ -24,7 +25,6 @@ from sentry.grouping.fingerprinting import FingerprintingRules
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.variants import BaseVariant
 from sentry.models.project import Project
-from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.utils import json
@@ -54,7 +54,7 @@ class GroupingInput:
         normalize_stacktraces_for_grouping(data, load_grouping_config(grouping_config))
 
         data.setdefault("fingerprint", ["{{ default }}"])
-        apply_server_fingerprinting(data, fingerprinting_config)
+        apply_server_side_fingerprinting(data, fingerprinting_config)
         event_type = get_event_type(data)
         event_metadata = event_type.get_metadata(data)
         data.update(materialize_metadata(data, event_type, event_metadata))
@@ -144,7 +144,7 @@ class FingerprintInput:
         data = mgr.get_data()
 
         data.setdefault("fingerprint", ["{{ default }}"])
-        apply_server_fingerprinting(data, config)
+        apply_server_side_fingerprinting(data, config)
         event_type = get_event_type(data)
         event_metadata = event_type.get_metadata(data)
         data.update(materialize_metadata(data, event_type, event_metadata))

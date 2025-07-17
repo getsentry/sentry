@@ -50,7 +50,6 @@ class OrganizationGroupSearchViewsStarredEndpointTest(APITestCase):
             view=view,
         )
 
-    @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
     def test_simple_case(self) -> None:
         self.login_as(user=self.user)
@@ -69,7 +68,6 @@ class OrganizationGroupSearchViewsStarredEndpointTest(APITestCase):
         assert response.data[1]["id"] == str(view_2.id)
         assert response.data[2]["id"] == str(view_3.id)
 
-    @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
     def test_views_starred_by_many_users(self) -> None:
         user_1 = self.user

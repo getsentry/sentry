@@ -90,7 +90,7 @@ export function EventListTable({children, pagination, title}: EventListTableProp
                 />
               </HeaderItem>
               <HeaderItem>
-                <ButtonBar gap={0.25}>
+                <ButtonBar gap="2xs">
                   <PaginationButton
                     aria-label={t('Previous Page')}
                     borderless
