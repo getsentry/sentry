@@ -3578,9 +3578,9 @@ class OrganizationEventsStatsErrorUpsamplingTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 2  # Two time buckets
-        # Should use regular count() since not all projects are allowlisted
-        assert data[0][1][0]["count"] == 1
-        assert data[1][1][0]["count"] == 1
+        # Should use upsampled count() since any project is allowlisted
+        assert data[0][1][0]["count"] == 10
+        assert data[1][1][0]["count"] == 10
 
     @mock.patch("sentry.api.helpers.error_upsampling.options")
     def test_error_upsampling_with_transaction_events(self, mock_options):
