@@ -122,8 +122,8 @@ const SyntaxHighlightedCode = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   white-space: pre;
 
-  pre,
-  code {
+  pre[class*='language-'],
+  code[class*='language-'] {
     margin: 0;
     padding: 0;
     background: transparent;
