@@ -312,6 +312,11 @@ class Fixtures:
             project = self.project
         return Factories.create_group(project, *args, **kwargs)
 
+    def create_group_activity(self, group=None, *args, **kwargs):
+        if group is None:
+            group = self.group
+        return Factories.create_group_activity(group, *args, **kwargs)
+
     def create_file(self, **kwargs):
         return Factories.create_file(**kwargs)
 
