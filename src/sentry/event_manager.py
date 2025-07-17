@@ -14,13 +14,14 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, OperationalError, connection, router, transaction
-from django.db.models import Max
+from django.db.models import Max, Q
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
 from urllib3.exceptions import MaxRetryError, TimeoutError
 from usageaccountant import UsageUnit
 
 from sentry import (
+    audit_log,
     eventstore,
     eventstream,
     eventtypes,
@@ -37,6 +38,7 @@ from sentry.constants import (
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
     PLACEHOLDER_EVENT_TITLES,
+    VALID_PLATFORMS,
     DataCategory,
     InsightModules,
 )
@@ -127,6 +129,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.usage_accountant import record
 from sentry.utils import metrics
+from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.circuit_breaker import (
     ERROR_COUNT_CACHE_KEY,
@@ -137,6 +140,7 @@ from sentry.utils.dates import to_datetime
 from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, is_handled
 from sentry.utils.eventuser import EventUser
 from sentry.utils.metrics import MutableTags
+from sentry.utils.options import sample_modulo
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
@@ -464,6 +468,11 @@ class EventManager:
         # After calling _pull_out_data we get some keys in the job like the platform
         _pull_out_data([job], projects)
 
+        # Sometimes projects get created without a platform (e.g. through the API), in which case we
+        # attempt to set it based on the first event
+        if sample_modulo("sentry:infer_project_platform", project.id):
+            _set_project_platform_if_needed(project, job["event"])
+
         event_type = self._data.get("type")
         if event_type == "transaction":
             job["data"]["project"] = project.id
@@ -688,6 +697,30 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
             job["event"].datetime.strftime("%s")
         )
         job["groups"] = []
+
+
+def _set_project_platform_if_needed(project: Project, event: Event) -> None:
+    if project.platform:
+        return
+
+    if event.platform not in VALID_PLATFORMS or event.get_tag("sample_event") == "yes":
+        return
+
+    try:
+        updated = Project.objects.filter(
+            Q(id=project.id) & (Q(platform__isnull=True) | Q(platform=""))
+        ).update(platform=event.platform)
+
+        if updated:
+            create_system_audit_entry(
+                organization=project.organization,
+                target_object=project.id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+                data={**project.get_audit_log_data(), "platform": event.platform},
+            )
+
+    except Exception:
+        logger.exception("Failed to infer and set project platform")
 
 
 @sentry_sdk.tracing.trace
@@ -1260,7 +1293,8 @@ def assign_event_to_group(
                 job, secondary.existing_grouphash, all_grouphashes
             )
             result = "found_secondary"
-        # If we still haven't found a group, ask Seer for a match (if enabled for the project)
+
+        # If we still haven't found a group, ask Seer for a match (if enabled for the event's platform)
         else:
             seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(
                 event, primary.grouphashes[0], primary.variants, all_grouphashes
@@ -1286,7 +1320,7 @@ def assign_event_to_group(
 
     # Now that we've used the current and possibly secondary grouping config(s) to calculate the
     # hashes, we're free to perform a config update if needed. Future events will use the new
-    # config, but will also be grandfathered into the current config for a week, so as not to
+    # config, but will also be grandfathered into the current config for a set period, so as not to
     # erroneously create new groups.
     update_or_set_grouping_config_if_needed(project, "ingest")
 
@@ -2539,6 +2573,7 @@ INSIGHT_MODULE_TO_PROJECT_FLAG_NAME: dict[InsightModules, str] = {
     InsightModules.QUEUE: "has_insights_queues",
     InsightModules.LLM_MONITORING: "has_insights_llm_monitoring",
     InsightModules.AGENTS: "has_insights_agent_monitoring",
+    InsightModules.MCP: "has_insights_mcp",
 }
 
 

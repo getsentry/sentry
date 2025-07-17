@@ -3,10 +3,12 @@ from __future__ import annotations
 from time import time
 from unittest.mock import MagicMock, patch
 
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.eventstore.models import Event
 from sentry.grouping.api import GroupingConfig
 from sentry.grouping.ingest.hashing import (
     _calculate_event_grouping,
+    _calculate_primary_hashes_and_variants,
     _calculate_secondary_hashes,
     get_or_create_grouphashes,
 )
@@ -14,7 +16,6 @@ from sentry.grouping.variants import BaseVariant
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
-from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.options import override_options
@@ -201,3 +202,33 @@ class SecondaryGroupingTest(TestCase):
                 legacy_config_hash,
                 default_config_hash,
             }
+
+    @patch("sentry.grouping.ingest.hashing._calculate_secondary_hashes")
+    @patch(
+        "sentry.grouping.ingest.hashing._calculate_primary_hashes_and_variants",
+        wraps=_calculate_primary_hashes_and_variants,
+    )
+    def test_no_error_with_unknown_secondary_config(
+        self,
+        mock_calculate_primary_hashes: MagicMock,
+        mock_calculate_secondary_hashes: MagicMock,
+    ) -> None:
+        """
+        Test that we won't break ingestion by removing a previously registered config, even if there
+        are projects still in transition.
+        """
+
+        project = self.project
+
+        project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
+        project.update_option("sentry:secondary_grouping_config", "no longer a recognized config")
+        project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
+
+        event = save_new_event({"message": "Dogs are great!"}, project)
+
+        # Grouping happened successfully
+        assert event.group_id
+
+        # We used the known primary config, but skipped the unknown secondary one
+        assert mock_calculate_primary_hashes.call_count == 1
+        assert mock_calculate_secondary_hashes.call_count == 0

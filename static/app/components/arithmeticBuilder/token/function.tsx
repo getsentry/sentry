@@ -52,7 +52,6 @@ export function ArithmeticTokenFunction({
   });
 
   const isFocused = item.key === state.selectionManager.focusedKey;
-
   const showUnfocusedState = !state.selectionManager.isFocused || !isFocused;
 
   return (
@@ -79,7 +78,7 @@ export function ArithmeticTokenFunction({
           {showUnfocusedState && (
             // Inject a floating span with the attribute name so when it's
             // not focused, it doesn't look like the placeholder text
-            <FunctionArgumentOverlay>{attribute.attribute}</FunctionArgumentOverlay>
+            <UnfocusedOverlay>{attribute.attribute}</UnfocusedOverlay>
           )}
         </BaseGridCell>
       )}
@@ -91,13 +90,10 @@ export function ArithmeticTokenFunction({
   );
 }
 
-interface InternalInputProps {
+interface InternalInputProps extends ArithmeticTokenFunctionProps {
   argumentIndex: number;
   attribute: TokenAttribute;
-  item: Node<Token>;
   rowRef: RefObject<HTMLDivElement | null>;
-  state: ListState<Token>;
-  token: TokenFunction;
 }
 
 function InternalInput({
@@ -124,7 +120,8 @@ function InternalInput({
     updateSelectionIndex();
   }, [updateSelectionIndex]);
 
-  const {dispatch, functionArguments, getFieldDefinition} = useArithmeticBuilder();
+  const {dispatch, functionArguments, getFieldDefinition, getSuggestedKey} =
+    useArithmeticBuilder();
 
   const parameterDefinition = useMemo(
     () => getFieldDefinition(token.function)?.parameters?.[argumentIndex],
@@ -186,7 +183,16 @@ function InternalInput({
   );
 
   const onInputCommit = useCallback(() => {
-    const value = inputValue.trim() || attribute.attribute;
+    let value = inputValue.trim() || attribute.attribute;
+
+    if (
+      defined(getSuggestedKey) &&
+      parameterDefinition &&
+      parameterDefinition.kind === 'column'
+    ) {
+      value = getSuggestedKey(value) ?? value;
+    }
+
     dispatch({
       text: `${token.function}(${value})`,
       type: 'REPLACE_TOKEN',
@@ -196,7 +202,16 @@ function InternalInput({
       },
     });
     resetInputValue();
-  }, [dispatch, state, token, attribute, inputValue, resetInputValue]);
+  }, [
+    dispatch,
+    state,
+    token,
+    attribute,
+    inputValue,
+    resetInputValue,
+    getSuggestedKey,
+    parameterDefinition,
+  ]);
 
   const onInputEscape = useCallback(() => {
     resetInputValue();
@@ -428,7 +443,7 @@ const FunctionGridCell = styled(BaseGridCell)`
   padding-left: ${space(0.5)};
 `;
 
-const FunctionArgumentOverlay = styled('div')`
+const UnfocusedOverlay = styled('div')`
   position: absolute;
   pointer-events: none;
 `;

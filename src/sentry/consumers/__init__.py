@@ -118,7 +118,7 @@ def uptime_options() -> list[click.Option]:
     options = [
         click.Option(
             ["--mode", "mode"],
-            type=click.Choice(["serial", "parallel", "batched-parallel"]),
+            type=click.Choice(["serial", "parallel", "batched-parallel", "thread-queue-parallel"]),
             default="serial",
             help="The mode to process results in. Parallel uses multithreading.",
         ),
@@ -138,7 +138,7 @@ def uptime_options() -> list[click.Option]:
             ["--max-workers", "max_workers"],
             type=int,
             default=None,
-            help="The maximum number of threads to spawn in parallel mode.",
+            help="The maximum amount of parallelism to use when in a parallel mode.",
         ),
         click.Option(["--processes", "num_processes"], default=1, type=int),
         click.Option(["--input-block-size"], type=int, default=None),
@@ -474,6 +474,7 @@ def get_stream_processor(
     group_instance_id: str | None = None,
     max_dlq_buffer_length: int | None = None,
     kafka_slice_id: int | None = None,
+    shutdown_strategy_before_consumer: bool = False,
     add_global_tags: bool = False,
 ) -> StreamProcessor:
     from sentry.utils import kafka_config
@@ -624,6 +625,7 @@ def get_stream_processor(
         commit_policy=ONCE_PER_SECOND,
         join_timeout=join_timeout,
         dlq_policy=dlq_policy,
+        shutdown_strategy_before_consumer=shutdown_strategy_before_consumer,
     )
 
 

@@ -18,7 +18,7 @@ import {
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTopNSpanEAPSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
@@ -30,7 +30,6 @@ import {
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
-import {useNeutralChartColor} from 'sentry/views/insights/pages/platform/shared/useNeutralChartColor';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 export default function ToolUsageWidget() {
@@ -40,11 +39,10 @@ export default function ToolUsageWidget() {
   });
 
   const theme = useTheme();
-  const neutralChartColor = useNeutralChartColor();
 
   const fullQuery = useCombinedQuery(getAIToolCallsFilter());
 
-  const toolsRequest = useEAPSpans(
+  const toolsRequest = useSpans(
     {
       fields: [AI_TOOL_NAME_ATTRIBUTE, 'count()'],
       sorts: [{field: 'count()', kind: 'desc'}],
@@ -102,8 +100,9 @@ export default function ToolUsageWidget() {
         plottables: timeSeries.map(
           (ts, index) =>
             new Bars(convertSeriesToTimeseries(ts), {
-              color: ts.seriesName === 'Other' ? neutralChartColor : colorPalette[index],
-              alias: ts.seriesName,
+              color:
+                ts.seriesName === 'Other' ? theme.chart.neutral : colorPalette[index],
+              alias: ts.seriesName, // Ensures that the tooltip shows the full series name
               stack: 'stack',
             })
         ),

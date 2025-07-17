@@ -2,14 +2,15 @@ from unittest import mock
 
 from google.api_core.exceptions import RetryError
 
+from sentry.issues.status_change_consumer import update_status
 from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.types.activity import ActivityType
-from sentry.workflow_engine.tasks import (
-    fetch_event,
+from sentry.workflow_engine.tasks.utils import fetch_event
+from sentry.workflow_engine.tasks.workflows import (
     process_workflow_activity,
     workflow_status_update_handler,
 )
@@ -23,7 +24,7 @@ class FetchEventTests(TestCase):
         project_id = self.project.id
 
         # Mock nodestore to fail with RetryError twice, then succeed
-        with mock.patch("sentry.workflow_engine.tasks.nodestore.backend.get") as mock_get:
+        with mock.patch("sentry.workflow_engine.tasks.utils.nodestore.backend.get") as mock_get:
             mock_get.side_effect = [
                 RetryError("retry", None),
                 RetryError("retry", None),
@@ -58,11 +59,12 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
             new_substatus=None,
             fingerprint=["test_fingerprint"],
             detector_id=None,  # No detector_id provided
+            activity_data=None,
         )
 
-        with mock.patch("sentry.workflow_engine.tasks.metrics.incr") as mock_incr:
+        with mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr") as mock_incr:
             workflow_status_update_handler(group, message, activity)
-            mock_incr.assert_called_with("workflow_engine.error.tasks.no_detector_id")
+            mock_incr.assert_called_with("workflow_engine.tasks.error.no_detector_id")
 
     def test__feature_flag(self):
         detector = self.create_detector(project=self.project)
@@ -80,15 +82,16 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
             new_substatus=None,
             fingerprint=["test_fingerprint"],
             detector_id=detector.id,
+            activity_data={"test": "test"},
         )
 
         with mock.patch(
-            "sentry.workflow_engine.tasks.process_workflow_activity.delay"
+            "sentry.workflow_engine.tasks.workflows.process_workflow_activity.delay"
         ) as mock_delay:
             workflow_status_update_handler(group, message, activity)
             mock_delay.assert_not_called()
 
-    @with_feature("organizations:workflow-engine-process-activity")
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test(self):
         detector = self.create_detector(project=self.project)
         group = self.create_group(project=self.project)
@@ -105,10 +108,11 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
             new_substatus=None,
             fingerprint=["test_fingerprint"],
             detector_id=detector.id,
+            activity_data={"test": "test"},
         )
 
         with mock.patch(
-            "sentry.workflow_engine.tasks.process_workflow_activity.delay"
+            "sentry.workflow_engine.tasks.workflows.process_workflow_activity.delay"
         ) as mock_delay:
             workflow_status_update_handler(group, message, activity)
             mock_delay.assert_called_once_with(
@@ -202,3 +206,38 @@ class TestProcessWorkflowActivity(TestCase):
         )
 
         mock_filter_actions.assert_called_once_with({self.action_group}, expected_event_data)
+
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr")
+    def test__e2e__issue_plat_to_processed(self, mock_incr):
+        self.message = StatusChangeMessageData(
+            id="test-id",
+            fingerprint=["group-1"],
+            project_id=self.project.id,
+            new_status=GroupStatus.RESOLVED,
+            new_substatus=None,
+            detector_id=self.detector.id,
+            activity_data={},
+        )
+
+        with self.tasks():
+            update_status(self.group, self.message)
+
+            # Issue platform is forwarding the activity update
+            mock_incr.assert_any_call(
+                "workflow_engine.issue_platform.status_change_handler",
+                amount=1,
+                tags={"activity_type": self.activity.type},
+            )
+
+            # Workflow engine is correctly registered for the activity update
+            mock_incr.assert_any_call(
+                "workflow_engine.tasks.process_workflows.activity_update",
+                tags={"activity_type": self.activity.type},
+            )
+
+            # Workflow engine evaluated activity update in process_workflows
+            mock_incr.assert_any_call(
+                "workflow_engine.tasks.process_workflows.activity_update.executed",
+                tags={"activity_type": self.activity.type},
+            )

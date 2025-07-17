@@ -11,14 +11,13 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {useEAPSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared/getReleaseBubbleProps';
 import {ModalChartContainer} from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
-import {useNeutralChartColor} from 'sentry/views/insights/pages/platform/shared/useNeutralChartColor';
 
 interface TrafficWidgetProps extends LoadableChartWidgetProps {
   referrer: string;
@@ -42,9 +41,8 @@ export function BaseTrafficWidget({
   });
 
   const theme = useTheme();
-  const neutralChartColor = useNeutralChartColor();
 
-  const {data, isLoading, error} = useEAPSeries(
+  const {data, isLoading, error} = useSpanSeries(
     {
       ...pageFilterChartParams,
       search: query,
@@ -63,14 +61,14 @@ export function BaseTrafficWidget({
     return [
       new Bars(convertSeriesToTimeseries(data['count(span.duration)']), {
         alias: trafficSeriesName,
-        color: neutralChartColor,
+        color: theme.chart.neutral,
       }),
       new Line(convertSeriesToTimeseries(data['trace_status_rate(internal_error)']), {
         alias: t('Error Rate'),
         color: theme.error,
       }),
     ];
-  }, [data, theme.error, neutralChartColor, trafficSeriesName]);
+  }, [data, theme.error, theme.chart.neutral, trafficSeriesName]);
 
   const isEmpty = useMemo(
     () =>

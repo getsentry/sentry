@@ -36,6 +36,18 @@ const getSpanFieldDefinition = (key: string) => {
   return getFieldDefinition(key, 'span', argument?.kind);
 };
 
+const getSuggestedKey = (key: string) => {
+  switch (key) {
+    case 'duration':
+    case 'self_time':
+    case 'op':
+    case 'description':
+      return `span.${key}`;
+    default:
+      return null;
+  }
+};
+
 interface TokensProp {
   expression: string;
   dispatch?: Dispatch<ArithmeticBuilderAction>;
@@ -62,6 +74,7 @@ function Tokens(props: TokensProp) {
         aggregations,
         functionArguments,
         getFieldDefinition: getSpanFieldDefinition,
+        getSuggestedKey,
       }}
     >
       <TokenGrid tokens={state.expression.tokens} />
@@ -518,6 +531,38 @@ describe('token', function () {
       ).toBeInTheDocument();
     });
 
+    it('maps key to suggested key on enter', async function () {
+      render(<Tokens expression="avg(span.duration)" />);
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg(span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      const input = screen.getByRole('combobox', {
+        name: 'Select an attribute',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+      expect(input).toHaveFocus();
+      expect(input).toHaveAttribute('placeholder', 'span.duration');
+      expect(input).toHaveValue('');
+
+      await userEvent.type(input, 'self_time{Enter}');
+
+      const lastInput = getLastInput();
+      await waitFor(() => expect(lastInput).toHaveFocus());
+      await userEvent.type(lastInput, '{Escape}');
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg(span.self_time)',
+        })
+      ).toBeInTheDocument();
+    });
+
     it('doesnt change argument on enter if input is empty', async function () {
       render(<Tokens expression="avg(span.duration)" />);
 
@@ -610,6 +655,121 @@ describe('token', function () {
           })
         ).not.toBeInTheDocument();
       });
+    });
+  });
+
+  describe('ArithmeticTokenLiteral', function () {
+    it.each(['1', '1.', '1.0', '+1', '+1.', '+1.0', '-1', '-1.', '-1.0'])(
+      'renders literal %s',
+      async function (expression) {
+        const dispatch = jest.fn();
+        render(<Tokens expression={expression} dispatch={dispatch} />);
+
+        expect(await screen.findByRole('row', {name: expression})).toBeInTheDocument();
+
+        const input = screen.getByRole('textbox', {
+          name: 'Add a literal',
+        });
+        expect(input).toBeInTheDocument();
+      }
+    );
+
+    it('completes literal with space', async function () {
+      const dispatch = jest.fn();
+      render(<Tokens expression="1" dispatch={dispatch} />);
+
+      expect(await screen.findByRole('row', {name: '1'})).toBeInTheDocument();
+
+      const input = screen.getByRole('textbox', {
+        name: 'Add a literal',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+      expect(input).toHaveFocus();
+      expect(input).toHaveValue('1');
+      await userEvent.type(input, '0 ');
+
+      await waitFor(() => expect(getLastInput()).toHaveFocus());
+
+      await userEvent.type(getLastInput(), '{Escape}');
+      expect(await screen.findByRole('row', {name: '10'})).toBeInTheDocument();
+    });
+
+    it('completes literal with enter', async function () {
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const dispatch = jest.fn();
+      render(<Tokens expression="1" dispatch={dispatch} />);
+
+      expect(await screen.findByRole('row', {name: '1'})).toBeInTheDocument();
+
+      const input = screen.getByRole('textbox', {
+        name: 'Add a literal',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+      expect(input).toHaveFocus();
+      expect(input).toHaveValue('1');
+
+      await userEvent.type(input, '0');
+      await userEvent.type(input, '{Enter}');
+
+      await waitFor(() => expect(getLastInput()).toHaveFocus());
+
+      await userEvent.type(getLastInput(), '{Escape}');
+      expect(await screen.findByRole('row', {name: '10'})).toBeInTheDocument();
+      errorSpy.mockRestore();
+    });
+
+    it('completes literal with escape', async function () {
+      const dispatch = jest.fn();
+      render(<Tokens expression="1" dispatch={dispatch} />);
+
+      expect(await screen.findByRole('row', {name: '1'})).toBeInTheDocument();
+
+      const input = screen.getByRole('textbox', {
+        name: 'Add a literal',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+      expect(input).toHaveFocus();
+      expect(input).toHaveValue('1');
+      await userEvent.type(input, '0{escape}');
+
+      expect(await screen.findByRole('row', {name: '10'})).toBeInTheDocument();
+    });
+
+    it.each([
+      ['+', 'icon-add'],
+      ['-', 'icon-subtract'],
+      ['*', 'icon-multiply'],
+      ['/', 'icon-divide'],
+      ['(', 'icon-parenthesis'],
+      [')', 'icon-parenthesis'],
+    ])('completes literal with token %s', async function (token, dataTestId) {
+      const dispatch = jest.fn();
+      render(<Tokens expression="1" dispatch={dispatch} />);
+
+      expect(await screen.findByRole('row', {name: '1'})).toBeInTheDocument();
+
+      const input = screen.getByRole('textbox', {
+        name: 'Add a literal',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+      expect(input).toHaveFocus();
+      expect(input).toHaveValue('1');
+      await userEvent.type(input, '0');
+      await userEvent.type(input, token);
+
+      await waitFor(() => expect(getLastInput()).toHaveFocus());
+      await userEvent.type(getLastInput(), '{Escape}');
+
+      expect(await screen.findByRole('row', {name: '10'})).toBeInTheDocument();
+      expect(screen.getByTestId(dataTestId)).toBeInTheDocument();
     });
   });
 

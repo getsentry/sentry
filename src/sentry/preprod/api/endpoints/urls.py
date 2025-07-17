@@ -1,8 +1,14 @@
 from django.urls import re_path
 
 from .organization_preprod_artifact_assemble import ProjectPreprodArtifactAssembleEndpoint
+from .project_installable_preprod_artifact_download import (
+    ProjectInstallablePreprodArtifactDownloadEndpoint,
+)
 from .project_preprod_artifact_assemble_generic import ProjectPreprodArtifactAssembleGenericEndpoint
 from .project_preprod_artifact_download import ProjectPreprodArtifactDownloadEndpoint
+from .project_preprod_artifact_size_analysis_download import (
+    ProjectPreprodArtifactSizeAnalysisDownloadEndpoint,
+)
 from .project_preprod_artifact_update import ProjectPreprodArtifactUpdateEndpoint
 
 preprod_urlpatterns = [
@@ -10,6 +16,16 @@ preprod_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/assemble/$",
         ProjectPreprodArtifactAssembleEndpoint.as_view(),
         name="sentry-api-0-assemble-preprod-artifact-files",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/(?P<artifact_id>[^/]+)/size-analysis/$",
+        ProjectPreprodArtifactSizeAnalysisDownloadEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-artifact-size-analysis-download",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/installablepreprodartifact/(?P<url_path>[^/]+)/$",
+        ProjectInstallablePreprodArtifactDownloadEndpoint.as_view(),
+        name="sentry-api-0-installable-preprod-artifact-download",
     ),
 ]
 

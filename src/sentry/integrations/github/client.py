@@ -184,6 +184,10 @@ class GithubProxyClient(IntegrationProxyClient):
             return jwt
 
         # The rest should use access tokens...
+        return self.get_access_token()
+
+    @control_silo_function
+    def get_access_token(self) -> str | None:
         now = datetime.utcnow()
         access_token: str | None = self.integration.metadata.get("access_token")
         expires_at: str | None = self.integration.metadata.get("expires_at")

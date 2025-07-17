@@ -1,7 +1,9 @@
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
+import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 enum GroupCategory {
@@ -36,6 +38,8 @@ export function IssueCategoryDetails({condition}: {condition: DataCondition}) {
 
 export function IssueCategoryNode() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
+  const {removeError} = useAutomationBuilderErrorContext();
+
   return tct('Issue category is equal to [category]', {
     category: (
       <AutomationBuilderSelect
@@ -44,8 +48,18 @@ export function IssueCategoryNode() {
         options={GROUP_CATEGORY_CHOICES}
         onChange={(option: SelectValue<GroupCategory>) => {
           onUpdate({comparison: {value: option.value}});
+          removeError(condition.id);
         }}
       />
     ),
   });
+}
+
+export function validateIssueCategoryCondition({
+  condition,
+}: ValidateDataConditionProps): string | undefined {
+  if (!condition.comparison.value) {
+    return t('You must select an issue category.');
+  }
+  return undefined;
 }
