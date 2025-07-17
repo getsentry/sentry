@@ -106,12 +106,16 @@ class DetectorStateManager:
 
     def get_redis_keys_for_group_keys(
         self, group_keys: list[DetectorGroupKey]
-    ) -> dict[str, tuple[DetectorGroupKey, str]]:
+    ) -> dict[str, tuple[DetectorGroupKey, str | DetectorCounter]]:
         """
         Generate all Redis keys needed for the given group keys.
-        Returns {redis_key: (group_key, key_type)} for easy result mapping.
+        Returns {redis_key: (group_key, key_type)} for efficient bulk fetching and processing.
+
+        key_type can be:
+        - "dedupe" for dedupe value keys
+        - DetectorCounter (str | DetectorPriorityLevel) for counter keys
         """
-        key_mapping = {}
+        key_mapping: dict[str, tuple[DetectorGroupKey, str | DetectorCounter]] = {}
 
         # Dedupe keys
         for group_key in group_keys:
@@ -126,7 +130,7 @@ class DetectorStateManager:
 
         return key_mapping
 
-    def bulk_get_redis_values(self, redis_keys: list[str]) -> dict[str, any]:
+    def bulk_get_redis_values(self, redis_keys: list[str]) -> dict[str, Any]:
         """
         Fetch multiple Redis values in a single pipeline operation.
         """
@@ -253,24 +257,30 @@ class DetectorStateManager:
         redis_key_mapping = self.get_redis_keys_for_group_keys(group_keys)
         redis_values = self.bulk_get_redis_values(list(redis_key_mapping.keys()))
 
-        # Process dedupe values
-        group_key_dedupe_values = {}
-        for group_key in group_keys:
-            dedupe_key = self.build_key(group_key, "dedupe_value")
-            dedupe_value = redis_values.get(dedupe_key)
-            group_key_dedupe_values[group_key] = int(dedupe_value) if dedupe_value else 0
+        # Process values using the mapping
+        group_key_dedupe_values: dict[DetectorGroupKey, int] = {}
+        counter_updates: dict[DetectorGroupKey, DetectorCounters] = {}
 
-        # Process counter values
-        counter_updates = {}
+        # Initialize counter_updates for all group keys
         for group_key in group_keys:
-            counter_values = {}
-            for counter_name in self.counter_names:
-                counter_key = self.build_key(group_key, counter_name)
-                counter_value = redis_values.get(counter_key)
-                counter_values[counter_name] = (
-                    int(counter_value) if counter_value is not None else counter_value
+            counter_updates[group_key] = {}
+
+        # Process all values using the mapping
+        for redis_key, redis_value in redis_values.items():
+            group_key, key_type = redis_key_mapping[redis_key]
+
+            if key_type == "dedupe":
+                group_key_dedupe_values[group_key] = int(redis_value) if redis_value else 0
+            else:
+                # key_type is a counter name (DetectorCounter)
+                counter_updates[group_key][key_type] = (
+                    int(redis_value) if redis_value is not None else redis_value
                 )
-            counter_updates[group_key] = counter_values
+
+        # Ensure all group keys have dedupe values (default to 0 if not found)
+        for group_key in group_keys:
+            if group_key not in group_key_dedupe_values:
+                group_key_dedupe_values[group_key] = 0
 
         results = {}
         for group_key in group_keys:
