@@ -28,9 +28,12 @@ describe('DebugMeta', function () {
     const event = EventFixture({entries: [eventEntryDebugMeta]});
     const image = eventEntryDebugMeta.data.images![0];
     const mockGetDebug = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/files/dsyms/?debug_id=${image?.debug_id}`,
+      url: `/projects/${organization.slug}/${project.slug}/files/dsyms/`,
       method: 'GET',
       body: [],
+      match: [
+        MockApiClient.matchQuery({debug_id: image?.debug_id, code_id: image?.code_id}),
+      ],
     });
 
     render(
