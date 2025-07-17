@@ -38,6 +38,8 @@ S012_msg = "S012 Use `from sentry.api.permissions import SentryIsAuthenticated` 
 
 S013_msg = "S013 Use `django.contrib.postgres.fields.array.ArrayField` instead"
 
+S014_msg = "S014 All `ThreadPoolExecutor` must have a `thread_name_prefix`."
+
 
 class SentryVisitor(ast.NodeVisitor):
     def __init__(self, filename: str) -> None:
@@ -45,6 +47,7 @@ class SentryVisitor(ast.NodeVisitor):
         self.filename = filename
 
         self._except_vars: list[str | None] = []
+        self._in_with_item = False
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         if node.module and not node.level:
@@ -133,6 +136,11 @@ class SentryVisitor(ast.NodeVisitor):
 
         self.generic_visit(node)
 
+    def visit_withitem(self, node: ast.withitem) -> None:
+        orig, self._in_with_item = self._in_with_item, True
+        self.generic_visit(node)
+        self._in_with_item = orig
+
     def visit_Call(self, node: ast.Call) -> None:
         if (
             # override_settings(...)
@@ -149,6 +157,25 @@ class SentryVisitor(ast.NodeVisitor):
             for keyword in node.keywords:
                 if keyword.arg == "SENTRY_OPTIONS":
                     self.errors.append((keyword.lineno, keyword.col_offset, S011_msg))
+
+        elif (
+            (
+                (
+                    # ThreadPoolExecutor(...)
+                    isinstance(node.func, ast.Name)
+                    and node.func.id == "ThreadPoolExecutor"
+                )
+                or (
+                    # concurrent.futures.ThreadPoolExecutor(...)
+                    isinstance(node.func, ast.Attribute)
+                    and node.func.attr == "ThreadPoolExecutor"
+                )
+            )
+            # it's okay to not name "immediate" threadpools
+            and not self._in_with_item
+        ):
+            if "thread_name_prefix" not in (kw.arg for kw in node.keywords):
+                self.errors.append((node.lineno, node.col_offset, S014_msg))
 
         self.generic_visit(node)
 

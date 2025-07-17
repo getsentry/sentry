@@ -31,7 +31,7 @@ from sentry.utils.numbers import base32_encode
 from sentry.utils.validators import is_event_id
 
 # 1 worker each for spans, errors, performance issues
-_query_thread_pool = ThreadPoolExecutor(max_workers=3)
+_query_thread_pool = ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=3)
 # Mostly here for testing
 ERROR_LIMIT = 10_000
 
