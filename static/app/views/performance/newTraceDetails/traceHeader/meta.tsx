@@ -13,6 +13,7 @@ import type {RepresentativeTraceEvent} from 'sentry/views/performance/newTraceDe
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
   isEAPError,
+  isEAPTraceNode,
   isTraceError,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -71,7 +72,7 @@ function getRootDuration(event: TraceTree.TraceEvent | null) {
 }
 
 export function Meta(props: MetaProps) {
-  const traceNode = props.tree.root.children[0]!;
+  const traceNode = props.tree.root.children[0];
   const {timestamp} = useTraceQueryParams();
 
   const uniqueErrorIssues = useMemo(() => {
@@ -112,6 +113,14 @@ export function Meta(props: MetaProps) {
     return unique;
   }, [traceNode]);
 
+  if (!traceNode) {
+    return null;
+  }
+
+  const spansCount = isEAPTraceNode(traceNode)
+    ? props.tree.eap_spans_count
+    : (props.meta?.span_count ?? 0);
+
   const uniqueIssuesCount = uniqueErrorIssues.length + uniquePerformanceIssues.length;
 
   // If there is no trace data, use the timestamp from the query params as an approximation for
@@ -119,7 +128,7 @@ export function Meta(props: MetaProps) {
   const ageStartTimestamp =
     traceNode?.space[0] ?? (timestamp ? timestamp * 1000 : undefined);
 
-  const hasSpans = (props.meta?.span_count ?? 0) > 0;
+  const hasSpans = spansCount > 0;
   const hasLogs = (props.logs?.length ?? 0) > 0;
 
   return (
@@ -138,9 +147,7 @@ export function Meta(props: MetaProps) {
           )
         }
       />
-      {hasSpans ? (
-        <MetaSection headingText={t('Spans')} bodyText={props.meta?.span_count} />
-      ) : null}
+      {hasSpans ? <MetaSection headingText={t('Spans')} bodyText={spansCount} /> : null}
       {ageStartTimestamp ? (
         <MetaSection
           headingText={t('Age')}

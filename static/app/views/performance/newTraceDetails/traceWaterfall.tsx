@@ -524,6 +524,21 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         action_source: 'load',
       });
     });
+
+    // TODO Abdullah Khan: Remove this once /trace-meta/ starts responding
+    // with the correct spans count for EAP traces.
+    if (
+      traceNode &&
+      isEAPTraceNode(traceNode) &&
+      props.tree.eap_spans_count !== props.meta?.data?.span_count
+    ) {
+      Sentry.withScope(scope => {
+        scope.setFingerprint(['trace-eap-spans-count-mismatch']);
+        scope.captureMessage(
+          'EAP spans count from /trace/ and /trace-meta/ are not equal'
+        );
+      });
+    }
   }, [
     setRowAsFocused,
     traceDispatch,
@@ -535,6 +550,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     props.organization,
     isLoadingSubscriptionDetails,
     hasExceededPerformanceUsageLimit,
+    props.meta?.data?.span_count,
     source,
     timestamp,
   ]);
