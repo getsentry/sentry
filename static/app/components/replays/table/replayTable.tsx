@@ -99,7 +99,7 @@ export default function ReplayTable({
         >
           {hasInteractiveColumn ? <InteractionStateLayer /> : null}
           {columns.map((column, columnIndex) => (
-            <RowCell key={`${replay.id}-${column.sortKey}`}>
+            <RowCell key={`${replay.id}-${columnIndex}-${column.sortKey}`}>
               <column.Component
                 columnIndex={columnIndex}
                 replay={replay}
