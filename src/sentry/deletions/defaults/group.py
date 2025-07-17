@@ -24,7 +24,7 @@ from ..manager import DeletionTaskManager
 
 logger = logging.getLogger(__name__)
 
-GROUP_CHUNK_SIZE = 1000
+GROUP_CHUNK_SIZE = 100
 EVENT_CHUNK_SIZE = 10000
 # https://github.com/getsentry/snuba/blob/54feb15b7575142d4b3af7f50d2c2c865329f2db/snuba/datasets/configuration/issues/storages/search_issues.yaml#L139
 ISSUE_PLATFORM_MAX_ROWS_TO_DELETE = 2000000
