@@ -7,7 +7,7 @@ import pytest
 def mock_produce_occurrence_to_kafka(monkeypatch):
     mock = Mock()
     monkeypatch.setattr(
-        "sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka", mock
+        "sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka", mock
     )
     return mock
 
