@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from sentry import audit_log, eventstream
 from sentry.api.base import audit_logger
 from sentry.deletions.tasks.groups import delete_groups as delete_groups_task
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.groupinbox import GroupInbox
@@ -51,8 +51,11 @@ def delete_group_list(
     error_ids = []
     for g in group_list:
         group_ids.append(g.id)
-        if g.issue_category == GroupCategory.ERROR:
-            error_ids.append(g.id)
+        try:
+            if g.issue_category == GroupCategory.ERROR:
+                error_ids.append(g.id)
+        except InvalidGroupTypeError:
+            pass
 
     transaction_id = uuid4().hex
     delete_logger.info(
