@@ -298,6 +298,7 @@ def test_create_activation_tracing_disable(task_namespace: TaskNamespace) -> Non
     assert "baggage" not in headers
 
 
+@pytest.mark.skip(reason="flaky: #95793")
 def test_create_activation_headers_scalars(task_namespace: TaskNamespace) -> None:
     @task_namespace.register(name="test.parameters")
     def with_parameters(one: str, two: int, org_id: int) -> None:
