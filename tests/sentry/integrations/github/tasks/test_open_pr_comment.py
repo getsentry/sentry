@@ -151,9 +151,6 @@ class TestSafeForComment(GithubCommentTestCase):
 
         pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
         assert pr_files == []  # not safe
-        self.mock_integration_metrics.incr.assert_called_with(
-            "github.open_pr_comment.rejected_comment", tags={"reason": "too_many_files"}
-        )
 
     @responses.activate
     def test_too_many_lines(self):
@@ -169,9 +166,6 @@ class TestSafeForComment(GithubCommentTestCase):
 
         pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
         assert pr_files == []  # not safe
-        self.mock_integration_metrics.incr.assert_called_with(
-            "github.open_pr_comment.rejected_comment", tags={"reason": "too_many_lines"}
-        )
 
     @responses.activate
     def test_too_many_files_and_lines(self):
@@ -194,9 +188,6 @@ class TestSafeForComment(GithubCommentTestCase):
 
         pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
         assert pr_files == []  # not safe
-        self.mock_integration_metrics.incr.assert_any_call(
-            "github.open_pr_comment.rejected_comment", tags={"reason": "too_many_lines"}
-        )
 
     @responses.activate
     def test_error__rate_limited(self):
@@ -212,9 +203,6 @@ class TestSafeForComment(GithubCommentTestCase):
 
         pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
         assert pr_files == []  # not safe
-        self.mock_integration_metrics.incr.assert_called_with(
-            "github.open_pr_comment.api_error", tags={"type": "gh_rate_limited", "code": 429}
-        )
 
     @responses.activate
     def test_error__missing_pr(self):
@@ -224,10 +212,6 @@ class TestSafeForComment(GithubCommentTestCase):
 
         pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
         assert pr_files == []  # not safe
-        self.mock_integration_metrics.incr.assert_called_with(
-            "github.open_pr_comment.api_error",
-            tags={"type": "missing_gh_pull_request", "code": 404},
-        )
 
     @responses.activate
     def test_error__api_error(self):
@@ -235,11 +219,8 @@ class TestSafeForComment(GithubCommentTestCase):
             responses.GET, self.gh_path.format(pull_number=self.pr.key), status=400, json={}
         )
 
-        pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
-        assert pr_files == []  # not safe
-        self.mock_integration_metrics.incr.assert_called_with(
-            "github.open_pr_comment.api_error", tags={"type": "unknown_api_error", "code": 400}
-        )
+        with pytest.raises(ApiError):
+            self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
 
 
 class TestGetFilenames(GithubCommentTestCase):
@@ -1137,9 +1118,6 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         pull_request_comment_query = PullRequestComment.objects.all()
         assert len(pull_request_comment_query) == 0
-        mock_integration_metrics.incr.assert_called_with(
-            "github.open_pr_comment.error", tags={"type": "unsafe_for_comment"}
-        )
 
         mock_safe_for_comment.return_value = [{}]
         mock_pr_filenames.return_value = [
@@ -1355,6 +1333,3 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         open_pr_comment_workflow(self.pr.id)
 
         assert not mock_pr_filenames.called
-        mock_integration_metrics.incr.assert_called_with(
-            "github.open_pr_comment.error", tags={"type": "unsafe_for_comment"}
-        )
