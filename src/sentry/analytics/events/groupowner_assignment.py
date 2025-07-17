@@ -3,12 +3,12 @@ from sentry import analytics
 
 @analytics.eventclass("groupowner.assignment")
 class GroupOwnerAssignment(analytics.Event):
-    organization_id: str
-    project_id: str
-    group_id: str
+    organization_id: int
+    project_id: int
+    group_id: int
     new_assignment: bool
-    user_id: str | None = None
-    group_owner_type: str
+    user_id: int | None = None
+    group_owner_type: int
     method: str | None = None
 
 
