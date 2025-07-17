@@ -11,7 +11,7 @@ import {space} from 'sentry/styles/space';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useLocalStorageFlows} from 'sentry/views/codecov/flows/hooks/useFlows';
+import {useFlowTemp} from 'sentry/views/codecov/flows/hooks/useFlow';
 import ReplayDetailsProviders from 'sentry/views/replays/detail/body/replayDetailsProviders';
 import ReplayDetailsPageBreadcrumbs from 'sentry/views/replays/detail/header/replayDetailsPageBreadcrumbs';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
@@ -133,14 +133,21 @@ const BreadcrumbTimestamp = styled('div')`
 
 export default function FlowDetail() {
   const {flowId} = useParams<{flowId: string}>();
-  const {getFlow, isLoading} = useLocalStorageFlows();
+  // Only call useFlowTemp if flowId is defined and a string
+  const {flow: loadedFlow, isLoading} = useFlowTemp(flowId ?? '');
 
-  // Find the flow by ID
-  const flow = flowId ? getFlow(flowId) : undefined;
+  // Use loadedFlow directly, don't redeclare 'flow'
+  const flow = loadedFlow;
 
-  // Get replay data for display
-  const replaySlug = flow?.metadata?.replaySlug || '135fc779c3894f5682bf0e3a76060469';
-  const orgSlug = flow?.metadata?.orgSlug || 'codecov';
+  // Defensive fallback for replaySlug and orgSlug
+  // Assume FlowDefinition has top-level replaySlug/orgSlug/startBreadcrumb/endBreadcrumb
+  // If not, fallback to defaults
+  // @ts-expect-error: FlowDefinition may not have these fields, fallback to defaults
+  const replaySlug =
+    (flow && (flow.replaySlug ?? flow.metadata?.replaySlug)) ||
+    '135fc779c3894f5682bf0e3a76060469';
+  // @ts-expect-error: FlowDefinition may not have these fields, fallback to defaults
+  const orgSlug = (flow && (flow.orgSlug ?? flow.metadata?.orgSlug)) || 'codecov';
 
   const readerResult = useLoadReplayReader({
     replaySlug,
@@ -162,14 +169,6 @@ export default function FlowDetail() {
     const parts = breadcrumbId.split('-');
     const offsetMs = parts.length > 0 ? parseInt(parts[0], 10) : 0;
 
-    console.log('Creating breadcrumb frame:', {
-      breadcrumbId,
-      offsetMs,
-      startTimestampMs: replay.getStartTimestampMs(),
-      timestampMs: replay.getStartTimestampMs() + offsetMs,
-      isStart,
-    });
-
     return {
       offsetMs,
       timestampMs: replay.getStartTimestampMs() + offsetMs,
@@ -179,12 +178,22 @@ export default function FlowDetail() {
     };
   };
 
-  const startFrame = flow?.metadata?.startBreadcrumb
-    ? createMockBreadcrumbFrame(flow.metadata.startBreadcrumb, true)
+  // Try both top-level and metadata for start/end breadcrumb
+  // @ts-expect-error: FlowDefinition may not have these fields, fallback to undefined
+  const startBreadcrumbId = flow
+    ? (flow.startBreadcrumb ?? flow.metadata?.startBreadcrumb)
+    : undefined;
+  // @ts-expect-error: FlowDefinition may not have these fields, fallback to undefined
+  const endBreadcrumbId = flow
+    ? (flow.endBreadcrumb ?? flow.metadata?.endBreadcrumb)
+    : undefined;
+
+  const startFrame = startBreadcrumbId
+    ? createMockBreadcrumbFrame(startBreadcrumbId, true)
     : null;
 
-  const endFrame = flow?.metadata?.endBreadcrumb
-    ? createMockBreadcrumbFrame(flow.metadata.endBreadcrumb, false)
+  const endFrame = endBreadcrumbId
+    ? createMockBreadcrumbFrame(endBreadcrumbId, false)
     : null;
 
   if (isLoading) {

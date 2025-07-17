@@ -7,21 +7,17 @@ import type {FlowDefinition} from 'sentry/views/codecov/flows/types';
 import {FlowsTableRow} from './row';
 
 interface Props {
-  response: {
-    data: FlowDefinition[];
-    isLoading: boolean;
-    error?: Error | null;
-  };
-  onDeleteFlow?: (flowId: string) => void;
+  data: FlowDefinition[];
+  isError: boolean;
+  isLoading: boolean;
+  onDeleteFlow: (flowId: string) => void;
 }
 
-export default function FlowsTable({response, onDeleteFlow}: Props) {
-  const {data, isLoading, error} = response;
-
+export default function FlowsTable({data, isLoading, isError, onDeleteFlow}: Props) {
   let tableContent: React.ReactNode;
   if (isLoading) {
     tableContent = <SimpleTable.Empty>{t('Loading...')}</SimpleTable.Empty>;
-  } else if (error) {
+  } else if (isError) {
     tableContent = <SimpleTable.Empty>{t('Error loading flows')}</SimpleTable.Empty>;
   } else if (!data || data.length === 0) {
     tableContent = (
@@ -45,7 +41,7 @@ export default function FlowsTable({response, onDeleteFlow}: Props) {
         <SimpleTable.HeaderCell>{t('Created By')}</SimpleTable.HeaderCell>
         <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
         <SimpleTable.HeaderCell>{t('Last Seen')}</SimpleTable.HeaderCell>
-        {onDeleteFlow && <SimpleTable.HeaderCell>{t('Actions')}</SimpleTable.HeaderCell>}
+        <SimpleTable.HeaderCell>{t('Actions')}</SimpleTable.HeaderCell>
       </SimpleTable.Header>
       {tableContent}
     </FlowsSimpleTable>

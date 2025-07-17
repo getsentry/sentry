@@ -1998,12 +1998,14 @@ function buildRoutes() {
           component={make(() => import('sentry/views/codecov/flows/create/selectReplay'))}
         />
         <Route
-          path="new/"
-          component={make(() => import('sentry/views/codecov/flows/create/new'))}
+          path="select-start-end/"
+          component={make(
+            () => import('sentry/views/codecov/flows/create/selectStartEnd')
+          )}
         />
         <Route
           path=":flowId/"
-          component={make(() => import('sentry/views/codecov/flows/detail/page'))}
+          component={make(() => import('sentry/views/codecov/flows/detail'))}
         />
       </Route>
       <Route path="tokens/">

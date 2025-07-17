@@ -1,14 +1,14 @@
 import React, {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import * as Layout from 'sentry/components/layouts/thirds';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayView from 'sentry/components/replays/replayView';
@@ -27,7 +27,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import ReplayDetailsProviders from 'sentry/views/replays/detail/body/replayDetailsProviders';
 import ReplaysFilters from 'sentry/views/replays/list/filters';
 import ReplaySearchBar from 'sentry/views/replays/list/replaySearchBar';
-import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
+import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 
 export default function SelectReplayPage() {
   const organization = useOrganization();
@@ -38,7 +38,6 @@ export default function SelectReplayPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
 
-  // Read all filter parameters from URL
   const query = useLocationQuery({
     fields: {
       cursor: decodeScalar,
@@ -54,9 +53,7 @@ export default function SelectReplayPage() {
 
   // Create an EventView for fetching replays
   const eventView = useMemo(() => {
-    // Combine the URL query with the search query
     const combinedQuery = [query.query, searchQuery].filter(Boolean).join(' ');
-
     return EventView.fromSavedQuery({
       id: '',
       name: '',
@@ -71,8 +68,8 @@ export default function SelectReplayPage() {
         'urls',
       ],
       projects: selection.projects.map(Number),
-      query: combinedQuery || '', // Use the combined query
-      orderby: '-started_at', // Most recent first
+      query: combinedQuery || '',
+      orderby: '-started_at',
       environment: query.environment || selection.environments,
       range: query.statsPeriod,
       start: query.start,
@@ -91,17 +88,13 @@ export default function SelectReplayPage() {
     selection.environments,
   ]);
 
-  // Fetch replays using the actual hook
   const {replays, isFetching, fetchError} = useReplayList({
     eventView,
     location,
     organization,
     queryReferrer: 'replayList',
-    perPage: 20, // Limit to 20 replays for the page
+    perPage: 20,
   });
-
-  // Ensure replays is always an array
-  const safeReplays = Array.isArray(replays) ? replays : [];
 
   const handleSubmit = useCallback(
     (e?: React.FormEvent) => {
@@ -110,14 +103,13 @@ export default function SelectReplayPage() {
         addErrorMessage(t('Please select a replay'));
         return;
       }
-
       setIsSubmitting(true);
       addLoadingMessage();
 
       try {
-        addSuccessMessage(t('Replay selected successfully.'));
-        // Navigate to the next step, e.g. /codecov/flows/new?replay=<id>
-        navigate(`/codecov/flows/new?replay=${encodeURIComponent(selectedReplay)}`);
+        navigate(
+          `/codecov/flows/select-start-end?replay=${encodeURIComponent(selectedReplay)}`
+        );
         setSelectedReplay(null);
       } catch (error) {
         const message = t('Failed to access replay.');
@@ -130,20 +122,11 @@ export default function SelectReplayPage() {
   );
 
   const handleCancel = useCallback(() => {
-    // Go back to previous page or flows list
     navigate('/codecov/flows/');
     setSelectedReplay(null);
   }, [navigate]);
 
   const isFormValid = !!selectedReplay;
-
-  // Load the selected replay for preview
-  const replayReaderResult = useLoadReplayReader({
-    replaySlug: selectedReplay || '',
-    orgSlug: organization.slug,
-  });
-
-  const {replay, replayRecord} = replayReaderResult || {};
 
   return (
     <SentryDocumentTitle title={t('Select Replay')}>
@@ -170,134 +153,42 @@ export default function SelectReplayPage() {
             <Layout.Main fullWidth>
               <TwoColumnContainer>
                 <LeftColumn>
-                  <p style={{marginBottom: '16px', color: '#6b7280'}}>
-                    {t('Select a replay to use as the basis for your new flow.')}
-                  </p>
-
-                  <SearchContainer>
-                    <ReplaySearchBar
-                      organization={organization}
-                      pageFilters={selection}
-                      defaultQuery=""
-                      query={searchQuery}
-                      onSearch={setSearchQuery}
-                    />
-                  </SearchContainer>
-
-                  <FiltersContainer>
-                    <ReplaysFilters />
-                  </FiltersContainer>
-
-                  {isFetching ? (
-                    <div style={{textAlign: 'center', padding: '40px'}}>
-                      {t('Loading replays...')}
-                    </div>
-                  ) : fetchError ? (
-                    <div style={{textAlign: 'center', padding: '40px', color: '#dc2626'}}>
-                      {t('Error loading replays')}
-                    </div>
-                  ) : safeReplays.length === 0 ? (
-                    <div style={{textAlign: 'center', padding: '40px', color: '#6b7280'}}>
-                      {t('No replays found')}
-                    </div>
-                  ) : (
-                    <div
-                      style={{maxHeight: '400px', overflowY: 'auto', marginBottom: 24}}
+                  <List symbol="colored-numeric">
+                    <ListItem
+                      style={{
+                        fontSize: '20px',
+                        fontWeight: 'bold',
+                        marginBottom: 12,
+                        listStyle: 'none',
+                      }}
                     >
-                      {safeReplays
-                        .filter(
-                          replayItem =>
-                            replayItem && typeof replayItem === 'object' && replayItem.id
-                        )
-                        .map(replayItem => (
-                          <div
-                            key={replayItem.id}
-                            onClick={() => setSelectedReplay(replayItem.id)}
-                            style={{
-                              padding: '12px',
-                              border: `2px solid ${selectedReplay === replayItem.id ? '#6366f1' : '#e5e7eb'}`,
-                              borderRadius: '8px',
-                              marginBottom: '8px',
-                              cursor: 'pointer',
-                              backgroundColor:
-                                selectedReplay === replayItem.id ? '#f3f4f6' : 'white',
-                              transition: 'all 0.2s ease',
-                            }}
-                            data-test-id={`replay-row-${replayItem.id}`}
-                            tabIndex={0}
-                            role="button"
-                            aria-pressed={selectedReplay === replayItem.id}
-                            onKeyDown={e => {
-                              if (e.key === 'Enter' || e.key === ' ') {
-                                setSelectedReplay(replayItem.id);
-                              }
-                            }}
-                          >
-                            <div
-                              style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'flex-start',
-                              }}
-                            >
-                              <div style={{flex: 1}}>
-                                <div style={{fontWeight: 600, marginBottom: '4px'}}>
-                                  {replayItem.urls?.[0]
-                                    ? (() => {
-                                        try {
-                                          return new URL(replayItem.urls[0]).pathname;
-                                        } catch {
-                                          return replayItem.urls[0] || t('Unknown URL');
-                                        }
-                                      })()
-                                    : t('Unknown URL')}
-                                </div>
-                                <div
-                                  style={{
-                                    fontSize: '12px',
-                                    color: '#6b7280',
-                                    marginBottom: '4px',
-                                  }}
-                                >
-                                  {t('User')}:{' '}
-                                  {replayItem.user?.display_name ||
-                                    replayItem.user?.email ||
-                                    t('Unknown')}
-                                </div>
-                                <div
-                                  style={{
-                                    fontSize: '12px',
-                                    color: '#6b7280',
-                                    marginBottom: '4px',
-                                  }}
-                                >
-                                  {t('Duration')}:{' '}
-                                  {replayItem.duration
-                                    ? Math.round(replayItem.duration.asSeconds())
-                                    : 0}
-                                  s
-                                </div>
-                                <div style={{fontSize: '12px', color: '#6b7280'}}>
-                                  {replayItem.started_at?.toLocaleString() ||
-                                    t('Unknown time')}
-                                </div>
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: '11px',
-                                  color: '#9ca3af',
-                                  fontFamily: 'monospace',
-                                }}
-                              >
-                                {replayItem?.id?.substring(0, 8) || 'Unknown'}...
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  )}
-
-                  <div style={{display: 'flex', gap: '12px', justifyContent: 'flex-end'}}>
+                      {t('Select a replay to use as the basis for your new flow.')}
+                    </ListItem>
+                  </List>
+                  <ReplaySearchBar
+                    organization={organization}
+                    pageFilters={selection}
+                    defaultQuery=""
+                    query={searchQuery}
+                    onSearch={setSearchQuery}
+                  />
+                  <ReplaysFilters />
+                  <ReplayListScrollContainer>
+                    {isFetching ? (
+                      <LoadingIndicator />
+                    ) : fetchError || !replays || replays.length === 0 ? (
+                      <EmptyStateWarning withIcon={false} small>
+                        {t('No replays found')}
+                      </EmptyStateWarning>
+                    ) : (
+                      <SelectReplayList
+                        replays={replays}
+                        selectedReplay={selectedReplay}
+                        setSelectedReplay={setSelectedReplay}
+                      />
+                    )}
+                  </ReplayListScrollContainer>
+                  <ButtonContainer>
                     <Button priority="default" onClick={handleCancel} type="button">
                       {t('Cancel')}
                     </Button>
@@ -309,51 +200,16 @@ export default function SelectReplayPage() {
                     >
                       {isSubmitting ? t('Loading...') : t('Select Replay')}
                     </Button>
-                  </div>
+                  </ButtonContainer>
                 </LeftColumn>
 
                 <RightColumn>
-                  <PreviewContainer>
-                    <PreviewTitle>{t('Replay Preview')}</PreviewTitle>
-                    {selectedReplay && replay ? (
-                      <ReplayDetailsProviders
-                        replay={replay}
-                        projectSlug={replayRecord?.project_id || ''}
-                      >
-                        <PreviewContent>
-                          <ReplayView toggleFullscreen={() => {}} isLoading={false} />
-                          <ReplayController
-                            isLoading={false}
-                            toggleFullscreen={() => {}}
-                            hideFastForward={false}
-                          />
-                        </PreviewContent>
-                      </ReplayDetailsProviders>
-                    ) : selectedReplay && !replay ? (
-                      <LoadingPreview>
-                        <div
-                          style={{textAlign: 'center', padding: '40px', color: '#6b7280'}}
-                        >
-                          <div style={{fontSize: '16px', marginBottom: '8px'}}>
-                            {t('Loading replay...')}
-                          </div>
-                        </div>
-                      </LoadingPreview>
-                    ) : (
-                      <EmptyPreview>
-                        <div
-                          style={{textAlign: 'center', padding: '40px', color: '#6b7280'}}
-                        >
-                          <div style={{fontSize: '16px', marginBottom: '8px'}}>
-                            {t('No replay selected')}
-                          </div>
-                          <div style={{fontSize: '14px'}}>
-                            {t('Select a replay from the list to see a preview')}
-                          </div>
-                        </div>
-                      </EmptyPreview>
-                    )}
-                  </PreviewContainer>
+                  {selectedReplay && (
+                    <SelectReplayPreview
+                      replaySlug={selectedReplay}
+                      orgSlug={organization.slug}
+                    />
+                  )}
                 </RightColumn>
               </TwoColumnContainer>
             </Layout.Main>
@@ -361,6 +217,140 @@ export default function SelectReplayPage() {
         </Layout.Page>
       </PageFiltersContainer>
     </SentryDocumentTitle>
+  );
+}
+
+function SelectReplayList({
+  replays,
+  selectedReplay,
+  setSelectedReplay,
+}: {
+  replays: ReplayListRecord[];
+  selectedReplay: string | null;
+  setSelectedReplay: (replay: string | null) => void;
+}) {
+  return (
+    <div>
+      {replays.map(replayItem => {
+        const isSelected = selectedReplay === replayItem.id;
+        let pathname = t('Unknown URL');
+        if (replayItem.urls?.[0]) {
+          try {
+            pathname = new URL(replayItem.urls[0]).pathname;
+          } catch {
+            pathname = replayItem.urls[0] || t('Unknown URL');
+          }
+        }
+        const MAX_LENGTH = 40;
+        if (pathname.length > MAX_LENGTH) {
+          pathname = pathname.slice(0, MAX_LENGTH) + '...';
+        }
+        const user =
+          replayItem.user?.display_name || replayItem.user?.email || t('Unknown');
+        const duration =
+          replayItem.duration && typeof replayItem.duration.asSeconds === 'function'
+            ? Math.round(replayItem.duration.asSeconds())
+            : 0;
+        const startedAt =
+          replayItem.started_at &&
+          typeof replayItem.started_at.toLocaleString === 'function'
+            ? replayItem.started_at.toLocaleString()
+            : t('Unknown time');
+
+        return (
+          <div
+            key={replayItem.id}
+            onClick={() => setSelectedReplay(replayItem.id)}
+            style={{
+              padding: '12px',
+              border: `2px solid ${isSelected ? '#6366f1' : '#e5e7eb'}`,
+              borderRadius: '8px',
+              marginBottom: '8px',
+              cursor: 'pointer',
+              backgroundColor: isSelected ? '#f3f4f6' : 'white',
+              transition: 'all 0.2s ease',
+            }}
+            data-test-id={`replay-row-${replayItem.id}`}
+            tabIndex={0}
+            role="button"
+            aria-pressed={isSelected}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                setSelectedReplay(replayItem.id);
+              }
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+              }}
+            >
+              <div style={{flex: 1}}>
+                <div style={{fontWeight: 600, marginBottom: '4px'}}>{pathname}</div>
+                <div style={{fontSize: '12px', color: '#6b7280', marginBottom: '4px'}}>
+                  {t('User')}: {user}
+                </div>
+                <div style={{fontSize: '12px', color: '#6b7280', marginBottom: '4px'}}>
+                  {t('Duration')}: {duration}s
+                </div>
+                <div style={{fontSize: '12px', color: '#6b7280'}}>{startedAt}</div>
+              </div>
+              <div
+                style={{
+                  fontSize: '11px',
+                  color: '#9ca3af',
+                  fontFamily: 'monospace',
+                }}
+              >
+                {replayItem?.id?.substring(0, 8) || 'Unknown'}...
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function SelectReplayPreview({
+  replaySlug,
+  orgSlug,
+}: {
+  orgSlug: string;
+  replaySlug: string;
+}) {
+  const {replay, replayRecord, isError, isPending} = useLoadReplayReader({
+    replaySlug,
+    orgSlug,
+  });
+
+  return (
+    <PreviewContainer>
+      <PreviewTitle>{t('Replay Preview')}</PreviewTitle>
+      {isPending ? (
+        <LoadingIndicator />
+      ) : isError ? (
+        <EmptyStateWarning withIcon={false} small>
+          {t('Error loading replay')}
+        </EmptyStateWarning>
+      ) : replay ? (
+        <ReplayDetailsProviders
+          replay={replay}
+          projectSlug={replayRecord?.project_id || ''}
+        >
+          <PreviewContent>
+            <ReplayView isLoading={isPending} toggleFullscreen={() => {}} />
+            <ReplayController
+              isLoading={isPending}
+              hideFastForward={false}
+              toggleFullscreen={() => {}}
+            />
+          </PreviewContent>
+        </ReplayDetailsProviders>
+      ) : null}
+    </PreviewContainer>
   );
 }
 
@@ -374,7 +364,10 @@ const TwoColumnContainer = styled('div')`
 const LeftColumn = styled('div')`
   flex: 1;
   max-width: 600px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: ${space(3)};
+  padding: ${space(3)};
 `;
 
 const RightColumn = styled('div')`
@@ -382,6 +375,14 @@ const RightColumn = styled('div')`
   min-width: 400px;
   display: flex;
   flex-direction: column;
+`;
+
+const ReplayListScrollContainer = styled('div')`
+  flex: 1 1 auto;
+  min-height: 200px;
+  max-height: 350px;
+  overflow-y: auto;
+  margin-bottom: ${space(2)};
 `;
 
 const PreviewContainer = styled('div')`
@@ -408,33 +409,8 @@ const PreviewContent = styled('div')`
   overflow: hidden;
 `;
 
-const LoadingPreview = styled('div')`
-  flex: 1;
+const ButtonContainer = styled('div')`
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f9fafb;
-  border-radius: 4px;
-`;
-
-const EmptyPreview = styled('div')`
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f9fafb;
-  border-radius: 4px;
-  border: 2px dashed #e5e7eb;
-`;
-
-const SearchContainer = styled('div')`
-  margin-bottom: ${space(3)};
-`;
-
-const FiltersContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(2)};
-  flex-wrap: wrap;
-  margin-bottom: 20px;
+  gap: 12px;
+  justify-content: flex-end;
 `;

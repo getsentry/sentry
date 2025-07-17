@@ -11,29 +11,26 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import {useLocalStorageFlows} from 'sentry/views/codecov/flows/hooks/useFlows';
-import type {Flow} from 'sentry/views/codecov/flows/types';
+import {useCreateFlow} from 'sentry/views/codecov/flows/hooks/useCreateFlow';
+import type {FlowDefinition} from 'sentry/views/codecov/flows/types';
 
 function FlowCreateForm({
   onCreatedFlow,
   startBreadcrumb,
   endBreadcrumb,
   replaySlug,
-  organization,
 }: {
-  onCreatedFlow: (flow: Flow) => void;
-  organization: Organization;
+  onCreatedFlow: (flow: FlowDefinition) => void;
   endBreadcrumb?: string | null;
   orgSlug?: string;
   replaySlug?: string;
   startBreadcrumb?: string | null;
 }) {
-  const {createFlow} = useLocalStorageFlows();
+  const {mutateAsync: createFlow, isPending: isCreating} = useCreateFlow();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const user = useUser();
@@ -48,7 +45,7 @@ function FlowCreateForm({
     addLoadingMessage();
 
     try {
-      const newFlow = await createFlow({
+      const response = await createFlow({
         name: name.trim(),
         createdBy: {
           email: user.email,
@@ -57,16 +54,14 @@ function FlowCreateForm({
           avatar: user.avatarUrl,
         },
         status: 'active',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        organizationId: organization.id,
-        projectId: '',
         description: `Flow created from replay: ${replaySlug || 'manual'}`,
         replayId: replaySlug,
+        startBreadcrumb: startBreadcrumb || undefined,
+        endBreadcrumb: endBreadcrumb || undefined,
       });
 
       addSuccessMessage(t('Created flow successfully.'));
-      onCreatedFlow(newFlow);
+      onCreatedFlow(response.data);
 
       // Navigate back to the flows list
       navigate('/codecov/flows/');
@@ -76,7 +71,18 @@ function FlowCreateForm({
     } finally {
       setIsSubmitting(false);
     }
-  }, [createFlow, user.email, user.id, user.name, user.avatarUrl, organization.id, replaySlug, onCreatedFlow, navigate]);
+  }, [
+    createFlow,
+    user.email,
+    user.id,
+    user.name,
+    user.avatarUrl,
+    replaySlug,
+    startBreadcrumb,
+    endBreadcrumb,
+    onCreatedFlow,
+    navigate,
+  ]);
 
   const isFormValid = () => {
     const nameField = document.querySelector('input[name="name"]') as HTMLInputElement;
@@ -137,7 +143,7 @@ export default function FlowCreatePage() {
   const _handleGoBack = useCallback(() => navigate(`/codecov/flows/`), [navigate]);
 
   const handleCreatedFlow = useCallback(
-    (flow: Flow) => {
+    (flow: FlowDefinition) => {
       navigate(`/codecov/flows/${flow.id}`);
     },
     [navigate]
@@ -152,7 +158,6 @@ export default function FlowCreatePage() {
 
         <PanelBody>
           <FlowCreateForm
-            organization={organization}
             onCreatedFlow={handleCreatedFlow}
             replaySlug={replaySlug}
             orgSlug={organization.slug}
