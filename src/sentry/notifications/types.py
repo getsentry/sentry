@@ -146,6 +146,10 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
+    NotificationSettingEnum.QUOTA_LOG_BYTES: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
+    },
     NotificationSettingEnum.QUOTA_THRESHOLDS: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
