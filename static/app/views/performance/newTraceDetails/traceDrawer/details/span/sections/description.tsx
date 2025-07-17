@@ -33,7 +33,7 @@ import {
   isValidJson,
   prettyPrintJsonString,
 } from 'sentry/views/insights/database/utils/jsonUtils';
-import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import SpanSummaryLink from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/components/spanSummaryLink';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
@@ -121,7 +121,7 @@ export function SpanDescription({
                 organization,
                 location,
                 node.event?.projectID,
-                SpanIndexedField.SPAN_DESCRIPTION,
+                SpanFields.SPAN_DESCRIPTION,
                 span.description!,
                 TraceDrawerActionKind.INCLUDE
               )
@@ -137,7 +137,7 @@ export function SpanDescription({
           if (hasExploreEnabled) {
             traceAnalytics.trackExploreSearch(
               organization,
-              SpanIndexedField.SPAN_DESCRIPTION,
+              SpanFields.SPAN_DESCRIPTION,
               span.description!,
               TraceDrawerActionKind.INCLUDE,
               'drawer'

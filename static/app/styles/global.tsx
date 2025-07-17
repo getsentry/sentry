@@ -377,7 +377,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
  * Renders an emotion global styles injection component
  */
 function GlobalStyles({theme, isDark}: {isDark: boolean; theme: Theme}) {
-  return <Global styles={styles(theme, isDark)} />;
+  return <Global key={`${theme.isChonk} ${theme.type}`} styles={styles(theme, isDark)} />;
 }
 
 export default GlobalStyles;

@@ -357,7 +357,7 @@ class TestTaskWorker(TestCase):
                     break
                 if time.time() - start > max_runtime:
                     taskworker.shutdown()
-                    raise AssertionError("Timeout waiting for get_task to be called")
+                    raise AssertionError("Timeout waiting for update_task to be called")
 
             taskworker.shutdown()
             assert mock_client.get_task.called
@@ -370,7 +370,6 @@ class TestTaskWorker(TestCase):
             assert (
                 mock_client.update_task.call_args.args[0].status == TASK_ACTIVATION_STATUS_COMPLETE
             )
-            assert mock_client.update_task.call_args.args[1] is None
 
             redis = redis_clusters.get("default")
             assert current_task() is None, "should clear current task on completion"

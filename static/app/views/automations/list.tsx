@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
@@ -87,11 +87,26 @@ export default function AutomationsList() {
 }
 
 function TableHeader() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const initialQuery =
+    typeof location.query.query === 'string' ? location.query.query : '';
+
+  const onSearch = useCallback(
+    (query: string) => {
+      navigate({
+        pathname: location.pathname,
+        query: {...location.query, query, cursor: undefined},
+      });
+    },
+    [location.pathname, location.query, navigate]
+  );
+
   return (
     <Flex gap={space(2)}>
       <ProjectPageFilter size="md" />
       <div style={{flexGrow: 1}}>
-        <AutomationSearch />
+        <AutomationSearch initialQuery={initialQuery} onSearch={onSearch} />
       </div>
     </Flex>
   );

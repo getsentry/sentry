@@ -26,7 +26,6 @@ interface EventOrGroupHeaderProps {
   eventId?: string;
   hideIcons?: boolean;
   hideLevel?: boolean;
-  index?: number;
   /** Group link clicked */
   onClick?: () => void;
   query?: string;
@@ -76,7 +75,6 @@ function usePreloadGroupOnHover({
  */
 function EventOrGroupHeader({
   data,
-  index,
   query,
   onClick,
   hideIcons,
@@ -126,7 +124,6 @@ function EventOrGroupHeader({
       data,
       eventId,
       referrer: source,
-      streamIndex: index,
       location,
       query,
     });

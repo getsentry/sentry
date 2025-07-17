@@ -48,6 +48,7 @@ import {
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
+import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 
@@ -155,7 +156,7 @@ export function AggregateColumnEditorModal({
             </RowContainer>
           </Body>
           <Footer data-test-id="editor-footer">
-            <ButtonBar gap={1}>
+            <ButtonBar>
               <LinkButton priority="default" href={SPAN_PROPS_DOCS_URL} external>
                 {t('Read the Docs')}
               </LinkButton>
@@ -425,13 +426,20 @@ function EquationSelector({
     [onChange, visualize]
   );
 
+  const getSuggestedAttribute = useExploreSuggestedAttribute({
+    numberAttributes: numberTags,
+    stringAttributes: stringTags,
+  });
+
   return (
     <ArithmeticBuilder
+      data-test-id="editor-visualize-equation"
       aggregations={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
       functionArguments={functionArguments}
       getFieldDefinition={getSpanFieldDefinition}
       expression={expression}
       setExpression={handleExpressionChange}
+      getSuggestedKey={getSuggestedAttribute}
     />
   );
 }

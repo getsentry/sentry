@@ -5,6 +5,7 @@ import {space} from 'sentry/styles/space';
 const StyledGrid = styled('div')`
   display: grid;
   gap: ${space(2)};
+  padding-bottom: ${space(2)};
 
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: 260px 260px 260px;

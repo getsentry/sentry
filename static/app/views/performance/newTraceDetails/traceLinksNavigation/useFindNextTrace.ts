@@ -5,8 +5,8 @@ import type {EventTransaction} from 'sentry/types/event';
 import {useApiQueries} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {SpanFields} from 'sentry/views/insights/types';
 import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 
 import type {ConnectedTraceConnection} from './traceLinkNavigationButton';
@@ -30,7 +30,7 @@ export function useFindNextTrace({
   linkedTraceStartTimestamp?: number;
   projectID?: string;
 }): TraceContextType | undefined {
-  const {data: indexedSpans} = useSpansIndexed(
+  const {data: indexedSpans} = useSpans(
     {
       limit: direction === 'next' && projectID ? 100 : 1,
       noPagination: true,
@@ -49,18 +49,14 @@ export function useFindNextTrace({
         },
       },
       search: MutableSearch.fromQueryObject({is_transaction: 1}),
-      fields: [
-        SpanIndexedField.TRANSACTION_ID,
-        SpanIndexedField.PROJECT_ID,
-        SpanIndexedField.PROJECT,
-      ],
+      fields: [SpanFields.TRANSACTION_SPAN_ID, SpanFields.PROJECT_ID, SpanFields.PROJECT],
     },
     'api.trace-view.linked-traces'
   );
 
   const traceData = indexedSpans.map(span => ({
     projectSlug: span.project,
-    eventId: span['transaction.id'],
+    eventId: span['transaction.span_id'],
   }));
 
   const rootEvents = useTraceRootEvents(traceData);

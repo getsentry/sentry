@@ -1,8 +1,13 @@
+import type React from 'react';
+
 import type {Client} from 'sentry/api';
+import type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
 import type {CodeSnippetTab} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import type {ReleaseRegistrySdk} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
+
+export type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
 
 type GeneratorFunction<T, Params> = (params: Params) => T;
 type WithGeneratorProperties<T extends Record<string, any>, Params> = {
@@ -20,8 +25,10 @@ export type Configuration = {
   code?: string | CodeSnippetTab[];
   /**
    * Nested configurations provide a convenient way to accommodate diverse layout styles, like the Spring Boot configuration.
+   * @deprecated Use `content` instead
    */
   configurations?: Configuration[];
+
   /**
    * A brief description of the configuration
    */
@@ -53,10 +60,12 @@ export enum StepType {
 interface BaseStepProps {
   /**
    * Additional information to be displayed below the configurations
+   * @deprecated Use `content` instead
    */
   additionalInfo?: React.ReactNode;
   /**
    * Content that goes directly above the code snippet
+   * @deprecated Use `content` instead
    */
   codeHeader?: React.ReactNode;
   /**
@@ -65,10 +74,16 @@ interface BaseStepProps {
   collapsible?: boolean;
   /**
    * An array of configurations to be displayed
+   * @deprecated Use `content` instead
    */
   configurations?: Configuration[];
   /**
+   * The content blocks to display
+   */
+  content?: ContentBlock[];
+  /**
    * A brief description of the step
+   * @deprecated Use `content` instead
    */
   description?: React.ReactNode | React.ReactNode[];
   /**

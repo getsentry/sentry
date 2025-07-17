@@ -22,16 +22,15 @@ import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {
-  MetricsFields,
-  type MetricsResponse,
+  type EAPSpanResponse,
   ModuleName,
+  SpanFields,
   SpanFunction,
   SpanMetricsField,
   type SpanMetricsResponse,
 } from 'sentry/views/insights/types';
 
 const {CACHE_MISS_RATE, EPM} = SpanFunction;
-const {TRANSACTION_DURATION, SPAN_DURATION} = MetricsFields;
 const {CACHE_ITEM_SIZE} = SpanMetricsField;
 
 type Row = Pick<
@@ -44,7 +43,7 @@ type Row = Pick<
   | 'sum(span.self_time)'
   | 'avg(cache.item_size)'
 > &
-  Pick<MetricsResponse, 'avg(span.duration)'>;
+  Pick<EAPSpanResponse, 'avg(span.duration)'>;
 
 type Column = GridColumnHeader<
   | 'transaction'
@@ -78,8 +77,8 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `avg(${SPAN_DURATION})`,
-    name: DataTitles[`avg(${TRANSACTION_DURATION})`],
+    key: `avg(${SpanFields.SPAN_DURATION})`,
+    name: DataTitles['avg(transaction.duration)'],
     width: COL_WIDTH_UNDEFINED,
   },
   {

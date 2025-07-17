@@ -957,7 +957,7 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(getLastInput());
       await userEvent.type(screen.getByRole('combobox'), 'some free text');
 
-      expect(screen.getByRole('option', {name: 'Ask Seer'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: /Ask Seer/i})).toBeInTheDocument();
     });
 
     it('can add parens by typing', async function () {

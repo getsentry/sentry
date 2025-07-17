@@ -7,7 +7,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DurationUnit} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -135,7 +134,6 @@ export function ScreenSummaryContentPage() {
           <StartTypeSelector />
         </ToolRibbon>
         <MobileMetricsRibbon
-          dataset={DiscoverDatasets.SPANS_METRICS}
           filters={[
             `transaction:${transactionName}`,
             `span.op:app.start.${appStartType}`,

@@ -312,11 +312,20 @@ export function SeerAutomationProjectList() {
   return (
     <Fragment>
       <SearchWrapper>
-        <SearchBar
-          query={search}
-          onChange={handleSearchChange}
-          placeholder={t('Search projects')}
-        />
+        <SearchBarWrapper>
+          <SearchBar
+            query={search}
+            onChange={handleSearchChange}
+            placeholder={t('Search projects')}
+          />
+        </SearchBarWrapper>
+        <Button
+          size="md"
+          priority="primary"
+          onClick={() => navigate('/settings/seer/onboarding')}
+        >
+          {t('Open Setup Wizard')}
+        </Button>
       </SearchWrapper>
       <Panel>
         <PanelHeader hasButtons>
@@ -366,7 +375,7 @@ export function SeerAutomationProjectList() {
       </Panel>
       {totalProjects > PROJECTS_PER_PAGE && (
         <Flex justify="flex-end">
-          <ButtonBar merged>
+          <ButtonBar merged gap="none">
             <Button
               icon={<IconChevron direction="left" />}
               aria-label={t('Previous')}
@@ -390,6 +399,13 @@ export function SeerAutomationProjectList() {
 
 const SearchWrapper = styled('div')`
   margin-bottom: ${space(2)};
+  display: flex;
+  gap: ${space(2)};
+  align-items: center;
+`;
+
+const SearchBarWrapper = styled('div')`
+  flex: 1;
 `;
 
 const SeerValue = styled('div')`

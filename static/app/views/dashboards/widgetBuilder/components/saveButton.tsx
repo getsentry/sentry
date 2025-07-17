@@ -13,6 +13,7 @@ import {useParams} from 'sentry/utils/useParams';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {flattenErrors} from 'sentry/views/dashboards/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 
 export interface SaveButtonProps {
@@ -27,6 +28,7 @@ function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
   const api = useApi();
   const organization = useOrganization();
   const [isSaving, setIsSaving] = useState(false);
+  const disableTransactionWidget = useDisableTransactionWidget() && !isEditing;
 
   const handleSave = useCallback(async () => {
     trackAnalytics('dashboards_views.widget_builder.save', {
@@ -54,7 +56,12 @@ function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
   }, [api, onSave, organization, state, widgetIndex, setError, isEditing]);
 
   return (
-    <Button priority="primary" onClick={handleSave} busy={isSaving}>
+    <Button
+      priority="primary"
+      onClick={handleSave}
+      busy={isSaving}
+      disabled={disableTransactionWidget}
+    >
       {isEditing ? t('Update Widget') : t('Add Widget')}
     </Button>
   );

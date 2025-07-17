@@ -217,7 +217,7 @@ function Dashboard() {
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <ButtonBar gap={1}>
+          <ButtonBar>
             <LinkButton
               size="sm"
               icon={<IconUser />}

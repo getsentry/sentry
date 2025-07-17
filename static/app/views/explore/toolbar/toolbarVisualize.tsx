@@ -33,6 +33,7 @@ import {
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 
 import {
@@ -206,6 +207,11 @@ function VisualizeEquation({
     [group, setVisualizes, visualizes]
   );
 
+  const getSuggestedAttribute = useExploreSuggestedAttribute({
+    numberAttributes: numberTags,
+    stringAttributes: stringTags,
+  });
+
   return (
     <ToolbarRow>
       <ArithmeticBuilder
@@ -214,6 +220,7 @@ function VisualizeEquation({
         getFieldDefinition={getSpanFieldDefinition}
         expression={expression}
         setExpression={handleExpressionChange}
+        getSuggestedKey={getSuggestedAttribute}
       />
       <Button
         borderless

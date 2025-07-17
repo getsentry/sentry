@@ -12,7 +12,15 @@ import {
 } from 'sentry/components/replays/queryParams/selectedReplayIndex';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayTable from 'sentry/components/replays/table/replayTable';
-import * as ReplayTableColumns from 'sentry/components/replays/table/replayTableColumns';
+import {
+  ReplayActivityColumn,
+  ReplayBrowserColumn,
+  ReplayCountErrorsColumn,
+  ReplayDurationColumn,
+  ReplayOSColumn,
+  ReplayPlayPauseColumn,
+  ReplaySessionColumn,
+} from 'sentry/components/replays/table/replayTableColumns';
 import {replayMobilePlatforms} from 'sentry/data/platformCategories';
 import {IconPlay, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -39,20 +47,20 @@ type Props = {
 };
 
 const VISIBLE_COLUMNS = [
-  ReplayTableColumns.ReplaySessionColumn,
-  ReplayTableColumns.ReplayOSColumn,
-  ReplayTableColumns.ReplayBrowserColumn,
-  ReplayTableColumns.ReplayDurationColumn,
-  ReplayTableColumns.ReplayCountErrorsColumn,
-  ReplayTableColumns.ReplayActivityColumn,
+  ReplaySessionColumn,
+  ReplayOSColumn,
+  ReplayBrowserColumn,
+  ReplayDurationColumn,
+  ReplayCountErrorsColumn,
+  ReplayActivityColumn,
 ];
 
 const VISIBLE_COLUMNS_MOBILE = [
-  ReplayTableColumns.ReplaySessionColumn,
-  ReplayTableColumns.ReplayOSColumn,
-  ReplayTableColumns.ReplayDurationColumn,
-  ReplayTableColumns.ReplayCountErrorsColumn,
-  ReplayTableColumns.ReplayActivityColumn,
+  ReplaySessionColumn,
+  ReplayOSColumn,
+  ReplayDurationColumn,
+  ReplayCountErrorsColumn,
+  ReplayActivityColumn,
 ];
 
 function ReplayFilterMessage() {
@@ -235,7 +243,7 @@ function GroupReplaysTable({
   const replayTable = (
     <ReplayTable
       columns={[
-        ...(selectedReplay ? [ReplayTableColumns.ReplayPlayPauseColumn] : []),
+        ...(selectedReplay ? [ReplayPlayPauseColumn] : []),
         ...(allMobileProj ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS),
       ]}
       error={replayListData.fetchError}

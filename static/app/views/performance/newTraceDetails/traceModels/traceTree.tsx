@@ -176,6 +176,7 @@ export declare namespace TraceTree {
     start_timestamp: number;
     transaction: string;
     transaction_id: string;
+    additional_attributes?: Record<string, number | string>;
     description?: string;
     measurements?: Record<string, number>;
   };

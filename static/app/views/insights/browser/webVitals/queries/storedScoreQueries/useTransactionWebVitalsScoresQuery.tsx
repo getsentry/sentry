@@ -9,10 +9,10 @@ import type {
 } from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
-import {useMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
-  type MetricsProperty,
-  SpanIndexedField,
+  type EAPSpanProperty,
+  SpanFields,
   type SubregionCode,
 } from 'sentry/views/insights/types';
 
@@ -44,7 +44,7 @@ export const useTransactionWebVitalsScoresQuery = ({
   const sort = useWebVitalsSort({sortName, defaultSort});
 
   const totalOpportunityScoreField =
-    'opportunity_score(measurements.score.total)' satisfies MetricsProperty;
+    'opportunity_score(measurements.score.total)' satisfies EAPSpanProperty;
 
   if (sort !== undefined) {
     if (sort.field === 'avg(measurements.score.total)') {
@@ -60,13 +60,13 @@ export const useTransactionWebVitalsScoresQuery = ({
     search.addFilterValue('transaction', transaction, shouldEscapeFilters);
   }
   if (browserTypes) {
-    search.addDisjunctionFilterValues(SpanIndexedField.BROWSER_NAME, browserTypes);
+    search.addDisjunctionFilterValues(SpanFields.BROWSER_NAME, browserTypes);
   }
   if (subregions) {
-    search.addDisjunctionFilterValues(SpanIndexedField.USER_GEO_SUBREGION, subregions);
+    search.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
   }
 
-  const {data, isPending, ...rest} = useMetrics(
+  const {data, isPending, ...rest} = useSpans(
     {
       limit: limit ?? 50,
       search: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
