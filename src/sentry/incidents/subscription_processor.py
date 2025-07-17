@@ -48,6 +48,7 @@ from sentry.incidents.utils.process_update_helpers import (
 from sentry.incidents.utils.types import (
     DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
     AnomalyDetectionUpdate,
+    ProcessedSubscriptionUpdate,
     QuerySubscriptionUpdate,
 )
 from sentry.models.project import Project
@@ -378,33 +379,36 @@ class SubscriptionProcessor:
         if aggregation_value is not None:
             if has_metric_alert_processing:
                 if self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
-                    packet = AnomalyDetectionUpdate(
+                    anomaly_detection_packet = AnomalyDetectionUpdate(
                         entity=subscription_update.get("entity", ""),
                         subscription_id=subscription_update["subscription_id"],
                         values={
-                            "values": {
-                                "value": aggregation_value,
-                                "source_id": str(self.subscription.id),
-                                "subscription_id": subscription_update["subscription_id"],
-                                "timestamp": self.last_update,
-                            },
+                            "value": aggregation_value,
+                            "source_id": str(self.subscription.id),
+                            "subscription_id": subscription_update["subscription_id"],
+                            "timestamp": self.last_update,
                         },
                         timestamp=self.last_update,
                     )
-                    data_packet = DataPacket[AnomalyDetectionUpdate](
-                        source_id=str(self.subscription.id), packet=packet
+                    anomaly_detection_data_packet = DataPacket[AnomalyDetectionUpdate](
+                        source_id=str(self.subscription.id), packet=anomaly_detection_packet
+                    )
+                    results = process_data_packets(
+                        [anomaly_detection_data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
                     )
                 else:
-                    packet = QuerySubscriptionUpdate(
+                    metric_packet = ProcessedSubscriptionUpdate(
                         entity=subscription_update.get("entity", ""),
                         subscription_id=subscription_update["subscription_id"],
                         values={"value": aggregation_value},
                         timestamp=self.last_update,
                     )
-                    data_packet = DataPacket[QuerySubscriptionUpdate](
-                        source_id=str(self.subscription.id), packet=packet
+                    metric_data_packet = DataPacket[ProcessedSubscriptionUpdate](
+                        source_id=str(self.subscription.id), packet=metric_packet
                     )
-                results = process_data_packets([data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
+                    results = process_data_packets(
+                        [metric_data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+                    )
 
                 if features.has(
                     "organizations:workflow-engine-metric-alert-dual-processing-logs",

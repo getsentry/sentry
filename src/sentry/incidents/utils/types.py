@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from typing import Any, TypedDict
@@ -10,16 +11,23 @@ class QuerySubscriptionUpdate(TypedDict):
     timestamp: datetime
 
 
-class AnomalyDetectionUpdate(TypedDict):
+@dataclass
+class ProcessedSubscriptionUpdate:
+    entity: str
+    subscription_id: str
+    values: Any
+    timestamp: datetime
+
+
+@dataclass
+class AnomalyDetectionUpdate:
     """
     values has format:
     {
-        "values": {
-            "value": float,
-            "source_id": str,
-            "subscription_id": str,
-            "timestamp": datetime,
-        }
+        "value": float,
+        "source_id": str,
+        "subscription_id": str,
+        "timestamp": datetime,
     }
     """
 
