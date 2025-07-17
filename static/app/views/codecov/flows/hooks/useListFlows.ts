@@ -1,68 +1,27 @@
 import type {PageFilters} from 'sentry/types/core';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
 import type {FlowDefinition} from 'sentry/views/codecov/flows/types';
 
-// API Response Types
-export interface FlowsApiResponse {
+export interface ListFlowsApiResponse {
   data: FlowDefinition[];
-  // Add pagination info if your API supports it
   hasMore?: boolean;
   nextCursor?: string;
   prevCursor?: string;
 }
 
-export interface UseFlowsOptions {
+export interface UseListFlowsOptions {
   pageFilters?: PageFilters;
 }
 
-export function useListFlows(options: UseFlowsOptions = {}) {
-  const organization = useOrganization();
-  const {pageFilters} = options;
-
-  // Build query parameters from page filters
-  const queryParams = new URLSearchParams();
-
-  if (pageFilters?.projects?.length) {
-    pageFilters.projects.forEach(projectId => {
-      queryParams.append('project', projectId.toString());
-    });
-  }
-
-  if (pageFilters?.environments?.length) {
-    pageFilters.environments.forEach(env => {
-      queryParams.append('environment', env);
-    });
-  }
-
-  const queryString = queryParams.toString();
-  const url = queryString
-    ? `/organizations/${organization.slug}/flows/?${queryString}`
-    : `/organizations/${organization.slug}/flows/`;
-
-  // List flows
-  const {data, isLoading, isError, error, refetch} = useApiQuery<FlowsApiResponse>(
-    [url],
-    {
-      staleTime: 30000,
-      enabled: !!organization.slug,
-    }
-  );
-
-  return {
-    data: data?.data ?? [],
-    isLoading,
-    isError,
-    error,
-    refetch,
-  };
+export function useListFlows(options: UseListFlowsOptions = {}) {
+  // TODO - call GET /organizations/{slug}/flows/
+  // query params: page, per_page, project, environment, sort
 }
 
-export function useListFlowsTemp(options: UseFlowsOptions = {}) {
+export function useListFlowsTemp(options: UseListFlowsOptions = {}) {
   const {pageFilters} = options;
 
   // This version pulls flows from local storage instead of the API
-  function getFlowsFromLocalStorage(): FlowsApiResponse {
+  function getFlowsFromLocalStorage(): ListFlowsApiResponse {
     try {
       const stored = localStorage.getItem('flows');
       if (stored) {

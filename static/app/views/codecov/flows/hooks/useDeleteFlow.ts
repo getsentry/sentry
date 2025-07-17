@@ -1,31 +1,10 @@
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import type {FlowsApiResponse} from 'sentry/views/codecov/flows/types';
 
+import type {ListFlowsApiResponse} from 'sentry/views/codecov/flows/hooks/useListFlows';
 
 export function useDeleteFlow() {
-  const api = useApi({persistInFlight: true});
-  const organization = useOrganization();
-  const queryClient = useQueryClient();
-
-  return useMutation<void, any, string>({
-    mutationFn: (flowId: string) =>
-      api.requestPromise(`/organizations/${organization.slug}/flows/${flowId}/`, {
-        method: 'DELETE',
-      }),
-    onSuccess: (_, flowId: string) => {
-      queryClient.setQueryData<FlowsApiResponse>(
-        [`/organizations/${organization.slug}/flows/`],
-        (oldData: FlowsApiResponse | undefined) => ({
-          ...oldData,
-          data: (oldData?.data || []).filter((flow: any) => flow.id !== flowId),
-        })
-      );
-    },
-  });
+  // TODO - call DELETE /organizations/{slug}/flows/{flowId}/
 }
-
 
 export function useDeleteFlowTemp() {
   const queryClient = useQueryClient();
@@ -53,9 +32,9 @@ export function useDeleteFlowTemp() {
     },
     onSuccess: (_, flowId: string) => {
       // Update the query cache for localStorage flows
-      queryClient.setQueryData<FlowsApiResponse>(
+      queryClient.setQueryData<ListFlowsApiResponse>(
         [`/organizations/local/flows/`],
-        (oldData: FlowsApiResponse | undefined) => ({
+        (oldData: ListFlowsApiResponse | undefined) => ({
           ...oldData,
           data: (oldData?.data || []).filter((flow: any) => flow.id !== flowId),
         })

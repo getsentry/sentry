@@ -1,31 +1,43 @@
-import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import type {FlowDefinition} from 'sentry/views/codecov/flows/types';
+import type {
+  FlowDefinition,
+  FlowDefinitionWithInstances,
+  FlowInstance,
+} from 'sentry/views/codecov/flows/types';
 
 export interface FlowApiResponse {
-  data: FlowDefinition;
+  data: FlowDefinitionWithInstances;
 }
 
-export function useGetFlowById(flowId: string) {
-  const organization = useOrganization();
-
-  const {data, isLoading, isError, error, refetch} = useApiQuery<FlowApiResponse>(
-    [`/organizations/${organization.slug}/flows/${flowId}/`],
-    {
-      staleTime: 30000,
-      enabled: !!organization.slug && !!flowId,
-    }
-  );
-
-  return {
-    flow: data?.data || null,
-    isLoading,
-    isError,
-    error,
-    refetch,
-  };
+export function useGetFlowById(_flowId: string) {
+  // TODO - call GET /organizations/{slug}/flows/{flowId}/
 }
 
+function generateFakeInstancesWithReplayIds(
+  flowId: string,
+  replaySlugs: string[]
+): FlowInstance[] {
+  const now = Date.now();
+  return replaySlugs.slice(0, 3).map((replaySlug, idx) => {
+    const base = now - 1000 * 60 * 60 * (2 - idx);
+    return {
+      id: `${flowId}-instance-${idx + 1}`,
+      flowId,
+      startedAt: new Date(base).toISOString(),
+      status: idx === 0 ? 'completed' : idx === 1 ? 'running' : 'failed',
+      completedAt:
+        idx === 0
+          ? new Date(base + 1000 * 60 * 30).toISOString()
+          : idx === 2
+            ? new Date(base + 1000 * 60 * 10).toISOString()
+            : undefined,
+      currentStep: `step-${idx + 1}`,
+      data: {
+        replaySlug,
+        ...(idx === 2 ? {error: 'Something went wrong'} : {}),
+      },
+    };
+  });
+}
 
 export function useGetFlowByIdTemp(flowId: string) {
   // Mimic the API response structure
@@ -46,9 +58,30 @@ export function useGetFlowByIdTemp(flowId: string) {
 
   const flow = flowId ? getFlowFromLocalStorage(flowId) : null;
 
-  // Mimic the API hook return shape
+  // Add fake instances with replay ids if flow exists
+  let flowWithInstances: FlowDefinitionWithInstances | null = null;
+  if (flow) {
+    // Try to get replay slugs from metadata
+    let replaySlugs: string[] = [];
+    if (flow.metadata && Array.isArray((flow.metadata as any).replaySlugs)) {
+      replaySlugs = (flow.metadata as any).replaySlugs;
+    } else if (flow.metadata && (flow.metadata as any).replaySlug) {
+      replaySlugs = [(flow.metadata as any).replaySlug];
+    } else if ((flow as any).sourceReplaySlug) {
+      replaySlugs = [(flow as any).sourceReplaySlug];
+    } else {
+      // fallback: generate some fake replay slugs
+      replaySlugs = [`${flowId}-replay-1`, `${flowId}-replay-2`, `${flowId}-replay-3`];
+    }
+
+    flowWithInstances = {
+      ...flow,
+      instances: generateFakeInstancesWithReplayIds(flow.id, replaySlugs),
+    };
+  }
+
   return {
-    flow,
+    flow: flowWithInstances,
     isLoading: false,
     isError: false,
     error: undefined,

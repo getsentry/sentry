@@ -1,48 +1,25 @@
 import type {PageFilters} from 'sentry/types/core';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import type {
-  CreateFlowApiRequest,
-  CreateFlowApiResponse,
-  FlowsApiResponse,
-} from 'sentry/views/codecov/flows/types';
+
+export interface CreateFlowApiRequest {
+  endBreadcrumb: string;
+  environment: string;
+  projectId: string;
+  replayId: string;
+  startBreadcrumb: string;
+}
+
+export interface CreateFlowApiResponse {
+  data: FlowDefinition;
+}
 
 export interface UseCreateFlowOptions {
   pageFilters?: PageFilters;
 }
 
 export function useCreateFlow(options: UseCreateFlowOptions = {}) {
-  const api = useApi({persistInFlight: true});
-  const organization = useOrganization();
-  const queryClient = useQueryClient();
-  const {pageFilters} = options;
-
-  return useMutation<CreateFlowApiResponse, any, CreateFlowApiRequest>({
-    mutationFn: (flowData: CreateFlowApiRequest) => {
-      const enrichedFlowData = {
-        ...flowData,
-        projectId: flowData.projectId || pageFilters?.projects?.[0] || undefined,
-        environment: flowData.environment || pageFilters?.environments?.[0] || undefined,
-      };
-
-      return api.requestPromise(`/organizations/${organization.slug}/flows/`, {
-        method: 'POST',
-        data: enrichedFlowData,
-      });
-    },
-    onSuccess: (response: CreateFlowApiResponse) => {
-      queryClient.setQueryData<FlowsApiResponse>(
-        [`/organizations/${organization.slug}/flows/`],
-        (oldData: FlowsApiResponse | undefined) => ({
-          ...oldData,
-          data: [...(oldData?.data || []), response.data],
-        })
-      );
-    },
-  });
+  // TODO - call POST /organizations/{slug}/flows/
 }
-
 
 export function useCreateFlowTemp(options: UseCreateFlowOptions = {}) {
   const queryClient = useQueryClient();
@@ -60,12 +37,7 @@ export function useCreateFlowTemp(options: UseCreateFlowOptions = {}) {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         status: flowData.status || 'active',
-        createdBy: flowData.createdBy || {
-          id: 'local-user',
-          name: 'Local User',
-          email: 'local@example.com',
-          avatarUrl: '',
-        },
+        createdBy: flowData.createdBy,
         version: '1',
         steps: flowData.steps || [],
         projectId,

@@ -24,6 +24,10 @@ export interface FlowDefinition {
   sourceReplaySlug?: string;
 }
 
+export interface FlowDefinitionWithInstances extends FlowDefinition {
+  instances?: FlowInstance[];
+}
+
 export interface FlowStep {
   config: Record<string, any>;
   id: string;

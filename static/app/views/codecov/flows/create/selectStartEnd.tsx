@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {useLocation} from 'sentry/utils/useLocation';
-import {FlowCreateForm} from 'sentry/views/codecov/flows/create/adf';
+import {FlowCreateForm} from 'sentry/views/codecov/flows/create/createForm';
 import ReplayDetailsProviders from 'sentry/views/replays/detail/body/replayDetailsProviders';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import useBreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/useBreadcrumbFilters';
