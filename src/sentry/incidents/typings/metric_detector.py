@@ -16,7 +16,7 @@ from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.models import Action, Condition, Detector
+from sentry.workflow_engine.models import Action, AlertRuleDetector, Condition, Detector
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 if TYPE_CHECKING:
@@ -96,9 +96,11 @@ class AlertContext:
             alert_rule_threshold = 0
             resolve_threshold = 0
 
+        detector = AlertRuleDetector.objects.get(alert_rule_id=alert_rule.id).detector
+
         return cls(
             name=alert_rule.name,
-            action_identifier_id=alert_rule.id,
+            action_identifier_id=detector.id,
             threshold_type=AlertRuleThresholdType(alert_rule.threshold_type),
             detection_type=AlertRuleDetectionType(alert_rule.detection_type),
             comparison_delta=alert_rule.comparison_delta,
