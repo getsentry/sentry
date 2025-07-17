@@ -9,7 +9,7 @@ from sentry.db.models import Model
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.incidents.utils.types import ProcessedSubscriptionUpdate, QuerySubscriptionUpdate
+from sentry.incidents.utils.types import ProcessedSubscriptionUpdate
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.project import Project
@@ -275,7 +275,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
             )
 
         # Create a data_packet from the update for testing
-        data_packet = DataPacket[QuerySubscriptionUpdate](
+        data_packet = DataPacket[ProcessedSubscriptionUpdate](
             source_id=str(subscription_update.subscription_id),
             packet=subscription_update,
         )
