@@ -452,6 +452,7 @@ def test_create_feedback_spam_detection_produce_to_kafka(
     input_message,
     expected_result,
     feature_flag,
+    monkeypatch,
 ):
     with Feature({"organizations:user-feedback-spam-ingest": feature_flag}):
         event = {
@@ -490,10 +491,10 @@ def test_create_feedback_spam_detection_produce_to_kafka(
         mock_openai = Mock()
         mock_openai().chat.completions.create = create_dummy_openai_response
 
-        with patch("sentry.llm.providers.openai.OpenAI", mock_openai):
-            create_feedback_issue(
-                event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-            )
+        monkeypatch.setattr("sentry.llm.providers.openai.OpenAI", mock_openai)
+        create_feedback_issue(
+            event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        )
 
         # Check if the 'is_spam' evidence in the Kafka message matches the expected result
         is_spam_evidence = [
@@ -524,6 +525,7 @@ def test_create_feedback_spam_detection_produce_to_kafka(
 def test_create_feedback_spam_detection_project_option_false(
     default_project,
     mock_produce_occurrence_to_kafka,
+    monkeypatch,
 ):
     default_project.update_option("sentry:feedback_ai_spam_detection", False)
 
@@ -564,10 +566,10 @@ def test_create_feedback_spam_detection_project_option_false(
         mock_openai = Mock()
         mock_openai().chat.completions.create = create_dummy_openai_response
 
-        with patch("sentry.llm.providers.openai.OpenAI", mock_openai):
-            create_feedback_issue(
-                event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-            )
+        monkeypatch.setattr("sentry.llm.providers.openai.OpenAI", mock_openai)
+        create_feedback_issue(
+            event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        )
 
         # Check if the 'is_spam' evidence in the Kafka message matches the expected result
         is_spam_evidence = [
@@ -582,9 +584,7 @@ def test_create_feedback_spam_detection_project_option_false(
 
 
 @django_db_all
-def test_create_feedback_spam_detection_set_status_ignored(
-    default_project,
-):
+def test_create_feedback_spam_detection_set_status_ignored(default_project, monkeypatch):
     with Feature(
         {
             "organizations:user-feedback-spam-filter-actions": True,
@@ -627,10 +627,10 @@ def test_create_feedback_spam_detection_set_status_ignored(
         mock_openai = Mock()
         mock_openai().chat.completions.create = create_dummy_openai_response
 
-        with patch("sentry.llm.providers.openai.OpenAI", mock_openai):
-            create_feedback_issue(
-                event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-            )
+        monkeypatch.setattr("sentry.llm.providers.openai.OpenAI", mock_openai)
+        create_feedback_issue(
+            event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        )
 
         group = Group.objects.get()
         assert group.status == GroupStatus.IGNORED

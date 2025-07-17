@@ -29,7 +29,7 @@ def test_complete_prompt(set_sentry_option):
         mock_response._request = mock_request
         mock_send.return_value = mock_response
 
-        # Clear this function's cache to prevent test isolation issues
+        # Clear this function's cache to prevent interference from patching in other tests
         get_openai_client.cache_clear()
 
         res = complete_prompt(
