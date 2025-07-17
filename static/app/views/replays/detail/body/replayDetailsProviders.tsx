@@ -41,7 +41,7 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
 
   useLogReplayDataLoaded({projectId: replayRecord.project_id, replay});
 
-  const aiSummaryData = useFetchReplaySummary({
+  const replaySummaryQueryResult = useFetchReplaySummary({
     staleTime: 0,
     enabled: Boolean(
       replayRecord?.id &&
@@ -63,7 +63,7 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
                 initialTimeOffsetMs={initialTimeOffsetMs}
                 isFetching={false}
                 replay={replay}
-                aiSummaryQueryResult={aiSummaryData}
+                replaySummaryQueryResult={replaySummaryQueryResult}
               >
                 <ReplayTransactionContext replayRecord={replayRecord}>
                   {children}

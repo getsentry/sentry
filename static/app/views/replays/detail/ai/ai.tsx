@@ -31,7 +31,7 @@ export default function Ai() {
 
 function AiContent() {
   const organization = useOrganization();
-  const {replay, aiSummaryContext} = useReplayContext(); // Data is queried in ReplayDetailsProviders.
+  const {replay, replaySummary} = useReplayContext(); // Data is queried in ReplayDetailsProviders.
   const replayRecord = replay?.getReplay();
   const project = useProjectFromId({project_id: replayRecord?.project_id});
 
@@ -44,7 +44,7 @@ function AiContent() {
     return (
       <SummaryContainer>
         <Alert type="info">
-          {t('Replay AI summary is not available for this organization.')}
+          {t('Replay summary is not available for this organization.')}
         </Alert>
       </SummaryContainer>
     );
@@ -53,15 +53,15 @@ function AiContent() {
   if (replayRecord?.project_id && !project) {
     return (
       <SummaryContainer>
-        <Alert type="error">{t('Project not found. Unable to load AI summary.')}</Alert>
+        <Alert type="error">{t('Project not found. Unable to load summary.')}</Alert>
       </SummaryContainer>
     );
   }
 
-  if (!aiSummaryContext.apiQueryResult) {
+  if (!replaySummary.apiQueryResult) {
     return (
       <SummaryContainer>
-        <Alert type="error">{t('Unable to load AI summary.')}</Alert>
+        <Alert type="error">{t('Unable to load summary.')}</Alert>
       </SummaryContainer>
     );
   }
@@ -72,7 +72,7 @@ function AiContent() {
     isError,
     isRefetching,
     refetch,
-  } = aiSummaryContext.apiQueryResult;
+  } = replaySummary.apiQueryResult;
 
   if (isPending || isRefetching) {
     return (
@@ -85,7 +85,7 @@ function AiContent() {
   if (isError) {
     return (
       <SummaryContainer>
-        <Alert type="error">{t('Failed to load AI summary')}</Alert>
+        <Alert type="error">{t('Failed to load summary')}</Alert>
       </SummaryContainer>
     );
   }
@@ -101,7 +101,7 @@ function AiContent() {
   const feedbackButton = ({type}: {type: 'positive' | 'negative'}) => {
     return openForm ? (
       <Button
-        aria-label={t('Give feedback on the AI summary section')}
+        aria-label={t('Give feedback on the summary section')}
         icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
         title={type === 'positive' ? t('I like this') : t(`I don't like this`)}
         size={'xs'}
@@ -109,8 +109,10 @@ function AiContent() {
           openForm({
             messagePlaceholder:
               type === 'positive'
-                ? t('What did you like about the AI summary and chapters?')
-                : t('How can we make the AI summary and chapters work better for you?'),
+                ? t('What did you like about the replay summary and chapters?')
+                : t(
+                    'How can we make the replay summary and chapters work better for you?'
+                  ),
             tags: {
               ['feedback.source']: 'replay_ai_summary',
               ['feedback.owner']: 'replay',

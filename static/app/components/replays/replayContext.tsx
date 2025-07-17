@@ -31,10 +31,6 @@ type HighlightCallbacks = ReturnType<typeof useReplayHighlighting>;
 // It has state that, when changed, will not trigger a react render.
 // Instead only expose methods that wrap `Replayer` and manage state.
 interface ReplayPlayerContextProps extends HighlightCallbacks {
-  aiSummaryContext: {
-    apiQueryResult?: ReturnType<typeof useApiQuery<SummaryResponse>>;
-  };
-
   /**
    * The context in which the replay is being viewed.
    */
@@ -99,6 +95,10 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
    */
   replay: ReplayReader | null;
 
+  replaySummary: {
+    apiQueryResult?: ReturnType<typeof useApiQuery<SummaryResponse>>;
+  };
+
   /**
    * Restart the replay
    */
@@ -126,7 +126,7 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
 }
 
 const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
-  aiSummaryContext: {},
+  replaySummary: {},
   analyticsContext: '',
   clearAllHighlights: () => {},
   currentTime: 0,
@@ -164,8 +164,6 @@ type Props = {
 
   replay: ReplayReader | null;
 
-  aiSummaryQueryResult?: ReturnType<typeof useApiQuery<SummaryResponse>>;
-
   /**
    * Start the video as soon as it's ready
    */
@@ -175,6 +173,8 @@ type Props = {
    * Time, in seconds, when the video should start
    */
   initialTimeOffsetMs?: ReturnType<typeof useInitialOffsetMs>;
+
+  replaySummaryQueryResult?: ReturnType<typeof useApiQuery<SummaryResponse>>;
 
   /**
    * Override return fields for testing
@@ -195,7 +195,7 @@ export function Provider({
   isFetching,
   replay,
   autoStart,
-  aiSummaryQueryResult,
+  replaySummaryQueryResult,
   value = {},
 }: Props) {
   const user = useUser();
@@ -614,7 +614,7 @@ export function Provider({
     <ReplayCurrentTimeContextProvider>
       <ReplayPlayerContext
         value={{
-          aiSummaryContext: {apiQueryResult: aiSummaryQueryResult},
+          replaySummary: {apiQueryResult: replaySummaryQueryResult},
           analyticsContext,
           clearAllHighlights,
           currentTime,
