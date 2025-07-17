@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -102,7 +102,6 @@ function ChapterRow({
   const [currentHoverTime] = useCurrentHoverTime();
   const [isHovered, setIsHovered] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const detailsRef = useRef<HTMLDetailsElement>(null);
 
   const startOffset = Math.max(start - (replay?.getStartTimestampMs() ?? 0), 0);
   const endOffset = Math.max(end - (replay?.getStartTimestampMs() ?? 0), 0);
@@ -111,7 +110,6 @@ function ChapterRow({
 
   return (
     <ChapterWrapper
-      ref={detailsRef}
       data-has-error={Boolean(error)}
       data-has-feedback={Boolean(feedback)}
       className={classNames(className, {
@@ -241,14 +239,12 @@ const ChapterWrapper = styled('details')`
     &:hover {
       border-top: 1px solid ${p => p.theme.pink100};
     }
-    color: ${p => p.theme.pink300};
   }
 
   [data-has-error='true'] {
     &:hover {
       border-top: 1px solid ${p => p.theme.red100};
     }
-    color: ${p => p.theme.errorText};
   }
 `;
 
