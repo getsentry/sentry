@@ -109,20 +109,8 @@ function PlatformPicker({
       return currentCategory?.platforms?.has(platformIntegration.id);
     };
 
-    // temporary replacement of selectablePlatforms while `nintendo-switch` is behind feature flag
-    const tempSelectablePlatforms = selectablePlatforms;
-
-    if (organization?.features.includes('selectable-nintendo-platform')) {
-      const nintendo = platforms.find(p => p.id === 'nintendo-switch');
-      if (nintendo) {
-        if (!tempSelectablePlatforms.includes(nintendo)) {
-          tempSelectablePlatforms.push(nintendo);
-        }
-      }
-    }
-
     // 'other' is not part of the createablePlatforms list, therefore it won't be included in the filtered list
-    const filtered = tempSelectablePlatforms.filter(filter ? subsetMatch : categoryMatch);
+    const filtered = selectablePlatforms.filter(filter ? subsetMatch : categoryMatch);
 
     if (showOther && filter.toLowerCase() === 'other') {
       // We only show 'Other' if users click on the 'Other' suggestion rendered in the not found state or type this word in the search bar
@@ -147,7 +135,7 @@ function PlatformPicker({
       }
       return a.name.localeCompare(b.name);
     });
-  }, [filter, category, organization?.features, showOther, categories]);
+  }, [filter, category, showOther, categories]);
 
   const latestValuesRef = useRef({filter, platformList, source, organization});
 
