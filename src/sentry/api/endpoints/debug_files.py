@@ -265,10 +265,15 @@ class DebugFilesEndpoint(ProjectEndpoint):
             except SymbolicError:
                 pass
 
-        if debug_id:
-            # If a debug ID is specified, do not consider the stored code
-            # identifier and strictly filter by debug identifier. Often there
-            # are mismatches in the code identifier in PEs.
+        if debug_id and code_id:
+            # Be lenient when searching for debug files, check either for a matching debug id
+            # or a matching code id, as both of these are unique identifiers for an object.
+            #
+            # Ideally debug- and code-id yield the same files, but especially on Windows it is possible
+            # that the debug id does not perfectly match due to 'age' differences, but the code-id
+            # will match.
+            q = Q(debug_id__exact=debug_id) | Q(code_id__exact=code_id)
+        elif debug_id:
             q = Q(debug_id__exact=debug_id)
         elif code_id:
             q = Q(code_id__exact=code_id)
