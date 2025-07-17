@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from django.http import QueryDict
 
+from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignment
 from sentry.api.helpers.group_index import update_groups, validate_search_filter_permissions
 from sentry.api.helpers.group_index.delete import delete_groups
 from sentry.api.helpers.group_index.update import (
@@ -30,6 +31,7 @@ from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -633,13 +635,15 @@ class TestHandleAssignedTo(TestCase):
             "name": self.user.username,
             "type": "user",
         }
-        mock_record.assert_called_with(
-            "manual.issue_assignment",
-            group_id=self.group.id,
-            organization_id=self.group.project.organization_id,
-            project_id=self.group.project_id,
-            assigned_by=None,
-            had_to_deassign=False,
+        assert_last_analytics_event(
+            mock_record,
+            ManualIssueAssignment(
+                group_id=self.group.id,
+                organization_id=self.group.project.organization_id,
+                project_id=self.group.project_id,
+                assigned_by=None,
+                had_to_deassign=False,
+            ),
         )
 
     @patch("sentry.analytics.record")
@@ -675,13 +679,15 @@ class TestHandleAssignedTo(TestCase):
         ).exists()
 
         assert assigned_to is None
-        mock_record.assert_called_with(
-            "manual.issue_assignment",
-            group_id=self.group.id,
-            organization_id=self.group.project.organization_id,
-            project_id=self.group.project_id,
-            assigned_by=None,
-            had_to_deassign=True,
+        assert_last_analytics_event(
+            mock_record,
+            ManualIssueAssignment(
+                group_id=self.group.id,
+                organization_id=self.group.project.organization_id,
+                project_id=self.group.project_id,
+                assigned_by=None,
+                had_to_deassign=True,
+            ),
         )
 
     @patch("sentry.analytics.record")
@@ -738,13 +744,15 @@ class TestHandleAssignedTo(TestCase):
         ).exists()
 
         assert assigned_to is None
-        mock_record.assert_called_with(
-            "manual.issue_assignment",
-            group_id=self.group.id,
-            organization_id=self.group.project.organization_id,
-            project_id=self.group.project_id,
-            assigned_by=None,
-            had_to_deassign=True,
+        assert_last_analytics_event(
+            mock_record,
+            ManualIssueAssignment(
+                group_id=self.group.id,
+                organization_id=self.group.project.organization_id,
+                project_id=self.group.project_id,
+                assigned_by=None,
+                had_to_deassign=True,
+            ),
         )
 
     @patch("sentry.analytics.record")
@@ -790,13 +798,15 @@ class TestHandleAssignedTo(TestCase):
         ).exists()
 
         assert assigned_to is None
-        mock_record.assert_called_with(
-            "manual.issue_assignment",
-            group_id=self.group.id,
-            organization_id=self.group.project.organization_id,
-            project_id=self.group.project_id,
-            assigned_by=None,
-            had_to_deassign=True,
+        assert_last_analytics_event(
+            mock_record,
+            ManualIssueAssignment(
+                group_id=self.group.id,
+                organization_id=self.group.project.organization_id,
+                project_id=self.group.project_id,
+                assigned_by=None,
+                had_to_deassign=True,
+            ),
         )
 
     @patch("sentry.analytics.record")
@@ -852,13 +862,15 @@ class TestHandleAssignedTo(TestCase):
             "name": user2.username,
             "type": "user",
         }
-        mock_record.assert_called_with(
-            "manual.issue_assignment",
-            group_id=self.group.id,
-            organization_id=self.group.project.organization_id,
-            project_id=self.group.project_id,
-            assigned_by=None,
-            had_to_deassign=True,
+        assert_last_analytics_event(
+            mock_record,
+            ManualIssueAssignment(
+                group_id=self.group.id,
+                organization_id=self.group.project.organization_id,
+                project_id=self.group.project_id,
+                assigned_by=None,
+                had_to_deassign=True,
+            ),
         )
         # pass assignedTo but it's the same as the existing assignee
         assigned_to = handle_assigned_to(
@@ -891,13 +903,15 @@ class TestHandleAssignedTo(TestCase):
             "name": user2.username,
             "type": "user",
         }
-        mock_record.assert_called_with(
-            "manual.issue_assignment",
-            group_id=self.group.id,
-            organization_id=self.group.project.organization_id,
-            project_id=self.group.project_id,
-            assigned_by=None,
-            had_to_deassign=False,
+        assert_last_analytics_event(
+            mock_record,
+            ManualIssueAssignment(
+                group_id=self.group.id,
+                organization_id=self.group.project.organization_id,
+                project_id=self.group.project_id,
+                assigned_by=None,
+                had_to_deassign=False,
+            ),
         )
 
     @patch("sentry.analytics.record")
@@ -985,13 +999,15 @@ class TestHandleAssignedTo(TestCase):
             "name": team2.slug,
             "type": "team",
         }
-        mock_record.assert_called_with(
-            "manual.issue_assignment",
-            group_id=self.group.id,
-            organization_id=self.group.project.organization_id,
-            project_id=self.group.project_id,
-            assigned_by=None,
-            had_to_deassign=True,
+        assert_last_analytics_event(
+            mock_record,
+            ManualIssueAssignment(
+                group_id=self.group.id,
+                organization_id=self.group.project.organization_id,
+                project_id=self.group.project_id,
+                assigned_by=None,
+                had_to_deassign=True,
+            ),
         )
 
     @patch("sentry.analytics.record")
@@ -1062,13 +1078,15 @@ class TestHandleAssignedTo(TestCase):
             "name": team2.slug,
             "type": "team",
         }
-        mock_record.assert_called_with(
-            "manual.issue_assignment",
-            group_id=self.group.id,
-            organization_id=self.group.project.organization_id,
-            project_id=self.group.project_id,
-            assigned_by=None,
-            had_to_deassign=True,
+        assert_last_analytics_event(
+            mock_record,
+            ManualIssueAssignment(
+                group_id=self.group.id,
+                organization_id=self.group.project.organization_id,
+                project_id=self.group.project_id,
+                assigned_by=None,
+                had_to_deassign=True,
+            ),
         )
 
     def test_user_in_reassigned_team(self):
