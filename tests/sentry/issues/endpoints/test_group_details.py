@@ -878,7 +878,10 @@ class GroupDeleteTest(APITestCase):
 
         # Deletion was deferred, so it should still exist
         assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
-        assert GroupHash.objects.filter(group_id=group.id).exists()
+        # BUT the hash should be gone
+        assert not GroupHash.objects.filter(group_id=group.id).exists()
+
+        Group.objects.filter(id=group.id).update(status=GroupStatus.UNRESOLVED)
 
     def test_delete_and_tasks_run(self) -> None:
         self.login_as(user=self.user)
