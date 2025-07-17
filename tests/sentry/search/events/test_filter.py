@@ -1384,8 +1384,8 @@ class DetectorFilterTest(TestCase):
         )
 
         # Should return groups 1 and 2 (both associated with detector_id_1)
-        assert len(results) == 2
-        group_ids = {group.id for group in results}
+        assert len(results.results) == 2
+        group_ids = {group.id for group in results.results}
         assert group_ids == {self.group1.id, self.group2.id}
 
     def test_detector_filter_multiple_detectors(self):
@@ -1406,8 +1406,8 @@ class DetectorFilterTest(TestCase):
 
         # Should return groups 1 and 2 (associated with detector_id_1)
         # group3 is not associated with any detector
-        assert len(results) == 2
-        group_ids = {group.id for group in results}
+        assert len(results.results) == 2
+        group_ids = {group.id for group in results.results}
         assert group_ids == {self.group1.id, self.group2.id}
 
     def test_detector_filter_no_matches(self):
@@ -1425,7 +1425,7 @@ class DetectorFilterTest(TestCase):
         )
 
         # Should return no groups
-        assert len(results) == 0
+        assert len(results.results) == 0
 
     def test_detector_filter_invalid_detector(self):
         """Test filtering by an invalid detector ID."""
@@ -1444,7 +1444,7 @@ class DetectorFilterTest(TestCase):
         )
 
         # Should return no groups
-        assert len(results) == 0
+        assert len(results.results) == 0
 
     def test_detector_filter_negation(self):
         """Test negated detector filter."""
@@ -1461,8 +1461,8 @@ class DetectorFilterTest(TestCase):
         )
 
         # Should return group3 (not associated with detector_id_1)
-        assert len(results) == 1
-        assert results[0].id == self.group3.id
+        assert len(results.results) == 1
+        assert results.results[0].id == self.group3.id
 
     def test_detector_filter_with_other_filters(self):
         """Test detector filter combined with other filters."""
@@ -1480,8 +1480,8 @@ class DetectorFilterTest(TestCase):
         )
 
         # Should return groups 1 and 2 (both associated with detector1 and unresolved)
-        assert len(results) == 2
-        group_ids = {group.id for group in results}
+        assert len(results.results) == 2
+        group_ids = {group.id for group in results.results}
         assert group_ids == {self.group1.id, self.group2.id}
 
     def test_detector_filter_empty_list(self):
@@ -1497,4 +1497,4 @@ class DetectorFilterTest(TestCase):
         )
 
         # Should return no groups
-        assert len(results) == 0
+        assert len(results.results) == 0
