@@ -7,7 +7,7 @@ import {PlatformIcon} from 'platformicons';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Link} from 'sentry/components/core/link';
@@ -25,6 +25,7 @@ import {IconCursorArrow} from 'sentry/icons/iconCursorArrow';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconFire} from 'sentry/icons/iconFire';
 import {IconNot} from 'sentry/icons/iconNot';
+import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconPlay} from 'sentry/icons/iconPlay';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -271,6 +272,21 @@ export const ReplayCountRageClicksColumn: ReplayTableColumn = {
   },
 };
 
+export const ReplayDetailsLinkColumn: ReplayTableColumn = {
+  Header: '',
+  sortKey: undefined,
+  Component: ({replay}) => {
+    const organization = useOrganization();
+    return (
+      <DetailsLink to={makeReplaysPathname({path: `/${replay.id}/`, organization})}>
+        <Tooltip title={t('See Full Replay')}>
+          <IconOpen />
+        </Tooltip>
+      </DetailsLink>
+    );
+  },
+};
+
 export const ReplayDurationColumn: ReplayTableColumn = {
   Header: t('Duration'),
   sortKey: 'duration',
@@ -330,6 +346,7 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
   Header: '',
   sortKey: undefined,
   Component: ({replay, rowIndex}) => {
+    const location = useLocation();
     const {index: selectedReplayIndex, select: setSelectedReplayIndex} =
       useSelectedReplayIndex();
 
@@ -349,14 +366,17 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
       );
     }
     return (
-      <PlayPauseButtonContainer>
-        <Button
+      <PlayPauseButtonContainer onClick={() => setSelectedReplayIndex(rowIndex)}>
+        <LinkButton
           key="playPause-select"
           aria-label={t('Play')}
           borderless
           data-test-id="replay-table-play-button"
           icon={<IconPlay />}
-          onClick={() => setSelectedReplayIndex(rowIndex)}
+          to={{
+            pathname: location.pathname,
+            query: {...location.query, selected_replay_index: rowIndex},
+          }}
           priority="default"
           size="sm"
           title={t('Play')}
@@ -406,14 +426,16 @@ export const ReplaySelectColumn: ReplayTableColumn = {
       <CheckboxClickCapture onClick={e => e.stopPropagation()}>
         <CheckboxCellContainer>
           {organization.features.includes('replay-list-select') ? (
-            <Checkbox
-              id={`replay-table-select-${replay.id}`}
-              disabled={isSelected(replay.id) === 'all-selected'}
-              checked={isSelected(replay.id) !== false}
-              onChange={() => {
-                toggleSelected(replay.id);
-              }}
-            />
+            <CheckboxClickTarget htmlFor={`replay-table-select-${replay.id}`}>
+              <Checkbox
+                id={`replay-table-select-${replay.id}`}
+                disabled={isSelected(replay.id) === 'all-selected'}
+                checked={isSelected(replay.id) !== false}
+                onChange={() => {
+                  toggleSelected(replay.id);
+                }}
+              />
+            </CheckboxClickTarget>
           ) : null}
 
           <Tooltip title={t('Unread')} skipWrapper disabled={Boolean(replay.has_viewed)}>
@@ -556,9 +578,18 @@ export const ReplaySlowestTransactionColumn: ReplayTableColumn = {
   },
 };
 
+const DetailsLink = styled(Link)`
+  z-index: 1;
+  margin: -${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md};
+  line-height: 0;
+`;
+
 const DropdownContainer = styled(Flex)`
+  position: relative;
   flex-direction: column;
   justify-content: center;
+  flex-grow: 1;
 `;
 
 const SmallFont = styled('div')`
@@ -573,6 +604,15 @@ const CellLink = styled(Link)`
   margin: -${p => p.theme.space.xl};
   padding: ${p => p.theme.space.xl};
   flex-grow: 1;
+
+  &:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
 `;
 
 const SubText = styled('div')`
@@ -600,12 +640,22 @@ const DisplayName = styled('span')`
 `;
 
 const PlayPauseButtonContainer = styled(Flex)`
+  z-index: 1; /* Raise above any ReplaySessionColumn in the row */
   display: flex;
-  position: relative;
   flex-direction: column;
   justify-content: center;
 
   margin: 0 -${space(2)} 0 -${space(1)};
+
+  cursor: pointer;
+  &:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
 `;
 
 const CheckboxHeaderContainer = styled(Flex)`
@@ -620,6 +670,7 @@ const CheckboxHeaderContainer = styled(Flex)`
 `;
 
 const CheckboxClickCapture = styled('div')`
+  z-index: 1; /* Raise above any ReplaySessionColumn in the row */
   padding: ${space(2)};
   margin: -${space(2)};
 `;
@@ -634,6 +685,15 @@ const CheckboxCellContainer = styled('div')`
 
   padding: ${space(0.5)} 0 0 0;
   margin: 0 -${space(1)} 0 -${space(0.5)};
+`;
+
+const CheckboxClickTarget = styled('label')`
+  cursor: pointer;
+  display: block;
+  margin: -${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md};
+  max-width: unset;
+  line-height: 0;
 `;
 
 const UnreadIndicator = styled('div')`

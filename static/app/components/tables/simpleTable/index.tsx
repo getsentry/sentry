@@ -1,4 +1,5 @@
 import type {ComponentProps, CSSProperties, HTMLAttributes} from 'react';
+import type React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -12,7 +13,7 @@ interface TableProps extends HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
 }
 
-interface RowProps extends HTMLAttributes<HTMLDivElement> {
+interface RowProps {
   variant?: 'default' | 'faded';
 }
 
@@ -64,9 +65,14 @@ function HeaderCell({
   );
 }
 
-function Row({children, variant = 'default', ...props}: RowProps) {
+function Row<T extends React.ElementType = 'div'>({
+  children,
+  as,
+  variant = 'default',
+  ...props
+}: RowProps & {as?: T} & ComponentProps<T>) {
   return (
-    <StyledRow variant={variant} role="row" {...props}>
+    <StyledRow as={as} variant={variant} role="row" {...props}>
       {children}
     </StyledRow>
   );

@@ -16,6 +16,7 @@ import {
   ReplayActivityColumn,
   ReplayBrowserColumn,
   ReplayCountErrorsColumn,
+  ReplayDetailsLinkColumn,
   ReplayDurationColumn,
   ReplayOSColumn,
   ReplayPlayPauseColumn,
@@ -53,6 +54,7 @@ const VISIBLE_COLUMNS = [
   ReplayDurationColumn,
   ReplayCountErrorsColumn,
   ReplayActivityColumn,
+  ReplayDetailsLinkColumn,
 ];
 
 const VISIBLE_COLUMNS_MOBILE = [
@@ -61,6 +63,7 @@ const VISIBLE_COLUMNS_MOBILE = [
   ReplayDurationColumn,
   ReplayCountErrorsColumn,
   ReplayActivityColumn,
+  ReplayDetailsLinkColumn,
 ];
 
 function ReplayFilterMessage() {
