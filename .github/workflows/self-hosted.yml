@@ -45,7 +45,7 @@ jobs:
         with:
           python-version: 3.13.1
           cache-dependency-path: uv.lock
-          install-cmd: echo
+          install-cmd: uv sync --frozen
 
       - name: Step configurations
         id: config

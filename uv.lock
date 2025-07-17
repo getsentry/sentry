@@ -2667,7 +2667,7 @@ dev = [
     { name = "selenium", specifier = ">=4.16.0" },
     { name = "sentry-cli", specifier = ">=2.16.0" },
     { name = "sentry-covdefaults-disable-branch-coverage", specifier = ">=1.0.2" },
-    { name = "sentry-devenv", specifier = ">=1.21" },
+    { name = "sentry-devenv", specifier = ">=1.22" },
     { name = "sentry-forked-django-stubs", specifier = ">=5.2.1.post3" },
     { name = "sentry-forked-djangorestframework-stubs", specifier = ">=3.16.0.post1" },
     { name = "time-machine", specifier = ">=2.16.0" },
@@ -2735,15 +2735,15 @@ wheels = [
 
 [[package]]
 name = "sentry-devenv"
-version = "1.21.0"
+version = "1.22.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "sentry-sdk" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/68/ee/368badc81561cbaaf338e6a060c53cad94b628d23359a10eeeea5daa42be/sentry_devenv-1.21.0.tar.gz", hash = "sha256:bd1dbfcda980392e98f03b94314910b84a7413225a07cb2ad8f40a4233f2a3d7", size = 47987, upload-time = "2025-05-21T13:43:32.323Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7e/65/0b995742ca772fc8498a5a1bc56c4bd780074f092e6cd27b602d6fc565b0/sentry_devenv-1.22.0.tar.gz", hash = "sha256:bbc43f7ef8add4e2a5d9ee3b3de3e75c7ec264edd6057826778bd0095cb5b9a7", size = 49059, upload-time = "2025-07-17T00:42:21.174Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9a/84/46409ceae3eaf88cf8c7fa1f98971a5c36d78f023196473b95c04848b998/sentry_devenv-1.21.0-py3-none-any.whl", hash = "sha256:4005b9121b6aa78c32eaa14e5429ed601c9bfacd90952c51c1f89044c3c3af65", size = 65989, upload-time = "2025-05-21T13:43:31.202Z" },
+    { url = "https://files.pythonhosted.org/packages/9e/74/119bcd1eca2e85ece421a8c61213d2bcade6f4f02c9ae8b5fe7e4be102f0/sentry_devenv-1.22.0-py3-none-any.whl", hash = "sha256:36a82352fecbdea0c2f5ab1cce74dc64d4d741b4a249ab1a7a88524a3aa7c2f9", size = 67330, upload-time = "2025-07-17T00:42:19.81Z" },
 ]
 
 [[package]]
