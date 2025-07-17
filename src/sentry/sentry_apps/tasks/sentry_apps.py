@@ -7,7 +7,8 @@ from datetime import datetime
 from typing import Any
 
 from django.urls import reverse
-from requests.exceptions import ChunkedEncodingError, RequestException
+from requests import HTTPError, Timeout
+from requests.exceptions import ChunkedEncodingError, ConnectionError, RequestException
 
 from sentry import analytics, features, nodestore
 from sentry.api.serializers import serialize
@@ -78,8 +79,15 @@ CONTROL_TASK_OPTIONS = {
 }
 
 retry_decorator = retry(
-    on=(RequestException, ApiHostError, ApiTimeoutError),
-    on_silent=(ChunkedEncodingError),
+    on=(RequestException),
+    on_silent=(
+        ChunkedEncodingError,
+        Timeout,
+        ApiHostError,
+        ApiTimeoutError,
+        ConnectionError,
+        HTTPError,
+    ),
     ignore=(
         ClientError,
         SentryAppSentryError,
