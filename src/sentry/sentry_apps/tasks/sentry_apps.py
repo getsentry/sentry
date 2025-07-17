@@ -8,7 +8,7 @@ from typing import Any
 
 from django.urls import reverse
 from requests import HTTPError, Timeout
-from requests.exceptions import ChunkedEncodingError, RequestException
+from requests.exceptions import ChunkedEncodingError, ConnectionError, RequestException
 
 from sentry import analytics, features, nodestore
 from sentry.api.serializers import serialize
