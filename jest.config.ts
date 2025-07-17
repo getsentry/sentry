@@ -3,6 +3,7 @@ import path from 'node:path';
 import process from 'node:process';
 import {execFileSync} from 'node:child_process';
 import type {TransformOptions} from '@babel/core';
+import babelJest from 'babel-jest';
 
 const babelConfig: TransformOptions = {
   presets: [
@@ -283,10 +284,7 @@ const config: Config.InitialOptions = {
     // window/cookies state.
     '@sentry/toolbar': '<rootDir>/tests/js/sentry-test/mocks/sentryToolbarMock.js',
   },
-  setupFiles: [
-    '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
-    'jest-canvas-mock',
-  ],
+  setupFiles: ['<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts'],
   setupFilesAfterEnv: [
     '<rootDir>/tests/js/setup.ts',
     '<rootDir>/tests/js/setupFramework.ts',
@@ -299,8 +297,8 @@ const config: Config.InitialOptions = {
     '<rootDir>/node_modules/reflux',
   ],
   transform: {
-    '^.+\\.jsx?$': ['babel-jest', babelConfig as any],
-    '^.+\\.tsx?$': ['babel-jest', babelConfig as any],
+    '^.+\\.jsx?$': ['./node_modules/babel-jest', babelConfig as any],
+    '^.+\\.tsx?$': ['./node_modules/babel-jest', babelConfig as any],
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
   transformIgnorePatterns: [
@@ -318,7 +316,7 @@ const config: Config.InitialOptions = {
   reporters: [
     'default',
     [
-      'jest-junit',
+      './node_modules/jest-junit',
       {
         outputDirectory: '.artifacts',
         outputName: 'jest.junit.xml',
@@ -332,7 +330,7 @@ const config: Config.InitialOptions = {
   clearMocks: true,
 
   // To disable the sentry jest integration, set this to 'jsdom'
-  testEnvironment: '@sentry/jest-environment/jsdom',
+  testEnvironment: './node_modules/@sentry/jest-environment/jsdom',
   testEnvironmentOptions: {
     globalsCleanup: 'on',
     sentryConfig: {

@@ -1,5 +1,6 @@
 'use strict';
 import '@testing-library/jest-dom';
+import 'jest-canvas-mock';
 
 import type {ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
