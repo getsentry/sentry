@@ -52,15 +52,15 @@ export function StoryLanding() {
       <AlwaysDarkThemeProvider>
         <Hero>
           <Container>
-            <Flex direction="column" gap={space(3)}>
-              <Flex direction="column" gap={space(1)}>
+            <Flex direction="column" gap="2xl">
+              <Flex direction="column" gap="md">
                 <Border />
                 <h1>
                   Welcome to <TitleEmphasis>Sentry UI</TitleEmphasis>
                 </h1>
                 <p>{frontmatter.hero.tagline}</p>
               </Flex>
-              <Flex gap={space(1)}>
+              <Flex gap="md">
                 {frontmatter.hero.actions.map(props => (
                   <LinkButton {...props} key={props.to} />
                 ))}
@@ -77,8 +77,8 @@ export function StoryLanding() {
       </AlwaysDarkThemeProvider>
 
       <Container>
-        <Flex as="section" direction="column" gap={space(4)} flex={1}>
-          <Flex direction="column" gap={space(1)}>
+        <Flex as="section" direction="column" gap="3xl" flex={1}>
+          <Flex direction="column" gap="md">
             <h2>Learn the Foundations</h2>
             <p>
               The following guides will help you understand Sentry's foundational design

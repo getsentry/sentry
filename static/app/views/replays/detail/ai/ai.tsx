@@ -130,7 +130,7 @@ function AiContent() {
         <Summary>
           <SummaryLeft>
             <SummaryLeftTitle>
-              <Flex align="center" gap={space(0.5)}>
+              <Flex align="center" gap="xs">
                 {t('Replay Summary')}
                 <IconSeer />
               </Flex>
@@ -139,7 +139,7 @@ function AiContent() {
             <SummaryText>{summaryData.data.summary}</SummaryText>
           </SummaryLeft>
           <SummaryRight>
-            <Flex gap={space(0.5)}>
+            <Flex gap="xs">
               {feedbackButton({type: 'positive'})}
               {feedbackButton({type: 'negative'})}
             </Flex>

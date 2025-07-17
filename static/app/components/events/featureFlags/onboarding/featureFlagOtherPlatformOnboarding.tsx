@@ -6,7 +6,6 @@ import {Flex} from 'sentry/components/core/layout';
 import OnboardingAdditionalFeatures from 'sentry/components/events/featureFlags/onboarding/onboardingAdditionalFeatures';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface FeatureFlagOtherPlatformOnboardingProps {
@@ -31,7 +30,7 @@ export function FeatureFlagOtherPlatformOnboarding({
         {
           <Alert.Container>
             <Alert type="info" showIcon>
-              <Flex gap={space(3)}>
+              <Flex gap="2xl">
                 {t('Read the docs to learn more about setting up evaluation tracking.')}
                 <LinkButton href={docsUrl} external>
                   {t('Read the docs')}

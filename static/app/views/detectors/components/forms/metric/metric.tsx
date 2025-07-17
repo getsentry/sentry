@@ -287,7 +287,7 @@ function DetectSection() {
           {(!detectionType || detectionType === 'static') && (
             <Flex direction="column">
               <MutedText>{t('An issue will be created when query value is:')}</MutedText>
-              <Flex align="center" gap={space(1)}>
+              <Flex align="center" gap="md">
                 <DirectionField
                   name={METRIC_DETECTOR_FORM_FIELDS.conditionType}
                   hideLabel
@@ -318,7 +318,7 @@ function DetectSection() {
           {detectionType === 'percent' && (
             <Flex direction="column">
               <MutedText>{t('An issue will be created when query value is:')}</MutedText>
-              <Flex align="center" gap={space(1)}>
+              <Flex align="center" gap="md">
                 <ChangePercentField
                   name={METRIC_DETECTOR_FORM_FIELDS.conditionValue}
                   placeholder="0"

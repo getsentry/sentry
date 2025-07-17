@@ -109,8 +109,8 @@ function VersionHoverCard({
     return {
       header: <VersionHoverHeader releaseVersion={releaseVersion} />,
       body: (
-        <Flex direction="column" gap={space(2)}>
-          <Flex gap={space(2)} justify="space-between">
+        <Flex direction="column" gap="xl">
+          <Flex gap="xl" justify="space-between">
             <div>
               <h6>{t('New Issues')}</h6>
               <CountSince>{release.newGroups}</CountSince>
@@ -121,7 +121,7 @@ function VersionHoverCard({
             </div>
           </Flex>
           {parsedVersion?.package && (
-            <Flex direction="column" gap={space(2)} justify="space-between">
+            <Flex direction="column" gap="xl" justify="space-between">
               {parsedVersion.package && (
                 <div>
                   <h6>{t('Package')}</h6>
@@ -150,16 +150,11 @@ function VersionHoverCard({
           )}
           {release.lastCommit && <LastCommit commit={release.lastCommit} />}
           {deploys.length > 0 && (
-            <Flex direction="column" gap={space(0.5)}>
+            <Flex direction="column" gap="xs">
               <h6>{t('Deploys')}</h6>
               {recentDeploysByEnvironment.map(deploy => {
                 return (
-                  <Flex
-                    key={deploy.id}
-                    align="center"
-                    gap={space(1)}
-                    justify="space-between"
-                  >
+                  <Flex key={deploy.id} align="center" gap="md" justify="space-between">
                     <Tag type="highlight">{deploy.environment}</Tag>
                     {deploy.dateFinished && (
                       <StyledTimeSince date={deploy.dateFinished} />
@@ -201,7 +196,7 @@ interface VersionHoverHeaderProps {
 
 function VersionHoverHeader({releaseVersion}: VersionHoverHeaderProps) {
   return (
-    <Flex align="center" gap={space(0.5)}>
+    <Flex align="center" gap="xs">
       {t('Release:')}
       <VersionWrapper>
         <StyledVersion version={releaseVersion} truncate anchor={false} />

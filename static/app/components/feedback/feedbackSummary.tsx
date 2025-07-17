@@ -54,7 +54,7 @@ export default function FeedbackSummary() {
       <SummaryContainer>
         <Flex justify="space-between" align="center">
           <SummaryHeader>{t('Summary')}</SummaryHeader>
-          <Flex gap={space(0.5)}>
+          <Flex gap="xs">
             {feedbackButton({type: 'positive'})}
             {feedbackButton({type: 'negative'})}
           </Flex>

@@ -374,7 +374,7 @@ function IssueListActions({
       />
       {!allResultsVisible && pageSelected && (
         <Alert system type="warning">
-          <Flex justify="center" wrap="wrap" gap={space(1)}>
+          <Flex justify="center" wrap="wrap" gap="md">
             {allInQuerySelected ? (
               queryCount >= BULK_LIMIT ? (
                 tct(

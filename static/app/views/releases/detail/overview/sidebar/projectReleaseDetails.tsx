@@ -52,7 +52,7 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
           />
           <KeyValueTableRow
             keyName={
-              <Flex gap={space(0.75)} align="center">
+              <Flex gap="sm" align="center">
                 {t('Finalized')}
                 <Tooltip
                   skipWrapper

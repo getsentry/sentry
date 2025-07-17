@@ -199,7 +199,7 @@ export default function TypographyStories() {
         hierarchy. If the element has low importance, use a smaller size.
       </Block>
       <Block>
-        <Flex gap={space(1)} align="flex-start">
+        <Flex gap="md" align="flex-start">
           <PositiveLabel />
           Always define font sizes with the <code>rem</code> unit.
         </Flex>
@@ -297,7 +297,7 @@ export default function TypographyStories() {
           example:
           <ul>
             <li>
-              <Flex gap={space(1)} align="baseline">
+              <Flex gap="md" align="baseline">
                 <PositiveLabel style={{alignSelf: 'flex-end'}} /> the{' '}
                 <FixedExternalLink onClick={() => {}}>
                   Church of the Flying Spaghetti Monster
@@ -305,7 +305,7 @@ export default function TypographyStories() {
               </Flex>
             </li>
             <li>
-              <Flex gap={space(1)} align="baseline">
+              <Flex gap="md" align="baseline">
                 <NegativeLabel style={{alignSelf: 'flex-end'}} />{' '}
                 <FixedExternalLink onClick={() => {}}>
                   the Church of the Flying Spaghetti Monster
@@ -393,14 +393,14 @@ export default function TypographyStories() {
         </CodeSnippet>
       </Block>
       <Block>
-        <Flex gap={space(1)} align="flex-start">
+        <Flex gap="md" align="flex-start">
           <PositiveLabel />
           Don't add full stops (.) to the end of each item, unless the item contains
           multiple sentences.
         </Flex>
       </Block>
       <Block>
-        <Flex gap={space(1)} align="flex-start">
+        <Flex gap="md" align="flex-start">
           <PositiveLabel /> Avoid using custom symbols and icons as bullet characters, as
           they usually look out of place and distract from the main text content.
         </Flex>
@@ -431,7 +431,7 @@ export default function TypographyStories() {
         </CodeSnippet>
       </Block>
       <Block>
-        <Flex gap={space(1)} align="flex-start">
+        <Flex gap="md" align="flex-start">
           <PositiveLabel />
           Avoid using custom symbols and icons as counters.
         </Flex>
@@ -487,7 +487,7 @@ export default function TypographyStories() {
         </li>
       </SideBySideList>
       <Block>
-        <Flex gap={space(1)} align="flex-start">
+        <Flex gap="md" align="flex-start">
           <PositiveLabel />
           Use ligatures across the whole user interface.
         </Flex>
@@ -518,7 +518,7 @@ export default function TypographyStories() {
       </SideBySideList>
 
       <Block>
-        <Flex gap={space(1)} align="flex-start">
+        <Flex gap="md" align="flex-start">
           <PositiveLabel />
           Use fractional formatting whenever possible.
         </Flex>

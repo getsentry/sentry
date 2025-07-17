@@ -12,7 +12,6 @@ import {
 } from 'sentry/components/workflowEngine/ui/footer';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -70,7 +69,7 @@ export default function AutomationNew() {
       </Layout.Page>
       <StickyFooter>
         <StickyFooterLabel>{t('Step 1 of 2')}</StickyFooterLabel>
-        <Flex gap={space(1)}>
+        <Flex gap="md">
           <LinkButton
             priority="default"
             to={makeAutomationBasePathname(organization.slug)}
