@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
+import type {StoryTreeNode} from './storyTree';
 import {StoryTree, useStoryTree} from './storyTree';
 import {useStoryBookFiles} from './useStoriesLoader';
 
@@ -21,7 +22,7 @@ export function StorySidebar() {
           <StoryTree nodes={core} />
         </li>
         <li>
-          <h3>Shared</h3>
+          <h3>Product</h3>
           <StoryTree nodes={shared} />
         </li>
       </ul>
@@ -29,9 +30,13 @@ export function StorySidebar() {
   );
 }
 
-export function useStoryBookFilesByCategory() {
+export function useStoryBookFilesByCategory(): Record<
+  'foundations' | 'core' | 'shared',
+  StoryTreeNode[]
+> {
   const files = useStoryBookFiles();
   const filesByOwner = useMemo(() => {
+    // The order of keys here is important and used by the pagination in storyFooter
     const map: Record<'foundations' | 'core' | 'shared', string[]> = {
       foundations: [],
       core: [],

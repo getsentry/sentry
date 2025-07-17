@@ -53,7 +53,7 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
 
   const tableRef = useRef<HTMLTableElement>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(
-    visibleFields.length,
+    visibleFields,
     tableRef,
     {minimumColumnWidth: 50}
   );

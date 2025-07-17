@@ -286,7 +286,7 @@ export default function HighlightsDataSection({
       data-test-id="event-highlights"
       actions={
         <ErrorBoundary mini>
-          <ButtonBar gap={1}>
+          <ButtonBar>
             {viewAllButton}
             <EditHighlightsButton project={project} event={event} />
           </ButtonBar>

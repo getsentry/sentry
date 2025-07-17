@@ -36,6 +36,18 @@ const getSpanFieldDefinition = (key: string) => {
   return getFieldDefinition(key, 'span', argument?.kind);
 };
 
+const getSuggestedKey = (key: string) => {
+  switch (key) {
+    case 'duration':
+    case 'self_time':
+    case 'op':
+    case 'description':
+      return `span.${key}`;
+    default:
+      return null;
+  }
+};
+
 interface TokensProp {
   expression: string;
   dispatch?: Dispatch<ArithmeticBuilderAction>;
@@ -62,6 +74,7 @@ function Tokens(props: TokensProp) {
         aggregations,
         functionArguments,
         getFieldDefinition: getSpanFieldDefinition,
+        getSuggestedKey,
       }}
     >
       <TokenGrid tokens={state.expression.tokens} />
@@ -506,6 +519,38 @@ describe('token', function () {
       expect(screen.getAllByRole('option')).toHaveLength(1);
 
       await userEvent.type(input, '{Enter}');
+
+      const lastInput = getLastInput();
+      await waitFor(() => expect(lastInput).toHaveFocus());
+      await userEvent.type(lastInput, '{Escape}');
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg(span.self_time)',
+        })
+      ).toBeInTheDocument();
+    });
+
+    it('maps key to suggested key on enter', async function () {
+      render(<Tokens expression="avg(span.duration)" />);
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg(span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      const input = screen.getByRole('combobox', {
+        name: 'Select an attribute',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+      expect(input).toHaveFocus();
+      expect(input).toHaveAttribute('placeholder', 'span.duration');
+      expect(input).toHaveValue('');
+
+      await userEvent.type(input, 'self_time{Enter}');
 
       const lastInput = getLastInput();
       await waitFor(() => expect(lastInput).toHaveFocus());

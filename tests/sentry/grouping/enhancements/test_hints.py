@@ -6,7 +6,7 @@ from typing import Literal
 import pytest
 
 from sentry.grouping.component import FrameGroupingComponent
-from sentry.grouping.enhancer import _combine_hints, get_hint_for_frame
+from sentry.grouping.enhancer import _combine_hints, _get_hint_for_frame
 
 
 @dataclass
@@ -428,7 +428,7 @@ def test_get_hint_for_frame(
     rust_frame = DummyRustFrame(hint=rust_hint)
 
     assert (
-        get_hint_for_frame(variant_name, frame, frame_component, rust_frame, desired_hint_type)  # type: ignore[arg-type]
+        _get_hint_for_frame(variant_name, frame, frame_component, rust_frame, desired_hint_type)  # type: ignore[arg-type]
         == expected_result
     )
 

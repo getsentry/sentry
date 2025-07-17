@@ -54,7 +54,7 @@ function ProjectProguardRow({
         <FileSize bytes={size} />
       </SizeColumn>
       <ActionsColumn>
-        <ButtonBar gap={0.5}>
+        <ButtonBar gap="xs">
           <Tooltip
             title={tct(
               'Mappings can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',

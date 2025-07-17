@@ -20,7 +20,12 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DataCategory, DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
+import type {
+  DataCategory,
+  DataCategoryExact,
+  DataCategoryInfo,
+  IntervalPeriod,
+} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {shouldUse24Hours} from 'sentry/utils/dates';
@@ -292,8 +297,8 @@ function ChartContainer({children}: {children: React.ReactNode}) {
 
 export interface UsageStatsOrganizationProps {
   dataCategory: DataCategory;
-  dataCategoryApiName: DataCategoryInfo['apiName'];
-  dataCategoryName: string;
+  dataCategoryApiName: DataCategoryExact;
+  dataCategoryName: DataCategoryInfo['titleName'];
   dataDatetime: DateTimeObject;
   handleChangeState: (state: {
     clientDiscard?: boolean;

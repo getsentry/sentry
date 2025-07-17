@@ -7,7 +7,13 @@ import useProjectFromId from 'sentry/utils/useProjectFromId';
 export interface SummaryResponse {
   data: {
     summary: string;
-    time_ranges: Array<{period_end: number; period_start: number; period_title: string}>;
+    time_ranges: Array<{
+      error: boolean;
+      feedback: boolean;
+      period_end: number;
+      period_start: number;
+      period_title: string;
+    }>;
     title: string;
   };
 }

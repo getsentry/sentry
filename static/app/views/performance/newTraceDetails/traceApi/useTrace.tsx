@@ -170,6 +170,7 @@ function useDemoTrace(
 }
 
 type UseTraceParams = {
+  additionalAttributes?: string[];
   limit?: number;
   timestamp?: number;
   traceSlug?: string;
@@ -213,7 +214,13 @@ export function useTrace(
   const eapTraceQuery = useApiQuery<TraceTree.EAPTrace>(
     [
       `/organizations/${organization.slug}/trace/${options.traceSlug ?? ''}/`,
-      {query: {...queryParams, project: -1}},
+      {
+        query: {
+          ...queryParams,
+          project: -1,
+          additional_attributes: options.additionalAttributes,
+        },
+      },
     ],
     {
       staleTime: Infinity,

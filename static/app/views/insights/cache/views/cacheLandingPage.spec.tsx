@@ -14,6 +14,7 @@ import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {CacheLandingPage} from 'sentry/views/insights/cache/views/cacheLandingPage';
 
 jest.mock('sentry/utils/useLocation');
@@ -144,13 +145,14 @@ describe('CacheLandingPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'metrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
-          field: ['avg(transaction.duration)', 'transaction'],
+          field: ['avg(span.duration)', 'transaction'],
           per_page: 50,
           noPagination: true,
           project: [],
-          query: 'transaction:["my-transaction"]',
+          query: 'transaction:["my-transaction"] AND is_transaction:true',
           referrer: 'api.performance.cache.landing-cache-transaction-duration',
           statsPeriod: '10d',
         },
@@ -204,13 +206,14 @@ describe('CacheLandingPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'metrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
-          field: ['avg(transaction.duration)', 'transaction'],
+          field: ['avg(span.duration)', 'transaction'],
           noPagination: true,
           per_page: 50,
           project: [],
-          query: 'transaction:["transaction with \\"quote\\""]',
+          query: 'transaction:["transaction with \\"quote\\""] AND is_transaction:true',
           referrer: 'api.performance.cache.landing-cache-transaction-duration',
           statsPeriod: '10d',
         },
@@ -407,13 +410,13 @@ const setRequestMocks = (organization: Organization) => {
       data: [
         {
           transaction: 'my-transaction',
-          'avg(transaction.duration)': 456,
+          'avg(span.duration)': 456,
         },
       ],
       meta: {
         fields: {
           transaction: 'string',
-          'avg(transaction.duration)': 'duration',
+          'avg(span.duration)': 'duration',
         },
         units: {},
       },

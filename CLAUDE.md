@@ -89,7 +89,7 @@ pnpm test
 
 # Run specific test file
 pytest tests/sentry/api/test_base.py
-pnpm test components/avatar.spec.tsx
+CI=true pnpm test components/avatar.spec.tsx
 ```
 
 ### Code Quality

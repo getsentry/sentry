@@ -166,7 +166,7 @@ export const getPlayStationHeaderAction = (
   project: Project
 ) => (
   <Fragment>
-    <ButtonBar gap={1.5}>
+    <ButtonBar gap="lg">
       <FeedbackWidgetButton />
       <RequestSdkAccessButton organization={organization} project={project} />
       <Tooltip

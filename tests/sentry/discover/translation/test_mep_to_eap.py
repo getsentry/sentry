@@ -103,11 +103,15 @@ def test_mep_to_eap_simple_query(input: str, expected: str):
         ),
         pytest.param(
             ["percentile(transaction.duration,0.5000)", "percentile(transaction.duration,0.94)"],
-            ["p50(span.duration)", "percentile(span.duration,0.94)"],
+            ["p50(span.duration)"],
         ),
         pytest.param(
             ["user_misery(300)", "apdex(300)"],
             ["user_misery(span.duration,300)", "apdex(span.duration,300)"],
+        ),
+        pytest.param(
+            ["any(transaction.duration)", "count_miserable(user,300)", "transaction", "count()"],
+            ["transaction", "count(span.duration)"],
         ),
     ],
 )
@@ -121,3 +125,24 @@ def test_mep_to_eap_simple_selected_columns(input: list[str], expected: list[str
     translated = translate_mep_to_eap(old)
 
     assert translated["selected_columns"] == expected
+
+
+@pytest.mark.parametrize(
+    "input,expected",
+    [
+        pytest.param(
+            ["count(span.duration) + 5", "count_web_vitals(user,300) * 3"],
+            ["count(span.duration) + 5"],
+        ),
+    ],
+)
+def test_mep_to_eap_simple_equations(input: list[str], expected: list[str]):
+    old = QueryParts(
+        selected_columns=["id"],
+        query="",
+        equations=input,
+        orderby=[],
+    )
+    translated = translate_mep_to_eap(old)
+
+    assert translated["equations"] == expected

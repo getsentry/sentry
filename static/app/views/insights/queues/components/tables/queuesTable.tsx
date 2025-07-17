@@ -29,7 +29,7 @@ import {useQueuesByDestinationQuery} from 'sentry/views/insights/queues/queries/
 import {Referrer} from 'sentry/views/insights/queues/referrers';
 import {
   ModuleName,
-  SpanIndexedField,
+  SpanFields,
   type SpanMetricsResponse,
 } from 'sentry/views/insights/types';
 
@@ -83,7 +83,7 @@ const COLUMN_ORDER: Column[] = [
 ];
 
 const SORTABLE_FIELDS = [
-  SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME,
+  SpanFields.MESSAGING_MESSAGE_DESTINATION_NAME,
   'count_op(queue.publish)',
   'count_op(queue.process)',
   'avg_if(span.duration,span.op,queue.process)',

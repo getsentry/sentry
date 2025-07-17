@@ -176,6 +176,18 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           title: t('Feature Flags'),
           description: t('Set up feature flag integrations'),
         },
+        {
+          path: `${organizationSettingsPathPrefix}/seer/`,
+          title: t('Seer Automation'),
+          description: t(
+            "Manage settings for Seer's automated analysis across your organization"
+          ),
+          show: ({organization}) =>
+            !!organization &&
+            organization.features.includes('trigger-autofix-on-issue-summary') &&
+            !organization.hideAiFeatures,
+          id: 'seer',
+        },
       ],
     },
     {

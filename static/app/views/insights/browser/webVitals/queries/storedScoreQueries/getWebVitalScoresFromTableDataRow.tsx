@@ -2,10 +2,10 @@ import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
-import type {MetricsResponse} from 'sentry/views/insights/types';
+import type {EAPSpanResponse} from 'sentry/views/insights/types';
 
 type PerformanceScores = Pick<
-  MetricsResponse,
+  EAPSpanResponse,
   | 'performance_score(measurements.score.cls)'
   | 'performance_score(measurements.score.fcp)'
   | 'performance_score(measurements.score.inp)'
@@ -14,7 +14,7 @@ type PerformanceScores = Pick<
 >;
 
 type CountScores = Pick<
-  MetricsResponse,
+  EAPSpanResponse,
   | 'count_scores(measurements.score.cls)'
   | 'count_scores(measurements.score.fcp)'
   | 'count_scores(measurements.score.inp)'

@@ -66,7 +66,7 @@ def normalize_message_for_grouping(message: str, event: Event) -> str:
 @strategy(ids=["message:v1"], interface=Message, score=0)
 @produces_variants(["default"])
 def message_v1(
-    interface: Message, event: Event, context: GroupingContext, **meta: Any
+    interface: Message, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
     if context["normalize_message"]:
         raw = interface.message or interface.formatted or ""

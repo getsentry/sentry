@@ -61,6 +61,15 @@ describe('DetectorDetails', function () {
       url: `/organizations/${organization.slug}/users/1/`,
       body: UserFixture(),
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      body: {
+        data: [
+          [1543449600, [20, 12]],
+          [1543449601, [10, 5]],
+        ],
+      },
+    });
   });
 
   it('renders the detector details and snuba query', async function () {

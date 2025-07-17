@@ -18,7 +18,7 @@ import useProjects from 'sentry/utils/useProjects';
 import ResourceSize from 'sentry/views/insights/browser/resources/components/resourceSize';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {EAPSpanResponse} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
@@ -45,7 +45,7 @@ function SampleImages({groupId, projectId}: Props) {
     usePerformanceGeneralProjectSettings(projectId);
   const isImagesEnabled = settings?.enable_images ?? false;
 
-  const {data: imageResources, isPending: isLoadingImages} = useEAPSpans(
+  const {data: imageResources, isPending: isLoadingImages} = useSpans(
     {
       fields: [
         SpanFields.PROJECT,

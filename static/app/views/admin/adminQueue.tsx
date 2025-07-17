@@ -77,7 +77,7 @@ export default function AdminQueue() {
       <Header>
         <h3>{t('Queue Overview')}</h3>
 
-        <ButtonBar merged>
+        <ButtonBar merged gap="none">
           {TIME_WINDOWS.map(r => (
             <Button
               size="sm"
