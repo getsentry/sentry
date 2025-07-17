@@ -35,7 +35,7 @@ from sentry.search.snuba.executors import (
     PostgresSnubaQueryExecutor,
     TrendsSortWeights,
 )
-from sentry.seer.seer_utils import FixabilityScoreThresholds
+from sentry.seer.autofix.constants import FixabilityScoreThresholds
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.users.models.user import User
 from sentry.utils import metrics

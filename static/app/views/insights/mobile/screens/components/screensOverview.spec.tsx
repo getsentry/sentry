@@ -110,10 +110,10 @@ describe('ScreensOverview', () => {
           isMetricsExtractedData: false,
           tips: {},
           datasetReason: 'unchanged',
-          dataset: 'metrics',
+          dataset: 'spans',
         },
       },
-      match: [MockApiClient.matchQuery({dataset: 'metrics'})],
+      match: [MockApiClient.matchQuery({dataset: 'spans'})],
     });
 
     const spanMetricsMock = MockApiClient.addMockResponse({

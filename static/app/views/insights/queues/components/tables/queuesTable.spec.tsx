@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {QueuesTable} from 'sentry/views/insights/queues/components/tables/queuesTable';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 describe('queuesTable', () => {
   const organization = OrganizationFixture();
@@ -98,7 +98,7 @@ describe('queuesTable', () => {
     render(
       <QueuesTable
         destination="*events*"
-        sort={{field: SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME, kind: 'desc'}}
+        sort={{field: SpanFields.MESSAGING_MESSAGE_DESTINATION_NAME, kind: 'desc'}}
       />,
       {organization}
     );
