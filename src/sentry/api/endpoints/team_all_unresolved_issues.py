@@ -88,7 +88,7 @@ def calculate_unresolved_counts(
             "bucket",
             "id",
         )
-        .values("project", "group_id", "bucket", "state")
+        .values("project", "group_id", "bucket", "state")[:200_000]
     )
 
     most_recent_group_state: defaultdict[str, str] = defaultdict(lambda: "other")
