@@ -63,7 +63,11 @@ export function ReleasesDrawerFeatureFlagsTable({
   }
 
   if (error) {
-    return <Alert type="error">{t('Error fetching feature flags')}</Alert>;
+    return (
+      <Alert type="error" showIcon={false}>
+        {t('Error fetching feature flags')}
+      </Alert>
+    );
   }
 
   // If there are no flags, don't render anything

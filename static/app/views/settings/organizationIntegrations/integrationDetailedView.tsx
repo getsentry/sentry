@@ -343,9 +343,7 @@ export default function IntegrationDetailedView() {
       <Fragment>
         {alertText && (
           <Alert.Container>
-            <Alert type="warning" showIcon>
-              {alertText}
-            </Alert>
+            <Alert type="warning">{alertText}</Alert>
           </Alert.Container>
         )}
         <Panel>

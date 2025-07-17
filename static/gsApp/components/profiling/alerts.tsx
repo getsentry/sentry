@@ -346,7 +346,7 @@ export function ContinuousProfilingBetaSDKAlertBanner() {
 
   return (
     <Alert.Container>
-      <Alert system type="warning" showIcon>
+      <Alert system type="warning">
         {tct(
           '[bold:Action Needed: Profiling beta period ends May 19, 2025.] Your SDK is out of date. To continue using profiling without interruption, upgrade to the latest version:',
           {

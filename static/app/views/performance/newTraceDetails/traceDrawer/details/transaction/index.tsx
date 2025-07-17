@@ -139,7 +139,7 @@ export function TransactionNodeDetails({
       <TraceDrawerComponents.BodyContainer>
         {node.canFetch ? null : (
           <Alert.Container>
-            <StyledAlert type="info" showIcon>
+            <StyledAlert type="info">
               {tct(
                 'This transaction does not have any child spans. You can add more child spans via [customInstrumentationLink:custom instrumentation].',
                 {

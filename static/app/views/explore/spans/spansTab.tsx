@@ -446,9 +446,7 @@ function SpanTabContentSection({
       {!resultsLoading && !hasResults && <QuotaExceededAlert referrer="explore" />}
       {defined(error) && (
         <Alert.Container>
-          <Alert type="error" showIcon>
-            {error.message}
-          </Alert>
+          <Alert type="error">{error.message}</Alert>
         </Alert.Container>
       )}
       <TourElement<ExploreSpansTour>

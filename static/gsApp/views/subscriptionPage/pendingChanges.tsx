@@ -398,7 +398,7 @@ class PendingChanges extends Component<Props> {
 
     return (
       <Alert.Container>
-        <Alert type="info" showIcon>
+        <Alert type="info">
           <PendingLists>
             {Object.entries(changes).map(([effectiveDate, items]) => (
               <div key={effectiveDate} data-test-id="pending-list">

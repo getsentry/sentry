@@ -27,7 +27,7 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export function Alert({
-  showIcon,
+  showIcon = true,
   icon,
   system,
   expand,

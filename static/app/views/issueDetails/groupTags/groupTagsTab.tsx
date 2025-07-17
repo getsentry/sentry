@@ -86,7 +86,7 @@ export function GroupTagsTab() {
     <Layout.Body>
       <Layout.Main fullWidth>
         <Alert.Container>
-          <Alert type="info">
+          <Alert type="info" showIcon={false}>
             {tct(
               'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
               {

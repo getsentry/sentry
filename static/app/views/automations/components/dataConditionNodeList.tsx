@@ -196,11 +196,7 @@ export default function DataConditionNodeList({
       {conflictingConditions &&
         ((handlerGroup === DataConditionHandlerGroupType.ACTION_FILTER &&
           conflictingConditions.size > 0) ||
-          conflictingConditions.size > 1) && (
-          <Alert type="error" showIcon>
-            {conflictReason}
-          </Alert>
-        )}
+          conflictingConditions.size > 1) && <Alert type="error">{conflictReason}</Alert>}
       <StyledSelectControl
         options={options}
         onChange={(obj: any) => {

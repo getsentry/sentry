@@ -187,7 +187,7 @@ const onboarding: OnboardingConfig = {
                   }
                 )}
               </p>
-              <Alert type="info">
+              <Alert type="info" showIcon={false}>
                 engine-dir\Engine\Programs\CrashReportClient\Config\DefaultEngine.ini
               </Alert>
             </Fragment>
