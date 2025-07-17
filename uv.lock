@@ -2391,6 +2391,7 @@ dependencies = [
     { name = "vine" },
     { name = "vroomrs" },
     { name = "wcwidth" },
+    { name = "xmlsec" },
     { name = "zstandard" },
 ]
 
@@ -2619,6 +2620,7 @@ requires-dist = [
     { name = "vine", specifier = "==5.1.0" },
     { name = "vroomrs", specifier = "==0.1.13" },
     { name = "wcwidth", specifier = "==0.2.13" },
+    { name = "xmlsec", specifier = "==1.3.14" },
     { name = "zstandard", specifier = "==0.18.0" },
 ]
 provides-extras = ["getsentry"]
