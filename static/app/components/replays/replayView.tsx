@@ -42,7 +42,7 @@ function FatalIconTooltip({error}: {error: Error | null}) {
   );
 }
 
-function ReplayView({toggleFullscreen, isLoading}: Props) {
+export default function ReplayView({toggleFullscreen, isLoading}: Props) {
   const isFullscreen = useIsFullscreen();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const {isFetching, replay} = useReplayContext();
@@ -171,7 +171,12 @@ const PlayerContainer = styled('div')`
 `;
 
 const BreadcrumbContainer = styled('div')`
+  display: flex;
   width: 25%;
+
+  & > div {
+    flex-grow: 1;
+  }
 `;
 
 const PlayerBreadcrumbContainer = styled('div')`
@@ -180,5 +185,3 @@ const PlayerBreadcrumbContainer = styled('div')`
   flex-grow: 1;
   gap: ${space(1)};
 `;
-
-export default ReplayView;
