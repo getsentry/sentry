@@ -222,7 +222,14 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 else:
                     dashboards.append(item)
 
-            serialized.extend(serialize(dashboards, request.user, serializer=list_serializer))
+            serialized.extend(
+                serialize(
+                    dashboards,
+                    request.user,
+                    serializer=list_serializer,
+                    context={"organization": organization},
+                )
+            )
             return serialized
 
         render_pre_built_dashboard = True
