@@ -54,6 +54,15 @@ const mockRepositories = [
   },
 ];
 
+const mockBranches = [
+  {
+    name: 'main',
+  },
+  {
+    name: 'another branch',
+  },
+];
+
 const mockApiCall = () => {
   MockApiClient.addMockResponse({
     url: `/organizations/org-slug/prevent/owner/some-org-name/repository/some-repository/test-results/`,
@@ -81,6 +90,14 @@ const mockApiCall = () => {
     method: 'GET',
     body: {
       results: mockRepositories,
+    },
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/prevent/owner/some-org-name/repository/some-repository/branches/`,
+    method: 'GET',
+    body: {
+      results: mockBranches,
     },
   });
 };
