@@ -1,5 +1,8 @@
 from django.urls import re_path
 
+from sentry.auth_v2.endpoints.auth_user_merge_verification_code import (
+    AuthUserMergeVerificationCodeEndpoint,
+)
 from sentry.auth_v2.endpoints.csrf import CsrfTokenEndpoint
 from sentry.auth_v2.endpoints.feature_flag_view import FeatureFlagView
 from sentry.auth_v2.endpoints.user_login_view import UserLoginView
@@ -22,5 +25,10 @@ AUTH_V2_URLS = [
         r"^login/$",
         UserLoginView.as_view(),
         name="sentry-api-0-auth-v2-login",
+    ),
+    re_path(
+        r"^user-merge-verification-codes/$",
+        AuthUserMergeVerificationCodeEndpoint.as_view(),
+        name="sentry-api-0-auth-verification-codes",
     ),
 ]

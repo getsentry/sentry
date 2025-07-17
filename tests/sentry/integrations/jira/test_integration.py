@@ -9,9 +9,9 @@ from django.urls import reverse
 
 from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from fixtures.integrations.stub_service import StubService
-from sentry.exceptions import InvalidConfiguration
 from sentry.integrations.jira.integration import JiraIntegrationProvider
 from sentry.integrations.jira.views import SALT
+from sentry.integrations.mixins.issues import IntegrationSyncTargetNotFound
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
@@ -19,7 +19,10 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.services.integration import integration_service
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupmeta import GroupMeta
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import (
+    IntegrationError,
+    IntegrationInstallationConfigurationError,
+)
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.factories import EventType
@@ -825,7 +828,7 @@ class RegionJiraIntegrationTest(APITestCase):
             "https://example.atlassian.net/rest/api/2/user/assignable/search",
             json=[{"accountId": "deadbeef123", "displayName": "Dead Beef"}],
         )
-        with pytest.raises(InvalidConfiguration):
+        with pytest.raises(IntegrationSyncTargetNotFound):
             installation.sync_assignee_outbound(external_issue, user)
 
         # No sync made as jira users don't have email addresses
@@ -865,6 +868,56 @@ class RegionJiraIntegrationTest(APITestCase):
         assert assign_issue_url in assign_issue_response.url
         assert assign_issue_response.status_code == 200
         assert assign_issue_response.request.body == b'{"accountId": "deadbeef123"}'
+
+    @responses.activate
+    def test_sync_assignee_outbound_api_unauthorized(self):
+        user = serialize_rpc_user(self.create_user(email="bob@example.com"))
+        issue_id = "APP-123"
+        installation = self.integration.get_installation(self.organization.id)
+        assign_issue_url = "https://example.atlassian.net/rest/api/2/issue/%s/assignee" % issue_id
+
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id, integration_id=installation.model.id, key=issue_id
+        )
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/user/assignable/search",
+            json=[{"accountId": "deadbeef123", "emailAddress": "bob@example.com"}],
+        )
+
+        responses.add(responses.PUT, assign_issue_url, status=401, json={})
+
+        with pytest.raises(IntegrationInstallationConfigurationError) as excinfo:
+            installation.sync_assignee_outbound(external_issue, user)
+
+        assert str(excinfo.value) == "Insufficient permissions to assign user to the Jira issue."
+        assert len(responses.calls) == 2
+
+    @responses.activate
+    def test_sync_assignee_outbound_api_error(self):
+        user = serialize_rpc_user(self.create_user(email="bob@example.com"))
+        issue_id = "APP-123"
+        installation = self.integration.get_installation(self.organization.id)
+        assign_issue_url = "https://example.atlassian.net/rest/api/2/issue/%s/assignee" % issue_id
+
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id, integration_id=installation.model.id, key=issue_id
+        )
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/user/assignable/search",
+            json=[{"accountId": "deadbeef123", "emailAddress": "bob@example.com"}],
+        )
+
+        responses.add(responses.PUT, assign_issue_url, status=400, json={})
+
+        with pytest.raises(IntegrationError) as excinfo:
+            installation.sync_assignee_outbound(external_issue, user)
+
+        assert str(excinfo.value) == "There was an error assigning the issue."
+        assert len(responses.calls) == 2
 
 
 @control_silo_test

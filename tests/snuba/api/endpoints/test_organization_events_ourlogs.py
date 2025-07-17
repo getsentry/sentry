@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.cursors import Cursor
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
@@ -217,3 +218,53 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
             {"message": "foo", "trace": trace_id_1},
         ]
         assert meta["dataset"] == self.dataset
+
+    def test_filter_timestamp(self):
+        one_day_ago = before_now(days=1).replace(microsecond=0)
+        three_days_ago = before_now(days=3).replace(microsecond=0)
+
+        log1 = self.create_ourlog(
+            {"body": "foo"},
+            timestamp=one_day_ago,
+        )
+        log2 = self.create_ourlog(
+            {"body": "bar"},
+            timestamp=three_days_ago,
+        )
+        self.store_ourlogs([log1, log2])
+
+        request = {
+            "field": ["message"],
+            "project": self.project.id,
+            "dataset": self.dataset,
+        }
+
+        response = self.do_request(
+            {
+                **request,
+                "query": "timestamp:-2d",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [{"message": "foo"}]
+
+        timestamp = before_now(days=2).isoformat()
+        timestamp = timestamp.split("T", 2)[0]
+
+        response = self.do_request(
+            {
+                **request,
+                "query": f"timestamp:>{timestamp}",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [{"message": "foo"}]
+
+        response = self.do_request(
+            {
+                **request,
+                "query": f"timestamp:<{timestamp}",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [{"message": "bar"}]

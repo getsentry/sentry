@@ -113,6 +113,7 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
         priority: DetectorPriorityLevel,
     ) -> str:
         comparison_delta = self.detector.config.get("comparison_delta")
+        detection_type = self.detector.config.get("detection_type")
         agg_display_key = snuba_query.aggregate
 
         if is_mri_field(agg_display_key):
@@ -124,6 +125,10 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
             aggregate = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, agg_display_key)
         else:
             aggregate = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, agg_display_key)
+
+        if detection_type == "dynamic":
+            alert_type = aggregate
+            return f"Detected an anomaly in the query for {alert_type}"
 
         # Determine the higher or lower comparison
         higher_or_lower = ""

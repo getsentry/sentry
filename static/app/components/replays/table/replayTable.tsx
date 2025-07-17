@@ -1,12 +1,10 @@
-import type {HTMLAttributes, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {ReplayTableColumn} from 'sentry/components/replays/table/replayTableColumns';
-import {ReplaySessionColumn} from 'sentry/components/replays/table/replayTableColumns';
+import ReplayTableHeader from 'sentry/components/replays/table/replayTableHeader';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -40,46 +38,58 @@ export default function ReplayTable({
   showDropdownFilters,
   sort,
 }: Props) {
+  const gridTemplateColumns = columns.map(col => col.width ?? 'max-content').join(' ');
+
   if (isPending) {
     return (
-      <ReplayTableWithColumns
+      <StyledSimpleTable
         data-test-id="replay-table-loading"
-        columns={columns}
-        sort={sort}
-        onSortClick={onSortClick}
+        style={{gridTemplateColumns}}
       >
+        <ReplayTableHeader
+          columns={columns}
+          replays={replays}
+          onSortClick={onSortClick}
+          sort={sort}
+        />
         <SimpleTable.Empty>
           <LoadingIndicator />
         </SimpleTable.Empty>
-      </ReplayTableWithColumns>
+      </StyledSimpleTable>
     );
   }
 
   if (error) {
     return (
-      <ReplayTableWithColumns
+      <StyledSimpleTable
         data-test-id="replay-table-errored"
-        columns={columns}
-        sort={sort}
-        onSortClick={onSortClick}
+        style={{gridTemplateColumns}}
       >
+        <ReplayTableHeader
+          columns={columns}
+          onSortClick={onSortClick}
+          replays={replays}
+          sort={sort}
+        />
+
         <SimpleTable.Empty>
           <Alert type="error" showIcon>
             {t('Sorry, the list of replays could not be loaded. ')}
             {getErrorMessage(error)}
           </Alert>
         </SimpleTable.Empty>
-      </ReplayTableWithColumns>
+      </StyledSimpleTable>
     );
   }
 
   return (
-    <ReplayTableWithColumns
-      data-test-id="replay-table"
-      columns={columns}
-      sort={sort}
-      onSortClick={onSortClick}
-    >
+    <StyledSimpleTable data-test-id="replay-table" style={{gridTemplateColumns}}>
+      <ReplayTableHeader
+        columns={columns}
+        onSortClick={onSortClick}
+        replays={replays}
+        sort={sort}
+      />
       {replays.length === 0 && (
         <SimpleTable.Empty>{t('No replays found')}</SimpleTable.Empty>
       )}
@@ -110,56 +120,17 @@ export default function ReplayTable({
           </SimpleTable.Row>
         );
       })}
-    </ReplayTableWithColumns>
+    </StyledSimpleTable>
   );
 }
 
-type TableProps = {
-  children: ReactNode;
-  columns: readonly ReplayTableColumn[];
-  onSortClick?: (key: string) => void;
-  sort?: Sort;
-} & HTMLAttributes<HTMLTableElement>;
-
-const ReplayTableWithColumns = styled(
-  ({children, columns, onSortClick, sort, ...props}: TableProps) => (
-    <SimpleTable {...props}>
-      <SimpleTable.Header>
-        {columns.map((column, columnIndex) => (
-          <SimpleTable.HeaderCell
-            key={`${column.name}-${columnIndex}`}
-            handleSortClick={() => column.sortKey && onSortClick?.(column.sortKey)}
-            sort={
-              column.sortKey && sort?.field === column.sortKey ? sort.kind : undefined
-            }
-          >
-            <Tooltip title={column.tooltip} disabled={!column.tooltip}>
-              {column.name}
-            </Tooltip>
-          </SimpleTable.HeaderCell>
-        ))}
-      </SimpleTable.Header>
-
-      {children}
-    </SimpleTable>
-  )
-)`
-  ${p => getGridTemplateColumns(p.columns)}
-  margin-bottom: 0;
+const StyledSimpleTable = styled(SimpleTable)`
   overflow: auto;
 
   [data-clickable='true'] {
     cursor: pointer;
   }
 `;
-
-function getGridTemplateColumns(columns: readonly ReplayTableColumn[]) {
-  return `grid-template-columns: ${columns
-    .map(column =>
-      column === ReplaySessionColumn ? 'minmax(150px, 1fr)' : 'max-content'
-    )
-    .join(' ')};`;
-}
 
 function getErrorMessage(fetchError: RequestError) {
   if (typeof fetchError === 'string') {
@@ -193,7 +164,13 @@ const RowCell = styled(SimpleTable.RowCell)`
   position: relative;
   overflow: auto;
 
+  /* Used for cell menu items that are hidden by default */
   &:hover [data-visible-on-hover='true'] {
     opacity: 1;
+  }
+
+  /* Used for the main replay display name in ReplaySessionColumn  */
+  &:hover [data-underline-on-hover='true'] {
+    text-decoration: underline;
   }
 `;

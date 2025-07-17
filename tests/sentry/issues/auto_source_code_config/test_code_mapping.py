@@ -22,7 +22,7 @@ from sentry.issues.auto_source_code_config.errors import (
     UnexpectedPathException,
     UnsupportedFrameInfo,
 )
-from sentry.issues.auto_source_code_config.frame_info import FrameInfo
+from sentry.issues.auto_source_code_config.frame_info import create_frame_info
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -86,10 +86,10 @@ def test_buckets_logic() -> None:
     helper = CodeMappingTreesHelper({})
     buckets = helper._stacktrace_buckets(frames)
     assert buckets == {
-        "/cronscripts/": [FrameInfo({"filename": "/cronscripts/monitoringsync.php"})],
-        "./app": [FrameInfo({"filename": "./app/utils/handleXhrErrorResponse.tsx"})],
-        "app:": [FrameInfo({"filename": "app://foo.js"})],
-        "getsentry": [FrameInfo({"filename": "getsentry/billing/tax/manager.py"})],
+        "/cronscripts/": [create_frame_info({"filename": "/cronscripts/monitoringsync.php"})],
+        "./app": [create_frame_info({"filename": "./app/utils/handleXhrErrorResponse.tsx"})],
+        "app:": [create_frame_info({"filename": "app://foo.js"})],
+        "getsentry": [create_frame_info({"filename": "getsentry/billing/tax/manager.py"})],
     }
 
 
@@ -123,7 +123,7 @@ class TestDerivedCodeMappings(TestCase):
         # We create a new tree helper in order to improve the understability of this test
         cmh = CodeMappingTreesHelper({self.foo_repo.name: repo_tree})
         cm = cmh._generate_code_mapping_from_tree(
-            repo_tree=repo_tree, frame_filename=FrameInfo({"filename": "raven/base.py"})
+            repo_tree=repo_tree, frame_filename=create_frame_info({"filename": "raven/base.py"})
         )
         # We should not derive a code mapping since the package name does not match
         assert cm == []
@@ -205,7 +205,7 @@ class TestDerivedCodeMappings(TestCase):
         logger.warning.assert_called_with("More than one repo matched %s", "sentry/web/urls.py")
 
     def test_get_file_and_repo_matches_single(self) -> None:
-        frame_filename = FrameInfo({"filename": "sentry_plugins/slack/client.py"})
+        frame_filename = create_frame_info({"filename": "sentry_plugins/slack/client.py"})
         matches = self.code_mapping_helper.get_file_and_repo_matches(frame_filename)
         expected_matches = [
             {
@@ -219,7 +219,7 @@ class TestDerivedCodeMappings(TestCase):
         assert matches == expected_matches
 
     def test_get_file_and_repo_matches_multiple(self) -> None:
-        frame_filename = FrameInfo({"filename": "sentry/web/urls.py"})
+        frame_filename = create_frame_info({"filename": "sentry/web/urls.py"})
         matches = self.code_mapping_helper.get_file_and_repo_matches(frame_filename)
         expected_matches = [
             {
@@ -241,49 +241,49 @@ class TestDerivedCodeMappings(TestCase):
 
     def test_find_roots_starts_with_period_slash(self) -> None:
         stacktrace_root, source_path = find_roots(
-            FrameInfo({"filename": "./app/foo.tsx"}), "static/app/foo.tsx"
+            create_frame_info({"filename": "./app/foo.tsx"}), "static/app/foo.tsx"
         )
         assert stacktrace_root == "./"
         assert source_path == "static/"
 
     def test_find_roots_starts_with_period_slash_no_containing_directory(self) -> None:
         stacktrace_root, source_path = find_roots(
-            FrameInfo({"filename": "./app/foo.tsx"}), "app/foo.tsx"
+            create_frame_info({"filename": "./app/foo.tsx"}), "app/foo.tsx"
         )
         assert stacktrace_root == "./"
         assert source_path == ""
 
     def test_find_roots_not_matching(self) -> None:
         stacktrace_root, source_path = find_roots(
-            FrameInfo({"filename": "sentry/foo.py"}), "src/sentry/foo.py"
+            create_frame_info({"filename": "sentry/foo.py"}), "src/sentry/foo.py"
         )
         assert stacktrace_root == "sentry/"
         assert source_path == "src/sentry/"
 
     def test_find_roots_equal(self) -> None:
         stacktrace_root, source_path = find_roots(
-            FrameInfo({"filename": "source/foo.py"}), "source/foo.py"
+            create_frame_info({"filename": "source/foo.py"}), "source/foo.py"
         )
         assert stacktrace_root == ""
         assert source_path == ""
 
     def test_find_roots_starts_with_period_slash_two_levels(self) -> None:
         stacktrace_root, source_path = find_roots(
-            FrameInfo({"filename": "./app/foo.tsx"}), "app/foo/app/foo.tsx"
+            create_frame_info({"filename": "./app/foo.tsx"}), "app/foo/app/foo.tsx"
         )
         assert stacktrace_root == "./"
         assert source_path == "app/foo/"
 
     def test_find_roots_starts_with_app(self) -> None:
         stacktrace_root, source_path = find_roots(
-            FrameInfo({"filename": "app:///utils/foo.tsx"}), "utils/foo.tsx"
+            create_frame_info({"filename": "app:///utils/foo.tsx"}), "utils/foo.tsx"
         )
         assert stacktrace_root == "app:///"
         assert source_path == ""
 
     def test_find_roots_starts_with_multiple_dot_dot_slash(self) -> None:
         stacktrace_root, source_path = find_roots(
-            FrameInfo({"filename": "../../../../../../packages/foo.tsx"}),
+            create_frame_info({"filename": "../../../../../../packages/foo.tsx"}),
             "packages/foo.tsx",
         )
         assert stacktrace_root == "../../../../../../"
@@ -291,7 +291,7 @@ class TestDerivedCodeMappings(TestCase):
 
     def test_find_roots_starts_with_app_dot_dot_slash(self) -> None:
         stacktrace_root, source_path = find_roots(
-            FrameInfo({"filename": "app:///../services/foo.tsx"}),
+            create_frame_info({"filename": "app:///../services/foo.tsx"}),
             "services/foo.tsx",
         )
         assert stacktrace_root == "app:///../"
@@ -299,25 +299,27 @@ class TestDerivedCodeMappings(TestCase):
 
     def test_find_roots_bad_stack_path(self) -> None:
         with pytest.raises(UnsupportedFrameInfo):
-            FrameInfo({"filename": "https://yrurlsinyourstackpath.com/"})
+            create_frame_info({"filename": "https://yrurlsinyourstackpath.com/"})
 
     def test_find_roots_bad_source_path(self) -> None:
         with pytest.raises(UnexpectedPathException):
             find_roots(
-                FrameInfo({"filename": "sentry/random.py"}),
+                create_frame_info({"filename": "sentry/random.py"}),
                 "nothing/something.js",
             )
 
     def test_find_roots_windows_path_with_spaces(self) -> None:
         stacktrace_root, source_path = find_roots(
-            FrameInfo({"filename": "C:\\Program Files\\MyApp\\src\\file.py"}), "src/file.py"
+            create_frame_info({"filename": "C:\\Program Files\\MyApp\\src\\file.py"}), "src/file.py"
         )
         assert stacktrace_root == "C:\\Program Files\\MyApp\\"
         assert source_path == ""
 
     def test_find_roots_windows_path_with_spaces_nested(self) -> None:
         stacktrace_root, source_path = find_roots(
-            FrameInfo({"filename": "C:\\Program Files\\My Company\\My App\\src\\main\\file.py"}),
+            create_frame_info(
+                {"filename": "C:\\Program Files\\My Company\\My App\\src\\main\\file.py"}
+            ),
             "src/main/file.py",
         )
         assert stacktrace_root == "C:\\Program Files\\My Company\\My App\\"
@@ -325,7 +327,7 @@ class TestDerivedCodeMappings(TestCase):
 
     def test_find_roots_windows_path_with_spaces_source_match(self) -> None:
         stacktrace_root, source_path = find_roots(
-            FrameInfo({"filename": "C:\\Program Files\\MyApp\\src\\components\\file.py"}),
+            create_frame_info({"filename": "C:\\Program Files\\MyApp\\src\\components\\file.py"}),
             "frontend/src/components/file.py",
         )
         assert stacktrace_root == "C:\\Program Files\\MyApp\\"

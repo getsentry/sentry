@@ -47,6 +47,7 @@ export function ProjectFixture(params: Partial<Project> = {}): Project {
     hasInsightsQueues: false,
     hasInsightsLlmMonitoring: false,
     hasInsightsAgentMonitoring: false,
+    hasInsightsMCP: false,
     isInternal: false,
     organization: OrganizationFixture(),
     plugins: [],

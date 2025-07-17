@@ -8,6 +8,7 @@ from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.testutils.cases import (
     APITestCase,
     MetricsEnhancedPerformanceTestCase,
+    OurLogTestCase,
     SnubaTestCase,
     SpanTestCase,
 )
@@ -21,7 +22,11 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationEventsMetaEndpoint(
-    APITestCase, MetricsEnhancedPerformanceTestCase, SearchIssueTestMixin, SpanTestCase
+    APITestCase,
+    MetricsEnhancedPerformanceTestCase,
+    SearchIssueTestMixin,
+    SpanTestCase,
+    OurLogTestCase,
 ):
     def setUp(self):
         super().setUp()
@@ -52,6 +57,26 @@ class OrganizationEventsMetaEndpoint(
 
         assert response.status_code == 200, response.content
         assert response.data["count"] == 1
+
+    def test_logs_dataset(self):
+        self.store_ourlogs(
+            [
+                self.create_ourlog(
+                    {"body": "foo"},
+                    timestamp=self.min_ago,
+                ),
+                self.create_ourlog(
+                    {"body": "bar"},
+                    timestamp=self.min_ago,
+                ),
+            ]
+        )
+
+        with self.feature(self.features):
+            response = self.client.get(self.url, format="json", data={"dataset": "ourlogs"})
+
+        assert response.status_code == 200, response.content
+        assert response.data["count"] == 2
 
     def test_multiple_projects(self):
         project2 = self.create_project()

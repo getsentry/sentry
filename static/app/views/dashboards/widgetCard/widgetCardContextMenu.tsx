@@ -296,6 +296,10 @@ export function getMenuOptions(
 ) {
   const menuOptions: MenuItemProps[] = [];
 
+  const disableTransactionEdit =
+    organization.features.includes('discover-saved-queries-deprecation') &&
+    widget.widgetType === WidgetType.TRANSACTIONS;
+
   if (
     organization.features.includes('discover-basic') &&
     widget.widgetType &&
@@ -397,6 +401,10 @@ export function getMenuOptions(
     menuOptions.push({
       key: 'add-to-dashboard',
       label: t('Add to Dashboard'),
+      disabled: disableTransactionEdit,
+      tooltip: disableTransactionEdit
+        ? t('This dataset is is no longer supported. Please use the Spans dataset.')
+        : undefined,
       onAction: () => {
         openAddToDashboardModal({
           organization,
@@ -419,7 +427,10 @@ export function getMenuOptions(
       key: 'duplicate-widget',
       label: t('Duplicate Widget'),
       onAction: () => onDuplicate?.(),
-      disabled: widgetLimitReached || !hasEditAccess,
+      tooltip: disableTransactionEdit
+        ? t('This dataset is is no longer supported. Please use the Spans dataset.')
+        : undefined,
+      disabled: widgetLimitReached || !hasEditAccess || disableTransactionEdit,
     });
 
     menuOptions.push({

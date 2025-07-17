@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import MutableMapping
 from datetime import timezone
-from typing import Any, ClassVar
+from typing import Any, ClassVar, TypedDict
 
 from dateutil.parser import parse as parse_date
 from rest_framework import status
@@ -17,7 +16,7 @@ from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import repository_service
-from sentry.integrations.services.repository.model import RpcCreateRepository
+from sentry.integrations.services.repository.model import RpcCreateRepository, RpcRepository
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -27,10 +26,34 @@ from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import metrics
 
 
+class RepositoryConfig(TypedDict):
+    name: str
+    external_id: str
+    url: str
+    config: dict[str, Any]
+    integration_id: int
+
+
 class RepoExistsError(SentryAPIException):
     status_code = status.HTTP_400_BAD_REQUEST
     code = "repo_exists"
     message = "A repository with that configuration already exists"
+
+    def __init__(
+        self,
+        code=None,
+        message=None,
+        detail=None,
+        repos: list[RepositoryConfig] | None = None,
+        **kwargs,
+    ):
+        super().__init__(code=code, message=message, detail=detail, **kwargs)
+        self.repos = repos
+
+    def __str__(self):
+        if self.repos:
+            return f"Repositories already exist: {', '.join(repo['name'] for repo in self.repos)}"
+        return "Repositories already exist."
 
 
 def get_integration_repository_provider(integration):
@@ -83,15 +106,15 @@ class IntegrationRepositoryProvider:
 
     def create_repository(
         self,
-        repo_config: MutableMapping[str, Any],
+        repo_config: dict[str, Any],
         organization: RpcOrganization,
     ):
         result = self.build_repository_config(organization=organization, data=repo_config)
 
-        integration_id = result.get("integration_id")
-        external_id = result.get("external_id")
-        name = result.get("name")
-        url = result.get("url")
+        integration_id = result["integration_id"]
+        external_id = result["external_id"]
+        name = result["name"]
+        url = result["url"]
 
         # first check if there is an existing hidden repository for the organization and external id
         repositories = repository_service.get_repositories(
@@ -177,9 +200,95 @@ class IntegrationRepositoryProvider:
                         update=repo,
                     )
 
-            raise RepoExistsError
+            raise RepoExistsError(repos=[result])
 
         return result, repo
+
+    def _update_repository(self, repo: RpcRepository, config: RepositoryConfig):
+        repo.status = ObjectStatus.ACTIVE
+
+        for field_name, field_value in config.items():
+            setattr(repo, field_name, field_value)
+        return repo
+
+    def _update_repositories(
+        self,
+        repositories: list[RpcRepository],
+        external_id_to_repo_config: dict[str, RepositoryConfig],
+    ) -> list[RpcRepository]:
+        repos_to_update: list[RpcRepository] = []
+        for repo in repositories:
+            external_id = repo.external_id
+            if external_id and (repo_config := external_id_to_repo_config.get(external_id)):
+                repos_to_update.append(self._update_repository(repo, repo_config))
+                external_id_to_repo_config.pop(external_id, None)
+        return repos_to_update
+
+    def create_repositories(
+        self,
+        configs: list[dict[str, Any]],
+        organization: RpcOrganization,
+    ):
+        external_id_to_repo_config: dict[str, RepositoryConfig] = {}
+        for config in configs:
+            result = self.build_repository_config(organization=organization, data=config)
+            external_id_to_repo_config[result["external_id"]] = result
+
+        repos_to_update: list[RpcRepository] = []
+
+        hidden_repos = repository_service.get_repositories(
+            organization_id=organization.id,
+            status=ObjectStatus.HIDDEN,
+        )
+        repos_to_update.extend(self._update_repositories(hidden_repos, external_id_to_repo_config))
+
+        # then check if there are repositories without an integration that matches
+        repositories = repository_service.get_repositories(
+            organization_id=organization.id,
+            has_integration=False,
+        )
+        repos_to_update.extend(self._update_repositories(repositories, external_id_to_repo_config))
+
+        # create remaining repositories
+        missing_repos: list[RepositoryConfig] = []
+        for external_id, repo_config in external_id_to_repo_config.items():
+            integration_id = repo_config["integration_id"]
+            create_repository = RpcCreateRepository.parse_obj(
+                {**repo_config, "provider": self.id, "status": ObjectStatus.ACTIVE}
+            )
+            new_repository = repository_service.create_repository(
+                organization_id=organization.id, create=create_repository
+            )
+            if new_repository is not None:
+                continue
+
+            missing_repos.append(repo_config)
+            # Try to delete webhook we just created
+            try:
+                self.on_delete_repository(
+                    Repository(organization_id=organization.id, **repo_config)
+                )
+            except IntegrationError:
+                pass
+
+            # if possible update the repo with matching integration
+            repositories = repository_service.get_repositories(
+                organization_id=organization.id,
+                integration_id=integration_id,
+                external_id=external_id,
+            )
+            # We anticipate to only update one repository, but we update any duplicates as well.
+            for repo in repositories:
+                repos_to_update.append(self._update_repository(repo, repo_config))
+
+        if repos_to_update:
+            repository_service.update_repositories(
+                organization_id=organization.id,
+                updates=repos_to_update,
+            )
+
+        if missing_repos:
+            raise RepoExistsError(repos=missing_repos)
 
     def dispatch(self, request: Request, organization, **kwargs):
         try:
@@ -242,7 +351,9 @@ class IntegrationRepositoryProvider:
         """
         return config
 
-    def build_repository_config(self, organization: RpcOrganization, data):
+    def build_repository_config(
+        self, organization: RpcOrganization, data: dict[str, Any]
+    ) -> RepositoryConfig:
         """
         Builds final dict containing all necessary data to create the repository
 
