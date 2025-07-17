@@ -5,7 +5,8 @@ on:
       - '.pre-commit-config.yaml'
       - 'Makefile'
       - '.github/workflows/development-environment.yml'
-      - 'requirements-*.txt'
+      - 'pyproject.toml'
+      - 'uv.lock'
       - '.python-version'
       - '.envrc'
       - 'Brewfile'
@@ -41,10 +42,8 @@ jobs:
       - uses: getsentry/action-setup-venv@3a832a9604b3e1a4202ae559248f26867b467cc7 # v2.1.1
         with:
           python-version: 3.13.1
-          cache-dependency-path: |
-            requirements-dev.txt
-            requirements-dev-frozen.txt
-          install-cmd: uv pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
+          cache-dependency-path: uv.lock
+          install-cmd: uv sync --frozen
       - name: test-tools
         run: make test-tools
       - name: Handle artifacts
@@ -67,10 +66,8 @@ jobs:
       - uses: getsentry/action-setup-venv@3a832a9604b3e1a4202ae559248f26867b467cc7 # v2.1.1
         with:
           python-version: 3.13.1
-          cache-dependency-path: |
-            requirements-dev.txt
-            requirements-dev-frozen.txt
-          install-cmd: uv pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
+          cache-dependency-path: uv.lock
+          install-cmd: uv sync --frozen
       - name: devenv sync
         run: |
           devenv --nocoderoot sync

@@ -87,8 +87,8 @@ runs:
     - uses: getsentry/action-setup-venv@3a832a9604b3e1a4202ae559248f26867b467cc7 # v2.1.1
       with:
         python-version: ${{ inputs.python-version }}
-        cache-dependency-path: ${{ inputs.workdir }}/requirements-dev-frozen.txt
-        install-cmd: cd ${{ inputs.workdir }} && uv pip install -r requirements-dev-frozen.txt
+        cache-dependency-path: ${{ inputs.workdir }}/uv.lock
+        install-cmd: cd ${{ inputs.workdir }} && uv sync --frozen
 
     - name: Set up outputs
       id: config

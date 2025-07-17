@@ -32,7 +32,7 @@ def rpcschema(diagnose: bool, partial: bool) -> None:
         from openapi_pydantic.util import PydanticSchema, construct_open_api_with_schema_class
     except ImportError:
         click.echo(
-            "Could not import openapi_pydantic. You must install requirements-dev to run this command"
+            "Could not import openapi_pydantic. You must install dev requirements to run this command"
         )
         return
 
