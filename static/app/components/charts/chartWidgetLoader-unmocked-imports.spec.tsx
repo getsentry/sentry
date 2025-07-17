@@ -209,12 +209,6 @@ jest.mock('sentry/views/insights/common/queries/useDiscoverSeries', () => ({
       'trace_status_rate(internal_error)': mockDiscoverSeries(
         'trace_status_rate(internal_error)'
       ),
-    },
-    isPending: false,
-    error: null,
-  })),
-  useMetricsSeries: jest.fn(() => ({
-    data: {
       'performance_score(measurements.score.lcp)': {
         data: [],
       },
