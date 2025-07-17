@@ -36,7 +36,8 @@ export default function Ai() {
       replayRecord?.id &&
         project?.slug &&
         organization.features.includes('replay-ai-summaries') &&
-        organization.features.includes('gen-ai-features')
+        organization.features.includes('gen-ai-features') &&
+        organization.genAIConsent
     ),
     retry: false,
   });
@@ -46,7 +47,7 @@ export default function Ai() {
   const feedbackButton = ({type}: {type: 'positive' | 'negative'}) => {
     return openForm ? (
       <Button
-        aria-label={t('Give feedback on the AI summary section')}
+        aria-label={t('Give feedback on the replay summary section')}
         icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
         title={type === 'positive' ? t('I like this') : t(`I don't like this`)}
         size={'xs'}
@@ -54,8 +55,10 @@ export default function Ai() {
           openForm({
             messagePlaceholder:
               type === 'positive'
-                ? t('What did you like about the AI summary and chapters?')
-                : t('How can we make the AI summary and chapters work better for you?'),
+                ? t('What did you like about the replay summary and chapters?')
+                : t(
+                    'How can we make the replay summary and chapters work better for you?'
+                  ),
             tags: {
               ['feedback.source']: 'replay_ai_summary',
               ['feedback.owner']: 'replay',
@@ -75,16 +78,14 @@ export default function Ai() {
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <EmptySummaryContainer>
           <Alert type="info">
-            {t('Replay AI summary is not available for this organization.')}
+            {t('Replay summary is not available for this organization.')}
           </Alert>
         </EmptySummaryContainer>
       </Wrapper>
     );
   }
 
-  // If replay-ai-summaries is enabled but gen-ai-features is not, show CTA
-  //
-  // TODO(replay): Probably need to move this to getsentry?
+  // If replay-ai-summaries is enabled but genAIConsent is not, then show CTA
   if (!organization.genAIConsent) {
     return (
       <SummaryContainer>
@@ -117,7 +118,9 @@ export default function Ai() {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <EmptySummaryContainer>
-          <Alert type="error">{t('Project not found. Unable to load AI summary.')}</Alert>
+          <Alert type="error">
+            {t('Project not found. Unable to load replay summary.')}
+          </Alert>
         </EmptySummaryContainer>
       </Wrapper>
     );
@@ -137,7 +140,7 @@ export default function Ai() {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <EmptySummaryContainer>
-          <Alert type="error">{t('Failed to load AI summary')}</Alert>
+          <Alert type="error">{t('Failed to load replay summary')}</Alert>
         </EmptySummaryContainer>
       </Wrapper>
     );
