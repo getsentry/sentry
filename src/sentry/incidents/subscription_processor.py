@@ -349,9 +349,7 @@ class SubscriptionProcessor:
         has_metric_alert_processing = features.has(
             "organizations:workflow-engine-metric-alert-processing", organization
         )
-        has_anomaly_detection = features.has(
-            "organizations:anomaly-detection-alerts", organization
-        ) and features.has("organizations:anomaly-detection-rollout", organization)
+        has_anomaly_detection = features.has("organizations:anomaly-detection-alerts", organization)
 
         comparison_delta = None
         detector = None
