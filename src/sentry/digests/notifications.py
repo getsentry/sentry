@@ -235,7 +235,6 @@ def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[i
                     Exception(f"Rule {rule.id} does not have a legacy_rule_id"),
                     level="warning",
                 )
-                raise
 
             rules[workflow_id] = rule
     return rules
@@ -278,7 +277,6 @@ def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
                 Exception(f"Rule {rule.id} does not have a legacy_rule_id"),
                 level="warning",
             )
-            raise
 
     rules.update(get_rules_from_workflows(project, workflow_ids))
 
