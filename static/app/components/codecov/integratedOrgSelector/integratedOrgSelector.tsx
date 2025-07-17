@@ -3,6 +3,7 @@ import {Link} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
+import {integratedOrgIdToName} from 'sentry/components/codecov/integratedOrgSelector/utils';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -11,10 +12,11 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import {IconAdd, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Integration} from 'sentry/types/integrations';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {IconIntegratedOrg} from './iconIntegratedOrg';
-
-const SAMPLE_ORG_ITEMS = ['codecov', 'getsentry'];
 
 function AddIntegratedOrgButton() {
   return (
@@ -50,36 +52,46 @@ function OrgFooterMessage() {
 }
 
 export function IntegratedOrgSelector() {
-  const {integratedOrg, changeContextValue} = useCodecovContext();
+  const {integratedOrgId, changeContextValue} = useCodecovContext();
+  const organization = useOrganization();
+
+  const {data: integrations = []} = useApiQuery<Integration[]>(
+    [
+      `/organizations/${organization.slug}/integrations/`,
+      {query: {includeConfig: 0, provider_key: 'github'}},
+    ],
+    {staleTime: 0}
+  );
 
   const handleChange = useCallback(
     (selectedOption: SelectOption<string>) => {
-      changeContextValue({integratedOrg: selectedOption.value});
+      changeContextValue({integratedOrgId: selectedOption.value});
     },
     [changeContextValue]
   );
 
   const options = useMemo((): Array<SelectOption<string>> => {
     const optionSet = new Set<string>([
-      ...(integratedOrg ? [integratedOrg] : []),
-      ...(SAMPLE_ORG_ITEMS.length ? SAMPLE_ORG_ITEMS : []),
+      ...(integratedOrgId ? [integratedOrgId] : []),
+      ...(integrations.length > 0 ? integrations.map(item => item.id) : []),
     ]);
 
     const makeOption = (value: string): SelectOption<string> => {
+      const integratedOrgName = integratedOrgIdToName(value, integrations);
       return {
         value,
-        label: <OptionLabel>{value}</OptionLabel>,
-        textValue: value,
+        label: <OptionLabel>{integratedOrgName}</OptionLabel>,
+        textValue: integratedOrgName,
       };
     };
 
     return [...optionSet].map(makeOption);
-  }, [integratedOrg]);
+  }, [integratedOrgId, integrations]);
 
   return (
     <CompactSelect
       options={options}
-      value={integratedOrg ?? ''}
+      value={integratedOrgId ?? ''}
       onChange={handleChange}
       closeOnSelect
       trigger={(triggerProps, isOpen) => {
@@ -95,7 +107,8 @@ export function IntegratedOrgSelector() {
                   <IconIntegratedOrg />
                 </IconContainer>
                 <TriggerLabel>
-                  {integratedOrg || t('Select integrated organization')}
+                  {integratedOrgIdToName(integratedOrgId, integrations) ||
+                    t('Select integrated organization')}
                 </TriggerLabel>
               </Flex>
             </TriggerLabelWrap>

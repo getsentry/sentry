@@ -2,11 +2,15 @@ import styled from '@emotion/styled';
 
 import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
 import {IntegratedOrgSelector} from 'sentry/components/codecov/integratedOrgSelector/integratedOrgSelector';
+import {integratedOrgIdToName} from 'sentry/components/codecov/integratedOrgSelector/utils';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Integration} from 'sentry/types/integrations';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import type {ValidSort} from './repoTokenTable/repoTokenTable';
 import RepoTokenTable, {
@@ -15,7 +19,15 @@ import RepoTokenTable, {
 } from './repoTokenTable/repoTokenTable';
 
 export default function TokensPage() {
-  const {integratedOrg} = useCodecovContext();
+  const {integratedOrgId} = useCodecovContext();
+  const organization = useOrganization();
+  const {data: integrations = []} = useApiQuery<Integration[]>(
+    [
+      `/organizations/${organization.slug}/integrations/`,
+      {query: {includeConfig: 0, provider_key: 'github'}},
+    ],
+    {staleTime: 0}
+  );
   const location = useLocation();
 
   const sorts: [ValidSort] = [
@@ -47,7 +59,7 @@ export default function TokensPage() {
       <HeaderValue>{t('Repository tokens')}</HeaderValue>
       <p>
         {t('View the list of tokens created for your repositories in')}{' '}
-        <strong>{integratedOrg}</strong>.{' '}
+        <strong>{integratedOrgIdToName(integratedOrgId, integrations)}</strong>.{' '}
         {t("Use them for uploading reports to all Sentry Prevent's features.")}
       </p>
       <RepoTokenTable response={response} sort={sorts[0]} />
