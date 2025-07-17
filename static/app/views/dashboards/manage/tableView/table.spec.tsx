@@ -72,6 +72,6 @@ describe('DashboardTable', () => {
     // matches the format of the "0ms ago" text more robustly in
     // case the timestamp does not exactly match
     const lastVisitedContent = lastVisitedCell.textContent;
-    expect(lastVisitedContent).toMatch(/[\d\w]s ago$/);
+    expect(lastVisitedContent).toMatch(/[\d\w]+s ago$/);
   });
 });
