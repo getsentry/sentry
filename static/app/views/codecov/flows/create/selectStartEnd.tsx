@@ -1,21 +1,397 @@
-import React, {useEffect, useState} from 'react';
-import {Link, useParams} from 'react-router-dom';
+import React, {Fragment, useCallback, useEffect, useState} from 'react';
+import {Link} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
+import {Breadcrumbs as PageBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import TextField from 'sentry/components/forms/fields/textField';
 import * as Layout from 'sentry/components/layouts/thirds';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayView from 'sentry/components/replays/replayView';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {useLocation} from 'sentry/utils/useLocation';
-import {FlowCreateForm} from 'sentry/views/codecov/flows/create/createForm';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {useUser} from 'sentry/utils/useUser';
+import {useCreateFlowTemp} from 'sentry/views/codecov/flows/hooks';
+import type {FlowDefinition} from 'sentry/views/codecov/flows/types';
+import {getFrameId, getFrameIndexById} from 'sentry/views/codecov/flows/utils/frames';
 import ReplayDetailsProviders from 'sentry/views/replays/detail/body/replayDetailsProviders';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import useBreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/useBreadcrumbFilters';
 import ReplayDetailsPageBreadcrumbs from 'sentry/views/replays/detail/header/replayDetailsPageBreadcrumbs';
+
+export default function SelectStartEndPage() {
+  const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const user = useUser();
+  const [replaySlug, setReplaySlug] = useState<string | undefined>();
+  const [startBreadcrumbId, setStartBreadcrumbId] = useState<string | null>(null);
+  const [endBreadcrumbId, setEndBreadcrumbId] = useState<string | null>(null);
+  const [name, setName] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const {selection} = usePageFilters();
+  const {mutateAsync: createFlow} = useCreateFlowTemp({
+    pageFilters: selection,
+  });
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const replay = searchParams.get('replay');
+    if (replay) setReplaySlug(replay);
+  }, [location.search]);
+
+  const isFormValid = () => {
+    return name.trim() && startBreadcrumbId && endBreadcrumbId;
+  };
+
+  const getTooltipMessage = () => {
+    if (!name.trim()) {
+      return t('Please enter a flow name');
+    }
+    if (!startBreadcrumbId) {
+      return t('Please select a start point');
+    }
+    if (!endBreadcrumbId) {
+      return t('Please select an end point');
+    }
+    return '';
+  };
+
+  const handleSubmit = useCallback(async () => {
+    if (!isFormValid()) return;
+
+    setIsSubmitting(true);
+    addLoadingMessage();
+
+    try {
+      const response = await createFlow({
+        name: name.trim(),
+        createdBy: user,
+        status: 'active',
+        description: `Flow created from replay: ${replaySlug}`,
+        replayId: replaySlug || '',
+        startBreadcrumb: startBreadcrumbId || '',
+        endBreadcrumb: endBreadcrumbId || '',
+      });
+
+      addSuccessMessage(t('Created flow successfully.'));
+      navigate('/codecov/flows/');
+    } catch (error) {
+      const message = t('Failed to create a new flow.');
+      addErrorMessage(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [
+    createFlow,
+    endBreadcrumbId,
+    isFormValid,
+    name,
+    navigate,
+    replaySlug,
+    setIsSubmitting,
+    startBreadcrumbId,
+    user,
+  ]);
+
+  if (!replaySlug) {
+    return <EmptyStateWarning>{t('No replay found')}</EmptyStateWarning>;
+  }
+
+  return (
+    <SentryDocumentTitle title={t('Select Replay')}>
+      <PageFiltersContainer>
+        <Layout.Page>
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <PageBreadcrumbs
+                crumbs={[
+                  {
+                    label: t('Flows'),
+                    to: '/codecov/flows/',
+                  },
+                  {
+                    label: t('Select Replay'),
+                    to: '/codecov/flows/select-replay',
+                  },
+                  {
+                    label: t('New Flow'),
+                  },
+                ]}
+              />
+              <Layout.Title>{t('New Flow')}</Layout.Title>
+            </Layout.HeaderContent>
+          </Layout.Header>
+
+          <Layout.Body>
+            <Layout.Main fullWidth>
+              <List symbol="colored-numeric">
+                <ListItem>{t('Give your flow a name')}</ListItem>
+                <div style={{maxWidth: 400, marginBottom: 24}}>
+                  <TextField
+                    name="name"
+                    label={t('Flow Name')}
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    placeholder={t('Give your flow a name')}
+                    required
+                    flexibleControlStateSize
+                  />
+                </div>
+
+                <ListItem>{t('Select a start and end point for your flow')}</ListItem>
+                <SelectStartEndCard
+                  replaySlug={replaySlug}
+                  orgSlug={organization.slug}
+                  organization={organization}
+                  startBreadcrumbId={startBreadcrumbId}
+                  setStartBreadcrumbId={setStartBreadcrumbId}
+                  endBreadcrumbId={endBreadcrumbId}
+                  setEndBreadcrumbId={setEndBreadcrumbId}
+                />
+                <div style={{display: 'flex', gap: '8px', marginTop: 24}}>
+                  <Tooltip title={getTooltipMessage()} disabled={!!isFormValid()}>
+                    <Button
+                      priority="primary"
+                      disabled={isSubmitting || !isFormValid()}
+                      onClick={handleSubmit}
+                    >
+                      {isSubmitting ? t('Creating...') : t('Create Flow')}
+                    </Button>
+                  </Tooltip>
+                  <Button priority="default" onClick={() => navigate(`/codecov/flows/`)}>
+                    {t('Cancel')}
+                  </Button>
+                </div>
+              </List>
+            </Layout.Main>
+          </Layout.Body>
+        </Layout.Page>
+      </PageFiltersContainer>
+    </SentryDocumentTitle>
+  );
+}
+
+function SelectStartEndCard({
+  replaySlug,
+  orgSlug,
+  organization,
+  startBreadcrumbId,
+  setStartBreadcrumbId,
+  endBreadcrumbId,
+  setEndBreadcrumbId,
+}: {
+  endBreadcrumbId: string | null;
+  orgSlug: string;
+  organization: ReturnType<typeof useOrganization>;
+  replaySlug: string;
+  setEndBreadcrumbId: React.Dispatch<React.SetStateAction<string | null>>;
+  setStartBreadcrumbId: React.Dispatch<React.SetStateAction<string | null>>;
+  startBreadcrumbId: string | null;
+}) {
+  const readerResult = useLoadReplayReader({
+    replaySlug,
+    orgSlug,
+  });
+
+  const {replay, replayRecord} = readerResult || {};
+  const isLoading = !readerResult?.replay;
+  const error = readerResult && !readerResult.replay;
+
+  // Get filtered frames at component level
+  const allFrames = replay?.getChapterFrames() || [];
+  const filterProps = useBreadcrumbFilters({frames: allFrames});
+  const {items: filteredFrames, searchTerm, type} = filterProps;
+
+  // Clear selections if they're no longer visible due to filtering
+  const clearSelectionsIfNeeded = useCallback(() => {
+    if (
+      startBreadcrumbId &&
+      getFrameIndexById(filteredFrames, startBreadcrumbId) === -1
+    ) {
+      setStartBreadcrumbId(null);
+    }
+    if (endBreadcrumbId && getFrameIndexById(filteredFrames, endBreadcrumbId) === -1) {
+      setEndBreadcrumbId(null);
+    }
+  }, [
+    startBreadcrumbId,
+    endBreadcrumbId,
+    filteredFrames,
+    setStartBreadcrumbId,
+    setEndBreadcrumbId,
+  ]);
+
+  // Clear selections when filters change
+  useEffect(() => {
+    clearSelectionsIfNeeded();
+  }, [searchTerm, type, clearSelectionsIfNeeded]);
+
+  const handleSetStart = (breadcrumbId: string) => {
+    if (startBreadcrumbId === breadcrumbId) {
+      setStartBreadcrumbId(null);
+      return;
+    }
+    setStartBreadcrumbId(breadcrumbId);
+
+    if (endBreadcrumbId !== null) {
+      const startIndex = getFrameIndexById(filteredFrames, breadcrumbId);
+      const endIndex = getFrameIndexById(filteredFrames, endBreadcrumbId);
+      if (startIndex > endIndex) {
+        setEndBreadcrumbId(null);
+      }
+    }
+  };
+
+  const handleSetEnd = (breadcrumbId: string) => {
+    if (endBreadcrumbId === breadcrumbId) {
+      setEndBreadcrumbId(null);
+      return;
+    }
+    if (startBreadcrumbId === null) return;
+
+    const startIndex = getFrameIndexById(filteredFrames, startBreadcrumbId);
+    const endIndex = getFrameIndexById(filteredFrames, breadcrumbId);
+    if (endIndex >= startIndex) {
+      setEndBreadcrumbId(breadcrumbId);
+    }
+  };
+
+  // If loading, show loading state
+  if (isLoading) {
+    return (
+      <div style={{padding: '20px'}}>
+        <EmptyStateWarning>{t('Loading replay...')}</EmptyStateWarning>
+      </div>
+    );
+  }
+
+  // If error or replay is null, show error state
+  if (error || !replay) {
+    return (
+      <div style={{padding: '20px'}}>
+        <EmptyStateWarning>{t('Could not load replay.')}</EmptyStateWarning>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <ReplayDetailsProviders
+        replay={replay}
+        projectSlug={replayRecord?.project_id || ''}
+      >
+        <div style={{padding: '20px'}}>
+          <LayoutContainer>
+            <div style={{display: 'flex', flexDirection: 'row', gap: '20px', flex: 1}}>
+              <div
+                style={{display: 'flex', flexDirection: 'column', gap: '20px', flex: 1}}
+              >
+                <Header>
+                  <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
+                </Header>
+
+                <ReplayView isLoading={false} toggleFullscreen={() => {}} />
+                <ReplayController
+                  isLoading={false}
+                  hideFastForward={false}
+                  toggleFullscreen={() => {}}
+                />
+              </div>
+
+              <div
+                style={{display: 'flex', flexDirection: 'column', gap: '20px', flex: 1}}
+              >
+                <SelectFromBreadcrumbsCard
+                  startBreadcrumbId={startBreadcrumbId}
+                  endBreadcrumbId={endBreadcrumbId}
+                  onSetStart={handleSetStart}
+                  onSetEnd={handleSetEnd}
+                  filteredFrames={filteredFrames}
+                  hasFilters={searchTerm !== '' || type.length > 0}
+                />
+              </div>
+            </div>
+          </LayoutContainer>
+        </div>
+      </ReplayDetailsProviders>
+    </div>
+  );
+}
+
+type BreadcrumbsWithFlowButtonsProps = {
+  endBreadcrumbId: string | null;
+  filteredFrames: any[];
+  hasFilters: boolean;
+  onSetEnd: (breadcrumbId: string) => void;
+  onSetStart: (breadcrumbId: string) => void;
+  startBreadcrumbId: string | null;
+};
+
+function SelectFromBreadcrumbsCard({
+  startBreadcrumbId,
+  endBreadcrumbId,
+  onSetStart,
+  onSetEnd,
+  filteredFrames,
+  hasFilters,
+}: BreadcrumbsWithFlowButtonsProps) {
+  return (
+    <Fragment>
+      <BreadcrumbsWrapper>
+        <BreadcrumbsContainer>
+          <Breadcrumbs />
+        </BreadcrumbsContainer>
+        <FlowButtonColumn>
+          {filteredFrames.map((frame, index) => {
+            const frameId = getFrameId(frame, index);
+            const isStart = startBreadcrumbId === frameId;
+            const isEnd = endBreadcrumbId === frameId;
+            const endIndex = getFrameIndexById(filteredFrames, endBreadcrumbId ?? '');
+            const startIndex = getFrameIndexById(filteredFrames, startBreadcrumbId ?? '');
+
+            return (
+              <FlowButtonContainer key={frameId} isStart={isStart} isEnd={isEnd}>
+                <FlowButton
+                  size="xs"
+                  priority={isStart ? 'primary' : 'default'}
+                  onClick={() => onSetStart(frameId)}
+                  disabled={endBreadcrumbId !== null && index > endIndex}
+                >
+                  {isStart ? '✓' : 'Start'}
+                </FlowButton>
+                <FlowButton
+                  size="xs"
+                  priority={isEnd ? 'primary' : 'default'}
+                  onClick={() => onSetEnd(frameId)}
+                  disabled={startBreadcrumbId === null || index < startIndex}
+                >
+                  {isEnd ? '✓' : 'End'}
+                </FlowButton>
+              </FlowButtonContainer>
+            );
+          })}
+        </FlowButtonColumn>
+      </BreadcrumbsWrapper>
+    </Fragment>
+  );
+}
 
 const LayoutContainer = styled('div')`
   display: flex;
@@ -112,15 +488,6 @@ const FlowButtonContainer = styled('div')<{isEnd: boolean; isStart: boolean}>`
   `}
 `;
 
-const PageBreadcrumbs = styled('nav')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  margin-bottom: ${space(3)};
-  font-size: 14px;
-  color: ${p => p.theme.textColor};
-`;
-
 const BreadcrumbItem = styled('span')`
   display: flex;
   align-items: center;
@@ -140,344 +507,3 @@ const BreadcrumbSeparator = styled('span')`
   color: ${p => p.theme.subText};
   margin: 0 ${space(0.5)};
 `;
-
-const CurrentPage = styled('span')`
-  color: ${p => p.theme.subText};
-  font-weight: 500;
-`;
-
-// Component that wraps the existing Breadcrumbs and adds flow buttons
-function BreadcrumbsWithFlowButtons({
-  startBreadcrumbId,
-  endBreadcrumbId,
-  onSetStart,
-  onSetEnd,
-  flowForm,
-  filteredFrames,
-  hasFilters,
-}: {
-  endBreadcrumbId: string | null;
-  filteredFrames: any[];
-  hasFilters: boolean;
-  onSetEnd: (breadcrumbId: string) => void;
-  onSetStart: (breadcrumbId: string) => void;
-  startBreadcrumbId: string | null;
-  flowForm?: React.ReactNode;
-}) {
-  const frames = filteredFrames;
-
-  return (
-    <div>
-      <SelectionStatus>
-        {startBreadcrumbId !== null && endBreadcrumbId !== null ? (
-          <div>
-            ✅ Flow range selected: {startBreadcrumbId} to {endBreadcrumbId}
-          </div>
-        ) : startBreadcrumbId === null ? (
-          <div>
-            📋 Select a start point for your flow.
-            {hasFilters && (
-              <div style={{fontSize: '11px', color: '#9ca3af', marginTop: '4px'}}>
-                💡 Tip: Clear filters to see all breadcrumbs
-              </div>
-            )}
-          </div>
-        ) : (
-          <div>📋 Start set at {startBreadcrumbId}. Select an end point.</div>
-        )}
-      </SelectionStatus>
-      <BreadcrumbsWrapper>
-        <BreadcrumbsContainer>
-          <Breadcrumbs />
-        </BreadcrumbsContainer>
-        <FlowButtonColumn>
-          {frames.map((frame, index) => {
-            // Create a unique ID based on frame data to handle filtering correctly
-            const frameId = `${frame.offsetMs}-${index}`;
-            return (
-              <FlowButtonContainer
-                key={frameId}
-                isStart={startBreadcrumbId === frameId}
-                isEnd={endBreadcrumbId === frameId}
-              >
-                <FlowButton
-                  size="xs"
-                  priority={startBreadcrumbId === frameId ? 'primary' : 'default'}
-                  onClick={() => onSetStart(frameId)}
-                  disabled={
-                    endBreadcrumbId !== null &&
-                    index >
-                      frames.findIndex((_, i) => `${_.offsetMs}-${i}` === endBreadcrumbId)
-                  }
-                >
-                  {startBreadcrumbId === frameId ? '✓' : 'Start'}
-                </FlowButton>
-                <FlowButton
-                  size="xs"
-                  priority={endBreadcrumbId === frameId ? 'primary' : 'default'}
-                  onClick={() => onSetEnd(frameId)}
-                  disabled={
-                    startBreadcrumbId === null ||
-                    index <
-                      frames.findIndex(
-                        (_, i) => `${_.offsetMs}-${i}` === startBreadcrumbId
-                      )
-                  }
-                >
-                  {endBreadcrumbId === frameId ? '✓' : 'End'}
-                </FlowButton>
-              </FlowButtonContainer>
-            );
-          })}
-        </FlowButtonColumn>
-      </BreadcrumbsWrapper>
-      {flowForm && <div style={{marginTop: '16px'}}>{flowForm}</div>}
-    </div>
-  );
-}
-
-export default function New() {
-  const {flowId} = useParams<{flowId: string}>();
-  const location = useLocation();
-  const [replaySlug, setReplaySlug] = useState<string | undefined>();
-
-  // Extract replay slug from URL query parameters
-  useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const replay = searchParams.get('replay');
-    if (replay) {
-      setReplaySlug(replay);
-    }
-  }, [location.search]);
-
-  // For the new flow page, we'll use a default flow or create a new one
-  const flow = {
-    id: 'new-flow',
-    name: 'New Flow',
-    createdBy: 'Current User',
-    status: 'Active',
-    lastSeen: new Date().toISOString(),
-    lastChecked: new Date().toISOString(),
-    failures: 0,
-    linkedIssues: [],
-  };
-
-  const orgSlug = 'codecov';
-
-  // Always call useLoadReplayReader to avoid React Hook rule violation
-  const readerResult = useLoadReplayReader({
-    replaySlug: replaySlug || '',
-    orgSlug,
-  });
-
-  const {replay, replayRecord} = readerResult || {};
-
-  // State for flow creation
-  const [startBreadcrumbId, setStartBreadcrumbId] = useState<string | null>(null);
-  const [endBreadcrumbId, setEndBreadcrumbId] = useState<string | null>(null);
-
-  // Get filtered frames at component level
-  const allFrames = replay?.getChapterFrames() || [];
-  const filterProps = useBreadcrumbFilters({frames: allFrames});
-  const {items: filteredFrames, searchTerm, type} = filterProps;
-
-  // Clear selections if they're no longer visible due to filtering
-  const clearSelectionsIfNeeded = React.useCallback(() => {
-    if (
-      startBreadcrumbId &&
-      !filteredFrames.some(
-        f => `${f.offsetMs}-${filteredFrames.indexOf(f)}` === startBreadcrumbId
-      )
-    ) {
-      setStartBreadcrumbId(null);
-    }
-    if (
-      endBreadcrumbId &&
-      !filteredFrames.some(
-        f => `${f.offsetMs}-${filteredFrames.indexOf(f)}` === endBreadcrumbId
-      )
-    ) {
-      setEndBreadcrumbId(null);
-    }
-  }, [startBreadcrumbId, endBreadcrumbId, filteredFrames]);
-
-  // Clear selections when filters change
-  React.useEffect(() => {
-    clearSelectionsIfNeeded();
-  }, [searchTerm, type, clearSelectionsIfNeeded]);
-
-  const handleSetStart = (breadcrumbId: string) => {
-    // Toggle selection - if already selected, deselect it
-    if (startBreadcrumbId === breadcrumbId) {
-      setStartBreadcrumbId(null);
-      return;
-    }
-
-    setStartBreadcrumbId(breadcrumbId);
-    if (endBreadcrumbId !== null) {
-      const startIndex = filteredFrames.findIndex(
-        (f: any) => `${f.offsetMs}-${filteredFrames.indexOf(f)}` === breadcrumbId
-      );
-      const endIndex = filteredFrames.findIndex(
-        (f: any) => `${f.offsetMs}-${filteredFrames.indexOf(f)}` === endBreadcrumbId
-      );
-      if (startIndex > endIndex) {
-        setEndBreadcrumbId(null);
-      }
-    }
-  };
-
-  const handleSetEnd = (breadcrumbId: string) => {
-    // Toggle selection - if already selected, deselect it
-    if (endBreadcrumbId === breadcrumbId) {
-      setEndBreadcrumbId(null);
-      return;
-    }
-
-    // Only allow setting end if start is selected
-    if (startBreadcrumbId === null) return;
-
-    const startIndex = filteredFrames.findIndex(
-      (f: any) => `${f.offsetMs}-${filteredFrames.indexOf(f)}` === startBreadcrumbId
-    );
-    const endIndex = filteredFrames.findIndex(
-      (f: any) => `${f.offsetMs}-${filteredFrames.indexOf(f)}` === breadcrumbId
-    );
-    if (endIndex >= startIndex) {
-      setEndBreadcrumbId(breadcrumbId);
-    }
-  };
-
-  const handleFormSubmit = (formData: any) => {
-    // Combine form data with breadcrumb selection
-    const _flowData = {
-      ...formData,
-      startBreadcrumbId,
-      endBreadcrumbId,
-      replaySlug,
-      orgSlug,
-    };
-
-    // Here you would typically make an API call to create the flow
-  };
-
-  // Show loading state while replay is loading
-  if (replaySlug && !replay) {
-    return <div>Loading replay...</div>;
-  }
-
-  // Show message when no replay is selected
-  if (!replaySlug || !replay) {
-    return (
-      <div style={{padding: '20px', textAlign: 'center'}}>
-        <h2>No Replay Selected</h2>
-        <p>Please select a replay to create a new flow.</p>
-        <Button onClick={() => window.history.back()}>Go Back</Button>
-      </div>
-    );
-  }
-
-  return (
-    <ReplayDetailsProviders replay={replay} projectSlug={replayRecord?.project_id || ''}>
-      <div style={{padding: '20px'}}>
-        <PageBreadcrumbs>
-          <BreadcrumbItem>
-            <BreadcrumbLink to="/codecov/flows/">{t('Flows')}</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator>/</BreadcrumbSeparator>
-          <BreadcrumbItem>
-            <BreadcrumbLink to="/codecov/flows/select-replay">
-              {t('Select Replay')}
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator>/</BreadcrumbSeparator>
-          <BreadcrumbItem>
-            <CurrentPage>{t('New Flow')}</CurrentPage>
-          </BreadcrumbItem>
-        </PageBreadcrumbs>
-
-        <div style={{marginBottom: '24px'}}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '16px',
-            }}
-          >
-            <h1 style={{margin: 0, fontSize: '28px', fontWeight: 600}}>{flow.name}</h1>
-          </div>
-          <p style={{color: '#6b7280', margin: 0}}>
-            {t('Created by')}{' '}
-            {typeof flow.createdBy === 'string'
-              ? flow.createdBy
-              : flow.createdBy?.name || flow.createdBy?.email || 'Unknown'}
-          </p>
-        </div>
-
-        <LayoutContainer>
-          <div style={{display: 'flex', flexDirection: 'row', gap: '20px', flex: 1}}>
-            <div style={{display: 'flex', flexDirection: 'column', gap: '20px', flex: 1}}>
-              <Header>
-                <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
-              </Header>
-              <ReplayView toggleFullscreen={() => {}} isLoading={false} />
-              <ReplayController
-                isLoading={false}
-                toggleFullscreen={() => {}}
-                hideFastForward={false}
-              />
-            </div>
-
-            <div style={{display: 'flex', flexDirection: 'column', gap: '20px', flex: 1}}>
-              <div
-                style={{
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  marginBottom: '10px',
-                }}
-              >
-                Create New Flow
-              </div>
-              <div style={{fontSize: '14px', fontWeight: 'bold', marginBottom: '10px'}}>
-                Step 1: Add Flow Name
-              </div>
-              <TextField
-                name="name"
-                label={t('Flow Name')}
-                required
-                help={t('A name to help you identify this flow.')}
-              />
-              <hr
-                style={{margin: '20px 0', border: 'none', borderTop: '5px solid #e5e7eb'}}
-              />
-              <div style={{fontSize: '14px', fontWeight: 'bold', marginBottom: '1px'}}>
-                Step 2: Assign Start and End State
-              </div>
-              <BreadcrumbsWithFlowButtons
-                startBreadcrumbId={startBreadcrumbId}
-                endBreadcrumbId={endBreadcrumbId}
-                onSetStart={handleSetStart}
-                onSetEnd={handleSetEnd}
-                filteredFrames={filteredFrames}
-                hasFilters={searchTerm !== '' || type.length > 0}
-                flowForm={
-                  <FlowCreateForm
-                    organization={{slug: orgSlug} as any}
-                    onCreatedFlow={createdFlow => {
-                      handleFormSubmit({name: createdFlow.name});
-                    }}
-                    startBreadcrumb={startBreadcrumbId}
-                    endBreadcrumb={endBreadcrumbId}
-                    replaySlug={replaySlug}
-                    orgSlug={orgSlug}
-                  />
-                }
-              />
-            </div>
-          </div>
-        </LayoutContainer>
-      </div>
-    </ReplayDetailsProviders>
-  );
-}
