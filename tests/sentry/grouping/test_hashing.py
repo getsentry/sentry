@@ -3,7 +3,7 @@ from __future__ import annotations
 from time import time
 from unittest.mock import MagicMock, patch
 
-from sentry.conf.server import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.eventstore.models import Event
 from sentry.grouping.api import GroupingConfig
 from sentry.grouping.ingest.hashing import (
@@ -20,12 +20,13 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.skips import requires_snuba
+from tests.sentry.grouping import NO_MSG_PARAM_CONFIG
 
 pytestmark = [requires_snuba]
 
 
 class BackgroundGroupingTest(TestCase):
-    @override_options({"store.background-grouping-config-id": LEGACY_GROUPING_CONFIG})
+    @override_options({"store.background-grouping-config-id": NO_MSG_PARAM_CONFIG})
     @patch("sentry.grouping.ingest.hashing._calculate_background_grouping")
     def test_background_grouping_sample_rate(
         self, mock_calc_background_grouping: MagicMock
@@ -38,7 +39,7 @@ class BackgroundGroupingTest(TestCase):
             save_new_event({"message": "Dogs are great! 1121"}, self.project)
             assert mock_calc_background_grouping.call_count == 1
 
-    @override_options({"store.background-grouping-config-id": LEGACY_GROUPING_CONFIG})
+    @override_options({"store.background-grouping-config-id": NO_MSG_PARAM_CONFIG})
     @override_options({"store.background-grouping-sample-rate": 1.0})
     @patch("sentry_sdk.capture_exception")
     def test_handles_errors_with_background_grouping(
@@ -60,15 +61,15 @@ class BackgroundGroupingTest(TestCase):
 class SecondaryGroupingTest(TestCase):
     def test_applies_secondary_grouping(self) -> None:
         project = self.project
-        project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
+        project.update_option("sentry:grouping_config", NO_MSG_PARAM_CONFIG)
 
         event = save_new_event({"message": "Dogs are great! 1121"}, project)
 
         project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
-        project.update_option("sentry:secondary_grouping_config", LEGACY_GROUPING_CONFIG)
+        project.update_option("sentry:secondary_grouping_config", NO_MSG_PARAM_CONFIG)
         project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
 
-        # Switching to newstyle grouping changes the hash because now '123' will be parametrized
+        # Switching to default grouping changes the hash because now '123' will be parametrized
         event2 = save_new_event({"message": "Dogs are great! 1121"}, project)
 
         # Make sure that events did get into same group because of secondary grouping, not because
@@ -106,14 +107,14 @@ class SecondaryGroupingTest(TestCase):
         ) -> tuple[list[str], dict[str, BaseVariant]]:
             # We only want `_calculate_event_grouping` to error inside of `_calculate_secondary_hash`,
             # not anywhere else it's called
-            if grouping_config["id"] == LEGACY_GROUPING_CONFIG:
+            if grouping_config["id"] == NO_MSG_PARAM_CONFIG:
                 raise secondary_grouping_error
             else:
                 return _calculate_event_grouping(project, event, grouping_config)
 
         project = self.project
         project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
-        project.update_option("sentry:secondary_grouping_config", LEGACY_GROUPING_CONFIG)
+        project.update_option("sentry:secondary_grouping_config", NO_MSG_PARAM_CONFIG)
         project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
 
         with patch(
@@ -133,11 +134,11 @@ class SecondaryGroupingTest(TestCase):
     ) -> None:
         project = self.project
         project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
-        project.update_option("sentry:secondary_grouping_config", LEGACY_GROUPING_CONFIG)
+        project.update_option("sentry:secondary_grouping_config", NO_MSG_PARAM_CONFIG)
         project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
 
-        # Include a number so the two configs will produce different hashes (since the new config
-        # will parameterize the number and the legacy config won't)
+        # Include a number so the two configs will produce different hashes (since the default
+        # config will parameterize the number but NO_MSG_PARAM_CONFIG won't)
         event = save_new_event({"message": "Dogs are great! 1121"}, project)
         assert event.group_id
 
@@ -157,29 +158,27 @@ class SecondaryGroupingTest(TestCase):
         grouphashes_for_group = GroupHash.objects.filter(project=project, group_id=event.group_id)
         assert grouphashes_for_group.count() == 1
         assert grouphashes_for_group.filter(hash=hashes_by_config[DEFAULT_GROUPING_CONFIG]).exists()
-        assert not grouphashes_for_group.filter(
-            hash=hashes_by_config[LEGACY_GROUPING_CONFIG]
-        ).exists()
+        assert not grouphashes_for_group.filter(hash=hashes_by_config[NO_MSG_PARAM_CONFIG]).exists()
 
     def test_filters_new_secondary_hashes_when_creating_grouphashes(self) -> None:
         project = self.project
-        project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
+        project.update_option("sentry:grouping_config", NO_MSG_PARAM_CONFIG)
 
-        # Include a number so the two configs will produce different hashes (since the new config
-        # will parameterize the number and the legacy config won't)
+        # Include a number so the two configs will produce different hashes (since the default
+        # config will parameterize the number but NO_MSG_PARAM_CONFIG won't)
         event1 = save_new_event({"message": "Dogs are great! 1231"}, project)
-        legacy_config_hash = event1.get_primary_hash()
-        assert set(GroupHash.objects.all().values_list("hash", flat=True)) == {legacy_config_hash}
+        no_msg_param_hash = event1.get_primary_hash()
+        assert set(GroupHash.objects.all().values_list("hash", flat=True)) == {no_msg_param_hash}
 
         # Update the project's grouping config and set it in transition
         project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
-        project.update_option("sentry:secondary_grouping_config", LEGACY_GROUPING_CONFIG)
+        project.update_option("sentry:secondary_grouping_config", NO_MSG_PARAM_CONFIG)
         project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
 
         with (
             patch(
                 "sentry.grouping.ingest.hashing._calculate_secondary_hashes",
-                return_value=[legacy_config_hash, "new_legacy_hash_value"],
+                return_value=[no_msg_param_hash, "additional_secondary_hash_value"],
             ),
             patch(
                 "sentry.event_manager.get_or_create_grouphashes", wraps=get_or_create_grouphashes
@@ -187,19 +186,19 @@ class SecondaryGroupingTest(TestCase):
         ):
             event2 = save_new_event({"message": "Dogs are great! 1231"}, project)
             default_config_hash = event2.get_primary_hash()
-            assert legacy_config_hash != default_config_hash
+            assert no_msg_param_hash != default_config_hash
 
             # Even though `get_or_create_grouphashes` was called for secondary grouping, no
-            # grouphash was created for the new secondary hash "new_legacy_hash_value"
+            # grouphash was created for the new secondary hash "additional_secondary_hash_value"
             get_or_create_grouphashes_spy.assert_any_call(
                 event2,
                 project,
                 {},
-                [legacy_config_hash, "new_legacy_hash_value"],
-                LEGACY_GROUPING_CONFIG,
+                [no_msg_param_hash, "additional_secondary_hash_value"],
+                NO_MSG_PARAM_CONFIG,
             )
             assert set(GroupHash.objects.all().values_list("hash", flat=True)) == {
-                legacy_config_hash,
+                no_msg_param_hash,
                 default_config_hash,
             }
 
