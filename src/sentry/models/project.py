@@ -104,6 +104,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "javascript-ember",
     "javascript-gatsby",
     "javascript-nextjs",
+    "javascript-nuxt",
     "javascript-react",
     "javascript-react-router",
     "javascript-remix",
@@ -112,13 +113,13 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "javascript-svelte",
     "javascript-sveltekit",
     "javascript-tanstackstart-react",
-    "javascript-nuxt",
     "javascript-vue",
     "kotlin",
     "minidump",
     "native",
     "native-qt",
     "nintendo-switch",
+    "nintendo-switch-2",
     "node",
     "node-awslambda",
     "node-azurefunctions",
@@ -134,6 +135,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "php",
     "php-laravel",
     "php-symfony",
+    "playstation",
     "powershell",
     "python",
     "python-aiohttp",
@@ -165,6 +167,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "rust",
     "unity",
     "unreal",
+    "xbox",
 ]
 
 
