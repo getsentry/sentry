@@ -312,8 +312,8 @@ type ApiMutationVariables<
 > = {
   method: 'PUT' | 'POST' | 'DELETE';
   url: string;
-  options?: Pick<QueryKeyEndpointOptions<Headers, Query>, 'query' | 'headers'>;
   data?: Data;
+  options?: Pick<QueryKeyEndpointOptions<Headers, Query>, 'query' | 'headers'>;
 };
 
 /**
