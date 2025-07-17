@@ -3,19 +3,14 @@ from datetime import timedelta
 from typing import Any
 
 from sentry_sdk import trace
-from snuba_sdk import Column, Condition
 
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.eap.utils import handle_downsample_meta
-from sentry.search.events.types import SAMPLING_MODES, EventsMeta, EventsResponse, SnubaParams
+from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaParams
 from sentry.snuba import rpc_dataset_common
-from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import zerofill
-from sentry.snuba.metrics.extraction import MetricSpecType
-from sentry.snuba.query_sources import QuerySource
-from sentry.snuba.rpc_dataset_common import TableQuery, run_table_query
 from sentry.utils import snuba_rpc
 from sentry.utils.snuba import SnubaTSResult
 
@@ -30,35 +25,21 @@ def get_resolver(params: SnubaParams, config: SearchResolverConfig) -> SearchRes
     )
 
 
-def query(
+@trace
+def run_table_query(
+    params: SnubaParams,
+    query_string: str,
     selected_columns: list[str],
-    query: str,
-    snuba_params: SnubaParams,
+    orderby: list[str] | None,
+    offset: int,
+    limit: int,
+    referrer: str,
+    config: SearchResolverConfig,
+    sampling_mode: SAMPLING_MODES | None = None,
     equations: list[str] | None = None,
-    orderby: list[str] | None = None,
-    offset: int | None = None,
-    limit: int = 50,
-    referrer: str | None = None,
-    auto_fields: bool = False,
-    auto_aggregations: bool = False,
-    include_equation_fields: bool = False,
-    allow_metric_aggregates: bool = False,
-    use_aggregate_conditions: bool = False,
-    conditions: list[Condition] | None = None,
-    functions_acl: list[str] | None = None,
-    transform_alias_to_input_format: bool = False,
-    sample: float | None = None,
-    has_metrics: bool = False,
-    use_metrics_layer: bool = False,
-    skip_tag_resolution: bool = False,
-    extra_columns: list[Column] | None = None,
-    on_demand_metrics_enabled: bool = False,
-    on_demand_metrics_type: MetricSpecType | None = None,
-    dataset: Dataset = Dataset.Discover,
-    fallback_to_transactions: bool = False,
-    query_source: QuerySource | None = None,
+    search_resolver: SearchResolver | None = None,
     debug: bool = False,
-) -> EventsResponse:
+) -> EAPResponse:
     precise_timestamp = "tags[sentry.timestamp_precise,number]"
     if orderby == ["-timestamp"]:
         orderby = ["-timestamp", f"-{precise_timestamp}"]
@@ -68,21 +49,20 @@ def query(
         orderby = ["timestamp", precise_timestamp]
         if precise_timestamp not in selected_columns:
             selected_columns.append(precise_timestamp)
-    return run_table_query(
-        TableQuery(
-            query_string=query or "",
+
+    return rpc_dataset_common.run_table_query(
+        rpc_dataset_common.TableQuery(
+            query_string=query_string,
             selected_columns=selected_columns,
             orderby=orderby,
-            offset=offset or 0,
+            offset=offset,
             limit=limit,
-            referrer=referrer or "referrer unset",
+            referrer=referrer,
             sampling_mode=None,
-            resolver=get_resolver(
-                params=snuba_params,
-                config=SearchResolverConfig(
-                    auto_fields=False,
-                    use_aggregate_conditions=use_aggregate_conditions,
-                ),
+            resolver=search_resolver
+            or get_resolver(
+                params=params,
+                config=config,
             ),
         ),
         debug=debug,

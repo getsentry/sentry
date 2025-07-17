@@ -18,6 +18,7 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.profiles.utils import get_from_profiling_service
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
@@ -57,7 +58,9 @@ def _get_logs_for_event(
         organization=project.organization,
     )
 
-    results: EventsResponse = ourlogs.query(
+    results: EventsResponse = ourlogs.run_table_query(
+        snuba_params,
+        f"trace:{trace_id}",
         selected_columns=[
             "project.id",
             "timestamp",
@@ -66,12 +69,11 @@ def _get_logs_for_event(
             "code.file.path",
             "code.function.name",
         ],
-        query=f"trace:{trace_id}",
-        snuba_params=snuba_params,
         orderby=["-timestamp"],
         offset=0,
         limit=100,
         referrer=Referrer.API_GROUP_AI_AUTOFIX,
+        config=SearchResolverConfig(use_aggregate_conditions=False),
     )
     data = results["data"]
 
