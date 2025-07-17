@@ -40,7 +40,6 @@ from sentry.incidents.models.incident import (
     TriggerStatus,
 )
 from sentry.incidents.tasks import handle_trigger_action
-from sentry.incidents.utils.metric_issue_poc import create_or_update_metric_issue
 from sentry.incidents.utils.process_update_helpers import (
     get_comparison_aggregation_value,
     get_crash_rate_alert_metrics_aggregation_value_helper,
@@ -776,12 +775,6 @@ class SubscriptionProcessor:
                 project_id=self.subscription.project_id,
                 method=method,
                 new_status=new_status,
-                metric_value=metric_value,
-            )
-
-        if features.has("organizations:metric-issue-poc", self.alert_rule.organization):
-            create_or_update_metric_issue(
-                incident=incident,
                 metric_value=metric_value,
             )
 
