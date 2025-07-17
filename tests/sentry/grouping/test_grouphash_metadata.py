@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.eventstore.models import Event
 from sentry.grouping.component import DefaultGroupingComponent, MessageGroupingComponent
 from sentry.grouping.ingest.grouphash_metadata import (
@@ -18,7 +19,6 @@ from sentry.grouping.variants import ComponentVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata, HashBasis
 from sentry.models.project import Project
-from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from sentry.utils import json

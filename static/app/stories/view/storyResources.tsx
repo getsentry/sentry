@@ -1,16 +1,21 @@
 import {Badge} from 'sentry/components/core/badge';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconGithub} from 'sentry/icons';
-import type {StoryResources as Resources} from 'sentry/stories/view/useStoriesLoader';
+import {
+  isMDXStory,
+  type StoryResources as Resources,
+} from 'sentry/stories/view/useStoriesLoader';
 import {useStory} from 'sentry/stories/view/useStory';
 import {space} from 'sentry/styles/space';
 
 export function StoryResources() {
   const {story} = useStory();
-  if (!story.exports.frontmatter?.resources) {
+
+  if (!isMDXStory(story)) {
     return null;
   }
-  const resources: Resources = story.exports.frontmatter.resources;
+
+  const resources: Resources = story.exports.frontmatter?.resources ?? {};
 
   return (
     <table style={{marginTop: space(4)}}>

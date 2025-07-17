@@ -114,7 +114,7 @@ export function SuspectFunctionsTable({
 
   const fields = COLUMNS.map(column => column.value);
   const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles} = useTableStyles(fields.length, tableRef);
+  const {initialTableStyles} = useTableStyles(fields, tableRef);
 
   const baggage: RenderFunctionBaggage = {
     location,
@@ -127,7 +127,7 @@ export function SuspectFunctionsTable({
     <Fragment>
       <TableHeader>
         <SectionHeading>{t('Suspect Functions')}</SectionHeading>
-        <ButtonBar merged>
+        <ButtonBar merged gap="none">
           <Button
             icon={<IconChevron direction="left" />}
             aria-label={t('Previous')}

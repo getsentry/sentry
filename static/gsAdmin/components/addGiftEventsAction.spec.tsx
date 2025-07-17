@@ -327,6 +327,67 @@ describe('Gift', function () {
     });
   });
 
+  describe('Log Bytes', function () {
+    const triggerGiftModal = () => {
+      openAdminConfirmModal({
+        renderModalSpecificContent: deps => (
+          <AddGiftEventsAction
+            subscription={mockSub}
+            dataCategory={DataCategory.LOG_BYTE}
+            billedCategoryInfo={BILLED_DATA_CATEGORY_INFO[DataCategoryExact.LOG_BYTE]}
+            {...deps}
+          />
+        ),
+      });
+    };
+
+    function getLogBytesInput() {
+      return screen.getByRole('textbox', {
+        name: 'How many log bytes in GB?',
+      });
+    }
+
+    async function setNumLogBytes(numLogBytes: string) {
+      await userEvent.clear(getLogBytesInput());
+      await userEvent.type(getLogBytesInput(), numLogBytes);
+    }
+
+    it('has valid log bytes input', async function () {
+      const maxValue = BILLED_DATA_CATEGORY_INFO[DataCategoryExact.LOG_BYTE].maxAdminGift;
+      triggerGiftModal();
+      renderGlobalModal();
+
+      const logBytesInput = getLogBytesInput();
+
+      await setNumLogBytes('1');
+      expect(logBytesInput).toHaveValue('1');
+      expect(logBytesInput).toHaveAccessibleDescription('Total: 1 GB');
+
+      await setNumLogBytes('-50');
+      expect(logBytesInput).toHaveValue('50');
+      expect(logBytesInput).toHaveAccessibleDescription('Total: 50 GB');
+
+      await setNumLogBytes(`${maxValue + 5}`);
+      expect(logBytesInput).toHaveValue('10000');
+      expect(logBytesInput).toHaveAccessibleDescription('Total: 10,000 GB');
+
+      await setNumLogBytes('10,');
+      expect(logBytesInput).toHaveValue('10');
+      expect(logBytesInput).toHaveAccessibleDescription('Total: 10 GB');
+
+      await setNumLogBytes('5.');
+      expect(logBytesInput).toHaveValue('5');
+      expect(logBytesInput).toHaveAccessibleDescription('Total: 5 GB');
+    });
+
+    it('disables confirm button when no number is entered', function () {
+      triggerGiftModal();
+
+      renderGlobalModal();
+      expect(screen.getByTestId('confirm-button')).toBeDisabled();
+    });
+  });
+
   describe('Uptime Monitors', function () {
     const triggerGiftModal = () => {
       openAdminConfirmModal({

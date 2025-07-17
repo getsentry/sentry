@@ -118,7 +118,7 @@ def uptime_options() -> list[click.Option]:
     options = [
         click.Option(
             ["--mode", "mode"],
-            type=click.Choice(["serial", "parallel", "batched-parallel"]),
+            type=click.Choice(["serial", "parallel", "batched-parallel", "thread-queue-parallel"]),
             default="serial",
             help="The mode to process results in. Parallel uses multithreading.",
         ),
@@ -138,7 +138,7 @@ def uptime_options() -> list[click.Option]:
             ["--max-workers", "max_workers"],
             type=int,
             default=None,
-            help="The maximum number of threads to spawn in parallel mode.",
+            help="The maximum amount of parallelism to use when in a parallel mode.",
         ),
         click.Option(["--processes", "num_processes"], default=1, type=int),
         click.Option(["--input-block-size"], type=int, default=None),

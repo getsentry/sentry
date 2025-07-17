@@ -14,7 +14,10 @@ interface FlexProps {
   wrap?: CSSProperties['flexWrap'];
 }
 
-export const Flex = styled('div')<FlexProps>`
+export const Flex = styled('div', {
+  shouldForwardProp: prop =>
+    !['align', 'direction', 'flex', 'gap', 'inline', 'justify', 'wrap'].includes(prop),
+})<FlexProps>`
   display: ${p => (p.inline ? 'inline-flex' : 'flex')};
   flex-direction: ${p => p.direction};
   justify-content: ${p => p.justify};

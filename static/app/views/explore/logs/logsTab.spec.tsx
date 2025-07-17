@@ -1,12 +1,9 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {useLocation} from 'sentry/utils/useLocation';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   LOGS_FIELDS_KEY,
@@ -19,10 +16,6 @@ import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {PickableDays} from 'sentry/views/explore/utils';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-
-jest.mock('sentry/utils/useLocation');
-const mockUseLocation = jest.mocked(useLocation);
 
 const datePageFilterProps: PickableDays = {
   defaultPeriod: '7d' as const,
@@ -47,17 +40,28 @@ describe('LogsTabContent', function () {
 
   function ProviderWrapper({children}: {children: React.ReactNode}) {
     return (
-      <OrganizationContext.Provider value={organization}>
-        <LogsPageParamsProvider
-          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-        >
-          <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-            <LogsPageDataProvider>{children}</LogsPageDataProvider>
-          </TraceItemAttributeProvider>
-        </LogsPageParamsProvider>
-      </OrganizationContext.Provider>
+      <LogsPageParamsProvider analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+          <LogsPageDataProvider>{children}</LogsPageDataProvider>
+        </TraceItemAttributeProvider>
+      </LogsPageParamsProvider>
     );
   }
+
+  const initialRouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/explore/logs/`,
+      query: {
+        start: '2025-04-10T14%3A37%3A55',
+        end: '2025-04-10T20%3A04%3A51',
+        project: project.id,
+        [LOGS_FIELDS_KEY]: ['message', 'sentry.message.parameters.0'],
+        [LOGS_SORT_BYS_KEY]: ['sentry.message.parameters.0'],
+        [LOGS_QUERY_KEY]: 'severity:error',
+      },
+    },
+    route: '/organizations/:orgId/explore/logs/',
+  };
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -79,16 +83,6 @@ describe('LogsTabContent', function () {
       new Set()
     );
 
-    mockUseLocation.mockReturnValue(
-      LocationFixture({
-        pathname: `/organizations/${organization.slug}/explore/logs/?end=2025-04-10T20%3A04%3A51&project=${project.id}&start=2025-04-10T14%3A37%3A55`,
-        query: {
-          [LOGS_FIELDS_KEY]: ['message', 'sentry.message.parameters.0'],
-          [LOGS_SORT_BYS_KEY]: ['sentry.message.parameters.0'],
-          [LOGS_QUERY_KEY]: 'severity:error',
-        },
-      })
-    );
     eventTableMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
@@ -185,7 +179,8 @@ describe('LogsTabContent', function () {
     render(
       <ProviderWrapper>
         <LogsTabContent {...datePageFilterProps} />
-      </ProviderWrapper>
+      </ProviderWrapper>,
+      {initialRouterConfig, organization}
     );
 
     expect(eventTableMock).toHaveBeenCalledWith(

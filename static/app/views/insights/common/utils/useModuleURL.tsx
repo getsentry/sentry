@@ -7,6 +7,7 @@ import {BASE_URL as CACHE_BASE_URL} from 'sentry/views/insights/cache/settings';
 import {BASE_URL as DB_BASE_URL} from 'sentry/views/insights/database/settings';
 import {BASE_URL as HTTP_BASE_URL} from 'sentry/views/insights/http/settings';
 import {BASE_URL as AI_BASE_URL} from 'sentry/views/insights/llmMonitoring/settings';
+import {BASE_URL as MCP_BASE_URL} from 'sentry/views/insights/mcp/settings';
 import {BASE_URL as APP_STARTS_BASE_URL} from 'sentry/views/insights/mobile/appStarts/settings';
 import {BASE_URL as SCREEN_LOADS_BASE_URL} from 'sentry/views/insights/mobile/screenload/settings';
 import {BASE_URL as SCREEN_RENDERING_BASE_URL} from 'sentry/views/insights/mobile/screenRendering/settings';
@@ -33,6 +34,7 @@ export const MODULE_BASE_URLS: Record<ModuleName, string> = {
   [ModuleName.RESOURCE]: RESOURCES_BASE_URL,
   [ModuleName.AI]: AI_BASE_URL,
   [ModuleName.AGENTS]: AGENTS_BASE_URL,
+  [ModuleName.MCP]: MCP_BASE_URL,
   [ModuleName.MOBILE_UI]: MOBILE_UI_BASE_URL,
   [ModuleName.MOBILE_VITALS]: MOBILE_SCREENS_BASE_URL,
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_BASE_URL,

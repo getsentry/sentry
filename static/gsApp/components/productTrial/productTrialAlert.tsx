@@ -173,7 +173,7 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
   }
 
   const actions = alertButton && (
-    <ButtonBar gap={1.5}>
+    <ButtonBar gap="lg">
       {alertButton}
       <Button
         icon={<IconClose size="sm" />}

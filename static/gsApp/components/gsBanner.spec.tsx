@@ -755,21 +755,16 @@ describe('GSBanner', function () {
       slug: 'forced-trial',
       orgRole: 'admin',
     });
-    SubscriptionStore.set(
-      organization.slug,
-      SubscriptionFixture({
-        organization,
-        plan: 'am1_business',
-        onDemandMaxSpend: 1000,
-        totalMembers: 26,
-        reservedErrors: 5_000_000,
-        reservedTransactions: 10_000_001,
-        planDetails: PlanFixture({
-          totalPrice: 100_000 * 12,
-          billingInterval: 'annual',
-        }),
-      })
-    );
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am1_business_auf',
+      onDemandMaxSpend: 1000,
+      totalMembers: 26,
+    });
+    subscription.categories.errors!.reserved = 5_000_000;
+    subscription.categories.transactions!.reserved = 10_000_001;
+    subscription.planDetails.totalPrice = 100_000 * 12;
+    SubscriptionStore.set(organization.slug, subscription);
     MockApiClient.addMockResponse({
       method: 'POST',
       url: `/organizations/${organization.slug}/promotions/lorem-ipsum/claim/`,
@@ -834,7 +829,7 @@ describe('GSBanner', function () {
           totalMembers: 'blue',
           arr: 'yellow',
           fieldB: 'valueB',
-          plan: 'am1_business',
+          plan: 'am1_business_auf',
         }),
         guides: {
           delay: false,

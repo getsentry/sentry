@@ -19,7 +19,6 @@ import {type DiscoverSeries} from 'sentry/views/insights/common/queries/useDisco
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {useTopNMetricsMultiSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverMultiSeries';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {ScreensBarChart} from 'sentry/views/insights/mobile/screenload/components/charts/screenBarChart';
 import {
@@ -48,7 +47,6 @@ type Props = {
 const yAxes = [YAxis.TTID, YAxis.TTFD, YAxis.COUNT];
 
 export function ScreenCharts({additionalFilters}: Props) {
-  const useEap = useInsightsEap();
   const theme = useTheme();
   const {isProjectCrossPlatform, selectedPlatform: platform} = useCrossPlatformProject();
 
@@ -60,7 +58,7 @@ export function ScreenCharts({additionalFilters}: Props) {
 
   const queryString = useMemo(() => {
     const query = new MutableSearch([
-      useEap ? 'is_transaction:true' : 'event.type:transaction',
+      'is_transaction:true',
       'transaction.op:[ui.load,navigation]',
       ...(additionalFilters ?? []),
     ]);
@@ -69,9 +67,7 @@ export function ScreenCharts({additionalFilters}: Props) {
       query.addFilterValue('os.name', platform);
     }
 
-    if (useEap) {
-      query.addFilterValue('is_transaction', 'true');
-    }
+    query.addFilterValue('is_transaction', 'true');
 
     return appendReleaseFilters(query, primaryRelease, secondaryRelease);
   }, [
@@ -80,7 +76,6 @@ export function ScreenCharts({additionalFilters}: Props) {
     platform,
     primaryRelease,
     secondaryRelease,
-    useEap,
   ]);
 
   const search = new MutableSearch(queryString);

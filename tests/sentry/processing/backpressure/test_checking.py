@@ -30,7 +30,6 @@ EVENTS_MSG = json.dumps(
         "backpressure.checking.interval": 5,
         "backpressure.monitoring.enabled": True,
         "backpressure.status_ttl": 60,
-        "taskworker.try_compress.profile_metrics.rollout": 0,
     }
 )
 def test_backpressure_unhealthy_profiles():
@@ -54,7 +53,6 @@ def test_backpressure_unhealthy_profiles():
         "backpressure.checking.interval": 5,
         "backpressure.monitoring.enabled": False,
         "backpressure.status_ttl": 60,
-        "taskworker.try_compress.profile_metrics.rollout": 0,
     }
 )
 def test_bad_config():

@@ -53,7 +53,7 @@ function Actions({
   const actions = (
     <Access access={['project:write']}>
       {({hasAccess}) => (
-        <ButtonBar gap={1}>
+        <ButtonBar>
           <Tooltip disabled={hasRole} title={noPermissionToDownloadDebugFilesInfo}>
             <LinkButton
               size="xs"

@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import type {SearchQueryBuilderProps} from 'sentry/components/searchQueryBuilder';
 import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
 import {
@@ -39,7 +40,7 @@ interface SearchQueryBuilderContextData {
   filterKeySections: FilterKeySection[];
   filterKeys: TagCollection;
   focusOverride: FocusOverride | null;
-  genAIConsent: boolean;
+  gaveSeerConsent: boolean;
   getFieldDefinition: (key: string, kind?: FieldKind) => FieldDefinition | null;
   getSuggestedFilterKey: (key: string) => string | null;
   getTagValues: (tag: Tag, query: string) => Promise<string[]>;
@@ -81,7 +82,7 @@ export function SearchQueryBuilderProvider({
   disallowFreeText,
   disallowUnsupportedFilters,
   disallowWildcard,
-  enableAISearch,
+  enableAISearch: enableAISearchProp,
   invalidMessages,
   initialQuery,
   fieldDefinitionGetter = getFieldDefinition,
@@ -101,9 +102,12 @@ export function SearchQueryBuilderProvider({
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
-  const [displaySeerResults, setDisplaySeerResults] = useState(false);
   const organization = useOrganization();
-  const genAIConsent = organization?.genAIConsent ?? false;
+
+  const enableAISearch = Boolean(enableAISearchProp) && !organization.hideAiFeatures;
+  const {setupAcknowledgement} = useOrganizationSeerSetup({enabled: enableAISearch});
+
+  const [displaySeerResults, setDisplaySeerResults] = useState(false);
 
   const {state, dispatch} = useQueryBuilderState({
     initialQuery,
@@ -167,8 +171,7 @@ export function SearchQueryBuilderProvider({
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
       disallowWildcard: Boolean(disallowWildcard),
-      enableAISearch: Boolean(enableAISearch),
-      genAIConsent,
+      enableAISearch,
       parseQuery,
       parsedQuery,
       filterKeySections: filterKeySections ?? [],
@@ -190,6 +193,7 @@ export function SearchQueryBuilderProvider({
       setDisplaySeerResults,
       replaceRawSearchKeys,
       filterKeyAliases,
+      gaveSeerConsent: setupAcknowledgement.orgHasAcknowledged,
     };
   }, [
     disabled,
@@ -201,7 +205,6 @@ export function SearchQueryBuilderProvider({
     filterKeyAliases,
     filterKeyMenuWidth,
     filterKeySections,
-    genAIConsent,
     getTagValues,
     handleSearch,
     parseQuery,
@@ -211,6 +214,7 @@ export function SearchQueryBuilderProvider({
     recentSearches,
     replaceRawSearchKeys,
     searchSource,
+    setupAcknowledgement.orgHasAcknowledged,
     size,
     stableFieldDefinitionGetter,
     stableFilterKeys,

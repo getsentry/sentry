@@ -730,6 +730,11 @@ urlpatterns += [
                     name="sentry-customer-domain-legal-settings",
                 ),
                 re_path(
+                    r"^seer/",
+                    react_page_view,
+                    name="sentry-customer-domain-seer-settings",
+                ),
+                re_path(
                     r"^(?P<organization_slug>[^/]+)/$",
                     react_page_view,
                     name="sentry-organization-settings",
@@ -753,6 +758,11 @@ urlpatterns += [
                     r"^(?P<organization_slug>[^/]+)/auth/$",
                     react_page_view,
                     name="sentry-organization-auth-settings",
+                ),
+                re_path(
+                    r"^(?P<organization_slug>[^/]+)/seer/",
+                    react_page_view,
+                    name="sentry-organization-seer-settings",
                 ),
                 re_path(
                     r"^(?P<organization_slug>[^/]+)/(?P<sub_page>[\w_-]+)/$",

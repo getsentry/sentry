@@ -98,9 +98,7 @@ function PlanMigrationTable({subscription, migration}: Props) {
           )}
           <PlanMigrationRow
             type={DataCategoryExact.ERROR}
-            currentValue={
-              subscription.categories.errors?.reserved ?? subscription.reservedEvents
-            }
+            currentValue={subscription.categories.errors?.reserved ?? null}
             nextValue={getNextDataCategoryValue(
               nextPlan,
               isAM3Migration,

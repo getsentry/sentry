@@ -24,7 +24,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import type {SpanIndexedField, SpanIndexedResponse} from 'sentry/views/insights/types';
+import type {EAPSpanResponse, SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
@@ -468,7 +468,7 @@ export function SpanTimeRenderer({
   );
 }
 
-type SpanStatus = SpanIndexedResponse[SpanIndexedField.SPAN_STATUS];
+type SpanStatus = EAPSpanResponse[SpanFields.SPAN_STATUS];
 
 const STATUS_TO_TAG_TYPE: Record<SpanStatus, keyof Theme['tag']> = {
   ok: 'success',

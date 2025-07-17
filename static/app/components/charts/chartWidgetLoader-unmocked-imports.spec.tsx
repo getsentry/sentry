@@ -173,7 +173,7 @@ jest.mock('sentry/views/insights/common/queries/useDiscover', () => ({
     isPending: false,
     error: null,
   })),
-  useEAPSpans: jest.fn(() => ({
+  useSpans: jest.fn(() => ({
     data: [
       {
         'avg(span.duration)': 123,
@@ -201,7 +201,7 @@ jest.mock('sentry/views/insights/common/queries/useTopNDiscoverSeries', () => ({
   })),
 }));
 jest.mock('sentry/views/insights/common/queries/useDiscoverSeries', () => ({
-  useEAPSeries: jest.fn(() => ({
+  useSpanSeries: jest.fn(() => ({
     data: {
       'count(span.duration)': mockDiscoverSeries('count(span.duration)'),
       'avg(span.duration)': mockDiscoverSeries('avg(span.duration)'),
@@ -209,12 +209,6 @@ jest.mock('sentry/views/insights/common/queries/useDiscoverSeries', () => ({
       'trace_status_rate(internal_error)': mockDiscoverSeries(
         'trace_status_rate(internal_error)'
       ),
-    },
-    isPending: false,
-    error: null,
-  })),
-  useMetricsSeries: jest.fn(() => ({
-    data: {
       'performance_score(measurements.score.lcp)': {
         data: [],
       },

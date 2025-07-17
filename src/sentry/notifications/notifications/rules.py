@@ -10,7 +10,11 @@ from sentry import analytics, features
 from sentry.db.models import Model
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.issue_alert_image_builder import IssueAlertImageBuilder
-from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
+from sentry.integrations.types import (
+    ExternalProviderEnum,
+    ExternalProviders,
+    IntegrationProviderSlug,
+)
 from sentry.issues.grouptype import (
     GROUP_CATEGORIES_CUSTOM_EMAIL,
     GroupCategory,
@@ -194,7 +198,9 @@ class AlertRuleNotification(ProjectNotification):
             "enhanced_privacy": enhanced_privacy,
             "commits": get_commits(self.project, self.event),
             "environment": environment,
-            "slack_link": get_integration_link(self.organization, "slack", self.notification_uuid),
+            "slack_link": get_integration_link(
+                self.organization, IntegrationProviderSlug.SLACK.value, self.notification_uuid
+            ),
             "notification_reason": notification_reason,
             "notification_settings_link": absolute_uri(
                 f"/settings/account/notifications/alerts/{sentry_query_params}"

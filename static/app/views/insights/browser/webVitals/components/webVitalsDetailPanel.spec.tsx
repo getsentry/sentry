@@ -60,7 +60,7 @@ describe('WebVitalsDetailPanel', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'metrics',
+          dataset: 'spans',
           field: [
             'p75(measurements.lcp)',
             'p75(measurements.fcp)',
@@ -70,7 +70,7 @@ describe('WebVitalsDetailPanel', function () {
             'count()',
           ],
           query:
-            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,""] !transaction:"<< unparameterized >>"',
+            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] !transaction:"<< unparameterized >>"',
         }),
       })
     );
@@ -80,7 +80,7 @@ describe('WebVitalsDetailPanel', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'metrics',
+          dataset: 'spans',
           field: [
             'performance_score(measurements.score.lcp)',
             'performance_score(measurements.score.fcp)',
@@ -103,7 +103,7 @@ describe('WebVitalsDetailPanel', function () {
             'sum(measurements.score.weight.lcp)',
           ],
           query:
-            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,""] !transaction:"<< unparameterized >>"',
+            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] !transaction:"<< unparameterized >>"',
         }),
       })
     );
@@ -113,7 +113,7 @@ describe('WebVitalsDetailPanel', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'metrics',
+          dataset: 'spans',
           field: [
             'project.id',
             'project',
@@ -133,10 +133,10 @@ describe('WebVitalsDetailPanel', function () {
             'count_scores(measurements.score.inp)',
             'count_scores(measurements.score.ttfb)',
             'count_scores(measurements.score.total)',
-            'total_opportunity_score()',
+            'opportunity_score(measurements.score.total)',
           ],
           query:
-            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,""] !transaction:"<< unparameterized >>" avg(measurements.score.total):>=0 count_scores(measurements.score.lcp):>0',
+            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,\"\"] !transaction:\"<< unparameterized >>\" avg(measurements.score.total):>=0 count_scores(measurements.score.lcp):>0',
         }),
       })
     );

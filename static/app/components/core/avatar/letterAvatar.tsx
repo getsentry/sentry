@@ -2,6 +2,7 @@ import type React from 'react';
 import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import color from 'color';
 
 import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
@@ -10,8 +11,8 @@ import {type BaseAvatarStyleProps, baseAvatarStyles} from './baseAvatarComponent
 interface LetterAvatarProps
   extends React.HTMLAttributes<SVGSVGElement>,
     BaseAvatarStyleProps {
+  identifier: string | undefined;
   displayName?: string;
-  identifier?: string;
   ref?: React.Ref<SVGSVGElement>;
 }
 
@@ -130,30 +131,9 @@ function getInitials(displayName: string | undefined) {
   return initials.toUpperCase();
 }
 
-function makeChonkLetterAvatarColors(theme: DO_NOT_USE_ChonkTheme): Array<{
-  background: string;
-  content: string;
-}> {
-  return [
-    {
-      background: theme.colors.chonk.blue400,
-      content: theme.colors.white,
-    },
-    {
-      background: theme.colors.chonk.pink400,
-      content: theme.colors.black,
-    },
-    {
-      background: theme.colors.chonk.red400,
-      content: theme.colors.white,
-    },
-    {
-      background: theme.colors.chonk.yellow400,
-      content: theme.colors.black,
-    },
-    {
-      background: theme.colors.chonk.green400,
-      content: theme.colors.black,
-    },
-  ];
+function makeChonkLetterAvatarColors(theme: DO_NOT_USE_ChonkTheme) {
+  return theme.chart.getColorPalette(9).map(c => ({
+    background: c,
+    content: color(c).isDark() ? theme.colors.white : theme.colors.black,
+  }));
 }

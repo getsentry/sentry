@@ -72,6 +72,11 @@ class RepositoryService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
+    def update_repositories(self, *, organization_id: int, updates: list[RpcRepository]) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
     def disable_repositories_for_integration(
         self, *, organization_id: int, integration_id: int, provider: str
     ) -> None:

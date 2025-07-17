@@ -8,6 +8,8 @@ import {
   AGE_COMPARISON_CHOICES,
   TimeUnit,
 } from 'sentry/views/automations/components/actionFilters/constants';
+import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 const TIME_CHOICES = [
@@ -44,6 +46,8 @@ export function AgeComparisonNode() {
 
 function ComparisonField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
+  const {removeError} = useAutomationBuilderErrorContext();
+
   return (
     <AutomationBuilderSelect
       name={`${condition_id}.comparison.comparison_type`}
@@ -52,6 +56,7 @@ function ComparisonField() {
       options={AGE_COMPARISON_CHOICES}
       onChange={(option: SelectValue<AgeComparison>) => {
         onUpdate({comparison: {...condition.comparison, comparison_type: option.value}});
+        removeError(condition.id);
       }}
     />
   );
@@ -59,6 +64,8 @@ function ComparisonField() {
 
 function ValueField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
+  const {removeError} = useAutomationBuilderErrorContext();
+
   return (
     <AutomationBuilderNumberInput
       name={`${condition_id}.comparison.value`}
@@ -68,14 +75,16 @@ function ValueField() {
       step={1}
       onChange={(value: number) => {
         onUpdate({comparison: {...condition.comparison, value}});
+        removeError(condition.id);
       }}
-      placeholder={'10'}
     />
   );
 }
 
 function TimeField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
+  const {removeError} = useAutomationBuilderErrorContext();
+
   return (
     <AutomationBuilderSelect
       name={`${condition_id}.comparison.time`}
@@ -84,7 +93,21 @@ function TimeField() {
       options={TIME_CHOICES}
       onChange={(option: SelectValue<TimeUnit>) => {
         onUpdate({comparison: {...condition.comparison, time: option.value}});
+        removeError(condition.id);
       }}
     />
   );
+}
+
+export function validateAgeComparisonCondition({
+  condition,
+}: ValidateDataConditionProps): string | undefined {
+  if (
+    !condition.comparison.comparison_type ||
+    condition.comparison.value === undefined ||
+    !condition.comparison.time
+  ) {
+    return t('Ensure all fields are filled in.');
+  }
+  return undefined;
 }

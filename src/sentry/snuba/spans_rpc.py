@@ -42,7 +42,7 @@ def run_table_query(
     limit: int,
     referrer: str,
     config: SearchResolverConfig,
-    sampling_mode: SAMPLING_MODES | None,
+    sampling_mode: SAMPLING_MODES | None = None,
     equations: list[str] | None = None,
     search_resolver: SearchResolver | None = None,
     debug: bool = False,
@@ -182,7 +182,11 @@ def run_trace_query(
     params: SnubaParams,
     referrer: str,
     config: SearchResolverConfig,
+    additional_attributes: list[str] | None = None,
 ) -> list[dict[str, Any]]:
+    if additional_attributes is None:
+        additional_attributes = []
+
     trace_attributes = [
         "parent_span",
         "description",
@@ -201,6 +205,7 @@ def run_trace_query(
         "sdk.name",
         "measurements.time_to_initial_display",
         "measurements.time_to_full_display",
+        *additional_attributes,
     ]
     for key in {
         "lcp",

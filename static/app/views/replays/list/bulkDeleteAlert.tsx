@@ -14,14 +14,15 @@ export default function BulkDeleteAlert({projectId}: Props) {
   const organization = useOrganization();
   const project = useProjectFromId({project_id: projectId});
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
+  const hasAdminAccess = hasEveryAccess(['project:admin'], {organization, project});
 
   const {data} = useReplayBulkDeleteAuditLog({
     projectSlug: project?.slug ?? '',
     query: {per_page: 10, offset: 0, referrer: 'replay-list'},
-    enabled: project && hasWriteAccess,
+    enabled: project && (hasWriteAccess || hasAdminAccess),
   });
 
-  if (!hasWriteAccess || !project) {
+  if ((!hasWriteAccess && !hasAdminAccess) || !project) {
     return null;
   }
 

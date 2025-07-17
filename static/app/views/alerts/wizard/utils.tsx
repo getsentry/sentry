@@ -50,8 +50,6 @@ const alertTypeIdentifiers: Record<
     trace_item_apdex: 'apdex',
     trace_item_failure_rate: 'failure_rate()',
     trace_item_lcp: 'measurements.lcp',
-    trace_item_fid: 'measurements.fid',
-    trace_item_cls: 'measurements.cls',
   },
 };
 
@@ -95,7 +93,10 @@ export function getAlertTypeFromAggregateDataset({
 }
 
 export function hasLogAlerts(organization: Organization): boolean {
-  return organization.features.includes('ourlogs-alerts');
+  return (
+    organization.features.includes('ourlogs-alerts') &&
+    organization.features.includes('ourlogs-enabled')
+  );
 }
 
 export function getTraceItemTypeForDatasetAndEventType(

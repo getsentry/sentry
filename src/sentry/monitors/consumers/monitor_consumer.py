@@ -479,6 +479,10 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
     }
 
     if check_killswitch(metric_kwargs, project):
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={**metric_kwargs, "status": "organization_killswitch_enabled"},
+        )
         track_outcome(
             org_id=project.organization_id,
             project_id=project.id,
@@ -494,6 +498,10 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
         raise ProcessingErrorsException([killswitch_error])
 
     if check_ratelimit(metric_kwargs, item):
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={**metric_kwargs, "status": "monitor_environment_ratelimited"},
+        )
         track_outcome(
             org_id=project.organization_id,
             project_id=project.id,
@@ -514,6 +522,10 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
     )
 
     if quotas_outcome == PermitCheckInStatus.DROP:
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={**metric_kwargs, "status": "monitor_over_quota"},
+        )
         track_outcome(
             org_id=project.organization_id,
             project_id=project.id,
@@ -536,6 +548,10 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
     )
 
     if guid is None:
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={**metric_kwargs, "status": "checkin_invalid_guid"},
+        )
         track_outcome(
             org_id=project.organization_id,
             project_id=project.id,
@@ -667,6 +683,10 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
         quotas_outcome == PermitCheckInStatus.ACCEPTED_FOR_UPSERT
         and monitor.status == ObjectStatus.DISABLED
     ):
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={**metric_kwargs, "status": "monitor_disabled_no_quota"},
+        )
         track_outcome(
             org_id=project.organization_id,
             project_id=project.id,

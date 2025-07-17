@@ -1,4 +1,4 @@
-import {DetectorFixture} from 'sentry-fixture/detectors';
+import {MetricDetectorFixture} from 'sentry-fixture/detectors';
 
 import {
   getMetricDetectorSuffix,
@@ -34,7 +34,7 @@ describe('getStaticDetectorThresholdSuffix', function () {
 
 describe('getMetricDetectorSuffix', function () {
   it('returns % for percent detection type', function () {
-    const detector = DetectorFixture({
+    const detector = MetricDetectorFixture({
       id: '1',
       name: 'test',
       config: {
@@ -48,7 +48,7 @@ describe('getMetricDetectorSuffix', function () {
   });
 
   it('returns ms as default for static detection type without data source', function () {
-    const detector = DetectorFixture({
+    const detector = MetricDetectorFixture({
       config: {
         detectionType: 'static',
         thresholdPeriod: 1,
@@ -59,7 +59,7 @@ describe('getMetricDetectorSuffix', function () {
   });
 
   it('returns ms as default for dynamic detection type without data source', function () {
-    const detector = DetectorFixture({
+    const detector = MetricDetectorFixture({
       config: {
         detectionType: 'dynamic',
         thresholdPeriod: 1,

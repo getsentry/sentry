@@ -5,12 +5,18 @@ from typing import Any
 
 from django.urls import reverse
 
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardTombstone
+from sentry.models.dashboard import (
+    Dashboard,
+    DashboardFavoriteUser,
+    DashboardLastVisited,
+    DashboardTombstone,
+)
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetTypes,
 )
+from sentry.models.organizationmember import OrganizationMember
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -46,6 +52,11 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             widget_displays.append(DashboardWidgetDisplayTypes.get_type_name(widget.display_type))
 
         assert data["widgetDisplay"] == widget_displays
+
+        filters = dashboard.get_filters()
+        if filters and filters.get("projects"):
+            assert data.get("projects") == filters["projects"]
+
         assert "widgets" not in data
 
     def test_get(self):
@@ -158,6 +169,49 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 expected = list(reversed(expected))
 
             assert values == ["General"] + expected
+
+    def test_get_sortby_recently_viewed_user_last_visited(self):
+        dashboard_a = Dashboard.objects.create(
+            title="A",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        dashboard_b = Dashboard.objects.create(
+            title="B",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        DashboardLastVisited.objects.create(
+            dashboard=dashboard_a,
+            member=OrganizationMember.objects.get(
+                organization=self.organization, user_id=self.user.id
+            ),
+            last_visited=before_now(minutes=5),
+        )
+        DashboardLastVisited.objects.create(
+            dashboard=dashboard_b,
+            member=OrganizationMember.objects.get(
+                organization=self.organization, user_id=self.user.id
+            ),
+            last_visited=before_now(minutes=0),
+        )
+
+        for forward_sort in [True, False]:
+            sorting = "recentlyViewed" if forward_sort else "-recentlyViewed"
+
+            with self.feature("organizations:dashboards-starred-reordering"):
+                response = self.client.get(self.url, data={"sort": sorting})
+
+            assert response.status_code == 200
+            values = [row["title"] for row in response.data]
+            expected = ["B", "A"]
+
+            if not forward_sort:
+                expected = list(reversed(expected))
+
+            # Only A, B are sorted by their last visited entry, Dashboard 1
+            # and Dashboard 2 are by default sorted by their date created
+            assert values == ["General"] + expected + ["Dashboard 2", "Dashboard 1"]
 
     def test_get_sortby_mydashboards(self):
         user_1 = self.create_user(username="user_1")
@@ -717,6 +771,60 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 200, response.content
         values = [row["title"] for row in response.data]
         assert values == ["General", "Initial dashboard"]
+
+    def test_get_with_filters(self):
+        Dashboard.objects.create(
+            title="Dashboard with all projects filter",
+            organization=self.organization,
+            created_by_id=self.user.id,
+            filters={"all_projects": True, "environment": ["alpha"], "release": ["v1"]},
+        )
+        response = self.client.get(self.url, data={"query": "Dashboard with all projects filter"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["title"] == "Dashboard with all projects filter"
+        assert response.data[0].get("projects") == [-1]
+        assert response.data[0].get("environment") == ["alpha"]
+        assert response.data[0].get("filters") == {"release": ["v1"]}
+
+    def test_get_with_last_visited(self):
+        # Clean up existing dashboards setup for this test.
+        Dashboard.objects.all().delete()
+
+        Dashboard.objects.create(
+            title="Dashboard without last visited",
+            organization=self.organization,
+            created_by_id=self.user.id,
+        )
+        dashboard_2 = Dashboard.objects.create(
+            title="Dashboard with last visited",
+            organization=self.organization,
+            created_by_id=self.user.id,
+        )
+        now = before_now(minutes=0)
+        DashboardLastVisited.objects.create(
+            dashboard=dashboard_2,
+            member=OrganizationMember.objects.get(
+                organization=self.organization, user_id=self.user.id
+            ),
+            last_visited=now,
+        )
+
+        with self.feature("organizations:dashboards-starred-reordering"):
+            response = self.client.get(self.url, data={"sort": "recentlyViewed"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+
+        titles = [row["title"] for row in response.data]
+        assert titles == [
+            "General",
+            "Dashboard with last visited",
+            "Dashboard without last visited",
+        ]
+
+        # Only "Dashboard with last visited" has a last visited timestamp.
+        visited_at = [row.get("lastVisited") for row in response.data]
+        assert visited_at == [None, now, None]
 
     def test_post(self):
         response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})

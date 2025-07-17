@@ -9,7 +9,7 @@ from sentry import eventstore
 from sentry.event_manager import EventManager, get_event_type, materialize_metadata
 from sentry.eventstore.models import Event
 from sentry.grouping.api import (
-    apply_server_fingerprinting,
+    apply_server_side_fingerprinting,
     get_default_grouping_config_dict,
     get_fingerprinting_config_for_project,
 )
@@ -534,7 +534,7 @@ class BuiltInFingerprintingTest(TestCase):
         data = mgr.get_data()
         data.setdefault("fingerprint", ["{{ default }}"])
         fingerprinting_config = get_fingerprinting_config_for_project(project=self.project)
-        apply_server_fingerprinting(data, fingerprinting_config)
+        apply_server_side_fingerprinting(data, fingerprinting_config)
         event_type = get_event_type(data)
         event_metadata = event_type.get_metadata(data)
         data.update(materialize_metadata(data, event_type, event_metadata))
@@ -725,7 +725,7 @@ class BuiltInFingerprintingTest(TestCase):
         fingerprinting_config = FingerprintingRules.from_config_string(
             'family:javascript tags.transaction:"*" message:"Text content does not match server-rendered HTML." -> hydrationerror, {{tags.transaction}}'
         )
-        apply_server_fingerprinting(data, fingerprinting_config)
+        apply_server_side_fingerprinting(data, fingerprinting_config)
         event_type = get_event_type(data)
         event_metadata = event_type.get_metadata(data)
         data.update(materialize_metadata(data, event_type, event_metadata))

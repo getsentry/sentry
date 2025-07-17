@@ -48,8 +48,6 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:dynamic-sampling": False,
         # Enable attaching arbitrary files to events.
         "organizations:event-attachments": True,
-        # Enable multi project selection
-        "organizations:global-views": False,
         # Enable incidents feature
         "organizations:incidents": False,
         # Enable integration functionality to work with alert rules

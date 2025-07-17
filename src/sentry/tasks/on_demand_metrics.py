@@ -467,7 +467,13 @@ def check_field_cardinality(
                     scope.set_tag("widget_query.column_name", column)
                     if widget_query:
                         sentry_sdk.capture_message(
-                            f"Cardinality exceeded for dashboard_widget_query:{widget_query.id} with count:{count} and column:{column}"
+                            "On Demand Metrics: Cardinality exceeded for dashboard_widget_query",
+                            level="warning",
+                            tags={
+                                "widget_query.id": widget_query.id,
+                                "widget_query.column_name": column,
+                                "widget_query.count": count,
+                            },
                         )
         except SoftTimeLimitExceeded as error:
             scope.set_tag("widget_soft_deadline", True)

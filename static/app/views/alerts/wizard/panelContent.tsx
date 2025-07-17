@@ -225,25 +225,11 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     docsLink: 'https://docs.sentry.io/product/performance/web-vitals',
     illustration: diagramLCP,
   },
-  trace_item_fid: {
-    description: t(
-      'First Input Delay (FID) measures interactivity as the response time when the user tries to interact with the viewport. A low FID helps ensure that a page is useful, and we recommend a FID of less than 100 milliseconds.'
-    ),
-    examples: [t('When the average FID of a page is longer than 4 seconds.')],
-    docsLink: 'https://docs.sentry.io/product/performance/web-vitals',
-    illustration: diagramFID,
-  },
-  trace_item_cls: {
-    description: t(
-      'Cumulative Layout Shift (CLS) measures visual stability by quantifying unexpected layout shifts that occur during the entire lifespan of the page. A CLS of less than 0.1 is a good user experience, while anything greater than 0.25 is poor.'
-    ),
-    examples: [t('When the CLS of a page is more than 0.5.')],
-    docsLink: 'https://docs.sentry.io/product/performance/web-vitals',
-    illustration: diagramCLS,
-  },
   trace_item_logs: {
-    description: t('Alert on logs.'),
-    examples: [t('When the number of logs exceeds 100.')],
+    description: t(
+      'Alert on log counts and log attributes such as severity, message and log level.'
+    ),
+    examples: [t('When the number of error level logs exceeds 10 in 5 minutes.')],
     illustration: diagramThroughput,
   },
 };

@@ -87,7 +87,7 @@ function DebugFileRow({
         </Description>
       </Column>
       <RightColumn>
-        <ButtonBar gap={0.5}>
+        <ButtonBar gap="xs">
           <Tooltip
             disabled={hasRole}
             title={tct(

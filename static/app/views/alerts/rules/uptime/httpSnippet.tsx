@@ -59,7 +59,7 @@ export function HTTPSnippet({body, headers, method, url, traceSampling}: Props) 
 
 const MaxSizedSnippet = styled(CodeSnippet)`
   pre {
-    overflow-y: scroll;
+    overflow-y: auto;
     max-height: 400px;
   }
 `;

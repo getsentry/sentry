@@ -8,6 +8,7 @@ from sentry.silo.base import SiloLimit, SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import test_tasks
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 
 
@@ -125,12 +126,13 @@ def test_exclude_exception_retry(capture_exception):
     }
 )
 @patch("sentry.tasks.base.metrics.distribution")
+@freeze_time("2025-01-01 00:00:00")  # so size of params isn't impacted by current time.
 def test_capture_payload_metrics(mock_distribution):
     region_task.apply_async(args=("bruh",))
 
     mock_distribution.assert_called_once_with(
         "celery.task.parameter_bytes",
-        71,
+        66,
         tags={"taskname": "test.tasks.test_base.region_task"},
         sample_rate=1.0,
     )
@@ -160,12 +162,17 @@ def test_validate_parameters_call():
     assert "region_task was called with a parameter that cannot be JSON encoded" in str(err)
 
 
+@override_settings(SILO_MODE=SiloMode.CONTROL)
 @patch("sentry.taskworker.retry.current_task")
 @patch("sentry_sdk.capture_exception")
 def test_retry_on(capture_exception, current_task):
+    class ExpectedException(Exception):
+        pass
 
-    # In reality current_task.retry will cause the given exception to be re-raised but we patch it here so no need to .raises :bufo-shrug:
-    retry_on_task("bruh")
+    current_task.retry.side_effect = ExpectedException("some exception")
+
+    with pytest.raises(ExpectedException):
+        retry_on_task("bruh")
 
     assert capture_exception.call_count == 1
     assert current_task.retry.call_count == 1

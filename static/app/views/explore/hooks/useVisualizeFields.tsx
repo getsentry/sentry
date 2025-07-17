@@ -13,7 +13,7 @@ import {
 } from 'sentry/utils/fields';
 import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 interface UseVisualizeFieldsProps {
   numberTags: TagCollection;
@@ -29,9 +29,9 @@ export function useVisualizeFields({
   const [kind, tags]: [FieldKind, TagCollection] = useMemo(() => {
     if (parsedFunction?.name === AggregationKey.COUNT) {
       const countTags: TagCollection = {
-        [SpanIndexedField.SPAN_DURATION]: {
+        [SpanFields.SPAN_DURATION]: {
           name: t('spans'),
-          key: SpanIndexedField.SPAN_DURATION,
+          key: SpanFields.SPAN_DURATION,
         },
       };
       return [FieldKind.MEASUREMENT, countTags];

@@ -372,6 +372,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
                     "issue_category": group_info.group.issue_category,
                     "event_type": "platform",
                     "group_id": group_info.group.id,
+                    "occurrence_type": "monitor_check_in_failure",
                 },
             )
 

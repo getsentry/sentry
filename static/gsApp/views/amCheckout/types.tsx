@@ -36,17 +36,8 @@ export type CheckoutAPIData = Omit<BaseCheckoutData, 'selectedProducts'> & {
   paymentIntent?: string;
   previewToken?: string;
   referrer?: string;
-  // TODO(data categories): BIL-965
-  reservedAttachments?: number;
-  reservedErrors?: number;
-  reservedMonitorSeats?: number;
-  reservedProfileDuration?: number;
-  reservedReplays?: number;
-  reservedSpans?: number;
-  reservedTransactions?: number;
-  reservedUptime?: number;
   seer?: boolean; // TODO: in future, we should just use selectedProducts
-};
+} & Partial<Record<`reserved${Capitalize<DataCategory>}`, number>>;
 
 export type StepProps = {
   activePlan: Plan;
