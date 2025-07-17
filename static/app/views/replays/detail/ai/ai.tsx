@@ -33,13 +33,13 @@ export default function Ai() {
 
 function AiContent() {
   const organization = useOrganization();
-  const {replay, aiSummaryContext} = useReplayContext(); // Initial data is queried in ReplayDetailsProviders.
+  const {replay, aiSummaryContext} = useReplayContext(); // Initial query is done in ReplayDetailsProviders.
   const replayRecord = replay?.getReplay();
   const project = useProjectFromId({project_id: replayRecord?.project_id});
 
   const openForm = useFeedbackForm();
 
-  // Until the first regenerate request, we use the cached response in aiSummaryContext.
+  // Until the first regenerate request, we use the prefetched result from aiSummaryContext.
   const [regenerate, setRegenerate] = useState(false);
   const regeneratedResults = useFetchReplaySummaryForceRegenerate({
     staleTime: 0,
@@ -53,6 +53,16 @@ function AiContent() {
       ),
     retry: false,
   });
+
+  const {
+    data: summaryData,
+    isPending,
+    isError,
+    isRefetching,
+    refetch,
+  } = !!aiSummaryContext.apiQueryResult && !regenerate
+    ? aiSummaryContext.apiQueryResult
+    : regeneratedResults;
 
   if (
     !organization.features.includes('replay-ai-summaries') ||
@@ -74,22 +84,6 @@ function AiContent() {
       </SummaryContainer>
     );
   }
-
-  if (!aiSummaryContext.apiQueryResult) {
-    return (
-      <SummaryContainer>
-        <Alert type="error">{t('Unable to load AI summary.')}</Alert>
-      </SummaryContainer>
-    );
-  }
-
-  const {
-    data: summaryData,
-    isPending,
-    isError,
-    isRefetching,
-    refetch,
-  } = regenerate ? regeneratedResults : aiSummaryContext.apiQueryResult;
 
   if (isPending || isRefetching) {
     return (

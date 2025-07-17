@@ -51,6 +51,9 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
   });
 }
 
+/**
+ * Use to force a regenerate of the AI summary, skipping the backend cache.
+ */
 export function useFetchReplaySummaryForceRegenerate(
   options?: UseApiQueryOptions<SummaryResponse>
 ) {
