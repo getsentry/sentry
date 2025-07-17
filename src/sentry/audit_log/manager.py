@@ -151,6 +151,7 @@ class AuditLogEventManager:
                 api_name=api_name,
                 template=template,
             )
+        self.add(audit_log_event)
 
         def decorator(render_func: Callable[[AuditLogEntry], str]) -> AuditLogEvent:
             audit_log_event.template = render_func
