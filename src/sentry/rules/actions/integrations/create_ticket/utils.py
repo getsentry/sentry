@@ -187,6 +187,5 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
                 # Most of the time, these aren't explicit failures, they're
                 # some misconfiguration of an issue field - typically Jira.
                 lifecycle.record_halt(e)
-                raise
 
         create_link(integration, installation, event, response)
