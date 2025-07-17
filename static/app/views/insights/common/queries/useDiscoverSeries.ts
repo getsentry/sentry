@@ -58,7 +58,7 @@ export const useSpanMetricsSeries = <Fields extends SpanMetricsProperty[]>(
 };
 
 export const useSpanSeries = <
-  Fields extends SpanMetricsProperty[] | SpanFields[] | SpanFunctions[] | string[],
+  Fields extends EAPSpanProperty[] | SpanFields[] | SpanFunctions[] | string[],
 >(
   options: UseMetricsSeriesOptions<Fields> = {},
   referrer: string,
@@ -67,20 +67,6 @@ export const useSpanSeries = <
   return useDiscoverSeries<Fields>(
     options,
     DiscoverDatasets.SPANS_EAP_RPC,
-    referrer,
-    pageFilters
-  );
-};
-
-export const useMetricsSeries = <Fields extends EAPSpanProperty[]>(
-  options: UseMetricsSeriesOptions<Fields> = {},
-  referrer: string,
-  pageFilters?: PageFilters
-) => {
-  const useEap = useInsightsEap();
-  return useDiscoverSeries<Fields>(
-    options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.METRICS,
     referrer,
     pageFilters
   );
