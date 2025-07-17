@@ -32,12 +32,14 @@ export function MetricDetectorPreviewChart() {
   const initialPriorityLevel = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel
   );
-  const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
+  const detectionType = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.detectionType
+  );
 
   // Create condition group from form data using the helper function
   const conditions = useMemo(() => {
     // Wait for a condition value to be defined
-    if (kind === 'static' && !conditionValue) {
+    if (detectionType === 'static' && !conditionValue) {
       return [];
     }
 
@@ -47,7 +49,7 @@ export function MetricDetectorPreviewChart() {
       initialPriorityLevel,
       highThreshold,
     });
-  }, [conditionType, conditionValue, initialPriorityLevel, highThreshold, kind]);
+  }, [conditionType, conditionValue, initialPriorityLevel, highThreshold, detectionType]);
 
   return (
     <ChartContainer>
@@ -59,7 +61,7 @@ export function MetricDetectorPreviewChart() {
         environment={environment}
         projectId={projectId}
         conditions={conditions}
-        detectionType={kind}
+        detectionType={detectionType}
       />
     </ChartContainer>
   );

@@ -12,6 +12,7 @@ import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject, JsonFormObject} from 'sentry/components/forms/types';
 import HookOrDefault from 'sentry/components/hookOrDefault';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {NoAccess} from 'sentry/components/noAccess';
 import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -153,12 +154,14 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
           {t('Automation')}
           <Subheading>
             {tct(
-              "Choose how Seer automatically triages and root-causes incoming issues, before you even notice them. This analysis is billed at the [link:standard rates] for Seer's Issue Scan and Issue Fix. See [spendlink:docs] on how to manage your Seer spend. You can also [bulklink:configure automation for other projects].",
+              "Choose how Seer automatically triages and diagnoses incoming issues, before you even notice them. This analysis is billed at the [link:standard rates] for Seer's Issue Scan and Issue Fix. See [spendlink:docs] on how to manage your Seer spend. You can also [bulklink:configure automation for other projects].",
               {
-                link: <Link to={'https://docs.sentry.io/pricing/#seer-pricing'} />,
+                link: (
+                  <ExternalLink href={'https://docs.sentry.io/pricing/#seer-pricing'} />
+                ),
                 spendlink: (
-                  <Link
-                    to={getPricingDocsLinkForEventType(DataCategoryExact.SEER_AUTOFIX)}
+                  <ExternalLink
+                    href={getPricingDocsLinkForEventType(DataCategoryExact.SEER_AUTOFIX)}
                   />
                 ),
                 bulklink: <Link to={`/settings/${organization.slug}/seer/`} />,

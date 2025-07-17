@@ -98,9 +98,7 @@ function PlanMigrationTable({subscription, migration}: Props) {
           )}
           <PlanMigrationRow
             type={DataCategoryExact.ERROR}
-            currentValue={
-              subscription.categories.errors?.reserved ?? subscription.reservedEvents
-            }
+            currentValue={subscription.categories.errors?.reserved ?? null}
             nextValue={getNextDataCategoryValue(
               nextPlan,
               isAM3Migration,
@@ -177,6 +175,18 @@ function PlanMigrationTable({subscription, migration}: Props) {
                 nextPlan,
                 isAM3Migration,
                 DataCategoryExact.PROFILE_DURATION,
+                subscription
+              )}
+            />
+          )}
+          {nextPlan.reserved.logBytes && (
+            <PlanMigrationRow
+              type={DataCategoryExact.LOG_BYTE}
+              currentValue={subscription.categories.logBytes?.reserved ?? null}
+              nextValue={getNextDataCategoryValue(
+                nextPlan,
+                isAM3Migration,
+                DataCategoryExact.LOG_BYTE,
                 subscription
               )}
             />

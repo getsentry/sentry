@@ -12,11 +12,7 @@ import {
   parseFunction,
 } from 'sentry/utils/discover/fields';
 import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {
-  SpanFunction,
-  SpanIndexedField,
-  SpanMetricsField,
-} from 'sentry/views/insights/types';
+import {SpanFields, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 
 type Options = {
   column: GridColumnHeader<string>;
@@ -65,10 +61,10 @@ const SORTABLE_FIELDS = new Set([
   `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
   `${CACHE_HIT_RATE}()`,
   `${CACHE_MISS_RATE}()`,
-  SpanIndexedField.TIMESTAMP,
-  SpanIndexedField.SPAN_DURATION,
+  SpanFields.TIMESTAMP,
+  SpanFields.SPAN_DURATION,
   `avg(${CACHE_ITEM_SIZE})`,
-  SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME,
+  SpanFields.MESSAGING_MESSAGE_DESTINATION_NAME,
   'count_op(queue.publish)',
   'count_op(queue.process)',
   'avg_if(span.duration,span.op,queue.process)',
@@ -96,11 +92,11 @@ const SORTABLE_FIELDS = new Set([
 const NUMERIC_FIELDS = new Set([
   'transaction.duration',
   SpanMetricsField.CACHE_ITEM_SIZE,
-  SpanIndexedField.SPAN_SELF_TIME,
-  SpanIndexedField.SPAN_DURATION,
-  SpanIndexedField.CACHE_ITEM_SIZE,
-  SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
-  SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,
+  SpanFields.SPAN_SELF_TIME,
+  SpanFields.SPAN_DURATION,
+  SpanFields.CACHE_ITEM_SIZE,
+  SpanFields.MESSAGING_MESSAGE_BODY_SIZE,
+  SpanFields.MESSAGING_MESSAGE_RETRY_COUNT,
 ]);
 
 export const renderHeadCell = ({column, location, sort, sortParameterName}: Options) => {

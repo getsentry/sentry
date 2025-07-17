@@ -66,7 +66,7 @@ export function transformDeviceClassEvents({
           // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           transformedData[YAXIS_COLUMNS[val]][release].data[index] = {
             name: deviceClass,
-            value: row[YAXIS_COLUMNS[val] as keyof EAPSpanResponse],
+            value: row[YAXIS_COLUMNS[val]],
             itemStyle: {
               color: isPrimary ? colors[0] : colors[1],
             },

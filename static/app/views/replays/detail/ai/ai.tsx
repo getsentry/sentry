@@ -9,6 +9,7 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconSeer, IconSync, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
@@ -142,7 +143,12 @@ export default function Ai() {
             priority="default"
             type="button"
             size="xs"
-            onClick={() => refetch()}
+            onClick={() => {
+              refetch();
+              trackAnalytics('replay.ai-summary.regenerate-requested', {
+                organization,
+              });
+            }}
             icon={<IconSync size="xs" />}
           >
             {t('Regenerate')}
