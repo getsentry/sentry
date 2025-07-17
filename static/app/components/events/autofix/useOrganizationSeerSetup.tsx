@@ -17,7 +17,7 @@ interface OrganizationSeerSetupResponse {
   };
 }
 
-function makeOrganizationSeerSetupQueryKey(orgSlug: string): ApiQueryKey {
+export function makeOrganizationSeerSetupQueryKey(orgSlug: string): ApiQueryKey {
   return [`/organizations/${orgSlug}/seer/setup-check/`];
 }
 

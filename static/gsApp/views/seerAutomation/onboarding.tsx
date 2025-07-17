@@ -17,7 +17,10 @@ import {Flex} from 'sentry/components/core/layout';
 import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
-import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
+import {
+  GuidedSteps,
+  useGuidedStepsContext,
+} from 'sentry/components/guidedSteps/guidedSteps';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -355,76 +358,20 @@ function ProjectsWithReposTracker({
   return null;
 }
 
-function SeerAutomationOnboarding() {
+function AutoTriggerFixesButton({
+  projectsWithRepos,
+  selectedThreshold,
+  fetching,
+}: {
+  fetching: boolean;
+  projectsWithRepos: Project[];
+  selectedThreshold: string;
+}) {
   const organization = useOrganization();
-  const {projects, fetching} = useProjects();
   const api = useApi();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const [selectedThreshold, setSelectedThreshold] = useState('low');
-  const [projectsWithRepos, setProjectsWithRepos] = useState<Project[]>([]);
-  const [projectStates, setProjectStates] = useState<ProjectStateMap>({});
-  const [successfullyConnectedProjects, setSuccessfullyConnectedProjects] = useState(
-    new Set<string>()
-  );
-
-  const filteredProjects = useMemo(() => {
-    return filterProjectsWithAccess(projects, organization);
-  }, [projects, organization]);
-
-  const projectsWithoutRepos = useMemo(() => {
-    return filteredProjects.filter(project => {
-      // Exclude projects that have been successfully connected this session
-      if (successfullyConnectedProjects.has(project.id)) return false;
-
-      // Exclude projects that already have repositories
-      const state = projectStates[project.id];
-      if (state && !state.isPending) {
-        const repoCount = state.preference?.repositories?.length || 0;
-        return repoCount === 0;
-      }
-
-      // Include projects that are still loading (we don't know their repo status yet)
-      return true;
-    });
-  }, [filteredProjects, successfullyConnectedProjects, projectStates]);
-
-  const handleEnableIssueScans = useCallback(async () => {
-    if (projectsWithoutRepos.length === 0) {
-      addErrorMessage(t('No remaining projects found to update'));
-      return;
-    }
-
-    addLoadingMessage(t('Enabling issue scans for remaining projects...'), {
-      duration: 30000,
-    });
-
-    try {
-      await Promise.all(
-        projectsWithoutRepos.map(project =>
-          api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
-            method: 'PUT',
-            data: {seerScannerAutomation: true},
-          })
-        )
-      );
-
-      addSuccessMessage(
-        t('Issue scans enabled for %s remaining project(s)', projectsWithoutRepos.length)
-      );
-
-      projectsWithoutRepos.forEach(project => {
-        queryClient.invalidateQueries({
-          queryKey: makeDetailedProjectQueryKey({
-            orgSlug: organization.slug,
-            projectSlug: project.slug,
-          }),
-        });
-      });
-    } catch (err) {
-      addErrorMessage(t('Failed to enable issue scans for some projects'));
-    }
-  }, [api, organization.slug, projectsWithoutRepos, queryClient]);
+  const {setCurrentStep, getStepNumber} = useGuidedStepsContext();
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleEnableAutoTriggerFixes = useCallback(async () => {
     if (projectsWithRepos.length === 0) {
@@ -435,6 +382,7 @@ function SeerAutomationOnboarding() {
     addLoadingMessage(t('Enabling automation for projects with repositories...'), {
       duration: 30000,
     });
+    setIsLoading(true);
 
     try {
       await Promise.all(
@@ -464,10 +412,144 @@ function SeerAutomationOnboarding() {
           }),
         });
       });
+
+      // Automatically advance to the next step after successful completion
+      const enableIssueScansStepNumber = getStepNumber('enable-issue-scans');
+      setCurrentStep(enableIssueScansStepNumber);
     } catch (err) {
       addErrorMessage(t('Failed to enable automation for some projects'));
+    } finally {
+      setIsLoading(false);
     }
-  }, [api, organization.slug, projectsWithRepos, selectedThreshold, queryClient]);
+  }, [
+    api,
+    organization.slug,
+    projectsWithRepos,
+    selectedThreshold,
+    queryClient,
+    getStepNumber,
+    setCurrentStep,
+  ]);
+
+  return (
+    <Button
+      priority="primary"
+      onClick={handleEnableAutoTriggerFixes}
+      disabled={fetching || projectsWithRepos.length === 0 || isLoading}
+      busy={isLoading}
+    >
+      {t('Enable for %s recommended project(s)', projectsWithRepos.length)}
+    </Button>
+  );
+}
+
+function EnableIssueScansButton({
+  projectsWithoutRepos,
+  fetching,
+}: {
+  fetching: boolean;
+  projectsWithoutRepos: Project[];
+}) {
+  const organization = useOrganization();
+  const api = useApi();
+  const queryClient = useQueryClient();
+  const {setCurrentStep, getStepNumber} = useGuidedStepsContext();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleEnableIssueScans = useCallback(async () => {
+    if (projectsWithoutRepos.length === 0) {
+      addErrorMessage(t('No remaining projects found to update'));
+      return;
+    }
+
+    addLoadingMessage(t('Enabling issue scans for remaining projects...'), {
+      duration: 30000,
+    });
+    setIsLoading(true);
+
+    try {
+      await Promise.all(
+        projectsWithoutRepos.map(project =>
+          api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
+            method: 'PUT',
+            data: {seerScannerAutomation: true},
+          })
+        )
+      );
+
+      addSuccessMessage(
+        t('Issue scans enabled for %s remaining project(s)', projectsWithoutRepos.length)
+      );
+
+      projectsWithoutRepos.forEach(project => {
+        queryClient.invalidateQueries({
+          queryKey: makeDetailedProjectQueryKey({
+            orgSlug: organization.slug,
+            projectSlug: project.slug,
+          }),
+        });
+      });
+
+      // Automatically advance to the next step after successful completion
+      const reviewCustomizeStepNumber = getStepNumber('review-customize');
+      setCurrentStep(reviewCustomizeStepNumber);
+    } catch (err) {
+      addErrorMessage(t('Failed to enable issue scans for some projects'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [
+    api,
+    organization.slug,
+    projectsWithoutRepos,
+    queryClient,
+    getStepNumber,
+    setCurrentStep,
+  ]);
+
+  return (
+    <Button
+      priority="primary"
+      onClick={handleEnableIssueScans}
+      disabled={fetching || projectsWithoutRepos.length === 0 || isLoading}
+      busy={isLoading}
+    >
+      {t('Enable for all projects')}
+    </Button>
+  );
+}
+
+function SeerAutomationOnboarding() {
+  const organization = useOrganization();
+  const {projects, fetching} = useProjects();
+  const navigate = useNavigate();
+  const [selectedThreshold, setSelectedThreshold] = useState('low');
+  const [projectsWithRepos, setProjectsWithRepos] = useState<Project[]>([]);
+  const [projectStates, setProjectStates] = useState<ProjectStateMap>({});
+  const [successfullyConnectedProjects, setSuccessfullyConnectedProjects] = useState(
+    new Set<string>()
+  );
+
+  const filteredProjects = useMemo(() => {
+    return filterProjectsWithAccess(projects, organization);
+  }, [projects, organization]);
+
+  const projectsWithoutRepos = useMemo(() => {
+    return filteredProjects.filter(project => {
+      // Exclude projects that have been successfully connected this session
+      if (successfullyConnectedProjects.has(project.id)) return false;
+
+      // Exclude projects that already have repositories
+      const state = projectStates[project.id];
+      if (state && !state.isPending) {
+        const repoCount = state.preference?.repositories?.length || 0;
+        return repoCount === 0;
+      }
+
+      // Include projects that are still loading (we don't know their repo status yet)
+      return true;
+    });
+  }, [filteredProjects, successfullyConnectedProjects, projectStates]);
 
   const handleProjectStatesUpdate = useCallback(
     (project: Project, preference: any, isPending: boolean) => {
@@ -561,13 +643,11 @@ function SeerAutomationOnboarding() {
                       />
                     </Flex>
                   </ThresholdSelectorWrapper>
-                  <Button
-                    priority="primary"
-                    onClick={handleEnableAutoTriggerFixes}
-                    disabled={fetching || projectsWithRepos.length === 0}
-                  >
-                    {t('Enable for %s recommended project(s)', projectsWithRepos.length)}
-                  </Button>
+                  <AutoTriggerFixesButton
+                    fetching={fetching}
+                    projectsWithRepos={projectsWithRepos}
+                    selectedThreshold={selectedThreshold}
+                  />
                 </Fragment>
               )}
 
@@ -598,13 +678,10 @@ function SeerAutomationOnboarding() {
             </StepDescription>
 
             <ScanActionWrapper>
-              <Button
-                priority="primary"
-                onClick={handleEnableIssueScans}
-                disabled={fetching || projectsWithoutRepos.length === 0}
-              >
-                {t('Enable for all projects')}
-              </Button>
+              <EnableIssueScansButton
+                fetching={fetching}
+                projectsWithoutRepos={projectsWithoutRepos}
+              />
               {projectsWithoutRepos.length === 0 && !fetching && (
                 <EmptyProjectsMessage>
                   {t('All projects are set up with Seer!')}
