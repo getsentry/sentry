@@ -139,7 +139,8 @@ describe('DatabaseLandingPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -166,7 +167,8 @@ describe('DatabaseLandingPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -192,6 +194,7 @@ describe('DatabaseLandingPage', function () {
         method: 'GET',
         query: {
           dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           field: [
             'project.id',
@@ -258,7 +261,8 @@ describe('DatabaseLandingPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -285,7 +289,8 @@ describe('DatabaseLandingPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -311,6 +316,7 @@ describe('DatabaseLandingPage', function () {
         method: 'GET',
         query: {
           dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           field: [
             'project.id',

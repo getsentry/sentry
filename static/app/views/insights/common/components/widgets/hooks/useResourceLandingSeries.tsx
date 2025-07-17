@@ -4,7 +4,7 @@ import {getResourceTypeFilter} from 'sentry/views/insights/browser/common/querie
 import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import type {ModuleFilters} from 'sentry/views/insights/common/views/spans/types';
 import type {SearchHook} from 'sentry/views/insights/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
@@ -66,7 +66,7 @@ export function useResourceLandingSeriesSearch(): SearchHook {
 export function useResourceLandingSeries(props: Props) {
   const {search, pageFilters, enabled} = props;
 
-  return useSpanMetricsSeries(
+  return useSpanSeries(
     {
       search,
       yAxis: ['epm()', `avg(${SPAN_SELF_TIME})`],

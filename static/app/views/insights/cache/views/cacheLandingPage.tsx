@@ -29,7 +29,7 @@ import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/modu
 import CacheMissRateChartWidget from 'sentry/views/insights/common/components/widgets/cacheMissRateChartWidget';
 import CacheThroughputChartWidget from 'sentry/views/insights/common/components/widgets/cacheThroughputChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {combineMeta} from 'sentry/views/insights/common/utils/combineMeta';
@@ -69,7 +69,7 @@ export function CacheLandingPage() {
     requiredParams: ['transaction'],
   });
 
-  const {error: cacheMissRateError} = useSpanMetricsSeries(
+  const {error: cacheMissRateError} = useSpanSeries(
     {
       yAxis: [`${CACHE_MISS_RATE}()`],
       search: MutableSearch.fromQueryObject(BASE_FILTERS),
