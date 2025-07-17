@@ -61,6 +61,39 @@ class GroupEventAttachmentsTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(attachment2.id)
 
+    def test_prosperodump_filter(self):
+        self.login_as(user=self.user)
+
+        self.create_attachment(type="event.attachment")
+        attachment2 = self.create_attachment(type="event.prosperodump")
+
+        with self.feature("organizations:event-attachments"):
+            response = self.client.get(self.path(types=["event.prosperodump"]))
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(attachment2.id)
+
+    def test_crash_reports_filter(self):
+        self.login_as(user=self.user)
+
+        self.create_attachment(type="event.attachment")
+        attachment2 = self.create_attachment(type="event.minidump")
+        attachment3 = self.create_attachment(type="event.applecrashreport")
+        attachment4 = self.create_attachment(type="event.prosperodump")
+
+        with self.feature("organizations:event-attachments"):
+            response = self.client.get(
+                self.path(types=["event.minidump", "event.applecrashreport", "event.prosperodump"])
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+        attachment_ids = [attachment["id"] for attachment in response.data]
+        assert str(attachment2.id) in attachment_ids
+        assert str(attachment3.id) in attachment_ids
+        assert str(attachment4.id) in attachment_ids
+
     def test_screenshot_across_groups(self):
         self.login_as(user=self.user)
 

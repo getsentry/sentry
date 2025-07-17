@@ -29,7 +29,7 @@ from sentry.users.services.user.model import RpcUser
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path
 
-CRASH_FILE_TYPES = {"event.minidump"}
+CRASH_FILE_TYPES = {"event.minidump", "event.prosperodump"}
 RESERVED_KEYS = frozenset(["user", "sdk", "device", "contexts"])
 
 FORMATTED_BREADCRUMB_CATEGORIES = frozenset(["query", "sql.query"])

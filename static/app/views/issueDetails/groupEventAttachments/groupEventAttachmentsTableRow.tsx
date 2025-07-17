@@ -15,6 +15,7 @@ import {InlineEventAttachment} from 'sentry/views/issueDetails/groupEventAttachm
 const friendlyAttachmentType: Record<string, string> = {
   'event.minidump': t('Minidump'),
   'event.applecrashreport': t('Apple Crash Report'),
+  'event.prosperodump': t('Prosperodump'),
   'event.attachment': t('Other'),
 };
 

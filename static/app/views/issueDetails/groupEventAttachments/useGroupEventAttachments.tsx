@@ -38,6 +38,7 @@ interface MakeFetchGroupEventAttachmentsQueryKeyOptions
 type GroupEventAttachmentsTypeFilter =
   | 'event.minidump'
   | 'event.applecrashreport'
+  | 'event.prosperodump'
   | 'event.screenshot';
 
 interface GroupEventAttachmentsQuery {
@@ -94,7 +95,7 @@ export const makeFetchGroupEventAttachmentsQueryKey = ({
   if (activeAttachmentsTab === 'screenshot') {
     query.screenshot = '1';
   } else if (activeAttachmentsTab === 'onlyCrash') {
-    query.types = ['event.minidump', 'event.applecrashreport'];
+    query.types = ['event.minidump', 'event.applecrashreport', 'event.prosperodump'];
   }
 
   return [`/organizations/${orgSlug}/issues/${group.id}/attachments/`, {query}];

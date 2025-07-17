@@ -42,6 +42,9 @@ MINIDUMP_ATTACHMENT_TYPE = "event.minidump"
 # Attachment type used for Apple Crash Reports
 APPLECRASHREPORT_ATTACHMENT_TYPE = "event.applecrashreport"
 
+# Attachment type used for prosperodump files
+PROSPERODUMP_ATTACHMENT_TYPE = "event.prosperodump"
+
 # Rules for rewriting the debug file of the first module
 # in an Electron minidump.
 #
