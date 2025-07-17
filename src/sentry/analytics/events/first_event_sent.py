@@ -4,9 +4,9 @@ from sentry import analytics
 # first error for an organization
 @analytics.eventclass("first_event.sent")
 class FirstEventSentEvent(analytics.Event):
-    user_id: str
-    organization_id: str
-    project_id: str
+    user_id: int
+    organization_id: int
+    project_id: int
     platform: str | None = None
     url: str | None = None
     has_minified_stack_trace: str | None = None
