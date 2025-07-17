@@ -2,7 +2,7 @@ import {useEffect, useState} from 'react';
 
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {getIsAiNode} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
+import {getIsAiNode} from 'sentry/views/insights/agentMonitoring/utils/aiTraceNodes';
 import {
   AI_AGENT_NAME_ATTRIBUTE,
   AI_COST_ATTRIBUTE,

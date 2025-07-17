@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Any
 
 from django.urls import reverse
-from requests.exceptions import RequestException
+from requests.exceptions import ChunkedEncodingError, RequestException
 
 from sentry import analytics, features, nodestore
 from sentry.api.serializers import serialize
@@ -79,6 +79,7 @@ CONTROL_TASK_OPTIONS = {
 
 retry_decorator = retry(
     on=(RequestException, ApiHostError, ApiTimeoutError),
+    on_silent=(ChunkedEncodingError),
     ignore=(
         ClientError,
         SentryAppSentryError,
@@ -161,7 +162,7 @@ def _webhook_issue_data(
             times=3,
             delay=60 * 5,
         ),
-        processing_deadline_duration=20,
+        processing_deadline_duration=30,
     ),
     **TASK_OPTIONS,
 )
@@ -664,6 +665,7 @@ def get_webhook_data(
             delay=60 * 5,
         ),
         compression_type=CompressionType.ZSTD,
+        processing_deadline_duration=30,
     ),
     **TASK_OPTIONS,
 )

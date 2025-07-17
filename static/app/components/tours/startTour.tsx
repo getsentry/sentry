@@ -1,40 +1,43 @@
 import {css, ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import stackedNavTourSvg from 'sentry-images/spot/stacked-nav-tour.svg';
-
 import {TextTourAction, TourAction} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 
-interface NavTourModalProps {
+interface StartTourModalProps {
   closeModal: () => void;
-  handleDismissTour: () => void;
-  handleStartTour: () => void;
+  description: React.ReactNode;
+  header: React.ReactNode;
+  img: {
+    alt: string;
+    src: string;
+  };
+  onDismissTour: () => void;
+  onStartTour: () => void;
 }
 
-export function NavTourModal({
+export function StartTourModal({
   closeModal,
-  handleDismissTour,
-  handleStartTour,
-}: NavTourModalProps) {
+  onDismissTour,
+  onStartTour,
+  img,
+  header,
+  description,
+}: StartTourModalProps) {
   const invertedTheme = useInvertedTheme();
   return (
     <ThemeProvider theme={invertedTheme}>
       <TourContainer>
-        <ModalImage src={stackedNavTourSvg} />
+        <ModalImage {...img} />
         <TextContainer>
-          <Header>{t('Welcome to a simpler Sentry')}</Header>
-          <Description>
-            {t(
-              'Find what you need, faster. Our new navigation puts your top workflows front and center.'
-            )}
-          </Description>
+          <Header>{header}</Header>
+          <Description>{description}</Description>
           <Footer>
             <TextTourAction
               onClick={() => {
-                handleDismissTour();
+                onDismissTour();
                 closeModal();
               }}
             >
@@ -42,7 +45,7 @@ export function NavTourModal({
             </TextTourAction>
             <TourAction
               onClick={() => {
-                handleStartTour();
+                onStartTour();
                 closeModal();
               }}
               autoFocus
@@ -57,7 +60,6 @@ export function NavTourModal({
 }
 
 const ModalImage = styled('img')`
-  height: 226px;
   width: calc(100% - ${space(1.5)} - ${space(1.5)});
   margin: ${space(1.5)} 0 0 ${space(1.5)};
   background-size: cover;
@@ -99,7 +101,7 @@ const Footer = styled('div')`
   gap: ${space(1)};
 `;
 
-export const navTourModalCss = css`
+export const startTourModalCss = css`
   width: 545px;
   [role='document'] {
     box-shadow: none;
