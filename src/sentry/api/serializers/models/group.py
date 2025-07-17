@@ -14,7 +14,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import Min, prefetch_related_objects
 
 from sentry import features, tagstore
-from sentry.api.helpers.error_upsampling import are_all_projects_error_upsampled
+from sentry.api.helpers.error_upsampling import are_any_projects_error_upsampled
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
@@ -1074,8 +1074,8 @@ class GroupSerializerSnuba(GroupSerializerBase):
             ["max", "timestamp", "last_seen"],
             ["uniq", "tags[sentry:user]", "count"],
         ]
-        # Check if all projects are allowlisted for error upsampling
-        is_upsampled = are_all_projects_error_upsampled(project_ids)
+        # Check if any projects are allowlisted for error upsampling
+        is_upsampled = are_any_projects_error_upsampled(project_ids)
         if is_upsampled:
             aggregations[0] = ["upsampled_count", "", "times_seen"]
 
