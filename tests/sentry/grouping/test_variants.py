@@ -108,8 +108,7 @@ def _assert_and_snapshot_results(
     assert event.get_grouping_config()["id"] == config_name
 
     # Check that we didn't end up with a caught but unexpected error in any of our strategies
-    if not config_name.startswith("legacy"):
-        assert mock_exception_logger.call_count == 0
+    assert mock_exception_logger.call_count == 0
 
     lines: list[str] = []
 
