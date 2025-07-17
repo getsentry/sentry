@@ -309,19 +309,12 @@ type ApiMutationVariables<
   Headers extends Record<string, unknown> = Record<string, string>,
   Query extends Record<string, unknown> = Record<string, any>,
   Data extends Record<string, unknown> = Record<string, unknown>,
-> =
-  | ['PUT' | 'POST' | 'DELETE', string]
-  | [
-      'PUT' | 'POST' | 'DELETE',
-      string,
-      Pick<QueryKeyEndpointOptions<Headers, Query>, 'query' | 'headers'>,
-    ]
-  | [
-      'PUT' | 'POST' | 'DELETE',
-      string,
-      Pick<QueryKeyEndpointOptions<Headers, Query>, 'query' | 'headers'>,
-      Data,
-    ];
+> = {
+  method: 'PUT' | 'POST' | 'DELETE';
+  url: string;
+  options?: Pick<QueryKeyEndpointOptions<Headers, Query>, 'query' | 'headers'>;
+  data?: Data;
+};
 
 /**
  * This method can be used as a default `mutationFn` with `useMutation` hook.
@@ -331,12 +324,12 @@ type ApiMutationVariables<
 export function fetchMutation<TResponseData = unknown>(
   variables: ApiMutationVariables
 ): Promise<TResponseData> {
-  const [method, url, opts, data] = variables;
+  const {method, url, options, data} = variables;
 
   return QUERY_API_CLIENT.requestPromise(url, {
     method,
-    query: opts?.query,
-    headers: opts?.headers,
+    query: options?.query,
+    headers: options?.headers,
     data,
   });
 }

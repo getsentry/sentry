@@ -42,12 +42,12 @@ export default function useDeleteReplays({projectSlug}: Props) {
 
       const options = {};
       const payload = {data};
-      return fetchMutation([
-        'POST',
-        `/projects/${organization.slug}/${projectSlug}/replays/jobs/delete/`,
+      return fetchMutation({
+        method: 'POST',
+        url: `/projects/${organization.slug}/${projectSlug}/replays/jobs/delete/`,
         options,
-        payload,
-      ]);
+        data: payload,
+      });
     },
   });
 
