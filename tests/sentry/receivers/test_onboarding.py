@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from sentry import onboarding_tasks
 from sentry.analytics import record
+from sentry.analytics.events.first_event_sent import FirstEventSentEvent
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationonboardingtask import (
     OnboardingTask,
@@ -30,6 +31,7 @@ from sentry.signals import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
@@ -264,7 +266,9 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         # Ensure "first_event.sent" was called exactly once
         first_event_sent_calls = [
-            call for call in record_analytics.call_args_list if call[0][0] == "first_event.sent"
+            call
+            for call in record_analytics.call_args_list
+            if isinstance(call[0][0], FirstEventSentEvent)
         ]
         assert len(first_event_sent_calls) == 1
 
@@ -904,13 +908,15 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
-        record_analytics.assert_called_with(
-            "first_event.sent",
-            user_id=self.user.id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=error_event.platform,
-            project_platform=project.platform,
+        assert_last_analytics_event(
+            record_analytics,
+            FirstEventSentEvent(
+                user_id=self.user.id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=error_event.platform,
+                project_platform=project.platform,
+            ),
         )
 
         # Configure an issue alert
