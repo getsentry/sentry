@@ -179,16 +179,16 @@ export function AIInputSection({
       event,
       attributes
     );
-    promptMessages = inputMessages && transformInputMessages(inputMessages);
+    promptMessages = inputMessages && transformInputMessages(inputMessages.toString());
   }
   if (!promptMessages) {
     const messages = getTraceNodeAttribute('ai.prompt', node, event, attributes);
     if (messages) {
-      promptMessages = transformPrompt(messages);
+      promptMessages = transformPrompt(messages.toString());
     }
   }
 
-  const messages = defined(promptMessages) && parseAIMessages(promptMessages);
+  const messages = defined(promptMessages) && parseAIMessages(promptMessages.toString());
 
   const toolArgs = getTraceNodeAttribute('gen_ai.tool.input', node, event, attributes);
 
