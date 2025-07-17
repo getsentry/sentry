@@ -219,7 +219,7 @@ export function DebugImageDetails({
     refetch,
   } = useApiQuery<DebugFile[]>(
     [
-      `/projects/${organization.slug}/${projSlug}/files/dsyms/?debug_id=${image?.debug_id}`,
+      `/projects/${organization.slug}/${projSlug}/files/dsyms/?debug_id=${image?.debug_id}&code_id=${image?.code_id}`,
       {
         query: {
           // FIXME(swatinem): Ideally we should not filter here at all,
