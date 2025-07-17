@@ -15,7 +15,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanMetricsField, subregionCodeToName} from 'sentry/views/insights/types';
 
 type Props = {
@@ -28,7 +28,7 @@ export default function SubregionSelector({size}: Props) {
   const navigate = useNavigate();
 
   const value = decodeList(location.query[SpanMetricsField.USER_GEO_SUBREGION]);
-  const {data, isPending} = useSpanMetrics(
+  const {data, isPending} = useSpans(
     {
       fields: [SpanMetricsField.USER_GEO_SUBREGION, 'count()'],
       search: new MutableSearch('has:user.geo.subregion'),
