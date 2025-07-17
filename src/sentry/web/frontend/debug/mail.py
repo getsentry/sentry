@@ -593,7 +593,7 @@ def digest(request):
     )
     start, end, counts = get_digest_metadata(digest.digest)
 
-    rule_details = get_rules(list(rules.values()), org, project, groups[0].type)
+    rule_details = get_rules(list(rules.values()), org, project)
     context = DigestNotification.build_context(digest, project, org, rule_details, 1337)
 
     context["show_replay_links"] = True

@@ -123,12 +123,21 @@ def get_rules(
     ]
 
 
+def _fetch_rule_id(rule: Rule, type_id: int | None = None):
+    # Try to fetch the legacy rule id, if it fails, return the rule id
+    # This allows us to support both legacy and new rule ids
+    try:
+        return int(get_key_from_rule_data(rule, "legacy_rule_id"))
+    except AssertionError:
+        return rule.id
+
+
 def get_rules_with_legacy_ids(
     rules: Sequence[Rule], organization: Organization, project: Project
 ) -> Sequence[NotificationRuleDetails]:
     rules_with_legacy_ids = []
     for rule in rules:
-        rule_id = int(get_key_from_rule_data(rule, "legacy_rule_id"))
+        rule_id = _fetch_rule_id(rule)
         rules_with_legacy_ids.append(
             NotificationRuleDetails(
                 rule_id,
