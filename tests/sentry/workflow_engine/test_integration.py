@@ -143,7 +143,7 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
 
 
 class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest):
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @with_feature("organizations:issue-metric-issue-post-process-group")
     @with_feature("organizations:workflow-engine-process-metric-issue-workflows")
     def test_workflow_engine__workflows(self):
         """
@@ -157,7 +157,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
             self.call_post_process_group(self.group.id)
             mock_process_workflow.assert_called_once()
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @with_feature("organizations:issue-metric-issue-post-process-group")
     def test_workflow_engine__workflows__other_events(self):
         """
         Ensure that the workflow engine only supports MetricIssue events for now.
