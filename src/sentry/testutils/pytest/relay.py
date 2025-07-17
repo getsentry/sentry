@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 import ephemeral_port_reserve
 import pytest
 import requests
+from docker.models.containers import Container
 
 from sentry.runner.commands.devservices import get_docker_client
 from sentry.testutils.pytest.sentry import TEST_REDIS_DB
@@ -134,7 +135,7 @@ def relay_server(relay_server_setup, settings):
     with get_docker_client() as docker_client:
         container_name = _relay_server_container_name()
         _remove_container_if_exists(docker_client, container_name)
-        container = docker_client.containers.run(**options)
+        container: Container = docker_client.containers.run(**options)
 
     _log.info("Waiting for Relay container to start")
 
@@ -154,7 +155,9 @@ def relay_server(relay_server_setup, settings):
     else:
         raise ValueError("relay did not start in time")
 
-    return {"url": relay_server_setup["url"]}
+    yield {"url": relay_server_setup["url"]}
+
+    container.stop(timeout=10)
 
 
 def adjust_settings_for_relay_tests(settings):
