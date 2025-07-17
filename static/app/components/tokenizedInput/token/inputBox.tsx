@@ -22,6 +22,7 @@ interface InputBoxProps {
   onClick?: MouseEventHandler<HTMLInputElement>;
   onInputBlur?: FocusEventHandler<HTMLInputElement>;
   onInputChange?: ChangeEventHandler<HTMLInputElement>;
+  onInputCommit?: (value: string) => void;
   onInputEscape?: () => void;
   onInputFocus?: FocusEventHandler<HTMLInputElement>;
   onKeyDown?: (evt: KeyboardEvent) => void;
@@ -38,6 +39,7 @@ export function InputBox({
   onClick,
   onInputBlur,
   onInputChange,
+  onInputCommit,
   onInputEscape,
   onInputFocus,
   onKeyDown,
@@ -58,11 +60,15 @@ export function InputBox({
           evt.stopPropagation();
           onInputEscape?.();
           return;
+        case 'Enter':
+          evt.preventDefault();
+          onInputCommit?.(inputValue);
+          return;
         default:
           return;
       }
     },
-    [onInputEscape, onKeyDown]
+    [inputValue, onInputCommit, onInputEscape, onKeyDown]
   );
 
   const handleInputBlur: FocusEventHandler<HTMLInputElement> = useCallback(
