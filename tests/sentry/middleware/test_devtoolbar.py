@@ -1,4 +1,5 @@
 from functools import cached_property
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 from django.http import HttpResponse
@@ -74,7 +75,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
         request.resolver_match = MagicMock(view_name=view_name, route=route)
         self.middleware(request)
 
-        event = get_last_analytics_event(mock_record)
+        event = cast(DevToolbarApiRequestEvent, get_last_analytics_event(mock_record))
         assert event.type == self.analytics_event_name
         assert event.view_name == view_name
         assert event.route == route
@@ -89,7 +90,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
         request.resolver_match.route = "/issues/(?P<issue_id>)/"
         self.middleware(request)
 
-        event = get_last_analytics_event(mock_record)
+        event = cast(DevToolbarApiRequestEvent, get_last_analytics_event(mock_record))
         assert event.type == self.analytics_event_name
         assert event.query_string == query
 
@@ -103,7 +104,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
         request.resolver_match = MagicMock(view_name="my-endpoint", route="/issues/(?P<issue_id>)/")
         self.middleware(request)
 
-        event = get_last_analytics_event(mock_record)
+        event = cast(DevToolbarApiRequestEvent, get_last_analytics_event(mock_record))
         assert event.type == self.analytics_event_name
         assert event.origin == origin
 
@@ -116,7 +117,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
         request.resolver_match = MagicMock(view_name="my-endpoint", route="/issues/(?P<issue_id>)/")
         self.middleware(request)
 
-        event = get_last_analytics_event(mock_record)
+        event = cast(DevToolbarApiRequestEvent, get_last_analytics_event(mock_record))
         assert event.type == self.analytics_event_name
         assert event.origin == origin
 
@@ -128,7 +129,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
         self.middleware.get_response.return_value = HttpResponse(status=420)
         self.middleware(request)
 
-        event = get_last_analytics_event(mock_record)
+        event = cast(DevToolbarApiRequestEvent, get_last_analytics_event(mock_record))
         assert event.type == self.analytics_event_name
         assert event.status_code == 420
 
@@ -142,7 +143,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
             )
             self.middleware(request)
 
-            event = get_last_analytics_event(mock_record)
+            event = cast(DevToolbarApiRequestEvent, get_last_analytics_event(mock_record))
             assert event.type == self.analytics_event_name
             assert event.method == method
 
