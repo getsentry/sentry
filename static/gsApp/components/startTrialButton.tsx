@@ -6,19 +6,18 @@ import type {Organization} from 'sentry/types/organization';
 
 import TrialStarter from 'getsentry/components/trialStarter';
 
-type Props = React.PropsWithChildren<
-  {
-    organization: Organization;
-    source: string;
-    analyticsData?: Record<string, any>;
-    handleClick?: () => void;
-    onTrialFailed?: () => void;
-    onTrialStarted?: () => void;
-    requestData?: Record<string, unknown>;
-  } & (ButtonProps | LinkButtonProps)
->;
+type StartTrialButtonProps = React.PropsWithChildren<{
+  organization: Organization;
+  source: string;
+  analyticsData?: Record<string, any>;
+  handleClick?: () => void;
+  onTrialFailed?: () => void;
+  onTrialStarted?: () => void;
+  requestData?: Record<string, unknown>;
+}> &
+  (Omit<ButtonProps, 'children'> | Omit<LinkButtonProps, 'children'>);
 
-function StartTrialButton({
+export default function StartTrialButton({
   children,
   organization,
   source,
@@ -28,7 +27,7 @@ function StartTrialButton({
   requestData,
   analyticsData: _,
   ...buttonProps
-}: Props) {
+}: StartTrialButtonProps) {
   return (
     <TrialStarter
       source={source}
@@ -45,30 +44,35 @@ function StartTrialButton({
           ('to' in buttonProps && buttonProps.to !== undefined) ||
           ('href' in buttonProps && buttonProps.href !== undefined)
         ) {
+          const {onClick, ...restButtonProps} = buttonProps as LinkButtonProps;
           return (
             <LinkButton
               disabled={trialStarting || trialStarted}
               data-test-id="start-trial-button"
-              onClick={() => {
+              onClick={e => {
                 handleClick?.();
                 startTrial();
+                onClick?.(e);
               }}
-              {...buttonProps}
+              {...(restButtonProps as LinkButtonProps)}
             >
               {children || t('Start trial')}
             </LinkButton>
           );
         }
 
+        const {onClick, ...restButtonProps} = buttonProps as ButtonProps;
+
         return (
           <Button
             disabled={trialStarting || trialStarted}
             data-test-id="start-trial-button"
-            onClick={() => {
+            onClick={e => {
               handleClick?.();
               startTrial();
+              onClick?.(e);
             }}
-            {...buttonProps}
+            {...(restButtonProps as ButtonProps)}
           >
             {children || t('Start trial')}
           </Button>
@@ -77,5 +81,3 @@ function StartTrialButton({
     </TrialStarter>
   );
 }
-
-export default StartTrialButton;
