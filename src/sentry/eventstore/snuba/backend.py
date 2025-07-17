@@ -597,7 +597,7 @@ class SnubaEventStorage(EventStorage):
 
     def get_adjacent_event_ids(
         self, event: Event | GroupEvent, filter: Filter
-    ) -> tuple[tuple[int, str] | None, tuple[int, str] | None]:
+    ) -> tuple[tuple[str, str] | None, tuple[str, str] | None]:
         """
         Returns (project_id, event_id) of a previous event given a current event
         and a filter. Returns None if no previous event is found.
@@ -635,8 +635,8 @@ class SnubaEventStorage(EventStorage):
         prev_result = results[0] if len(results) > 0 else None
         next_result = results[1] if len(results) > 1 else None
 
-        prev_tuple = (int(prev_result[0]), prev_result[1]) if prev_result else None
-        next_tuple = (int(next_result[0]), next_result[1]) if next_result else None
+        prev_tuple = (prev_result[0], prev_result[1]) if prev_result else None
+        next_tuple = (next_result[0], next_result[1]) if next_result else None
 
         return (prev_tuple, next_tuple)
 
