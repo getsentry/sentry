@@ -143,10 +143,10 @@ class ErrorEventsDeletionTask(EventsBaseDeletionTask):
         if events:
             # Adding this variable to see the values in stack traces
             last_event = events[-1]
-            # This value will be used in the next call to chunk
-            self.last_event = last_event
             self.delete_events_from_nodestore(events)
             self.delete_dangling_attachments_and_user_reports(events)
+            # This value will be used in the next call to chunk
+            self.last_event = last_event
             # As long as it returns True the task will keep iterating
             return True
         else:
@@ -195,13 +195,13 @@ class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):
         if events:
             # Adding this variable to see the values in stack traces
             last_event = events[-1]
-            # This value will be used in the next call to chunk
-            self.last_event = last_event
             # Ideally, in some cases, we should also delete the associated event from the Nodestore.
             # In the occurrence_consumer [1] we sometimes create a new event but it's hard in post-ingestion to distinguish between
             # a created event and an existing one.
             # https://github.com/getsentry/sentry/blob/a86b9b672709bc9c4558cffb2c825965b8cee0d1/src/sentry/issues/occurrence_consumer.py#L324-L339
             self.delete_events_from_nodestore(events)
+            # This value will be used in the next call to chunk
+            self.last_event = last_event
             # As long as it returns True the task will keep iterating
             return True
         else:
