@@ -40,6 +40,8 @@ const chonkElevation = {
   zero: '0px',
 } satisfies Record<NonNullable<ButtonProps['size']>, string>;
 
+const chonkHoverElevation = '1px';
+
 export function DO_NOT_USE_getChonkButtonStyles(
   p: Pick<ButtonProps, 'priority' | 'busy' | 'disabled' | 'borderless'> & {
     size: NonNullable<ButtonProps['size']>;
@@ -136,10 +138,10 @@ export function DO_NOT_USE_getChonkButtonStyles(
       color: p.disabled || p.busy ? undefined : chonkButtonTheme.color,
 
       '&::after': {
-        transform: `translateY(calc(-${elevation} - 2px))`,
+        transform: `translateY(calc(-${elevation} - ${chonkHoverElevation}))`,
       },
       '> span:last-child': {
-        transform: `translateY(calc(-${elevation} - 2px))`,
+        transform: `translateY(calc(-${elevation} - ${chonkHoverElevation}))`,
       },
     },
 
