@@ -23,7 +23,11 @@ import {
   isUnlimitedReserved,
   UsageAction,
 } from 'getsentry/utils/billing';
-import {getPlanCategoryName, sortCategoriesWithKeys} from 'getsentry/utils/dataCategory';
+import {
+  getPlanCategoryName,
+  isByteCategory,
+  sortCategoriesWithKeys,
+} from 'getsentry/utils/dataCategory';
 
 import {ButtonWrapper, SubscriptionBody} from './styles';
 
@@ -86,8 +90,9 @@ function UsageAlert({subscription, usage}: Props) {
           return acc;
         }
         const projected = usage.totals[category]?.projected || 0;
-        const projectedWithReservedUnit =
-          category === DataCategory.ATTACHMENTS ? projected / GIGABYTE : projected;
+        const projectedWithReservedUnit = isByteCategory(category)
+          ? projected / GIGABYTE
+          : projected;
 
         const hasOverage =
           !!currentHistory.reserved &&
