@@ -602,6 +602,7 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
         assert not mock_process_service_hook.delay.mock_calls
 
     @with_feature("organizations:workflow-engine-single-process-workflows")
+    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     @patch("sentry.rules.processing.processor.RuleProcessor")
     @patch("sentry.tasks.post_process.process_workflow_engine")
     def test_workflow_engine_single_processing(self, mock_process_workflow_engine, mock_processor):
