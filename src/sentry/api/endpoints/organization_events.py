@@ -36,6 +36,7 @@ from sentry.snuba import (
     ourlogs,
     spans_rpc,
     transactions,
+    uptime_results,
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.referrer import Referrer, is_valid_referrer
@@ -582,10 +583,15 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         config = SearchResolverConfig(
                             use_aggregate_conditions=False,
                         )
+                    elif scoped_dataset == uptime_results:
+                        config = SearchResolverConfig(
+                            use_aggregate_conditions=use_aggregate_conditions, auto_fields=True
+                        )
                     else:
                         config = SearchResolverConfig(
                             use_aggregate_conditions=use_aggregate_conditions,
                         )
+
                     return scoped_dataset.run_table_query(
                         params=snuba_params,
                         query_string=scoped_query or "",
