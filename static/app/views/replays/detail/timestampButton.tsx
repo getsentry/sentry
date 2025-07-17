@@ -49,7 +49,7 @@ export default function TimestampButton({
         as={onClick ? 'button' : 'span'}
         onClick={event => {
           onClick?.(event);
-          trackAnalytics('replay.timestamp-button-clicked', {
+          trackAnalytics('replay.details-timestamp-button-clicked', {
             organization,
             area: analyticsArea,
           });
