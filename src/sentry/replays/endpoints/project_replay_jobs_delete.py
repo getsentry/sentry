@@ -50,7 +50,7 @@ class ReplayDeletionJobCreateDataSerializer(serializers.Serializer):
 
 
 class ReplayDeletionJobCreateSerializer(serializers.Serializer):
-    data = ReplayDeletionJobCreateDataSerializer()
+    data = ReplayDeletionJobCreateDataSerializer(required=True)  # type: ignore[assignment]
 
 
 @region_silo_endpoint
