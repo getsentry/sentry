@@ -718,6 +718,7 @@ def _set_project_platform_if_needed(project: Project, event: Event) -> None:
                 event=audit_log.get_event_id("PROJECT_EDIT"),
                 data={**project.get_audit_log_data(), "platform": event.platform},
             )
+            metrics.incr("issues.infer_project_platform.success", sample_rate=1.0)
 
     except Exception:
         logger.exception("Failed to infer and set project platform")
