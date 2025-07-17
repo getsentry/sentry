@@ -97,7 +97,7 @@ type Truncateable = {
   truncate?: number | boolean;
 };
 
-interface TooltipOption
+export interface TooltipOption
   extends Omit<TooltipComponentOption, 'valueFormatter'>,
     Truncateable {
   filter?: (value: number, seriesParam: TooltipComponentOption['formatter']) => boolean;
