@@ -263,7 +263,7 @@ export function AutorefreshToggle({
         }
       };
 
-      executeRefresh();
+      setTimeout(executeRefresh, 0); // This is a hack to ensure that the initial page param is set before the auto-refresh query is made.
       intervalRef.current = setInterval(executeRefresh, refreshInterval);
     } else {
       // Clean up interval when disabled

@@ -1,4 +1,5 @@
 import {useCallback, useLayoutEffect, useState} from 'react';
+import {flushSync} from 'react-dom';
 import type {Location} from 'history';
 
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -550,7 +551,10 @@ export function useSetLogsAutoRefresh() {
         // Until we change our timeseries hooks to be build their query keys separately, we need to remove the query via the route.
         queryClient.removeQueries({queryKey: ['events-stats']});
       }
-      setPageParams({autoRefresh});
+      flushSync(() => {
+        // We force sync here to ensure that the useEffect in react query is called updating the initial page param before the auto-refresh query is made.
+        setPageParams({autoRefresh});
+      });
     },
     [setPageParams, queryClient, queryKey]
   );
