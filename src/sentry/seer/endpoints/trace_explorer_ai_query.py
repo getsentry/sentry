@@ -15,8 +15,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
-from sentry.api.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
 from sentry.models.organization import Organization
+from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 
 logger = logging.getLogger(__name__)

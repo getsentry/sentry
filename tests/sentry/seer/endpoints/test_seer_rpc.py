@@ -9,13 +9,13 @@ from cryptography.fernet import Fernet
 from django.test import override_settings
 from django.urls import reverse
 
-from sentry.api.endpoints.seer_rpc import (
+from sentry.constants import ObjectStatus
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.seer.endpoints.seer_rpc import (
     generate_request_signature,
     get_github_enterprise_integration_config,
     get_organization_seer_consent_by_org_name,
 )
-from sentry.constants import ObjectStatus
-from sentry.models.options.organization_option import OrganizationOption
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
@@ -73,7 +73,7 @@ class TestSeerRpcMethods(APITestCase):
         assert result == {"consent": False}
 
     @override_options({"github-extension.enabled-orgs": []})
-    @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
+    @patch("sentry.seer.endpoints.seer_rpc.get_seer_org_acknowledgement")
     def test_get_organization_seer_consent_by_org_name_no_consent(self, mock_get_acknowledgement):
         """Test when organization exists but has no consent"""
         self.create_integration(
@@ -91,7 +91,7 @@ class TestSeerRpcMethods(APITestCase):
         mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
 
     @override_options({"github-extension.enabled-orgs": []})
-    @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
+    @patch("sentry.seer.endpoints.seer_rpc.get_seer_org_acknowledgement")
     def test_get_organization_seer_consent_by_org_name_with_seer_acknowledgement(
         self, mock_get_acknowledgement
     ):
@@ -110,7 +110,7 @@ class TestSeerRpcMethods(APITestCase):
         assert result == {"consent": True}
         mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
 
-    @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
+    @patch("sentry.seer.endpoints.seer_rpc.get_seer_org_acknowledgement")
     def test_get_organization_seer_consent_by_org_name_with_github_extension(
         self, mock_get_acknowledgement
     ):
@@ -130,7 +130,7 @@ class TestSeerRpcMethods(APITestCase):
         assert result == {"consent": True}
         mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
 
-    @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
+    @patch("sentry.seer.endpoints.seer_rpc.get_seer_org_acknowledgement")
     def test_get_organization_seer_consent_by_org_name_with_both_consents(
         self, mock_get_acknowledgement
     ):
@@ -151,7 +151,7 @@ class TestSeerRpcMethods(APITestCase):
         mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
 
     @override_options({"github-extension.enabled-orgs": []})
-    @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
+    @patch("sentry.seer.endpoints.seer_rpc.get_seer_org_acknowledgement")
     def test_get_organization_seer_consent_by_org_name_multiple_orgs_one_with_consent(
         self, mock_get_acknowledgement
     ):
@@ -182,7 +182,7 @@ class TestSeerRpcMethods(APITestCase):
         # Should stop after finding first org with consent
         assert mock_get_acknowledgement.call_count == 2
 
-    @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
+    @patch("sentry.seer.endpoints.seer_rpc.get_seer_org_acknowledgement")
     def test_get_organization_seer_consent_by_org_name_mixed_scenarios(
         self, mock_get_acknowledgement
     ):
@@ -216,7 +216,7 @@ class TestSeerRpcMethods(APITestCase):
         assert mock_get_acknowledgement.call_count == 2
 
     @override_options({"github-extension.enabled-orgs": []})
-    @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
+    @patch("sentry.seer.endpoints.seer_rpc.get_seer_org_acknowledgement")
     def test_get_organization_seer_consent_by_org_name_with_explicit_pr_review_enabled(
         self, mock_get_acknowledgement
     ):
@@ -240,7 +240,7 @@ class TestSeerRpcMethods(APITestCase):
         mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
 
     @override_options({"github-extension.enabled-orgs": []})
-    @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
+    @patch("sentry.seer.endpoints.seer_rpc.get_seer_org_acknowledgement")
     def test_get_organization_seer_consent_by_org_name_default_pr_review_behavior(
         self, mock_get_acknowledgement
     ):
@@ -260,7 +260,7 @@ class TestSeerRpcMethods(APITestCase):
         mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
 
     @override_options({"github-extension.enabled-orgs": []})
-    @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
+    @patch("sentry.seer.endpoints.seer_rpc.get_seer_org_acknowledgement")
     def test_get_organization_seer_consent_by_org_name_with_seer_acknowledgement_but_pr_review_disabled(
         self, mock_get_acknowledgement
     ):
@@ -283,7 +283,7 @@ class TestSeerRpcMethods(APITestCase):
         assert result == {"consent": False}
         mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
 
-    @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
+    @patch("sentry.seer.endpoints.seer_rpc.get_seer_org_acknowledgement")
     def test_get_organization_seer_consent_by_org_name_with_github_extension_but_pr_review_disabled(
         self, mock_get_acknowledgement
     ):
@@ -308,7 +308,7 @@ class TestSeerRpcMethods(APITestCase):
         mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
 
     @override_options({"github-extension.enabled-orgs": []})
-    @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
+    @patch("sentry.seer.endpoints.seer_rpc.get_seer_org_acknowledgement")
     def test_get_organization_seer_consent_by_org_name_no_seer_acknowledgement_with_pr_review_enabled(
         self, mock_get_acknowledgement
     ):
@@ -332,7 +332,7 @@ class TestSeerRpcMethods(APITestCase):
         mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
 
     @override_options({"github-extension.enabled-orgs": []})
-    @patch("sentry.api.endpoints.seer_rpc.get_seer_org_acknowledgement")
+    @patch("sentry.seer.endpoints.seer_rpc.get_seer_org_acknowledgement")
     def test_get_organization_seer_consent_by_org_name_multiple_orgs_pr_review_mixed(
         self, mock_get_acknowledgement
     ):
