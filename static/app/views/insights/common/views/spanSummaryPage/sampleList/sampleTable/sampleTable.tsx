@@ -11,7 +11,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {SamplesTableColumnHeader} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
 import {SpanSamplesTable} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
-import {useSpanMetrics, useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {
   NonDefaultSpanSampleFields,
   SpanSample,
@@ -22,7 +22,7 @@ import type {
   SpanMetricsQueryFilters,
   SubregionCode,
 } from 'sentry/views/insights/types';
-import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
@@ -79,7 +79,7 @@ function SampleTable({
     filters[SpanMetricsField.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
   }
 
-  const {data, isFetching: isFetchingSpanMetrics} = useSpanMetrics(
+  const {data, isFetching: isFetchingSpanMetrics} = useSpans(
     {
       search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
       fields: [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
@@ -119,7 +119,7 @@ function SampleTable({
 
   const isTransactionsEnabled = Boolean(transactionIds.length);
 
-  const search = `${SpanIndexedField.TRANSACTION_SPAN_ID}:[${transactionIds.join(',')}] is_transaction:true`;
+  const search = `${SpanFields.TRANSACTION_SPAN_ID}:[${transactionIds.join(',')}] is_transaction:true`;
 
   const {
     data: transactions,

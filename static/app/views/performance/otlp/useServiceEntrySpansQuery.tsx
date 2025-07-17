@@ -4,7 +4,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {type EAPSpanProperty, SpanIndexedField} from 'sentry/views/insights/types';
+import {type EAPSpanProperty, SpanFields} from 'sentry/views/insights/types';
 import {SERVICE_ENTRY_SPANS_CURSOR_NAME} from 'sentry/views/performance/transactionSummary/transactionOverview/content';
 import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -43,9 +43,7 @@ export function useServiceEntrySpansQuery({
   limit = DEFAULT_LIMIT,
 }: Options) {
   const location = useLocation();
-  const spanCategoryUrlParam = decodeScalar(
-    location.query?.[SpanIndexedField.SPAN_CATEGORY]
-  );
+  const spanCategoryUrlParam = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
   const selectedOption = decodeScalar(location.query?.showTransactions);
 
   const isSingleQueryEnabled =
@@ -163,9 +161,7 @@ function useMultipleQueries(options: UseMultipleQueriesOptions) {
   const cursor = decodeScalar(location.query?.[SERVICE_ENTRY_SPANS_CURSOR_NAME]);
   const selectedOption = decodeScalar(location.query?.showTransactions);
   const {selection} = usePageFilters();
-  const spanCategoryUrlParam = decodeScalar(
-    location.query?.[SpanIndexedField.SPAN_CATEGORY]
-  );
+  const spanCategoryUrlParam = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
 
   const categorizedSpansQuery = new MutableSearch(
     `transaction:${transactionName} span.category:${spanCategoryUrlParam}`

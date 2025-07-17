@@ -11,6 +11,7 @@ from sentry.snuba import (
     metrics_performance,
     ourlogs,
     profiles,
+    spans_indexed,
     spans_metrics,
     spans_rpc,
     transactions,
@@ -33,8 +34,15 @@ DATASET_OPTIONS = {
     "issuePlatform": issue_platform,
     "profileFunctions": functions,
     "spans": spans_rpc,
+    "spansIndexed": spans_indexed,
     "spansMetrics": spans_metrics,
     "transactions": transactions,
+}
+RPC_DATASETS = {
+    spans_rpc,
+    ourlogs,
+    uptime_results,
+    uptime_checks,
 }
 DATASET_LABELS = {value: key for key, value in DATASET_OPTIONS.items()}
 

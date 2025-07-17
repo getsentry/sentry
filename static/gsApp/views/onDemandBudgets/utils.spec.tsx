@@ -8,12 +8,16 @@ import {
 import {DataCategory} from 'sentry/types/core';
 
 import {OnDemandBudgetMode, type OnDemandBudgets} from 'getsentry/types';
+import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {
   exceedsInvoicedBudgetLimit,
   getOnDemandBudget,
   getTotalBudget,
   parseOnDemandBudgetsFromSubscription,
+  trackOnDemandBudgetAnalytics,
 } from 'getsentry/views/onDemandBudgets/utils';
+
+jest.mock('getsentry/utils/trackGetsentryAnalytics');
 
 describe('parseOnDemandBudgetsFromSubscription', function () {
   it('returns per-category budget for non-AM plans - with on-demand budget', function () {
@@ -61,9 +65,6 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
       organization,
       plan: 'am1_business',
       planTier: 'am1',
-      reservedEvents: 200000,
-      reservedTransactions: 250000,
-      reservedAttachments: 25,
       onDemandMaxSpend: 123,
       onDemandBudgets: {
         enabled: true,
@@ -86,9 +87,6 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
       organization,
       plan: 'am1_business',
       planTier: 'am1',
-      reservedEvents: 200000,
-      reservedTransactions: 250000,
-      reservedAttachments: 25,
       onDemandMaxSpend: 0,
       onDemandBudgets: {
         enabled: false,
@@ -109,9 +107,6 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
       organization,
       plan: 'am1_business',
       planTier: 'am1',
-      reservedEvents: 200000,
-      reservedTransactions: 250000,
-      reservedAttachments: 25,
       onDemandMaxSpend: 0,
     });
 
@@ -126,9 +121,6 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
       organization,
       plan: 'am1_business',
       planTier: 'am1',
-      reservedEvents: 200000,
-      reservedTransactions: 250000,
-      reservedAttachments: 25,
     });
 
     ondemandBudgets = parseOnDemandBudgetsFromSubscription(subscription);
@@ -144,9 +136,6 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
       organization,
       plan: 'am1_business',
       planTier: 'am1',
-      reservedEvents: 200000,
-      reservedTransactions: 250000,
-      reservedAttachments: 25,
       onDemandMaxSpend: 100 + 200 + 300,
       onDemandBudgets: {
         enabled: true,
@@ -219,9 +208,6 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
       organization,
       plan: 'am1_business',
       planTier: 'am1',
-      reservedEvents: 200000,
-      reservedTransactions: 250000,
-      reservedAttachments: 25,
       onDemandMaxSpend: 123,
     });
     subscription.categories.errors!.reserved = 200000;
@@ -279,9 +265,6 @@ describe('getTotalBudget', function () {
       organization,
       plan: 'am1_business',
       planTier: 'am1',
-      reservedEvents: 200000,
-      reservedTransactions: 250000,
-      reservedAttachments: 25,
       onDemandMaxSpend: 100 + 200 + 300,
       onDemandBudgets: {
         enabled: true,
@@ -303,9 +286,6 @@ describe('getTotalBudget', function () {
       organization,
       plan: 'am1_business',
       planTier: 'am1',
-      reservedEvents: 200000,
-      reservedTransactions: 250000,
-      reservedAttachments: 25,
       onDemandMaxSpend: 0,
       onDemandBudgets: {
         enabled: false,
@@ -325,9 +305,6 @@ describe('getTotalBudget', function () {
       organization,
       plan: 'am1_business',
       planTier: 'am1',
-      reservedEvents: 200000,
-      reservedTransactions: 250000,
-      reservedAttachments: 25,
       onDemandMaxSpend: 0,
     });
 
@@ -341,9 +318,6 @@ describe('getTotalBudget', function () {
       organization,
       plan: 'am1_business',
       planTier: 'am1',
-      reservedEvents: 200000,
-      reservedTransactions: 250000,
-      reservedAttachments: 25,
     });
 
     actualTotalBudget = getTotalBudget(
@@ -358,9 +332,6 @@ describe('getTotalBudget', function () {
       organization,
       plan: 'am1_business',
       planTier: 'am1',
-      reservedEvents: 200000,
-      reservedTransactions: 250000,
-      reservedAttachments: 25,
       onDemandMaxSpend: 100 + 200 + 300,
       onDemandBudgets: {
         enabled: true,
@@ -392,9 +363,6 @@ describe('getTotalBudget', function () {
       organization,
       plan: 'am1_business',
       planTier: 'am1',
-      reservedEvents: 200000,
-      reservedTransactions: 250000,
-      reservedAttachments: 25,
       onDemandMaxSpend: 123,
     });
 
@@ -582,5 +550,56 @@ describe('getOnDemandBudget', function () {
     };
 
     expect(getOnDemandBudget(budget, DataCategory.LOG_BYTE)).toBe(1000);
+  });
+});
+
+describe('trackOnDemandBudgetAnalytics', function () {
+  it('tracks all budget categories in analytics when budget changes', function () {
+    const organization = OrganizationFixture();
+
+    const previousBudget: OnDemandBudgets = {
+      budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+      errorsBudget: 100,
+      transactionsBudget: 200,
+      attachmentsBudget: 300,
+      replaysBudget: 0,
+      budgets: {
+        errors: 100,
+        transactions: 200,
+        attachments: 300,
+        logBytes: 400,
+      },
+    };
+
+    const newBudget: OnDemandBudgets = {
+      budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+      errorsBudget: 150,
+      transactionsBudget: 250,
+      attachmentsBudget: 350,
+      replaysBudget: 0,
+      budgets: {
+        errors: 150,
+        transactions: 250,
+        attachments: 350,
+        logBytes: 500,
+      },
+    };
+
+    trackOnDemandBudgetAnalytics(organization, previousBudget, newBudget);
+
+    expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
+      'ondemand_budget_modal.ondemand_budget.update',
+      expect.objectContaining({
+        organization,
+        error_budget: 150,
+        transaction_budget: 250,
+        attachment_budget: 350,
+        log_byte_budget: 500,
+        previous_error_budget: 100,
+        previous_transaction_budget: 200,
+        previous_attachment_budget: 300,
+        previous_log_byte_budget: 400,
+      })
+    );
   });
 });

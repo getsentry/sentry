@@ -19,7 +19,7 @@ from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.lib.utils import FeedbackCreationSource
-from sentry.feedback.usecases.create_feedback import get_feedback_title
+from sentry.feedback.usecases.ingest.create_feedback import get_feedback_title
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.commit_context import CommitInfo, FileBlameInfo
 from sentry.issues.auto_source_code_config.utils.platform import get_supported_platforms
@@ -602,6 +602,7 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
         assert not mock_process_service_hook.delay.mock_calls
 
     @with_feature("organizations:workflow-engine-single-process-workflows")
+    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     @patch("sentry.rules.processing.processor.RuleProcessor")
     @patch("sentry.tasks.post_process.process_workflow_engine")
     def test_workflow_engine_single_processing(self, mock_process_workflow_engine, mock_processor):
@@ -2050,7 +2051,7 @@ class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
 
         assert UserReport.objects.get(event_id=event_id).environment_id == environment.id
 
-    @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
+    @patch("sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka")
     def test_user_report_shims_to_feedback(self, mock_produce_occurrence_to_kafka):
         project = self.create_project()
         environment = Environment.objects.create(
@@ -2104,7 +2105,7 @@ class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
             mock_event_data["contexts"]["feedback"]["message"]
         )
 
-    @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
+    @patch("sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka")
     def test_user_reports_no_shim_if_group_exists_on_report(self, mock_produce_occurrence_to_kafka):
         project = self.create_project()
         environment = Environment.objects.create(
@@ -2671,7 +2672,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     def test_kick_off_seer_automation_skips_with_existing_fixability_score(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
-        from sentry.seer.issue_summary import get_issue_summary_cache_key
+        from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
 
         self.project.update_option("sentry:seer_scanner_automation", True)
         event = self.create_event(
@@ -2697,7 +2698,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
 
         mock_start_seer_automation.assert_not_called()
 
-    @patch("sentry.autofix.utils.is_seer_scanner_rate_limited")
+    @patch("sentry.seer.autofix.utils.is_seer_scanner_rate_limited")
     @patch("sentry.quotas.backend.has_available_reserved_budget")
     @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement")
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
@@ -2804,7 +2805,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
         """Test that seer automation is skipped when another task is already processing the same issue"""
-        from sentry.seer.issue_summary import get_issue_summary_lock_key
+        from sentry.seer.autofix.issue_summary import get_issue_summary_lock_key
         from sentry.tasks.post_process import locks
 
         self.project.update_option("sentry:seer_scanner_automation", True)
