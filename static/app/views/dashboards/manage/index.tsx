@@ -476,7 +476,7 @@ function ManageDashboards() {
                     </Layout.Title>
                   </Layout.HeaderContent>
                   <Layout.HeaderActions>
-                    <ButtonBar gap={1.5}>
+                    <ButtonBar gap="lg">
                       <TemplateSwitch>
                         {t('Show Templates')}
                         <Switch

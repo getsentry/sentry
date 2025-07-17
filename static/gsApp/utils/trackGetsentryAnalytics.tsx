@@ -28,8 +28,10 @@ type OnDemandBudgetStrategy = 'per_category' | 'shared';
 type OnDemandBudgetUpdate = {
   attachment_budget: number;
   error_budget: number;
+  log_byte_budget: number;
   previous_attachment_budget: number;
   previous_error_budget: number;
+  previous_log_byte_budget: number;
   previous_strategy: OnDemandBudgetStrategy;
   previous_total_budget: number;
   previous_transaction_budget: number;
@@ -104,9 +106,11 @@ type GetsentryEventParameters = {
     // TODO(data categories): BIL-966
     attachments?: number;
     errors?: number;
+    logBytes?: number;
     monitorSeats?: number;
     previous_attachments?: number;
     previous_errors?: number;
+    previous_logBytes?: number;
     previous_monitorSeats?: number;
     previous_plan?: string;
     previous_profileDuration?: number;

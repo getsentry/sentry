@@ -48,15 +48,13 @@ export interface SnubaQueryDataSource extends BaseDataSource {
   type: 'snuba_query_subscription';
 }
 
-interface UptimeSubscriptionDataSource extends BaseDataSource {
+export interface UptimeSubscriptionDataSource extends BaseDataSource {
   /**
    * See UptimeSubscriptionSerializer
    */
   queryObj: {
     body: string | null;
     headers: Array<[string, string]>;
-    hostProviderId: string;
-    hostProviderName: string;
     intervalSeconds: number;
     method: string;
     timeoutMs: number;
@@ -127,13 +125,13 @@ type BaseDetector = Readonly<{
 export interface MetricDetector extends BaseDetector {
   readonly conditionGroup: DataConditionGroup | null;
   readonly config: MetricDetectorConfig;
-  readonly dataSources: SnubaQueryDataSource[];
+  readonly dataSources: [SnubaQueryDataSource];
   readonly type: 'metric_issue';
 }
 
 export interface UptimeDetector extends BaseDetector {
   readonly config: UptimeDetectorConfig;
-  readonly dataSources: UptimeSubscriptionDataSource[];
+  readonly dataSources: [UptimeSubscriptionDataSource];
   readonly type: 'uptime_domain_failure';
 }
 
@@ -176,6 +174,7 @@ export interface BaseDetectorUpdatePayload {
   name: string;
   owner: Detector['owner'];
   projectId: Detector['projectId'];
+  workflowIds: string[];
 }
 
 export interface UptimeDetectorUpdatePayload extends BaseDetectorUpdatePayload {

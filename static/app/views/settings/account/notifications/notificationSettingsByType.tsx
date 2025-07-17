@@ -339,7 +339,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
 
   const removeNotificationMutation = useMutation({
     mutationFn: (id: string) =>
-      fetchMutation(['DELETE', `/users/me/notification-options/${id}/`]),
+      fetchMutation({method: 'DELETE', url: `/users/me/notification-options/${id}/`}),
     onSuccess: (_, id) => {
       setApiQueryData<NotificationOptionsObject[]>(
         queryClient,
@@ -355,12 +355,12 @@ export function NotificationSettingsByType({notificationType}: Props) {
 
   const addNotificationMutation = useMutation({
     mutationFn: (data: Omit<NotificationOptionsObject, 'id'>) =>
-      fetchMutation<NotificationOptionsObject>([
-        'PUT',
-        '/users/me/notification-options/',
-        {},
+      fetchMutation<NotificationOptionsObject>({
+        method: 'PUT',
+        url: '/users/me/notification-options/',
+        options: {},
         data,
-      ]),
+      }),
     onSuccess: notificationOption => {
       setApiQueryData<NotificationOptionsObject[]>(
         queryClient,
@@ -375,12 +375,12 @@ export function NotificationSettingsByType({notificationType}: Props) {
 
   const deleteNotificationMutation = useMutation({
     mutationFn: (data: NotificationOptionsObject) =>
-      fetchMutation<NotificationOptionsObject>([
-        'PUT',
-        '/users/me/notification-options/',
-        {},
+      fetchMutation<NotificationOptionsObject>({
+        method: 'PUT',
+        url: '/users/me/notification-options/',
+        options: {},
         data,
-      ]),
+      }),
     onSuccess: notificationOption => {
       // Replace the item in state
       setApiQueryData<NotificationOptionsObject[]>(

@@ -161,7 +161,7 @@ def _process_suspect_commits(
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=issues_tasks,
-        processing_deadline_duration=60,
+        processing_deadline_duration=90,
         retry=Retry(
             times=5,
             delay=5,

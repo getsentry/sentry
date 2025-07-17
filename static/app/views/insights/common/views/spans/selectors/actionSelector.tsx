@@ -8,7 +8,7 @@ import {EMPTY_OPTION_VALUE, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {buildEventViewQuery} from 'sentry/views/insights/common/utils/buildEventViewQuery';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {EmptyContainer} from 'sentry/views/insights/common/views/spans/selectors/emptyOption';
@@ -45,7 +45,7 @@ export function ActionSelector({value = '', moduleName, spanCategory, filters}: 
 
   const useHTTPActions = moduleName === ModuleName.HTTP;
 
-  const {data: actions} = useSpanMetrics(
+  const {data: actions} = useSpans(
     {
       search,
       fields: [SPAN_ACTION, 'count()'],
@@ -131,5 +131,6 @@ const LABEL_FOR_MODULE_NAME: Record<ModuleName, ReactNode> = {
   'screen-rendering': t('Action'),
   ai: 'Action',
   agents: t('Action'),
+  mcp: t('Action'),
   sessions: t('Action'),
 };

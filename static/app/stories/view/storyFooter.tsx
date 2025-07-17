@@ -3,29 +3,58 @@ import styled from '@emotion/styled';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {IconArrow} from 'sentry/icons';
-import {useStory} from 'sentry/stories/view/useStory';
 import {space} from 'sentry/styles/space';
+
+import {useStoryBookFilesByCategory} from './storySidebar';
+import type {StoryTreeNode} from './storyTree';
+import {type StoryDescriptor} from './useStoriesLoader';
+import {useStory} from './useStory';
 
 export function StoryFooter() {
   const {story} = useStory();
-  if (!story.filename.endsWith('.mdx')) return null;
-  const {prev, next} = story.exports.frontmatter ?? {};
+  const stories = useStoryBookFilesByCategory();
+  const pagination = findPreviousAndNextStory(story, stories);
+
   return (
     <Flex align="center" justify="space-between" gap={space(2)}>
-      {prev && (
-        <Card to={prev.link} icon={<IconArrow direction="left" />}>
+      {pagination?.prev && (
+        <Card to={pagination.prev.location} icon={<IconArrow direction="left" />}>
           <CardLabel>Previous</CardLabel>
-          <CardTitle>{prev.label}</CardTitle>
+          <CardTitle>{pagination.prev.label}</CardTitle>
         </Card>
       )}
-      {next && (
-        <Card data-flip to={next.link} icon={<IconArrow direction="right" />}>
+      {pagination?.next && (
+        <Card
+          data-flip
+          to={pagination.next.location}
+          icon={<IconArrow direction="right" />}
+        >
           <CardLabel>Next</CardLabel>
-          <CardTitle>{next.label}</CardTitle>
+          <CardTitle>{pagination.next.label}</CardTitle>
         </Card>
       )}
     </Flex>
   );
+}
+
+function findPreviousAndNextStory(
+  story: StoryDescriptor,
+  categories: ReturnType<typeof useStoryBookFilesByCategory>
+): {
+  next?: StoryTreeNode;
+  prev?: StoryTreeNode;
+} | null {
+  const stories = Object.values(categories).flat();
+  const currentIndex = stories.findIndex(s => s.filesystemPath === story.filename);
+
+  if (currentIndex === -1) {
+    return null;
+  }
+
+  return {
+    prev: stories[currentIndex - 1] ?? undefined,
+    next: stories[currentIndex + 1] ?? undefined,
+  };
 }
 
 const Card = styled(LinkButton)`
