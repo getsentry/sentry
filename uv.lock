@@ -837,9 +837,18 @@ wheels = [
 
 [[package]]
 name = "google-crc32c"
-version = "1.6.0"
+version = "1.7.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/67/72/c3298da1a3773102359c5a78f20dae8925f5ea876e37354415f68594a6fb/google_crc32c-1.6.0.tar.gz", hash = "sha256:6eceb6ad197656a1ff49ebfbbfa870678c75be4344feb35ac1edf694309413dc", size = 14472, upload-time = "2024-09-03T11:44:35.585Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fd/c6/bd09366753b49353895ed73bad74574d9086b26b53bb5b9213962009719a/google_crc32c-1.7.0.tar.gz", hash = "sha256:c8c15a04b290c7556f277acc55ad98503a8bc0893ea6860fd5b5d210f3f558ce", size = 14546, upload-time = "2025-03-17T22:15:33.452Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/91/aa/2a7344796fb684c926d0002196e407453509e677b9eab8d562a5702e5f83/google_crc32c-1.7.0-cp313-cp313-macosx_12_0_arm64.whl", hash = "sha256:76bb19d182b999f9c9d580b1d7ab6e9334ab23dd669bf91f501812103408c85b", size = 30306, upload-time = "2025-03-17T22:11:42.727Z" },
+    { url = "https://files.pythonhosted.org/packages/24/8a/e2d52d4111d3ef48e0a8b2324e80b600f6c5339dae9827744b94325a0b6a/google_crc32c-1.7.0-cp313-cp313-macosx_12_0_x86_64.whl", hash = "sha256:6a40522958040051c755a173eb98c05ad4d64a6dd898888c3e5ccca2d1cbdcdc", size = 30149, upload-time = "2025-03-17T22:37:26.409Z" },
+    { url = "https://files.pythonhosted.org/packages/da/60/8cd1605391da56c55db67ef64660e72b89787755a271ebe04f9418320b19/google_crc32c-1.7.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f714fe5cdf5007d7064c57cf7471a99e0cbafda24ddfa829117fc3baafa424f7", size = 32972, upload-time = "2025-03-17T22:26:44.163Z" },
+    { url = "https://files.pythonhosted.org/packages/3d/65/065ffe1bb324709e7704205261b429588ed17bbde8b7940eb12b140a6082/google_crc32c-1.7.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f04e58dbe1bf0c9398e603a9be5aaa09e0ba7eb022a3293195d8749459a01069", size = 32616, upload-time = "2025-03-17T22:26:45.382Z" },
+    { url = "https://files.pythonhosted.org/packages/16/b8/95e6a189f5764abd643e3df5ab06e291d379f26ff77ea97bbcb12ac9207b/google_crc32c-1.7.0-cp313-cp313-win_amd64.whl", hash = "sha256:e545b51ddf97f604d30114f7c23eecaf4c06cd6c023ff1ae0b80dcd99af32833", size = 33496, upload-time = "2025-03-24T20:30:42.201Z" },
+    { url = "https://files.pythonhosted.org/packages/1b/30/51b10f995be9bd09551d050117c571f9749297717fcc2e7946e242eb4830/google_crc32c-1.7.0-cp313-cp313t-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:364067b063664dd8d1fec75a3fe85edf05c46f688365269beccaf42ef5dfe889", size = 33080, upload-time = "2025-03-17T22:26:46.424Z" },
+    { url = "https://files.pythonhosted.org/packages/4d/ec/a7ca773559c7ab6919ac0255d84c74571c8cecf0e8891036705f6861c04d/google_crc32c-1.7.0-cp313-cp313t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e1b0d6044799f6ac51d1cc2decb997280a83c448b3bef517a54b57a3b71921c0", size = 32708, upload-time = "2025-03-17T22:26:47.643Z" },
+]
 
 [[package]]
 name = "google-resumable-media"
@@ -2511,7 +2520,7 @@ requires-dist = [
     { name = "google-cloud-pubsub", specifier = "==2.23.0" },
     { name = "google-cloud-spanner", specifier = "==3.49.0" },
     { name = "google-cloud-storage", specifier = "==2.18.0" },
-    { name = "google-crc32c", specifier = "==1.6.0" },
+    { name = "google-crc32c", specifier = "==1.7.0" },
     { name = "google-resumable-media", specifier = "==2.7.0" },
     { name = "googleapis-common-protos", specifier = "==1.63.2" },
     { name = "grpc-google-iam-v1", specifier = "==0.13.1" },
