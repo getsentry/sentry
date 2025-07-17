@@ -1,5 +1,6 @@
-import {lazy} from 'react';
+import {lazy, useMemo} from 'react';
 
+import {TrackingContextProvider} from 'sentry/components/core/trackingContext';
 import LazyLoad from 'sentry/components/lazyLoad';
 import {IconBusiness} from 'sentry/icons';
 import HookStore from 'sentry/stores/hookStore';
@@ -80,6 +81,7 @@ import {
 } from './components/profiling/alerts';
 import ReplayOnboardingAlert from './components/replayOnboardingAlert';
 import ReplaySettingsAlert from './components/replaySettingsAlert';
+import useButtonTracking from './hooks/useButtonTracking';
 import useGetMaxRetentionDays from './hooks/useGetMaxRetentionDays';
 import useRouteActivatedHook from './hooks/useRouteActivatedHook';
 
@@ -377,3 +379,14 @@ const registerHooks = () =>
   entries(GETSENTRY_HOOKS).forEach(entry => HookStore.add(...entry));
 
 export default registerHooks;
+
+export function SentryHooksProvider({children}: {children?: React.ReactNode}) {
+  const buttonTracking = useButtonTracking();
+  const trackingContextValue = useMemo(() => ({buttonTracking}), [buttonTracking]);
+
+  return (
+    <TrackingContextProvider value={trackingContextValue}>
+      {children}
+    </TrackingContextProvider>
+  );
+}

@@ -1,11 +1,9 @@
-import {Fragment, lazy, Suspense} from 'react';
+import {Fragment} from 'react';
 import memoize from 'lodash/memoize';
 
 import {EXPERIMENTAL_SPA, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {HookName} from 'sentry/types/hooks';
 import errorHandler from 'sentry/utils/errorHandler';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
@@ -44,7 +42,9 @@ import {makeLazyloadComponent as make} from './makeLazyloadComponent';
 
 const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
 
-function buildRoutes() {
+function buildRoutes(
+  SentryHooksProvider: React.ComponentType<React.PropsWithChildren> = Fragment
+) {
   // Read this to understand where to add new routes, how / why the routing
   // tree is structured the way it is, and how the lazy-loading /
   // code-splitting works for pages.
@@ -2571,7 +2571,15 @@ function buildRoutes() {
   );
 
   const appRoutes = (
-    <Route component={ProviderWrapper}>
+    <Route
+      component={({children}: {children: React.ReactNode}) => {
+        return (
+          <ProvideAriaRouter>
+            <SentryHooksProvider>{children}</SentryHooksProvider>
+          </ProvideAriaRouter>
+        );
+      }}
+    >
       {experimentalSpaRoutes}
       <Route path="/" component={errorHandler(App)}>
         {rootRoutes}
@@ -2584,22 +2592,6 @@ function buildRoutes() {
   );
 
   return appRoutes;
-}
-
-function ProviderWrapper({children}: {children: React.ReactNode}) {
-  const isSelfHosted = useLegacyStore(ConfigStore).isSelfHosted;
-
-  const SentryHooksProvider = isSelfHosted
-    ? Fragment
-    : lazy(() => import('getsentry/sentryHooksProvider'));
-
-  return (
-    <ProvideAriaRouter>
-      <Suspense fallback={null}>
-        <SentryHooksProvider>{children}</SentryHooksProvider>
-      </Suspense>
-    </ProvideAriaRouter>
-  );
 }
 
 // We load routes both when initializing the SDK (for routing integrations) and
