@@ -48,10 +48,10 @@ export default function PlayStationSettings({organization, project}: Props) {
     {id: number}
   >({
     mutationFn: ({id}) =>
-      fetchMutation([
-        'DELETE',
-        `/projects/${organization.slug}/${project.slug}/tempest-credentials/${id}/`,
-      ]),
+      fetchMutation({
+        method: 'DELETE',
+        url: `/projects/${organization.slug}/${project.slug}/tempest-credentials/${id}/`,
+      }),
     onSuccess: () => {
       addSuccessMessage(t('Removed the credentials.'));
       trackAnalytics('tempest.credentials.removed', {
