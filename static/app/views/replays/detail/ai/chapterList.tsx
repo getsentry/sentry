@@ -121,7 +121,7 @@ function ChapterRow({
       })}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onClick={() => setIsOpen(!isOpen)}
+      onToggle={e => setIsOpen(e.currentTarget.open)}
     >
       <Chapter>
         <ChapterIconWrapper>
