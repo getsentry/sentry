@@ -80,9 +80,19 @@ class DetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationType]
         self.detector = detector
         if detector.workflow_condition_group_id is not None:
             try:
-                group = DataConditionGroup.objects.get_from_cache(
-                    id=detector.workflow_condition_group_id
-                )
+                # Check if workflow_condition_group is already prefetched
+                if (
+                    hasattr(detector, "_prefetched_objects_cache")
+                    and "workflow_condition_group" in detector._prefetched_objects_cache
+                ):
+                    group = detector.workflow_condition_group
+                elif Detector.workflow_condition_group.is_cached(detector):
+                    group = detector.workflow_condition_group
+                else:
+                    group = DataConditionGroup.objects.get_from_cache(
+                        id=detector.workflow_condition_group_id
+                    )
+
                 self.condition_group: DataConditionGroup | None = group
             except DataConditionGroup.DoesNotExist:
                 logger.exception(
