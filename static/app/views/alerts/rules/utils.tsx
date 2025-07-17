@@ -225,8 +225,6 @@ export function isEapAlertType(alertType?: AlertType) {
     'trace_item_apdex',
     'trace_item_failure_rate',
     'trace_item_lcp',
-    'trace_item_fid',
-    'trace_item_cls',
     'trace_item_logs',
   ].includes(alertType);
 }
