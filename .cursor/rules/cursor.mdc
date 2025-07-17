@@ -1,0 +1,420 @@
+---
+alwaysApply: true
+---
+
+# Sentry Monorepo - Navigation & Overview
+
+## 🎯 Project Overview
+
+**Sentry** is the leading error tracking and performance monitoring platform that helps developers identify, diagnose, and fix issues in their applications. This monorepo contains the main Sentry application - a high-scale Django backend with React frontend that processes millions of events daily.
+
+### 🏗️ Repository Structure
+- **`src/sentry/`** - **MAIN DEVELOPMENT** - Django application with error tracking, issue management, and AI features
+- **`static/app/`** - React frontend application with TypeScript and Emotion styling
+- **`tests/`** - Comprehensive test suite for both backend and frontend
+- **`config/`** - Build configuration, TypeScript config, and development tools
+
+### 🔧 Technology Stack
+- **Backend:** Django 4.2+ with Django REST Framework, PostgreSQL, Redis, Celery
+- **Frontend:** React 18 with TypeScript, MobX, Emotion, Rspack
+- **AI Integration:** Seer AI for automated issue analysis and code fixes
+- **Monitoring:** Sentry (dogfooding), Prometheus, custom metrics
+- **Infrastructure:** High-availability systems handling millions of events daily
+
+## 📂 Documentation Structure
+
+### Core Architecture & Implementation
+- **[`architecture.mdc`](mdc:architecture.mdc)** - System design and Django/React architecture
+- **[`common-patterns.mdc`](mdc:common-patterns.mdc)** - Django and React patterns specific to Sentry
+- **[`coding-guidelines.mdc`](mdc:coding-guidelines.mdc)** - Django, React, and TypeScript standards
+- **[`monitoring.mdc`](mdc:monitoring.mdc)** - Sentry self-monitoring and observability patterns
+- **[`business-logic.mdc`](mdc:business-logic.mdc)** - Error tracking, issue management, and AI business rules
+
+### Feature Development Workflow
+- **[`feature-development.mdc`](mdc:feature-development.mdc)** - **CRITICAL:** PRFAQ → PRD → GTM → Implementation workflow
+- **[`project/features/`](mdc:.cursor/project/features)** - Feature templates and documentation
+  - **[`001-template/`](mdc:.cursor/project/features/001-template)** - Master templates (PRFAQ, PRD, GTM, IMPLEMENTATION)
+  - **[`002-sentry-ai-settings-redesign/`](mdc:.cursor/project/features/002-sentry-ai-settings-redesign)** - ✅ **ACTIVE:** AI Settings Redesign
+  - **[`00X-feature-name/`]** - Your next feature (copy from template)
+
+**Quick Start for New Features:**
+```bash
+cp -r .cursor/project/features/001-template .cursor/project/features/00X-feature-name
+```
+
+**Workflow:** PRFAQ (validate problem) → PRD (define requirements) → GTM (plan launch) → IMPLEMENTATION (build & deploy)
+
+### Project Documentation
+- **[`project/`](mdc:.cursor/project)** - Organized project documentation
+  - **[`project/domain/`](mdc:.cursor/project/domain)** - Domain-specific documentation
+  - **[`project/features/`](mdc:.cursor/project/features)** - Feature development with numbered folders
+
+### Meta Documentation
+- **[`guidelines.mdc`](mdc:guidelines.mdc)** - LLM persona and expertise for Sentry monorepo
+- **[`project-context.mdc`](mdc:project-context.mdc)** - Sentry-specific context and constraints
+
+## 🚀 Development Commands
+
+### Frontend Development (Fastest for UI Changes)
+```bash
+# Frontend-only development server (recommended for UI changes)
+pnpm dev-ui                  # Starts dev server at https://dev.getsentry.net:7999
+                            # Proxies API requests to production servers
+                            # Login with Sentry.io email/password (no SSO)
+
+# Enable HTTPS for development (one-time setup)
+pnpm dev-ui --https         # Generates local certificates
+```
+
+**Access:** `https://dev.getsentry.net:7999` (preferred over localhost for subdomain support)
+
+**Authentication:** Use your Sentry.io credentials (email/password only)
+
+**Cookie Sync:** Install browser extension to sync session cookies:
+- [Chrome Cookie Sync Extension](https://chrome.google.com/webstore/detail/cookie-sync/nhkmmjnpjfnknhpnpagblnmofkbjgmid)
+- [Firefox Cookie Sync Extension](https://addons.mozilla.org/en-US/firefox/addon/cookie-sync/)
+
+### Backend Development (Full Local Backend)
+```bash
+# Configure backend-only development (one-time setup)
+# Edit ~/.sentry/sentry.conf.py:
+# STATIC_URL = "https://sentry.io/_static/{version}"
+# STATIC_FRONTEND_APP_URL = "https://sentry.io/_static/dist/"
+
+# Start backend development server
+sentry run web              # Backend at localhost:9001 (loads JS from production)
+
+# Start additional services as needed
+sentry run worker           # Celery workers for background jobs
+sentry run cron             # Scheduled tasks
+sentry run consumer         # Kafka consumers for ingestion
+```
+
+**Access:** `http://localhost:9001` (loads production JavaScript)
+
+### Full Development Environment (Both Frontend & Backend)
+```bash
+# Traditional full development server
+sentry devserver            # Full stack development
+                           # Frontend rebuilds on changes (slower)
+```
+
+### Testing & Quality
+```bash
+# Run tests
+pytest tests/              # Backend tests
+pnpm test                  # Frontend tests
+pnpm test:watch           # Frontend tests in watch mode
+
+# Code quality
+pnpm lint                 # JavaScript/TypeScript linting
+pnpm lint:fix            # Auto-fix linting issues
+black src/               # Python code formatting
+flake8 src/              # Python linting
+```
+
+### Database & Services
+```bash
+# Start required services
+sentry devservices up      # Start Kafka, Redis, PostgreSQL, etc.
+
+# Database operations
+sentry upgrade            # Run database migrations
+sentry createuser         # Create superuser for local development
+sentry repair             # Fix database inconsistencies
+```
+
+### Build & Production
+```bash
+# Build frontend assets
+pnpm build                # Production build
+pnpm build:dev           # Development build
+
+# Python packaging
+pip install -e .          # Install Sentry in development mode
+```
+
+### AI Features (Seer)
+```bash
+# Start Seer development server
+make seer-dev
+
+# Test AI integrations
+make test-ai
+```
+
+### Monitoring & Debugging
+```bash
+# Check system health
+make check-health
+
+# View logs
+make logs
+
+# Performance analysis
+make analyze-performance
+```
+
+## 🌟 Essential Environment Variables
+
+### Required for Development
+```env
+# Database
+DATABASE_URL=postgres://user:password@localhost/sentry
+
+# Cache and Queue
+REDIS_URL=redis://localhost:6379
+
+# Sentry (dogfooding)
+SENTRY_DSN=your_sentry_dsn
+SENTRY_ENVIRONMENT=development
+
+# AI Features
+SEER_API_URL=http://localhost:9091
+SEER_API_TOKEN=your_seer_token
+
+# External Integrations
+GITHUB_CLIENT_ID=your_github_client_id
+GITHUB_CLIENT_SECRET=your_github_client_secret
+```
+
+## 🎯 Development Priorities
+
+### Critical Constraints
+1. **High Availability** - 99.9% uptime for millions of events daily
+2. **Data Integrity** - Error events must be accurately captured and stored
+3. **Performance** - Sub-second response times for critical paths
+4. **Security** - Protect sensitive application data and source code
+5. **Scalability** - Support growing organizations and event volumes
+
+### Current Focus Areas
+1. **AI Integration** - Seer AI for automated issue analysis and fixes
+2. **Performance** - Optimizing event processing and storage
+3. **User Experience** - Intuitive issue investigation and resolution
+4. **Platform Reliability** - Maintaining high availability and performance
+
+## 📋 Feature Development Workflow
+
+### Process Overview
+1. **PRFAQ** - Define problem and solution (template: `001-template/PRFAQ.md`)
+2. **PRD** - Detailed requirements and specifications (template: `001-template/PRD.md`)
+3. **Implementation** - Build feature following Django/React patterns
+4. **GTM** - Launch strategy and success measurement (template: `001-template/GTM.md`)
+
+### Creating New Features
+1. Copy `001-template/` to `00X-feature-name/`
+2. Fill out PRFAQ first to validate the concept
+3. Complete PRD with detailed requirements
+4. Implement following Sentry coding guidelines
+5. Execute GTM plan for launch
+
+### Feature Documentation Structure
+```
+.cursor/project/features/
+├── 001-template/                    # Templates for new features
+│   ├── PRFAQ.md                    # Problem definition and solution
+│   ├── PRD.md                      # Product requirements document
+│   ├── GTM.md                      # Go-to-market strategy
+│   └── IMPLEMENTATION.md           # Technical implementation guide
+├── 002-sentry-ai-settings-redesign/  # AI Settings Redesign
+│   ├── PRFAQ.md
+│   ├── PRD.md
+│   ├── GTM.md
+│   └── IMPLEMENTATION.md
+└── ...
+```
+
+## 🔧 Common Development Patterns
+
+### Django Backend
+```python
+# Model with proper indexes for high-volume data
+class Group(Model):
+    project = FlexibleForeignKey('sentry.Project')
+    status = models.PositiveIntegerField(default=0, db_index=True)
+    times_seen = models.PositiveIntegerField(default=1, db_index=True)
+
+    class Meta:
+        index_together = (('project', 'status'),)
+
+# API endpoint with proper permissions
+class GroupEndpoint(BaseEndpoint):
+    def get(self, request, group_id):
+        group = self.get_object(request, group_id)
+        return self.respond(serialize(group, request.user))
+```
+
+### React Frontend
+```typescript
+// Component with MobX state management
+const IssueList = observer(() => {
+  const {issueStore} = useStores();
+  const {issues, loading, error} = issueStore;
+
+  if (loading) return <LoadingIndicator />;
+  if (error) return <ErrorMessage error={error} />;
+
+  return (
+    <div>
+      {issues.map(issue => (
+        <IssueCard key={issue.id} issue={issue} />
+      ))}
+    </div>
+  );
+});
+```
+
+### Error Handling
+```python
+# Structured error logging with Sentry
+import sentry_sdk
+
+try:
+    process_event(event)
+except Exception as e:
+    with sentry_sdk.configure_scope() as scope:
+        scope.set_tag('component', 'event_processor')
+        scope.set_context('event_data', {'event_id': event.id})
+        sentry_sdk.capture_exception(e)
+```
+
+## 📊 Key Business Logic
+
+### Event Processing System
+- **Ingestion Pipeline** - Validate, normalize, and store events
+- **Rate Limiting** - Prevent abuse while maintaining performance
+- **Data Scrubbing** - Remove sensitive information automatically
+- **Issue Grouping** - Aggregate similar events into manageable issues
+
+### AI Integration (Seer)
+- **Automated Analysis** - AI-powered root cause analysis
+- **Code Fix Suggestions** - Automated code fixes with safety checks
+- **Issue Prioritization** - AI-driven issue priority scoring
+- **Anomaly Detection** - Identify unusual patterns and behaviors
+
+### Organization Management
+- **Multi-tenancy** - Secure isolation between organizations
+- **Access Control** - Role-based permissions and access management
+- **Subscription Management** - Usage-based billing and limits
+- **Team Collaboration** - Assignment, notifications, and workflows
+
+## 🎨 Design System
+
+### Component Library
+- **Base Components** - Consistent UI primitives
+- **Domain Components** - Error tracking specific components
+- **Emotion Styling** - CSS-in-JS with theme support
+- **Responsive Design** - Mobile-first approach
+
+### Performance Considerations
+- **Bundle Optimization** - Code splitting and lazy loading
+- **Image Optimization** - Proper image sizing and formats
+- **Caching Strategy** - Efficient data caching and invalidation
+- **Database Optimization** - Query optimization and indexing
+
+## 📈 Analytics & Monitoring
+
+### Self-Monitoring (Dogfooding)
+- **Error Tracking** - Using Sentry to monitor itself
+- **Performance Monitoring** - Transaction tracing and metrics
+- **User Analytics** - Feature usage and engagement tracking
+- **Business Metrics** - Organization health and growth indicators
+
+### Infrastructure Monitoring
+- **Prometheus** - System metrics and alerting
+- **Health Checks** - Automated system health monitoring
+- **Custom Metrics** - Domain-specific performance indicators
+- **Alert Rules** - Proactive issue detection and notification
+
+## 🔗 External References
+
+### Documentation
+- [Django Documentation](https://docs.djangoproject.com)
+- [React Documentation](https://react.dev)
+- [Sentry Documentation](https://docs.sentry.io)
+- [Seer AI Documentation](https://github.com/getsentry/seer)
+
+### Development Context
+- **High-Scale Architecture** - Millions of events processed daily
+- **Global Distribution** - Users worldwide with regional deployments
+- **Mission-Critical** - Platform reliability is paramount
+- **Developer Tools** - Focus on exceptional developer experience
+
+---
+
+> 💡 **Getting Started**: Read this document first, then dive into specific guides based on your task. For feature development, start with the templates in `project/features/001-template/`. For Sentry-specific patterns, refer to the domain-specific documentation.
+
+## ⚡ Quick Commands
+
+### Frontend Development (Fastest)
+```bash
+# Start frontend development server (recommended)
+pnpm dev-ui                  # Dev server at https://dev.getsentry.net:7999
+                            # Proxies API to production, login with Sentry.io
+
+# Feature development workflow
+cp -r .cursor/project/features/001-template .cursor/project/features/00X-feature-name
+```
+
+### Backend Development
+```bash
+# Start backend with production frontend
+sentry run web              # Backend at localhost:9001
+
+# Start required services
+sentry devservices up       # Kafka, Redis, PostgreSQL, etc.
+```
+
+### Full Stack (When Necessary)
+```bash
+# Only when making coordinated frontend + backend changes
+sentry devserver            # Full local development (slower)
+```
+
+### Testing
+```bash
+# Frontend tests
+pnpm test                   # All frontend tests
+pnpm test:watch            # Watch mode
+
+# Backend tests
+pytest tests/              # All backend tests
+pytest tests/sentry/api/   # API tests only
+```
+
+### Code Quality
+```bash
+# Frontend linting
+pnpm lint                  # ESLint and TypeScript
+pnpm lint:fix             # Auto-fix issues
+
+# Backend formatting
+black src/                # Python formatting
+flake8 src/              # Python linting
+```
+
+### Database & Services
+```bash
+# Database operations
+sentry upgrade            # Run migrations
+sentry createuser         # Create superuser
+
+# Service management
+sentry devservices up     # Start all services
+sentry devservices down   # Stop services
+```
+
+---
+
+## 🏗️ Sentry-Specific Expertise
+
+This monorepo requires deep understanding of:
+- **Error Tracking Systems** - Event ingestion, processing, and storage
+- **High-Scale Architecture** - Handling millions of events reliably
+- **AI Integration** - Seer AI for automated analysis and fixes
+- **Developer Experience** - Tools for debugging and investigation
+- **Security & Privacy** - Protecting sensitive application data
+- **Performance Optimization** - Sub-second response times at scale
+
+# Example: Venmo API retired for new businesses - research prevented implementation issues
+```

@@ -1,0 +1,1264 @@
+---
+alwaysApply: true
+---
+
+# Sentry Monorepo - Business Logic & Domain Rules
+
+## 🎯 Overview
+
+This document outlines the core business logic and domain rules that govern the Sentry error tracking and monitoring platform. These rules ensure data integrity, proper user experience, and correct system behavior across all features.
+
+## 📊 Event Processing Business Rules
+
+### Event Ingestion Rules
+```python
+# src/sentry/event_processing/rules.py
+class EventIngestionRules:
+    """Business rules for event ingestion and validation"""
+
+    MAX_EVENT_SIZE = 1024 * 1024  # 1MB
+    MAX_EVENTS_PER_MINUTE = 1000
+    MAX_STACKTRACE_FRAMES = 250
+
+    @staticmethod
+    def validate_event_size(event_data):
+        """Ensure event doesn't exceed size limits"""
+        if len(str(event_data)) > EventIngestionRules.MAX_EVENT_SIZE:
+            raise EventTooLarge("Event exceeds maximum size limit")
+
+    @staticmethod
+    def validate_rate_limit(project, client_ip):
+        """Enforce rate limiting per project and IP"""
+        current_rate = get_event_rate(project, client_ip)
+        if current_rate > EventIngestionRules.MAX_EVENTS_PER_MINUTE:
+            raise RateLimitExceeded("Event rate limit exceeded")
+
+    @staticmethod
+    def validate_required_fields(event_data):
+        """Ensure required fields are present"""
+        required_fields = ['event_id', 'timestamp', 'platform']
+        missing_fields = [field for field in required_fields if field not in event_data]
+        if missing_fields:
+            raise InvalidEventData(f"Missing required fields: {missing_fields}")
+```
+
+### Event Normalization Rules
+```python
+# src/sentry/event_processing/normalization.py
+class EventNormalizationRules:
+    """Rules for normalizing and standardizing event data"""
+
+    @staticmethod
+    def normalize_timestamp(timestamp):
+        """Convert timestamp to standard format"""
+        if isinstance(timestamp, str):
+            return dateutil.parser.parse(timestamp)
+        return timestamp
+
+    @staticmethod
+    def normalize_platform(platform):
+        """Standardize platform names"""
+        platform_mappings = {
+            'js': 'javascript',
+            'py': 'python',
+            'rb': 'ruby',
+        }
+        return platform_mappings.get(platform, platform)
+
+    @staticmethod
+    def sanitize_sensitive_data(event_data):
+        """Remove sensitive information from event data"""
+        sensitive_keys = ['password', 'token', 'secret', 'key', 'auth']
+
+        def scrub_dict(data):
+            if isinstance(data, dict):
+                return {
+                    k: '[Scrubbed]' if any(sensitive in k.lower() for sensitive in sensitive_keys)
+                    else scrub_dict(v)
+                    for k, v in data.items()
+                }
+            elif isinstance(data, list):
+                return [scrub_dict(item) for item in data]
+            return data
+
+        return scrub_dict(event_data)
+```
+
+## 🔍 Issue Management Business Rules
+
+### Issue Grouping Rules
+```python
+# src/sentry/grouping/rules.py
+class IssueGroupingRules:
+    """Rules for grouping similar events into issues"""
+
+    @staticmethod
+    def should_group_events(event1, event2):
+        """Determine if two events should be grouped together"""
+        # Same error type and message
+        if (event1.get('exception', {}).get('type') ==
+            event2.get('exception', {}).get('type')):
+            return True
+
+        # Same stack trace fingerprint
+        if event1.get('fingerprint') == event2.get('fingerprint'):
+            return True
+
+        # Similar stack traces (configurable threshold)
+        if calculate_stack_trace_similarity(event1, event2) > 0.8:
+            return True
+
+        return False
+
+    @staticmethod
+    def calculate_group_priority(events):
+        """Calculate priority score for issue group"""
+        factors = {
+            'frequency': len(events),
+            'affected_users': len(set(e.get('user', {}).get('id') for e in events)),
+            'recent_activity': sum(1 for e in events if is_recent(e)),
+            'severity': max(get_severity_score(e) for e in events),
+        }
+
+        return sum(factors.values()) / len(factors)
+```
+
+### Issue Status Management
+```python
+# src/sentry/issues/status.py
+class IssueStatusRules:
+    """Rules for managing issue status transitions"""
+
+    VALID_STATUS_TRANSITIONS = {
+        'unresolved': ['resolved', 'ignored'],
+        'resolved': ['unresolved', 'resolved'],  # Can change resolution
+        'ignored': ['unresolved'],
+    }
+
+    @staticmethod
+    def can_transition_status(current_status, new_status, user):
+        """Check if status transition is allowed"""
+        if new_status not in IssueStatusRules.VALID_STATUS_TRANSITIONS.get(current_status, []):
+            return False
+
+        # Only organization members can change status
+        if not user.is_organization_member():
+            return False
+
+        return True
+
+    @staticmethod
+    def auto_resolve_conditions(issue):
+        """Determine if issue should be auto-resolved"""
+        # No events in last 30 days
+        if not issue.events.filter(datetime__gte=timezone.now() - timedelta(days=30)).exists():
+            return True
+
+        # All events are from old releases
+        if issue.project.releases.filter(date_released__gte=timezone.now() - timedelta(days=7)).exists():
+            recent_events = issue.events.filter(datetime__gte=timezone.now() - timedelta(days=7))
+            if not recent_events.exists():
+                return True
+
+        return False
+```
+
+## 🤖 AI Features Business Rules
+
+### Seer AI Integration Rules
+```python
+# src/sentry/ai/seer/rules.py
+class SeerAIRules:
+    """Business rules for Seer AI features"""
+
+    @staticmethod
+    def is_eligible_for_autofix(issue):
+        """Determine if issue is eligible for AI autofix"""
+        # Must have stack trace
+        if not issue.has_stack_trace():
+            return False
+
+        # Must be in supported language
+        supported_languages = ['python', 'javascript', 'java', 'go']
+        if issue.platform not in supported_languages:
+            return False
+
+        # Must have repository connected
+        if not issue.project.repository:
+            return False
+
+        # Must not be resolved
+        if issue.status == 'resolved':
+            return False
+
+        return True
+
+    @staticmethod
+    def should_trigger_autoscan(organization, project):
+        """Determine if autoscan should be triggered"""
+        # Check organization settings
+        if not organization.get_option('seer.autoscan_enabled', False):
+            return False
+
+        # Check project settings (can override org settings)
+        if project.get_option('seer.autoscan_enabled') is False:
+            return False
+
+        # Check rate limits
+        if get_autoscan_rate(organization) > organization.get_option('seer.autoscan_rate_limit', 100):
+            return False
+
+        return True
+
+    @staticmethod
+    def validate_autofix_permissions(user, issue):
+        """Validate user permissions for autofix actions"""
+        # Must be organization member
+        if not user.is_organization_member(issue.project.organization):
+            return False
+
+        # Must have project write access
+        if not user.has_project_access(issue.project, 'write'):
+            return False
+
+        # Check if user has repo write access
+        if not user.has_repository_access(issue.project.repository, 'write'):
+            return False
+
+        return True
+```
+
+### AI Safety Rules
+```python
+# src/sentry/ai/safety/rules.py
+class AISafetyRules:
+    """Safety rules for AI-generated content"""
+
+    BLOCKED_PATTERNS = [
+        r'rm\s+-rf\s+/',  # Dangerous file operations
+        r'DROP\s+TABLE',  # SQL injection
+        r'eval\s*\(',     # Code execution
+        r'exec\s*\(',     # Code execution
+    ]
+
+    @staticmethod
+    def validate_ai_suggestion(suggestion):
+        """Validate AI-generated code suggestions"""
+        for pattern in AISafetyRules.BLOCKED_PATTERNS:
+            if re.search(pattern, suggestion, re.IGNORECASE):
+                return False, f"Potentially dangerous pattern detected: {pattern}"
+
+        # Check for reasonable length
+        if len(suggestion) > 10000:
+            return False, "Suggestion too long"
+
+        return True, None
+
+    @staticmethod
+    def should_require_human_review(suggestion, confidence_score):
+        """Determine if AI suggestion requires human review"""
+        # Low confidence suggestions need review
+        if confidence_score < 0.7:
+            return True
+
+        # Complex changes need review
+        if suggestion.count('\n') > 50:
+            return True
+
+        # File operations need review
+        if any(keyword in suggestion.lower() for keyword in ['file', 'import', 'delete']):
+            return True
+
+        return False
+```
+
+## 🏢 Organization Management Rules
+
+### Organization Access Rules
+```python
+# src/sentry/organizations/rules.py
+class OrganizationAccessRules:
+    """Rules for organization access and permissions"""
+
+    @staticmethod
+    def can_access_organization(user, organization):
+        """Check if user can access organization"""
+        # Must be organization member
+        if not OrganizationMember.objects.filter(
+            organization=organization,
+            user=user
+        ).exists():
+            return False
+
+        # Organization must be active
+        if organization.status != 'active':
+            return False
+
+        return True
+
+    @staticmethod
+    def can_modify_organization_settings(user, organization):
+        """Check if user can modify organization settings"""
+        try:
+            member = OrganizationMember.objects.get(
+                organization=organization,
+                user=user
+            )
+            return member.role in ['owner', 'admin']
+        except OrganizationMember.DoesNotExist:
+            return False
+
+    @staticmethod
+    def validate_organization_limits(organization):
+        """Validate organization against subscription limits"""
+        subscription = organization.get_subscription()
+
+        # Check project limits
+        if organization.projects.count() > subscription.project_limit:
+            return False, "Project limit exceeded"
+
+        # Check event volume limits
+        monthly_events = organization.get_monthly_event_count()
+        if monthly_events > subscription.event_limit:
+            return False, "Event volume limit exceeded"
+
+        return True, None
+```
+
+### Project Management Rules
+```python
+# src/sentry/projects/rules.py
+class ProjectManagementRules:
+    """Rules for project management and configuration"""
+
+    @staticmethod
+    def can_create_project(user, organization):
+        """Check if user can create projects"""
+        # Must be organization member
+        if not user.is_organization_member(organization):
+            return False
+
+        # Check organization limits
+        valid, error = OrganizationAccessRules.validate_organization_limits(organization)
+        if not valid:
+            return False
+
+        return True
+
+    @staticmethod
+    def validate_project_settings(project, settings):
+        """Validate project setting changes"""
+        # Data scrubbing rules
+        if 'data_scrubbing' in settings:
+            if not isinstance(settings['data_scrubbing'], bool):
+                return False, "data_scrubbing must be boolean"
+
+        # Retention settings
+        if 'retention_days' in settings:
+            max_retention = project.organization.get_option('retention_days', 90)
+            if settings['retention_days'] > max_retention:
+                return False, f"Retention cannot exceed {max_retention} days"
+
+        return True, None
+```
+
+## 📈 Performance & Quota Rules
+
+### Resource Allocation Rules
+```python
+# src/sentry/quotas/rules.py
+class ResourceAllocationRules:
+    """Rules for resource allocation and limits"""
+
+    @staticmethod
+    def calculate_event_quota(organization):
+        """Calculate event quota for organization"""
+        base_quota = organization.get_subscription().event_limit
+
+        # Apply usage-based scaling
+        recent_usage = organization.get_recent_event_count()
+        if recent_usage > base_quota * 0.9:
+            # Soft limit: reduce processing priority
+            return base_quota, 'soft_limit'
+
+        if recent_usage > base_quota:
+            # Hard limit: reject events
+            return base_quota, 'hard_limit'
+
+        return base_quota, 'normal'
+
+    @staticmethod
+    def should_sample_events(project, event_type):
+        """Determine if events should be sampled"""
+        # High-volume projects get sampled
+        if project.get_daily_event_count() > 10000:
+            return True
+
+        # Performance events are sampled more aggressively
+        if event_type == 'transaction':
+            return True
+
+        return False
+```
+
+### Performance Optimization Rules
+```python
+# src/sentry/performance/rules.py
+class PerformanceOptimizationRules:
+    """Rules for performance optimization and caching"""
+
+    @staticmethod
+    def should_cache_query(query, results_count):
+        """Determine if query results should be cached"""
+        # Cache expensive queries
+        if query.execution_time > 1.0:
+            return True
+
+        # Cache queries with many results
+        if results_count > 100:
+            return True
+
+        # Cache frequently accessed data
+        if query.access_count > 10:
+            return True
+
+        return False
+
+    @staticmethod
+    def optimize_database_query(queryset):
+        """Apply query optimizations"""
+        # Use select_related for foreign keys
+        if hasattr(queryset.model, 'project'):
+            queryset = queryset.select_related('project')
+
+        # Use prefetch_related for many-to-many
+        if hasattr(queryset.model, 'tags'):
+            queryset = queryset.prefetch_related('tags')
+
+        return queryset
+```
+
+## 🔒 Security & Privacy Rules
+
+### Data Privacy Rules
+```python
+# src/sentry/privacy/rules.py
+class DataPrivacyRules:
+    """Rules for data privacy and PII handling"""
+
+    PII_PATTERNS = [
+        r'\b\d{3}-\d{2}-\d{4}\b',  # SSN
+        r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b',  # Credit card
+        r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',  # Email
+    ]
+
+    @staticmethod
+    def scrub_pii(data):
+        """Remove PII from data"""
+        if isinstance(data, str):
+            for pattern in DataPrivacyRules.PII_PATTERNS:
+                data = re.sub(pattern, '[Scrubbed]', data)
+        elif isinstance(data, dict):
+            return {k: DataPrivacyRules.scrub_pii(v) for k, v in data.items()}
+        elif isinstance(data, list):
+            return [DataPrivacyRules.scrub_pii(item) for item in data]
+
+        return data
+
+    @staticmethod
+    def validate_data_retention(organization, retention_days):
+        """Validate data retention settings"""
+        # Check legal requirements
+        if organization.country in ['EU', 'UK']:
+            if retention_days > 365:
+                return False, "GDPR limits retention to 365 days"
+
+        # Check subscription limits
+        max_retention = organization.get_subscription().max_retention_days
+        if retention_days > max_retention:
+            return False, f"Subscription limits retention to {max_retention} days"
+
+        return True, None
+```
+
+### Security Validation Rules
+```python
+# src/sentry/security/rules.py
+class SecurityValidationRules:
+    """Rules for security validation and access control"""
+
+    @staticmethod
+    def validate_api_request(request, required_scopes):
+        """Validate API request permissions"""
+        # Check authentication
+        if not request.user.is_authenticated:
+            return False, "Authentication required"
+
+        # Check API token scopes
+        if hasattr(request.auth, 'scopes'):
+            if not all(scope in request.auth.scopes for scope in required_scopes):
+                return False, "Insufficient permissions"
+
+        return True, None
+
+    @staticmethod
+    def validate_cors_origin(origin, allowed_origins):
+        """Validate CORS origin"""
+        if origin in allowed_origins:
+            return True
+
+        # Allow subdomain access
+        for allowed in allowed_origins:
+            if origin.endswith(f'.{allowed}'):
+                return True
+
+        return False
+```
+
+## 📊 Business Intelligence Rules
+
+### Analytics Rules
+```python
+# src/sentry/analytics/rules.py
+class AnalyticsRules:
+    """Rules for analytics and business intelligence"""
+
+    @staticmethod
+    def should_track_event(event_type, user, organization):
+        """Determine if event should be tracked for analytics"""
+        # Don't track internal users
+        if user.is_staff:
+            return False
+
+        # Track organization-level events
+        if event_type in ['issue_created', 'issue_resolved', 'project_created']:
+            return True
+
+        # Sample user events to reduce volume
+        if event_type.startswith('user_'):
+            return hash(user.id) % 10 == 0  # 10% sample
+
+        return False
+
+    @staticmethod
+    def calculate_health_score(organization):
+        """Calculate organization health score"""
+        factors = {
+            'event_volume': min(organization.get_monthly_event_count() / 10000, 1.0),
+            'issue_resolution_rate': organization.get_issue_resolution_rate(),
+            'active_users': min(organization.get_active_user_count() / 100, 1.0),
+            'feature_adoption': organization.get_feature_adoption_score(),
+        }
+
+        return sum(factors.values()) / len(factors)
+```
+
+## 🎯 Business Rules Validation
+
+### Rule Enforcement
+```python
+# src/sentry/rules/enforcement.py
+class RuleEnforcement:
+    """Enforce business rules across the system"""
+
+    @staticmethod
+    def validate_all_rules(operation, **kwargs):
+        """Validate all applicable business rules"""
+        validators = {
+            'create_event': [
+                EventIngestionRules.validate_event_size,
+                EventIngestionRules.validate_rate_limit,
+                EventIngestionRules.validate_required_fields,
+            ],
+            'create_issue': [
+                IssueGroupingRules.should_group_events,
+                SecurityValidationRules.validate_api_request,
+            ],
+            'ai_autofix': [
+                SeerAIRules.is_eligible_for_autofix,
+                SeerAIRules.validate_autofix_permissions,
+                AISafetyRules.validate_ai_suggestion,
+            ],
+        }
+
+        for validator in validators.get(operation, []):
+            try:
+                result = validator(**kwargs)
+                if not result:
+                    return False, f"Validation failed: {validator.__name__}"
+            except Exception as e:
+                return False, f"Validation error: {str(e)}"
+
+        return True, None
+```
+
+## 📋 Business Rules Checklist
+
+### For New Features
+- [ ] Define clear business rules and validation
+- [ ] Implement proper error handling and messaging
+- [ ] Add appropriate logging and monitoring
+- [ ] Consider security and privacy implications
+- [ ] Test edge cases and error conditions
+- [ ] Document business logic and decisions
+
+### For API Endpoints
+- [ ] Validate input parameters and data
+- [ ] Check user permissions and access rights
+- [ ] Enforce rate limits and quotas
+- [ ] Handle organization and project context
+- [ ] Return appropriate error messages
+- [ ] Log important business events
+
+### For Data Processing
+- [ ] Validate data integrity and format
+- [ ] Apply data scrubbing and privacy rules
+- [ ] Handle large volumes efficiently
+- [ ] Implement proper retry logic
+- [ ] Monitor processing metrics
+- [ ] Ensure data consistency
+
+---
+
+## 💡 Key Principles
+
+1. **Data Integrity**: Always validate and sanitize data
+2. **Security First**: Apply security rules consistently
+3. **Performance**: Consider scalability in all business rules
+4. **Privacy**: Respect user privacy and data protection laws
+5. **Consistency**: Apply rules uniformly across the system
+6. **Monitoring**: Track rule violations and system health
+7. **Flexibility**: Design rules to be configurable and extensible
+- **Metrics**: Track KPIs relevant to your business
+- **Integration**: Connect with external services used in your domain
+- **Rules Engine**: Implement complex business logic patterns
+# Sentry Monorepo - Business Logic & Domain Rules
+
+## 🎯 Overview
+
+This document outlines the core business logic and domain rules that govern the Sentry error tracking and monitoring platform. These rules ensure data integrity, proper user experience, and correct system behavior across all features.
+
+## 📊 Event Processing Business Rules
+
+### Event Ingestion Rules
+```python
+# src/sentry/event_processing/rules.py
+class EventIngestionRules:
+    """Business rules for event ingestion and validation"""
+
+    MAX_EVENT_SIZE = 1024 * 1024  # 1MB
+    MAX_EVENTS_PER_MINUTE = 1000
+    MAX_STACKTRACE_FRAMES = 250
+
+    @staticmethod
+    def validate_event_size(event_data):
+        """Ensure event doesn't exceed size limits"""
+        if len(str(event_data)) > EventIngestionRules.MAX_EVENT_SIZE:
+            raise EventTooLarge("Event exceeds maximum size limit")
+
+    @staticmethod
+    def validate_rate_limit(project, client_ip):
+        """Enforce rate limiting per project and IP"""
+        current_rate = get_event_rate(project, client_ip)
+        if current_rate > EventIngestionRules.MAX_EVENTS_PER_MINUTE:
+            raise RateLimitExceeded("Event rate limit exceeded")
+
+    @staticmethod
+    def validate_required_fields(event_data):
+        """Ensure required fields are present"""
+        required_fields = ['event_id', 'timestamp', 'platform']
+        missing_fields = [field for field in required_fields if field not in event_data]
+        if missing_fields:
+            raise InvalidEventData(f"Missing required fields: {missing_fields}")
+```
+
+### Event Normalization Rules
+```python
+# src/sentry/event_processing/normalization.py
+class EventNormalizationRules:
+    """Rules for normalizing and standardizing event data"""
+
+    @staticmethod
+    def normalize_timestamp(timestamp):
+        """Convert timestamp to standard format"""
+        if isinstance(timestamp, str):
+            return dateutil.parser.parse(timestamp)
+        return timestamp
+
+    @staticmethod
+    def normalize_platform(platform):
+        """Standardize platform names"""
+        platform_mappings = {
+            'js': 'javascript',
+            'py': 'python',
+            'rb': 'ruby',
+        }
+        return platform_mappings.get(platform, platform)
+
+    @staticmethod
+    def sanitize_sensitive_data(event_data):
+        """Remove sensitive information from event data"""
+        sensitive_keys = ['password', 'token', 'secret', 'key', 'auth']
+
+        def scrub_dict(data):
+            if isinstance(data, dict):
+                return {
+                    k: '[Scrubbed]' if any(sensitive in k.lower() for sensitive in sensitive_keys)
+                    else scrub_dict(v)
+                    for k, v in data.items()
+                }
+            elif isinstance(data, list):
+                return [scrub_dict(item) for item in data]
+            return data
+
+        return scrub_dict(event_data)
+```
+
+## 🔍 Issue Management Business Rules
+
+### Issue Grouping Rules
+```python
+# src/sentry/grouping/rules.py
+class IssueGroupingRules:
+    """Rules for grouping similar events into issues"""
+
+    @staticmethod
+    def should_group_events(event1, event2):
+        """Determine if two events should be grouped together"""
+        # Same error type and message
+        if (event1.get('exception', {}).get('type') ==
+            event2.get('exception', {}).get('type')):
+            return True
+
+        # Same stack trace fingerprint
+        if event1.get('fingerprint') == event2.get('fingerprint'):
+            return True
+
+        # Similar stack traces (configurable threshold)
+        if calculate_stack_trace_similarity(event1, event2) > 0.8:
+            return True
+
+        return False
+
+    @staticmethod
+    def calculate_group_priority(events):
+        """Calculate priority score for issue group"""
+        factors = {
+            'frequency': len(events),
+            'affected_users': len(set(e.get('user', {}).get('id') for e in events)),
+            'recent_activity': sum(1 for e in events if is_recent(e)),
+            'severity': max(get_severity_score(e) for e in events),
+        }
+
+        return sum(factors.values()) / len(factors)
+```
+
+### Issue Status Management
+```python
+# src/sentry/issues/status.py
+class IssueStatusRules:
+    """Rules for managing issue status transitions"""
+
+    VALID_STATUS_TRANSITIONS = {
+        'unresolved': ['resolved', 'ignored'],
+        'resolved': ['unresolved', 'resolved'],  # Can change resolution
+        'ignored': ['unresolved'],
+    }
+
+    @staticmethod
+    def can_transition_status(current_status, new_status, user):
+        """Check if status transition is allowed"""
+        if new_status not in IssueStatusRules.VALID_STATUS_TRANSITIONS.get(current_status, []):
+            return False
+
+        # Only organization members can change status
+        if not user.is_organization_member():
+            return False
+
+        return True
+
+    @staticmethod
+    def auto_resolve_conditions(issue):
+        """Determine if issue should be auto-resolved"""
+        # No events in last 30 days
+        if not issue.events.filter(datetime__gte=timezone.now() - timedelta(days=30)).exists():
+            return True
+
+        # All events are from old releases
+        if issue.project.releases.filter(date_released__gte=timezone.now() - timedelta(days=7)).exists():
+            recent_events = issue.events.filter(datetime__gte=timezone.now() - timedelta(days=7))
+            if not recent_events.exists():
+                return True
+
+        return False
+```
+
+## 🤖 AI Features Business Rules
+
+### Seer AI Integration Rules
+```python
+# src/sentry/ai/seer/rules.py
+class SeerAIRules:
+    """Business rules for Seer AI features"""
+
+    @staticmethod
+    def is_eligible_for_autofix(issue):
+        """Determine if issue is eligible for AI autofix"""
+        # Must have stack trace
+        if not issue.has_stack_trace():
+            return False
+
+        # Must be in supported language
+        supported_languages = ['python', 'javascript', 'java', 'go']
+        if issue.platform not in supported_languages:
+            return False
+
+        # Must have repository connected
+        if not issue.project.repository:
+            return False
+
+        # Must not be resolved
+        if issue.status == 'resolved':
+            return False
+
+        return True
+
+    @staticmethod
+    def should_trigger_autoscan(organization, project):
+        """Determine if autoscan should be triggered"""
+        # Check organization settings
+        if not organization.get_option('seer.autoscan_enabled', False):
+            return False
+
+        # Check project settings (can override org settings)
+        if project.get_option('seer.autoscan_enabled') is False:
+            return False
+
+        # Check rate limits
+        if get_autoscan_rate(organization) > organization.get_option('seer.autoscan_rate_limit', 100):
+            return False
+
+        return True
+
+    @staticmethod
+    def validate_autofix_permissions(user, issue):
+        """Validate user permissions for autofix actions"""
+        # Must be organization member
+        if not user.is_organization_member(issue.project.organization):
+            return False
+
+        # Must have project write access
+        if not user.has_project_access(issue.project, 'write'):
+            return False
+
+        # Check if user has repo write access
+        if not user.has_repository_access(issue.project.repository, 'write'):
+            return False
+
+        return True
+```
+
+### AI Safety Rules
+```python
+# src/sentry/ai/safety/rules.py
+class AISafetyRules:
+    """Safety rules for AI-generated content"""
+
+    BLOCKED_PATTERNS = [
+        r'rm\s+-rf\s+/',  # Dangerous file operations
+        r'DROP\s+TABLE',  # SQL injection
+        r'eval\s*\(',     # Code execution
+        r'exec\s*\(',     # Code execution
+    ]
+
+    @staticmethod
+    def validate_ai_suggestion(suggestion):
+        """Validate AI-generated code suggestions"""
+        for pattern in AISafetyRules.BLOCKED_PATTERNS:
+            if re.search(pattern, suggestion, re.IGNORECASE):
+                return False, f"Potentially dangerous pattern detected: {pattern}"
+
+        # Check for reasonable length
+        if len(suggestion) > 10000:
+            return False, "Suggestion too long"
+
+        return True, None
+
+    @staticmethod
+    def should_require_human_review(suggestion, confidence_score):
+        """Determine if AI suggestion requires human review"""
+        # Low confidence suggestions need review
+        if confidence_score < 0.7:
+            return True
+
+        # Complex changes need review
+        if suggestion.count('\n') > 50:
+            return True
+
+        # File operations need review
+        if any(keyword in suggestion.lower() for keyword in ['file', 'import', 'delete']):
+            return True
+
+        return False
+```
+
+## 🏢 Organization Management Rules
+
+### Organization Access Rules
+```python
+# src/sentry/organizations/rules.py
+class OrganizationAccessRules:
+    """Rules for organization access and permissions"""
+
+    @staticmethod
+    def can_access_organization(user, organization):
+        """Check if user can access organization"""
+        # Must be organization member
+        if not OrganizationMember.objects.filter(
+            organization=organization,
+            user=user
+        ).exists():
+            return False
+
+        # Organization must be active
+        if organization.status != 'active':
+            return False
+
+        return True
+
+    @staticmethod
+    def can_modify_organization_settings(user, organization):
+        """Check if user can modify organization settings"""
+        try:
+            member = OrganizationMember.objects.get(
+                organization=organization,
+                user=user
+            )
+            return member.role in ['owner', 'admin']
+        except OrganizationMember.DoesNotExist:
+            return False
+
+    @staticmethod
+    def validate_organization_limits(organization):
+        """Validate organization against subscription limits"""
+        subscription = organization.get_subscription()
+
+        # Check project limits
+        if organization.projects.count() > subscription.project_limit:
+            return False, "Project limit exceeded"
+
+        # Check event volume limits
+        monthly_events = organization.get_monthly_event_count()
+        if monthly_events > subscription.event_limit:
+            return False, "Event volume limit exceeded"
+
+        return True, None
+```
+
+### Project Management Rules
+```python
+# src/sentry/projects/rules.py
+class ProjectManagementRules:
+    """Rules for project management and configuration"""
+
+    @staticmethod
+    def can_create_project(user, organization):
+        """Check if user can create projects"""
+        # Must be organization member
+        if not user.is_organization_member(organization):
+            return False
+
+        # Check organization limits
+        valid, error = OrganizationAccessRules.validate_organization_limits(organization)
+        if not valid:
+            return False
+
+        return True
+
+    @staticmethod
+    def validate_project_settings(project, settings):
+        """Validate project setting changes"""
+        # Data scrubbing rules
+        if 'data_scrubbing' in settings:
+            if not isinstance(settings['data_scrubbing'], bool):
+                return False, "data_scrubbing must be boolean"
+
+        # Retention settings
+        if 'retention_days' in settings:
+            max_retention = project.organization.get_option('retention_days', 90)
+            if settings['retention_days'] > max_retention:
+                return False, f"Retention cannot exceed {max_retention} days"
+
+        return True, None
+```
+
+## 📈 Performance & Quota Rules
+
+### Resource Allocation Rules
+```python
+# src/sentry/quotas/rules.py
+class ResourceAllocationRules:
+    """Rules for resource allocation and limits"""
+
+    @staticmethod
+    def calculate_event_quota(organization):
+        """Calculate event quota for organization"""
+        base_quota = organization.get_subscription().event_limit
+
+        # Apply usage-based scaling
+        recent_usage = organization.get_recent_event_count()
+        if recent_usage > base_quota * 0.9:
+            # Soft limit: reduce processing priority
+            return base_quota, 'soft_limit'
+
+        if recent_usage > base_quota:
+            # Hard limit: reject events
+            return base_quota, 'hard_limit'
+
+        return base_quota, 'normal'
+
+    @staticmethod
+    def should_sample_events(project, event_type):
+        """Determine if events should be sampled"""
+        # High-volume projects get sampled
+        if project.get_daily_event_count() > 10000:
+            return True
+
+        # Performance events are sampled more aggressively
+        if event_type == 'transaction':
+            return True
+
+        return False
+```
+
+### Performance Optimization Rules
+```python
+# src/sentry/performance/rules.py
+class PerformanceOptimizationRules:
+    """Rules for performance optimization and caching"""
+
+    @staticmethod
+    def should_cache_query(query, results_count):
+        """Determine if query results should be cached"""
+        # Cache expensive queries
+        if query.execution_time > 1.0:
+            return True
+
+        # Cache queries with many results
+        if results_count > 100:
+            return True
+
+        # Cache frequently accessed data
+        if query.access_count > 10:
+            return True
+
+        return False
+
+    @staticmethod
+    def optimize_database_query(queryset):
+        """Apply query optimizations"""
+        # Use select_related for foreign keys
+        if hasattr(queryset.model, 'project'):
+            queryset = queryset.select_related('project')
+
+        # Use prefetch_related for many-to-many
+        if hasattr(queryset.model, 'tags'):
+            queryset = queryset.prefetch_related('tags')
+
+        return queryset
+```
+
+## 🔒 Security & Privacy Rules
+
+### Data Privacy Rules
+```python
+# src/sentry/privacy/rules.py
+class DataPrivacyRules:
+    """Rules for data privacy and PII handling"""
+
+    PII_PATTERNS = [
+        r'\b\d{3}-\d{2}-\d{4}\b',  # SSN
+        r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b',  # Credit card
+        r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',  # Email
+    ]
+
+    @staticmethod
+    def scrub_pii(data):
+        """Remove PII from data"""
+        if isinstance(data, str):
+            for pattern in DataPrivacyRules.PII_PATTERNS:
+                data = re.sub(pattern, '[Scrubbed]', data)
+        elif isinstance(data, dict):
+            return {k: DataPrivacyRules.scrub_pii(v) for k, v in data.items()}
+        elif isinstance(data, list):
+            return [DataPrivacyRules.scrub_pii(item) for item in data]
+
+        return data
+
+    @staticmethod
+    def validate_data_retention(organization, retention_days):
+        """Validate data retention settings"""
+        # Check legal requirements
+        if organization.country in ['EU', 'UK']:
+            if retention_days > 365:
+                return False, "GDPR limits retention to 365 days"
+
+        # Check subscription limits
+        max_retention = organization.get_subscription().max_retention_days
+        if retention_days > max_retention:
+            return False, f"Subscription limits retention to {max_retention} days"
+
+        return True, None
+```
+
+### Security Validation Rules
+```python
+# src/sentry/security/rules.py
+class SecurityValidationRules:
+    """Rules for security validation and access control"""
+
+    @staticmethod
+    def validate_api_request(request, required_scopes):
+        """Validate API request permissions"""
+        # Check authentication
+        if not request.user.is_authenticated:
+            return False, "Authentication required"
+
+        # Check API token scopes
+        if hasattr(request.auth, 'scopes'):
+            if not all(scope in request.auth.scopes for scope in required_scopes):
+                return False, "Insufficient permissions"
+
+        return True, None
+
+    @staticmethod
+    def validate_cors_origin(origin, allowed_origins):
+        """Validate CORS origin"""
+        if origin in allowed_origins:
+            return True
+
+        # Allow subdomain access
+        for allowed in allowed_origins:
+            if origin.endswith(f'.{allowed}'):
+                return True
+
+        return False
+```
+
+## 📊 Business Intelligence Rules
+
+### Analytics Rules
+```python
+# src/sentry/analytics/rules.py
+class AnalyticsRules:
+    """Rules for analytics and business intelligence"""
+
+    @staticmethod
+    def should_track_event(event_type, user, organization):
+        """Determine if event should be tracked for analytics"""
+        # Don't track internal users
+        if user.is_staff:
+            return False
+
+        # Track organization-level events
+        if event_type in ['issue_created', 'issue_resolved', 'project_created']:
+            return True
+
+        # Sample user events to reduce volume
+        if event_type.startswith('user_'):
+            return hash(user.id) % 10 == 0  # 10% sample
+
+        return False
+
+    @staticmethod
+    def calculate_health_score(organization):
+        """Calculate organization health score"""
+        factors = {
+            'event_volume': min(organization.get_monthly_event_count() / 10000, 1.0),
+            'issue_resolution_rate': organization.get_issue_resolution_rate(),
+            'active_users': min(organization.get_active_user_count() / 100, 1.0),
+            'feature_adoption': organization.get_feature_adoption_score(),
+        }
+
+        return sum(factors.values()) / len(factors)
+```
+
+## 🎯 Business Rules Validation
+
+### Rule Enforcement
+```python
+# src/sentry/rules/enforcement.py
+class RuleEnforcement:
+    """Enforce business rules across the system"""
+
+    @staticmethod
+    def validate_all_rules(operation, **kwargs):
+        """Validate all applicable business rules"""
+        validators = {
+            'create_event': [
+                EventIngestionRules.validate_event_size,
+                EventIngestionRules.validate_rate_limit,
+                EventIngestionRules.validate_required_fields,
+            ],
+            'create_issue': [
+                IssueGroupingRules.should_group_events,
+                SecurityValidationRules.validate_api_request,
+            ],
+            'ai_autofix': [
+                SeerAIRules.is_eligible_for_autofix,
+                SeerAIRules.validate_autofix_permissions,
+                AISafetyRules.validate_ai_suggestion,
+            ],
+        }
+
+        for validator in validators.get(operation, []):
+            try:
+                result = validator(**kwargs)
+                if not result:
+                    return False, f"Validation failed: {validator.__name__}"
+            except Exception as e:
+                return False, f"Validation error: {str(e)}"
+
+        return True, None
+```
+
+## 📋 Business Rules Checklist
+
+### For New Features
+- [ ] Define clear business rules and validation
+- [ ] Implement proper error handling and messaging
+- [ ] Add appropriate logging and monitoring
+- [ ] Consider security and privacy implications
+- [ ] Test edge cases and error conditions
+- [ ] Document business logic and decisions
+
+### For API Endpoints
+- [ ] Validate input parameters and data
+- [ ] Check user permissions and access rights
+- [ ] Enforce rate limits and quotas
+- [ ] Handle organization and project context
+- [ ] Return appropriate error messages
+- [ ] Log important business events
+
+### For Data Processing
+- [ ] Validate data integrity and format
+- [ ] Apply data scrubbing and privacy rules
+- [ ] Handle large volumes efficiently
+- [ ] Implement proper retry logic
+- [ ] Monitor processing metrics
+- [ ] Ensure data consistency
+
+---
+
+## 💡 Key Principles
+
+1. **Data Integrity**: Always validate and sanitize data
+2. **Security First**: Apply security rules consistently
+3. **Performance**: Consider scalability in all business rules
+4. **Privacy**: Respect user privacy and data protection laws
+5. **Consistency**: Apply rules uniformly across the system
+6. **Monitoring**: Track rule violations and system health
+7. **Flexibility**: Design rules to be configurable and extensible
+- **Metrics**: Track KPIs relevant to your business
+- **Integration**: Connect with external services used in your domain
+- **Rules Engine**: Implement complex business logic patterns
