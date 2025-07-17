@@ -19,7 +19,6 @@ import type {Project} from 'sentry/types/project';
 type Props = {
   organization: Organization;
   project: Project;
-  // TODO(ts): This should be a union type `IgnoredStatusDetails | ResolvedStatusDetails`
   statusDetails: ResolvedStatusDetails;
   activities?: GroupActivity[];
 };
