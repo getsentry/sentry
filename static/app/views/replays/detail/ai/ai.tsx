@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/core/alert';
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -66,7 +67,10 @@ export default function Ai() {
     ) : null;
   };
 
-  if (!organization.features.includes('replay-ai-summaries')) {
+  if (
+    !organization.features.includes('replay-ai-summaries') ||
+    !organization.features.includes('gen-ai-features')
+  ) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <EmptySummaryContainer>
@@ -79,27 +83,29 @@ export default function Ai() {
   }
 
   // If replay-ai-summaries is enabled but gen-ai-features is not, show CTA
-  if (!organization.features.includes('gen-ai-features')) {
+  //
+  // TODO(replay): Probably need to move this to getsentry?
+  if (!organization.genAIConsent) {
     return (
       <SummaryContainer>
         <CallToActionContainer>
           <Flex direction="column" gap={space(2)}>
             <div>
-              <strong>{t('Enable AI-Powered Features')}</strong>
+              <strong>{t('AI-Powered Replay Summaries')}</strong>
             </div>
             <div>
               {t(
-                'Get AI-powered insights and summaries for your replays. Enable generative AI features in your organization settings to unlock this functionality.'
+                'Enable generative AI features in your organization settings to see replay summaries.'
               )}
             </div>
             <div>
-              <Button
+              <LinkButton
                 size="sm"
                 priority="primary"
                 to="/settings/organization/#hideAiFeatures"
               >
-                {t('Enable in Settings')}
-              </Button>
+                {t('Enable in Organization Settings')}
+              </LinkButton>
             </div>
           </Flex>
         </CallToActionContainer>
