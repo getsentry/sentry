@@ -237,18 +237,18 @@ const ChapterWrapper = styled('details')`
     border-top: 1px solid ${p => p.theme.backgroundSecondary};
   }
 
-  [data-has-error='true'] {
-    &:hover {
-      border-top: 1px solid ${p => p.theme.red100};
-    }
-    color: ${p => p.theme.errorText};
-  }
-
   [data-has-feedback='true'] {
     &:hover {
       border-top: 1px solid ${p => p.theme.pink100};
     }
     color: ${p => p.theme.pink300};
+  }
+
+  [data-has-error='true'] {
+    &:hover {
+      border-top: 1px solid ${p => p.theme.red100};
+    }
+    color: ${p => p.theme.errorText};
   }
 `;
 
@@ -286,19 +286,19 @@ const Chapter = styled('summary')`
     display: none;
   }
 
-  [data-has-error='true'] & {
-    color: ${p => p.theme.red300};
-
-    &:hover {
-      background-color: ${p => p.theme.red100};
-    }
-  }
-
   [data-has-feedback='true'] & {
     color: ${p => p.theme.pink300};
 
     &:hover {
       background-color: ${p => p.theme.pink100};
+    }
+  }
+
+  [data-has-error='true'] & {
+    color: ${p => p.theme.red300};
+
+    &:hover {
+      background-color: ${p => p.theme.red100};
     }
   }
 `;
