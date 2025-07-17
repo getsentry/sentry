@@ -25,7 +25,7 @@ from sentry.integrations.source_code_management.metrics import CommitContextHalt
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import (
     CommentType,
@@ -245,7 +245,10 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         assert commit.message == "placeholder commit message"
 
         assert created_group_owner
-        assert created_group_owner.context == {"commitId": existing_commit.id}
+        assert created_group_owner.context == {
+            "commitId": existing_commit.id,
+            "suspectCommitStrategy": SuspectCommitStrategy.CURRENT.value,
+        }
 
         assert_any_analytics_event(
             mock_record,
@@ -310,7 +313,10 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             project=self.event.project,
             organization=self.event.project.organization,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
-        ).context == {"commitId": created_commit.id}
+        ).context == {
+            "commitId": created_commit.id,
+            "suspectCommitStrategy": SuspectCommitStrategy.CURRENT.value,
+        }
 
     @patch("sentry.analytics.record")
     @patch(
@@ -348,7 +354,10 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
 
         created_commit = Commit.objects.get(key="commit-id-recent")
 
-        assert created_group_owner.context == {"commitId": created_commit.id}
+        assert created_group_owner.context == {
+            "commitId": created_commit.id,
+            "suspectCommitStrategy": SuspectCommitStrategy.CURRENT.value,
+        }
 
     @patch("sentry.analytics.record")
     @patch(
@@ -1250,7 +1259,10 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             user_id=1,
             project_id=self.event.project_id,
             organization_id=self.project.organization_id,
-            context={"commitId": self.commit.id},
+            context={
+                "commitId": self.commit.id,
+                "suspectCommitStrategy": SuspectCommitStrategy.CURRENT.value,
+            },
             date_added=timezone.now(),
         )
 
@@ -1300,7 +1312,10 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             user_id=1,
             project_id=self.event.project_id,
             organization_id=self.project.organization_id,
-            context={"commitId": self.commit.id},
+            context={
+                "commitId": self.commit.id,
+                "suspectCommitStrategy": SuspectCommitStrategy.CURRENT.value,
+            },
             date_added=timezone.now(),
         )
 

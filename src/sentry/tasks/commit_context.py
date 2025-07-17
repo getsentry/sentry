@@ -25,7 +25,7 @@ from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_m
 from sentry.locks import locks
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.shared_integrations.exceptions import ApiError
@@ -191,8 +191,12 @@ def process_commit_context(
                 organization_id=project.organization_id,
                 context={"commitId": commit.id},
                 defaults={
-                    "date_added": django_timezone.now()
-                },  # Updates date of an existing owner, since we just matched them with this new event
+                    "date_added": django_timezone.now(),
+                    "context": {
+                        "commitId": commit.id,
+                        "suspectCommitStrategy": SuspectCommitStrategy.CURRENT.value,
+                    },
+                },
             )
 
             if installation and isinstance(installation, CommitContextIntegration):
