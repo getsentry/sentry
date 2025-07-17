@@ -24,6 +24,7 @@ from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from sentry.utils import json
 from tests.sentry.grouping import (
     GROUPING_INPUTS_DIR,
+    NO_MSG_PARAM_CONFIG,
     GroupingInput,
     dump_variant,
     get_snapshot_path,
@@ -38,7 +39,8 @@ dummy_project = Mock(id=11211231)
 @with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
 @pytest.mark.parametrize(
     "config_name",
-    set(CONFIGURATIONS.keys()) - {DEFAULT_GROUPING_CONFIG},
+    # The default config is tested below, and NO_MSG_PARAM_CONFIG is only meant for use in unit tests
+    set(CONFIGURATIONS.keys()) - {DEFAULT_GROUPING_CONFIG, NO_MSG_PARAM_CONFIG},
     ids=lambda config_name: config_name.replace("-", "_"),
 )
 def test_hash_basis_with_legacy_configs(
@@ -97,7 +99,8 @@ def test_hash_basis_with_current_default_config(
 @django_db_all
 @pytest.mark.parametrize(
     "config_name",
-    CONFIGURATIONS.keys(),
+    # NO_MSG_PARAM_CONFIG is only meant for use in unit tests
+    set(CONFIGURATIONS.keys()) - {NO_MSG_PARAM_CONFIG},
     ids=lambda config_name: config_name.replace("-", "_"),
 )
 def test_unknown_hash_basis(
