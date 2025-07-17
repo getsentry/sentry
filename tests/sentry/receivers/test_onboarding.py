@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from sentry import onboarding_tasks
 from sentry.analytics import record
+from sentry.analytics.events.first_event_sent import FirstEventSentEvent
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationonboardingtask import (
     OnboardingTask,
@@ -264,7 +265,9 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         # Ensure "first_event.sent" was called exactly once
         first_event_sent_calls = [
-            call for call in record_analytics.call_args_list if call[0][0] == "first_event.sent"
+            call
+            for call in record_analytics.call_args_list
+            if isinstance(call[0][0], FirstEventSentEvent)
         ]
         assert len(first_event_sent_calls) == 1
 
