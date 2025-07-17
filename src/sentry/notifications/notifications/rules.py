@@ -164,7 +164,7 @@ class AlertRuleNotification(ProjectNotification):
     def get_context(self) -> MutableMapping[str, Any]:
         environment = self.event.get_tag("environment")
         enhanced_privacy = self.organization.flags.enhanced_privacy
-        rule_details = get_rules(self.rules, self.organization, self.project)
+        rule_details = get_rules(self.rules, self.organization, self.project, self.group.type)
         sentry_query_params = self.get_sentry_query_params(ExternalProviders.EMAIL)
         for rule in rule_details:
             rule.url = rule.url + sentry_query_params
@@ -262,7 +262,11 @@ class AlertRuleNotification(ProjectNotification):
             if len(self.rules) > 0:
                 context["snooze_alert"] = True
                 context["snooze_alert_url"] = get_snooze_url(
-                    self.rules[0], self.organization, self.project, sentry_query_params
+                    self.rules[0],
+                    self.organization,
+                    self.project,
+                    sentry_query_params,
+                    self.group.type,
                 )
         else:
             context["snooze_alert"] = False

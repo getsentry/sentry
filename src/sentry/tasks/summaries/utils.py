@@ -441,6 +441,7 @@ def organization_project_issue_substatus_summaries(ctx: OrganizationReportContex
             last_seen__lt=ctx.end,
             status=GroupStatus.UNRESOLVED,
         )
+        .select_related("project")
         .values("project_id", "substatus")
         .annotate(total=Count("substatus"))
     )

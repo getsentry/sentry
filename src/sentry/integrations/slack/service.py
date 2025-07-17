@@ -248,7 +248,9 @@ class SlackService:
             parent_notifications: Generator[
                 NotificationActionNotificationMessage | IssueAlertNotificationMessage
             ]
-            will_fire_workflow_actions = should_fire_workflow_actions(group.organization)
+            will_fire_workflow_actions = should_fire_workflow_actions(
+                group.organization, group.type
+            )
             if group.issue_category == GroupCategory.UPTIME:
                 use_open_period_start = True
                 open_period_start = open_period_start_for_group(group)
