@@ -157,6 +157,7 @@ class ErrorEventsDeletionTask(EventsBaseDeletionTask):
     def delete_events_from_nodestore(self, events: Sequence[Event]) -> None:
         # Remove from nodestore
         node_ids = [Event.generate_node_id(event.project_id, event.event_id) for event in events]
+        logger.info("Deleting %s events from nodestore.", len(node_ids))
         nodestore.backend.delete_multi(node_ids)
 
     def delete_dangling_attachments_and_user_reports(self, events: Sequence[Event]) -> None:
