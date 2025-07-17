@@ -7,7 +7,7 @@ from django.utils import timezone
 from sentry import analytics
 from sentry.locks import locks
 from sentry.models.commit import Commit
-from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
@@ -86,7 +86,10 @@ def _process_suspect_commits(
                             project=project,
                             organization_id=project.organization_id,
                             defaults={
-                                "date_added": timezone.now()
+                                "date_added": timezone.now(),
+                                "context": {
+                                    "suspectCommitStrategy": SuspectCommitStrategy.LEGACY.value,
+                                },
                             },  # Updates date of an existing owner, since we just matched them with this new event
                         )
                         if created:
