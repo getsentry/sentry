@@ -21,9 +21,9 @@ import {
 } from 'sentry/views/insights/common/utils/retryHandlers';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
-  MetricsProperty,
+  EAPSpanProperty,
+  SpanFields,
   SpanFunctions,
-  SpanIndexedField,
   SpanMetricsProperty,
 } from 'sentry/views/insights/types';
 
@@ -60,9 +60,9 @@ export const useTopNSpanMetricsSeries = <Fields extends SpanMetricsProperty[]>(
 
 export const useTopNSpanEAPSeries = <
   Fields extends
-    | MetricsProperty[]
+    | EAPSpanProperty[]
     | SpanMetricsProperty[]
-    | SpanIndexedField[]
+    | SpanFields[]
     | SpanFunctions[]
     | string[],
 >(

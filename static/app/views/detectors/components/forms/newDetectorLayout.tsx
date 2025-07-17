@@ -91,6 +91,7 @@ export function NewDetectorLayout({
       environment: (location.query.environment as string | undefined) || '',
       name: (location.query.name as string | undefined) || '',
       owner: (location.query.owner as string | undefined) || '',
+      workflowIds: [],
       ...config.getInitialFormData(),
     };
   }, [
@@ -109,7 +110,7 @@ export function NewDetectorLayout({
         title={t('New %s Monitor', DETECTOR_TYPE_LABELS[detectorType])}
       />
       <Layout.Page>
-        <StyledLayoutHeader>
+        <StyledLayoutHeader noActionWrap>
           <Layout.HeaderContent>
             <Breadcrumbs
               crumbs={[
@@ -119,11 +120,13 @@ export function NewDetectorLayout({
                 },
               ]}
             />
-            <Flex direction="column" gap={space(2)}>
-              <DetectorBaseFields />
-              {previewChart}
-            </Flex>
           </Layout.HeaderContent>
+          {/* Header actions placeholder - currently unused */}
+          <div />
+          <Flex direction="column" gap={space(2)}>
+            <DetectorBaseFields />
+            {previewChart}
+          </Flex>
         </StyledLayoutHeader>
         <Layout.Body>
           <Layout.Main fullWidth>{children}</Layout.Main>

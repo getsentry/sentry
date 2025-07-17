@@ -121,12 +121,11 @@ This for instance is how one of the configurations is defined::
         changelog="...",
     )
 
-The configuration ID (`newstyle:SomeDate`) is defined in the project
+The configuration ID (`newstyle:YYYY-MM-DD`) is defined in the project
 options and then becomes the strategy configuration of choice for all new
 events.  Because in this case it inherits from another strategy, the default
 configurations from that strategy are reused.  Here the `frame` is changed
-to version `v4`.  Additionally a risk level and changelog are defined, which
-the UI uses to guide the user through upgrades.
+to version `v4`.
 
 Note that here the frame is defined as a delegate.  A delegate is a strategy
 that is used for an interface which by itself is not used for grouping.  This
