@@ -17,7 +17,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
-describe('useSpanMetricsSeries', () => {
+describe('useSpanSeries', () => {
   const organization = OrganizationFixture();
 
   function Wrapper({children}: {children?: ReactNode}) {

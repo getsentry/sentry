@@ -195,6 +195,16 @@ jest.mock('sentry/views/insights/common/queries/useDiscoverSeries', () => ({
       'trace_status_rate(internal_error)': mockDiscoverSeries(
         'trace_status_rate(internal_error)'
       ),
+      'cache_miss_rate()': {},
+      'http_response_rate(3)': {},
+      'http_response_rate(4)': {},
+      'http_response_rate(5)': {},
+      'epm()': {},
+      'avg(span.self_time)': {},
+      'avg(http.response_content_length)': {},
+      'avg(http.response_transfer_size)': {},
+      'avg(http.decoded_response_content_length)': {},
+      'avg(messaging.message.receive.latency)': {},
       'performance_score(measurements.score.lcp)': {
         data: [],
       },
@@ -213,22 +223,6 @@ jest.mock('sentry/views/insights/common/queries/useDiscoverSeries', () => ({
       'count()': {
         data: [],
       },
-    },
-    isPending: false,
-    error: null,
-  })),
-  useSpanMetricsSeries: jest.fn(() => ({
-    data: {
-      'cache_miss_rate()': {},
-      'http_response_rate(3)': {},
-      'http_response_rate(4)': {},
-      'http_response_rate(5)': {},
-      'epm()': {},
-      'avg(span.self_time)': {},
-      'avg(http.response_content_length)': {},
-      'avg(http.response_transfer_size)': {},
-      'avg(http.decoded_response_content_length)': {},
-      'avg(messaging.message.receive.latency)': {},
     },
     isPending: false,
     error: null,

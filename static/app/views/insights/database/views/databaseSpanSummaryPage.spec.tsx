@@ -301,7 +301,6 @@ describe('DatabaseSpanSummaryPage', function () {
           project: [],
           query: 'span.group:1756baf8fd19c116',
           referrer: 'api.insights.database.summary-duration-chart',
-          sampling: undefined,
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',

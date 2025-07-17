@@ -210,7 +210,6 @@ describe('DatabaseLandingPage', function () {
           query:
             'span.category:db !span.op:[db.sql.room,db.redis] has:sentry.normalized_description',
           referrer: 'api.starfish.use-span-list',
-          sampling: SAMPLING_MODE.NORMAL,
           sort: '-sum(span.self_time)',
           statsPeriod: '10d',
         },
@@ -333,7 +332,6 @@ describe('DatabaseLandingPage', function () {
             'span.category:db !span.op:[db.sql.room,db.redis] has:sentry.normalized_description span.action:SELECT span.domain:organizations',
           referrer: 'api.starfish.use-span-list',
           sort: '-sum(span.self_time)',
-          sampling: SAMPLING_MODE.NORMAL,
           statsPeriod: '10d',
         },
       })
