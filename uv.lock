@@ -2620,7 +2620,7 @@ requires-dist = [
     { name = "vine", specifier = "==5.1.0" },
     { name = "vroomrs", specifier = "==0.1.13" },
     { name = "wcwidth", specifier = "==0.2.13" },
-    { name = "xmlsec", specifier = "==1.3.14" },
+    { name = "xmlsec", specifier = "==1.3.16" },
     { name = "zstandard", specifier = "==0.18.0" },
 ]
 provides-extras = ["getsentry"]
@@ -3497,12 +3497,23 @@ wheels = [
 
 [[package]]
 name = "xmlsec"
-version = "1.3.14"
+version = "1.3.16"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "lxml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/25/5b/244459b51dfe91211c1d9ec68fb5307dfc51e014698f52de575d25f753e0/xmlsec-1.3.14.tar.gz", hash = "sha256:934f804f2f895bcdb86f1eaee236b661013560ee69ec108d29cdd6e5f292a2d9", size = 68854, upload-time = "2024-04-17T19:34:29.388Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ed/52/b025fe78a178d9eaffa1c77a4a73b20072e27d4679200cee76475034b399/xmlsec-1.3.16.tar.gz", hash = "sha256:2b6c70544c6d1d4ca006aaa314958e0ef3514dc81fffde1b23f2ec41a5791f9d", size = 114202, upload-time = "2025-07-10T12:45:37.847Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b6/72/dae0618ff7a86dada22bf0ae16730a48b98e513fa8098681156e74dd687c/xmlsec-1.3.16-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:68b60867e6be61e06964be64d7501b88156f0ad0a4808b5c2eb8b16d8de9b6bc", size = 3424682, upload-time = "2025-07-10T12:18:39.34Z" },
+    { url = "https://files.pythonhosted.org/packages/73/0a/6e1d9108f0b0801f874a153256ec044d1b1c53713517f8f24ff5c21544e5/xmlsec-1.3.16-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:174917827e26ff71dab512e5e87544dcd3309eb4a5dc18e6f1e8022789e1f1bf", size = 3830253, upload-time = "2025-07-10T12:18:41.092Z" },
+    { url = "https://files.pythonhosted.org/packages/eb/35/0d11fceb1978564a14c95b687a08a27b96873aeb54d9c1a5c90efd824766/xmlsec-1.3.16-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:bb683689a7770a3a71657af96c1953c9d00da7e3c8d9a9851777fa2c9ecf741a", size = 4367122, upload-time = "2025-07-10T12:18:42.768Z" },
+    { url = "https://files.pythonhosted.org/packages/65/9b/ad52185d08fd35ae323124c0a727697d2535e1794c864f4858e1b61eb7bf/xmlsec-1.3.16-cp313-cp313-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:2fda1627987e26989ead9ae8ec8b089f2affa0e922f585ab1c37d1c2111c78c7", size = 3791602, upload-time = "2025-07-10T12:18:44.295Z" },
+    { url = "https://files.pythonhosted.org/packages/1b/fe/867975dd2a20640882282788f66c535d746cce01265a2732bde596a98cf7/xmlsec-1.3.16-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a4fe9e8ab3497632ea242fc718a57e7524e0300537fd106a7455696b339ac0a6", size = 4098004, upload-time = "2025-07-10T12:18:45.945Z" },
+    { url = "https://files.pythonhosted.org/packages/d4/35/66f717c4ff288c61c2e447fdc453fa21446d15e39ae756a129a3aa1bd4ae/xmlsec-1.3.16-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:1014c6cb723ad99781a2f37c03969eb246b310da029ddf3250df998801bb62d7", size = 4400559, upload-time = "2025-07-10T12:18:47.389Z" },
+    { url = "https://files.pythonhosted.org/packages/08/9c/2e6ee7f9f313b4848b2f9dac51fbf6615932f1aa6b9399d17ab29c2bd731/xmlsec-1.3.16-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:795eedbdb4dbc72c786dbf4193561de0f3ebd8f8ee3a32e81b085b24ccbee120", size = 4153379, upload-time = "2025-07-10T12:18:48.778Z" },
+    { url = "https://files.pythonhosted.org/packages/ba/f4/08da3d448456e4c41ddc99a0e713313b774beed5a27689b066d47d114194/xmlsec-1.3.16-cp313-cp313-win32.whl", hash = "sha256:1f83fbd4c44bbeebd19db9de5969b68ed7d5b723d7812c5a62c795452f7c8945", size = 2155805, upload-time = "2025-07-10T12:18:51.697Z" },
+    { url = "https://files.pythonhosted.org/packages/60/80/8ffe311f8e2273bb156b4cb0f2454e6a089723575921c4c07c24dd1aa3ae/xmlsec-1.3.16-cp313-cp313-win_amd64.whl", hash = "sha256:4b8b36cdccd13fa84a923958ebf5f73febe8a97da4ecff711fdeb97fec6896db", size = 2446038, upload-time = "2025-07-10T12:18:50.369Z" },
+]
 
 [[package]]
 name = "zstandard"
