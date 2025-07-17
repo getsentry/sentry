@@ -25,7 +25,7 @@ from sentry.backup.findings import ComparatorFindingKind, InstanceID
 
 def test_good_comparator_both_sides_existing():
     cmp = DateUpdatedComparator("my_date_field")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     present: Any = {
         "model": "test",
         "ordinal": 1,
@@ -34,24 +34,24 @@ def test_good_comparator_both_sides_existing():
             "my_date_field": "2023-06-22T23:12:34.567Z",
         },
     }
-    assert not cmp.existence(id, present, present)
+    assert not cmp.existence(instance_id, present, present)
 
 
 def test_good_comparator_neither_side_existing():
     cmp = DateUpdatedComparator("my_date_field")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     missing: Any = {
         "model": "test",
         "ordinal": 1,
         "pk": 1,
         "fields": {},
     }
-    assert not cmp.existence(id, missing, missing)
+    assert not cmp.existence(instance_id, missing, missing)
 
 
 def test_bad_comparator_only_one_side_existing():
     cmp = DateUpdatedComparator("my_date_field")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     present: Any = {
         "model": "test",
         "ordinal": 1,
@@ -66,25 +66,25 @@ def test_bad_comparator_only_one_side_existing():
         "pk": 1,
         "fields": {},
     }
-    res = cmp.existence(id, missing, present)
+    res = cmp.existence(instance_id, missing, present)
     assert res
     assert len(res) == 1
 
     assert res[0]
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].kind == ComparatorFindingKind.DateUpdatedComparatorExistenceCheck
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "left" in res[0].reason
     assert "my_date_field" in res[0].reason
 
-    res = cmp.existence(id, present, missing)
+    res = cmp.existence(instance_id, present, missing)
     assert res
     assert len(res) == 1
 
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.DateUpdatedComparatorExistenceCheck
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "right" in res[0].reason
@@ -93,7 +93,7 @@ def test_bad_comparator_only_one_side_existing():
 
 def test_good_comparator_both_sides_null():
     cmp = DateUpdatedComparator("my_date_field")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     nulled: Any = {
         "model": "test",
         "ordinal": 1,
@@ -102,12 +102,12 @@ def test_good_comparator_both_sides_null():
             "my_date_field": None,
         },
     }
-    assert not cmp.existence(id, nulled, nulled)
+    assert not cmp.existence(instance_id, nulled, nulled)
 
 
 def test_bad_comparator_only_one_side_null():
     cmp = DateUpdatedComparator("my_date_field")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     present: Any = {
         "model": "test",
         "ordinal": 1,
@@ -124,25 +124,25 @@ def test_bad_comparator_only_one_side_null():
             "my_date_field": None,
         },
     }
-    res = cmp.existence(id, nulled, present)
+    res = cmp.existence(instance_id, nulled, present)
     assert res
     assert len(res) == 1
 
     assert res[0]
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].kind == ComparatorFindingKind.DateUpdatedComparatorExistenceCheck
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "left" in res[0].reason
     assert "my_date_field" in res[0].reason
 
-    res = cmp.existence(id, present, nulled)
+    res = cmp.existence(instance_id, present, nulled)
     assert res
     assert len(res) == 1
 
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.DateUpdatedComparatorExistenceCheck
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "right" in res[0].reason
@@ -151,7 +151,7 @@ def test_bad_comparator_only_one_side_null():
 
 def test_good_comparator_one_side_null_other_side_missing():
     cmp = DateUpdatedComparator("my_date_field")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     nulled: Any = {
         "model": "test",
         "ordinal": 1,
@@ -166,16 +166,16 @@ def test_good_comparator_one_side_null_other_side_missing():
         "pk": 1,
         "fields": {},
     }
-    res = cmp.existence(id, missing, nulled)
+    res = cmp.existence(instance_id, missing, nulled)
     assert not res
 
-    res = cmp.existence(id, nulled, missing)
+    res = cmp.existence(instance_id, nulled, missing)
     assert not res
 
 
 def test_good_auto_suffix_comparator():
     cmp = AutoSuffixComparator("same", "suffixed")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     left: Any = {
         "model": "test",
         "ordinal": 1,
@@ -194,12 +194,12 @@ def test_good_auto_suffix_comparator():
             "suffixed": "foo-bar-baz",
         },
     }
-    assert not cmp.compare(id, left, right)
+    assert not cmp.compare(instance_id, left, right)
 
 
 def test_bad_auto_suffix_comparator():
     cmp = AutoSuffixComparator("same", "suffixed")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     left: Any = {
         "model": "test",
         "ordinal": 1,
@@ -218,13 +218,13 @@ def test_bad_auto_suffix_comparator():
             "suffixed": "foo-barbaz",
         },
     }
-    res = cmp.compare(id, left, right)
+    res = cmp.compare(instance_id, left, right)
     assert res
     assert len(res) == 2
 
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.AutoSuffixComparator
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "foo-bar" in res[0].reason
@@ -232,7 +232,7 @@ def test_bad_auto_suffix_comparator():
 
     assert res[1]
     assert res[1].kind == ComparatorFindingKind.AutoSuffixComparator
-    assert res[1].on == id
+    assert res[1].on == instance_id
     assert res[1].left_pk == 1
     assert res[1].right_pk == 1
     assert "foo-bar" in res[1].reason
@@ -241,7 +241,7 @@ def test_bad_auto_suffix_comparator():
 
 def test_good_auto_suffix_comparator_existence():
     cmp = AutoSuffixComparator("auto_suffix_field")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     present: Any = {
         "model": "test",
         "ordinal": 1,
@@ -256,12 +256,12 @@ def test_good_auto_suffix_comparator_existence():
         "pk": 1,
         "fields": {},
     }
-    res = cmp.existence(id, missing, present)
+    res = cmp.existence(instance_id, missing, present)
     assert res
     assert len(res) == 1
 
     assert res[0]
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].kind == ComparatorFindingKind.AutoSuffixComparatorExistenceCheck
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
@@ -301,7 +301,7 @@ def test_good_auto_suffix_comparator_scrubbed():
 
 def test_good_datetime_equality_comparator():
     cmp = DatetimeEqualityComparator("my_date_field")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     left: Any = {
         "model": "test",
         "ordinal": 1,
@@ -318,12 +318,12 @@ def test_good_datetime_equality_comparator():
             "my_date_field": "2023-06-22T23:00:00.123Z",
         },
     }
-    assert not cmp.compare(id, left, right)
+    assert not cmp.compare(instance_id, left, right)
 
 
 def test_bad_datetime_equality_comparator():
     cmp = DatetimeEqualityComparator("my_date_field")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     left: Any = {
         "model": "test",
         "ordinal": 1,
@@ -340,13 +340,13 @@ def test_bad_datetime_equality_comparator():
             "my_date_field": "2023-06-22T00:00:00.123Z",
         },
     }
-    res = cmp.compare(id, left, right)
+    res = cmp.compare(instance_id, left, right)
     assert res
     assert len(res) == 1
 
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.DatetimeEqualityComparator
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "`my_date_field`" in res[0].reason
@@ -356,7 +356,7 @@ def test_bad_datetime_equality_comparator():
 
 def test_good_date_updated_comparator():
     cmp = DateUpdatedComparator("my_date_field")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     left: Any = {
         "model": "test",
         "ordinal": 1,
@@ -373,12 +373,12 @@ def test_good_date_updated_comparator():
             "my_date_field": "2023-06-22T23:00:00.123Z",
         },
     }
-    assert not cmp.compare(id, left, right)
+    assert not cmp.compare(instance_id, left, right)
 
 
 def test_bad_date_updated_comparator():
     cmp = DateUpdatedComparator("my_date_field")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     left: Any = {
         "model": "test",
         "ordinal": 1,
@@ -395,13 +395,13 @@ def test_bad_date_updated_comparator():
             "my_date_field": "2023-06-22T23:00:00.001Z",
         },
     }
-    res = cmp.compare(id, left, right)
+    res = cmp.compare(instance_id, left, right)
     assert res
     assert len(res) == 1
 
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.DateUpdatedComparator
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "`my_date_field`" in res[0].reason
@@ -411,7 +411,7 @@ def test_bad_date_updated_comparator():
 
 def test_good_email_obfuscating_comparator():
     cmp = EmailObfuscatingComparator("one_email", "many_emails")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     model = {
         "model": "test",
         "ordinal": 1,
@@ -424,12 +424,12 @@ def test_good_email_obfuscating_comparator():
             ],
         },
     }
-    assert not cmp.compare(id, model, model)
+    assert not cmp.compare(instance_id, model, model)
 
 
 def test_bad_email_obfuscating_comparator():
     cmp = EmailObfuscatingComparator("one_email", "many_emails")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     left: Any = {
         "model": "test",
         "ordinal": 1,
@@ -454,13 +454,13 @@ def test_bad_email_obfuscating_comparator():
             ],
         },
     }
-    res = cmp.compare(id, left, right)
+    res = cmp.compare(instance_id, left, right)
     assert res
     assert len(res) == 2
 
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.EmailObfuscatingComparator
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "b...@...le.com" in res[0].reason
@@ -468,7 +468,7 @@ def test_bad_email_obfuscating_comparator():
 
     assert res[1]
     assert res[1].kind == ComparatorFindingKind.EmailObfuscatingComparator
-    assert res[1].on == id
+    assert res[1].on == instance_id
     assert res[1].left_pk == 1
     assert res[1].right_pk == 1
     assert "a...@...le.com" in res[1].reason
@@ -477,7 +477,7 @@ def test_bad_email_obfuscating_comparator():
 
 def test_good_email_obfuscating_comparator_existence():
     cmp = EmailObfuscatingComparator("email_obfuscating_field")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     present: Any = {
         "model": "test",
         "ordinal": 1,
@@ -492,12 +492,12 @@ def test_good_email_obfuscating_comparator_existence():
         "pk": 1,
         "fields": {},
     }
-    res = cmp.existence(id, missing, present)
+    res = cmp.existence(instance_id, missing, present)
     assert res
     assert len(res) == 1
 
     assert res[0]
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].kind == ComparatorFindingKind.EmailObfuscatingComparatorExistenceCheck
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
@@ -549,7 +549,7 @@ def test_good_email_obfuscating_comparator_scrubbed():
 
 def test_good_equal_or_removed_comparator_equal():
     cmp = EqualOrRemovedComparator("my_field")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     present: Any = {
         "model": "test",
         "ordinal": 1,
@@ -559,13 +559,13 @@ def test_good_equal_or_removed_comparator_equal():
         },
     }
 
-    assert not cmp.existence(id, present, present)
-    assert not cmp.compare(id, present, present)
+    assert not cmp.existence(instance_id, present, present)
+    assert not cmp.compare(instance_id, present, present)
 
 
 def test_good_equal_or_removed_comparator_not_equal():
     cmp = EqualOrRemovedComparator("my_field")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     left: Any = {
         "model": "test",
         "ordinal": 1,
@@ -583,15 +583,15 @@ def test_good_equal_or_removed_comparator_not_equal():
         },
     }
 
-    assert not cmp.existence(id, left, right)
+    assert not cmp.existence(instance_id, left, right)
 
-    res = cmp.compare(id, left, right)
+    res = cmp.compare(instance_id, left, right)
     assert res
     assert len(res) == 1
 
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.EqualOrRemovedComparator
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "my_field" in res[0].reason
@@ -601,19 +601,19 @@ def test_good_equal_or_removed_comparator_not_equal():
 
 def test_good_equal_or_removed_comparator_neither_side_existing():
     cmp = EqualOrRemovedComparator("my_field")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     missing: Any = {
         "model": "test",
         "ordinal": 1,
         "pk": 1,
         "fields": {},
     }
-    assert not cmp.existence(id, missing, missing)
+    assert not cmp.existence(instance_id, missing, missing)
 
 
 def test_good_equal_or_removed_comparator_only_right_side_missing():
     cmp = EqualOrRemovedComparator("my_field")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     present: Any = {
         "model": "test",
         "ordinal": 1,
@@ -628,13 +628,13 @@ def test_good_equal_or_removed_comparator_only_right_side_missing():
         "pk": 1,
         "fields": {},
     }
-    assert not cmp.existence(id, present, missing)
-    assert not cmp.compare(id, present, missing)
+    assert not cmp.existence(instance_id, present, missing)
+    assert not cmp.compare(instance_id, present, missing)
 
 
 def test_bad_equal_or_removed_comparator_only_left_side_missing():
     cmp = EqualOrRemovedComparator("my_field")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     present: Any = {
         "model": "test",
         "ordinal": 1,
@@ -649,12 +649,12 @@ def test_bad_equal_or_removed_comparator_only_left_side_missing():
         "pk": 1,
         "fields": {},
     }
-    res = cmp.existence(id, missing, present)
+    res = cmp.existence(instance_id, missing, present)
     assert res
     assert len(res) == 1
 
     assert res[0]
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].kind == ComparatorFindingKind.EqualOrRemovedComparatorExistenceCheck
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
@@ -664,7 +664,7 @@ def test_bad_equal_or_removed_comparator_only_left_side_missing():
 
 def test_good_equal_or_removed_comparator_both_sides_nulled():
     cmp = EqualOrRemovedComparator("my_field")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     nulled: Any = {
         "model": "test",
         "ordinal": 1,
@@ -673,12 +673,12 @@ def test_good_equal_or_removed_comparator_both_sides_nulled():
             "my_field": None,
         },
     }
-    assert not cmp.existence(id, nulled, nulled)
+    assert not cmp.existence(instance_id, nulled, nulled)
 
 
 def test_good_equal_or_removed_comparator_only_right_side_nulled():
     cmp = EqualOrRemovedComparator("my_field")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     present: Any = {
         "model": "test",
         "ordinal": 1,
@@ -695,13 +695,13 @@ def test_good_equal_or_removed_comparator_only_right_side_nulled():
             "my_field": None,
         },
     }
-    assert not cmp.existence(id, present, missing)
-    assert not cmp.compare(id, present, missing)
+    assert not cmp.existence(instance_id, present, missing)
+    assert not cmp.compare(instance_id, present, missing)
 
 
 def test_bad_equal_or_removed_comparator_only_left_side_nulled():
     cmp = EqualOrRemovedComparator("my_field")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     present: Any = {
         "model": "test",
         "ordinal": 1,
@@ -718,12 +718,12 @@ def test_bad_equal_or_removed_comparator_only_left_side_nulled():
             "my_field": None,
         },
     }
-    res = cmp.existence(id, missing, present)
+    res = cmp.existence(instance_id, missing, present)
     assert res
     assert len(res) == 1
 
     assert res[0]
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].kind == ComparatorFindingKind.EqualOrRemovedComparatorExistenceCheck
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
@@ -733,7 +733,7 @@ def test_bad_equal_or_removed_comparator_only_left_side_nulled():
 
 def test_good_hash_obfuscating_comparator():
     cmp = HashObfuscatingComparator("one_hash", "many_hashes")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     model: Any = {
         "model": "test",
         "ordinal": 1,
@@ -746,12 +746,12 @@ def test_good_hash_obfuscating_comparator():
             ],
         },
     }
-    assert not cmp.compare(id, model, model)
+    assert not cmp.compare(instance_id, model, model)
 
 
 def test_bad_hash_obfuscating_comparator():
     cmp = HashObfuscatingComparator("one_hash", "many_hashes")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     left: Any = {
         "model": "test",
         "ordinal": 1,
@@ -776,13 +776,13 @@ def test_bad_hash_obfuscating_comparator():
             ],
         },
     }
-    res = cmp.compare(id, left, right)
+    res = cmp.compare(instance_id, left, right)
     assert res
     assert len(res) == 2
 
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.HashObfuscatingComparator
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "1...e" in res[0].reason
@@ -790,7 +790,7 @@ def test_bad_hash_obfuscating_comparator():
 
     assert res[1]
     assert res[1].kind == ComparatorFindingKind.HashObfuscatingComparator
-    assert res[1].on == id
+    assert res[1].on == instance_id
     assert res[1].left_pk == 1
     assert res[1].right_pk == 1
     assert "123...39b" in res[1].reason
@@ -799,7 +799,7 @@ def test_bad_hash_obfuscating_comparator():
 
 def test_good_hash_obfuscating_comparator_existence():
     cmp = HashObfuscatingComparator("hash_obfuscating_field")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     present: Any = {
         "model": "test",
         "ordinal": 1,
@@ -814,12 +814,12 @@ def test_good_hash_obfuscating_comparator_existence():
         "pk": 1,
         "fields": {},
     }
-    res = cmp.existence(id, missing, present)
+    res = cmp.existence(instance_id, missing, present)
     assert res
     assert len(res) == 1
 
     assert res[0]
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].kind == ComparatorFindingKind.HashObfuscatingComparatorExistenceCheck
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
@@ -874,7 +874,7 @@ def test_good_foreign_key_comparator():
     cmp = ForeignKeyComparator(
         {k: v.model for k, v in deps[NormalizedModelName("sentry.UserEmail")].foreign_keys.items()}
     )
-    id = InstanceID("sentry.useremail", 0)
+    instance_id = InstanceID("sentry.useremail", 0)
     left_pk_map = PrimaryKeyMap()
     left_pk_map.insert(NormalizedModelName("sentry.user"), 12, 1, ImportKind.Inserted)
     right_pk_map = PrimaryKeyMap()
@@ -905,7 +905,7 @@ def test_good_foreign_key_comparator():
     }
     cmp.set_primary_key_maps(left_pk_map, right_pk_map)
 
-    assert not cmp.compare(id, left, right)
+    assert not cmp.compare(instance_id, left, right)
 
 
 def test_good_foreign_key_comparator_existence():
@@ -913,7 +913,7 @@ def test_good_foreign_key_comparator_existence():
     cmp = ForeignKeyComparator(
         {k: v.model for k, v in deps[NormalizedModelName("sentry.UserEmail")].foreign_keys.items()}
     )
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     present: Any = {
         "model": "test",
         "ordinal": 1,
@@ -937,12 +937,12 @@ def test_good_foreign_key_comparator_existence():
             "is_verified": True,
         },
     }
-    res = cmp.existence(id, missing, present)
+    res = cmp.existence(instance_id, missing, present)
     assert res
     assert len(res) == 1
 
     assert res[0]
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].kind == ComparatorFindingKind.ForeignKeyComparatorExistenceCheck
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
@@ -981,7 +981,7 @@ def test_bad_foreign_key_comparator_set_primary_key_maps_not_called():
     cmp = ForeignKeyComparator(
         {k: v.model for k, v in deps[NormalizedModelName("sentry.UserEmail")].foreign_keys.items()}
     )
-    id = InstanceID("sentry.useremail", 0)
+    instance_id = InstanceID("sentry.useremail", 0)
     left_pk_map = PrimaryKeyMap()
     left_pk_map.insert(NormalizedModelName("sentry.user"), 12, 1, ImportKind.Inserted)
     right_pk_map = PrimaryKeyMap()
@@ -1012,7 +1012,7 @@ def test_bad_foreign_key_comparator_set_primary_key_maps_not_called():
     }
 
     with pytest.raises(RuntimeError):
-        cmp.compare(id, left, right)
+        cmp.compare(instance_id, left, right)
 
 
 def test_bad_foreign_key_comparator_unequal_mapping():
@@ -1020,7 +1020,7 @@ def test_bad_foreign_key_comparator_unequal_mapping():
     cmp = ForeignKeyComparator(
         {k: v.model for k, v in deps[NormalizedModelName("sentry.UserEmail")].foreign_keys.items()}
     )
-    id = InstanceID("sentry.useremail", 0)
+    instance_id = InstanceID("sentry.useremail", 0)
     left_pk_map = PrimaryKeyMap()
     left_pk_map.insert(NormalizedModelName("sentry.user"), 12, 1, ImportKind.Inserted)
     right_pk_map = PrimaryKeyMap()
@@ -1051,13 +1051,13 @@ def test_bad_foreign_key_comparator_unequal_mapping():
     }
     cmp.set_primary_key_maps(left_pk_map, right_pk_map)
 
-    res = cmp.compare(id, left, right)
+    res = cmp.compare(instance_id, left, right)
     assert res
     assert len(res) == 1
 
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.ForeignKeyComparator
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "`user`" in res[0].reason
@@ -1070,7 +1070,7 @@ def test_bad_foreign_key_comparator_missing_mapping():
     cmp = ForeignKeyComparator(
         {k: v.model for k, v in deps[NormalizedModelName("sentry.UserEmail")].foreign_keys.items()}
     )
-    id = InstanceID("sentry.useremail", 0)
+    instance_id = InstanceID("sentry.useremail", 0)
     left_pk_map = PrimaryKeyMap()
     right_pk_map = PrimaryKeyMap()
     left: Any = {
@@ -1099,12 +1099,12 @@ def test_bad_foreign_key_comparator_missing_mapping():
     }
     cmp.set_primary_key_maps(left_pk_map, right_pk_map)
 
-    res = cmp.compare(id, left, right)
+    res = cmp.compare(instance_id, left, right)
     assert len(res) == 2
 
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.ForeignKeyComparator
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "`user`" in res[0].reason
@@ -1113,7 +1113,7 @@ def test_bad_foreign_key_comparator_missing_mapping():
 
     assert res[1]
     assert res[1].kind == ComparatorFindingKind.ForeignKeyComparator
-    assert res[1].on == id
+    assert res[1].on == instance_id
     assert res[1].left_pk == 1
     assert res[1].right_pk == 1
     assert "`user`" in res[1].reason
@@ -1123,7 +1123,7 @@ def test_bad_foreign_key_comparator_missing_mapping():
 
 def test_good_ignored_comparator():
     cmp = IgnoredComparator("ignored_field")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     model: Any = {
         "model": "test",
         "ordinal": 1,
@@ -1133,12 +1133,12 @@ def test_good_ignored_comparator():
             "other_field": "...but still look at me",
         },
     }
-    assert not cmp.compare(id, model, model)
+    assert not cmp.compare(instance_id, model, model)
 
 
 def test_good_ignored_comparator_existence():
     cmp = IgnoredComparator("ignored_field")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     present: Any = {
         "model": "test",
         "ordinal": 1,
@@ -1153,7 +1153,7 @@ def test_good_ignored_comparator_existence():
         "pk": 1,
         "fields": {},
     }
-    res = cmp.existence(id, missing, present)
+    res = cmp.existence(instance_id, missing, present)
     assert not res
 
 
@@ -1181,7 +1181,7 @@ def test_good_ignored_comparator_scrubbed():
 
 def test_good_secret_hex_comparator():
     cmp = SecretHexComparator(8, "equal", "unequal")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     left: Any = {
         "model": "test",
         "ordinal": 1,
@@ -1200,12 +1200,12 @@ def test_good_secret_hex_comparator():
             "unequal": "50a7e2c7e3ca35fc",
         },
     }
-    assert not cmp.compare(id, left, right)
+    assert not cmp.compare(instance_id, left, right)
 
 
 def test_bad_secret_hex_comparator():
     cmp = SecretHexComparator(8, "same", "invalid_left", "invalid_right")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     left: Any = {
         "model": "test",
         "ordinal": 1,
@@ -1226,13 +1226,13 @@ def test_bad_secret_hex_comparator():
             "invalid_right": "bar",
         },
     }
-    res = cmp.compare(id, left, right)
+    res = cmp.compare(instance_id, left, right)
     assert res
     assert len(res) == 2
 
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.SecretHexComparator
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "`invalid_left`" in res[0].reason
@@ -1242,7 +1242,7 @@ def test_bad_secret_hex_comparator():
 
     assert res[1]
     assert res[1].kind == ComparatorFindingKind.SecretHexComparator
-    assert res[1].on == id
+    assert res[1].on == instance_id
     assert res[1].left_pk == 1
     assert res[1].right_pk == 1
     assert "`invalid_right`" in res[1].reason
@@ -1279,7 +1279,7 @@ def test_good_secret_hex_comparator_scrubbed():
 
 def test_good_subscription_id_comparator():
     cmp = SubscriptionIDComparator("subscription_id_field")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     left: Any = {
         "model": "test",
         "ordinal": 1,
@@ -1296,12 +1296,12 @@ def test_good_subscription_id_comparator():
             "subscription_id_field": "0/45663aae153911eeac590242acabc123",
         },
     }
-    assert not cmp.compare(id, left, right)
+    assert not cmp.compare(instance_id, left, right)
 
 
 def test_bad_subscription_id_comparator():
     cmp = SubscriptionIDComparator("same", "invalid_left", "invalid_right")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     left: Any = {
         "model": "test",
         "ordinal": 1,
@@ -1322,13 +1322,13 @@ def test_bad_subscription_id_comparator():
             "invalid_right": "0/foobar",
         },
     }
-    res = cmp.compare(id, left, right)
+    res = cmp.compare(instance_id, left, right)
     assert res
     assert len(res) == 3
 
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.SubscriptionIDComparator
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "`same`" in res[0].reason
@@ -1337,7 +1337,7 @@ def test_bad_subscription_id_comparator():
 
     assert res[1]
     assert res[1].kind == ComparatorFindingKind.SubscriptionIDComparator
-    assert res[1].on == id
+    assert res[1].on == instance_id
     assert res[1].left_pk == 1
     assert res[1].right_pk == 1
     assert "`invalid_left`" in res[1].reason
@@ -1347,7 +1347,7 @@ def test_bad_subscription_id_comparator():
 
     assert res[2]
     assert res[2].kind == ComparatorFindingKind.SubscriptionIDComparator
-    assert res[2].on == id
+    assert res[2].on == instance_id
     assert res[2].left_pk == 1
     assert res[2].right_pk == 1
     assert "`invalid_right`" in res[2].reason
@@ -1358,7 +1358,7 @@ def test_bad_subscription_id_comparator():
 
 def test_good_subscription_id_comparator_existence():
     cmp = SubscriptionIDComparator("subscription_id_field")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     present: Any = {
         "model": "test",
         "ordinal": 1,
@@ -1373,12 +1373,12 @@ def test_good_subscription_id_comparator_existence():
         "pk": 1,
         "fields": {},
     }
-    res = cmp.existence(id, missing, present)
+    res = cmp.existence(instance_id, missing, present)
     assert res
     assert len(res) == 1
 
     assert res[0]
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].kind == ComparatorFindingKind.SubscriptionIDComparatorExistenceCheck
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
@@ -1420,7 +1420,7 @@ def test_good_subscription_id_comparator_scrubbed():
 
 def test_good_unordered_list_comparator():
     cmp = UnorderedListComparator("ordered", "unordered")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     left: Any = {
         "model": "test",
         "ordinal": 1,
@@ -1439,12 +1439,12 @@ def test_good_unordered_list_comparator():
             "unordered": ["c", "b", "a"],
         },
     }
-    assert not cmp.compare(id, left, right)
+    assert not cmp.compare(instance_id, left, right)
 
 
 def test_bad_unordered_list_comparator():
     cmp = UnorderedListComparator("unequal")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     left: Any = {
         "model": "test",
         "ordinal": 1,
@@ -1461,13 +1461,13 @@ def test_bad_unordered_list_comparator():
             "unequal": ["a", "b", "c"],
         },
     }
-    res = cmp.compare(id, left, right)
+    res = cmp.compare(instance_id, left, right)
     assert res
     assert len(res) == 1
 
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.UnorderedListComparator
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "`unequal`" in res[0].reason
@@ -1478,7 +1478,7 @@ def test_bad_unordered_list_comparator():
 
 def test_good_unordered_list_comparator_existence():
     cmp = UnorderedListComparator("unordered_list_field")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     present: Any = {
         "model": "test",
         "ordinal": 1,
@@ -1493,12 +1493,12 @@ def test_good_unordered_list_comparator_existence():
         "pk": 1,
         "fields": {},
     }
-    res = cmp.existence(id, missing, present)
+    res = cmp.existence(instance_id, missing, present)
     assert res
     assert len(res) == 1
 
     assert res[0]
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].kind == ComparatorFindingKind.UnorderedListComparatorExistenceCheck
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
@@ -1540,7 +1540,7 @@ def test_good_unordered_list_comparator_scrubbed():
 
 def test_good_uuid4_comparator():
     cmp = UUID4Comparator("guid_field")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     left: Any = {
         "model": "test",
         "ordinal": 1,
@@ -1557,12 +1557,12 @@ def test_good_uuid4_comparator():
             "guid_field": "bb41a040-b413-4b89-aa03-179470d9ee05",
         },
     }
-    assert not cmp.compare(id, left, right)
+    assert not cmp.compare(instance_id, left, right)
 
 
 def test_bad_uuid4_comparator():
     cmp = UUID4Comparator("same", "invalid_left", "invalid_right")
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     left: Any = {
         "model": "test",
         "ordinal": 1,
@@ -1583,13 +1583,13 @@ def test_bad_uuid4_comparator():
             "invalid_right": "bar",
         },
     }
-    res = cmp.compare(id, left, right)
+    res = cmp.compare(instance_id, left, right)
     assert res
     assert len(res) == 3
 
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.UUID4Comparator
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "`same`" in res[0].reason
@@ -1598,7 +1598,7 @@ def test_bad_uuid4_comparator():
 
     assert res[1]
     assert res[1].kind == ComparatorFindingKind.UUID4Comparator
-    assert res[1].on == id
+    assert res[1].on == instance_id
     assert res[1].left_pk == 1
     assert res[1].right_pk == 1
     assert "`invalid_left`" in res[1].reason
@@ -1608,7 +1608,7 @@ def test_bad_uuid4_comparator():
 
     assert res[2]
     assert res[2].kind == ComparatorFindingKind.UUID4Comparator
-    assert res[2].on == id
+    assert res[2].on == instance_id
     assert res[2].left_pk == 1
     assert res[2].right_pk == 1
     assert "`invalid_right`" in res[2].reason
@@ -1645,7 +1645,7 @@ def test_good_uuid4_comparator_scrubbed():
 
 def test_good_user_password_obfuscating_comparator_claimed_user():
     cmp = UserPasswordObfuscatingComparator()
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     model: Any = {
         "model": "test",
         "ordinal": 1,
@@ -1657,12 +1657,12 @@ def test_good_user_password_obfuscating_comparator_claimed_user():
             "is_password_expired": False,
         },
     }
-    assert not cmp.compare(id, model, model)
+    assert not cmp.compare(instance_id, model, model)
 
 
 def test_good_user_password_obfuscating_comparator_claimed_user_never_changed_password():
     cmp = UserPasswordObfuscatingComparator()
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     missing: Any = {
         "model": "test",
         "ordinal": 1,
@@ -1683,15 +1683,15 @@ def test_good_user_password_obfuscating_comparator_claimed_user_never_changed_pa
             "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
         },
     }
-    assert not cmp.compare(id, missing, missing)
-    assert not cmp.compare(id, nulled, nulled)
-    assert not cmp.compare(id, nulled, missing)
-    assert not cmp.compare(id, missing, nulled)
+    assert not cmp.compare(instance_id, missing, missing)
+    assert not cmp.compare(instance_id, nulled, nulled)
+    assert not cmp.compare(instance_id, nulled, missing)
+    assert not cmp.compare(instance_id, missing, nulled)
 
 
 def test_good_user_password_obfuscating_comparator_newly_unclaimed_user():
     cmp = UserPasswordObfuscatingComparator()
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     left: Any = {
         "model": "test",
         "ordinal": 1,
@@ -1714,12 +1714,12 @@ def test_good_user_password_obfuscating_comparator_newly_unclaimed_user():
             "is_password_expired": False,
         },
     }
-    assert not cmp.compare(id, left, right)
+    assert not cmp.compare(instance_id, left, right)
 
 
 def test_good_user_password_obfuscating_comparator_newly_unclaimed_user_never_changed_password():
     cmp = UserPasswordObfuscatingComparator()
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     left: Any = {
         "model": "test",
         "ordinal": 1,
@@ -1742,12 +1742,12 @@ def test_good_user_password_obfuscating_comparator_newly_unclaimed_user_never_ch
             "is_password_expired": False,
         },
     }
-    assert not cmp.compare(id, left, right)
+    assert not cmp.compare(instance_id, left, right)
 
 
 def test_good_user_password_obfuscating_comparator_already_unclaimed_user():
     cmp = UserPasswordObfuscatingComparator()
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     left: Any = {
         "model": "test",
         "ordinal": 1,
@@ -1770,12 +1770,12 @@ def test_good_user_password_obfuscating_comparator_already_unclaimed_user():
             "is_password_expired": False,
         },
     }
-    assert not cmp.compare(id, left, right)
+    assert not cmp.compare(instance_id, left, right)
 
 
 def test_bad_user_password_obfuscating_comparator_claimed_user_password_changed():
     cmp = UserPasswordObfuscatingComparator()
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     left: Any = {
         "model": "test",
         "ordinal": 1,
@@ -1798,13 +1798,13 @@ def test_bad_user_password_obfuscating_comparator_claimed_user_password_changed(
             "is_password_expired": False,
         },
     }
-    res = cmp.compare(id, left, right)
+    res = cmp.compare(instance_id, left, right)
     assert res
     assert len(res) == 1
 
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.UserPasswordObfuscatingComparator
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "`password`" in res[0].reason
@@ -1814,7 +1814,7 @@ def test_bad_user_password_obfuscating_comparator_claimed_user_password_changed(
 
 def test_bad_user_password_obfuscating_comparator_newly_unclaimed_user_password_unchanged():
     cmp = UserPasswordObfuscatingComparator()
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     left: Any = {
         "model": "test",
         "ordinal": 1,
@@ -1837,13 +1837,13 @@ def test_bad_user_password_obfuscating_comparator_newly_unclaimed_user_password_
             "is_password_expired": False,
         },
     }
-    res = cmp.compare(id, left, right)
+    res = cmp.compare(instance_id, left, right)
     assert res
     assert len(res) == 1
 
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.UserPasswordObfuscatingComparator
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "`password`" in res[0].reason
@@ -1852,7 +1852,7 @@ def test_bad_user_password_obfuscating_comparator_newly_unclaimed_user_password_
 
 def test_bad_user_password_obfuscating_comparator_already_unclaimed_user_password_unchanged():
     cmp = UserPasswordObfuscatingComparator()
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     left: Any = {
         "model": "test",
         "ordinal": 1,
@@ -1875,13 +1875,13 @@ def test_bad_user_password_obfuscating_comparator_already_unclaimed_user_passwor
             "is_password_expired": False,
         },
     }
-    res = cmp.compare(id, left, right)
+    res = cmp.compare(instance_id, left, right)
     assert res
     assert len(res) == 1
 
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.UserPasswordObfuscatingComparator
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "`password`" in res[0].reason
@@ -1890,7 +1890,7 @@ def test_bad_user_password_obfuscating_comparator_already_unclaimed_user_passwor
 
 def test_bad_user_password_obfuscating_comparator_impossible_newly_claimed_user():
     cmp = UserPasswordObfuscatingComparator()
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     left: Any = {
         "model": "test",
         "ordinal": 1,
@@ -1913,13 +1913,13 @@ def test_bad_user_password_obfuscating_comparator_impossible_newly_claimed_user(
             "is_password_expired": False,
         },
     }
-    res = cmp.compare(id, left, right)
+    res = cmp.compare(instance_id, left, right)
     assert res
     assert len(res) == 1
 
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.UserPasswordObfuscatingComparator
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "`is_unclaimed`" in res[0].reason
@@ -1928,7 +1928,7 @@ def test_bad_user_password_obfuscating_comparator_impossible_newly_claimed_user(
 
 def test_bad_user_password_obfuscating_comparator_unclaimed_user_last_password_change_nulled():
     cmp = UserPasswordObfuscatingComparator()
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     left: Any = {
         "model": "test",
         "ordinal": 1,
@@ -1951,13 +1951,13 @@ def test_bad_user_password_obfuscating_comparator_unclaimed_user_last_password_c
             "is_password_expired": False,
         },
     }
-    res = cmp.compare(id, left, right)
+    res = cmp.compare(instance_id, left, right)
     assert res
     assert len(res) == 1
 
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.UserPasswordObfuscatingComparator
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "`last_password_change`" in res[0].reason
@@ -1966,7 +1966,7 @@ def test_bad_user_password_obfuscating_comparator_unclaimed_user_last_password_c
 
 def test_bad_user_password_obfuscating_comparator_already_unclaimed_user_password_unexpired():
     cmp = UserPasswordObfuscatingComparator()
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     left: Any = {
         "model": "test",
         "ordinal": 1,
@@ -1989,13 +1989,13 @@ def test_bad_user_password_obfuscating_comparator_already_unclaimed_user_passwor
             "is_password_expired": True,
         },
     }
-    res = cmp.compare(id, left, right)
+    res = cmp.compare(instance_id, left, right)
     assert res
     assert len(res) == 1
 
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.UserPasswordObfuscatingComparator
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "`is_password_expired`" in res[0].reason
@@ -2003,7 +2003,7 @@ def test_bad_user_password_obfuscating_comparator_already_unclaimed_user_passwor
 
 def test_bad_user_password_obfuscating_comparator_newly_unclaimed_user_password_still_expired():
     cmp = UserPasswordObfuscatingComparator()
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     left: Any = {
         "model": "test",
         "ordinal": 1,
@@ -2026,13 +2026,13 @@ def test_bad_user_password_obfuscating_comparator_newly_unclaimed_user_password_
             "is_password_expired": True,
         },
     }
-    res = cmp.compare(id, left, right)
+    res = cmp.compare(instance_id, left, right)
     assert res
     assert len(res) == 1
 
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.UserPasswordObfuscatingComparator
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "`is_password_expired`" in res[0].reason
@@ -2041,7 +2041,7 @@ def test_bad_user_password_obfuscating_comparator_newly_unclaimed_user_password_
 
 def test_good_user_password_obfuscating_comparator_existence():
     cmp = UserPasswordObfuscatingComparator()
-    id = InstanceID("sentry.test", 0)
+    instance_id = InstanceID("sentry.test", 0)
     present: Any = {
         "model": "test",
         "ordinal": 1,
@@ -2056,12 +2056,12 @@ def test_good_user_password_obfuscating_comparator_existence():
         "pk": 1,
         "fields": {},
     }
-    res = cmp.existence(id, missing, present)
+    res = cmp.existence(instance_id, missing, present)
     assert res
     assert len(res) == 1
 
     assert res[0]
-    assert res[0].on == id
+    assert res[0].on == instance_id
     assert res[0].kind == ComparatorFindingKind.UserPasswordObfuscatingComparatorExistenceCheck
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
