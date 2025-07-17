@@ -12,7 +12,7 @@ from sentry.codecov.base import CodecovEndpoint
 from sentry.codecov.client import CodecovApiClient
 from sentry.codecov.endpoints.Repositories.query import query
 from sentry.codecov.endpoints.Repositories.serializers import RepositoriesSerializer
-from sentry.codecov.enums import OrderingDirection
+from sentry.codecov.enums import NavigationParameter, OrderingDirection
 
 MAX_RESULTS_PER_PAGE = 50
 
@@ -20,20 +20,18 @@ MAX_RESULTS_PER_PAGE = 50
 @extend_schema(tags=["Prevent"])
 @region_silo_endpoint
 class RepositoriesEndpoint(CodecovEndpoint):
-    __test__ = False
-
     owner = ApiOwner.CODECOV
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
 
     @extend_schema(
-        operation_id="Retrieves repository list for a given owner",
+        operation_id="Retrieves list of repositories for a given owner",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             PreventParams.OWNER,
-            PreventParams.FIRST,
-            PreventParams.LAST,
+            PreventParams.LIMIT,
+            PreventParams.NAVIGATION,
             PreventParams.CURSOR,
             PreventParams.TERM,
         ],
@@ -50,8 +48,8 @@ class RepositoriesEndpoint(CodecovEndpoint):
         Retrieves repository data for a given owner.
         """
 
-        first_param = request.query_params.get("first")
-        last_param = request.query_params.get("last")
+        navigation = request.query_params.get("navigation", NavigationParameter.NEXT.value)
+        limit_param = request.query_params.get("limit", MAX_RESULTS_PER_PAGE)
         cursor = request.query_params.get("cursor")
 
         # When calling request.query_params, the URL is decoded so + is replaced with spaces. We need to change them back so Codecov can properly fetch the next page.
@@ -59,32 +57,28 @@ class RepositoriesEndpoint(CodecovEndpoint):
             cursor = cursor.replace(" ", "+")
 
         try:
-            first = int(first_param) if first_param is not None else None
-            last = int(last_param) if last_param is not None else None
+            limit = int(limit_param)
         except ValueError:
             return Response(
                 status=status.HTTP_400_BAD_REQUEST,
-                data={"details": "Query parameters 'first' and 'last' must be integers."},
+                data={"details": "provided `limit` parameter must be a positive integer"},
             )
 
-        if first is not None and last is not None:
+        if limit <= 0:
             return Response(
                 status=status.HTTP_400_BAD_REQUEST,
-                data={"details": "Cannot specify both `first` and `last`"},
+                data={"details": "provided `limit` parameter must be a positive integer"},
             )
-
-        if first is None and last is None:
-            first = MAX_RESULTS_PER_PAGE
 
         variables = {
             "owner": owner,
             "filters": {"term": request.query_params.get("term")},
             "direction": OrderingDirection.DESC.value,
             "ordering": "COMMIT_DATE",
-            "first": first,
-            "last": last,
-            "before": cursor if cursor and last else None,
-            "after": cursor if cursor and first else None,
+            "first": limit if navigation != NavigationParameter.PREV.value else None,
+            "last": limit if navigation == NavigationParameter.PREV.value else None,
+            "before": cursor if cursor and navigation == NavigationParameter.PREV.value else None,
+            "after": cursor if cursor and navigation == NavigationParameter.NEXT.value else None,
         }
 
         client = CodecovApiClient(git_provider_org=owner)

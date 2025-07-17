@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import {MetricDetectorChart} from 'sentry/views/detectors/components/forms/metric/metricDetectorChart';
 import {
@@ -31,12 +32,14 @@ export function MetricDetectorPreviewChart() {
   const initialPriorityLevel = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel
   );
-  const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
+  const detectionType = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.detectionType
+  );
 
   // Create condition group from form data using the helper function
   const conditions = useMemo(() => {
     // Wait for a condition value to be defined
-    if (kind === 'static' && !conditionValue) {
+    if (detectionType === 'static' && !conditionValue) {
       return [];
     }
 
@@ -46,18 +49,25 @@ export function MetricDetectorPreviewChart() {
       initialPriorityLevel,
       highThreshold,
     });
-  }, [conditionType, conditionValue, initialPriorityLevel, highThreshold, kind]);
+  }, [conditionType, conditionValue, initialPriorityLevel, highThreshold, detectionType]);
 
   return (
-    <MetricDetectorChart
-      dataset={dataset}
-      aggregate={aggregateFunction}
-      interval={interval}
-      query={query}
-      environment={environment}
-      projectId={projectId}
-      conditions={conditions}
-      detectionType={kind}
-    />
+    <ChartContainer>
+      <MetricDetectorChart
+        dataset={dataset}
+        aggregate={aggregateFunction}
+        interval={interval}
+        query={query}
+        environment={environment}
+        projectId={projectId}
+        conditions={conditions}
+        detectionType={detectionType}
+      />
+    </ChartContainer>
   );
 }
+
+const ChartContainer = styled('div')`
+  max-width: 1440px;
+  border-top: 1px solid ${p => p.theme.border};
+`;
