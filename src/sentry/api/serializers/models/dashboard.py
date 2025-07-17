@@ -332,7 +332,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
             if features.has(
                 "organizations:dashboards-starred-reordering",
                 organization,
-                user,
+                actor=user,
             ):
                 visit = dashboard.dashboardlastvisited_set.filter(
                     dashboard=dashboard,

@@ -9,11 +9,11 @@ from django.conf import settings
 from django.core.cache import cache
 
 from sentry import audit_log, options
+from sentry.conf.server import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.locks import locks
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
-from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.utils import metrics
 from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.locking import UnableToAcquireLock
@@ -146,4 +146,8 @@ def is_in_transition(project: Project) -> bool:
     secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
     secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
 
-    return bool(secondary_grouping_config) and (secondary_grouping_expiry or 0) >= time.time()
+    return (
+        bool(secondary_grouping_config)
+        and secondary_grouping_config in CONFIGURATIONS.keys()
+        and (secondary_grouping_expiry or 0) >= time.time()
+    )

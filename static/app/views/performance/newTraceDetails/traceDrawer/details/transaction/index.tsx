@@ -17,7 +17,7 @@ import type {Organization} from 'sentry/types/organization';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {
   SpanMetricsQueryFilters,
   SpanMetricsResponse,
@@ -30,6 +30,8 @@ import {getCustomInstrumentationLink} from 'sentry/views/performance/newTraceDet
 import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
 import {AIInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
 import {AIOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
+import {MCPInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/mcpInput';
+import {MCPOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/mcpOutput';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -107,7 +109,7 @@ export function TransactionNodeDetails({
     project_slug: node.value.project_slug,
     organization,
   });
-  const {data: cacheMetrics} = useSpanMetrics(
+  const {data: cacheMetrics} = useSpans(
     {
       search: MutableSearch.fromQueryObject({
         transaction: node.value.transaction,
@@ -169,6 +171,8 @@ export function TransactionNodeDetails({
 
         <AIInputSection node={node} event={event} />
         <AIOutputSection node={node} event={event} />
+        <MCPInputSection node={node} event={event} />
+        <MCPOutputSection node={node} event={event} />
 
         <TransactionSpecificSections
           event={event}

@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Any
 
 from django.urls import reverse
-from requests.exceptions import RequestException
+from requests.exceptions import ChunkedEncodingError, RequestException
 
 from sentry import analytics, features, nodestore
 from sentry.api.serializers import serialize
@@ -79,6 +79,7 @@ CONTROL_TASK_OPTIONS = {
 
 retry_decorator = retry(
     on=(RequestException, ApiHostError, ApiTimeoutError),
+    on_silent=(ChunkedEncodingError),
     ignore=(
         ClientError,
         SentryAppSentryError,
@@ -161,7 +162,7 @@ def _webhook_issue_data(
             times=3,
             delay=60 * 5,
         ),
-        processing_deadline_duration=20,
+        processing_deadline_duration=30,
     ),
     **TASK_OPTIONS,
 )
@@ -664,6 +665,7 @@ def get_webhook_data(
             delay=60 * 5,
         ),
         compression_type=CompressionType.ZSTD,
+        processing_deadline_duration=30,
     ),
     **TASK_OPTIONS,
 )
@@ -710,7 +712,7 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
         if int(id) != -1:
             if features.has("organizations:workflow-engine-ui-links", event.group.organization):
                 id = get_key_from_rule_data(f.rule, "workflow_id")
-            elif should_fire_workflow_actions(event.group.organization):
+            elif should_fire_workflow_actions(event.group.organization, event.group.type):
                 id = get_key_from_rule_data(f.rule, "legacy_rule_id")
 
         settings = f.kwargs.get("schema_defined_settings")
