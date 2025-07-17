@@ -44,6 +44,7 @@ def format_percentile_term(term):
         numeric_percentile_value = float(percentile_value)
         supported_percentiles = [0.5, 0.75, 0.90, 0.95, 0.99, 1.0]
         smallest_percentile_difference = 1.0
+        nearest_percentile = 0.5
 
         for percentile in supported_percentiles:
             percentile_difference = abs(numeric_percentile_value - percentile)
@@ -53,7 +54,7 @@ def format_percentile_term(term):
                 smallest_percentile_difference = percentile_difference
 
         new_function = percentile_replacement_function.get(nearest_percentile)
-    except (IndexError, ValueError):
+    except (IndexError, ValueError, NameError):
         return term
 
     return f"{new_function}({translated_column})"
