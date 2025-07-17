@@ -3,6 +3,7 @@ from unittest.mock import patch
 import orjson
 
 from sentry import audit_log, deletions
+from sentry.analytics.events.sentry_app_deleted import SentryAppDeletedEvent
 from sentry.constants import SentryAppStatus
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmember import OrganizationMember
@@ -13,6 +14,7 @@ from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -787,11 +789,13 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
         assert AuditLogEntry.objects.filter(
             event=audit_log.get_event_id("SENTRY_APP_REMOVE")
         ).exists()
-        record.assert_called_with(
-            "sentry_app.deleted",
-            user_id=self.superuser.id,
-            organization_id=self.organization.id,
-            sentry_app=self.unpublished_app.slug,
+        assert_last_analytics_event(
+            record,
+            SentryAppDeletedEvent(
+                user_id=self.superuser.id,
+                organization_id=self.organization.id,
+                sentry_app=self.unpublished_app.slug,
+            ),
         )
 
     def test_superuser_delete_unpublished_app_with_installs(self):

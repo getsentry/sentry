@@ -3,6 +3,7 @@ from unittest.mock import patch
 import responses
 
 from sentry import audit_log
+from sentry.analytics.events.sentry_app_installed import SentryAppInstalledEvent
 from sentry.constants import SentryAppInstallationStatus
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.apigrant import ApiGrant
@@ -12,6 +13,7 @@ from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProjec
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_count_of_metric, assert_success_metric
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
@@ -150,11 +152,13 @@ class TestCreator(TestCase):
             request=self.make_request(user=self.user, method="GET"),
         )
 
-        record.assert_called_with(
-            "sentry_app.installed",
-            user_id=self.user.id,
-            organization_id=self.org.id,
-            sentry_app="nulldb",
+        assert_last_analytics_event(
+            record,
+            SentryAppInstalledEvent(
+                user_id=self.user.id,
+                organization_id=self.org.id,
+                sentry_app="nulldb",
+            ),
         )
 
     @responses.activate

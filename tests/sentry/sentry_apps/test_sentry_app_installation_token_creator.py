@@ -1,6 +1,9 @@
 from datetime import UTC, datetime
 from unittest.mock import patch
 
+from sentry.analytics.events.sentry_app_installation_token_created import (
+    SentryAppInstallationTokenCreated,
+)
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -8,6 +11,7 @@ from sentry.sentry_apps.installations import (
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.silo import control_silo_test
 
 
@@ -48,12 +52,14 @@ class TestCreatorInternal(TestCreatorBase):
 
         assert not create_audit_entry.called
 
-        record.assert_called_with(
-            "sentry_app_installation_token.created",
-            user_id=self.user.id,
-            organization_id=self.org.id,
-            sentry_app_installation_id=self.sentry_app_installation.id,
-            sentry_app=self.sentry_app.slug,
+        assert_last_analytics_event(
+            record,
+            SentryAppInstallationTokenCreated(
+                user_id=self.user.id,
+                organization_id=self.org.id,
+                sentry_app_installation_id=self.sentry_app_installation.id,
+                sentry_app=self.sentry_app.slug,
+            ),
         )
 
 

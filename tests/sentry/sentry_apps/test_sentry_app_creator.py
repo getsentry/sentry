@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 from django.db import IntegrityError
 
 from sentry import audit_log
+from sentry.analytics.events.sentry_app_created import SentryAppCreatedEvent
 from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.apiapplication import ApiApplication
@@ -13,6 +14,7 @@ from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.testutils.asserts import assert_count_of_metric, assert_success_metric
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.user import User
 
@@ -160,12 +162,14 @@ class TestCreator(TestCase):
             is_internal=False,
         ).run(user=self.user, request=self.make_request(user=self.user, method="GET"))
 
-        record.assert_called_with(
-            "sentry_app.created",
-            user_id=self.user.id,
-            organization_id=self.org.id,
-            sentry_app=sentry_app.slug,
-            created_alert_rule_ui_component=False,
+        assert_last_analytics_event(
+            record,
+            SentryAppCreatedEvent(
+                user_id=self.user.id,
+                organization_id=self.org.id,
+                sentry_app=sentry_app.slug,
+                created_alert_rule_ui_component=False,
+            ),
         )
 
     def test_allows_name_that_exists_as_username_already(self):
@@ -287,9 +291,11 @@ class TestInternalCreator(TestCase):
             schema={"elements": [self.create_issue_link_schema()]},
         ).run(user=self.user, request=MagicMock())
 
-        record.assert_called_with(
-            "internal_integration.created",
-            user_id=self.user.id,
-            organization_id=self.org.id,
-            sentry_app=sentry_app.slug,
+        assert_last_analytics_event(
+            record,
+            SentryAppCreatedEvent(
+                user_id=self.user.id,
+                organization_id=self.org.id,
+                sentry_app=sentry_app.slug,
+            ),
         )
