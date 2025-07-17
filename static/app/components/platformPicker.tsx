@@ -23,6 +23,10 @@ import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
+export function hasProjectCreationGamesTabFeatureFlag(organization?: Organization) {
+  return organization?.features.includes('project-creation-games-tab') ?? false;
+}
+
 const PlatformList = styled('div')`
   display: grid;
   gap: ${space(1)};
@@ -96,11 +100,9 @@ function PlatformPicker({
     setCategory(defaultCategory ?? categories[0]!.id);
   }, [defaultCategory, categories]);
 
-  const includeGamingPlatforms = organization?.features.includes(
-    'project-creation-games-tab'
-  );
+  const includeGamingPlatforms = hasProjectCreationGamesTabFeatureFlag(organization);
 
-  const newSelectablePlatforms = useMemo(() => {
+  const availablePlatforms = useMemo(() => {
     if (!includeGamingPlatforms) {
       return selectablePlatforms;
     }
@@ -127,7 +129,7 @@ function PlatformPicker({
     };
 
     // 'other' is not part of the createablePlatforms list, therefore it won't be included in the filtered list
-    const filtered = newSelectablePlatforms.filter(filter ? subsetMatch : categoryMatch);
+    const filtered = availablePlatforms.filter(filter ? subsetMatch : categoryMatch);
 
     if (showOther && filter.toLowerCase() === 'other') {
       // We only show 'Other' if users click on the 'Other' suggestion rendered in the not found state or type this word in the search bar
@@ -152,7 +154,7 @@ function PlatformPicker({
       }
       return a.name.localeCompare(b.name);
     });
-  }, [filter, category, newSelectablePlatforms, showOther, categories]);
+  }, [filter, category, availablePlatforms, showOther, categories]);
 
   const latestValuesRef = useRef({filter, platformList, source, organization});
 
