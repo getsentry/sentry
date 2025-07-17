@@ -11,7 +11,7 @@ from sentry.conf.server import SEER_HASH_GROUPING_RECORDS_DELETE_URL
 from sentry.seer.similarity.grouping_records import (
     POST_BULK_GROUPING_RECORDS_TIMEOUT,
     CreateGroupingRecordsRequest,
-    delete_grouping_records_by_hash,
+    call_seer_to_delete_these_hashes,
     post_bulk_grouping_records,
 )
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -178,7 +178,7 @@ def test_delete_grouping_records_by_hash_success(
     )
 
     project_id, hashes = 1, ["1", "2"]
-    response = delete_grouping_records_by_hash(project_id, hashes)
+    response = call_seer_to_delete_these_hashes(project_id, hashes)
     assert response is True
     mock_logger.info.assert_called_with(
         "seer.delete_grouping_records.hashes.success",
@@ -189,6 +189,7 @@ def test_delete_grouping_records_by_hash_success(
     )
 
 
+@django_db_all
 @mock.patch("sentry.seer.similarity.grouping_records.logger")
 @mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
 def test_delete_grouping_records_by_hash_timeout(
@@ -198,7 +199,7 @@ def test_delete_grouping_records_by_hash_timeout(
         DUMMY_POOL, SEER_HASH_GROUPING_RECORDS_DELETE_URL, "read timed out"
     )
     project_id, hashes = 1, ["1", "2"]
-    response = delete_grouping_records_by_hash(project_id, hashes)
+    response = call_seer_to_delete_these_hashes(project_id, hashes)
     assert response is False
     mock_logger.exception.assert_called_with(
         "seer.delete_grouping_records.hashes.timeout",
@@ -223,7 +224,7 @@ def test_delete_grouping_records_by_hash_failure(
         status=500,
     )
     project_id, hashes = 1, ["1", "2"]
-    response = delete_grouping_records_by_hash(project_id, hashes)
+    response = call_seer_to_delete_these_hashes(project_id, hashes)
     assert response is False
     mock_logger.error.assert_called_with(
         "seer.delete_grouping_records.hashes.failure",

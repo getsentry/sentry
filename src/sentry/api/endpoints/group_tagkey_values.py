@@ -37,7 +37,7 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
         "GET": {
             RateLimitCategory.IP: RateLimit(limit=10, window=1, concurrent_limit=10),
             RateLimitCategory.USER: RateLimit(limit=10, window=1, concurrent_limit=10),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1, concurrent_limit=10),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1, concurrent_limit=5),
         }
     }
 

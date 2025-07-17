@@ -8,6 +8,7 @@ import {Select} from 'sentry/components/core/select';
 import TeamSelector from 'sentry/components/teamSelector';
 import type {ChangeData} from 'sentry/components/timeRangeSelector';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import {getArbitraryRelativePeriod} from 'sentry/components/timeRangeSelector/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types/core';
@@ -24,7 +25,7 @@ import {dataDatetime} from './utils';
 const INSIGHTS_DEFAULT_STATS_PERIOD = '8w';
 
 const relativeOptions = {
-  '14d': t('Last 2 weeks'),
+  '2w': t('Last 2 weeks'),
   '4w': t('Last 4 weeks'),
   [INSIGHTS_DEFAULT_STATS_PERIOD]: t('Last 8 weeks'),
   '12w': t('Last 12 weeks'),
@@ -228,9 +229,15 @@ function TeamStatsControls({
         utc={utc ?? null}
         onChange={handleUpdateDatetime}
         showAbsolute={false}
-        relativeOptions={relativeOptions}
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        triggerLabel={period && relativeOptions[period]}
+        relativeOptions={props => ({
+          ...relativeOptions,
+          ...props.arbitraryOptions,
+        })}
+        triggerLabel={
+          period &&
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          (relativeOptions[period] || getArbitraryRelativePeriod(period)[period])
+        }
         triggerProps={{prefix: t('Date Range')}}
       />
     </ControlsWrapper>

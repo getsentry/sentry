@@ -13,6 +13,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ConfigStore from 'sentry/stores/configStore';
 import type {DataCategory} from 'sentry/types/core';
+import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
@@ -50,7 +51,6 @@ import CustomerPlatforms from 'admin/components/customers/customerPlatforms';
 import CustomerPolicies from 'admin/components/customers/customerPolicies';
 import CustomerProjects from 'admin/components/customers/customerProjects';
 import {CustomerStats} from 'admin/components/customers/customerStats';
-import type {DataType} from 'admin/components/customers/customerStatsFilters';
 import {CustomerStatsFilters} from 'admin/components/customers/customerStatsFilters';
 import OrganizationStatus from 'admin/components/customers/organizationStatus';
 import PendingChanges from 'admin/components/customers/pendingChanges';
@@ -179,7 +179,8 @@ export default function CustomerDetails() {
     return null;
   }
 
-  const activeDataType = (location.query.dataType as DataType) ?? 'error';
+  const activeDataType =
+    (location.query.dataType as DataCategoryExact) ?? DataCategoryExact.ERROR;
 
   const userPermissions = ConfigStore.get('user')?.permissions;
 
@@ -235,7 +236,7 @@ export default function CustomerDetails() {
     );
   };
 
-  const handleStatsTypeChange = (dataType: DataType) => {
+  const handleStatsTypeChange = (dataType: DataCategoryExact) => {
     navigate({
       pathname: location.pathname,
       query: {...location.query, dataType},

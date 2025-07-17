@@ -142,7 +142,7 @@ class DataExportTest(APITestCase):
             response = self.get_error_response(self.org.slug, status_code=400, **payload)
         assert response.data == {
             "non_field_errors": [
-                "You can export up to 20 fields at a time. Please delete some and try again."
+                f"You can export up to {MAX_FIELDS} fields at a time. Please delete some and try again."
             ]
         }
 

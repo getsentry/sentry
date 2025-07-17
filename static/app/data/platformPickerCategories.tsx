@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 
 const popularPlatformCategories: Set<PlatformKey> = new Set([
@@ -159,6 +160,8 @@ const serverless: Set<PlatformKey> = new Set([
   'python-serverless',
 ]);
 
+const gaming: Set<PlatformKey> = new Set(['unity', 'unreal', 'godot', 'native']);
+
 export const createablePlatforms: Set<PlatformKey> = new Set([
   ...popularPlatformCategories,
   ...browser,
@@ -166,6 +169,7 @@ export const createablePlatforms: Set<PlatformKey> = new Set([
   ...mobile,
   ...desktop,
   ...serverless,
+  ...gaming,
 ]);
 
 /**
@@ -183,13 +187,22 @@ const categoryList = [
   {id: 'desktop', name: t('Desktop'), platforms: desktop},
   {id: 'serverless', name: t('Serverless'), platforms: serverless},
   {
+    id: 'gaming',
+    name: t('Gaming'),
+    platforms: gaming,
+    display: (organization?: Organization) =>
+      organization?.features.includes('project-creation-games-tab') ?? false,
+  },
+  {
     id: 'all',
     name: t('All'),
     platforms: createablePlatforms,
   },
 ];
 
-export default categoryList;
+export function getCategoryList(organization?: Organization) {
+  return categoryList.filter(({display}) => display?.(organization) ?? true);
+}
 
 // TODO(aknaus): Drop in favour of PlatformIntegration
 export type Platform = {

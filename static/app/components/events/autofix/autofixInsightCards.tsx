@@ -20,6 +20,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {ellipsize} from 'sentry/utils/string/ellipsize';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -87,7 +88,7 @@ function AutofixInsightCard({
   const truncatedTitleHtml = useMemo(() => {
     let truncatedTitle = displayedInsightTitle;
     if (newlineIndex !== -1 && newlineIndex < displayedInsightTitle.length - 1) {
-      truncatedTitle = displayedInsightTitle.substring(0, newlineIndex) + '...';
+      truncatedTitle = ellipsize(truncatedTitle, newlineIndex);
     }
     return {
       __html: singleLineRenderer(truncatedTitle),
@@ -151,7 +152,7 @@ function AutofixInsightCard({
                         }
                       }}
                     />
-                    <ButtonBar merged>
+                    <ButtonBar merged gap="none">
                       <Button
                         type="button"
                         size="sm"
@@ -403,7 +404,7 @@ function CollapsibleChainLink({
                       }
                     }}
                   />
-                  <ButtonBar merged>
+                  <ButtonBar merged gap="none">
                     <Button
                       type="button"
                       size="sm"

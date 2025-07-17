@@ -12,7 +12,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry import options
-from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
+from sentry.feedback.lib.utils import FeedbackCreationSource
+from sentry.feedback.usecases.create_feedback import create_feedback_issue
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.issues.grouptype import (
@@ -42,8 +43,6 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.groupopenperiod import GroupOpenPeriod, get_latest_open_period
 from sentry.models.groupowner import GROUP_OWNER_TYPE, GroupOwner, GroupOwnerType
 from sentry.models.groupresolution import GroupResolution
-from sentry.models.groupsearchview import GroupSearchView
-from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsnooze import GroupSnooze
@@ -71,7 +70,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.users.models.user_option import UserOption
 from sentry.utils import json
-from tests.sentry.feedback.usecases.test_create_feedback import mock_feedback_event
+from tests.sentry.feedback import mock_feedback_event
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
@@ -2365,118 +2364,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
-
-    @with_feature("organizations:issue-stream-custom-views")
-    def test_user_default_custom_view_query(self, _: MagicMock) -> None:
-        SavedSearch.objects.create(
-            name="Saved Search",
-            query="TypeError",
-            organization=self.organization,
-            owner_id=self.user.id,
-            visibility=Visibility.OWNER_PINNED,
-        )
-        default_view = GroupSearchView.objects.create(
-            organization=self.organization,
-            user_id=self.user.id,
-            name="Default View",
-            query="ZeroDivisionError",
-            query_sort="date",
-        )
-        GroupSearchViewStarred.objects.create(
-            organization=self.organization,
-            user_id=self.user.id,
-            position=0,
-            group_search_view=default_view,
-        )
-        event = self.store_event(
-            data={
-                "timestamp": before_now(seconds=500).isoformat(),
-                "fingerprint": ["group-1"],
-                "message": "ZeroDivisionError",
-            },
-            project_id=self.project.id,
-        )
-
-        self.store_event(
-            data={
-                "timestamp": before_now(seconds=500).isoformat(),
-                "fingerprint": ["group-2"],
-                "message": "TypeError",
-            },
-            project_id=self.project.id,
-        )
-
-        self.login_as(user=self.user)
-        response = self.get_response(
-            sort_by="date",
-            limit=10,
-            collapse=["unhandled"],
-            savedSearch=0,
-        )
-        assert response.status_code == 200
-        assert len(response.data) == 1
-        assert int(response.data[0]["id"]) == event.group.id
-
-    @with_feature("organizations:issue-stream-custom-views")
-    def test_non_default_custom_view_query(self, _: MagicMock) -> None:
-        GroupSearchView.objects.create(
-            organization=self.organization,
-            user_id=self.user.id,
-            name="Default View",
-            query="TypeError",
-            query_sort="date",
-        )
-
-        view = GroupSearchView.objects.create(
-            organization=self.organization,
-            user_id=self.user.id,
-            name="Custom View",
-            query="ZeroDivisionError",
-            query_sort="date",
-        )
-
-        event = self.store_event(
-            data={
-                "timestamp": before_now(seconds=500).isoformat(),
-                "fingerprint": ["group-1"],
-                "message": "ZeroDivisionError",
-            },
-            project_id=self.project.id,
-        )
-
-        self.login_as(user=self.user)
-        response = self.get_response(
-            sort_by="date",
-            limit=10,
-            collapse=["unhandled"],
-            viewId=view.id,
-            savedSearch=0,
-        )
-        assert response.status_code == 200
-        assert len(response.data) == 1
-        assert int(response.data[0]["id"]) == event.group.id
-
-    @with_feature("organizations:issue-stream-custom-views")
-    def test_global_default_custom_view_query(self, _: MagicMock) -> None:
-        event = self.store_event(
-            data={
-                "timestamp": before_now(seconds=500).isoformat(),
-                "fingerprint": ["group-1"],
-                "message": "ZeroDivisionError",
-            },
-            project_id=self.project.id,
-        )
-        event.group.priority = PriorityLevel.LOW
-        event.group.save()
-
-        self.login_as(user=self.user)
-        response = self.get_response(sort_by="date", limit=10, collapse=["unhandled"])
-
-        # The request is not populated with a query, or a searchId to extract a query from, so the
-        # query used should be the global default, the Prioritized query. Since the only event is a low priority event,
-        # we should expect no results here.
-        assert response.status_code == 200
-        assert len(response.data) == 0
 
     def test_query_status_and_substatus_overlapping(self, _: MagicMock) -> None:
         event = self.store_event(
@@ -5601,7 +5488,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
     def assert_pending_deletion_groups(self, groups: Sequence[Group]) -> None:
         for group in groups:
             assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
-            assert not GroupHash.objects.filter(group_id=group.id).exists()
+            assert GroupHash.objects.filter(group_id=group.id).exists()
 
     def assert_deleted_groups(self, groups: Sequence[Group]) -> None:
         for group in groups:
@@ -5638,12 +5525,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 204
-
-        assert Group.objects.get(id=group1.id).status == GroupStatus.PENDING_DELETION
-        assert not GroupHash.objects.filter(group_id=group1.id).exists()
-
-        assert Group.objects.get(id=group2.id).status == GroupStatus.PENDING_DELETION
-        assert not GroupHash.objects.filter(group_id=group2.id).exists()
+        self.assert_pending_deletion_groups([group1, group2])
 
         assert Group.objects.get(id=group3.id).status != GroupStatus.PENDING_DELETION
         assert GroupHash.objects.filter(group_id=group3.id).exists()

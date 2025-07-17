@@ -23,6 +23,7 @@ import {FieldKey} from 'sentry/utils/fields';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useHasIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useHasIssueViews';
 import {useStarredIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useStarredIssueViews';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
@@ -74,8 +75,9 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   const isAutomationAllowed = organization.features.includes(
     'trigger-autofix-on-issue-summary'
   );
-  const prefersStackedNav = usePrefersStackedNav();
-  const isStarredViewAllowed = prefersStackedNav;
+  const hasStackedNav = usePrefersStackedNav();
+  const hasIssueViews = useHasIssueViews();
+  const isStarredViewAllowed = hasStackedNav && hasIssueViews;
 
   const unreadableRepos = repos.filter(repo => repo.is_readable === false);
   const githubRepos = unreadableRepos.filter(repo => repo.provider.includes('github'));

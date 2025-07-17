@@ -30,6 +30,7 @@ import {DatasetSource} from 'sentry/utils/discover/types';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
+import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import type {Position} from './layoutUtils';
@@ -369,6 +370,21 @@ class Dashboard extends Component<Props, State> {
     };
   }
 
+  handleWidgetColumnTableResize(index: number) {
+    const {dashboard, onUpdate} = this.props;
+    return function (columns: TabularColumn[]) {
+      const widths = columns.map(column => column.width as number);
+      const widget = dashboard.widgets[index]!;
+      const widgetCopy = cloneDeep(widget);
+      widgetCopy.tableWidths = widths;
+
+      const nextList = [...dashboard.widgets];
+      nextList[index] = widgetCopy;
+
+      onUpdate(nextList);
+    };
+  }
+
   renderWidget(widget: Widget, index: number) {
     const {isMobile, windowWidth} = this.state;
     const {
@@ -410,6 +426,7 @@ class Dashboard extends Component<Props, State> {
           newlyAddedWidget={newlyAddedWidget}
           onNewWidgetScrollComplete={onNewWidgetScrollComplete}
           onWidgetTableSort={this.handleWidgetTableSort(index)}
+          onWidgetTableResizeColumn={this.handleWidgetColumnTableResize(index)}
         />
       </div>
     );

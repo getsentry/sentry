@@ -1563,7 +1563,7 @@ class ProjectDeleteTest(APITestCase):
         mock_call_seer_delete_project_grouping_records.assert_called_with(args=[self.project.id])
 
 
-class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
+class TestProjectDetailsBase(APITestCase, ABC):
     endpoint = "sentry-api-0-project-details"
     method = "put"
 
@@ -1571,7 +1571,6 @@ class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
         self.org_slug = self.project.organization.slug
         self.proj_slug = self.project.slug
         self.login_as(user=self.user)
-        self.new_ds_flag = "organizations:dynamic-sampling"
         self._apply_old_date_to_project_and_org()
 
     def _apply_old_date_to_project_and_org(self):
@@ -1586,11 +1585,12 @@ class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
         self.project.update(date_added=old_date)
 
 
-class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingBase):
+class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
     endpoint = "sentry-api-0-project-details"
 
     def setUp(self):
         super().setUp()
+        self.new_ds_flag = "organizations:dynamic-sampling"
         self.url = reverse(
             "sentry-api-0-project-details",
             kwargs={
@@ -1624,7 +1624,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         so they should get their actual bias preferences.
         """
 
-        new_biases = [{"id": "boostEnvironments", "active": False}]
+        new_biases = [{"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False}]
         self.project.update_option("sentry:dynamic_sampling_biases", new_biases)
         with Feature(
             {
@@ -1635,22 +1635,20 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 self.organization.slug, self.project.slug, method="get"
             )
             assert response.data["dynamicSamplingBiases"] == [
-                {"id": "boostEnvironments", "active": False},
-                {
-                    "id": "boostLatestRelease",
-                    "active": True,
-                },
-                {"id": "ignoreHealthChecks", "active": True},
-                {"id": "boostKeyTransactions", "active": True},
-                {"id": "boostLowVolumeTransactions", "active": True},
+                {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+                {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": True},
+                {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": True},
+                {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": True},
+                {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": True},
                 {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
                 {"id": RuleType.RECALIBRATION_RULE.value, "active": True},
+                {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": False},
             ]
 
     def test_get_dynamic_sampling_biases_with_previously_assigned_biases(self):
         self.project.update_option(
             "sentry:dynamic_sampling_biases",
-            [{"id": "boostEnvironments", "active": False}],
+            [{"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False}],
         )
 
         with Feature(
@@ -1662,16 +1660,14 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 self.organization.slug, self.project.slug, method="get"
             )
             assert response.data["dynamicSamplingBiases"] == [
-                {"id": "boostEnvironments", "active": False},
-                {
-                    "id": "boostLatestRelease",
-                    "active": True,
-                },
-                {"id": "ignoreHealthChecks", "active": True},
-                {"id": "boostKeyTransactions", "active": True},
-                {"id": "boostLowVolumeTransactions", "active": True},
+                {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+                {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": True},
+                {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": True},
+                {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": True},
+                {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": True},
                 {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
                 {"id": RuleType.RECALIBRATION_RULE.value, "active": True},
+                {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": False},
             ]
 
     def test_dynamic_sampling_bias_activation(self):
@@ -1682,7 +1678,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         self.project.update_option(
             "sentry:dynamic_sampling_biases",
             [
-                {"id": "boostEnvironments", "active": False},
+                {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
                 {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
             ],
         )
@@ -1707,7 +1703,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 HTTP_AUTHORIZATION=authorization,
                 data={
                     "dynamicSamplingBiases": [
-                        {"id": "boostEnvironments", "active": True},
+                        {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": True},
                     ]
                 },
             )
@@ -1726,7 +1722,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         self.project.update_option(
             "sentry:dynamic_sampling_biases",
             [
-                {"id": "boostEnvironments", "active": True},
+                {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": True},
                 {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
             ],
         )
@@ -1751,7 +1747,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 HTTP_AUTHORIZATION=authorization,
                 data={
                     "dynamicSamplingBiases": [
-                        {"id": "boostEnvironments", "active": False},
+                        {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
                         {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
                     ]
                 },
@@ -1785,16 +1781,14 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         Test when user is on a new plan and is trying to update dynamic sampling features of a new plan
         """
         new_biases = [
-            {"id": "boostEnvironments", "active": False},
-            {
-                "id": "boostLatestRelease",
-                "active": False,
-            },
-            {"id": "ignoreHealthChecks", "active": False},
-            {"id": "boostKeyTransactions", "active": False},
-            {"id": "boostLowVolumeTransactions", "active": False},
+            {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+            {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": False},
             {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
             {"id": RuleType.RECALIBRATION_RULE.value, "active": False},
+            {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": False},
         ]
         with Feature(
             {
@@ -1874,129 +1868,23 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 "Error: Only 'id' and 'active' fields are allowed for bias."
             ]
 
-    @with_feature(
-        {
-            "organizations:dynamic-sampling-minimum-sample-rate": True,
-            "organizations:dynamic-sampling-custom": True,
-        }
-    )
-    def test_dynamic_sampling_minimum_sample_rate_with_feature(self):
-        """Test setting and getting dynamicSamplingMinimumSampleRate with feature flag enabled"""
-        # Test setting to True
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            method="put",
-            dynamicSamplingMinimumSampleRate=True,
-        )
-        assert response.data["dynamicSamplingMinimumSampleRate"] is True
-        assert self.project.get_option("sentry:dynamic_sampling_minimum_sample_rate") is True
 
-        # Test getting the field after setting it
-        get_response = self.get_success_response(
-            self.organization.slug, self.project.slug, method="get"
-        )
-        assert "dynamicSamplingMinimumSampleRate" in get_response.data
-        assert get_response.data["dynamicSamplingMinimumSampleRate"] is True
+class TestTempestProjectDetails(TestProjectDetailsBase):
+    endpoint = "sentry-api-0-project-details"
 
-        # Test setting to False
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            method="put",
-            dynamicSamplingMinimumSampleRate=False,
+    def setUp(self):
+        super().setUp()
+        self.url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+            },
         )
-        assert response.data["dynamicSamplingMinimumSampleRate"] is False
-        assert self.project.get_option("sentry:dynamic_sampling_minimum_sample_rate") is False
-
-        # Test getting the field after setting it to False
-        get_response = self.get_success_response(
-            self.organization.slug, self.project.slug, method="get"
-        )
-        assert "dynamicSamplingMinimumSampleRate" in get_response.data
-        assert get_response.data["dynamicSamplingMinimumSampleRate"] is False
-
-    def test_dynamic_sampling_minimum_sample_rate_without_feature(self):
-        """Test setting and getting dynamicSamplingMinimumSampleRate without feature flag"""
-        # Test setting the field without feature flag - should fail
-        self.get_error_response(
-            self.organization.slug,
-            self.project.slug,
-            method="put",
-            dynamicSamplingMinimumSampleRate=True,
-            status_code=400,
-        )
-
-        # Test that the field is not present in GET response without feature flag
-        get_response = self.get_success_response(
-            self.organization.slug, self.project.slug, method="get"
-        )
-        assert not get_response.data["dynamicSamplingMinimumSampleRate"]
-
-    @with_feature(
-        {
-            "organizations:dynamic-sampling-minimum-sample-rate": True,
-            "organizations:dynamic-sampling-custom": True,
-        }
-    )
-    def test_dynamic_sampling_minimum_sample_rate_validation(self):
-        """Test validation of dynamicSamplingMinimumSampleRate parameter types"""
-        # Ensure initial state is False
-        assert self.project.get_option("sentry:dynamic_sampling_minimum_sample_rate") is False
-
-        # Test with valid boolean value
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            method="put",
-            dynamicSamplingMinimumSampleRate=True,
-        )
-        assert response.data["dynamicSamplingMinimumSampleRate"] is True
-        assert self.project.get_option("sentry:dynamic_sampling_minimum_sample_rate") is True
-
-        # Test with valid string value
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            method="put",
-            dynamicSamplingMinimumSampleRate="true",
-        )
-        assert response.data["dynamicSamplingMinimumSampleRate"] is True
-        assert self.project.get_option("sentry:dynamic_sampling_minimum_sample_rate") is True
-
-        # Test with valid number value
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            method="put",
-            dynamicSamplingMinimumSampleRate=1,
-        )
-        assert response.data["dynamicSamplingMinimumSampleRate"] is True
-        assert self.project.get_option("sentry:dynamic_sampling_minimum_sample_rate") is True
-
-        # Test with invalid float value
-        response = self.get_error_response(
-            self.organization.slug,
-            self.project.slug,
-            method="put",
-            dynamicSamplingMinimumSampleRate=0.5,
-            status_code=400,
-        )
-        assert "Must be a valid boolean." in response.data["dynamicSamplingMinimumSampleRate"][0]
-        # Ensure the project option wasn't changed by invalid request
-        assert self.project.get_option("sentry:dynamic_sampling_minimum_sample_rate") is True
-
-        # Test with null/None value
-        response = self.get_error_response(
-            self.organization.slug,
-            self.project.slug,
-            method="put",
-            dynamicSamplingMinimumSampleRate=None,
-            status_code=400,
-        )
-        assert "This field may not be null." in response.data["dynamicSamplingMinimumSampleRate"][0]
-        # Ensure the project option wasn't changed by invalid request
-        assert self.project.get_option("sentry:dynamic_sampling_minimum_sample_rate") is True
+        self.login_as(user=self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        self.authorization = f"Bearer {token.token}"
 
     @with_feature("organizations:tempest-access")
     def test_put_tempest_fetch_screenshots(self):
@@ -2055,6 +1943,24 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             self.organization.slug, self.project.slug, method="get"
         )
         assert "tempestFetchDumps" not in response.data
+
+
+class TestSeerProjectDetails(TestProjectDetailsBase):
+    endpoint = "sentry-api-0-project-details"
+
+    def setUp(self):
+        super().setUp()
+        self.url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+            },
+        )
+        self.login_as(user=self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        self.authorization = f"Bearer {token.token}"
 
     def test_autofix_automation_tuning(self):
         # Test without feature flag - should fail

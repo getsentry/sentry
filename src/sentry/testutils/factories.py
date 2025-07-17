@@ -30,6 +30,7 @@ from django.utils.text import slugify
 from sentry.auth.access import RpcBackedAccess
 from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
+from sentry.data_secrecy.models.data_access_grant import DataAccessGrant
 from sentry.event_manager import EventManager
 from sentry.eventstore.models import Event
 from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
@@ -568,6 +569,11 @@ class Factories:
             project_template = ProjectTemplate.objects.create(organization=organization, **kwargs)
 
         return project_template
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_data_access_grant(**kwargs):
+        return DataAccessGrant.objects.create(**kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

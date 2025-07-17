@@ -69,7 +69,7 @@ function Pagination({
   return (
     <Wrapper className={className} data-test-id="pagination">
       {caption && <PaginationCaption>{caption}</PaginationCaption>}
-      <ButtonBar merged>
+      <ButtonBar merged gap="none">
         <Button
           icon={<IconChevron direction="left" />}
           aria-label={t('Previous')}

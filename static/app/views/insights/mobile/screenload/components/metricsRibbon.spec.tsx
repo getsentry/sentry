@@ -5,7 +5,6 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DurationUnit} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
 
@@ -56,7 +55,6 @@ describe('MetricsRibbon', function () {
 
     render(
       <MobileMetricsRibbon
-        dataset={DiscoverDatasets.SPANS_METRICS}
         filters={[
           'duration:>0',
           'transaction.op:ui.load',
@@ -87,7 +85,7 @@ describe('MetricsRibbon', function () {
         query: expect.objectContaining({
           query: 'duration:>0 transaction.op:ui.load transaction:test-transaction',
           referrer: 'test-referrer',
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           field: ['count()', 'avg(span.duration)'],
         }),
       })

@@ -3,8 +3,6 @@ import {css} from '@emotion/react';
 
 // eslint-disable-next-line boundaries/element-types
 import {type SVGIconProps} from 'sentry/icons/svgIcon';
-// eslint-disable-next-line boundaries/element-types
-import {space} from 'sentry/styles/space';
 
 import type {
   DO_NOT_USE_ButtonProps as ButtonProps,
@@ -211,7 +209,7 @@ export function DO_NOT_USE_getButtonStyles(
     css`
       height: auto;
       min-height: auto;
-      padding: ${space(0.25)};
+      padding: ${p.theme.space['2xs']};
     `}
 
   &:focus {

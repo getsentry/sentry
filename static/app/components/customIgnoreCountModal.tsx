@@ -78,7 +78,7 @@ export default function CustomIgnoreCountModal(props: Props) {
         />
       </Body>
       <Footer>
-        <ButtonBar gap={1}>
+        <ButtonBar>
           <Button onClick={closeModal}>{t('Cancel')}</Button>
           <Button priority="primary" onClick={handleSubmit}>
             {t('Ignore')}

@@ -82,4 +82,35 @@ describe('formatSeriesName', () => {
       expect(formatTimeSeriesName(timeSeries)).toEqual(result);
     });
   });
+
+  describe('groupBy', () => {
+    it.each([
+      [
+        'equation|p75(measurements.cls);76123',
+        [{key: 'release', value: 'v0.0.2'}],
+        'v0.0.2',
+      ],
+      ['p95(span.duration)', [{key: 'release', value: 'v0.0.2'}], 'v0.0.2'],
+      [
+        'p95(span.duration)',
+        [
+          {key: 'release', value: 'v0.0.2'},
+          {key: 'env', value: 'prod'},
+        ],
+        'v0.0.2,prod',
+      ],
+      [
+        'p95(span.duration)',
+        [{key: 'release', value: 'frontend@31804d9a5f0b5e4f53055467cd258e1c'}],
+        '31804d9a5f0b',
+      ],
+    ])('Formats %s with groupBy %s as %s', (name, groupBy, result) => {
+      const timeSeries = TimeSeriesFixture({
+        yAxis: name,
+        groupBy,
+      });
+
+      expect(formatTimeSeriesName(timeSeries)).toEqual(result);
+    });
+  });
 });

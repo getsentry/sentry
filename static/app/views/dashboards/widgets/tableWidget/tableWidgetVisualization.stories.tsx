@@ -21,12 +21,10 @@ export default Storybook.story('TableWidgetVisualization', story => {
   const customColumns: TabularColumn[] = [
     {
       key: 'count(span.duration)',
-      name: 'count(span.duration)',
       type: 'number',
     },
     {
       key: 'http.request_method',
-      name: 'http.request_method',
       type: 'string',
     },
   ];
@@ -407,6 +405,16 @@ function getRenderer(fieldName: string) {
           used as a loading placeholder
         </p>
         <TableWidgetVisualization.LoadingPlaceholder />
+        <p>
+          Optionally, you can pass the
+          <code>columns</code>
+          prop to render them in the loading placeholder. You can also pass
+          <code>aliases</code> to apply custom names to columns. Note: sorting and
+          resizing are disabled in the loading placeholder.
+        </p>
+        <TableWidgetVisualization.LoadingPlaceholder
+          columns={customColumns.map(column => ({...column, width: -1}))}
+        />
       </Fragment>
     );
   });

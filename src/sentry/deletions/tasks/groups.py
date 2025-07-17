@@ -39,7 +39,14 @@ def delete_groups(
     from sentry import deletions, eventstream
     from sentry.models.group import Group
 
-    first_group = Group.objects.get(id=object_ids[0])
+    max_batch_size = 100
+    current_batch, rest = object_ids[:max_batch_size], object_ids[max_batch_size:]
+
+    # Select first_group from current_batch to ensure project_id tag reflects the current batch
+    first_group = Group.objects.filter(id__in=current_batch).order_by("id").first()
+    if not first_group:
+        raise DeleteAborted("delete_groups.no_group_found")
+
     # The tags can be used if we want to find errors for when a task fails
     sentry_sdk.set_tags(
         {
@@ -48,8 +55,6 @@ def delete_groups(
         },
     )
 
-    max_batch_size = 100
-    current_batch, rest = object_ids[:max_batch_size], object_ids[max_batch_size:]
     transaction_id = transaction_id or uuid4().hex
 
     logger.info(

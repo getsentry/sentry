@@ -587,7 +587,7 @@ export default function AssigneeSelectorDropdown({
   );
 }
 
-export const AssigneeWrapper = styled('div')`
+const AssigneeWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
   text-align: left;

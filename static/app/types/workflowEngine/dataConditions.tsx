@@ -106,9 +106,3 @@ export interface DataConditionHandler {
   type: DataConditionType;
   handlerSubgroup?: DataConditionHandlerSubgroupType;
 }
-
-// for keeping track of conflicting condition ids in the UI
-export interface ConflictingConditions {
-  conflictingActionFilters: Record<string, string[]>;
-  conflictingTriggers: string[];
-}

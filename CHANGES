@@ -1,3 +1,35 @@
+25.7.0
+------
+
+### Various fixes & improvements
+
+- ref(deletions): Remove unnecessary Seer calls in endpoint (#93541) by @armenzg
+- chore(detectors): Clean up detection settings  (#95561) by @roggenkemper
+- ref(stories): rename sections (to core + product) (#95562) by @natemoo-re
+- fix(Jira-Server): Adds halts, better exceptions for failed syncs (#95281) by @GabeVillalobos
+- fix(stories): adjust routing (#95442) by @natemoo-re
+- feat(taskworker): Zstd compress process profile task (#95545) by @enochtangg
+- chore(relay): update VALID_PLATFORMS from relay location comment (#95510) by @cvxluo
+- ref(ecosystem): refactor link_all_repos to bulk update repositories (#95494) by @cathteng
+- build: fix storybook types (#95556) by @JonasBa
+- feat(replay): Unify the tooltips into one for replay details os/browser (#95558) by @ryan953
+- feat(otlp): Parse JSON-looking attributes in span attributes panel (#95544) by @gggritso
+- chore(aci): setup single processing flag for issue alerts in workflow engine (#95178) by @cathteng
+- feat(otlp): Register flag for displaying span links in the trace view UI (#95549) by @gggritso
+- ref(ui): make "md" the new buttonBar gap default (#95551) by @TkDodo
+- feat: Add dashboard widget snapshot model (#95236) by @shruthilayaj
+- [ft] Add a enable PR review + test gen setting at an org level (#95456) by @rohitvinnakota-codecov
+- fix(explore): Only permit span.duration for eap count (#95480) by @Zylphrex
+- ref: replace space function with p.theme.space in core/button (#95414) by @TkDodo
+- chore(nextjs-insights): remove feature flag registration (#95543) by @shellmayr
+- fix(taskworker) Add a short backoff when fetching tasks (#95346) by @markstory
+- chore(ui): Increase contrast on issues chart (#95349) by @leeandher
+- feat(tours): re-implement tour with inverse theme (#95530) by @TkDodo
+- fix(explore): Prettify aggregation in saved queries (#95479) by @Zylphrex
+- :wrench: chore(aci): update `send_activity_notification` to not send notifications for metric alert resolutions (#95476) by @iamrajjoshi
+
+_Plus 670 more_
+
 25.6.2
 ------
 

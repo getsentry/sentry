@@ -1,7 +1,7 @@
 import {formatLLMCosts} from 'sentry/views/insights/agentMonitoring/utils/formatLLMCosts';
 
 interface LLMCostsProps {
-  cost: number | string;
+  cost: number | string | null;
   className?: string;
 }
 
@@ -15,7 +15,7 @@ export function LLMCosts({cost, className}: LLMCostsProps) {
         maximumFractionDigits: 8,
       })}
     >
-      {formatLLMCosts(cost)}
+      {cost ? formatLLMCosts(cost) : '-'}
     </span>
   );
 }

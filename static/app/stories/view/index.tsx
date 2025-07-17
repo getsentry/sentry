@@ -1,35 +1,50 @@
-import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {StorySidebar} from 'sentry/stories/view/storySidebar';
+import {useStoryRedirect} from 'sentry/stories/view/useStoryRedirect';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
+import {StoryLanding} from './landing';
 import {StoryExports} from './storyExports';
 import {StoryHeader} from './storyHeader';
-import {useStoriesLoader, useStoryBookFiles} from './useStoriesLoader';
+import {useStoriesLoader} from './useStoriesLoader';
 
 export default function Stories() {
+  const location = useLocation();
+  return isLandingPage(location) ? <StoriesLanding /> : <StoryDetail />;
+}
+
+function isLandingPage(location: ReturnType<typeof useLocation>) {
+  return /\/stories\/?$/.test(location.pathname) && !location.query.name;
+}
+
+function StoriesLanding() {
+  return (
+    <RouteAnalyticsContextProvider>
+      <OrganizationContainer>
+        <Layout style={{gridTemplateColumns: 'auto'}}>
+          <HeaderContainer>
+            <StoryHeader />
+          </HeaderContainer>
+          <StoryMainContainer style={{gridColumn: '1 / -1'}}>
+            <StoryLanding />
+          </StoryMainContainer>
+        </Layout>
+      </OrganizationContainer>
+    </RouteAnalyticsContextProvider>
+  );
+}
+
+function StoryDetail() {
+  useStoryRedirect();
   const location = useLocation<{name: string; query?: string}>();
-  const files = useStoryBookFiles();
-
-  // If no story is selected, show the landing page stories
-  const storyFiles = useMemo(() => {
-    if (!location.query.name) {
-      return files.filter(
-        file =>
-          file.endsWith('styles/colors.mdx') ||
-          file.endsWith('styles/typography.stories.tsx')
-      );
-    }
-    return [location.query.name];
-  }, [files, location.query.name]);
-
-  const story = useStoriesLoader({files: storyFiles});
+  const files = [location.state?.storyPath ?? location.query.name];
+  const story = useStoriesLoader({files});
 
   return (
     <RouteAnalyticsContextProvider>

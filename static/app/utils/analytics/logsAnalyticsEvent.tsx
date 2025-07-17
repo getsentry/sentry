@@ -7,6 +7,15 @@ export enum LogsAnalyticsPageSource {
 }
 
 export type LogsAnalyticsEventParameters = {
+  'logs.auto_refresh.timeout': {
+    organization: Organization;
+    page_source: LogsAnalyticsPageSource;
+  };
+  'logs.auto_refresh.toggled': {
+    enabled: boolean;
+    organization: Organization;
+    page_source: LogsAnalyticsPageSource;
+  };
   'logs.doc_link.clicked': {
     organization: Organization;
   };
@@ -34,8 +43,10 @@ export type LogsAnalyticsEventParameters = {
 type LogsAnalyticsEventKey = keyof LogsAnalyticsEventParameters;
 
 export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null> = {
-  'logs.explorer.metadata': 'Log Explorer Pageload Metadata',
-  'logs.table.row_expanded': 'Expanded Log Row Details',
-  'logs.issue_details.drawer_opened': 'Issues Page Logs Drawer Opened',
+  'logs.auto_refresh.timeout': 'Log Auto-refresh Timeout',
+  'logs.auto_refresh.toggled': 'Log Auto-refresh Toggled',
   'logs.doc_link.clicked': 'Logs documentation link clicked',
+  'logs.explorer.metadata': 'Log Explorer Pageload Metadata',
+  'logs.issue_details.drawer_opened': 'Issues Page Logs Drawer Opened',
+  'logs.table.row_expanded': 'Expanded Log Row Details',
 };

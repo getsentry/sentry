@@ -65,8 +65,8 @@ import {
 const USAGE_CHART_OPTIONS_DATACATEGORY = [
   ...CHART_OPTIONS_DATACATEGORY,
   {
-    label: DATA_CATEGORY_INFO.spanIndexed.titleName,
-    value: DATA_CATEGORY_INFO.spanIndexed.plural,
+    label: DATA_CATEGORY_INFO.span_indexed.titleName,
+    value: DATA_CATEGORY_INFO.span_indexed.plural,
     yAxisMinInterval: 100,
   },
 ];

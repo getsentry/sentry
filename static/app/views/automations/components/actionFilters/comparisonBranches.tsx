@@ -6,6 +6,7 @@ import {
   COMPARISON_INTERVAL_CHOICES,
   INTERVAL_CHOICES,
 } from 'sentry/views/automations/components/actionFilters/constants';
+import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 export function CountBranch() {
@@ -25,6 +26,8 @@ export function PercentBranch() {
 
 function ValueField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
+  const {removeError} = useAutomationBuilderErrorContext();
+
   return (
     <AutomationBuilderNumberInput
       name={`${condition_id}.comparison.value`}
@@ -34,14 +37,16 @@ function ValueField() {
       step={1}
       onChange={(value: number) => {
         onUpdate({comparison: {...condition.comparison, value}});
+        removeError(condition.id);
       }}
-      placeholder="100"
     />
   );
 }
 
 function IntervalField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
+  const {removeError} = useAutomationBuilderErrorContext();
+
   return (
     <AutomationBuilderSelect
       name={`${condition_id}.comparison.interval`}
@@ -50,6 +55,7 @@ function IntervalField() {
       options={INTERVAL_CHOICES}
       onChange={(option: SelectValue<string>) => {
         onUpdate({comparison: {...condition.comparison, interval: option.value}});
+        removeError(condition.id);
       }}
     />
   );
@@ -57,6 +63,8 @@ function IntervalField() {
 
 function ComparisonIntervalField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
+  const {removeError} = useAutomationBuilderErrorContext();
+
   return (
     <AutomationBuilderSelect
       name={`${condition_id}.comparison.comparison_interval`}
@@ -67,6 +75,7 @@ function ComparisonIntervalField() {
         onUpdate({
           comparison: {...condition.comparison, comparison_interval: option.value},
         });
+        removeError(condition.id);
       }}
     />
   );

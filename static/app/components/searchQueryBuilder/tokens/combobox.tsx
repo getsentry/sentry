@@ -17,6 +17,7 @@ import {type ComboBoxState, useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
 
 import Feature from 'sentry/components/acl/feature';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import type {
   SelectKey,
@@ -287,7 +288,9 @@ function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
     <AskSeerListItem ref={ref} onClick={handleClick} {...optionProps}>
       <InteractionStateLayer isHovered={isFocused} isPressed={isPressed} />
       <IconSeer />
-      <AskSeerLabel {...labelProps}>{t('Ask Seer')}</AskSeerLabel>
+      <AskSeerLabel {...labelProps}>
+        {t('Ask Seer')} <FeatureBadge type="beta" />
+      </AskSeerLabel>
     </AskSeerListItem>
   );
 }

@@ -1369,6 +1369,87 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_success_response(self.organization.slug, **data)
         assert self.organization.get_option("sentry:default_seer_scanner_automation") is True
 
+    @with_feature({"organizations:project-creation-games-tab": False})
+    def test_enabled_console_platforms_feature_not_enabled(self):
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=staff_user, role="owner")
+        self.login_as(user=staff_user, staff=True)
+
+        data = {"enabledConsolePlatforms": ["playstation", "xbox"]}
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert response.data["enabledConsolePlatforms"] == [
+            "Organization does not have the project creation games tab feature enabled."
+        ]
+
+        response = self.get_success_response(self.organization.slug)
+        assert "enabledConsolePlatforms" not in response.data
+
+    @with_feature({"organizations:project-creation-games-tab": True})
+    def test_enabled_console_platforms_feature_enabled(self):
+        response = self.get_success_response(self.organization.slug)
+        assert "enabledConsolePlatforms" in response.data
+        assert response.data["enabledConsolePlatforms"] == []
+
+    @with_feature({"organizations:project-creation-games-tab": False})
+    def test_enabled_console_platforms_no_staff_member(self):
+        data = {"enabledConsolePlatforms": ["playstation", "xbox"]}
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert response.data["enabledConsolePlatforms"] == [
+            "Only staff members can toggle console platforms."
+        ]
+
+    @with_feature({"organizations:project-creation-games-tab": True})
+    def test_enabled_console_platforms_multiple_platforms_parameter(self):
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=staff_user, role="owner")
+        self.login_as(user=staff_user, staff=True)
+
+        data = {"enabledConsolePlatforms": ["playstation", "xbox"]}
+        self.get_success_response(self.organization.slug, **data)
+        enabled_platforms = self.organization.get_option("sentry:enabled_console_platforms")
+        assert len(enabled_platforms) == 2 and set(enabled_platforms) == {"playstation", "xbox"}
+
+    @with_feature({"organizations:project-creation-games-tab": True})
+    def test_enabled_console_platforms_empty_platforms_parameter(self):
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=staff_user, role="owner")
+        self.login_as(user=staff_user, staff=True)
+
+        data: dict[str, list[str]] = {"enabledConsolePlatforms": []}
+        self.get_success_response(self.organization.slug, **data)
+        enabled_platforms = self.organization.get_option("sentry:enabled_console_platforms")
+        assert enabled_platforms == []
+
+    @with_feature({"organizations:project-creation-games-tab": True})
+    def test_enabled_console_platforms_duplicate_platform_parameter(self):
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=staff_user, role="owner")
+        self.login_as(user=staff_user, staff=True)
+
+        data = {"enabledConsolePlatforms": ["playstation", "playstation"]}
+        self.get_success_response(self.organization.slug, **data)
+        enabled_platforms = self.organization.get_option("sentry:enabled_console_platforms")
+        assert enabled_platforms == ["playstation"]
+
+    def test_enable_pr_review_test_generation_default_true(self):
+        response = self.get_success_response(self.organization.slug)
+        assert response.data["enablePrReviewTestGeneration"] is True
+
+    def test_enable_pr_review_test_generation_can_be_disabled(self):
+        data = {"enablePrReviewTestGeneration": False}
+        self.get_success_response(self.organization.slug, **data)
+
+        assert self.organization.get_option("sentry:enable_pr_review_test_generation") is False
+
+    def test_enable_pr_review_test_generation_can_be_enabled(self):
+        # First disable it
+        self.organization.update_option("sentry:enable_pr_review_test_generation", False)
+
+        data = {"enablePrReviewTestGeneration": True}
+        self.get_success_response(self.organization.slug, **data)
+
+        assert self.organization.get_option("sentry:enable_pr_review_test_generation") is True
+
 
 class OrganizationDeleteTest(OrganizationDetailsTestBase):
     method = "delete"
