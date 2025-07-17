@@ -43,7 +43,7 @@ class Filter:
         self,
         start: datetime | None = None,
         end: datetime | None = None,
-        conditions: Sequence[Condition] | None = None,
+        conditions: list[Condition] | None = None,  # List in order to extend
         having: Sequence[Condition] | None = None,
         user_id: int | None = None,
         organization_id: int | None = None,
