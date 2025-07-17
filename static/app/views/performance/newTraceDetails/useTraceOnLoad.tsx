@@ -12,7 +12,7 @@ import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceMod
 import {TraceTree} from './traceModels/traceTree';
 import type {TracePreferencesState} from './traceState/tracePreferences';
 import {useTraceState} from './traceState/traceStateProvider';
-import {isEAPTransactionNode, isTransactionNode} from './traceGuards';
+import {isEAPTraceNode, isEAPTransactionNode, isTransactionNode} from './traceGuards';
 import type {TraceReducerState} from './traceState';
 import type {useTraceScrollToPath} from './useTraceScrollToPath';
 
@@ -35,7 +35,7 @@ async function maybeAutoExpandTrace(
     return tree;
   }
 
-  const spansCount = isEAPTransactionNode(traceNode)
+  const spansCount = isEAPTraceNode(traceNode)
     ? tree.eap_spans_count
     : (meta.data?.span_count ?? 0);
 
