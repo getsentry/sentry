@@ -172,7 +172,7 @@ class GroupRegistryTest(BaseGroupTypeTest):
         class UnreleasedGroupType(GroupType):
             type_id = 9999
             slug = "unreleased_group_type"
-            description = "Mcok unreleased issue group"
+            description = "Mock unreleased issue group"
             released = False
             category = GroupCategory.ERROR.value
             category_v2 = GroupCategory.ERROR.value

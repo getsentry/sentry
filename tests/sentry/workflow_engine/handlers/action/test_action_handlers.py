@@ -50,6 +50,7 @@ class TestNotificationActionHandler(BaseWorkflowTest):
     def test_execute_metric_alert_type(self, mock_registry_get):
         """Test that execute calls correct handler for MetricIssue"""
         self.detector.type = MetricIssue.slug
+        self.detector.config = {"threshold_period": 1, "detection_type": "static"}
         self.detector.save()
 
         mock_handler = mock.Mock()

@@ -339,8 +339,11 @@ class ActivityTest(TestCase):
 
         group.type = MetricIssue.type_id
         group.save()
-        _ = Activity.objects.create_group_activity(
-            group=group, type=ActivityType.SET_RESOLVED, data=None, send_notification=True
-        )
+
+        # Mock the MetricIssue to disable status change notifications
+        with patch.object(MetricIssue, "enable_status_change_workflow_notifications", False):
+            _ = Activity.objects.create_group_activity(
+                group=group, type=ActivityType.SET_RESOLVED, data=None, send_notification=True
+            )
 
         mock_send_activity_notifications.assert_not_called()
