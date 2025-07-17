@@ -65,9 +65,34 @@ interface CellProps {
 }
 
 export interface ReplayTableColumn {
+  /**
+   * Render the content
+   * Content will be automatically wrapped with `<SimpleTable.RowCell>`
+   */
   Component: (props: CellProps) => ReactNode;
+
+  /**
+   * Render the header
+   * Header will be automatically wrapped with `<SimpleTable.HeaderCell>`
+   */
   Header: string | ((props: HeaderProps) => ReactNode);
+
+  /**
+   * If any columns in the table are interactive, we will add an
+   * `<InteractionStateLayer>` to each row.
+   */
+  interactive: boolean;
+
+  /**
+   * The `ReplayListRecord` key to sort by
+   * If `undefined`, the column header will not be clickable.
+   */
   sortKey: undefined | ReplayRecordNestedFieldName;
+
+  /**
+   * The width of the column
+   * Defaults to `max-content`
+   */
   width?: string;
 }
 
@@ -81,6 +106,7 @@ export const ReplayActivityColumn: ReplayTableColumn = {
       {t('Activity')}
     </Tooltip>
   ),
+  interactive: false,
   sortKey: 'activity',
   Component: ({replay, showDropdownFilters}) => {
     const theme = useTheme();
@@ -108,6 +134,7 @@ export const ReplayActivityColumn: ReplayTableColumn = {
 
 export const ReplayBrowserColumn: ReplayTableColumn = {
   Header: t('Browser'),
+  interactive: false,
   sortKey: 'browser.name',
   Component: ({replay, showDropdownFilters}) => {
     const theme = useTheme();
@@ -153,6 +180,7 @@ export const ReplayCountDeadClicksColumn: ReplayTableColumn = {
       {t('Dead clicks')}
     </Tooltip>
   ),
+  interactive: false,
   sortKey: 'count_dead_clicks',
   Component: ({replay, showDropdownFilters}) => {
     if (replay.is_archived) {
@@ -202,6 +230,7 @@ export const ReplayCountErrorsColumn: ReplayTableColumn = {
       {t('Errors')}
     </Tooltip>
   ),
+  interactive: false,
   sortKey: 'count_errors',
   Component: ({replay, showDropdownFilters}) => {
     if (replay.is_archived) {
@@ -244,6 +273,7 @@ export const ReplayCountRageClicksColumn: ReplayTableColumn = {
       {t('Rage clicks')}
     </Tooltip>
   ),
+  interactive: false,
   sortKey: 'count_rage_clicks',
   Component: ({replay, showDropdownFilters}) => {
     if (replay.is_archived) {
@@ -274,6 +304,7 @@ export const ReplayCountRageClicksColumn: ReplayTableColumn = {
 
 export const ReplayDetailsLinkColumn: ReplayTableColumn = {
   Header: '',
+  interactive: true,
   sortKey: undefined,
   Component: ({replay}) => {
     const organization = useOrganization();
@@ -289,6 +320,7 @@ export const ReplayDetailsLinkColumn: ReplayTableColumn = {
 
 export const ReplayDurationColumn: ReplayTableColumn = {
   Header: t('Duration'),
+  interactive: false,
   sortKey: 'duration',
   Component: ({replay, showDropdownFilters}) => {
     if (replay.is_archived) {
@@ -315,6 +347,7 @@ export const ReplayDurationColumn: ReplayTableColumn = {
 
 export const ReplayOSColumn: ReplayTableColumn = {
   Header: t('OS'),
+  interactive: false,
   sortKey: 'os.name',
   Component: ({replay, showDropdownFilters}) => {
     const theme = useTheme();
@@ -344,6 +377,7 @@ export const ReplayOSColumn: ReplayTableColumn = {
 
 export const ReplayPlayPauseColumn: ReplayTableColumn = {
   Header: '',
+  interactive: true,
   sortKey: undefined,
   Component: ({replay, rowIndex}) => {
     const location = useLocation();
@@ -415,6 +449,7 @@ export const ReplaySelectColumn: ReplayTableColumn = {
       </CheckboxHeaderContainer>
     );
   },
+  interactive: true,
   sortKey: undefined,
   Component: ({replay}) => {
     const organization = useOrganization();
@@ -453,6 +488,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
       {t('Replay')}
     </Tooltip>
   ),
+  interactive: true,
   sortKey: 'started_at',
   width: 'minmax(150px, 1fr)',
   Component: ({replay}) => {
@@ -551,6 +587,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
 
 export const ReplaySlowestTransactionColumn: ReplayTableColumn = {
   Header: t('Slowest Transaction'),
+  interactive: false,
   sortKey: undefined,
   Component: ({replay}) => {
     const location = useLocation();
