@@ -66,10 +66,7 @@ export default function Ai() {
     ) : null;
   };
 
-  if (
-    !organization.features.includes('replay-ai-summaries') ||
-    !organization.features.includes('gen-ai-features')
-  ) {
+  if (!organization.features.includes('replay-ai-summaries')) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <EmptySummaryContainer>
@@ -78,6 +75,36 @@ export default function Ai() {
           </Alert>
         </EmptySummaryContainer>
       </Wrapper>
+    );
+  }
+
+  // If replay-ai-summaries is enabled but gen-ai-features is not, show CTA
+  if (!organization.features.includes('gen-ai-features')) {
+    return (
+      <SummaryContainer>
+        <CallToActionContainer>
+          <Flex direction="column" gap={space(2)}>
+            <div>
+              <strong>{t('Enable AI-Powered Features')}</strong>
+            </div>
+            <div>
+              {t(
+                'Get AI-powered insights and summaries for your replays. Enable generative AI features in your organization settings to unlock this functionality.'
+              )}
+            </div>
+            <div>
+              <Button
+                size="sm"
+                priority="primary"
+                external
+                href="https://sentry.io/settings/organization/"
+              >
+                {t('Enable in Settings')}
+              </Button>
+            </div>
+          </Flex>
+        </CallToActionContainer>
+      </SummaryContainer>
     );
   }
 
@@ -241,4 +268,12 @@ const StyledTabItemContainer = styled(TabItemContainer)`
 const OverflowBody = styled('section')`
   flex: 1 1 auto;
   overflow: auto;
+`;
+
+const CallToActionContainer = styled('div')`
+  padding: ${space(3)};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  text-align: center;
+  background: ${p => p.theme.backgroundSecondary};
 `;
