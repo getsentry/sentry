@@ -6,7 +6,7 @@ class IntegrationsFailedToFetchCommitContextAllFrames(analytics.Event):
     organization_id: int
     project_id: int
     group_id: int
-    event_id: int
+    event_id: str
     num_frames: int
     num_successfully_mapped_frames: int
     reason: str
@@ -17,7 +17,7 @@ class IntegrationsSuccessfullyFetchedCommitContextAllFrames(analytics.Event):
     organization_id: int
     project_id: int
     group_id: int
-    event_id: int
+    event_id: str
     num_frames: int
     num_unique_commits: int
     num_unique_commit_authors: int
