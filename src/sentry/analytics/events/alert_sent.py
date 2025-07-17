@@ -6,7 +6,7 @@ class AlertSentEvent(analytics.Event):
     organization_id: int
     project_id: int
     # The id of the Alert or AlertRule
-    alert_id: str
+    alert_id: int | str
     # "issue_alert" or "metric_alert"
     alert_type: str
     # Slack, msteams, email, etc.
