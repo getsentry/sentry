@@ -31,6 +31,7 @@ import {LegacyLLMMonitoringInfoAlert} from 'sentry/views/insights/agentMonitorin
 import LLMGenerationsWidget from 'sentry/views/insights/agentMonitoring/components/llmGenerationsWidget';
 import {ModelsTable} from 'sentry/views/insights/agentMonitoring/components/modelsTable';
 import TokenCostWidget from 'sentry/views/insights/agentMonitoring/components/tokenCostWidget';
+import TokenDistributionWidget from 'sentry/views/insights/agentMonitoring/components/tokenDistributionWidget';
 import TokenThroughputWidget from 'sentry/views/insights/agentMonitoring/components/tokenThroughputWidget';
 import TokenUsageWidget from 'sentry/views/insights/agentMonitoring/components/tokenUsageWidget';
 import {ToolsTable} from 'sentry/views/insights/agentMonitoring/components/toolsTable';
@@ -189,7 +190,7 @@ function AgentsMonitoringPage() {
                         <TokenUsageWidget />
                       </WidgetGrid.Position4>
                       <WidgetGrid.Position5>
-                        <TokensPerTypeWidget />
+                        <TokenDistributionWidget />
                       </WidgetGrid.Position5>
                       <WidgetGrid.Position6>
                         <TokenCostWidget />
@@ -273,14 +274,6 @@ export function ToolErrorsWidget() {
   );
 }
 
-export function TokensPerTypeWidget() {
-  return (
-    <Widget
-      Title={<Widget.WidgetTitle title={t('Token Distribution')} />}
-      Visualization={<PlaceholderText />}
-    />
-  );
-}
 const PlaceholderContent = styled('div')`
   display: flex;
   flex: 1;
