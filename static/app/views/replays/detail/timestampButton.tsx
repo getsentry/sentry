@@ -1,13 +1,16 @@
 import type {MouseEvent} from 'react';
 import styled from '@emotion/styled';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration/duration';
 import ReplayTooltipTime from 'sentry/components/replays/replayTooltipTime';
 import {IconPlay} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   startTimestampMs: number;
@@ -26,6 +29,10 @@ export default function TimestampButton({
 }: Props) {
   const [prefs] = useReplayPrefs();
   const timestampType = prefs.timestampType;
+
+  const organization = useOrganization();
+  const analyticsArea = useAnalyticsArea();
+
   return (
     <Tooltip
       title={
@@ -40,7 +47,13 @@ export default function TimestampButton({
     >
       <StyledButton
         as={onClick ? 'button' : 'span'}
-        onClick={onClick}
+        onClick={event => {
+          onClick?.(event);
+          trackAnalytics('replay.timestamp-button-clicked', {
+            organization,
+            area: analyticsArea,
+          });
+        }}
         className={className}
       >
         <IconPlay size="xs" />
