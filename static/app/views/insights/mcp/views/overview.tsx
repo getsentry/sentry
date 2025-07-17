@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
@@ -14,7 +14,12 @@ import {
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
+import {decodeScalar} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -22,6 +27,7 @@ import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
+import {useLocationSyncedState} from 'sentry/views/insights/agentMonitoring/hooks/useLocationSyncedState';
 import {McpInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -30,16 +36,20 @@ import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/modu
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import McpTrafficWidget from 'sentry/views/insights/common/components/widgets/mcpTrafficWidget';
+import McpPromptDurationWidget from 'sentry/views/insights/mcp/components/mcpPromptDurationWidget';
+import McpPromptErrorRateWidget from 'sentry/views/insights/mcp/components/mcpPromptErrorRateWidget';
+import {McpPromptsTable} from 'sentry/views/insights/mcp/components/mcpPromptsTable';
+import McpPromptTrafficWidget from 'sentry/views/insights/mcp/components/mcpPromptTrafficWidget';
+import McpResourceDurationWidget from 'sentry/views/insights/mcp/components/mcpResourceDurationWidget';
+import McpResourceErrorRateWidget from 'sentry/views/insights/mcp/components/mcpResourceErrorRateWidget';
+import {McpResourcesTable} from 'sentry/views/insights/mcp/components/mcpResourcesTable';
+import McpResourceTrafficWidget from 'sentry/views/insights/mcp/components/mcpResourceTrafficWidget';
+import McpToolDurationWidget from 'sentry/views/insights/mcp/components/mcpToolDurationWidget';
+import McpToolErrorRateWidget from 'sentry/views/insights/mcp/components/mcpToolErrorRateWidget';
+import {McpToolsTable} from 'sentry/views/insights/mcp/components/mcpToolsTable';
+import McpToolTrafficWidget from 'sentry/views/insights/mcp/components/mcpToolTrafficWidget';
 import McpTransportWidget from 'sentry/views/insights/mcp/components/mcpTransportWidget';
-import {
-  GroupedDurationWidget,
-  GroupedErrorRateWidget,
-  GroupedTrafficWidget,
-  PromptsTable,
-  RequestsBySourceWidget,
-  ResourcesTable,
-  ToolsTable,
-} from 'sentry/views/insights/mcp/components/placeholders';
+import {RequestsBySourceWidget} from 'sentry/views/insights/mcp/components/placeholders';
 import {WidgetGrid} from 'sentry/views/insights/mcp/components/styles';
 import {MODULE_TITLE} from 'sentry/views/insights/mcp/settings';
 import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
@@ -54,6 +64,30 @@ enum ViewType {
   PROMPT = 'prompt',
 }
 
+const viewTrafficWidgets: Record<ViewType, React.ComponentType> = {
+  [ViewType.TOOL]: McpToolTrafficWidget,
+  [ViewType.RESOURCE]: McpResourceTrafficWidget,
+  [ViewType.PROMPT]: McpPromptTrafficWidget,
+};
+
+const viewDurationWidgets: Record<ViewType, React.ComponentType> = {
+  [ViewType.TOOL]: McpToolDurationWidget,
+  [ViewType.RESOURCE]: McpResourceDurationWidget,
+  [ViewType.PROMPT]: McpPromptDurationWidget,
+};
+
+const viewErrorRateWidgets: Record<ViewType, React.ComponentType> = {
+  [ViewType.TOOL]: McpToolErrorRateWidget,
+  [ViewType.RESOURCE]: McpResourceErrorRateWidget,
+  [ViewType.PROMPT]: McpPromptErrorRateWidget,
+};
+
+const viewTables: Record<ViewType, React.ComponentType> = {
+  [ViewType.TOOL]: McpToolsTable,
+  [ViewType.RESOURCE]: McpResourcesTable,
+  [ViewType.PROMPT]: McpPromptsTable,
+};
+
 function useShowOnboarding() {
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
@@ -65,18 +99,56 @@ function useShowOnboarding() {
   return !selectedProjects.some(p => p.hasInsightsMCP);
 }
 
+function decodeViewType(value: unknown): ViewType | undefined {
+  if (Object.values(ViewType).includes(value as ViewType)) {
+    return value as ViewType;
+  }
+  return undefined;
+}
+
 function McpOverviewPage() {
   const organization = useOrganization();
   const showOnboarding = useShowOnboarding();
+  const location = useLocation();
+  const navigate = useNavigate();
   const datePageFilterProps = limitMaxPickableDays(organization);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [activeTable, setActiveTable] = useState<ViewType>(ViewType.TOOL);
+  const [searchQuery, setSearchQuery] = useLocationSyncedState('query', decodeScalar);
+  const {view} = useLocationQuery({
+    fields: {
+      view: decodeViewType,
+    },
+  });
+  const activeView = view ?? ViewType.TOOL;
 
-  useEffect(() => {}, [organization, showOnboarding]);
+  useEffect(() => {
+    trackAnalytics('mcp-monitoring.page-view', {
+      organization,
+      isOnboarding: showOnboarding,
+    });
+  }, [organization, showOnboarding]);
 
-  const handleTableSwitch = useCallback((newTable: ViewType) => {
-    setActiveTable(newTable);
-  }, []);
+  const handleTableSwitch = useCallback(
+    (newTable: ViewType) => {
+      trackAnalytics('mcp-monitoring.table-switch', {
+        organization,
+        newTable,
+        previousTable: activeView,
+      });
+      navigate(
+        {
+          ...location,
+          query: {
+            ...location.query,
+            view: newTable,
+            // Clear the tableCursor param when switching tables
+            tableCursor: undefined,
+          },
+        },
+        {replace: true}
+      );
+    },
+    [activeView, location, navigate, organization]
+  );
 
   const {tags: numberTags} = useTraceItemTags('number');
   const {tags: stringTags} = useTraceItemTags('string');
@@ -98,6 +170,11 @@ function McpOverviewPage() {
   const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(
     eapSpanSearchQueryBuilderProps
   );
+
+  const ViewTrafficWidget = viewTrafficWidgets[activeView];
+  const ViewDurationWidget = viewDurationWidgets[activeView];
+  const ViewErrorRateWidget = viewErrorRateWidgets[activeView];
+  const ViewTable = viewTables[activeView];
 
   return (
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
@@ -147,7 +224,7 @@ function McpOverviewPage() {
                     </WidgetGrid>
                     <ControlsWrapper>
                       <TableControl
-                        value={activeTable}
+                        value={activeView}
                         onChange={handleTableSwitch}
                         size="sm"
                       >
@@ -164,18 +241,16 @@ function McpOverviewPage() {
                     </ControlsWrapper>
                     <WidgetGrid>
                       <WidgetGrid.Position1>
-                        <GroupedTrafficWidget groupBy={activeTable} />
+                        <ViewTrafficWidget />
                       </WidgetGrid.Position1>
                       <WidgetGrid.Position2>
-                        <GroupedDurationWidget groupBy={activeTable} />
+                        <ViewDurationWidget />
                       </WidgetGrid.Position2>
                       <WidgetGrid.Position3>
-                        <GroupedErrorRateWidget groupBy={activeTable} />
+                        <ViewErrorRateWidget />
                       </WidgetGrid.Position3>
                     </WidgetGrid>
-                    {activeTable === ViewType.TOOL && <ToolsTable />}
-                    {activeTable === ViewType.RESOURCE && <ResourcesTable />}
-                    {activeTable === ViewType.PROMPT && <PromptsTable />}
+                    <ViewTable />
                   </Fragment>
                 )}
               </ModuleLayout.Full>
@@ -208,7 +283,7 @@ const ControlsWrapper = styled('div')`
   justify-content: space-between;
   align-items: center;
   gap: ${space(1)};
-  margin: ${space(2)} 0;
+  padding-bottom: ${space(2)};
 `;
 
 export default PageWithProviders;

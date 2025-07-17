@@ -15,6 +15,7 @@ jest.mock('sentry/utils/usePageFilters');
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 jest.mock('sentry/utils/useReleaseStats');
 
@@ -166,6 +167,12 @@ describe('DatabaseSpanSummaryPage', function () {
       },
     });
 
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug//releases/1.0.0/`,
+      method: 'GET',
+      body: [],
+    });
+
     const issuesRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/`,
       method: 'GET',
@@ -220,11 +227,11 @@ describe('DatabaseSpanSummaryPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansIndexed',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           field: [
-            'project_id',
-            'transaction.id',
+            'project.id',
             'span.description',
             'db.system',
             'code.filepath',
@@ -346,26 +353,6 @@ describe('DatabaseSpanSummaryPage', function () {
           environment: [],
           limit: 100,
           project: [],
-          statsPeriod: '10d',
-        },
-      })
-    );
-
-    // Span details for query source. This runs after the indexed span has loaded
-    expect(eventsRequestMock).toHaveBeenNthCalledWith(
-      2,
-      `/organizations/${organization.slug}/events/`,
-      expect.objectContaining({
-        method: 'GET',
-        query: {
-          dataset: 'spansIndexed',
-          environment: [],
-          field: ['timestamp', 'transaction.id', 'project', 'span_id', 'span.self_time'],
-          per_page: 1,
-          project: [],
-          query: 'span.group:1756baf8fd19c116',
-          sort: '-span.self_time',
-          referrer: 'api.starfish.full-span-from-trace',
           statsPeriod: '10d',
         },
       })

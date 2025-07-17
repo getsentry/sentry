@@ -718,6 +718,25 @@ class Referrer(StrEnum):
     )
     API_PERFORMANCE_AGENT_MONITORING_ONBOARDING = "api.performance.agent-monitoring.onboarding"
 
+    # Performance MCP Module
+    API_PERFORMANCE_MCP_TRAFFIC_WIDGET = "api.performance.mcp.traffic-widget"
+    API_PERFORMANCE_MCP_TRANSPORT_WIDGET = "api.performance.mcp.transport-widget"
+    API_PERFORMANCE_MCP_SOURCES_WIDGET = "api.performance.mcp.sources-widget"
+    API_PERFORMANCE_MCP_TOOL_TRAFFIC_WIDGET = "api.performance.mcp.tool-traffic-widget"
+    API_PERFORMANCE_MCP_PROMPT_TRAFFIC_WIDGET = "api.performance.mcp.prompt-traffic-widget"
+    API_PERFORMANCE_MCP_RESOURCE_TRAFFIC_WIDGET = "api.performance.mcp.resource-traffic-widget"
+    API_PERFORMANCE_MCP_TOOL_DURATION_WIDGET = "api.performance.mcp.tool-duration-widget"
+    API_PERFORMANCE_MCP_PROMPT_DURATION_WIDGET = "api.performance.mcp.prompt-duration-widget"
+    API_PERFORMANCE_MCP_RESOURCE_DURATION_WIDGET = "api.performance.mcp.resource-duration-widget"
+    API_PERFORMANCE_MCP_TOOL_ERROR_RATE_WIDGET = "api.performance.mcp.tool-error-rate-widget"
+    API_PERFORMANCE_MCP_PROMPT_ERROR_RATE_WIDGET = "api.performance.mcp.prompt-error-rate-widget"
+    API_PERFORMANCE_MCP_RESOURCE_ERROR_RATE_WIDGET = (
+        "api.performance.mcp.resource-error-rate-widget"
+    )
+    API_PERFORMANCE_MCP_TOOL_TABLE = "api.performance.mcp.tool-table"
+    API_PERFORMANCE_MCP_PROMPT_TABLE = "api.performance.mcp.prompt-table"
+    API_PERFORMANCE_MCP_RESOURCE_TABLE = "api.performance.mcp.resource-table"
+
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
     API_SPAN_SAMPLE_GET_SPAN_DATA = "api.spans.sample-get-span-data"

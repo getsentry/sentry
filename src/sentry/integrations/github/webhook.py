@@ -21,7 +21,6 @@ from sentry.analytics.events.webhook_repository_created import WebHookRepository
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
-from sentry.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
 from sentry.integrations.base import IntegrationDomain
@@ -45,6 +44,7 @@ from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
     get_integration_repository_provider,
 )
+from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics

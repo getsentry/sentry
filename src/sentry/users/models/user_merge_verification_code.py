@@ -8,8 +8,6 @@ from django.utils import timezone
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
-from sentry.users.models.user import User
-from sentry.users.services.user.model import RpcUser
 
 TOKEN_MINUTES_VALID = 30
 
@@ -45,6 +43,7 @@ class UserMergeVerificationCode(DefaultFieldsModel):
     def regenerate_token(self) -> None:
         self.token = generate_token()
         self.refresh_expires_at()
+        self.save()
 
     def refresh_expires_at(self) -> None:
         now = timezone.now()
@@ -53,6 +52,25 @@ class UserMergeVerificationCode(DefaultFieldsModel):
     def is_valid(self) -> bool:
         return timezone.now() < self.expires_at
 
-    @classmethod
-    def send_email(cls, user: User | RpcUser, token: str) -> None:
-        pass
+    def send_email(self) -> None:
+        from sentry import options
+        from sentry.http import get_server_hostname
+        from sentry.utils.email import MessageBuilder
+
+        context = {
+            "user": self.user,
+            "domain": get_server_hostname(),
+            "code": self.token,
+            "mins_valid": TOKEN_MINUTES_VALID,
+            "datetime": timezone.now(),
+        }
+
+        subject = "Your Verification Code"
+        template = "verification-code"
+        msg = MessageBuilder(
+            subject="{} {}".format(options.get("mail.subject-prefix"), subject),
+            template=f"sentry/emails/{template}.txt",
+            html_template=f"sentry/emails/{template}.html",
+            context=context,
+        )
+        msg.send_async([self.user.email])
