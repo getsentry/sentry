@@ -13,7 +13,7 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.feedback.lib.utils import FeedbackCreationSource
-from sentry.feedback.usecases.create_feedback import create_feedback_issue
+from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.issues.grouptype import (
