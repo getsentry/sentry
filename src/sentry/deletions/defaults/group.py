@@ -11,6 +11,7 @@ from snuba_sdk import DeleteQuery, Request
 
 from sentry import eventstore, eventstream, models, nodestore
 from sentry.eventstore.models import Event
+from sentry.eventstore.snuba.backend import get_before_event_condition
 from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.rulefirehistory import RuleFireHistory
@@ -96,16 +97,9 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
     def get_unfetched_events(self) -> list[Event]:
         conditions = []
         if self.last_event is not None:
-            conditions.extend(
-                [
-                    ["timestamp", "<=", self.last_event.timestamp],
-                    [
-                        ["timestamp", "<", self.last_event.timestamp],
-                        ["event_id", "<", self.last_event.event_id],
-                    ],
-                ]
-            )
+            conditions.extend(get_before_event_condition(self.last_event))
 
+        logger.info("Fetching %s events for deletion.", self.DEFAULT_CHUNK_SIZE)
         events = eventstore.backend.get_unfetched_events(
             filter=eventstore.Filter(
                 conditions=conditions, project_ids=self.project_ids, group_ids=self.group_ids
