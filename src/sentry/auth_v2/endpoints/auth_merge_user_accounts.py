@@ -1,3 +1,4 @@
+from django.db import router, transaction
 from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -51,8 +52,7 @@ class AuthMergeUserAccountsEndpoint(Endpoint):
         )
 
     def post(self, request: Request) -> Response:
-        user = request.user
-        if not user.is_authenticated:
+        if not request.user.is_authenticated:
             return Response(status=401)
 
         validator = AuthMergeUserAccountsValidator(data=request.data)
@@ -60,8 +60,10 @@ class AuthMergeUserAccountsEndpoint(Endpoint):
             return Response(validator.errors, status=400)
         result = validator.validated_data
 
-        primary_user = User.objects.get(id=user.id)
-        verification_code = UserMergeVerificationCode.objects.filter(user_id=user.id).first()
+        primary_user = User.objects.get(id=request.user.id)
+        verification_code = UserMergeVerificationCode.objects.filter(
+            user_id=primary_user.id
+        ).first()
         if verification_code is None or verification_code.token != result["verification_code"]:
             return Response(
                 status=403,
@@ -69,7 +71,7 @@ class AuthMergeUserAccountsEndpoint(Endpoint):
             )
 
         ids_to_merge = result["ids_to_merge"]
-        if user.id in ids_to_merge:
+        if primary_user.id in ids_to_merge:
             return Response(
                 status=400,
                 data={"error": "You may not merge the user attached to your current session"},
@@ -88,9 +90,9 @@ class AuthMergeUserAccountsEndpoint(Endpoint):
             )
 
         users_to_delete = (
-            User.objects.filter(email=user.email)
+            User.objects.filter(email=primary_user.email)
             .filter(~Q(id__in=ids_to_merge))
-            .exclude(id=user.id)
+            .exclude(id=primary_user.id)
         )
 
         for user in users_to_delete:
@@ -98,7 +100,8 @@ class AuthMergeUserAccountsEndpoint(Endpoint):
 
         users_to_merge = User.objects.filter(id__in=ids_to_merge)
         for user in users_to_merge:
-            user.merge_to(primary_user)
-            user.delete()
+            with transaction.atomic(router.db_for_write(User)):
+                user.merge_to(primary_user)
+                user.delete()
 
         return Response("Successfully merged user accounts.")
