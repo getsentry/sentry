@@ -8,14 +8,15 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.grouping.api import get_grouping_config_dict_for_project, load_grouping_config
 from sentry.grouping.component import FrameGroupingComponent, StacktraceGroupingComponent
 from sentry.grouping.enhancer import (
     ENHANCEMENT_BASES,
     Enhancements,
+    _is_valid_profiling_action,
+    _is_valid_profiling_matcher,
     _split_rules,
-    is_valid_profiling_action,
-    is_valid_profiling_matcher,
     keep_profiling_rules,
 )
 from sentry.grouping.enhancer.actions import EnhancementAction
@@ -23,7 +24,6 @@ from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.enhancer.matchers import ReturnValueCache, _cached, create_match_frame
 from sentry.grouping.enhancer.parser import parse_enhancements
 from sentry.grouping.enhancer.rules import EnhancementRule
-from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.testutils.cases import TestCase
 
 
@@ -493,7 +493,7 @@ def test_cached_with_kwargs():
     ],
 )
 def test_valid_profiling_matchers(test_input, expected):
-    assert is_valid_profiling_matcher(test_input) == expected
+    assert _is_valid_profiling_matcher(test_input) == expected
 
 
 @pytest.mark.parametrize(
@@ -508,7 +508,7 @@ def test_valid_profiling_matchers(test_input, expected):
     ],
 )
 def test_valid_profiling_action(test_input, expected):
-    assert is_valid_profiling_action(test_input) == expected
+    assert _is_valid_profiling_action(test_input) == expected
 
 
 @pytest.mark.parametrize(

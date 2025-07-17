@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
@@ -18,7 +19,6 @@ from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import integrations_control_tasks
 from sentry.taskworker.retry import Retry
-from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -58,27 +58,11 @@ def link_all_repos(
             integration_id=integration_id, status=ObjectStatus.ACTIVE
         )
         if not integration:
-            # TODO: Remove this logger in favor of context manager
-            logger.error(
-                "%s.link_all_repos.integration_missing",
-                integration_key,
-                extra={"organization_id": organization_id},
-            )
-            metrics.incr("github.link_all_repos.error", tags={"type": "missing_integration"})
             lifecycle.record_failure(str(LinkAllReposHaltReason.MISSING_INTEGRATION))
             return
 
         rpc_org = organization_service.get(id=organization_id)
         if rpc_org is None:
-            logger.error(
-                "%s.link_all_repos.organization_missing",
-                integration_key,
-                extra={"organization_id": organization_id},
-            )
-            metrics.incr(
-                f"{integration_key}.link_all_repos.error",
-                tags={"type": "missing_organization"},
-            )
             lifecycle.record_failure(str(LinkAllReposHaltReason.MISSING_ORGANIZATION))
             return
 
@@ -93,26 +77,31 @@ def link_all_repos(
                 lifecycle.record_halt(str(LinkAllReposHaltReason.RATE_LIMITED))
                 return
 
-            metrics.incr(f"{integration_key}.link_all_repos.api_error")
             raise
 
         integration_repo_provider = get_integration_repository_provider(integration)
 
-        # If we successfully create any repositories, we'll set this to True
-        success = False
-
+        repo_configs: list[dict[str, Any]] = []
+        missing_repos = []
         for repo in repositories:
             try:
-                config = get_repo_config(repo, integration_id)
-                integration_repo_provider.create_repository(
-                    repo_config=config, organization=rpc_org
-                )
-                success = True
+                repo_configs.append(get_repo_config(repo, integration_id))
             except KeyError:
-                continue
-            except RepoExistsError:
-                metrics.incr("sentry.integration_repo_provider.repo_exists")
+                missing_repos.append(repo)
                 continue
 
-        if not success:
-            lifecycle.record_halt(str(LinkAllReposHaltReason.REPOSITORY_NOT_CREATED))
+        try:
+            integration_repo_provider.create_repositories(
+                configs=repo_configs, organization=rpc_org
+            )
+        except RepoExistsError as e:
+            lifecycle.record_halt(
+                str(LinkAllReposHaltReason.REPOSITORY_NOT_CREATED),
+                {"missing_repos": e.repos, "integration_id": integration_id},
+            )
+
+        if missing_repos:
+            lifecycle.record_halt(
+                str(LinkAllReposHaltReason.REPOSITORY_NOT_CREATED),
+                {"missing_repos": missing_repos, "integration_id": integration_id},
+            )

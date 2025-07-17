@@ -3,8 +3,8 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {type EAPSpanProperty, SpanIndexedField} from 'sentry/views/insights/types';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {type EAPSpanProperty, SpanFields} from 'sentry/views/insights/types';
 import {SERVICE_ENTRY_SPANS_CURSOR_NAME} from 'sentry/views/performance/transactionSummary/transactionOverview/content';
 import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -43,9 +43,7 @@ export function useServiceEntrySpansQuery({
   limit = DEFAULT_LIMIT,
 }: Options) {
   const location = useLocation();
-  const spanCategoryUrlParam = decodeScalar(
-    location.query?.[SpanIndexedField.SPAN_CATEGORY]
-  );
+  const spanCategoryUrlParam = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
   const selectedOption = decodeScalar(location.query?.showTransactions);
 
   const isSingleQueryEnabled =
@@ -127,7 +125,7 @@ function useSingleQuery(options: UseSingleQueryOptions) {
     newQuery.removeFilter('span.category');
   }
 
-  const {data, isLoading, pageLinks, meta, error} = useEAPSpans(
+  const {data, isLoading, pageLinks, meta, error} = useSpans(
     {
       search: newQuery,
       fields: FIELDS,
@@ -163,9 +161,7 @@ function useMultipleQueries(options: UseMultipleQueriesOptions) {
   const cursor = decodeScalar(location.query?.[SERVICE_ENTRY_SPANS_CURSOR_NAME]);
   const selectedOption = decodeScalar(location.query?.showTransactions);
   const {selection} = usePageFilters();
-  const spanCategoryUrlParam = decodeScalar(
-    location.query?.[SpanIndexedField.SPAN_CATEGORY]
-  );
+  const spanCategoryUrlParam = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
 
   const categorizedSpansQuery = new MutableSearch(
     `transaction:${transactionName} span.category:${spanCategoryUrlParam}`
@@ -180,7 +176,7 @@ function useMultipleQueries(options: UseMultipleQueriesOptions) {
     data: categorizedSpanIds,
     isLoading: isCategorizedSpanIdsLoading,
     error: categorizedSpanIdsError,
-  } = useEAPSpans(
+  } = useSpans(
     {
       search: categorizedSpansQuery,
       fields: ['transaction.span_id', 'sum(span.self_time)'],
@@ -213,7 +209,7 @@ function useMultipleQueries(options: UseMultipleQueriesOptions) {
     pageLinks: categorizedSpansPageLinks,
     meta: categorizedSpansMeta,
     error: categorizedSpansError,
-  } = useEAPSpans(
+  } = useSpans(
     {
       search: specificSpansQuery,
       fields: FIELDS,

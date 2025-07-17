@@ -16,19 +16,19 @@ import {
   type DiscoverSeries,
   useMetricsSeries,
 } from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
 
 export default function PerformanceScoreBreakdownChartWidget(
   props: LoadableChartWidgetProps
 ) {
   const {
     transaction,
-    [SpanIndexedField.BROWSER_NAME]: browserTypes,
-    [SpanIndexedField.USER_GEO_SUBREGION]: subregions,
+    [SpanFields.BROWSER_NAME]: browserTypes,
+    [SpanFields.USER_GEO_SUBREGION]: subregions,
   } = useLocationQuery({
     fields: {
-      [SpanIndexedField.BROWSER_NAME]: decodeBrowserTypes,
-      [SpanIndexedField.USER_GEO_SUBREGION]: decodeList,
+      [SpanFields.BROWSER_NAME]: decodeBrowserTypes,
+      [SpanFields.USER_GEO_SUBREGION]: decodeList,
       transaction: decodeList,
     },
   });

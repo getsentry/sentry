@@ -59,7 +59,6 @@ const config: KnipConfig = {
   },
   ignoreDependencies: [
     'core-js',
-    '@babel/runtime', // used implicitly alongside @babel/plugin-transform-runtime
     'eslint-import-resolver-typescript', // used in eslint config
     'jest-environment-jsdom', // used as testEnvironment in jest config
     'swc-plugin-component-annotate', // used in rspack config, needs better knip plugin
@@ -69,7 +68,6 @@ const config: KnipConfig = {
     '@types/webpack-env', // needed to make require.context work
     '@types/stripe-v3', // needed for global `stripe` namespace typings
     '@types/gtag.js', // needed for global `gtag` namespace typings
-    '@babel/plugin-transform-runtime', // Still used in jest
     '@babel/preset-env', // Still used in jest
     '@babel/preset-react', // Still used in jest
     '@babel/preset-typescript', // Still used in jest

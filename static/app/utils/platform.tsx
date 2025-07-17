@@ -2,6 +2,7 @@ import {
   backend,
   desktop,
   frontend,
+  gaming,
   mobile,
   PlatformCategory,
   serverless,
@@ -31,6 +32,9 @@ export function platformToCategory(platform: PlatformKey | undefined): PlatformC
   }
   if ((desktop as string[]).includes(platform)) {
     return PlatformCategory.DESKTOP;
+  }
+  if ((gaming as string[]).includes(platform)) {
+    return PlatformCategory.GAMING;
   }
   return PlatformCategory.OTHER;
 }

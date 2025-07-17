@@ -36,6 +36,8 @@ from sentry.constants import (
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
+    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+    ENABLED_CONSOLE_PLATFORMS_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
     GITLAB_COMMENT_BOT_DEFAULT,
@@ -514,6 +516,7 @@ class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResp
     planSampleRate: float
     desiredSampleRate: float
     ingestThroughTrustedRelaysOnly: bool
+    enabledConsolePlatforms: list[str]
 
 
 @extend_schema_serializer(exclude_fields=["availableRoles"])
@@ -560,6 +563,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     streamlineOnly: bool
     defaultAutofixAutomationTuning: str
     defaultSeerScannerAutomation: bool
+    enablePrReviewTestGeneration: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -717,6 +721,12 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "sentry:default_seer_scanner_automation",
                 DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
             ),
+            "enablePrReviewTestGeneration": bool(
+                obj.get_option(
+                    "sentry:enable_pr_review_test_generation",
+                    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+                )
+            ),
             "streamlineOnly": obj.get_option("sentry:streamline_ui_only", None),
             "trustedRelays": [
                 # serialize trusted relays info into their external form
@@ -742,6 +752,12 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             context["ingestThroughTrustedRelaysOnly"] = obj.get_option(
                 "sentry:ingest-through-trusted-relays-only",
                 INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
+            )
+
+        if features.has("organizations:project-creation-games-tab", obj):
+            context["enabledConsolePlatforms"] = obj.get_option(
+                "sentry:enabled_console_platforms",
+                ENABLED_CONSOLE_PLATFORMS_DEFAULT,
             )
 
         if access.role is not None:
@@ -778,6 +794,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "rollbackEnabled",
         "streamlineOnly",
         "ingestThroughTrustedRelaysOnly",
+        "enabledConsolePlatforms",
     ]
 )
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(

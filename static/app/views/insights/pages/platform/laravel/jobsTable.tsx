@@ -17,7 +17,8 @@ import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
-import {useTableData} from 'sentry/views/insights/pages/platform/shared/table/useTableData';
+import {useSpanTableData} from 'sentry/views/insights/pages/platform/shared/table/useTableData';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {
@@ -50,8 +51,9 @@ const rightAlignColumns = new Set([
 ]);
 
 export function JobsTable() {
-  const tableDataRequest = useTableData({
-    query: 'span.op:queue.process',
+  const {query} = useTransactionNameQuery();
+  const tableDataRequest = useSpanTableData({
+    query: `span.op:queue.process ${query ?? ''}`.trim(),
     fields: [
       'count()',
       'project.id',

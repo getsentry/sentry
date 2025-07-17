@@ -2,7 +2,7 @@ import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import type {MetricsProperty, SpanMetricsProperty} from 'sentry/views/insights/types';
+import type {EAPSpanProperty, SpanMetricsProperty} from 'sentry/views/insights/types';
 import {VitalState} from 'sentry/views/performance/vitalDetail/utils';
 
 const formatMetricValue = (metric: MetricValue, field?: string | undefined): string => {
@@ -56,7 +56,7 @@ type GenericVitalItem<
   dataset: T;
   description: string;
   docs: React.ReactNode;
-  field: T extends DiscoverDatasets.SPANS_METRICS ? SpanMetricsProperty : MetricsProperty;
+  field: T extends DiscoverDatasets.SPANS_METRICS ? SpanMetricsProperty : EAPSpanProperty;
   getStatus: (value: MetricValue, field?: string | undefined) => VitalStatus;
   platformDocLinks: Record<string, string>;
   sdkDocLinks: Record<string, string>;

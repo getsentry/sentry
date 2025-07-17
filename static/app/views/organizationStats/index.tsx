@@ -90,7 +90,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
     ) {
       return {
         ...info,
-        apiName: 'span_indexed',
+        name: DataCategoryExact.SPAN_INDEXED,
       };
     }
 
@@ -104,6 +104,10 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
 
   get dataCategoryName() {
     return this.dataCategoryInfo.titleName;
+  }
+
+  get dataCategoryApiName() {
+    return this.dataCategoryInfo.name;
   }
 
   get dataDatetime(): DateTimeObject {
@@ -330,8 +334,8 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
         projectIds={this.projectIds}
         organization={organization}
         dataCategory={this.dataCategory}
-        dataCategoryName={this.dataCategoryInfo.titleName}
-        dataCategoryApiName={this.dataCategoryInfo.apiName}
+        dataCategoryName={this.dataCategoryName}
+        dataCategoryApiName={this.dataCategoryApiName}
         dataDatetime={this.dataDatetime}
         chartTransform={this.chartTransform}
         clientDiscard={this.clientDiscard}

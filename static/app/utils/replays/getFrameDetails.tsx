@@ -97,7 +97,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
   }),
   feedback: (frame: FeedbackFrame) => ({
     colorGraphicsToken: 'promotion',
-    description: frame.data.projectSlug,
+    description: frame.message,
     tabKey: TabKey.BREADCRUMBS,
     title: defaultTitle(frame),
     icon: <IconMegaphone size="xs" />,
@@ -473,7 +473,7 @@ export function defaultTitle(frame: ReplayFrame | RawBreadcrumbFrame) {
   if (
     'message' in frame &&
     typeof frame.message === 'string' &&
-    frame.message.includes('User Feedback')
+    frame.category === 'feedback'
   ) {
     return t('User Feedback');
   }

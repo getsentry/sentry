@@ -68,7 +68,7 @@ function Device(props: any) {
           {device.name}
           <FadedDateTime date={device.timestamp} />
         </DeviceInformation>
-        <ButtonBar gap={1}>
+        <ButtonBar>
           <Button size="sm" onClick={() => setEditting(true)}>
             {t('Rename device')}
           </Button>
@@ -103,7 +103,7 @@ function Device(props: any) {
         />
         <FadedDateTime date={device.timestamp} />
       </DeviceInformation>
-      <ButtonBar gap={1}>
+      <ButtonBar>
         <Button
           priority="primary"
           size="sm"

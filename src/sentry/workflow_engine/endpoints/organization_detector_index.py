@@ -1,5 +1,6 @@
 from functools import partial
 
+from django.db import router, transaction
 from django.db.models import Count, Q
 from django.db.models.query import QuerySet
 from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
@@ -33,6 +34,9 @@ from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
+from sentry.workflow_engine.endpoints.validators.detector_workflow import (
+    BulkDetectorWorkflowsValidator,
+)
 from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import Detector
 
@@ -186,9 +190,11 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         Create a new detector for a project.
 
         :param string name: The name of the detector
-        :param string detector_type: The type of detector to create
-        :param object data_source: Configuration for the data source
-        :param array data_conditions: List of conditions to trigger the detector
+        :param string type: The type of detector to create
+        :param string projectId: The detector project
+        :param object dataSource: Configuration for the data source
+        :param array dataConditions: List of conditions to trigger the detector
+        :param array workflowIds: List of workflow IDs to connect to the detector
         """
         detector_type = request.data.get("type")
         if not detector_type:
@@ -220,5 +226,25 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        detector = validator.save()
+        with transaction.atomic(router.db_for_write(Detector)):
+            detector = validator.save()
+
+            # Handle workflow connections in bulk
+            workflow_ids = request.data.get("workflowIds", [])
+            if workflow_ids:
+                bulk_validator = BulkDetectorWorkflowsValidator(
+                    data={
+                        "detector_id": detector.id,
+                        "workflow_ids": workflow_ids,
+                    },
+                    context={
+                        "organization": organization,
+                        "request": request,
+                    },
+                )
+                if not bulk_validator.is_valid():
+                    raise ValidationError({"workflowIds": bulk_validator.errors})
+
+                bulk_validator.save()
+
         return Response(serialize(detector, request.user), status=status.HTTP_201_CREATED)

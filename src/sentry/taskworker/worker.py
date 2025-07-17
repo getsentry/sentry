@@ -165,6 +165,8 @@ class TaskWorker:
                 "taskworker.worker.add_tasks.child_tasks_full",
                 tags={"processing_pool": self._processing_pool_name},
             )
+            # If we weren't able to add a task, backoff for a bit
+            time.sleep(0.1)
             return False
 
         inflight = self.fetch_task()

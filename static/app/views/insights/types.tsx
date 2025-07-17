@@ -90,16 +90,17 @@ export enum SpanFields {
   PROJECT = 'project',
   MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH = 'measurements.http.response_content_length',
   MEASUREMENTS_TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
+  MEASUREMENTS_TIME_TO_FILL_DISPLAY = 'measurements.time_to_full_display',
   SPAN_DESCRIPTION = 'span.description',
   SPAN_GROUP = 'span.group',
   SPAN_OP = 'span.op',
   NAME = 'span.name',
   KIND = 'span.kind',
-  STATUS = 'span.status',
+  SPAN_STATUS = 'span.status',
   STATUS_MESSAGE = 'span.status_message',
   RELEASE = 'release',
   PROJECT_ID = 'project.id',
-  RESPONSE_CODE = 'span.status_code',
+  SPAN_STATUS_CODE = 'span.status_code',
   DEVICE_CLASS = 'device.class',
   SPAN_SYSTEM = 'span.system',
   SPAN_CATEGORY = 'span.category',
@@ -115,6 +116,76 @@ export enum SpanFields {
   MCP_TOOL_NAME = 'mcp.tool.name',
   MCP_RESOURCE_URI = 'mcp.resource.uri',
   MCP_PROMPT_NAME = 'mcp.prompt.name',
+  TRANSACTION_SPAN_ID = 'transaction.span_id',
+  SPAN_SELF_TIME = 'span.self_time',
+  TRACE = 'trace',
+  PROFILE_ID = 'profile_id',
+  PROFILEID = 'profile.id',
+  REPLAYID = 'replayId',
+  REPLAY_ID = 'replay.id',
+  LCP_ELEMENT = 'lcp.element',
+  CLS_SOURCE = 'cls.source.1',
+  CACHE_ITEM_SIZE = 'measurements.cache.item_size',
+  SPAN_ID = 'span_id',
+  DB_SYSTEM = 'db.system',
+  CODE_FILEPATH = 'code.filepath',
+  CODE_FUNCTION = 'code.function',
+  SDK_NAME = 'sdk.name',
+  SDK_VERSION = 'sdk.version',
+  PLATFORM = 'platform',
+  CODE_LINENO = 'code.lineno',
+  APP_START_COLD = 'measurements.app_start_cold',
+  APP_START_WARM = 'measurements.app_start_warm',
+  SPAN_ACTION = 'span.action',
+  SPAN_DOMAIN = 'span.domain',
+  NORMALIZED_DESCRIPTION = 'sentry.normalized_description',
+  BROWSER_NAME = 'browser.name',
+  ENVIRONMENT = 'environment',
+  ORIGIN_TRANSACTION = 'origin.transaction',
+  TRANSACTION_METHOD = 'transaction.method',
+  TRANSACTION_OP = 'transaction.op',
+  HTTP_RESPONSE_CONTENT_LENGTH = 'http.response_content_length',
+  RESOURCE_RENDER_BLOCKING_STATUS = 'resource.render_blocking_status',
+  PROFILER_ID = 'profiler.id',
+  TRACE_STATUS = 'trace.status',
+  SPAN_AI_PIPELINE_GROUP = 'span.ai.pipeline.group',
+
+  // Messaging fields
+  MESSAGING_MESSAGE_ID = 'messaging.message.id',
+  MESSAGING_MESSAGE_BODY_SIZE = 'measurements.messaging.message.body.size',
+  MESSAGING_MESSAGE_RECEIVE_LATENCY = 'measurements.messaging.message.receive.latency',
+  MESSAGING_MESSAGE_RETRY_COUNT = 'measurements.messaging.message.retry.count',
+  MESSAGING_MESSAGE_DESTINATION_NAME = 'messaging.destination.name',
+
+  // User fields
+  USER_ID = 'user.id',
+  USER_IP = 'user.ip',
+  USER_EMAIL = 'user.email',
+  USER_USERNAME = 'user.username',
+  USER_GEO_SUBREGION = 'user.geo.subregion',
+
+  // Web vitals
+  INP = 'measurements.inp',
+  INP_SCORE = 'measurements.score.inp',
+  INP_SCORE_RATIO = 'measurements.score.ratio.inp',
+  INP_SCORE_WEIGHT = 'measurements.score.weight.inp',
+  LCP = 'measurements.lcp',
+  LCP_SCORE = 'measurements.score.lcp',
+  LCP_SCORE_RATIO = 'measurements.score.ratio.lcp',
+  LCP_SCORE_WEIGHT = 'measurements.score.weight.lcp',
+  CLS = 'measurements.cls',
+  CLS_SCORE = 'measurements.score.cls',
+  CLS_SCORE_RATIO = 'measurements.score.ratio.cls',
+  CLS_SCORE_WEIGHT = 'measurements.score.weight.cls',
+  TTFB = 'measurements.ttfb',
+  TTFB_SCORE = 'measurements.score.ttfb',
+  TTFB_SCORE_RATIO = 'measurements.score.ratio.ttfb',
+  TTFB_SCORE_WEIGHT = 'measurements.score.weight.ttfb',
+  FCP = 'measurements.fcp',
+  FCP_SCORE = 'measurements.score.fcp',
+  FCP_SCORE_RATIO = 'measurements.score.ratio.fcp',
+  FCP_SCORE_WEIGHT = 'measurements.score.weight.fcp',
+  TOTAL_SCORE = 'measurements.score.total',
 }
 
 type WebVitalsMeasurements =
@@ -154,11 +225,38 @@ type SpanNumberFields =
   | SpanFields.SLOW_FRAMES_RATE
   | SpanFields.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH
   | SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY
+  | SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY
   | SpanFields.GEN_AI_USAGE_INPUT_TOKENS
   | SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS
   | SpanFields.GEN_AI_USAGE_TOTAL_TOKENS
   | SpanFields.GEN_AI_USAGE_TOTAL_COST
-  | DiscoverNumberFields;
+  | SpanFields.TOTAL_SCORE
+  | SpanFields.INP
+  | SpanFields.INP_SCORE
+  | SpanFields.INP_SCORE_RATIO
+  | SpanFields.INP_SCORE_WEIGHT
+  | SpanFields.LCP
+  | SpanFields.LCP_SCORE
+  | SpanFields.LCP_SCORE_RATIO
+  | SpanFields.LCP_SCORE_WEIGHT
+  | SpanFields.CLS
+  | SpanFields.CLS_SCORE
+  | SpanFields.CLS_SCORE_RATIO
+  | SpanFields.CLS_SCORE_WEIGHT
+  | SpanFields.TTFB
+  | SpanFields.TTFB_SCORE
+  | SpanFields.TTFB_SCORE_RATIO
+  | SpanFields.TTFB_SCORE_WEIGHT
+  | SpanFields.FCP
+  | SpanFields.FCP_SCORE
+  | SpanFields.FCP_SCORE_RATIO
+  | SpanFields.FCP_SCORE_WEIGHT
+  | SpanFields.SPAN_SELF_TIME
+  | SpanFields.CACHE_ITEM_SIZE
+  | SpanFields.CODE_LINENO
+  | SpanFields.APP_START_COLD
+  | SpanFields.APP_START_WARM
+  | SpanFields.CODE_LINENO;
 
 export type SpanStringFields =
   | SpanMetricsField.RESOURCE_RENDER_BLOCKING_STATUS
@@ -166,7 +264,6 @@ export type SpanStringFields =
   | SpanFields.ID
   | SpanFields.NAME
   | SpanFields.KIND
-  | SpanFields.STATUS
   | SpanFields.STATUS_MESSAGE
   | SpanFields.GEN_AI_AGENT_NAME
   | SpanFields.GEN_AI_REQUEST_MODEL
@@ -176,10 +273,36 @@ export type SpanStringFields =
   | SpanFields.MCP_TOOL_NAME
   | SpanFields.MCP_RESOURCE_URI
   | SpanFields.MCP_PROMPT_NAME
+  | SpanFields.TRACE
+  | SpanFields.PROFILEID
+  | SpanFields.PROFILE_ID
+  | SpanFields.REPLAYID
+  | SpanFields.REPLAY_ID
+  | SpanFields.USER_EMAIL
+  | SpanFields.USER_USERNAME
+  | SpanFields.USER_ID
+  | SpanFields.USER_IP
+  | SpanFields.CLS_SOURCE
+  | SpanFields.LCP_ELEMENT
+  | SpanFields.SPAN_ID
+  | SpanFields.TRANSACTION_SPAN_ID
+  | SpanFields.DB_SYSTEM
+  | SpanFields.CODE_FILEPATH
+  | SpanFields.CODE_FUNCTION
+  | SpanFields.SDK_NAME
+  | SpanFields.SDK_VERSION
+  | SpanFields.DEVICE_CLASS
+  | SpanFields.SPAN_ACTION
+  | SpanFields.SPAN_DOMAIN
+  | SpanFields.NORMALIZED_DESCRIPTION
+  | SpanFields.MESSAGING_MESSAGE_BODY_SIZE
+  | SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY
+  | SpanFields.MESSAGING_MESSAGE_RETRY_COUNT
+  | SpanFields.MESSAGING_MESSAGE_ID
+  | SpanFields.TRACE_STATUS
   | 'span_id'
   | 'span.op'
   | 'span.description'
-  | 'sentry.normalized_description'
   | 'span.action'
   | 'span.group'
   | 'span.category'
@@ -214,10 +337,6 @@ export type SpanStringFields =
 export type SpanMetricsQueryFilters = Partial<Record<SpanStringFields, string>> & {
   [SpanMetricsField.PROJECT_ID]?: string;
   [SpanMetricsField.SPAN_DOMAIN]?: string;
-};
-
-export type SpanIndexedQueryFilters = Partial<Record<SpanStringFields, string>> & {
-  [SpanIndexedField.PROJECT_ID]?: string;
 };
 
 type SpanStringArrayFields = 'span.domain';
@@ -274,7 +393,7 @@ type SpanAnyFunction = `any(${string})`;
 
 export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
 
-type WebVitalsFunctions = 'performance_score' | 'count_scores';
+type WebVitalsFunctions = 'performance_score' | 'count_scores' | 'opportunity_score';
 
 type SpanMetricsResponseRaw = {
   [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
@@ -343,7 +462,34 @@ type EAPSpanResponseRaw = {
   } & {
     [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
   } & {
+    [SpanFields.PLATFORM]: PlatformKey;
+  } & {
+    [SpanFields.USER_GEO_SUBREGION]: SubregionCode;
+  } & {
+    [SpanFields.DB_SYSTEM]: SupportedDatabaseSystem;
+  } & {
+    [SpanFields.SPAN_STATUS]:
+      | 'ok'
+      | 'cancelled'
+      | 'unknown'
+      | 'invalid_argument'
+      | 'deadline_exceeded'
+      | 'not_found'
+      | 'already_exists'
+      | 'permission_denied'
+      | 'resource_exhausted'
+      | 'failed_precondition'
+      | 'aborted'
+      | 'out_of_range'
+      | 'unimplemented'
+      | 'internal_error'
+      | 'unavailable'
+      | 'data_loss'
+      | 'unauthenticated';
+  } & {
     [Property in SpanFields as `count_unique(${Property})`]: number;
+  } & {
+    [SpanFields.RESOURCE_RENDER_BLOCKING_STATUS]: '' | 'non-blocking' | 'blocking';
   } & {
     [Property in SpanNumberFields as `${CounterConditionalAggregate}(${Property},${string},${string})`]: number;
   } & {
@@ -354,192 +500,6 @@ type EAPSpanResponseRaw = {
 
 export type EAPSpanResponse = Flatten<EAPSpanResponseRaw>;
 export type EAPSpanProperty = keyof EAPSpanResponse; // TODO: rename this to `SpanProperty` when we remove `useInsightsEap`
-
-export enum SpanIndexedField {
-  ENVIRONMENT = 'environment',
-  RESOURCE_RENDER_BLOCKING_STATUS = 'resource.render_blocking_status',
-  HTTP_RESPONSE_CONTENT_LENGTH = 'http.response_content_length',
-  SPAN_CATEGORY = 'span.category',
-  SPAN_DURATION = 'span.duration',
-  SPAN_SELF_TIME = 'span.self_time',
-  SPAN_GROUP = 'span.group', // Span group computed from the normalized description. Matches the group in the metrics data set
-  SPAN_DESCRIPTION = 'span.description',
-  SPAN_STATUS = 'span.status',
-  SPAN_OP = 'span.op',
-  ID = 'id',
-  SPAN_ID = 'span_id',
-  SPAN_ACTION = 'span.action',
-  SPAN_AI_PIPELINE_GROUP = 'span.ai.pipeline.group',
-  SDK_NAME = 'sdk.name',
-  SDK_VERSION = 'sdk.version',
-  TRACE = 'trace',
-  TRANSACTION_ID = 'transaction.id', // TODO - remove this with `useInsightsEap`
-  TRANSACTION_SPAN_ID = 'transaction.span_id',
-  TRANSACTION_METHOD = 'transaction.method',
-  TRANSACTION_OP = 'transaction.op',
-  SPAN_DOMAIN = 'span.domain',
-  TIMESTAMP = 'timestamp',
-  RAW_DOMAIN = 'raw_domain',
-  PROJECT = 'project',
-  PROJECT_ID = 'project_id',
-  PROFILE_ID = 'profile_id',
-  PROFILEID = 'profile.id',
-  PROFILER_ID = 'profiler.id',
-  RELEASE = 'release',
-  TRANSACTION = 'transaction',
-  ORIGIN_TRANSACTION = 'origin.transaction',
-  REPLAYID = 'replayId',
-  REPLAY_ID = 'replay.id',
-  REPLAY = 'replay', // Field alias that coalesces `replay.id` and `replayId`
-  BROWSER_NAME = 'browser.name',
-  USER = 'user',
-  USER_ID = 'user.id',
-  USER_IP = 'user.ip',
-  USER_EMAIL = 'user.email',
-  USER_USERNAME = 'user.username',
-  USER_DISPLAY = 'user.display', // Field alias that coalesces `user.id`, `user.email`, `user.username`, `user.ip`, and `user`
-  INP = 'measurements.inp',
-  INP_SCORE = 'measurements.score.inp',
-  INP_SCORE_RATIO = 'measurements.score.ratio.inp',
-  INP_SCORE_WEIGHT = 'measurements.score.weight.inp',
-  LCP = 'measurements.lcp',
-  LCP_SCORE = 'measurements.score.lcp',
-  LCP_SCORE_RATIO = 'measurements.score.ratio.lcp',
-  CLS = 'measurements.cls',
-  CLS_SCORE = 'measurements.score.cls',
-  CLS_SCORE_RATIO = 'measurements.score.ratio.cls',
-  TTFB = 'measurements.ttfb',
-  TTFB_SCORE = 'measurements.score.ttfb',
-  TTFB_SCORE_RATIO = 'measurements.score.ratio.ttfb',
-  FCP = 'measurements.fcp',
-  FCP_SCORE = 'measurements.score.fcp',
-  FCP_SCORE_RATIO = 'measurements.score.ratio.fcp',
-  TOTAL_SCORE = 'measurements.score.total',
-  RESPONSE_CODE = 'span.status_code',
-  CACHE_HIT = 'cache.hit',
-  CACHE_ITEM_SIZE = 'measurements.cache.item_size',
-  TRACE_STATUS = 'trace.status',
-  MESSAGING_MESSAGE_ID = 'messaging.message.id',
-  MESSAGING_MESSAGE_BODY_SIZE = 'measurements.messaging.message.body.size',
-  MESSAGING_MESSAGE_RECEIVE_LATENCY = 'measurements.messaging.message.receive.latency',
-  MESSAGING_MESSAGE_RETRY_COUNT = 'measurements.messaging.message.retry.count',
-  MESSAGING_MESSAGE_DESTINATION_NAME = 'messaging.destination.name',
-  USER_GEO_SUBREGION = 'user.geo.subregion',
-  IS_TRANSACTION = 'is_transaction',
-  LCP_ELEMENT = 'lcp.element',
-  CLS_SOURCE = 'cls.source.1',
-  NORMALIZED_DESCRIPTION = 'sentry.normalized_description',
-  MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH = 'measurements.http.response_content_length',
-  DB_SYSTEM = 'db.system',
-  CODE_FILEPATH = 'code.filepath',
-  CODE_LINENO = 'code.lineno',
-  CODE_FUNCTION = 'code.function',
-  PLATFORM = 'platform',
-}
-
-export type SpanIndexedResponse = {
-  [SpanIndexedField.ID]: string;
-  [SpanIndexedField.SPAN_ID]: string;
-  [SpanIndexedField.ENVIRONMENT]: string;
-  [SpanIndexedField.RELEASE]: string;
-  [SpanIndexedField.SDK_NAME]: string;
-  [SpanIndexedField.SDK_VERSION]: string;
-  [SpanIndexedField.SPAN_CATEGORY]: string;
-  [SpanIndexedField.SPAN_DURATION]: number;
-  [SpanIndexedField.SPAN_SELF_TIME]: number;
-  [SpanIndexedField.SPAN_GROUP]: string;
-  [SpanIndexedField.SPAN_DESCRIPTION]: string;
-  [SpanIndexedField.SPAN_OP]: string;
-  [SpanIndexedField.SPAN_AI_PIPELINE_GROUP]: string;
-  [SpanIndexedField.SPAN_STATUS]:
-    | 'ok'
-    | 'cancelled'
-    | 'unknown'
-    | 'invalid_argument'
-    | 'deadline_exceeded'
-    | 'not_found'
-    | 'already_exists'
-    | 'permission_denied'
-    | 'resource_exhausted'
-    | 'failed_precondition'
-    | 'aborted'
-    | 'out_of_range'
-    | 'unimplemented'
-    | 'internal_error'
-    | 'unavailable'
-    | 'data_loss'
-    | 'unauthenticated';
-  [SpanIndexedField.SPAN_ACTION]: string;
-  [SpanIndexedField.TRACE]: string;
-  [SpanIndexedField.TRANSACTION]: string;
-  [SpanIndexedField.TRANSACTION_ID]: string;
-  [SpanIndexedField.TRANSACTION_SPAN_ID]: string;
-  [SpanIndexedField.TRANSACTION_METHOD]: string;
-  [SpanIndexedField.TRANSACTION_OP]: string;
-  [SpanIndexedField.SPAN_DOMAIN]: string[];
-  [SpanIndexedField.RAW_DOMAIN]: string;
-  [SpanIndexedField.TIMESTAMP]: string;
-  [SpanIndexedField.PROJECT]: string;
-  [SpanIndexedField.PROJECT_ID]: number;
-  [SpanIndexedField.PROFILE_ID]: string;
-  [SpanIndexedField.PROFILEID]: string;
-  [SpanIndexedField.PROFILER_ID]: string;
-  [SpanIndexedField.RESOURCE_RENDER_BLOCKING_STATUS]: '' | 'non-blocking' | 'blocking';
-  [SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH]: string;
-  [SpanIndexedField.ORIGIN_TRANSACTION]: string;
-  [SpanIndexedField.REPLAY_ID]: string;
-  [SpanIndexedField.REPLAYID]: string;
-  [SpanIndexedField.REPLAY]: string;
-  [SpanIndexedField.BROWSER_NAME]: string;
-  [SpanIndexedField.USER]: string;
-  [SpanIndexedField.USER_ID]: string;
-  [SpanIndexedField.USER_EMAIL]: string;
-  [SpanIndexedField.USER_USERNAME]: string;
-  [SpanIndexedField.USER_IP]: string;
-  [SpanIndexedField.USER_DISPLAY]: string;
-  [SpanIndexedField.IS_TRANSACTION]: number;
-  [SpanIndexedField.INP]: number;
-  [SpanIndexedField.INP_SCORE]: number;
-  [SpanIndexedField.INP_SCORE_WEIGHT]: number;
-  [SpanIndexedField.INP_SCORE_RATIO]: number;
-  [SpanIndexedField.LCP]: number;
-  [SpanIndexedField.LCP_SCORE]: number;
-  [SpanIndexedField.LCP_SCORE_RATIO]: number;
-  [SpanIndexedField.CLS]: number;
-  [SpanIndexedField.CLS_SCORE]: number;
-  [SpanIndexedField.CLS_SCORE_RATIO]: number;
-  [SpanIndexedField.TTFB]: number;
-  [SpanIndexedField.TTFB_SCORE]: number;
-  [SpanIndexedField.TTFB_SCORE_RATIO]: number;
-  [SpanIndexedField.FCP]: number;
-  [SpanIndexedField.FCP_SCORE]: number;
-  [SpanIndexedField.FCP_SCORE_RATIO]: number;
-  [SpanIndexedField.TOTAL_SCORE]: number;
-  [SpanIndexedField.RESPONSE_CODE]: string;
-  [SpanIndexedField.CACHE_HIT]: '' | 'true' | 'false';
-  [SpanIndexedField.CACHE_ITEM_SIZE]: number;
-  [SpanIndexedField.TRACE_STATUS]: string;
-  [SpanIndexedField.MESSAGING_MESSAGE_ID]: string;
-  [SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE]: number;
-  [SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY]: number;
-  [SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT]: number;
-  [SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME]: string;
-  [SpanIndexedField.USER_GEO_SUBREGION]: string;
-  [SpanIndexedField.LCP_ELEMENT]: string;
-  [SpanIndexedField.CLS_SOURCE]: string;
-  [SpanIndexedField.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH]: number;
-  'any(id)': string;
-  [SpanIndexedField.DB_SYSTEM]: SupportedDatabaseSystem;
-  [SpanIndexedField.CODE_FILEPATH]: string;
-  [SpanIndexedField.CODE_LINENO]: number;
-  [SpanIndexedField.CODE_FUNCTION]: string;
-  [SpanIndexedField.PLATFORM]: PlatformKey;
-};
-
-export type SpanIndexedProperty = keyof SpanIndexedResponse;
-
-// TODO: When convenient, remove this alias and use `IndexedResponse` everywhere
-export type SpanIndexedFieldTypes = SpanIndexedResponse;
 
 export enum SpanFunction {
   SPS = 'sps',
@@ -556,193 +516,9 @@ export enum SpanFunction {
   FAILURE_RATE_IF = 'failure_rate_if',
 }
 
-// TODO - add more functions and fields, combine shared ones, etc
-
-type MetricsFunctions =
-  | 'count'
-  | 'performance_score'
-  | 'count_scores'
-  | 'opportunity_score'
-  | 'p75';
-
-export enum MetricsFields {
-  TRANSACTION_DURATION = 'transaction.duration',
-  SPAN_DURATION = 'span.duration',
-  TRANSACTION = 'transaction',
-  PROJECT = 'project',
-  LCP_SCORE = 'measurements.score.lcp',
-  FCP_SCORE = 'measurements.score.fcp',
-  INP_SCORE = 'measurements.score.inp',
-  CLS_SCORE = 'measurements.score.cls',
-  TTFB_SCORE = 'measurements.score.ttfb',
-  TOTAL_SCORE = 'measurements.score.total',
-  LCP_WEIGHT = 'measurements.score.weight.lcp',
-  FCP_WEIGHT = 'measurements.score.weight.fcp',
-  INP_WEIGHT = 'measurements.score.weight.inp',
-  CLS_WEIGHT = 'measurements.score.weight.cls',
-  TTFB_WEIGHT = 'measurements.score.weight.ttfb',
-  TOTAL_WEIGHT = 'measurements.score.weight.total',
-  PROJECT_ID = 'project.id',
-  LCP = 'measurements.lcp',
-  FCP = 'measurements.fcp',
-  INP = 'measurements.inp',
-  CLS = 'measurements.cls',
-  TTFB = 'measurements.ttfb',
-  ID = 'id',
-  TRACE = 'trace',
-  USER_DISPLAY = 'user.display',
-  REPLAY_ID = 'replayId',
-  TIMESTAMP = 'timestamp',
-  PROFILE_ID = 'profile.id',
-  APP_START_COLD = 'measurements.app_start_cold',
-  APP_START_WARM = 'measurements.app_start_warm',
-  TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
-  TIME_TO_FULL_DISPLAY = 'measurements.time_to_full_display',
-  RELEASE = 'release',
-  DEVICE_CLASS = 'device.class',
-}
-
-type MetricsNumberFields =
-  | MetricsFields.TRANSACTION_DURATION
-  | MetricsFields.SPAN_DURATION
-  | MetricsFields.LCP_SCORE
-  | MetricsFields.FCP_SCORE
-  | MetricsFields.INP_SCORE
-  | MetricsFields.CLS_SCORE
-  | MetricsFields.TTFB_SCORE
-  | MetricsFields.TOTAL_SCORE
-  | MetricsFields.LCP_WEIGHT
-  | MetricsFields.FCP_WEIGHT
-  | MetricsFields.INP_WEIGHT
-  | MetricsFields.CLS_WEIGHT
-  | MetricsFields.TTFB_WEIGHT
-  | MetricsFields.TOTAL_WEIGHT
-  | MetricsFields.LCP
-  | MetricsFields.FCP
-  | MetricsFields.INP
-  | MetricsFields.CLS
-  | MetricsFields.TTFB
-  | MetricsFields.APP_START_COLD
-  | MetricsFields.APP_START_WARM
-  | MetricsFields.TIME_TO_INITIAL_DISPLAY
-  | MetricsFields.TIME_TO_FULL_DISPLAY;
-
-type MetricsStringFields =
-  | MetricsFields.TRANSACTION
-  | MetricsFields.PROJECT
-  | MetricsFields.ID
-  | MetricsFields.TRACE
-  | MetricsFields.USER_DISPLAY
-  | MetricsFields.PROFILE_ID
-  | MetricsFields.RELEASE
-  | MetricsFields.TIMESTAMP
-  | MetricsFields.DEVICE_CLASS;
-
-type MetricsResponseRaw = {
-  [Property in MetricsNumberFields as `${Aggregate}(${Property})`]: number;
-} & {
-  [Property in MetricsNumberFields as `${MetricsFunctions}(${Property})`]: number;
-} & {
-  [Function in MetricsFunctions as `${Function}()`]: number;
-} & {
-  [Property in MetricsStringFields as `${Property}`]: string;
-} & {
-  ['project.id']: number;
-};
-export type MetricsResponse = Flatten<MetricsResponseRaw>;
-
-enum DiscoverFields {
-  ID = 'id',
-  TRACE = 'trace',
-  USER_DISPLAY = 'user.display',
-  TRANSACTION = 'transaction',
-  LCP = 'measurements.lcp',
-  FCP = 'measurements.fcp',
-  CLS = 'measurements.cls',
-  TTFB = 'measurements.ttfb',
-  INP = 'measurements.inp',
-  TRANSACTION_DURATION = 'transaction.duration',
-  SPAN_DURATION = 'span.duration',
-  REPLAY_ID = 'replayId',
-  TIMESTAMP = 'timestamp',
-  PROFILE_ID = 'profile.id',
-  PROJECT = 'project',
-  SCORE_TOTAL = 'measurements.score.total',
-  SCORE_LCP = 'measurements.score.lcp',
-  SCORE_FCP = 'measurements.score.fcp',
-  SCORE_CLS = 'measurements.score.cls',
-  SCORE_TTFB = 'measurements.score.ttfb',
-  SCORE_INP = 'measurements.score.inp',
-  SCORE_WEIGHT_LCP = 'measurements.score.weight.lcp',
-  SCORE_WEIGHT_FCP = 'measurements.score.weight.fcp',
-  SCORE_WEIGHT_CLS = 'measurements.score.weight.cls',
-  SCORE_WEIGHT_TTFB = 'measurements.score.weight.ttfb',
-  SCORE_WEIGHT_INP = 'measurements.score.weight.inp',
-  SCORE_RATIO_LCP = 'measurements.score.ratio.lcp',
-  SCORE_RATIO_FCP = 'measurements.score.ratio.fcp',
-  SCORE_RATIO_CLS = 'measurements.score.ratio.cls',
-  SCORE_RATIO_TTFB = 'measurements.score.ratio.ttfb',
-  SCORE_RATIO_INP = 'measurements.score.ratio.inp',
-  MEASUREMENTS_TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
-  MEASUREMENTS_TIME_TO_FULL_DISPLAY = 'measurements.time_to_full_display',
-}
-
-export type MetricsProperty = keyof MetricsResponse;
-
-type DiscoverNumberFields =
-  | DiscoverFields.INP
-  | DiscoverFields.CLS
-  | DiscoverFields.FCP
-  | DiscoverFields.LCP
-  | DiscoverFields.TTFB
-  | DiscoverFields.TRANSACTION_DURATION
-  | DiscoverFields.SPAN_DURATION
-  | DiscoverFields.SCORE_TOTAL
-  | DiscoverFields.SCORE_LCP
-  | DiscoverFields.SCORE_FCP
-  | DiscoverFields.SCORE_CLS
-  | DiscoverFields.SCORE_TTFB
-  | DiscoverFields.SCORE_INP
-  | DiscoverFields.SCORE_WEIGHT_LCP
-  | DiscoverFields.SCORE_WEIGHT_FCP
-  | DiscoverFields.SCORE_WEIGHT_CLS
-  | DiscoverFields.SCORE_WEIGHT_TTFB
-  | DiscoverFields.SCORE_WEIGHT_INP
-  | DiscoverFields.SCORE_RATIO_LCP
-  | DiscoverFields.SCORE_RATIO_FCP
-  | DiscoverFields.SCORE_RATIO_CLS
-  | DiscoverFields.SCORE_RATIO_TTFB
-  | DiscoverFields.SCORE_RATIO_INP
-  | DiscoverFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY
-  | DiscoverFields.MEASUREMENTS_TIME_TO_FULL_DISPLAY;
-
-type DiscoverStringFields =
-  | DiscoverFields.ID
-  | DiscoverFields.TRACE
-  | DiscoverFields.USER_DISPLAY
-  | DiscoverFields.TRANSACTION
-  | DiscoverFields.REPLAY_ID
-  | DiscoverFields.TIMESTAMP
-  | DiscoverFields.PROFILE_ID
-  | DiscoverFields.PROJECT;
-
-type DiscoverResponseRaw = {
-  [Property in DiscoverNumberFields as `${Property}`]: number;
-} & {
-  [Property in DiscoverStringFields as `${Property}`]: string;
-};
-
-export type DiscoverResponse = Flatten<DiscoverResponseRaw>;
-
-export type DiscoverProperty = keyof DiscoverResponse;
-
-export type MetricsQueryFilters = Partial<Record<MetricsStringFields, string>> & {
-  [SpanIndexedField.PROJECT_ID]?: string;
-};
-
 export type SpanQueryFilters = Partial<Record<SpanStringFields, string>> & {
   is_transaction?: 'true' | 'false';
-  [SpanIndexedField.PROJECT_ID]?: string;
+  [SpanFields.PROJECT_ID]?: string;
 };
 
 // Maps the subregion code to the subregion name according to UN m49 standard

@@ -34,7 +34,7 @@ Risk = int  # TODO: make enum or union of literals
 ContextValue = Any
 ContextDict = dict[str, ContextValue]
 
-DEFAULT_GROUPING_ENHANCEMENTS_BASE = "common:2019-03-23"
+DEFAULT_ENHANCEMENTS_BASE = "common:2019-03-23"
 DEFAULT_GROUPING_FINGERPRINTING_BASES: list[str] = []
 
 # TODO: Hack to make `ReturnedVariants` (no pun intended) covariant. At some point we should
@@ -50,13 +50,13 @@ class StrategyFunc(Protocol[ConcreteInterface]):
         interface: ConcreteInterface,
         event: Event,
         context: GroupingContext,
-        **meta: Any,
+        **kwargs: Any,
     ) -> ReturnedVariants: ...
 
 
 class VariantProcessor(Protocol):
     def __call__(
-        self, variants: ReturnedVariants, context: GroupingContext, **meta: Any
+        self, variants: ReturnedVariants, context: GroupingContext, **kwargs: Any
     ) -> ReturnedVariants: ...
 
 
@@ -229,9 +229,9 @@ class Strategy(Generic[ConcreteInterface]):
         self, event: Event, context: GroupingContext, variant: str | None = None
     ) -> None | BaseGroupingComponent[Any] | ReturnedVariants:
         """Given a specific variant this calculates the grouping component."""
-        iface = event.interfaces.get(self.interface_name)
+        interface = event.interfaces.get(self.interface_name)
 
-        if iface is None:
+        if interface is None:
             return None
 
         with context:
@@ -239,7 +239,7 @@ class Strategy(Generic[ConcreteInterface]):
             if variant is not None:
                 context["variant"] = variant
 
-            return self(iface, event=event, context=context)
+            return self(interface, event=event, context=context)
 
     def get_grouping_components(self, event: Event, context: GroupingContext) -> ReturnedVariants:
         """This returns a dictionary of all components by variant that this
@@ -301,7 +301,7 @@ class StrategyConfiguration:
     hidden = False
     risk = RISK_LEVEL_LOW
     initial_context: ContextDict = {}
-    enhancements_base: str | None = DEFAULT_GROUPING_ENHANCEMENTS_BASE
+    enhancements_base: str | None = DEFAULT_ENHANCEMENTS_BASE
     fingerprinting_bases: Sequence[str] | None = DEFAULT_GROUPING_FINGERPRINTING_BASES
 
     def __init__(self, enhancements: str | None = None, **extra: Any):
@@ -317,7 +317,7 @@ class StrategyConfiguration:
                 )
             except InvalidEnhancerConfig:
                 enhancements_instance = ENHANCEMENT_BASES[
-                    self.enhancements_base or DEFAULT_GROUPING_ENHANCEMENTS_BASE
+                    self.enhancements_base or DEFAULT_ENHANCEMENTS_BASE
                 ]
 
         self.enhancements = enhancements_instance
@@ -346,7 +346,7 @@ class StrategyConfiguration:
         }
 
 
-def create_strategy_configuration(
+def create_strategy_configuration_class(
     id: str | None,
     strategies: Sequence[str] | None = None,
     delegates: Sequence[str] | None = None,
@@ -358,7 +358,7 @@ def create_strategy_configuration(
     enhancements_base: str | None = None,
     fingerprinting_bases: Sequence[str] | None = None,
 ) -> type[StrategyConfiguration]:
-    """Declares a new strategy configuration.
+    """Declares a new strategy configuration class.
 
     Values can be inherited from a base configuration.  For strategies if there is
     a strategy of the same class it's replaced.  For delegates if there is a

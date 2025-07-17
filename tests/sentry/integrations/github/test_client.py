@@ -512,6 +512,14 @@ class GithubProxyClientTest(TestCase):
             assert token == self.jwt
 
     @responses.activate
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=jwt)
+    def test_get_access_token(self, _):
+        self.gh_client.integration.metadata["access_token"] = "access_token_1"
+        self.gh_client.integration.metadata["expires_at"] = "3000-01-01T00:00:00Z"
+
+        assert self.gh_client.get_access_token() == "access_token_1"
+
+    @responses.activate
     @mock.patch("sentry.integrations.github.client.GithubProxyClient._get_token", return_value=None)
     def test_authorize_request_invalid(self, mock_get_invalid_token):
         request = Request(url=f"{self.gh_client.base_url}/repos/test-repo/issues").prepare()

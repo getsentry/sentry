@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
+import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import Placeholder from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -11,18 +12,25 @@ import AutomationTitleCell from 'sentry/components/workflowEngine/gridCell/autom
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useAutomationsQuery} from 'sentry/views/automations/hooks';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
 
-const AUTOMATIONS_PER_PAGE = 10;
+const DEFAULT_AUTOMATIONS_PER_PAGE = 10;
 
-type Props = {
-  automationIds: Detector['workflowIds'];
+type Props = React.HTMLAttributes<HTMLDivElement> & {
+  /**
+   * If null, all automations will be fetched.
+   */
+  automationIds: Detector['workflowIds'] | null;
+  cursor: string | undefined;
+  onCursor: CursorHandler;
   connectedAutomationIds?: Set<string>;
-  toggleConnected?: (id: string) => void;
+  emptyMessage?: string;
+  limit?: number | null;
+  query?: string;
+  toggleConnected?: (params: {automation: Automation}) => void;
 };
 
 function Skeletons({canEdit, numberOfRows}: {canEdit: boolean; numberOfRows: number}) {
@@ -54,12 +62,16 @@ export function ConnectedAutomationsList({
   automationIds,
   connectedAutomationIds,
   toggleConnected,
+  emptyMessage = t('No automations connected'),
+  cursor,
+  onCursor,
+  limit = DEFAULT_AUTOMATIONS_PER_PAGE,
+  query,
+  ...props
 }: Props) {
   const canEdit = Boolean(
     connectedAutomationIds && typeof toggleConnected === 'function'
   );
-  const navigate = useNavigate();
-  const location = useLocation();
 
   const {
     data: automations,
@@ -69,16 +81,18 @@ export function ConnectedAutomationsList({
     getResponseHeader,
   } = useAutomationsQuery(
     {
-      ids: automationIds,
-      limit: AUTOMATIONS_PER_PAGE,
-      cursor:
-        typeof location.query.cursor === 'string' ? location.query.cursor : undefined,
+      ids: automationIds ?? undefined,
+      limit: limit ?? undefined,
+      cursor,
+      query,
     },
-    {enabled: automationIds.length > 0}
+    {enabled: automationIds === null || automationIds.length > 0}
   );
 
+  const pageLinks = getResponseHeader?.('Link');
+
   return (
-    <Container>
+    <Container {...props}>
       <SimpleTableWithColumns>
         <SimpleTable.Header>
           <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
@@ -93,12 +107,17 @@ export function ConnectedAutomationsList({
         {isLoading && (
           <Skeletons
             canEdit={canEdit}
-            numberOfRows={Math.min(automationIds.length, AUTOMATIONS_PER_PAGE)}
+            numberOfRows={
+              automationIds === null
+                ? (limit ?? DEFAULT_AUTOMATIONS_PER_PAGE)
+                : Math.min(automationIds?.length ?? 0, DEFAULT_AUTOMATIONS_PER_PAGE)
+            }
           />
         )}
         {isError && <LoadingError />}
-        {automationIds.length === 0 && (
-          <SimpleTable.Empty>{t('No automations connected')}</SimpleTable.Empty>
+        {((isSuccess && automations.length === 0) ||
+          (automationIds !== null && automationIds.length === 0)) && (
+          <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
         )}
         {isSuccess &&
           automations.map(automation => (
@@ -117,7 +136,7 @@ export function ConnectedAutomationsList({
               </SimpleTable.RowCell>
               {canEdit && (
                 <SimpleTable.RowCell data-column-name="connected" justify="flex-end">
-                  <Button onClick={() => toggleConnected?.(automation.id)} size="sm">
+                  <Button onClick={() => toggleConnected?.({automation})} size="sm">
                     {connectedAutomationIds?.has(automation.id)
                       ? t('Disconnect')
                       : t('Connect')}
@@ -127,18 +146,7 @@ export function ConnectedAutomationsList({
             </SimpleTable.Row>
           ))}
       </SimpleTableWithColumns>
-      <Pagination
-        onCursor={cursor => {
-          navigate({
-            pathname: location.pathname,
-            query: {
-              ...location.query,
-              cursor,
-            },
-          });
-        }}
-        pageLinks={getResponseHeader?.('Link')}
-      />
+      {limit === null ? null : <Pagination onCursor={onCursor} pageLinks={pageLinks} />}
     </Container>
   );
 }

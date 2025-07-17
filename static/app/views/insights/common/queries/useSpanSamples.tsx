@@ -11,15 +11,14 @@ import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDisc
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
-  SpanIndexedFieldTypes,
-  SpanIndexedProperty,
-  SpanIndexedResponse,
+  EAPSpanProperty,
+  EAPSpanResponse,
   SpanMetricsQueryFilters,
   SubregionCode,
 } from 'sentry/views/insights/types';
-import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
 
-const {SPAN_SELF_TIME, SPAN_GROUP} = SpanIndexedField;
+const {SPAN_SELF_TIME, SPAN_GROUP} = SpanFields;
 
 type Options<Fields extends NonDefaultSpanSampleFields[]> = {
   groupId: string;
@@ -33,27 +32,27 @@ type Options<Fields extends NonDefaultSpanSampleFields[]> = {
 };
 
 export type SpanSample = Pick<
-  SpanIndexedFieldTypes,
-  | SpanIndexedField.SPAN_SELF_TIME
-  | SpanIndexedField.TRANSACTION_SPAN_ID
-  | SpanIndexedField.PROJECT
-  | SpanIndexedField.TIMESTAMP
-  | SpanIndexedField.SPAN_ID
-  | SpanIndexedField.PROFILEID
-  | SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH
-  | SpanIndexedField.TRACE
+  EAPSpanResponse,
+  | SpanFields.SPAN_SELF_TIME
+  | SpanFields.TRANSACTION_SPAN_ID
+  | SpanFields.PROJECT
+  | SpanFields.TIMESTAMP
+  | SpanFields.SPAN_ID
+  | SpanFields.PROFILEID
+  | SpanFields.HTTP_RESPONSE_CONTENT_LENGTH
+  | SpanFields.TRACE
 >;
 
 export type DefaultSpanSampleFields =
-  | SpanIndexedField.PROJECT
-  | SpanIndexedField.TRANSACTION_SPAN_ID
-  | SpanIndexedField.TIMESTAMP
-  | SpanIndexedField.SPAN_ID
-  | SpanIndexedField.PROFILEID
-  | SpanIndexedField.SPAN_SELF_TIME;
+  | SpanFields.PROJECT
+  | SpanFields.TRANSACTION_SPAN_ID
+  | SpanFields.TIMESTAMP
+  | SpanFields.SPAN_ID
+  | SpanFields.PROFILEID
+  | SpanFields.SPAN_SELF_TIME;
 
 export type NonDefaultSpanSampleFields = Exclude<
-  SpanIndexedProperty,
+  EAPSpanProperty,
   DefaultSpanSampleFields
 >;
 
@@ -119,7 +118,7 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
   );
 
   type DataRow = Pick<
-    SpanIndexedResponse,
+    EAPSpanResponse,
     Fields[number] | DefaultSpanSampleFields // These fields are returned by default
   >;
 
@@ -141,8 +140,8 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
           secondBound: max * (2 / 3),
           upperBound: max,
           additionalFields: [
-            SpanIndexedField.ID,
-            SpanIndexedField.TRANSACTION_SPAN_ID, // TODO: transaction.span_id should be a default from the backend
+            SpanFields.ID,
+            SpanFields.TRANSACTION_SPAN_ID, // TODO: transaction.span_id should be a default from the backend
             ...additionalFields,
           ],
           sampling: useEap ? SAMPLING_MODE.NORMAL : undefined,

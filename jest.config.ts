@@ -2,8 +2,39 @@ import type {Config} from '@jest/types';
 import path from 'node:path';
 import process from 'node:process';
 import {execFileSync} from 'node:child_process';
+import type {TransformOptions} from '@babel/core';
 
-import babelConfig from './babel.config';
+const babelConfig: TransformOptions = {
+  presets: [
+    [
+      '@babel/preset-react',
+      {
+        runtime: 'automatic',
+        importSource: '@emotion/react',
+      },
+    ],
+    [
+      '@babel/preset-env',
+      {
+        useBuiltIns: 'usage',
+        corejs: '3.41',
+        targets: {
+          node: 'current',
+        },
+      },
+    ],
+    // TODO: Remove allowDeclareFields when we upgrade to Babel 8
+    ['@babel/preset-typescript', {allowDeclareFields: true, onlyRemoveTypeImports: true}],
+  ],
+  plugins: [
+    [
+      '@emotion/babel-plugin',
+      {
+        sourceMap: false,
+      },
+    ],
+  ],
+};
 
 const {
   CI,
@@ -17,14 +48,6 @@ const {
 } = process.env;
 
 const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
-
-const BALANCE_RESULTS_PATH = path.resolve(
-  __dirname,
-  'tests',
-  'js',
-  'test-balancer',
-  'jest-balance.json'
-);
 
 const optionalTags: {
   balancer?: boolean;
@@ -188,13 +211,22 @@ if (
 ) {
   let balance: null | Record<string, number> = null;
 
+  const BALANCE_RESULTS_PATH = path.resolve(
+    import.meta.dirname,
+    'tests',
+    'js',
+    'test-balancer',
+    'jest-balance.json'
+  );
   try {
     balance = require(BALANCE_RESULTS_PATH);
   } catch (err) {
     // Just ignore if balance results doesn't exist
   }
   // Taken from https://github.com/facebook/jest/issues/6270#issue-326653779
-  const envTestList: string[] = JEST_TESTS.map(file => file.replace(__dirname, ''));
+  const envTestList: string[] = JEST_TESTS.map(file =>
+    file.replace(import.meta.dirname, '')
+  );
   const nodeTotal = Number(CI_NODE_TOTAL);
   const nodeIndex = Number(CI_NODE_INDEX);
 
@@ -302,6 +334,7 @@ const config: Config.InitialOptions = {
   // To disable the sentry jest integration, set this to 'jsdom'
   testEnvironment: '@sentry/jest-environment/jsdom',
   testEnvironmentOptions: {
+    globalsCleanup: 'on',
     sentryConfig: {
       init: {
         // jest project under Sentry organization (dev productivity team)
