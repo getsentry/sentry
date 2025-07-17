@@ -43,7 +43,7 @@ dummy_project = Mock(id=11211231)
     set(CONFIGURATIONS.keys()) - {DEFAULT_GROUPING_CONFIG, NO_MSG_PARAM_CONFIG},
     ids=lambda config_name: config_name.replace("-", "_"),
 )
-def test_hash_basis_with_legacy_configs(
+def test_hash_basis_with_older_configs(
     config_name: str,
     grouping_input: GroupingInput,
     insta_snapshot: InstaSnapshotter,
@@ -53,8 +53,8 @@ def test_hash_basis_with_legacy_configs(
     process.
 
     Because manually cherry-picking only certain parts of the save process to run makes us much more
-    likely to fall out of sync with reality, for safety we only do this when testing legacy,
-    inactive grouping configs.
+    likely to fall out of sync with reality, for safety we only do this when testing older
+    grouping configs.
     """
     event = grouping_input.create_event(config_name, use_full_ingest_pipeline=False)
 
@@ -70,7 +70,7 @@ def test_hash_basis_with_legacy_configs(
     "config_name",
     # Technically we don't need to parameterize this since there's only one option, but doing it
     # this way makes snapshots from this test organize themselves neatly alongside snapshots from
-    # the test of the legacy configs above
+    # the test of the older configs above
     {DEFAULT_GROUPING_CONFIG},
     ids=lambda config_name: config_name.replace("-", "_"),
 )
