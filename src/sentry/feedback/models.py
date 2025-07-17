@@ -34,7 +34,7 @@ class Feedback(Model):
 
 
 @region_silo_model
-class GroupLabel(DefaultFieldsModel):
+class FeedbackLabel(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     group = FlexibleForeignKey("sentry.Group", on_delete=models.CASCADE)
@@ -61,7 +61,7 @@ class Label(DefaultFieldsModel):
 
     organization_id = BoundedBigIntegerField(db_index=True)
     name = models.CharField(max_length=255)
-    groups = models.ManyToManyField("sentry.Group", through=GroupLabel)
+    groups = models.ManyToManyField("sentry.Group", through=FeedbackLabel)
 
     class Meta:
         app_label = "feedback"
@@ -72,5 +72,5 @@ class Label(DefaultFieldsModel):
     __repr__ = sane_repr("organization_id", "name")
 
 
-# To support the query: find top 10 labels by number of groups (counting groups only in a date range and project), should we make a new table? one that stores label, project_id, date (date the feedback was submitted), and group_id. This query is cached based on project_id and date range.
+# should we make a new table to support the query: find top 10 labels by number of groups (counting groups only in a date range and project)? one that stores label, project_id, date (date the feedback was submitted), and group_id. This query is cached based on project_id and date range.
 # We also want to find all groups that have a certain list of 20 or so labels, (again filtered by date range and project), maybe the new table would work well here? Note that this specific query is not cached, it would run every time a user clicks on a given category.
