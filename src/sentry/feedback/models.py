@@ -46,11 +46,8 @@ class FeedbackLabel(DefaultFieldsModel):
         app_label = "feedback"
         db_table = "feedback_grouplabel"
         unique_together = (("group", "label"),)
-        indexes = [
-            models.Index(
-                fields=("group", "label")
-            ),  # rm: Allows us to quickly find all labels that a certain feedback has
-        ]
+        # rm: Allows us to quickly find all labels that a certain feedback has
+        indexes = [models.Index(fields=("group", "label"))]
 
     __repr__ = sane_repr("group", "label")
 
