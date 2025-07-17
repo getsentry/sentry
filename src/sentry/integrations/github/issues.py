@@ -20,6 +20,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
     IntegrationFormError,
     IntegrationInstallationConfigurationError,
+    IntegrationResourceNotFoundError,
 )
 from sentry.silo.base import all_silo_function
 from sentry.users.models.identity import Identity
@@ -51,6 +52,8 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
                         "detail": "Issues are disabled for this repo, please check your repo's permissions"
                     }
                 ) from exc
+            elif exc.code == 404:
+                raise IntegrationResourceNotFoundError from exc
 
         raise super().raise_error(exc=exc, identity=identity)
 
