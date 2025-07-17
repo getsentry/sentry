@@ -313,7 +313,7 @@ type ApiMutationVariables<
   method: 'PUT' | 'POST' | 'DELETE';
   url: string;
   data?: Data;
-  options?: Pick<QueryKeyEndpointOptions<Headers, Query>, 'query' | 'headers'>;
+  options?: Pick<QueryKeyEndpointOptions<Headers, Query>, 'query' | 'headers' | 'host'>;
 };
 
 /**
