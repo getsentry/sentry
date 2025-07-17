@@ -29,6 +29,7 @@ class NotificationDefaultTest(APITestCase):
                 "quotaProfileDuration": "always",
                 "quotaProfileDurationUI": "always",
                 "quotaSeerBudget": "always",
+                "quotaLogBytes": "always",
                 "reports": "always",
                 "spikeProtection": "always",
                 "workflow": "subscribe_only",
