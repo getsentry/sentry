@@ -13,6 +13,7 @@ from sentry.codecov.client import CodecovApiClient
 from sentry.codecov.endpoints.Repositories.query import query
 from sentry.codecov.endpoints.Repositories.serializers import RepositoriesSerializer
 from sentry.codecov.enums import NavigationParameter, OrderingDirection
+from sentry.integrations.services.integration.model import RpcIntegration
 
 MAX_RESULTS_PER_PAGE = 50
 
@@ -43,7 +44,7 @@ class RepositoriesEndpoint(CodecovEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, owner: str, **kwargs) -> Response:
+    def get(self, request: Request, owner: RpcIntegration, **kwargs) -> Response:
         """
         Retrieves repository data for a given owner.
         """
@@ -51,6 +52,8 @@ class RepositoriesEndpoint(CodecovEndpoint):
         navigation = request.query_params.get("navigation", NavigationParameter.NEXT.value)
         limit_param = request.query_params.get("limit", MAX_RESULTS_PER_PAGE)
         cursor = request.query_params.get("cursor")
+
+        owner_slug = owner.name
 
         # When calling request.query_params, the URL is decoded so + is replaced with spaces. We need to change them back so Codecov can properly fetch the next page.
         if cursor:
@@ -71,7 +74,7 @@ class RepositoriesEndpoint(CodecovEndpoint):
             )
 
         variables = {
-            "owner": owner,
+            "owner": owner_slug,
             "filters": {"term": request.query_params.get("term")},
             "direction": OrderingDirection.DESC.value,
             "ordering": "COMMIT_DATE",
@@ -81,7 +84,7 @@ class RepositoriesEndpoint(CodecovEndpoint):
             "after": cursor if cursor and navigation == NavigationParameter.NEXT.value else None,
         }
 
-        client = CodecovApiClient(git_provider_org=owner)
+        client = CodecovApiClient(git_provider_org=owner_slug)
         graphql_response = client.query(query=query, variables=variables)
         repositories = RepositoriesSerializer().to_representation(graphql_response.json())
 
