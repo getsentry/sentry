@@ -1,6 +1,5 @@
+import {ELLIPSIS} from 'sentry/utils/string/unicode';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-
-export const ELLIPSIS = '\u2026';
 
 function centerTruncate(value: string, maxLength = 20) {
   const divider = Math.floor(maxLength / 2);
