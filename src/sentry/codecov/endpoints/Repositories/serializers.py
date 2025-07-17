@@ -3,7 +3,7 @@ import logging
 import sentry_sdk
 from rest_framework import serializers
 
-from sentry.codecov.endpoints.serializers import PageInfoSerializer
+from sentry.codecov.endpoints.common.serializers import PageInfoSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -12,8 +12,6 @@ class RepositoryNodeSerializer(serializers.Serializer):
     """
     Serializer for individual repository nodes from GraphQL response
     """
-
-    __test__ = False
 
     name = serializers.CharField()
     updatedAt = serializers.DateTimeField()
@@ -25,8 +23,6 @@ class RepositoriesSerializer(serializers.Serializer):
     """
     Serializer for repositories response
     """
-
-    __test__ = False
 
     results = RepositoryNodeSerializer(many=True)
     pageInfo = PageInfoSerializer()

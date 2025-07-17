@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 import sentry_sdk
 
 from sentry import options
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.db.models.fields.node import NodeData
 from sentry.grouping.component import (
     AppGroupingComponent,
@@ -144,6 +145,7 @@ class ProjectGroupingConfigLoader(GroupingConfigLoader):
         return project.get_option(
             self.option_name,
             validate=lambda x: isinstance(x, str) and x in CONFIGURATIONS,
+            default=DEFAULT_GROUPING_CONFIG,
         )
 
 
@@ -190,7 +192,7 @@ def get_grouping_config_dict_for_event_data(data: NodeData, project: Project) ->
 
 def _get_default_enhancements(config_id: str | None = None) -> str:
     base: str | None = DEFAULT_ENHANCEMENTS_BASE
-    if config_id is not None:
+    if config_id is not None and config_id in CONFIGURATIONS.keys():
         base = CONFIGURATIONS[config_id].enhancements_base
     return Enhancements.from_rules_text("", bases=[base] if base else []).base64_string
 
@@ -199,8 +201,6 @@ def _get_default_fingerprinting_bases_for_project(
     project: Project, config_id: str | None = None
 ) -> Sequence[str] | None:
     """Returns the default built-in fingerprinting bases (i.e. sets of rules) for a project."""
-    from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
-
     config_id = (
         config_id
         # TODO: add fingerprinting config to GroupingConfigLoader and use that here
@@ -215,8 +215,6 @@ def _get_default_fingerprinting_bases_for_project(
 def get_default_grouping_config_dict(config_id: str | None = None) -> GroupingConfig:
     """Returns the default grouping config."""
     if config_id is None:
-        from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
-
         config_id = DEFAULT_GROUPING_CONFIG
     return {"id": config_id, "enhancements": _get_default_enhancements(config_id)}
 

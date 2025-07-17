@@ -45,7 +45,7 @@ function WidgetBuilderDatasetSelector() {
               setSegmentSpanBuilderState();
             }}
           >
-            {t('Spans')}
+            {t('spans')}
           </Link>
         ),
       }),

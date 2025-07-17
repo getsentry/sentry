@@ -29,25 +29,25 @@ export default function useDeleteReplays({projectSlug}: Props) {
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
   const hasAdminAccess = hasEveryAccess(['project:admin'], {organization, project});
 
-  const canDelete = Boolean(projectSlug) && (hasWriteAccess || hasAdminAccess);
+  const hasAccess = Boolean(projectSlug) && (hasWriteAccess || hasAdminAccess);
 
   const {mutate} = useMutation({
     mutationFn: ([data]: Vars) => {
       if (!projectSlug) {
         throw new Error('Project ID or slug is required');
       }
-      if (!canDelete) {
+      if (!hasAccess) {
         throw new Error('User does not have permission to delete replays');
       }
 
       const options = {};
       const payload = {data};
-      return fetchMutation([
-        'POST',
-        `/projects/${organization.slug}/${projectSlug}/replays/jobs/delete/`,
+      return fetchMutation({
+        method: 'POST',
+        url: `/projects/${organization.slug}/${projectSlug}/replays/jobs/delete/`,
         options,
-        payload,
-      ]);
+        data: payload,
+      });
     },
   });
 
@@ -72,7 +72,7 @@ export default function useDeleteReplays({projectSlug}: Props) {
 
   return {
     bulkDelete: mutate,
-    canDelete,
+    hasAccess,
     queryOptionsToPayload,
   };
 }
