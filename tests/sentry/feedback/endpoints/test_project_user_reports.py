@@ -415,7 +415,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
             == self.environment.id
         )
 
-    @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
+    @patch("sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka")
     def test_simple_shim_to_feedback(self, mock_produce_occurrence_to_kafka):
         replay_id = "b" * 32
         event_with_replay = self.store_event(
@@ -471,7 +471,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         )
         assert mock_event_data["level"] == "error"
 
-    @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
+    @patch("sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka")
     def test_simple_shim_to_feedback_no_event_should_not_call(
         self, mock_produce_occurrence_to_kafka
     ):
@@ -499,7 +499,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
 
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
 
-    @patch("sentry.ingest.userreport.validate_user_report")
+    @patch("sentry.feedback.usecases.ingest.userreport.validate_user_report")
     def test_validation_error(self, mock_validate_user_report):
         mock_validate_user_report.return_value = (True, "data_invalid", "Data invalid")
         self.login_as(user=self.user)
@@ -518,7 +518,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         assert UserReport.objects.count() == 0
 
-    @patch("sentry.ingest.userreport.is_in_feedback_denylist")
+    @patch("sentry.feedback.usecases.ingest.userreport.is_in_feedback_denylist")
     def test_denylist(self, mock_is_in_feedback_denylist):
         mock_is_in_feedback_denylist.return_value = True
         self.login_as(user=self.user)
