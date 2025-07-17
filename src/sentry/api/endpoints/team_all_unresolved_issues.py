@@ -90,9 +90,11 @@ def calculate_unresolved_counts(
         .values("project", "group_id", "bucket", "state")
     )
 
-    most_recent_group_state = defaultdict(lambda: "other")
+    most_recent_group_state: defaultdict[str, str] = defaultdict(lambda: "other")
     # Project => Bucket => State => Count
-    deduping_map = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
+    deduping_map: defaultdict[str, defaultdict[str, defaultdict[str, int]]] = defaultdict(
+        lambda: defaultdict(lambda: defaultdict(int))
+    )
     for r in bucketed_issues:
         # Don't process the row if it doesn't set the group to open or closed.
         if r["state"] == "other":
