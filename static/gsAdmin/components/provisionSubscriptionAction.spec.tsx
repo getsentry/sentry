@@ -7,6 +7,7 @@ import {
   SubscriptionFixture,
 } from 'getsentry-test/fixtures/subscription';
 import {
+  fireEvent,
   renderGlobalModal,
   screen,
   userEvent,
@@ -15,6 +16,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
+import ModalStore from 'sentry/stores/modalStore';
 import {DataCategory} from 'sentry/types/core';
 
 import triggerProvisionSubscription from 'admin/components/provisionSubscriptionAction';
@@ -27,42 +29,51 @@ describe('provisionSubscriptionAction', function () {
   const mockBillingConfig = BillingConfigFixture(PlanTier.ALL);
 
   function getSpinbutton(name: string) {
-    return screen.getByRole('spinbutton', {name});
+    return screen.getByRole('spinbutton', {name, hidden: true});
   }
 
   function getAllSpinbuttons(startsWith: string) {
-    return screen.getAllByRole('spinbutton', {name: new RegExp(startsWith)});
-  }
-
-  async function clickCheckbox(name: string | RegExp) {
-    await userEvent.click(await screen.findByRole('checkbox', {name}), {
-      delay: null,
-      skipHover: true,
+    return screen.getAllByRole('spinbutton', {
+      name: new RegExp(startsWith),
+      hidden: true,
     });
   }
 
-  async function typeNum(field: HTMLElement, value: string, clearField: boolean) {
-    if (clearField) {
-      await userEvent.clear(field);
-    }
-    await userEvent.click(field, {delay: null, skipHover: true});
-    await userEvent.paste(value, {delay: null, skipHover: true});
+  async function clickCheckbox(name: string | RegExp) {
+    await userEvent.click(await screen.findByRole('checkbox', {name, hidden: true}), {
+      delay: null,
+      skipHover: true,
+      pointerEventsCheck: 0,
+    });
   }
 
-  async function typeNumForMatchingFields(
+  function typeNum(field: HTMLElement, value: string, clearField: boolean) {
+    if (clearField) {
+      // Instead of clearing, clicking and updating. Directly update the field to the value which is more performant.
+      fireEvent.change(field, {target: {value}});
+      return;
+    }
+
+    // Append to existing value
+    const currentValue = (field as HTMLInputElement).value || '';
+    const newValue = currentValue + value;
+    fireEvent.change(field, {target: {value: newValue}});
+  }
+
+  function typeNumForMatchingFields(
     startsWith: string,
     value: string,
     clearField = true
   ) {
     const matchingFields = getAllSpinbuttons(startsWith);
     for (const field of matchingFields) {
-      await typeNum(field, value, clearField);
+      typeNum(field, value, clearField);
     }
   }
 
-  async function typeNumForField(name: string, value: string, clearField = true) {
+  function typeNumForField(name: string, value: string, clearField = true) {
     const field = getSpinbutton(name);
-    await typeNum(field, value, clearField);
+    typeNum(field, value, clearField);
   }
 
   async function loadModal() {
@@ -73,6 +84,7 @@ describe('provisionSubscriptionAction', function () {
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
+    ModalStore.reset();
   });
 
   it('renders modal with form', async function () {
@@ -441,8 +453,8 @@ describe('provisionSubscriptionAction', function () {
       within(container).getByLabelText('Price for Stored Spans')
     ).toBeInTheDocument();
 
-    await typeNumForField('Reserved Cost-Per-Event Accepted Spans', '1');
-    await typeNumForField('Reserved Cost-Per-Event Stored Spans', '2');
+    typeNumForField('Reserved Cost-Per-Event Accepted Spans', '1');
+    typeNumForField('Reserved Cost-Per-Event Stored Spans', '2');
     expect(
       within(container).getByLabelText('Price for Accepted Spans (Dynamic Sampling ARR)')
     ).toBeInTheDocument();
@@ -467,8 +479,8 @@ describe('provisionSubscriptionAction', function () {
     expect(screen.getByLabelText('Reserved Cost-Per-Event Accepted Spans')).toBeEnabled();
     expect(screen.getByLabelText('Reserved Cost-Per-Event Stored Spans')).toBeEnabled();
 
-    await typeNumForField('Reserved Cost-Per-Event Accepted Spans', '1');
-    await typeNumForField('Reserved Cost-Per-Event Stored Spans', '2');
+    typeNumForField('Reserved Cost-Per-Event Accepted Spans', '1');
+    typeNumForField('Reserved Cost-Per-Event Stored Spans', '2');
 
     expect(screen.getByLabelText('Reserved Accepted Spans')).toBeDisabled();
     expect(screen.getByLabelText('Reserved Accepted Spans')).toHaveValue(-2);
@@ -601,13 +613,13 @@ describe('provisionSubscriptionAction', function () {
       'True Forward'
     );
     await clickCheckbox('Apply Changes To Current Subscription');
-    await typeNumForField('Reserved Transactions', '200000');
-    await typeNumForField('Reserved Issue Fixes', '0');
-    await typeNumForField('Reserved Issue Scans', '0');
-    await typeNumForMatchingFields('Price for', '0', false);
-    await typeNumForField('Price for Errors', '3000');
-    await typeNumForField('Price for Transactions', '1000');
-    await typeNumForField('Annual Contract Value', '4000');
+    typeNumForField('Reserved Transactions', '200000');
+    typeNumForField('Reserved Issue Fixes', '0');
+    typeNumForField('Reserved Issue Scans', '0');
+    typeNumForMatchingFields('Price for', '0', false);
+    typeNumForField('Price for Errors', '3000');
+    typeNumForField('Price for Transactions', '1000');
+    typeNumForField('Annual Contract Value', '4000');
 
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/provision-subscription/`,
@@ -713,11 +725,11 @@ describe('provisionSubscriptionAction', function () {
     await clickCheckbox('Retain On-Demand Budget');
     await clickCheckbox('Apply Changes To Current Subscription');
     await userEvent.type(await screen.findByLabelText('Start Date'), '2020-10-25');
-    await typeNumForField('Reserved Issue Fixes', '0');
-    await typeNumForField('Reserved Issue Scans', '0');
-    await typeNumForMatchingFields('On-Demand Cost-Per-Event', '0.1');
-    await typeNumForMatchingFields('Price for', '0', false);
-    await typeNumForField('Annual Contract Value', '0');
+    typeNumForField('Reserved Issue Fixes', '0');
+    typeNumForField('Reserved Issue Scans', '0');
+    typeNumForMatchingFields('On-Demand Cost-Per-Event', '0.1');
+    typeNumForMatchingFields('Price for', '0', false);
+    typeNumForField('Annual Contract Value', '0');
 
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/provision-subscription/`,
@@ -860,11 +872,11 @@ describe('provisionSubscriptionAction', function () {
     await clickCheckbox('Managed Subscription');
     await clickCheckbox('Apply Changes To Current Subscription');
     await userEvent.type(await screen.findByLabelText('Start Date'), '2020-10-25');
-    await typeNumForField('Reserved Issue Fixes', '0');
-    await typeNumForField('Reserved Issue Scans', '0');
-    await typeNumForMatchingFields('On-Demand Cost-Per-Event', '0.1');
-    await typeNumForMatchingFields('Price for', '0', false);
-    await typeNumForField('Annual Contract Value', '0');
+    typeNumForField('Reserved Issue Fixes', '0');
+    typeNumForField('Reserved Issue Scans', '0');
+    typeNumForMatchingFields('On-Demand Cost-Per-Event', '0.1');
+    typeNumForMatchingFields('Price for', '0', false);
+    typeNumForField('Annual Contract Value', '0');
 
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/provision-subscription/`,
@@ -990,13 +1002,13 @@ describe('provisionSubscriptionAction', function () {
     );
 
     await clickCheckbox('Apply Changes To Current Subscription');
-    await typeNumForField('Reserved Performance Units', '600000');
-    await typeNumForField('Reserved Issue Fixes', '0');
-    await typeNumForField('Reserved Issue Scans', '0');
-    await typeNumForMatchingFields('Price for', '0', false);
-    await typeNumForField('Price for Errors', '3000');
-    await typeNumForField('Price for Uptime Monitors', '1000');
-    await typeNumForField('Annual Contract Value', '4000');
+    typeNumForField('Reserved Performance Units', '600000');
+    typeNumForField('Reserved Issue Fixes', '0');
+    typeNumForField('Reserved Issue Scans', '0');
+    typeNumForMatchingFields('Price for', '0', false);
+    typeNumForField('Price for Errors', '3000');
+    typeNumForField('Price for Uptime Monitors', '1000');
+    typeNumForField('Annual Contract Value', '4000');
 
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/provision-subscription/`,
@@ -1115,14 +1127,14 @@ describe('provisionSubscriptionAction', function () {
     );
 
     await clickCheckbox('Apply Changes To Current Subscription');
-    await typeNumForField('Reserved Errors', '500000');
-    await typeNumForField('Reserved Attachments (in GB)', '10');
-    await typeNumForField('Reserved Issue Fixes', '0');
-    await typeNumForField('Reserved Issue Scans', '0');
-    await typeNumForMatchingFields('Price for', '0', false);
-    await typeNumForField('Price for Spans', '2000');
-    await typeNumForField('Price for Replays', '4000');
-    await typeNumForField('Annual Contract Value', '6000');
+    typeNumForField('Reserved Errors', '500000');
+    typeNumForField('Reserved Attachments (in GB)', '10');
+    typeNumForField('Reserved Issue Fixes', '0');
+    typeNumForField('Reserved Issue Scans', '0');
+    typeNumForMatchingFields('Price for', '0', false);
+    typeNumForField('Price for Spans', '2000');
+    typeNumForField('Price for Replays', '4000');
+    typeNumForField('Annual Contract Value', '6000');
 
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/provision-subscription/`,
@@ -1233,17 +1245,17 @@ describe('provisionSubscriptionAction', function () {
     );
 
     await clickCheckbox('Apply Changes To Current Subscription');
-    await typeNumForField('Reserved Replays', '75000');
-    await typeNumForField('Reserved Uptime Monitors', '250');
-    await typeNumForField('Reserved Cost-Per-Event Accepted Spans', '1');
-    await typeNumForField('Reserved Cost-Per-Event Stored Spans', '2');
-    await typeNumForField('Reserved Issue Fixes', '0');
-    await typeNumForField('Reserved Issue Scans', '0');
-    await typeNumForMatchingFields('Price for', '0', false);
-    await typeNumForField('Price for Accepted Spans (Dynamic Sampling ARR)', '12000'); // custom price for stored spans is auto-filled to 0
-    await typeNumForField('Dynamic Sampling Budget', '12000');
-    await typeNumForField('Price for PCSS', '500');
-    await typeNumForField('Annual Contract Value', '12500');
+    typeNumForField('Reserved Replays', '75000');
+    typeNumForField('Reserved Uptime Monitors', '250');
+    typeNumForField('Reserved Cost-Per-Event Accepted Spans', '1');
+    typeNumForField('Reserved Cost-Per-Event Stored Spans', '2');
+    typeNumForField('Reserved Issue Fixes', '0');
+    typeNumForField('Reserved Issue Scans', '0');
+    typeNumForMatchingFields('Price for', '0', false);
+    typeNumForField('Price for Accepted Spans (Dynamic Sampling ARR)', '12000'); // custom price for stored spans is auto-filled to 0
+    typeNumForField('Dynamic Sampling Budget', '12000');
+    typeNumForField('Price for PCSS', '500');
+    typeNumForField('Annual Contract Value', '12500');
 
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/provision-subscription/`,
@@ -1353,15 +1365,15 @@ describe('provisionSubscriptionAction', function () {
     );
 
     await clickCheckbox('Apply Changes To Current Subscription');
-    await typeNumForField('Reserved Replays', '75000');
-    await typeNumForField('Reserved Uptime Monitors', '250');
-    await typeNumForField('Reserved Cost-Per-Event Issue Fixes', '1');
-    await typeNumForField('Reserved Cost-Per-Event Issue Scans', '0.5');
-    await typeNumForMatchingFields('Price for', '0', false);
-    await typeNumForField('Price for Issue Fixes (Seer ARR)', '12000');
-    await typeNumForField('Price for PCSS', '500');
-    await typeNumForField('Annual Contract Value', '12500');
-    await typeNumForField('Seer Budget', '24000');
+    typeNumForField('Reserved Replays', '75000');
+    typeNumForField('Reserved Uptime Monitors', '250');
+    typeNumForField('Reserved Cost-Per-Event Issue Fixes', '1');
+    typeNumForField('Reserved Cost-Per-Event Issue Scans', '0.5');
+    typeNumForMatchingFields('Price for', '0', false);
+    typeNumForField('Price for Issue Fixes (Seer ARR)', '12000');
+    typeNumForField('Price for PCSS', '500');
+    typeNumForField('Annual Contract Value', '12500');
+    typeNumForField('Seer Budget', '24000');
 
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/provision-subscription/`,
@@ -1469,15 +1481,15 @@ describe('provisionSubscriptionAction', function () {
     );
 
     await clickCheckbox('Apply Changes To Current Subscription');
-    await typeNumForField('Reserved Replays', '75000');
-    await typeNumForField('Reserved Uptime Monitors', '250');
-    await typeNumForField('Reserved Cost-Per-Event Issue Fixes', '0');
-    await typeNumForField('Reserved Cost-Per-Event Issue Scans', '0');
-    await typeNumForMatchingFields('Price for', '0', false);
-    await typeNumForField('Price for Issue Fixes (Seer ARR)', '0');
-    await typeNumForField('Price for PCSS', '500');
-    await typeNumForField('Annual Contract Value', '500');
-    await typeNumForField('Seer Budget', '24000');
+    typeNumForField('Reserved Replays', '75000');
+    typeNumForField('Reserved Uptime Monitors', '250');
+    typeNumForField('Reserved Cost-Per-Event Issue Fixes', '0');
+    typeNumForField('Reserved Cost-Per-Event Issue Scans', '0');
+    typeNumForMatchingFields('Price for', '0', false);
+    typeNumForField('Price for Issue Fixes (Seer ARR)', '0');
+    typeNumForField('Price for PCSS', '500');
+    typeNumForField('Annual Contract Value', '500');
+    typeNumForField('Seer Budget', '24000');
 
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/provision-subscription/`,
@@ -1585,14 +1597,14 @@ describe('provisionSubscriptionAction', function () {
     );
 
     await clickCheckbox('Apply Changes To Current Subscription');
-    await typeNumForMatchingFields('Price for', '0', false);
-    await typeNumForField('Annual Contract Value', '0');
-    await typeNumForMatchingFields('On-Demand Cost-Per-Event', '0.0001', false);
-    await typeNumForField('Reserved Issue Fixes', '0');
-    await typeNumForField('Reserved Issue Scans', '0');
-    await typeNumForField('On-Demand Cost-Per-Event Errors', '0.5');
-    await typeNumForField('On-Demand Cost-Per-Event Performance Units', '0.0111');
-    await typeNumForField('On-Demand Cost-Per-Event Replays', '1');
+    typeNumForMatchingFields('Price for', '0', false);
+    typeNumForField('Annual Contract Value', '0');
+    typeNumForMatchingFields('On-Demand Cost-Per-Event', '0.0001', false);
+    typeNumForField('Reserved Issue Fixes', '0');
+    typeNumForField('Reserved Issue Scans', '0');
+    typeNumForField('On-Demand Cost-Per-Event Errors', '0.5');
+    typeNumForField('On-Demand Cost-Per-Event Performance Units', '0.0111');
+    typeNumForField('On-Demand Cost-Per-Event Replays', '1');
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/provision-subscription/`,
       method: 'POST',
@@ -1702,8 +1714,8 @@ describe('provisionSubscriptionAction', function () {
 
     await clickCheckbox('Managed Subscription');
     await clickCheckbox('Apply Changes To Current Subscription');
-    await typeNumForField('Reserved Errors', '2000000');
-    await typeNumForField('Annual Contract Value', '4550');
+    typeNumForField('Reserved Errors', '2000000');
+    typeNumForField('Annual Contract Value', '4550');
 
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/provision-subscription/`,
@@ -1759,24 +1771,24 @@ describe('provisionSubscriptionAction', function () {
 
     await clickCheckbox('Managed Subscription');
     await userEvent.type(screen.getByLabelText('Start Date'), '2020-10-25');
-    await typeNumForField('Reserved Errors', '2000000');
-    await typeNumForField('Reserved Transactions', '1000000');
-    await typeNumForField('Reserved Cron Monitors', '250');
-    await typeNumForField('Reserved Uptime Monitors', '250');
-    await typeNumForField('Reserved Replays', '500');
-    await typeNumForField('Reserved Attachments (in GB)', '50');
-    await typeNumForField('Reserved Issue Fixes', '0');
-    await typeNumForField('Reserved Issue Scans', '0');
-    await typeNumForField('Price for Errors', '3000');
-    await typeNumForField('Price for Replays', '0');
-    await typeNumForField('Price for Cron Monitors', '400');
-    await typeNumForField('Price for Uptime Monitors', '0');
-    await typeNumForField('Price for Transactions', '1000');
-    await typeNumForField('Price for Attachments', '50');
-    await typeNumForField('Price for Issue Fixes', '0');
-    await typeNumForField('Price for Issue Scans', '0');
-    await typeNumForField('Price for PCSS', '500');
-    await typeNumForField('Annual Contract Value', '5050');
+    typeNumForField('Reserved Errors', '2000000');
+    typeNumForField('Reserved Transactions', '1000000');
+    typeNumForField('Reserved Cron Monitors', '250');
+    typeNumForField('Reserved Uptime Monitors', '250');
+    typeNumForField('Reserved Replays', '500');
+    typeNumForField('Reserved Attachments (in GB)', '50');
+    typeNumForField('Reserved Issue Fixes', '0');
+    typeNumForField('Reserved Issue Scans', '0');
+    typeNumForField('Price for Errors', '3000');
+    typeNumForField('Price for Replays', '0');
+    typeNumForField('Price for Cron Monitors', '400');
+    typeNumForField('Price for Uptime Monitors', '0');
+    typeNumForField('Price for Transactions', '1000');
+    typeNumForField('Price for Attachments', '50');
+    typeNumForField('Price for Issue Fixes', '0');
+    typeNumForField('Price for Issue Scans', '0');
+    typeNumForField('Price for PCSS', '500');
+    typeNumForField('Annual Contract Value', '5050');
 
     await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
 
@@ -1812,24 +1824,24 @@ describe('provisionSubscriptionAction', function () {
 
     await clickCheckbox('Managed Subscription');
     await userEvent.type(await screen.findByLabelText('Start Date'), '2020-10-25');
-    await typeNumForField('Reserved Errors', '2000000');
-    await typeNumForField('Reserved Transactions', '1000000');
-    await typeNumForField('Reserved Replays', '500');
-    await typeNumForField('Reserved Cron Monitors', '250');
-    await typeNumForField('Reserved Uptime Monitors', '250');
-    await typeNumForField('Reserved Attachments (in GB)', '50');
-    await typeNumForField('Reserved Issue Fixes', '0');
-    await typeNumForField('Reserved Issue Scans', '0');
-    await typeNumForField('Price for Errors', '3000');
-    await typeNumForField('Price for Transactions', '1000');
-    await typeNumForField('Price for Replays', '0');
-    await typeNumForField('Price for Cron Monitors', '400');
-    await typeNumForField('Price for Uptime Monitors', '0');
-    await typeNumForField('Price for Attachments', '50');
-    await typeNumForField('Price for Issue Fixes', '0');
-    await typeNumForField('Price for Issue Scans', '0');
-    await typeNumForField('Price for PCSS', '500');
-    await typeNumForField('Annual Contract Value', '4950');
+    typeNumForField('Reserved Errors', '2000000');
+    typeNumForField('Reserved Transactions', '1000000');
+    typeNumForField('Reserved Replays', '500');
+    typeNumForField('Reserved Cron Monitors', '250');
+    typeNumForField('Reserved Uptime Monitors', '250');
+    typeNumForField('Reserved Attachments (in GB)', '50');
+    typeNumForField('Reserved Issue Fixes', '0');
+    typeNumForField('Reserved Issue Scans', '0');
+    typeNumForField('Price for Errors', '3000');
+    typeNumForField('Price for Transactions', '1000');
+    typeNumForField('Price for Replays', '0');
+    typeNumForField('Price for Cron Monitors', '400');
+    typeNumForField('Price for Uptime Monitors', '0');
+    typeNumForField('Price for Attachments', '50');
+    typeNumForField('Price for Issue Fixes', '0');
+    typeNumForField('Price for Issue Scans', '0');
+    typeNumForField('Price for PCSS', '500');
+    typeNumForField('Annual Contract Value', '4950');
 
     MockApiClient.clearMockResponses();
     const updateMock = MockApiClient.addMockResponse({
