@@ -112,6 +112,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         num_processes: int | None = None,
         input_block_size: int | None = None,
         output_block_size: int | None = None,
+        commit_interval: float | None = None,
     ) -> None:
         self.mode = mode
         metric_tags = {"identifier": self.identifier, "mode": self.mode}
@@ -133,7 +134,8 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
             self.queue_pool = FixedQueuePool(
                 result_processor=self.result_processor,
                 identifier=self.identifier,
-                num_queues=max_workers or 20,  # Number of parallel queues
+                num_queues=max_workers or 20,
+                commit_interval=commit_interval or 1.0,
             )
 
         metrics.incr(
@@ -207,7 +209,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         if self.parallel:
             return self.create_multiprocess_worker(commit)
         if self.thread_queue_parallel:
-            return self.create_thread_queue_parallel_worker(commit)
+            return self.create_thread_queue_parallel_worker(commit, partitions)
         else:
             return self.create_serial_worker(commit)
 
@@ -242,7 +244,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         )
 
     def create_thread_queue_parallel_worker(
-        self, commit: Commit
+        self, commit: Commit, partitions: Mapping[Partition, int]
     ) -> ProcessingStrategy[KafkaPayload]:
         assert self.queue_pool is not None
 
@@ -256,6 +258,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
             decoder=partial(self.decode_payload, self.topic_for_codec),
             grouping_fn=self.build_payload_grouping_key,
             commit_function=commit_offsets,
+            partitions=set(partitions.keys()),
         )
 
     def partition_message_batch(self, message: Message[ValuesBatch[KafkaPayload]]) -> list[list[T]]:

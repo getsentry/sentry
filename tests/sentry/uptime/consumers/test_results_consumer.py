@@ -95,7 +95,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         message = Message(
             BrokerValue(
                 KafkaPayload(None, codec.encode(result), []),
-                Partition(Topic("test"), 1),
+                self.partition,
                 1,
                 datetime.now(),
             )
