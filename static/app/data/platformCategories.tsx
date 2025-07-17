@@ -8,6 +8,7 @@ export enum PlatformCategory {
   SERVERLESS = 3,
   DESKTOP = 4,
   OTHER = 5,
+  GAMING = 6,
 }
 
 // Mirrors `FRONTEND` in src/sentry/utils/platform_categories.py
@@ -160,6 +161,16 @@ export const desktop: PlatformKey[] = [
   'native-crashpad',
   'native-minidump',
   'native-qt',
+  'unity',
+  'unreal',
+];
+
+// Mirrors `GAMING` in src/sentry/utils/platform_categories.py
+// When changing this file, make sure to keep src/sentry/utils/platform_categories.py in sync.
+export const gaming: PlatformKey[] = [
+  'godot',
+  'native',
+  'nintendo-switch',
   'unity',
   'unreal',
 ];

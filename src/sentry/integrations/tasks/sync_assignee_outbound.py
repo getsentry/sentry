@@ -14,7 +14,11 @@ from sentry.integrations.project_management.metrics import (
 from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
-from sentry.shared_integrations.exceptions import ApiUnauthorized, IntegrationError
+from sentry.shared_integrations.exceptions import (
+    ApiUnauthorized,
+    IntegrationError,
+    IntegrationInstallationConfigurationError,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.config import TaskworkerConfig
@@ -54,6 +58,8 @@ def sync_assignee_outbound(
     assign: bool,
     assignment_source_dict: dict[str, Any] | None = None,
 ) -> None:
+    from sentry.integrations.mixins.issues import IntegrationSyncTargetNotFound
+
     # Sync Sentry assignee to an external issue.
     external_issue = ExternalIssue.objects.get(id=external_issue_id)
 
@@ -100,5 +106,10 @@ def sync_assignee_outbound(
                         organization_id=external_issue.organization_id,
                     )
                 )
-        except (OrganizationIntegrationNotFound, ApiUnauthorized, InvalidConfiguration) as e:
+        except (
+            OrganizationIntegrationNotFound,
+            ApiUnauthorized,
+            IntegrationSyncTargetNotFound,
+            IntegrationInstallationConfigurationError,
+        ) as e:
             lifecycle.record_halt(halt_reason=e)

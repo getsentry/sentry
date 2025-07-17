@@ -48,6 +48,7 @@ from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import ingest_profiling_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import json, metrics
@@ -57,6 +58,7 @@ from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.sdk import set_span_attribute
+from sentry.utils.storage import measure_storage_put
 
 REVERSE_DEVICE_CLASS = {next(iter(tags)): label for label, tags in DEVICE_CLASS.items()}
 
@@ -99,15 +101,20 @@ profile_occurrences_producer = SingletonProducer(
 logger = logging.getLogger(__name__)
 
 
-def decode_payload(encoded: str) -> dict[str, Any]:
-    try:
-        res = msgpack.unpackb(zlib.decompress(b64decode(encoded.encode("utf-8"))), use_list=False)
-        metrics.incr("profiling.profile_metrics.decompress", tags={"status": "ok"})
-        return res
-    except Exception as e:
-        logger.exception("Failed to decompress compressed profile", extra={"error": e})
-        metrics.incr("profiling.profile_metrics.decompress", tags={"status": "err"})
-        raise
+def decode_payload(encoded: str, compressed_profile: bool) -> dict[str, Any]:
+    if compressed_profile:
+        try:
+            res = msgpack.unpackb(
+                zlib.decompress(b64decode(encoded.encode("utf-8"))), use_list=False
+            )
+            metrics.incr("profiling.profile_metrics.decompress", tags={"status": "ok"})
+            return res
+        except Exception as e:
+            logger.exception("Failed to decompress compressed profile", extra={"error": e})
+            metrics.incr("profiling.profile_metrics.decompress", tags={"status": "err"})
+            raise
+    else:
+        return msgpack.unpackb(b64decode(encoded.encode("utf-8")), use_list=False)
 
 
 def encode_payload(message: dict[str, Any]) -> str:
@@ -137,19 +144,21 @@ def encode_payload(message: dict[str, Any]) -> str:
             times=2,
             delay=5,
         ),
+        compression_type=CompressionType.ZSTD,
     ),
 )
 def process_profile_task(
     profile: Profile | None = None,
     payload: str | None = None,
     sampled: bool = True,
+    compressed_profile: bool = True,
     **kwargs: Any,
 ) -> None:
     if not sampled and not options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
         return
 
     if payload:
-        message_dict = decode_payload(payload)
+        message_dict = decode_payload(payload, compressed_profile)
 
         profile = json.loads(message_dict["payload"], use_rapid_json=True)
 
@@ -1357,9 +1366,8 @@ def _process_vroomrs_transaction_profile(profile: Profile) -> bool:
                 with sentry_sdk.start_span(op="processing", name="find occurrences"):
                     occurrences = prof.find_occurrences()
                     occurrences.filter_none_type_issues()
-                    occs = occurrences.occurrences
-                    if occs is not None and len(occs) > 0:
-                        payload = KafkaPayload(None, occurrences.to_json_str().encode("utf-8"), [])
+                    for occurrence in occurrences.occurrences:
+                        payload = KafkaPayload(None, occurrence.to_json_str().encode("utf-8"), [])
                         topic = ArroyoTopic(
                             get_topic_definition(Topic.INGEST_OCCURRENCES)["real_topic_name"]
                         )
@@ -1406,13 +1414,20 @@ def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
                     len(json_profile),
                     tags={"type": "chunk", "platform": profile["platform"]},
                 )
+                metrics.distribution(
+                    "storage.put.size",
+                    len(json_profile),
+                    tags={"usecase": "profiling", "compression": "none"},
+                    unit="byte",
+                )
             with sentry_sdk.start_span(op="json.unmarshal"):
                 chunk = vroomrs.profile_chunk_from_json_str(json_profile, profile["platform"])
             chunk.normalize()
             with sentry_sdk.start_span(op="gcs.write", name="compress and write"):
                 storage = get_profiles_storage()
                 compressed_chunk = chunk.compress()
-                storage.save(chunk.storage_path(), io.BytesIO(compressed_chunk))
+                with measure_storage_put(len(compressed_chunk), "profiling", "lz4"):
+                    storage.save(chunk.storage_path(), io.BytesIO(compressed_chunk))
             with sentry_sdk.start_span(op="processing", name="send chunk to kafka"):
                 payload = build_chunk_kafka_message(chunk)
                 topic = ArroyoTopic(get_topic_definition(Topic.PROFILE_CHUNKS)["real_topic_name"])

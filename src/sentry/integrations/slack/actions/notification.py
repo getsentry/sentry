@@ -9,7 +9,6 @@ import orjson
 import sentry_sdk
 from slack_sdk.errors import SlackApiError
 
-from sentry import features
 from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
 from sentry.eventstore.models import GroupEvent
@@ -32,12 +31,14 @@ from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.channel import SlackChannelIdData, get_channel_id
 from sentry.integrations.slack.utils.threads import NotificationActionThreadUtils
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
+from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
@@ -51,7 +52,7 @@ _default_logger: Logger = getLogger(__name__)
 class SlackNotifyServiceAction(IntegrationEventAction):
     id = "sentry.integrations.slack.notify_action.SlackNotifyServiceAction"
     prompt = "Send a Slack notification"
-    provider = "slack"
+    provider = IntegrationProviderSlug.SLACK.value
     integration_key = "workspace"
     label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} and notes {notes} in notification"
 
@@ -478,7 +479,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             },
             skip_internal=False,
         )
-        if features.has("organizations:workflow-engine-trigger-actions", self.project.organization):
+        if should_fire_workflow_actions(self.project.organization):
             yield self.future(send_notification_noa, key=key)
         else:
             yield self.future(send_notification, key=key)

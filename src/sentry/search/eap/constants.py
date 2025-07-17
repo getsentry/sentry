@@ -173,3 +173,7 @@ ARITHMETIC_OPERATOR_MAP: dict[str, Column.BinaryFormula.Op.ValueType] = {
     "plus": Column.BinaryFormula.OP_ADD,
     "minus": Column.BinaryFormula.OP_SUBTRACT,
 }
+
+META_PREFIX = "sentry._meta"
+META_FIELD_PREFIX = f"{META_PREFIX}.fields"
+META_ATTRIBUTE_PREFIX = f"{META_FIELD_PREFIX}.attributes"

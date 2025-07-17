@@ -10,6 +10,7 @@ from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_t
 from sentry.constants import SentryAppStatus
 from sentry.eventstore.models import GroupEvent
 from sentry.eventstream.types import EventStreamEventType
+from sentry.exceptions import RestrictedIPAddress
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity
@@ -567,6 +568,30 @@ class TestProcessResourceChange(TestCase):
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
         )
+
+    @patch("sentry_sdk.capture_exception")
+    def test_ignores_restricted_ip_error(self, capture_exception, safe_urlopen):
+        safe_urlopen.side_effect = RestrictedIPAddress("12.8391.231")
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+
+        # The task should complete without retrying when RestrictedIPAddress is raised
+        # because it's in the ignore list of the retry decorator
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        # Verify that the exception was not captured by Sentry since it's ignored
+        assert len(capture_exception.mock_calls) == 0
+        assert safe_urlopen.called
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_does_not_process_no_event(self, mock_record, safe_urlopen):

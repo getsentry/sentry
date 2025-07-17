@@ -13,7 +13,7 @@ import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/compon
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {ScreensTable} from 'sentry/views/insights/mobile/common/components/tables/screensTable';
 import {
-  type MetricsResponse,
+  type EAPSpanResponse,
   ModuleName,
   type SpanMetricsResponse,
 } from 'sentry/views/insights/types';
@@ -28,7 +28,7 @@ export type Row =
       | 'avg(mobile.frames_delay)'
     >
   | Pick<
-      MetricsResponse,
+      EAPSpanResponse,
       | 'project.id'
       | 'transaction'
       | 'count()'
