@@ -104,6 +104,7 @@ class UserNotificationSettingsOptionsPutTest(UserNotificationSettingsOptionsBase
             NotificationSettingEnum.QUOTA_REPLAYS,
             NotificationSettingEnum.QUOTA_MONITOR_SEATS,
             NotificationSettingEnum.QUOTA_SPANS,
+            NotificationSettingEnum.QUOTA_LOG_BYTES,
         ]
 
         # turn on notification settings
