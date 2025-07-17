@@ -377,7 +377,7 @@ export function EventGraph({
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
           borderColor: theme.translucentGray200,
-          color: theme.purple200,
+          color: isUnfilteredStatsEnabled ? theme.purple300 : translucentGray300,
         },
         data: userSeries,
         animation: false,
@@ -403,7 +403,7 @@ export function EventGraph({
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
           borderColor: theme.translucentGray200,
-          color: isUnfilteredStatsEnabled ? theme.purple200 : translucentGray300,
+          color: isUnfilteredStatsEnabled ? theme.purple300 : translucentGray300,
         },
         data: eventSeries,
         animation: false,

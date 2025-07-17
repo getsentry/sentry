@@ -25,6 +25,7 @@ import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
 } from 'sentry/views/alerts/rules/metric/types';
+import {hasLogAlerts} from 'sentry/views/alerts/wizard/utils';
 import {AssigneeField} from 'sentry/views/detectors/components/forms/assigneeField';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
@@ -78,7 +79,7 @@ export function NewMetricDetectorForm() {
 }
 
 function MonitorKind() {
-  const options: Array<[MetricDetectorFormData['kind'], string, string]> = [
+  const options: Array<[MetricDetectorFormData['detectionType'], string, string]> = [
     ['static', t('Threshold'), t('Absolute-valued thresholds, for non-seasonal data.')],
     ['percent', t('Change'), t('Percentage changes over defined time windows.')],
     [
@@ -93,7 +94,7 @@ function MonitorKind() {
       label={t('\u2026and monitor for changes in the following way:')}
       flexibleControlStateSize
       inline={false}
-      name={METRIC_DETECTOR_FORM_FIELDS.kind}
+      name={METRIC_DETECTOR_FORM_FIELDS.detectionType}
       defaultValue="threshold"
       choices={options}
     />
@@ -101,7 +102,9 @@ function MonitorKind() {
 }
 
 function ResolveSection() {
-  const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
+  const detectionType = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.detectionType
+  );
   const conditionValue = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.conditionValue
   );
@@ -117,7 +120,7 @@ function ResolveSection() {
   const thresholdSuffix = getStaticDetectorThresholdSuffix(aggregate);
 
   const description = getResolutionDescription(
-    kind === 'percent'
+    detectionType === 'percent'
       ? {
           detectionType: 'percent',
           conditionType,
@@ -125,7 +128,7 @@ function ResolveSection() {
           comparisonDelta: conditionComparisonAgo ?? 3600, // Default to 1 hour if not set
           thresholdSuffix,
         }
-      : kind === 'static'
+      : detectionType === 'static'
         ? {
             detectionType: 'static',
             conditionType,
@@ -158,18 +161,20 @@ function AssignSection() {
 }
 
 function PrioritizeSection() {
-  const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
+  const detectionType = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.detectionType
+  );
   return (
     <Container>
       <Section
         title={t('Prioritize')}
         description={
-          kind === 'dynamic'
+          detectionType === 'dynamic'
             ? t('Sentry will automatically update priority.')
             : t('Update issue priority when the following thresholds are met:')
         }
       >
-        {kind !== 'dynamic' && (
+        {detectionType !== 'dynamic' && (
           <PriorityControl minimumPriority={DetectorPriorityLevel.MEDIUM} />
         )}
       </Section>
@@ -193,7 +198,7 @@ function useDatasetChoices() {
       ...(organization.features.includes('visibility-explore-view')
         ? [{value: DetectorDataset.SPANS, label: t('Spans')}]
         : []),
-      ...(organization.features.includes('ourlogs-alerts')
+      ...(hasLogAlerts(organization)
         ? [
             {
               value: DetectorDataset.LOGS,
@@ -210,7 +215,9 @@ function useDatasetChoices() {
 }
 
 function DetectSection() {
-  const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
+  const detectionType = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.detectionType
+  );
   const datasetChoices = useDatasetChoices();
   const formContext = useContext(FormContext);
   const aggregate = useMetricDetectorFormField(
@@ -277,7 +284,7 @@ function DetectSection() {
         <Visualize />
         <MonitorKind />
         <Flex direction="column">
-          {(!kind || kind === 'static') && (
+          {(!detectionType || detectionType === 'static') && (
             <Flex direction="column">
               <MutedText>{t('An issue will be created when query value is:')}</MutedText>
               <Flex align="center" gap={space(1)}>
@@ -308,7 +315,7 @@ function DetectSection() {
               </Flex>
             </Flex>
           )}
-          {kind === 'percent' && (
+          {detectionType === 'percent' && (
             <Flex direction="column">
               <MutedText>{t('An issue will be created when query value is:')}</MutedText>
               <Flex align="center" gap={space(1)}>
@@ -359,7 +366,7 @@ function DetectSection() {
               </Flex>
             </Flex>
           )}
-          {kind === 'dynamic' && (
+          {detectionType === 'dynamic' && (
             <Flex direction="column">
               <SelectField
                 required

@@ -1,7 +1,7 @@
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanMetricsField, type SubregionCode} from 'sentry/views/insights/types';
 
 const {HTTP_RESPONSE_CONTENT_LENGTH, RESOURCE_RENDER_BLOCKING_STATUS} = SpanMetricsField;
@@ -54,7 +54,7 @@ export const useResourcePagesQuery = (
     }
   });
 
-  return useSpanMetrics(
+  return useSpans(
     {
       cursor,
       limit: 25,

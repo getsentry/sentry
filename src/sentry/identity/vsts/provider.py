@@ -9,6 +9,7 @@ from sentry import http, options
 from sentry.http import safe_urlopen
 from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView, OAuth2Provider
 from sentry.identity.pipeline import IdentityPipeline
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.pipeline.views.base import PipelineView
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
@@ -45,7 +46,7 @@ def get_user_info(access_token):
 
 
 class VSTSIdentityProvider(OAuth2Provider):
-    key = "vsts"
+    key = IntegrationProviderSlug.AZURE_DEVOPS.value
     name = "Azure DevOps"
 
     oauth_access_token_url = "https://app.vssps.visualstudio.com/oauth2/token"
@@ -111,7 +112,7 @@ class VSTSIdentityProvider(OAuth2Provider):
         user = get_user_info(access_token)
 
         return {
-            "type": "vsts",
+            "type": IntegrationProviderSlug.AZURE_DEVOPS.value,
             "id": user["id"],
             "email": user["emailAddress"],
             "email_verified": True,
@@ -204,7 +205,7 @@ class VSTSNewIdentityProvider(OAuth2Provider):
         user = get_user_info(access_token)
 
         return {
-            "type": "vsts",
+            "type": IntegrationProviderSlug.AZURE_DEVOPS.value,
             "id": user["id"],
             "email": user["emailAddress"],
             "email_verified": True,

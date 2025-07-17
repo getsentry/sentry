@@ -19,9 +19,9 @@ import {
 } from 'sentry/views/insights/common/utils/retryHandlers';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
-  MetricsProperty,
+  EAPSpanProperty,
+  SpanFields,
   SpanFunctions,
-  SpanIndexedField,
   SpanMetricsProperty,
 } from 'sentry/views/insights/types';
 
@@ -58,12 +58,7 @@ export const useSpanMetricsSeries = <Fields extends SpanMetricsProperty[]>(
 };
 
 export const useSpanSeries = <
-  Fields extends
-    | MetricsProperty[]
-    | SpanMetricsProperty[]
-    | SpanIndexedField[]
-    | SpanFunctions[]
-    | string[],
+  Fields extends EAPSpanProperty[] | SpanFields[] | SpanFunctions[] | string[],
 >(
   options: UseMetricsSeriesOptions<Fields> = {},
   referrer: string,
@@ -77,25 +72,11 @@ export const useSpanSeries = <
   );
 };
 
-export const useMetricsSeries = <Fields extends MetricsProperty[]>(
-  options: UseMetricsSeriesOptions<Fields> = {},
-  referrer: string,
-  pageFilters?: PageFilters
-) => {
-  const useEap = useInsightsEap();
-  return useDiscoverSeries<Fields>(
-    options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.METRICS,
-    referrer,
-    pageFilters
-  );
-};
-
 /**
  * TODO: Remove string type, added to fix types for 'count()'
  */
 export const useSpanIndexedSeries = <
-  Fields extends SpanIndexedField[] | SpanFunctions[] | string[],
+  Fields extends SpanFields[] | SpanFunctions[] | string[],
 >(
   options: UseMetricsSeriesOptions<Fields> = {},
   referrer: string,

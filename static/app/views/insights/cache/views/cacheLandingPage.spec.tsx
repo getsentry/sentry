@@ -14,6 +14,7 @@ import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {CacheLandingPage} from 'sentry/views/insights/cache/views/cacheLandingPage';
 
 jest.mock('sentry/utils/useLocation');
@@ -119,7 +120,8 @@ describe('CacheLandingPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           field: [
             'project',
@@ -144,7 +146,8 @@ describe('CacheLandingPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'metrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           field: ['avg(span.duration)', 'transaction'],
           per_page: 50,
@@ -204,7 +207,8 @@ describe('CacheLandingPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'metrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           field: ['avg(span.duration)', 'transaction'],
           noPagination: true,

@@ -18,7 +18,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {SpanSample} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/centerTruncate';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
@@ -29,7 +29,7 @@ import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanT
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   type ModuleName,
-  SpanIndexedField,
+  SpanFields,
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
@@ -104,7 +104,7 @@ export function SpanSamplesContainer({
     filters['span.op'] = spanOp;
   }
 
-  const {data, isPending} = useSpanMetrics(
+  const {data, isPending} = useSpans(
     {
       search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
       fields: [`avg(${SPAN_SELF_TIME})`, 'count()', SPAN_OP],
@@ -246,7 +246,7 @@ export function SpanSamplesContainer({
               width: COL_WIDTH_UNDEFINED,
             },
           ]}
-          additionalFields={[SpanIndexedField.PROFILER_ID]}
+          additionalFields={[SpanFields.PROFILER_ID]}
         />
       </InsightsSpanTagProvider>
     </Fragment>

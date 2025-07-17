@@ -29,6 +29,7 @@ type Props = React.HTMLAttributes<HTMLDivElement> & {
   connectedAutomationIds?: Set<string>;
   emptyMessage?: string;
   limit?: number | null;
+  query?: string;
   toggleConnected?: (params: {automation: Automation}) => void;
 };
 
@@ -65,6 +66,7 @@ export function ConnectedAutomationsList({
   cursor,
   onCursor,
   limit = DEFAULT_AUTOMATIONS_PER_PAGE,
+  query,
   ...props
 }: Props) {
   const canEdit = Boolean(
@@ -82,6 +84,7 @@ export function ConnectedAutomationsList({
       ids: automationIds ?? undefined,
       limit: limit ?? undefined,
       cursor,
+      query,
     },
     {enabled: automationIds === null || automationIds.length > 0}
   );
