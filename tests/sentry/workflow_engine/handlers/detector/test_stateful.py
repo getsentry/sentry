@@ -1,3 +1,5 @@
+import unittest.mock as mock
+
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.testutils.cases import TestCase
@@ -328,3 +330,69 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         state_data = test_handler.state_manager.get_state_data([self.group_key])[self.group_key]
         assert state_data.is_triggered is True
         assert state_data.status == Level.LOW
+
+
+class TestDetectorStateManagerRedisOptimization(TestCase):
+    def setUp(self):
+        self.detector = self.create_detector(
+            name="Redis Optimization Detector",
+            project=self.project,
+        )
+        self.handler = MockDetectorStateHandler(
+            detector=self.detector,
+            thresholds={
+                Level.LOW: 2,
+                Level.HIGH: 3,
+            },
+        )
+        self.group_keys = [None, "group1", "group2"]
+
+    def test_get_state_data_uses_single_redis_pipeline(self):
+        """
+        Test that get_state_data uses only 1 Redis pipeline operation.
+        """
+
+        with mock.patch(
+            "sentry.workflow_engine.handlers.detector.stateful.get_redis_client"
+        ) as mock_redis:
+            mock_pipeline = mock.Mock()
+            mock_redis.return_value.pipeline.return_value = mock_pipeline
+            mock_pipeline.execute.return_value = ["0", "1", "2", "3", "4", "5"]  # Mock values
+
+            # Call get_state_data
+            self.handler.state_manager.get_state_data(self.group_keys)
+
+            # Verify pipeline was created only once
+            mock_redis.return_value.pipeline.assert_called_once()
+
+            # Verify pipeline.execute was called only once
+            mock_pipeline.execute.assert_called_once()
+
+            # Verify multiple gets were added to the pipeline
+            # Should be 3 groups * (1 dedupe + 2 counter keys) = 9 total gets
+            expected_get_calls = 3 * (1 + len(self.handler.state_manager.counter_names))
+            assert mock_pipeline.get.call_count == expected_get_calls
+
+    def test_redis_key_mapping_generates_correct_keys(self):
+        """
+        Test that redis key mapping generates the expected keys.
+        """
+        state_manager = self.handler.state_manager
+        key_mapping = state_manager.get_redis_keys_for_group_keys(self.group_keys)
+
+        # Should have dedupe keys for each group
+        dedupe_keys = [k for k, (_, key_type) in key_mapping.items() if key_type == "dedupe"]
+        assert len(dedupe_keys) == len(self.group_keys)
+
+        # Should have counter keys for each group and counter name
+        counter_keys = [k for k, (_, key_type) in key_mapping.items() if key_type != "dedupe"]
+        expected_counter_keys = len(self.group_keys) * len(state_manager.counter_names)
+        assert len(counter_keys) == expected_counter_keys
+
+    def test_bulk_get_redis_values_handles_empty_keys(self):
+        """
+        Test that bulk_get_redis_values handles empty key list correctly.
+        """
+        state_manager = self.handler.state_manager
+        result = state_manager.bulk_get_redis_values([])
+        assert result == {}
