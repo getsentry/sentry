@@ -22,7 +22,7 @@ class IntegrationsSuccessfullyFetchedCommitContextAllFrames(analytics.Event):
     num_unique_commits: int
     num_unique_commit_authors: int
     num_successfully_mapped_frames: int
-    selected_frame_index: int
+    selected_frame_index: int | None
     selected_provider: str
     selected_code_mapping_id: str
 
