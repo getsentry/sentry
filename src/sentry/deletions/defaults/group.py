@@ -93,19 +93,18 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
         self.group_ids = group_ids
         self.project_ids = list(self.project_groups.keys())
 
-    def get_before_event_condition(self, last_event: Event) -> list[list[Any]]:
-        return [
-            ["timestamp", "<=", last_event.timestamp],
-            [
-                ["timestamp", "<", last_event.timestamp],
-                ["event_id", "<", last_event.event_id],
-            ],
-        ]
-
     def get_unfetched_events(self) -> list[Event]:
         conditions = []
         if self.last_event is not None:
-            conditions.extend(self.get_before_event_condition(self.last_event))
+            conditions.extend(
+                [
+                    ["timestamp", "<=", self.last_event.timestamp],
+                    [
+                        ["timestamp", "<", self.last_event.timestamp],
+                        ["event_id", "<", self.last_event.event_id],
+                    ],
+                ]
+            )
 
         logger.info("Fetching %s events for deletion.", self.DEFAULT_CHUNK_SIZE)
         events = eventstore.backend.get_unfetched_events(
