@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
 import FeedbackItemLoader from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
@@ -95,7 +96,9 @@ export default function FeedbackListPage() {
                         <FeedbackSearch />
                       </SearchContainer>
                       <Container style={{gridArea: 'details'}}>
-                        <FeedbackItemLoader />
+                        <AnalyticsArea name="details">
+                          <FeedbackItemLoader />
+                        </AnalyticsArea>
                       </Container>
                     </Fragment>
                   ) : (

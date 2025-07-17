@@ -55,10 +55,13 @@ export type ReplayEventParameters = {
     seconds: number;
     user_email: string;
   };
+  'replay.details-timestamp-button-clicked': {
+    area: string;
+  };
+
   'replay.frame-after-background': {
     frame: string;
   };
-
   'replay.gaps_detected': {
     gaps: number;
     max_gap: number;
@@ -66,10 +69,10 @@ export type ReplayEventParameters = {
   };
   'replay.hydration-error.issue-details-opened': Record<string, unknown>;
   'replay.hydration-modal.slider-interaction': Record<string, unknown>;
+
   'replay.hydration-modal.tab-change': {
     tabKey: string;
   };
-
   // similar purpose as "replay.details-viewed", however we're capturing the navigation action
   // in order to also include a project platform
   'replay.list-navigate-to-details': {
@@ -138,6 +141,7 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.details-resource-docs-clicked': 'Replay Details Resource Docs Clicked',
   'replay.details-tab-changed': 'Changed Replay Details Tab',
   'replay.details-time-spent': 'Time Spent Viewing Replay Details',
+  'replay.details-timestamp-button-clicked': 'Clicked Timestamp in Replay Details',
   'replay.frame-after-background': 'Replay Frame Following Background Frame',
   'replay.hydration-error.issue-details-opened': 'Hydration Issue Details Opened',
   'replay.hydration-modal.slider-interaction': 'Hydration Modal Slider Clicked',
