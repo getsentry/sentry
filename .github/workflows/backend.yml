@@ -229,9 +229,9 @@ jobs:
 
       - name: check requirements
         run: |
-          uv sync
+          uv sync --extra dev
           if ! git diff --exit-code; then
-            echo $'\n\nrun `uv sync` locally to update requirements'
+            echo $'\n\nrun `uv sync --extra dev` locally to update requirements'
             exit 1
           fi
       - name: apply any requirements changes
@@ -338,7 +338,7 @@ jobs:
         with:
           python-version: 3.13.1
           cache-dependency-path: uv.lock
-          install-cmd: uv sync --frozen
+          install-cmd: uv sync --extra dev --frozen
 
       - name: setup sentry (lite)
         run: |

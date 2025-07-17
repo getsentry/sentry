@@ -48,7 +48,7 @@ RUN set -x \
   " \
   && apt-get update \
   && apt-get install -y --no-install-recommends $buildDeps \
-  && uv sync --frozen --quiet \
+  && uv sync --extra dev --frozen --quiet \
   && mkdir /tmp/uwsgi-dogstatsd \
   # pinned the same as in getsentry
   && wget -O - https://github.com/DataDog/uwsgi-dogstatsd/archive/1a04f784491ab0270b4e94feb94686b65d8d2db1.tar.gz | \

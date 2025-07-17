@@ -88,7 +88,7 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
         cache-dependency-path: ${{ inputs.workdir }}/uv.lock
-        install-cmd: cd ${{ inputs.workdir }} && uv sync --frozen
+        install-cmd: cd ${{ inputs.workdir }} && uv sync --extra dev --frozen
 
     - name: Set up outputs
       id: config

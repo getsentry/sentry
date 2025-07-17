@@ -199,6 +199,8 @@ def main(context: dict[str, str]) -> int:
                 (
                     "uv",
                     "sync",
+                    "--extra",
+                    "dev",
                     "--frozen",
                     "--quiet",
                 ),
