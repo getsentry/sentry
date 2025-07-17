@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import atexit
 import functools
 import logging
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Mapping, Sequence
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -14,7 +12,7 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 
-from sentry import features, quotas
+from sentry import quotas
 from sentry.api.event_search import SearchFilter
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidSearchQuery
@@ -33,9 +31,7 @@ from sentry.models.team import Team
 from sentry.search.base import SearchBackend
 from sentry.search.events.constants import EQUALITY_OPERATORS, OPERATOR_TO_DJANGO
 from sentry.search.snuba.executors import (
-    POSTGRES_ONLY_SEARCH_FIELDS,
     AbstractQueryExecutor,
-    InvalidQueryForExecutor,
     PostgresSnubaQueryExecutor,
     TrendsSortWeights,
 )
@@ -286,147 +282,6 @@ def seer_actionability_filter(trigger_values: list[float]) -> Q:
     return query
 
 
-_side_query_pool = ThreadPoolExecutor(max_workers=10)
-
-atexit.register(_side_query_pool.shutdown, False)
-
-
-def _group_attributes_side_query(
-    events_only_search_results: CursorResult[Group],
-    builder: Callable[[], BaseQuerySet[Group, Group]],
-    projects: Sequence[Project],
-    retention_window_start: datetime | None,
-    group_queryset: BaseQuerySet[Group, Group],
-    environments: Sequence[Environment] | None = None,
-    sort_by: str = "date",
-    limit: int = 100,
-    cursor: Cursor | None = None,
-    count_hits: bool = False,
-    paginator_options: Mapping[str, Any] | None = None,
-    search_filters: Sequence[SearchFilter] | None = None,
-    date_from: datetime | None = None,
-    date_to: datetime | None = None,
-    max_hits: int | None = None,
-    referrer: str | None = None,
-    actor: Any | None = None,
-    aggregate_kwargs: TrendsSortWeights | None = None,
-) -> None:
-    def __run_joined_query_and_log_metric(
-        events_only_search_results: CursorResult[Group],
-        builder: Callable[[], BaseQuerySet[Group, Group]],
-        projects: Sequence[Project],
-        retention_window_start: datetime | None,
-        group_queryset: BaseQuerySet[Group, Group],
-        environments: Sequence[Environment] | None = None,
-        sort_by: str = "date",
-        limit: int = 100,
-        cursor: Cursor | None = None,
-        count_hits: bool = False,
-        paginator_options: Mapping[str, Any] | None = None,
-        search_filters: Sequence[SearchFilter] | None = None,
-        date_from: datetime | None = None,
-        date_to: datetime | None = None,
-        max_hits: int | None = None,
-        referrer: str | None = None,
-        actor: Any | None = None,
-        aggregate_kwargs: TrendsSortWeights | None = None,
-    ) -> None:
-        from sentry.utils import metrics
-
-        try:
-            from sentry.search.snuba.executors import GroupAttributesPostgresSnubaQueryExecutor
-
-            executor = GroupAttributesPostgresSnubaQueryExecutor()
-            with metrics.timer("snuba.search.group_attributes_joined.duration"):
-                cursor_results = executor.query(
-                    projects,
-                    retention_window_start,
-                    builder(),
-                    environments,
-                    sort_by,
-                    limit,
-                    cursor,
-                    count_hits,
-                    paginator_options,
-                    search_filters,
-                    date_from,
-                    date_to,
-                    max_hits,
-                    referrer,
-                    actor,
-                    aggregate_kwargs,
-                )
-            joined_hits = len(cursor_results.results)
-            events_only_search_hits = len(events_only_search_results.results)
-            if events_only_search_hits > 0:
-                if joined_hits == events_only_search_hits:
-                    comparison = "equal"
-                elif joined_hits > events_only_search_hits:
-                    comparison = "greater"
-                else:
-                    # the joined query shouldn't have fewer hits since the query is deliberately less restrictive
-                    comparison = "less"
-
-                metrics.incr(
-                    "snuba.search.group_attributes_joined.events_compared",
-                    tags={"comparison": comparison},
-                )
-
-            metrics.incr("snuba.search.group_attributes_joined.query", tags={"exception": "none"})
-        except InvalidQueryForExecutor as e:
-            logger.info(
-                "unsupported query received in GroupAttributesPostgresSnubaQueryExecutor",
-                exc_info=True,
-            )
-            metrics.incr(
-                "snuba.search.group_attributes_joined.query",
-                tags={
-                    "exception": f"{type(e).__module__}.{type(e).__qualname__}",
-                },
-            )
-        except Exception as e:
-            logger.warning(
-                "failed to load side query from _group_attributes_side_query", exc_info=True
-            )
-            metrics.incr(
-                "snuba.search.group_attributes_joined.query",
-                tags={
-                    "exception": f"{type(e).__module__}.{type(e).__qualname__}",
-                },
-            )
-        finally:
-            # since this code is running in a thread and django establishes a connection per thread, we need to
-            # explicitly close the connection assigned to this thread to avoid linger connections
-            from django.db import connection
-
-            connection.close()
-
-    try:
-        _side_query_pool.submit(
-            __run_joined_query_and_log_metric,
-            events_only_search_results,
-            builder,
-            projects,
-            retention_window_start,
-            group_queryset,
-            environments,
-            sort_by,
-            limit,
-            cursor,
-            count_hits,
-            paginator_options,
-            search_filters,
-            date_from,
-            date_to,
-            max_hits,
-            referrer,
-            actor,
-            aggregate_kwargs,
-        )
-    except Exception:
-        logger.exception("failed to submit group-attributes search side-query to pool")
-
-
 class Condition:
     """\
     Adds a single filter to a ``QuerySet`` object. Used with
@@ -520,7 +375,6 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         referrer: str | None = None,
         actor: Any | None = None,
         aggregate_kwargs: TrendsSortWeights | None = None,
-        use_group_snuba_dataset: bool = False,
     ) -> CursorResult[Group]:
         search_filters = search_filters if search_filters is not None else []
         # ensure projects are from same org
@@ -537,22 +391,14 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         else:
             retention_window_start = None
 
-        if use_group_snuba_dataset:
-            # we need to handle two cases fo the group queryset:
-            # 1. Limit results to groups that are not pending deletion or merge
-            # 2. Handle queries snuba doesn't support such as bookmarked_by, linked, subscribed_by, etc
-            # For the second case, we hit postgres before Snuba to get the group ids
-            group_queryset = self._build_limited_group_queryset(projects, search_filters)
-
-        else:
-            group_queryset = self._build_group_queryset(
-                projects=projects,
-                environments=environments,
-                search_filters=search_filters,
-                retention_window_start=retention_window_start,
-                date_from=date_from,
-                date_to=date_to,
-            )
+        group_queryset = self._build_group_queryset(
+            projects=projects,
+            environments=environments,
+            search_filters=search_filters,
+            retention_window_start=retention_window_start,
+            date_from=date_from,
+            date_to=date_to,
+        )
 
         query_executor = self._get_query_executor(
             group_queryset=group_queryset,
@@ -561,7 +407,6 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
             search_filters=search_filters,
             date_from=date_from,
             date_to=date_to,
-            use_group_snuba_dataset=use_group_snuba_dataset,
         )
 
         # ensure sort strategy is supported by executor
@@ -588,68 +433,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
                 aggregate_kwargs=aggregate_kwargs,
             )
 
-        if len(projects) > 0 and features.has(
-            "organizations:issue-search-group-attributes-side-query", projects[0].organization
-        ):
-            new_group_queryset = self._build_group_queryset(
-                projects=projects,
-                environments=environments,
-                search_filters=search_filters,
-                retention_window_start=retention_window_start,
-                date_from=date_from,
-                date_to=date_to,
-            )
-
-            builder = functools.partial(
-                self._build_group_queryset,
-                projects=projects,
-                environments=environments,
-                search_filters=search_filters,
-                retention_window_start=retention_window_start,
-                date_from=date_from,
-                date_to=date_to,
-            )
-
-            _group_attributes_side_query(
-                events_only_search_results=query_results,
-                builder=builder,
-                projects=projects,
-                retention_window_start=retention_window_start,
-                group_queryset=new_group_queryset,
-                environments=environments,
-                sort_by=sort_by,
-                limit=limit,
-                cursor=cursor,
-                count_hits=count_hits,
-                paginator_options=paginator_options,
-                search_filters=search_filters,
-                date_from=date_from,
-                date_to=date_to,
-                max_hits=max_hits,
-                referrer=referrer,
-                actor=actor,
-                aggregate_kwargs=aggregate_kwargs,
-            )
-
         return query_results
-
-    def _build_limited_group_queryset(
-        self, projects: Sequence[Project], search_filters: Sequence[SearchFilter]
-    ) -> BaseQuerySet[Group, Group]:
-        """
-        Builds a group queryset to handle joins for data that doesn't exist in Clickhouse on the group_attributes dataset
-        """
-        # Filter search_filters to only include 'bookmarked_by', 'linked', 'subscribed_by'
-        filtered_search_filters = [
-            sf for sf in search_filters if sf.key.name in POSTGRES_ONLY_SEARCH_FIELDS
-        ]
-        # Use the filtered search filters for further processing
-        return self._build_group_queryset(
-            projects=projects,
-            environments=None,
-            search_filters=filtered_search_filters,
-            retention_window_start=None,
-        )
 
     def _build_group_queryset(
         self,
@@ -721,7 +505,6 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         search_filters: Sequence[SearchFilter],
         date_from: datetime | None,
         date_to: datetime | None,
-        use_group_snuba_dataset: bool,
     ) -> AbstractQueryExecutor:
         """This method should return an implementation of the AbstractQueryExecutor
         We will end up calling .query() on the class returned by this method"""
@@ -730,10 +513,6 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
 
 class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
     def _get_query_executor(self, *args: Any, **kwargs: Any) -> AbstractQueryExecutor:
-        if kwargs.get("use_group_snuba_dataset"):
-            from sentry.search.snuba.executors import GroupAttributesPostgresSnubaQueryExecutor
-
-            return GroupAttributesPostgresSnubaQueryExecutor()
         return PostgresSnubaQueryExecutor()
 
     def _get_queryset_conditions(
