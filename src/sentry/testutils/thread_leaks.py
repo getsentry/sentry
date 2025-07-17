@@ -19,7 +19,7 @@ from unittest import mock
 
 import pytest
 
-from sentry.utils.arroyo_producer import SingletonProducer  # HAX
+### from sentry.utils.arroyo_producer import SingletonProducer  # HAX
 
 _CWD = os.getcwd() + "/"
 log = getLogger(__name__)
@@ -108,9 +108,9 @@ def check_test(request: pytest.FixtureRequest):
     else:
         with assert_none():
             yield
-            # HAX: close all "singleton producers" before checking thread leaks
-            # FIXME TODO: if request.node.get_closest_marker("thread_leak_singleton_cleanup"):
-            SingletonProducer._shutdown_all()
+            ### # HAX: close all "singleton producers" before checking thread leaks
+            ### # FIXME TODO: if request.node.get_closest_marker("thread_leak_singleton_cleanup"):
+            ### SingletonProducer._shutdown_all()
 
 
 def allowlist(reason: str | None = None, *, issue: int):
