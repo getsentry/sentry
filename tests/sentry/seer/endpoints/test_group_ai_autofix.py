@@ -1,8 +1,9 @@
 from datetime import datetime
 from unittest.mock import Mock, patch
 
-from sentry.autofix.utils import AutofixState, AutofixStatus, CodebaseState
-from sentry.seer.autofix import TIMEOUT_SECONDS
+from sentry.seer.autofix.autofix import TIMEOUT_SECONDS
+from sentry.seer.autofix.constants import AutofixStatus
+from sentry.seer.autofix.utils import AutofixState, CodebaseState
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
@@ -17,7 +18,7 @@ pytestmark = [requires_snuba]
 
 
 @apply_feature_flag_on_cls("organizations:gen-ai-features")
-@patch("sentry.seer.autofix.get_seer_org_acknowledgement", return_value=True)
+@patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     def _get_url(self, group_id: int):
         return f"/api/0/issues/{group_id}/autofix/"
@@ -27,7 +28,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
 
-    @patch("sentry.api.endpoints.group_ai_autofix.get_autofix_state")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_state")
     def test_ai_autofix_get_endpoint_with_autofix(
         self, mock_get_autofix_state, mock_get_seer_org_acknowledgement
     ):
@@ -54,7 +55,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             group_id=group.id, check_repo_access=True, is_user_fetching=False
         )
 
-    @patch("sentry.api.endpoints.group_ai_autofix.get_autofix_state")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_state")
     def test_ai_autofix_get_endpoint_without_autofix(
         self, mock_get_autofix_state, mock_get_seer_org_acknowledgement
     ):
@@ -71,8 +72,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             group_id=group.id, check_repo_access=True, is_user_fetching=False
         )
 
-    @patch("sentry.api.endpoints.group_ai_autofix.get_autofix_state")
-    @patch("sentry.api.endpoints.group_ai_autofix.get_sorted_code_mapping_configs")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_state")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_sorted_code_mapping_configs")
     def test_ai_autofix_get_endpoint_repositories(
         self,
         mock_get_sorted_code_mapping_configs,
@@ -123,8 +124,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert repo["is_readable"] is True
         assert repo["is_writeable"] is True
 
-    @patch("sentry.api.endpoints.group_ai_autofix.get_autofix_state")
-    @patch("sentry.api.endpoints.group_ai_autofix.get_sorted_code_mapping_configs")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_state")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_sorted_code_mapping_configs")
     def test_ai_autofix_get_endpoint_multiple_repositories(
         self,
         mock_get_sorted_code_mapping_configs,
@@ -201,8 +202,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert repo["is_readable"] is True
         assert repo["is_writeable"] is False
 
-    @patch("sentry.api.endpoints.group_ai_autofix.get_autofix_state")
-    @patch("sentry.api.endpoints.group_ai_autofix.get_sorted_code_mapping_configs")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_state")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_sorted_code_mapping_configs")
     def test_ai_autofix_get_endpoint_repository_not_in_codebase(
         self,
         mock_get_sorted_code_mapping_configs,
@@ -246,8 +247,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         # No repositories should be included since the external_id doesn't match
         assert len(response.data["autofix"]["repositories"]) == 0
 
-    @patch("sentry.api.endpoints.group_ai_autofix.get_autofix_state")
-    @patch("sentry.api.endpoints.group_ai_autofix.get_sorted_code_mapping_configs")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_state")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_sorted_code_mapping_configs")
     def test_ai_autofix_get_endpoint_no_codebases(
         self,
         mock_get_sorted_code_mapping_configs,
@@ -285,10 +286,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         # Should have empty repositories list since there are no codebases
         assert len(response.data["autofix"]["repositories"]) == 0
 
-    @patch("sentry.seer.autofix.get_from_profiling_service")
-    @patch("sentry.seer.autofix._get_profile_from_trace_tree")
-    @patch("sentry.seer.autofix._call_autofix")
-    @patch("sentry.seer.autofix._get_trace_tree_for_event")
+    @patch("sentry.seer.autofix.autofix.get_from_profiling_service")
+    @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
+    @patch("sentry.seer.autofix.autofix._call_autofix")
+    @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
     def test_ai_autofix_post_endpoint(
         self,
@@ -367,10 +368,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         mock_check_autofix_status.assert_called_once_with(args=[123], countdown=900)
 
-    @patch("sentry.seer.autofix.get_from_profiling_service")
-    @patch("sentry.seer.autofix._get_profile_from_trace_tree")
-    @patch("sentry.seer.autofix._call_autofix")
-    @patch("sentry.seer.autofix._get_trace_tree_for_event")
+    @patch("sentry.seer.autofix.autofix.get_from_profiling_service")
+    @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
+    @patch("sentry.seer.autofix.autofix._call_autofix")
+    @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
     def test_ai_autofix_post_without_code_mappings(
         self,
@@ -435,10 +436,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         mock_check_autofix_status.assert_called_once_with(args=[123], countdown=900)
 
-    @patch("sentry.seer.autofix.get_from_profiling_service")
-    @patch("sentry.seer.autofix._get_profile_from_trace_tree")
-    @patch("sentry.seer.autofix._call_autofix")
-    @patch("sentry.seer.autofix._get_trace_tree_for_event")
+    @patch("sentry.seer.autofix.autofix.get_from_profiling_service")
+    @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
+    @patch("sentry.seer.autofix.autofix._call_autofix")
+    @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
     def test_ai_autofix_post_without_event_id(
         self,
@@ -516,9 +517,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_check_autofix_status.assert_called_once_with(args=[123], countdown=900)
 
     @patch("sentry.models.Group.get_recommended_event_for_environments", return_value=None)
-    @patch("sentry.seer.autofix.get_from_profiling_service")
-    @patch("sentry.seer.autofix._call_autofix")
-    @patch("sentry.seer.autofix._get_trace_tree_for_event")
+    @patch("sentry.seer.autofix.autofix.get_from_profiling_service")
+    @patch("sentry.seer.autofix.autofix._call_autofix")
+    @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
     def test_ai_autofix_post_without_event_id_no_recommended_event(
         self,
@@ -631,8 +632,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 400
 
-    @patch("sentry.api.endpoints.group_ai_autofix.get_autofix_state")
-    @patch("sentry.api.endpoints.group_ai_autofix.cache")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_state")
+    @patch("sentry.seer.endpoints.group_ai_autofix.cache")
     def test_ai_autofix_get_endpoint_cache_miss(
         self, mock_cache, mock_get_autofix_state, mock_get_seer_org_acknowledgement
     ):
@@ -662,8 +663,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             f"autofix_access_check:{self.group.id}", True, timeout=60
         )
 
-    @patch("sentry.api.endpoints.group_ai_autofix.get_autofix_state")
-    @patch("sentry.api.endpoints.group_ai_autofix.cache")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_state")
+    @patch("sentry.seer.endpoints.group_ai_autofix.cache")
     def test_ai_autofix_get_endpoint_cache_hit(
         self, mock_cache, mock_get_autofix_state, mock_get_seer_org_acknowledgement
     ):
@@ -691,8 +692,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         # Verify the cache was not set again
         mock_cache.set.assert_not_called()
 
-    @patch("sentry.api.endpoints.group_ai_autofix.get_autofix_state")
-    @patch("sentry.api.endpoints.group_ai_autofix.cache")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_state")
+    @patch("sentry.seer.endpoints.group_ai_autofix.cache")
     def test_ai_autofix_get_endpoint_polling_behavior(
         self, mock_cache, mock_get_autofix_state, mock_get_seer_org_acknowledgement
     ):

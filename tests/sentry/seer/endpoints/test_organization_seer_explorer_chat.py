@@ -15,7 +15,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
 
     def test_get_without_run_id_returns_null_session(self):
         with patch(
-            "sentry.api.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
+            "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
             return_value=True,
         ):
             response = self.client.get(self.url)
@@ -23,7 +23,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.status_code == 404
         assert response.data == {"session": None}
 
-    @patch("sentry.api.endpoints.organization_seer_explorer_chat._call_seer_explorer_state")
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat._call_seer_explorer_state")
     def test_get_with_run_id_calls_seer(self, mock_call_seer_state):
         mock_response = {
             "session": {
@@ -36,7 +36,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         mock_call_seer_state.return_value = mock_response
 
         with patch(
-            "sentry.api.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
+            "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
             return_value=True,
         ):
             response = self.client.get(f"{self.url}123/")
@@ -47,7 +47,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
 
     def test_post_without_query_returns_400(self):
         with patch(
-            "sentry.api.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
+            "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
             return_value=True,
         ):
             response = self.client.post(self.url, {}, format="json")
@@ -57,7 +57,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
 
     def test_post_with_empty_query_returns_400(self):
         with patch(
-            "sentry.api.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
+            "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
             return_value=True,
         ):
             response = self.client.post(self.url, {"query": "   "}, format="json")
@@ -67,7 +67,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
 
     def test_post_with_invalid_json_returns_400(self):
         with patch(
-            "sentry.api.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
+            "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
             return_value=True,
         ):
             response = self.client.post(self.url, "invalid json", content_type="application/json")
@@ -77,10 +77,10 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             assert "JSON parse error" in str(response.data["detail"])
 
     @patch(
-        "sentry.api.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
+        "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
         return_value=True,
     )
-    @patch("sentry.api.endpoints.organization_seer_explorer_chat._call_seer_explorer_chat")
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat._call_seer_explorer_chat")
     def test_post_with_query_calls_seer(
         self, mock_call_seer_chat, mock_get_seer_org_acknowledgement
     ):
@@ -106,10 +106,10 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         )
 
     @patch(
-        "sentry.api.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
+        "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
         return_value=True,
     )
-    @patch("sentry.api.endpoints.organization_seer_explorer_chat._call_seer_explorer_chat")
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat._call_seer_explorer_chat")
     def test_post_with_all_parameters(self, mock_call_seer_chat, mock_get_seer_org_acknowledgement):
         mock_response = {"run_id": 789, "message": {}}
         mock_call_seer_chat.return_value = mock_response
@@ -136,7 +136,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         self.organization.update_option("sentry:hide_ai_features", True)
 
         with patch(
-            "sentry.api.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
+            "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
             return_value=True,
         ):
             data = {"query": "Test query"}
@@ -146,7 +146,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             assert response.data == {"detail": "AI features are disabled for this organization."}
 
     @patch(
-        "sentry.api.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
+        "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
         return_value=False,
     )
     def test_post_without_acknowledgement_returns_403(self, mock_get_seer_org_acknowledgement):
@@ -171,7 +171,7 @@ class OrganizationSeerExplorerChatEndpointFeatureFlagTest(APITestCase):
         # Only enable seer-explorer but not gen-ai-features
         with self.feature({"organizations:seer-explorer": True}):
             with patch(
-                "sentry.api.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
+                "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
                 return_value=True,
             ):
                 data = {"query": "Test query"}
@@ -184,7 +184,7 @@ class OrganizationSeerExplorerChatEndpointFeatureFlagTest(APITestCase):
         # Only enable gen-ai-features but not seer-explorer
         with self.feature({"organizations:gen-ai-features": True}):
             with patch(
-                "sentry.api.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
+                "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
                 return_value=True,
             ):
                 data = {"query": "Test query"}
@@ -196,7 +196,7 @@ class OrganizationSeerExplorerChatEndpointFeatureFlagTest(APITestCase):
     def test_post_without_any_feature_flags_returns_400(self):
         # No feature flags enabled
         with patch(
-            "sentry.api.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
+            "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
             return_value=True,
         ):
             data = {"query": "Test query"}
@@ -206,10 +206,10 @@ class OrganizationSeerExplorerChatEndpointFeatureFlagTest(APITestCase):
             assert response.data == {"detail": "Feature flag not enabled"}
 
     @patch(
-        "sentry.api.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
+        "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
         return_value=True,
     )
-    @patch("sentry.api.endpoints.organization_seer_explorer_chat._call_seer_explorer_chat")
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat._call_seer_explorer_chat")
     def test_post_with_both_feature_flags_succeeds(
         self, mock_call_seer_chat, mock_get_seer_org_acknowledgement
     ):
