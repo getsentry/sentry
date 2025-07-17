@@ -128,7 +128,9 @@ describe('Screens Landing Page', function () {
             dataset: 'spans',
           },
         },
-        match: [MockApiClient.matchQuery({dataset: 'spans'})],
+        match: [
+          MockApiClient.matchQuery({referrer: 'api.starfish.mobile-screens-metrics'}),
+        ],
       });
 
       const spanMetricsMock = MockApiClient.addMockResponse({
@@ -156,10 +158,14 @@ describe('Screens Landing Page', function () {
             isMetricsExtractedData: false,
             tips: {},
             datasetReason: 'unchanged',
-            dataset: 'spansMetrics',
+            dataset: 'spans',
           },
         },
-        match: [MockApiClient.matchQuery({dataset: 'spansMetrics'})],
+        match: [
+          MockApiClient.matchQuery({
+            referrer: 'api.starfish.mobile-screens-span-metrics',
+          }),
+        ],
       });
 
       render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});

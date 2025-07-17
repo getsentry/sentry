@@ -8,9 +8,11 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconChevron, IconFire, IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
+import useOrganization from 'sentry/utils/useOrganization';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
@@ -107,6 +109,8 @@ function ChapterRow({
   const hasOccurred = currentTime >= startOffset;
   const isBeforeHover = currentHoverTime === undefined || currentHoverTime >= startOffset;
 
+  const organization = useOrganization();
+
   return (
     <ChapterWrapper
       className={classNames(className, {
@@ -119,7 +123,16 @@ function ChapterRow({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <Chapter error={error} feedback={feedback}>
+      <Chapter
+        error={error}
+        feedback={feedback}
+        onClick={() =>
+          trackAnalytics('replay.ai-summary.chapter-clicked', {
+            chapter_type: error ? 'error' : feedback ? 'feedback' : undefined,
+            organization,
+          })
+        }
+      >
         <ChapterIconWrapper>
           {error ? (
             isHovered ? (
