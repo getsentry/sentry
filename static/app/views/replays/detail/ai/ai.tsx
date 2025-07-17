@@ -40,11 +40,11 @@ function AiContent() {
   const openForm = useFeedbackForm();
 
   // Until the first regenerate request, we use the prefetched result from aiSummaryContext.
-  const [regenerate, setRegenerate] = useState(false);
+  const [regenerated, setRegenerated] = useState(false);
   const regeneratedResults = useFetchReplaySummaryForceRegenerate({
     staleTime: 0,
     enabled:
-      regenerate &&
+      regenerated &&
       Boolean(
         replayRecord?.id &&
           project?.slug &&
@@ -60,7 +60,7 @@ function AiContent() {
     isError,
     isRefetching,
     refetch,
-  } = !!aiSummaryContext.apiQueryResult && !regenerate
+  } = !!aiSummaryContext.apiQueryResult && !regenerated
     ? aiSummaryContext.apiQueryResult
     : regeneratedResults;
 
@@ -157,10 +157,10 @@ function AiContent() {
               type="button"
               size="xs"
               onClick={() => {
-                if (regenerate) {
+                if (regenerated) {
                   refetch();
                 } else {
-                  setRegenerate(true);
+                  setRegenerated(true);
                 }
               }}
               icon={<IconSync size="xs" />}
