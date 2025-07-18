@@ -379,6 +379,7 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
                 SEMVER_ALIAS: self.semver_autocomplete_function,
                 SEMVER_BUILD_ALIAS: self.semver_build_autocomplete_function,
                 SEMVER_PACKAGE_ALIAS: self.semver_package_autocomplete_function,
+                "timestamp": self.skip_autocomplete,
             }
         )
 
@@ -541,6 +542,9 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
             )
             for package in packages
         ]
+
+    def skip_autocomplete(self) -> list[TagValue]:
+        return []
 
     def boolean_autocomplete_function(self) -> list[TagValue]:
         return [

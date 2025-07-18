@@ -1500,3 +1500,12 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             }
             for version in ["121", "122"]
         ]
+
+    def test_autocomplete_timestamp(self):
+        self.store_spans(
+            [self.create_span(start_ts=before_now(days=0, minutes=10))],
+            is_eap=True,
+        )
+        response = self.do_request(key="timestamp", query={"substringMatch": "20"})
+        assert response.status_code == 200
+        assert response.data == []
