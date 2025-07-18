@@ -223,9 +223,6 @@ class WorkflowEngineDetectorSerializer(Serializer):
             condition_group__in=detector_workflow_condition_group_ids,
             condition_result__in=[DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM],
         )
-        ###
-        # THIS IS WRONG!!!!!!!!!!
-        ###
         workflow_dcg_ids = DataConditionGroup.objects.filter(
             workflowdataconditiongroup__workflow__in=Subquery(
                 DetectorWorkflow.objects.filter(detector__in=detector_ids).values_list(
