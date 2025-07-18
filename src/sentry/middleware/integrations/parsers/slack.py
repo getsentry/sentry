@@ -235,7 +235,7 @@ class SlackRequestParser(BaseRequestParser):
             link_input = None
             if commands.LINK_TEAM.command_slug.does_match(cmd_input):
                 link_input = cmd_input.adjust(commands.LINK_TEAM.command_slug)
-            if commands.UNLINK_TEAM.command_slug.does_match(cmd_input):
+            elif commands.UNLINK_TEAM.command_slug.does_match(cmd_input):
                 link_input = cmd_input.adjust(commands.UNLINK_TEAM.command_slug)
             if not link_input or not link_input.arg_values:
                 return organizations
