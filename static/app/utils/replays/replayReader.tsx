@@ -215,6 +215,7 @@ export default class ReplayReader {
   }: RequiredNotNull<ReplayReaderParams>) {
     this._cacheKey = domId('replayReader-');
     this._fetching = fetching;
+    this._attachments = attachments;
 
     if (replayRecord.is_archived) {
       this._replayRecord = replayRecord;
@@ -317,6 +318,7 @@ export default class ReplayReader {
   private _duration: Duration = duration(0);
   private _errors: ErrorFrame[] = [];
   private _fetching = true;
+  private _attachments: unknown[] | undefined;
   private _optionFrame: undefined | OptionFrame;
   private _replayRecord: HydratedReplayRecord;
   private _sortedBreadcrumbFrames: BreadcrumbFrame[] = [];
@@ -786,6 +788,8 @@ export default class ReplayReader {
   });
 
   getVideoEvents = () => this._videoEvents;
+
+  getAttachments = () => this._attachments;
 
   getPaintFrames = memoize(() => this._sortedSpanFrames.filter(isPaintFrame));
 
