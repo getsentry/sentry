@@ -12,6 +12,8 @@ from rest_framework.request import Request
 from slack_sdk.errors import SlackApiError
 
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
+from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
+from sentry.integrations.messaging import commands
 from sentry.integrations.middleware.hybrid_cloud.parser import (
     BaseRequestParser,
     create_async_request_payload,
@@ -215,6 +217,38 @@ class SlackRequestParser(BaseRequestParser):
             return Integration.objects.filter(id=params["integration_id"]).first()
 
         return None
+
+    def filter_organizations_from_request(
+        self,
+        organizations: list[RpcOrganizationMapping],
+    ) -> list[RpcOrganizationMapping]:
+        """
+        For linking/unlinking teams, we can target specific organizations if the user provides it
+        as an additional argument. If not, we'll pick from all the organizations, which might fail.
+        """
+        if self.view_class == SlackCommandsEndpoint:
+            drf_request: Request = SlackDMEndpoint().initialize_request(self.request)
+            slack_request = self.view_class.slack_request_class(drf_request)
+            cmd_input = slack_request.get_command_input()
+
+            # For both linking/unlinking teams, the organization slug is found in the same place
+            link_input = None
+            if commands.LINK_TEAM.command_slug.does_match(cmd_input):
+                link_input = cmd_input.adjust(commands.LINK_TEAM.command_slug)
+            elif commands.UNLINK_TEAM.command_slug.does_match(cmd_input):
+                link_input = cmd_input.adjust(commands.UNLINK_TEAM.command_slug)
+            if not link_input or not link_input.arg_values:
+                return organizations
+
+            linking_organization_slug = link_input.arg_values[0]
+            linking_organization = next(
+                (org for org in organizations if org.slug == linking_organization_slug), None
+            )
+
+            if linking_organization:
+                return [linking_organization]
+
+        return organizations
 
     def get_response(self):
         """

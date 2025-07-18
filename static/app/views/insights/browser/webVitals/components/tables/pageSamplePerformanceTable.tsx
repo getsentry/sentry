@@ -58,12 +58,7 @@ import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/qu
 import useProfileExists from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {
-  ModuleName,
-  SpanFields,
-  SpanMetricsField,
-  type SubregionCode,
-} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -170,7 +165,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
 
   const browserTypes = decodeBrowserTypes(location.query[SpanFields.BROWSER_NAME]);
   const subregions = decodeList(
-    location.query[SpanMetricsField.USER_GEO_SUBREGION]
+    location.query[SpanFields.USER_GEO_SUBREGION]
   ) as SubregionCode[];
 
   const defaultDatatype = handleStandaloneClsLcp ? Datatype.LCP : Datatype.PAGELOADS;
