@@ -2000,6 +2000,27 @@ function buildRoutes() {
           />
         </Route>
       </Route>
+      <Route path="flows/">
+        <IndexRoute component={make(() => import('sentry/views/codecov/flows/index'))} />
+        <Route
+          path="definitions/"
+          component={make(() => import('sentry/views/codecov/flows/list/table'))}
+        />
+        <Route
+          path="select-replay/"
+          component={make(() => import('sentry/views/codecov/flows/create/selectReplay'))}
+        />
+        <Route
+          path="select-start-end/"
+          component={make(
+            () => import('sentry/views/codecov/flows/create/selectStartEnd')
+          )}
+        />
+        <Route
+          path=":flowId/"
+          component={make(() => import('sentry/views/codecov/flows/detail'))}
+        />
+      </Route>
       <Route path="tokens/">
         <Route
           component={make(() => import('sentry/views/codecov/tokens/tokensWrapper'))}

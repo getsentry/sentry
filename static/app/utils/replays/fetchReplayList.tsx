@@ -76,7 +76,7 @@ async function fetchReplayList({
     return {
       fetchError: undefined,
       pageLinks,
-      replays: payload.query ? data.map(mapResponseToReplayRecord) : [],
+      replays: payload.query === undefined ? [] : data.map(mapResponseToReplayRecord),
       // for the replay tab in transactions, if payload.query is undefined,
       // this means the transaction has no related replays.
       // but because we cannot query for an empty list of IDs (e.g. `id:[]` breaks our search endpoint),
