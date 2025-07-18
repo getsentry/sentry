@@ -378,17 +378,6 @@ def handle_resolve_in_release(
         res_type = GroupResolution.Type.in_next_release
         res_type_str = "in_next_release"
         res_status = GroupResolution.Status.pending
-    elif status_details.get("inUpcomingRelease"):
-        if len(projects) > 1:
-            raise MultipleProjectsError()
-        release = status_details.get("inUpcomingRelease") or most_recent_release(projects[0])
-        activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
-        activity_data = {"version": ""}
-
-        new_status_details["inUpcomingRelease"] = True
-        res_type = GroupResolution.Type.in_upcoming_release
-        res_type_str = "in_upcoming_release"
-        res_status = GroupResolution.Status.pending
     elif status_details.get("inRelease"):
         # TODO(jess): We could update validation to check if release
         # applies to multiple projects, but I think we agreed to punt
@@ -745,7 +734,6 @@ def prepare_response(
             if res_type in (
                 GroupResolution.Type.in_next_release,
                 GroupResolution.Type.in_release,
-                GroupResolution.Type.in_upcoming_release,
             ):
                 result["activity"] = serialize(
                     Activity.objects.get_activities_for_group(
