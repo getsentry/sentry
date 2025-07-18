@@ -65,7 +65,7 @@ import {ResponseStatusCodeCell} from 'sentry/views/insights/common/components/ta
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
-import {ModuleName, SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
@@ -1093,10 +1093,10 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
   },
   time_spent_percentage: fieldName => data => {
     const parsedFunction = parseFunction(fieldName);
-    let column = parsedFunction?.arguments?.[1] ?? SpanMetricsField.SPAN_SELF_TIME;
+    let column = parsedFunction?.arguments?.[1] ?? SpanFields.SPAN_SELF_TIME;
     // TODO - remove with eap, in eap this function only has one arg
-    if (parsedFunction?.arguments?.[0] === SpanMetricsField.SPAN_DURATION) {
-      column = SpanMetricsField.SPAN_DURATION;
+    if (parsedFunction?.arguments?.[0] === SpanFields.SPAN_DURATION) {
+      column = SpanFields.SPAN_DURATION;
     }
     return (
       <TimeSpentCell

@@ -4,18 +4,18 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useSystemSelectorOptions} from 'sentry/views/insights/database/components/useSystemSelectorOptions';
 import {BASE_FILTERS} from 'sentry/views/insights/database/settings';
 import type {SearchHook} from 'sentry/views/insights/types';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 export function useDatabaseLandingChartFilter(): SearchHook {
   const {
-    [SpanMetricsField.SPAN_ACTION]: spanAction,
-    [SpanMetricsField.SPAN_DOMAIN]: spanDomain,
-    [SpanMetricsField.SPAN_SYSTEM]: systemQueryParam,
+    [SpanFields.SPAN_ACTION]: spanAction,
+    [SpanFields.SPAN_DOMAIN]: spanDomain,
+    [SpanFields.SPAN_SYSTEM]: systemQueryParam,
   } = useLocationQuery({
     fields: {
-      [SpanMetricsField.SPAN_ACTION]: decodeScalar,
-      [SpanMetricsField.SPAN_DOMAIN]: decodeScalar,
-      [SpanMetricsField.SPAN_SYSTEM]: decodeScalar,
+      [SpanFields.SPAN_ACTION]: decodeScalar,
+      [SpanFields.SPAN_DOMAIN]: decodeScalar,
+      [SpanFields.SPAN_SYSTEM]: decodeScalar,
     },
   });
   // If there is no query parameter for the system, retrieve the current value from the hook instead
@@ -24,9 +24,9 @@ export function useDatabaseLandingChartFilter(): SearchHook {
 
   const search = MutableSearch.fromQueryObject({
     ...BASE_FILTERS,
-    [SpanMetricsField.SPAN_ACTION]: spanAction,
-    [SpanMetricsField.SPAN_DOMAIN]: spanDomain,
-    [SpanMetricsField.SPAN_SYSTEM]: system,
+    [SpanFields.SPAN_ACTION]: spanAction,
+    [SpanFields.SPAN_DOMAIN]: spanDomain,
+    [SpanFields.SPAN_SYSTEM]: system,
   });
 
   return {search, enabled: true};
