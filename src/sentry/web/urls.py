@@ -783,7 +783,7 @@ urlpatterns += [
         name="integration-installation",
     ),
     re_path(
-        r"^unsubscribe/(?P<organization_slug>\w+)/project/(?P<project_id>\d+)/$",
+        r"^unsubscribe/(?P<organization_slug>[^/]+)/project/(?P<project_id>\d+)/$",
         GenericReactPageView.as_view(auth_required=False),
         name="sentry-organization-unsubscribe-project",
     ),
@@ -793,7 +793,7 @@ urlpatterns += [
         name="sentry-customer-domain-unsubscribe-project",
     ),
     re_path(
-        r"^unsubscribe/(?P<organization_slug>\w+)/issue/(?P<issue_id>\d+)/$",
+        r"^unsubscribe/(?P<organization_slug>[^/]+)/issue/(?P<issue_id>\d+)/$",
         GenericReactPageView.as_view(auth_required=False),
         name="sentry-organization-unsubscribe-issue",
     ),
