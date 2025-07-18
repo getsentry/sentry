@@ -55,6 +55,12 @@ from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import can_expose_attribute
 from sentry.search.events.types import SnubaParams
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
+from sentry.seer.explorer.index_data import (
+    get_issues_for_transaction,
+    get_profiles_for_trace,
+    get_trace_for_transaction,
+    get_transactions_for_project,
+)
 from sentry.seer.fetch_issues.fetch_issues import (
     get_issues_related_to_file_patches,
     get_issues_related_to_function_names,
@@ -557,6 +563,10 @@ seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_attribute_names": get_attribute_names,
     "get_attribute_values_with_substring": get_attribute_values_with_substring,
     "get_attributes_and_values": get_attributes_and_values,
+    "get_transactions_for_project": get_transactions_for_project,
+    "get_trace_for_transaction": get_trace_for_transaction,
+    "get_profiles_for_trace": get_profiles_for_trace,
+    "get_issues_for_transaction": get_issues_for_transaction,
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
 }
 
