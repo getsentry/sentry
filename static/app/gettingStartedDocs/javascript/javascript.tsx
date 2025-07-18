@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
 
 import {Link} from 'sentry/components/core/link';
 import {SdkProviderEnum as FeatureFlagProviderEnum} from 'sentry/components/events/featureFlags/utils';
@@ -27,10 +26,6 @@ import {
   getFeedbackConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {
-  getProfilingDocumentHeaderConfigurationStep,
-  MaybeBrowserProfilingBetaWarning,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
-import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
   getReplayVerifyStep,
@@ -40,10 +35,8 @@ import {
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {updateDynamicSdkLoaderOptions} from './jsLoader/updateDynamicSdkLoaderOptions';
 
@@ -669,9 +662,6 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
             },
           ],
         },
-        ...(params.isProfilingSelected
-          ? [getProfilingDocumentHeaderConfigurationStep()]
-          : []),
       ],
     },
     getUploadSourceMapsStep({
@@ -725,22 +715,10 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
 };
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
-  introduction: params => (
-    <div
-      css={css`
-        display: flex;
-        flex-direction: column;
-        gap: ${space(1)};
-      `}
-    >
-      <MaybeBrowserProfilingBetaWarning {...params} />
-      <TextBlock noMargin>
-        {isAutoInstall(params)
-          ? loaderScriptOnboarding.introduction?.(params)
-          : packageManagerOnboarding.introduction?.(params)}
-      </TextBlock>
-    </div>
-  ),
+  introduction: params =>
+    isAutoInstall(params)
+      ? loaderScriptOnboarding.introduction?.(params)
+      : packageManagerOnboarding.introduction?.(params),
   install: params =>
     isAutoInstall(params)
       ? loaderScriptOnboarding.install(params)
