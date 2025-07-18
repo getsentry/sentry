@@ -73,7 +73,7 @@ def EmptyRustFrame() -> RustFrame:  # noqa
 def _merge_rust_enhancements(
     bases: list[str],
     rust_enhancements: RustEnhancements,
-    type: Literal["classifier", "contributes"] | None = None,
+    type: Literal["classifier", "contributes"],
 ) -> RustEnhancements:
     """
     This will merge the parsed enhancements together with the `bases`.
@@ -85,13 +85,9 @@ def _merge_rust_enhancements(
         base = ENHANCEMENT_BASES.get(base_id)
         if base:
             base_rust_enhancements = (
-                base.rust_enhancements
-                if type is None
-                else (
-                    base.classifier_rust_enhancements
-                    if type == "classifier"
-                    else base.contributes_rust_enhancements
-                )
+                base.classifier_rust_enhancements
+                if type == "classifier"
+                else base.contributes_rust_enhancements
             )
             merged_rust_enhancements.extend_from(base_rust_enhancements)
     merged_rust_enhancements.extend_from(rust_enhancements)
