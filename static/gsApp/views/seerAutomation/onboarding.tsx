@@ -187,16 +187,32 @@ function ProjectsWithoutRepos({
     new Set<string>()
   );
   const [searchQuery, setSearchQuery] = useState('');
+  const [projectsWithoutReposCount, setProjectsWithoutReposCount] = useState(0);
 
   const handleProjectUpdate = useCallback(
     (project: Project, preference: any, isPending: boolean) => {
-      setProjectStates(prev => ({
-        ...prev,
-        [project.id]: {preference, isPending},
-      }));
+      setProjectStates(prev => {
+        const prevState = prev[project.id];
+        const newState = {...prev, [project.id]: {preference, isPending}};
+
+        // If this project just finished loading (was pending, now not pending)
+        // and has no repos and wasn't successfully connected, increment counter
+        if (
+          prevState?.isPending &&
+          !isPending &&
+          !successfullyConnectedProjects.has(project.id)
+        ) {
+          const repoCount = preference?.repositories?.length || 0;
+          if (repoCount === 0) {
+            setProjectsWithoutReposCount(count => count + 1);
+          }
+        }
+
+        return newState;
+      });
       onProjectStateUpdate(project, preference, isPending);
     },
-    [onProjectStateUpdate]
+    [onProjectStateUpdate, successfullyConnectedProjects]
   );
 
   const handleProjectSuccess = useCallback(
@@ -256,7 +272,9 @@ function ProjectsWithoutRepos({
     return (
       <Panel>
         <PanelHeader>
-          <HeaderText>{t('Loading projects...')}</HeaderText>
+          <HeaderText>
+            {t('%s Projects missing repositories...', projectsWithoutReposCount)}
+          </HeaderText>
         </PanelHeader>
         <PanelBody>
           <LoadingState>
