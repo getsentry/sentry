@@ -471,10 +471,17 @@ def make_seer_request(request: SeerRequest) -> bytes:
     serialized_request = json.dumps(request)
 
     # Log when the input string is too large. This is potential for timeout.
-    if len(serialized_request) > 100000:
+    request_len_threshold = 1e5
+    if len(serialized_request) > request_len_threshold:
         logger.info(
-            "Replay AI summary: input length exceeds 100k.",
-            extra={"request_len": len(serialized_request), "replay_id": request.replay_id},
+            "Replay AI summary: input length exceeds threshold.",
+            extra={
+                "request_len": len(serialized_request),
+                "request_len_threshold": request_len_threshold,
+                "replay_id": request["replay_id"],
+                "organization_id": request["organization_id"],
+                "project_id": request["project_id"],
+            },
         )
 
     # XXX: Request isn't streaming. Limitation of Seer authentication. Would be much faster if we
