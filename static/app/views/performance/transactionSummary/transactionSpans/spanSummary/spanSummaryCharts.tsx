@@ -21,7 +21,7 @@ import {
 } from 'sentry/views/insights/colors';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {
   Block,
   BlockContainer,
@@ -48,7 +48,7 @@ function SpanSummaryCharts() {
     isPending: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
-  } = useSpanMetricsSeries(
+  } = useSpanSeries(
     {
       search: MutableSearch.fromQueryObject(filters),
       yAxis: ['epm()'],
@@ -60,7 +60,7 @@ function SpanSummaryCharts() {
     isPending: isAvgDurationDataLoading,
     data: avgDurationData,
     error: avgDurationError,
-  } = useSpanMetricsSeries(
+  } = useSpanSeries(
     {
       search: MutableSearch.fromQueryObject(filters),
       yAxis: [`avg(${SpanFields.SPAN_DURATION})`],

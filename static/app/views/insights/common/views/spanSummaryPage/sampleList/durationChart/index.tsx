@@ -10,7 +10,7 @@ import {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottabl
 // eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import type {
   NonDefaultSpanSampleFields,
   SpanSample,
@@ -87,7 +87,7 @@ function DurationChart({
     isPending,
     data: spanMetricsSeriesData,
     error: spanMetricsSeriesError,
-  } = useSpanMetricsSeries(
+  } = useSpanSeries(
     {
       search,
       yAxis: [`avg(${SPAN_SELF_TIME})`],

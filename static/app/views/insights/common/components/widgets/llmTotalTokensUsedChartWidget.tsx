@@ -4,7 +4,7 @@ import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {Referrer} from 'sentry/views/insights/llmMonitoring/referrers';
 
 export default function LlmTotalTokensUsedChartWidget(props: LoadableChartWidgetProps) {
@@ -12,7 +12,7 @@ export default function LlmTotalTokensUsedChartWidget(props: LoadableChartWidget
   const aggregate = 'sum(ai.total_tokens.used)';
   const referrer = Referrer.TOTAL_TOKENS_USED_CHART;
   const search = new MutableSearch('span.category:"ai"');
-  const {data, isPending, error} = useSpanMetricsSeries(
+  const {data, isPending, error} = useSpanSeries(
     {
       yAxis: [aggregate],
       search,

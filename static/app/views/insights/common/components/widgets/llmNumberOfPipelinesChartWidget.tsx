@@ -4,7 +4,7 @@ import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {Referrer} from 'sentry/views/insights/llmMonitoring/referrers';
 
 export default function LlmNumberOfPipelinesChartWidget(props: LoadableChartWidgetProps) {
@@ -12,7 +12,7 @@ export default function LlmNumberOfPipelinesChartWidget(props: LoadableChartWidg
   const aggregate = 'count()';
   const referrer = Referrer.NUMBER_OF_PIPELINES_CHART;
   const search = new MutableSearch('span.category:"ai.pipeline"');
-  const {data, isPending, error} = useSpanMetricsSeries(
+  const {data, isPending, error} = useSpanSeries(
     {
       yAxis: [aggregate],
       search,

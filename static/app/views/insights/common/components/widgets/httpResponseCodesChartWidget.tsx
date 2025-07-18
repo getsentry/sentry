@@ -10,7 +10,7 @@ import {BaseChartActionDropdown} from 'sentry/views/insights/common/components/c
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {useHttpLandingChartFilter} from 'sentry/views/insights/common/components/widgets/hooks/useHttpLandingChartFilter';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 import {useAlertsProject} from 'sentry/views/insights/common/utils/useAlertsProject';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
@@ -31,7 +31,7 @@ export default function HttpResponseCodesChartWidget(props: LoadableChartWidgetP
     isPending: isResponseCodeDataLoading,
     data: responseCodeData,
     error: responseCodeError,
-  } = useSpanMetricsSeries(
+  } = useSpanSeries(
     {
       search,
       yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
