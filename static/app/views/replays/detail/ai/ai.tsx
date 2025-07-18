@@ -10,6 +10,7 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconSeer, IconSync, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
@@ -47,7 +48,8 @@ function AiContent() {
     enabled: Boolean(
       replayRecord?.id &&
         project?.slug &&
-        organization.features.includes('replay-ai-summaries')
+        organization.features.includes('replay-ai-summaries') &&
+        organization.features.includes('gen-ai-features')
     ),
     retry: false,
   });
@@ -78,7 +80,10 @@ function AiContent() {
     ) : null;
   };
 
-  if (!organization.features.includes('replay-ai-summaries')) {
+  if (
+    !organization.features.includes('replay-ai-summaries') ||
+    !organization.features.includes('gen-ai-features')
+  ) {
     return (
       <SummaryContainer>
         <Alert type="info">
@@ -143,7 +148,12 @@ function AiContent() {
               priority="default"
               type="button"
               size="xs"
-              onClick={() => refetch()}
+              onClick={() => {
+                refetch();
+                trackAnalytics('replay.ai-summary.regenerate-requested', {
+                  organization,
+                });
+              }}
               icon={<IconSync size="xs" />}
             >
               {t('Regenerate')}

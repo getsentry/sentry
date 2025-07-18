@@ -2,9 +2,9 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
-const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_SELF_TIME} = SpanMetricsField;
+const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_SELF_TIME} = SpanFields;
 
 type Query = {
   sort?: string;

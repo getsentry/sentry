@@ -21,6 +21,7 @@ from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -282,6 +283,9 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
 
     def setUp(self):
         super().setUp()
+        self.connected_workflow = self.create_workflow(
+            organization_id=self.organization.id,
+        )
         self.valid_data = {
             "name": "Test Detector",
             "type": MetricIssue.slug,
@@ -312,6 +316,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
                 "thresholdPeriod": 1,
                 "detectionType": AlertRuleDetectionType.STATIC.value,
             },
+            "workflowIds": [self.connected_workflow.id],
         }
 
     def test_missing_group_type(self):
@@ -433,6 +438,13 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         assert condition.comparison == 100
         assert condition.condition_result == DetectorPriorityLevel.HIGH
 
+        # Verify connected workflows
+        detector_workflow = DetectorWorkflow.objects.get(
+            detector=detector, workflow=self.connected_workflow
+        )
+        assert detector_workflow.detector == detector
+        assert detector_workflow.workflow == self.connected_workflow
+
         # Verify audit log
         mock_audit.assert_called_once_with(
             request=mock.ANY,
@@ -441,6 +453,43 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             event=mock.ANY,
             data=detector.get_audit_log_data(),
         )
+
+    def test_invalid_workflow_ids(self):
+        # Workflow doesn't exist at all
+        data = {**self.valid_data, "workflowIds": [999999]}
+        response = self.get_error_response(
+            self.organization.slug,
+            **data,
+            status_code=400,
+        )
+        assert "Some workflows do not exist" in str(response.data)
+
+        # Workflow that exists but is in another org should also fail validation
+        other_org = self.create_organization()
+        other_workflow = self.create_workflow(organization_id=other_org.id)
+        data = {**self.valid_data, "workflowIds": [other_workflow.id]}
+        response = self.get_error_response(
+            self.organization.slug,
+            **data,
+            status_code=400,
+        )
+        assert "Some workflows do not exist" in str(response.data)
+
+    def test_transaction_rollback_on_workflow_validation_failure(self):
+        initial_detector_count = Detector.objects.filter(project=self.project).count()
+
+        # Try to create detector with invalid workflow, get an error response back
+        data = {**self.valid_data, "workflowIds": [999999]}
+        response = self.get_error_response(
+            self.organization.slug,
+            **data,
+            status_code=400,
+        )
+
+        # Verify that the detector was never created (same number of detectors as before)
+        final_detector_count = Detector.objects.filter(project=self.project).count()
+        assert final_detector_count == initial_detector_count
+        assert "Some workflows do not exist" in str(response.data)
 
     def test_missing_required_field(self):
         response = self.get_error_response(

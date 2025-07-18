@@ -40,7 +40,7 @@ def convert_rpc_attribute_to_json(
         internal_name = attribute["name"]
         if internal_name in PRIVATE_ATTRIBUTES.get(trace_item_type, []):
             continue
-        if internal_name.startswith("sentry._meta"):
+        if internal_name.startswith(constants.META_PREFIX):
             continue
         source = attribute["value"]
         if len(source) == 0:
@@ -102,38 +102,76 @@ def serialize_meta(
 ) -> dict:
     internal_name = ""
     attribute = {}
+    meta_result = {}
+    meta_attributes = {}
     for attribute in attributes:
         internal_name = attribute["name"]
-        if internal_name.startswith("sentry._meta"):
-            break
+        if internal_name.startswith(constants.META_PREFIX):
+            meta_attributes[internal_name] = attribute
 
-    if not internal_name.startswith("sentry._meta") or "valStr" not in attribute["value"]:
-        return {}
+    def extract_key(key: str) -> str | None:
+        if key.startswith(f"{constants.META_ATTRIBUTE_PREFIX}."):
+            return key.replace(f"{constants.META_ATTRIBUTE_PREFIX}.", "")
+        elif key.startswith(f"{constants.META_FIELD_PREFIX}."):
+            return key.replace(f"{constants.META_FIELD_PREFIX}.", "")
+        # Unknown meta field, skip for now
+        else:
+            return None
 
-    try:
-        result = json.loads(attribute["value"]["valStr"])
-        attribute_map = {item.get("name", ""): item.get("value", {}) for item in attributes}
-        mapped_result = {}
-        for key, value in result.items():
-            if key in attribute_map:
+    attribute_map = {item.get("name", ""): item.get("value", {}) for item in attributes}
+    for internal_name, attribute in sorted(meta_attributes.items()):
+        if "valStr" not in attribute["value"]:
+            continue
+        field_key = extract_key(internal_name)
+        if field_key is None:
+            continue
+
+        try:
+            result = json.loads(attribute["value"]["valStr"])
+            # Map the internal field key name back to its public name
+            if field_key in attribute_map:
                 item_type: Literal["string", "number"]
                 if (
-                    "valInt" in attribute_map[key]
-                    or "valFloat" in attribute_map[key]
-                    or "valDouble" in attribute_map[key]
+                    "valInt" in attribute_map[field_key]
+                    or "valFloat" in attribute_map[field_key]
+                    or "valDouble" in attribute_map[field_key]
                 ):
                     item_type = "number"
                 else:
                     item_type = "string"
-                external_name = translate_internal_to_public_alias(key, item_type, trace_item_type)
+                external_name = translate_internal_to_public_alias(
+                    field_key, item_type, trace_item_type
+                )
                 if external_name:
-                    key = external_name
+                    field_key = external_name
                 elif item_type == "number":
-                    key = f"tags[{key},number]"
-            mapped_result[key] = value
-        return mapped_result
+                    field_key = f"tags[{field_key},number]"
+                meta_result[field_key] = result
+        except json.JSONDecodeError:
+            continue
+
+    return meta_result
+
+
+def serialize_links(attributes: list[dict]) -> dict | None:
+    """Links are temporarily stored in `sentry.links` so lets parse that back out and return separately"""
+    link_attribute = None
+    for attribute in attributes:
+        internal_name = attribute["name"]
+        if internal_name == "sentry.links":
+            link_attribute = attribute
+
+    if link_attribute is None:
+        return None
+
+    try:
+        value = link_attribute.get("value", {}).get("valStr", None)
+        if value is not None:
+            return json.loads(value)
+        else:
+            return None
     except json.JSONDecodeError:
-        return {}
+        return None
 
 
 def serialize_item_id(item_id: str, trace_item_type: SupportedTraceItemType) -> str:
@@ -223,6 +261,7 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
                 resp["attributes"], item_type, use_sentry_conventions
             ),
             "meta": serialize_meta(resp["attributes"], item_type),
+            "links": serialize_links(resp["attributes"]),
         }
 
         return Response(resp_dict)

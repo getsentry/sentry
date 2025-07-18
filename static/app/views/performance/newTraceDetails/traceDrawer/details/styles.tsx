@@ -47,12 +47,13 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {ellipsize} from 'sentry/utils/string/ellipsize';
 import type {Color, ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {getIsAiNode} from 'sentry/views/insights/agentMonitoring/utils/aiTraceNodes';
 import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
-import {getIsAiNode} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
 import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
@@ -1288,7 +1289,7 @@ function MultilineText({children}: {children: string}) {
       {isExpanded || !needsTruncation ? (
         children
       ) : (
-        <Fragment>{children.slice(0, truncatePosition) + '...'}</Fragment>
+        <Fragment>{ellipsize(children, truncatePosition)}</Fragment>
       )}
       {needsTruncation ? (
         <Flex style={{justifyContent: 'center', paddingTop: space(1)}}>

@@ -532,7 +532,8 @@ def report_metrics_for_detectors(
 
     tags = event.get("tags", [])
     browser_name = next(
-        (tag[1] for tag in tags if tag[0] == "browser.name" and len(tag) == 2), None
+        (tag[1] for tag in tags if tag is not None and tag[0] == "browser.name" and len(tag) == 2),
+        None,
     )
     allowed_browser_name = "Other"
     if browser_name in [

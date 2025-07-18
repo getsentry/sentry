@@ -217,7 +217,8 @@ export function DO_NOT_USE_getChonkButtonStyles(
         '> span:last-child': {
           transform: 'translateY(0px)',
         },
-        backgroundColor: p.busy || p.disabled ? 'inherit' : p.theme.colors.gray100,
+        backgroundColor:
+          p.busy || p.disabled || type === 'link' ? 'inherit' : p.theme.colors.gray100,
       },
 
       '&:active': {
@@ -225,7 +226,8 @@ export function DO_NOT_USE_getChonkButtonStyles(
           transform: 'translateY(0px)',
         },
 
-        backgroundColor: p.busy || p.disabled ? 'inherit' : p.theme.colors.gray200,
+        backgroundColor:
+          p.busy || p.disabled || type === 'link' ? 'inherit' : p.theme.colors.gray200,
       },
     }),
 

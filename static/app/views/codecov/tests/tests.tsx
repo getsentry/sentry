@@ -20,6 +20,7 @@ import type {ValidSort} from 'sentry/views/codecov/tests/testAnalyticsTable/test
 import TestAnalyticsTable, {
   isAValidSort,
 } from 'sentry/views/codecov/tests/testAnalyticsTable/testAnalyticsTable';
+import {TestSearchBar} from 'sentry/views/codecov/tests/testSearchBar/testSearchBar';
 
 function EmptySelectorsMessage() {
   return (
@@ -70,6 +71,7 @@ function Content() {
     <Fragment>
       {/* TODO: Conditionally show these if the branch we're in is the main branch */}
       <Summaries />
+      <TestSearchBar testCount={response.totalCount} />
       <TestAnalyticsTable response={response} sort={sorts[0]} />
     </Fragment>
   );

@@ -19,8 +19,8 @@ import {
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useTopNSpanEAPSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
@@ -42,7 +42,7 @@ export default function LLMGenerationsWidget() {
   const theme = useTheme();
   const fullQuery = useCombinedQuery(getAIGenerationsFilter());
 
-  const generationsRequest = useEAPSpans(
+  const generationsRequest = useSpans(
     {
       fields: [AI_MODEL_ID_ATTRIBUTE, 'count()'],
       sorts: [{field: 'count()', kind: 'desc'}],
@@ -52,7 +52,7 @@ export default function LLMGenerationsWidget() {
     Referrer.LLM_GENERATIONS_WIDGET
   );
 
-  const timeSeriesRequest = useTopNSpanEAPSeries(
+  const timeSeriesRequest = useTopNSpanSeries(
     {
       ...pageFilterChartParams,
       search: fullQuery,
@@ -104,7 +104,7 @@ export default function LLMGenerationsWidget() {
             new Bars(convertSeriesToTimeseries(ts), {
               color:
                 ts.seriesName === 'Other' ? theme.chart.neutral : colorPalette[index],
-              alias: ts.seriesName,
+              alias: ts.seriesName, // Ensures that the tooltip shows the full series name
               stack: 'stack',
             })
         ),

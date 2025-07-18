@@ -14,6 +14,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.team import Team
+from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.utils.links import create_link_to_workflow
@@ -106,10 +107,10 @@ def fetch_environment_name(rule_env: int) -> str | None:
 
 
 def get_rule_environment_param_from_rule(
-    rule_id: int, rule_environment_id: int | None, organization: Organization
+    rule_id: int, rule_environment_id: int | None, organization: Organization, type_id: int
 ) -> dict[str, str]:
     params = {}
-    if features.has("organizations:workflow-engine-trigger-actions", organization):
+    if should_fire_workflow_actions(organization, type_id):
         if (
             rule_environment_id is not None
             and (environment_name := fetch_environment_name(rule_environment_id)) is not None
@@ -146,7 +147,9 @@ def get_title_link(
     # add in rule id if we have it
     if rule_id:
         other_params.update(
-            get_rule_environment_param_from_rule(rule_id, rule_environment_id, group.organization)
+            get_rule_environment_param_from_rule(
+                rule_id, rule_environment_id, group.organization, group.type
+            )
         )
         # hard code for issue alerts
         other_params["alert_rule_id"] = str(rule_id)
@@ -269,7 +272,7 @@ def build_attachment_replay_link(
 def build_rule_url(rule: Any, group: Group, project: Project) -> str:
     org_slug = group.organization.slug
     project_slug = project.slug
-    if features.has("organizations:workflow-engine-trigger-actions", group.organization):
+    if should_fire_workflow_actions(group.organization, group.type):
         rule_id = get_key_from_rule_data(rule, "legacy_rule_id")
         rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule_id}/details/"
     else:

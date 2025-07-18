@@ -6,7 +6,6 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DurationUnit} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
@@ -18,7 +17,6 @@ import {
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
@@ -45,7 +43,6 @@ type Query = {
 export function ScreenLoadSpansContent() {
   const router = useRouter();
   const location = useLocation<Query>();
-  const useEap = useInsightsEap();
 
   const {spanGroup, transaction: transactionName} = location.query;
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
@@ -75,9 +72,8 @@ export function ScreenLoadSpansContent() {
         </ToolRibbon>
 
         <MobileMetricsRibbon
-          dataset={DiscoverDatasets.METRICS}
           filters={[
-            useEap ? 'is_transaction:true' : 'event.type:transaction',
+            'is_transaction:true',
             'transaction.op:[ui.load,navigation]',
             `transaction:${transactionName}`,
           ]}
