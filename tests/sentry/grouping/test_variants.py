@@ -15,6 +15,7 @@ from sentry.models.project import Project
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from tests.sentry.grouping import (
     GROUPING_INPUTS_DIR,
+    NO_MSG_PARAM_CONFIG,
     GroupingInput,
     dump_variant,
     get_snapshot_path,
@@ -26,12 +27,13 @@ from tests.sentry.grouping import (
 @with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
 @pytest.mark.parametrize(
     "config_name",
-    set(CONFIGURATIONS.keys()) - {DEFAULT_GROUPING_CONFIG},
+    # The default config is tested below, and NO_MSG_PARAM_CONFIG is only meant for use in unit tests
+    set(CONFIGURATIONS.keys()) - {DEFAULT_GROUPING_CONFIG, NO_MSG_PARAM_CONFIG},
     ids=lambda config_name: config_name.replace("-", "_"),
 )
 @patch("sentry.grouping.strategies.newstyle.logging.exception")
 def test_variants_with_legacy_configs(
-    mock_newstyle_exception_logger: MagicMock,
+    mock_exception_logger: MagicMock,
     config_name: str,
     grouping_input: GroupingInput,
     insta_snapshot: InstaSnapshotter,
@@ -49,7 +51,7 @@ def test_variants_with_legacy_configs(
     event.project = mock.Mock(id=11211231)
 
     _assert_and_snapshot_results(
-        event, config_name, grouping_input.filename, insta_snapshot, mock_newstyle_exception_logger
+        event, config_name, grouping_input.filename, insta_snapshot, mock_exception_logger
     )
 
 
@@ -65,7 +67,7 @@ def test_variants_with_legacy_configs(
 )
 @patch("sentry.grouping.strategies.newstyle.logging.exception")
 def test_variants_with_current_default_config(
-    mock_newstyle_exception_logger: MagicMock,
+    mock_exception_logger: MagicMock,
     config_name: str,
     grouping_input: GroupingInput,
     insta_snapshot: InstaSnapshotter,
@@ -89,7 +91,7 @@ def test_variants_with_current_default_config(
         DEFAULT_GROUPING_CONFIG,
         grouping_input.filename,
         insta_snapshot,
-        mock_newstyle_exception_logger,
+        mock_exception_logger,
     )
 
 
@@ -98,17 +100,15 @@ def _assert_and_snapshot_results(
     config_name: str,
     input_file: str,
     insta_snapshot: InstaSnapshotter,
-    mock_newstyle_exception_logger: MagicMock,
+    mock_exception_logger: MagicMock,
 ) -> None:
     grouping_variants = event.get_grouping_variants()
 
     # Make sure the event was annotated with the grouping config
     assert event.get_grouping_config()["id"] == config_name
 
-    # Check that we didn't end up with a caught but unexpected error in any of our `newstyle`
-    # strategies
-    if not config_name.startswith("legacy"):
-        assert mock_newstyle_exception_logger.call_count == 0
+    # Check that we didn't end up with a caught but unexpected error in any of our strategies
+    assert mock_exception_logger.call_count == 0
 
     lines: list[str] = []
 
