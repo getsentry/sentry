@@ -82,6 +82,9 @@ def get_transactions_for_project(project_id: int) -> list[Transaction]:
     seen_names = set()
     for row in result.get("data", []):
         name = row.get("transaction")
+        if not name:
+            continue
+
         normalized_name = normalize_description(name)
         if normalized_name in seen_names:
             continue
@@ -438,11 +441,18 @@ def get_issues_for_transaction(transaction_name: str, project_id: int) -> Transa
             )
             continue
 
-        full_event: GroupEvent = eventstore.get_event_by_id(
+        full_event: GroupEvent | None = eventstore.get_event_by_id(
             project_id=group.project_id,
             event_id=recommended_event.event_id,
             group_id=group.id,
         )
+
+        if not full_event:
+            logger.warning(
+                "No event found for issue",
+                extra={"group_id": group.id, "transaction_name": transaction_name},
+            )
+            continue
 
         serialized_event = serialize(full_event, user=None, serializer=EventSerializer())
 
