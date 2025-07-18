@@ -55,7 +55,7 @@ class GroupFeedbackLabel(DefaultFieldsModel):
 class FeedbackLabel(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedBigIntegerField(db_index=True)
+    organization = FlexibleForeignKey("sentry.Organization")
     name = models.CharField(max_length=255)
     groups = models.ManyToManyField(
         "sentry.Group", related_name="labels", through=GroupFeedbackLabel
@@ -64,8 +64,8 @@ class FeedbackLabel(DefaultFieldsModel):
     class Meta:
         app_label = "feedback"
         db_table = "feedback_feedbacklabel"
-        unique_together = (("organization_id", "name"),)
-        indexes = [models.Index(fields=("organization_id", "name"))]
+        unique_together = (("organization", "name"),)
+        indexes = [models.Index(fields=("organization", "name"))]
 
     __repr__ = sane_repr("organization_id", "name")
 
