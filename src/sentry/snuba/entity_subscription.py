@@ -29,6 +29,7 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.rpc_dataset_common import RPCBase
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils import metrics
 
@@ -266,7 +267,7 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
         if environment:
             params["environment"] = environment.name
 
-        dataset_module: type[OurLogs] | type[Spans]
+        dataset_module: type[RPCBase]
         if self.event_types and self.event_types[0] == SnubaQueryEventType.EventType.TRACE_ITEM_LOG:
             dataset_module = OurLogs
         else:

@@ -1,4 +1,3 @@
-import abc
 import logging
 import math
 from collections import defaultdict
@@ -83,7 +82,7 @@ class TableRequest:
     columns: list[AnyResolved]
 
 
-class RPCBase(abc.ABC):
+class RPCBase:
     """Utility Methods"""
 
     DEFINITIONS: ColumnDefinitions
@@ -227,7 +226,6 @@ class RPCBase(abc.ABC):
         return cls.process_table_response(rpc_response, table_request, debug=debug)
 
     @classmethod
-    @abc.abstractmethod
     def run_table_query(
         cls,
         *,
@@ -498,7 +496,6 @@ class RPCBase(abc.ABC):
         )
 
     @classmethod
-    @abc.abstractmethod
     def run_timeseries_query(
         cls,
         *,
@@ -721,7 +718,6 @@ class RPCBase(abc.ABC):
     """ Other Methods """
 
     @classmethod
-    @abc.abstractmethod
     def run_trace_query(
         cls,
         *,
