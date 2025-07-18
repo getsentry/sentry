@@ -17,7 +17,6 @@ import {
   getRetryDelay,
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
   EAPSpanProperty,
   SpanFields,
