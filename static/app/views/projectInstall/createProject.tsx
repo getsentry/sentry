@@ -427,7 +427,7 @@ export function CreateProject() {
         value.type === 'console' &&
         !organization.enabledConsolePlatforms?.includes(value.id)
       ) {
-        // By selecting a console platform, we don't want to jump to another category
+        // By selecting a console platform, we don't want to jump to another category when its closed
         updateFormData('platform', {
           category: formData.platform?.category,
         });
