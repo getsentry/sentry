@@ -248,7 +248,7 @@ class DataCondition(DefaultFieldsModel):
         metrics.incr("workflow_engine.data_condition.evaluation", tags={"type": self.type})
 
         if isinstance(result, bool):
-            # If the result is a boolean, get the result from `.condition_result`
+            # If the result is True, get the result from `.condition_result`
             return self.get_condition_result() if result else None
 
         return result
