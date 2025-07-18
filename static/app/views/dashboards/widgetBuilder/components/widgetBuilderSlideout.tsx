@@ -345,7 +345,7 @@ function DisableTransactionWidget({children}: DisableModeProps) {
 
   return (
     <div
-      data-test-id="demo-mode-disabled-wrapper"
+      data-test-id="transaction-widget-disabled-wrapper"
       style={{
         opacity: 0.6,
         cursor: 'not-allowed',

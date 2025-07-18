@@ -587,6 +587,8 @@ describe('WidgetBuilderSlideout', () => {
         /You may have limited functionality due to the ongoing migration of transactions to spans/i
       )
     ).toBeInTheDocument();
+
+    expect(screen.getByTestId('transaction-widget-disabled-wrapper')).toBeInTheDocument();
   });
 
   it('should not show deprecation alert when flag enabled', async () => {
@@ -628,5 +630,8 @@ describe('WidgetBuilderSlideout', () => {
         )
       ).not.toBeInTheDocument();
     });
+    expect(
+      screen.queryByTestId('transaction-widget-disabled-wrapper')
+    ).not.toBeInTheDocument();
   });
 });
