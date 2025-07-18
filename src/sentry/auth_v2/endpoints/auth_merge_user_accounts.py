@@ -1,4 +1,3 @@
-from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -7,7 +6,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
-from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
 from sentry.auth_v2.endpoints.base import AuthV2Endpoint
 from sentry.users.api.serializers.user import UserSerializerWithOrgMemberships
@@ -18,6 +16,7 @@ from sentry.users.models.user_merge_verification_code import UserMergeVerificati
 class AuthMergeUserAccountsValidator(serializers.Serializer):
     verification_code = serializers.CharField(required=True)
     ids_to_merge = serializers.ListField(child=serializers.IntegerField(), required=True)
+    ids_to_delete = serializers.ListField(child=serializers.IntegerField(), required=True)
 
 
 @control_silo_endpoint
@@ -27,7 +26,6 @@ class AuthMergeUserAccountsEndpoint(AuthV2Endpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
-    permission_classes = (SentryIsAuthenticated,)
     """
     List and merge user accounts with the same primary email address.
     """
@@ -71,15 +69,16 @@ class AuthMergeUserAccountsEndpoint(AuthV2Endpoint):
             )
 
         ids_to_merge = result["ids_to_merge"]
-        if primary_user.id in ids_to_merge:
+        ids_to_delete = result["ids_to_delete"]
+        if primary_user.id in ids_to_merge or primary_user.id in ids_to_delete:
             return Response(
                 status=400,
                 data={"error": "You may not merge the user attached to your current session"},
             )
         shared_email = primary_user.email
-        affected_user_emails = User.objects.filter(id__in=(ids_to_merge)).values_list(
-            "email", flat=True
-        )
+        affected_user_emails = User.objects.filter(
+            id__in=(ids_to_delete + ids_to_merge)
+        ).values_list("email", flat=True)
 
         if any(email != shared_email for email in affected_user_emails):
             return Response(
@@ -89,12 +88,7 @@ class AuthMergeUserAccountsEndpoint(AuthV2Endpoint):
                 },
             )
 
-        users_to_delete = (
-            User.objects.filter(email=primary_user.email)
-            .filter(~Q(id__in=ids_to_merge))
-            .exclude(id=primary_user.id)
-        )
-
+        users_to_delete = User.objects.filter(id__in=ids_to_delete)
         for user in users_to_delete:
             user.delete()
 
