@@ -583,7 +583,7 @@ class Enhancements:
             version = unsplit_config.version
             bases = unsplit_config.bases
 
-            metrics_timer_tags.update({"split": version == 3})
+            metrics_timer_tags.update({"version": version})
 
             return cls(
                 rules=unsplit_config.rules,
@@ -606,7 +606,7 @@ class Enhancements:
 
         with metrics.timer("grouping.enhancements.creation") as metrics_timer_tags:
             metrics_timer_tags.update(
-                {"split": version == 3, "source": "rules_text", "referrer": referrer}
+                {"version": version, "source": "rules_text", "referrer": referrer}
             )
 
             return Enhancements(
