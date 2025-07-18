@@ -229,4 +229,19 @@ describe('ResolveActions', function () {
     );
     expect(screen.queryByLabelText('More resolve options')).not.toBeInTheDocument();
   });
+
+  it('does render next release option with subtitle', async function () {
+    const onUpdate = jest.fn();
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/releases/',
+      body: [ReleaseFixture()],
+    });
+    render(<ResolveActions hasRelease projectSlug="project-slug" onUpdate={onUpdate} />);
+
+    await userEvent.click(screen.getByLabelText('More resolve options'));
+    expect(await screen.findByText('The next release')).toBeInTheDocument();
+    expect(
+      await screen.findByText('The next release after the current one')
+    ).toBeInTheDocument();
+  });
 });
