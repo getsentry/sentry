@@ -2,6 +2,7 @@ import logging
 
 import boto3
 from botocore.client import ClientError, Config
+from botocore.exceptions import ParamValidationError
 
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.data_forwarding import DataForwardingPlugin
@@ -180,6 +181,7 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 return False
 
             sqs_send_message(message)
+
         except ClientError as e:
             if (
                 str(e).startswith("An error occurred (InvalidClientTokenId)")
@@ -201,4 +203,7 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 # If the specified queue doesn't exist, we can't do anything to recover
                 return False
             raise
+        except ParamValidationError:
+            # The bucket name is invalid
+            return False
         return True
