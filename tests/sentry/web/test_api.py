@@ -720,3 +720,35 @@ class ClientConfigViewTest(TestCase):
         data = json.loads(resp.content)
         assert not data["isAuthenticated"]
         assert data["customerDomain"] is None
+
+
+class McpJsonTest(TestCase):
+    @cached_property
+    def path(self):
+        return reverse("sentry-mcp-json")
+
+    def test_mcp_json_saas_mode(self):
+        with override_settings(SENTRY_MODE="saas"):
+            response = self.client.get("/.well-known/mcp.json")
+
+        assert response.status_code == 200
+        assert response["Content-Type"] == "application/json"
+        
+        data = json.loads(response.content)
+        assert data["name"] == "Sentry"
+        assert data["description"] == "Connect to Sentry, debug faster."
+        assert data["endpoint"] == "https://mcp.sentry.dev/mcp"
+
+    def test_mcp_json_self_hosted_mode(self):
+        with override_settings(SENTRY_MODE="self_hosted"):
+            response = self.client.get("/.well-known/mcp.json")
+
+        assert response.status_code == 404
+
+    def test_mcp_json_cache_control(self):
+        with override_settings(SENTRY_MODE="saas"):
+            response = self.client.get("/.well-known/mcp.json")
+
+        assert response.status_code == 200
+        assert "max-age=3600" in response["Cache-Control"]
+        assert "public" in response["Cache-Control"]
