@@ -284,11 +284,10 @@ def generate_error_log_message(error: GroupEvent) -> str:
 
 
 def generate_feedback_log_message(feedback: GroupEvent) -> str:
-    title = feedback["title"]
     message = feedback["message"]
     timestamp = feedback["timestamp"]
 
-    return f"User submitted feedback: '{title}: {message}' at {timestamp}"
+    return f"User submitted feedback: '{message}' at {timestamp}"
 
 
 def get_request_data(
@@ -392,11 +391,11 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 message = event["data"]["payload"]["message"]
                 return f"Logged: {message} at {timestamp}"
             case EventType.UI_BLUR:
-                timestamp_ms = timestamp * 1000
-                return f"User looked away from the tab at {timestamp_ms}"
+                # timestamp_ms = timestamp * 1000
+                return None
             case EventType.UI_FOCUS:
-                timestamp_ms = timestamp * 1000
-                return f"User returned to tab at {timestamp_ms}"
+                # timestamp_ms = timestamp * 1000
+                return None
             case EventType.RESOURCE_FETCH:
                 timestamp_ms = timestamp * 1000
                 payload = event["data"]["payload"]

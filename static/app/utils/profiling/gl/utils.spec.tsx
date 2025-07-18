@@ -6,18 +6,13 @@ import {
   computeHighlightedBounds,
   createProgram,
   createShader,
-  ELLIPSIS,
   getCenterScaleMatrixFromConfigPosition,
   getContext,
   lowerBound,
   makeProjectionMatrix,
   upperBound,
 } from 'sentry/utils/profiling/gl/utils';
-import {
-  findRangeBinarySearch,
-  Rect,
-  trimTextCenter,
-} from 'sentry/utils/profiling/speedscope';
+import {findRangeBinarySearch, Rect} from 'sentry/utils/profiling/speedscope';
 
 describe('makeProjectionMatrix', () => {
   it('should return a projection matrix', () => {
@@ -402,33 +397,6 @@ describe('findRangeBinarySearch', () => {
     expect([low, high]).toEqual([3.75, 4.375]);
     expect(fn).toHaveBeenCalledTimes(4);
     expect(text.substring(0, low)).toBe('abc');
-  });
-});
-
-describe('trimTextCenter', () => {
-  it('trims nothing if low > length', () => {
-    expect(trimTextCenter('abc', 4)).toMatchObject({
-      end: 0,
-      length: 0,
-      start: 0,
-      text: 'abc',
-    });
-  });
-  it('trims center perfectly', () => {
-    expect(trimTextCenter('abcdef', 5.5)).toMatchObject({
-      end: 4,
-      length: 2,
-      start: 2,
-      text: `ab${ELLIPSIS}ef`,
-    });
-  });
-  it('favors prefix length', () => {
-    expect(trimTextCenter('abcdef', 5)).toMatchObject({
-      end: 5,
-      length: 3,
-      start: 2,
-      text: `ab${ELLIPSIS}f`,
-    });
   });
 });
 

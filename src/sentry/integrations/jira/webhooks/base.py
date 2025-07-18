@@ -16,6 +16,7 @@ from rest_framework.response import Response
 from sentry_sdk import Scope
 
 from sentry.api.base import Endpoint
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.atlassian_connect import AtlassianConnectValidationError, get_token
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -33,7 +34,7 @@ class JiraWebhookBase(Endpoint, abc.ABC):
 
     authentication_classes = ()
     permission_classes = ()
-    provider = "jira"
+    provider = IntegrationProviderSlug.JIRA.value
 
     @csrf_exempt
     def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:

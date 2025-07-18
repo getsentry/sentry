@@ -85,6 +85,9 @@ export const enum SectionKey {
 
   AI_INPUT = 'ai-input',
   AI_OUTPUT = 'ai-output',
+
+  MCP_INPUT = 'mcp-input',
+  MCP_OUTPUT = 'mcp-output',
 }
 
 /**

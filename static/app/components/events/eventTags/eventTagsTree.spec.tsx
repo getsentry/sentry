@@ -13,6 +13,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {EventTags} from 'sentry/components/events/eventTags';
+import ModalStore from 'sentry/stores/modalStore';
 
 describe('EventTagsTree', function () {
   const {organization, project} = initializeOrg();
@@ -66,6 +67,7 @@ describe('EventTagsTree', function () {
   let mockDetailedProject: jest.Mock;
 
   beforeEach(function () {
+    ModalStore.reset();
     MockApiClient.clearMockResponses();
     mockDetailedProject = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
@@ -195,7 +197,7 @@ describe('EventTagsTree', function () {
       labelText: 'Visit this external link',
       validateLink: async () => {
         renderGlobalModal();
-        const linkElement = screen.getByText('https://example.com');
+        const linkElement = await screen.findByText('https://example.com');
         await userEvent.click(linkElement);
         expect(await screen.findByTestId('external-link-warning')).toBeInTheDocument();
       },
@@ -214,7 +216,7 @@ describe('EventTagsTree', function () {
       const dropdown = screen.getByLabelText('Tag Actions Menu');
       await userEvent.click(dropdown);
       expect(screen.getByLabelText(labelText)).toBeInTheDocument();
-      validateLink();
+      await (validateLink as () => Promise<void>)();
     }
   );
 

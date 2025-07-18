@@ -15,6 +15,7 @@ from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.integrations.slack.utils.constants import SLACK_RATE_LIMITED_MESSAGE
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.silo.base import SiloMode
@@ -85,7 +86,7 @@ def find_channel_id_for_alert_rule(
 
     for trigger in data["triggers"]:
         for action in trigger["actions"]:
-            if action["type"] == "slack":
+            if action["type"] == IntegrationProviderSlug.SLACK.value:
                 if action["targetIdentifier"] in mapped_ids:
                     action["input_channel_id"] = mapped_ids[action["targetIdentifier"]]
                     # This will conflict within the CamelCaseSerializer below.

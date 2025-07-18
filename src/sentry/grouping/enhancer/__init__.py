@@ -37,7 +37,7 @@ RUST_CACHE = RustCache(1_000)
 # TODO: Version 2 can be removed once all events with that config have expired, 90 days after this
 # comment is merged
 VERSIONS = [2, 3]
-LATEST_VERSION = VERSIONS[-1]
+DEFAULT_ENHANCEMENTS_VERSION = VERSIONS[-1]
 
 # A delimiter to insert between rulesets in the base64 represenation of enhancements (by spec,
 # base64 strings never contain '#')
@@ -70,7 +70,7 @@ def EmptyRustFrame() -> RustFrame:  # noqa
     return RustFrame(contributes=None)
 
 
-def merge_rust_enhancements(
+def _merge_rust_enhancements(
     bases: list[str],
     rust_enhancements: RustEnhancements,
     type: Literal["classifier", "contributes"] | None = None,
@@ -98,7 +98,7 @@ def merge_rust_enhancements(
     return merged_rust_enhancements
 
 
-def get_rust_enhancements(
+def _get_rust_enhancements(
     source: Literal["config_structure", "config_string"], input: str | bytes
 ) -> RustEnhancements:
     """
@@ -120,7 +120,7 @@ def get_rust_enhancements(
 RustExceptionData = dict[str, bytes | None]
 
 
-def make_rust_exception_data(
+def _make_rust_exception_data(
     exception_data: dict[str, Any] | None,
 ) -> RustExceptionData:
     exception_data = exception_data or {}
@@ -172,7 +172,7 @@ def _can_use_hint(
     return True
 
 
-def get_hint_for_frame(
+def _get_hint_for_frame(
     variant_name: str,
     frame: dict[str, Any],
     frame_component: FrameGroupingComponent,
@@ -251,8 +251,8 @@ def _split_rules(
     classifier_rules_text = "\n".join(rule.text for rule in classifier_rules)
     contributes_rules_text = "\n".join(rule.text for rule in contributes_rules)
 
-    classifier_rust_enhancements = get_rust_enhancements("config_string", classifier_rules_text)
-    contributes_rust_enhancements = get_rust_enhancements("config_string", contributes_rules_text)
+    classifier_rust_enhancements = _get_rust_enhancements("config_string", classifier_rules_text)
+    contributes_rust_enhancements = _get_rust_enhancements("config_string", contributes_rules_text)
 
     return (
         EnhancementsConfig(classifier_rules, classifier_rust_enhancements),
@@ -300,14 +300,14 @@ def _combine_hints(
     return f"{in_app_hint} {conjunction} {contributes_hint}"
 
 
-def is_valid_profiling_matcher(matchers: list[str]) -> bool:
+def _is_valid_profiling_matcher(matchers: list[str]) -> bool:
     for matcher in matchers:
         if not matcher.startswith(VALID_PROFILING_MATCHER_PREFIXES):
             return False
     return True
 
 
-def is_valid_profiling_action(action: str) -> bool:
+def _is_valid_profiling_action(action: str) -> bool:
     return action in VALID_PROFILING_ACTIONS_SET
 
 
@@ -320,7 +320,7 @@ def keep_profiling_rules(config: str) -> str:
         if rule == "" or rule.startswith("#"):  # ignore comment lines
             continue
         *matchers, action = rule.split()
-        if is_valid_profiling_matcher(matchers) and is_valid_profiling_action(action):
+        if _is_valid_profiling_matcher(matchers) and _is_valid_profiling_action(action):
             filtered_rules.append(rule)
     return "\n".join(filtered_rules)
 
@@ -333,10 +333,7 @@ def get_enhancements_version(project: Project, grouping_config_id: str = "") -> 
     See https://github.com/getsentry/sentry/pull/91695 for a version of this function which
     incorporates sampling.
     """
-    if grouping_config_id.startswith("legacy"):
-        return 2
-
-    return LATEST_VERSION
+    return DEFAULT_ENHANCEMENTS_VERSION
 
 
 class Enhancements:
@@ -356,19 +353,19 @@ class Enhancements:
     ):
         self.id = id
         self.rules = rules
-        self.version = version or LATEST_VERSION
+        self.version = version or DEFAULT_ENHANCEMENTS_VERSION
         self.bases = bases or []
 
-        self.rust_enhancements = merge_rust_enhancements(self.bases, rust_enhancements)
+        self.rust_enhancements = _merge_rust_enhancements(self.bases, rust_enhancements)
 
         classifier_config, contributes_config = split_enhancement_configs or _split_rules(rules)
 
         self.classifier_rules = classifier_config.rules
         self.contributes_rules = contributes_config.rules
-        self.classifier_rust_enhancements = merge_rust_enhancements(
+        self.classifier_rust_enhancements = _merge_rust_enhancements(
             self.bases, classifier_config.rust_enhancements, type="classifier"
         )
-        self.contributes_rust_enhancements = merge_rust_enhancements(
+        self.contributes_rust_enhancements = _merge_rust_enhancements(
             self.bases, contributes_config.rust_enhancements, type="contributes"
         )
 
@@ -388,7 +385,7 @@ class Enhancements:
         """
         # TODO: Fix this type to list[MatchFrame] once it's fixed in ophio
         match_frames: list[Any] = [create_match_frame(frame, platform) for frame in frames]
-        rust_exception_data = make_rust_exception_data(exception_data)
+        rust_exception_data = _make_rust_exception_data(exception_data)
 
         with metrics.timer("grouping.enhancements.get_in_app") as metrics_timer_tags:
             metrics_timer_tags["split"] = True
@@ -405,71 +402,6 @@ class Enhancements:
                 set_in_app(frame, in_app)
             if category is not None:
                 set_path(frame, "data", "category", value=category)
-
-    def assemble_stacktrace_component_legacy(
-        self,
-        variant_name: str,
-        frame_components: list[FrameGroupingComponent],
-        frames: list[dict[str, Any]],
-        platform: str | None,
-        exception_data: dict[str, Any] | None = None,
-    ) -> StacktraceGroupingComponent:
-        """
-        This assembles a `stacktrace` grouping component out of the given
-        `frame` components and source frames.
-
-        This also handles cases where the entire stacktrace should be discarded.
-        """
-
-        match_frames: list[Any] = [create_match_frame(frame, platform) for frame in frames]
-        rust_frames = [RustFrame(contributes=c.contributes) for c in frame_components]
-        rust_exception_data = make_rust_exception_data(exception_data)
-
-        # Modify the rust frames by applying +group/-group rules and getting hints for both those
-        # changes and the `in_app` changes applied by earlier in the ingestion process by
-        # `apply_category_and_updated_in_app_to_frames`. Also, get `hint` and `contributes` values
-        # for the overall stacktrace (returned in `rust_results`).
-        rust_stacktrace_results = self.rust_enhancements.assemble_stacktrace_component(
-            match_frames, rust_exception_data, rust_frames
-        )
-
-        # Tally the number of each type of frame in the stacktrace. Later on, this will allow us to
-        # both collect metrics and use the information in decisions about whether to send the event
-        # to Seer
-        frame_counts: Counter[str] = Counter()
-
-        # Update frame components with results from rust
-        for frame, frame_component, rust_frame in zip(frames, frame_components, rust_frames):
-            rust_contributes = bool(rust_frame.contributes)  # bool-ing this for mypy's sake
-            rust_hint = rust_frame.hint
-            rust_hint_type = (
-                None
-                if rust_hint is None
-                else "in-app" if rust_hint.startswith("marked") else "contributes"
-            )
-
-            hint = get_hint_for_frame(variant_name, frame, frame_component, rust_frame)
-
-            if not (variant_name == "system" and rust_hint_type == "in-app"):
-                hint = rust_hint
-
-            frame_component.update(contributes=rust_contributes, hint=hint)
-
-            # Add this frame to our tally
-            key = f"{"in_app" if frame_component.in_app else "system"}_{"contributing" if frame_component.contributes else "non_contributing"}_frames"
-            frame_counts[key] += 1
-
-        stacktrace_contributes = rust_stacktrace_results.contributes
-        stacktrace_hint = rust_stacktrace_results.hint
-
-        stacktrace_component = StacktraceGroupingComponent(
-            values=frame_components,
-            hint=stacktrace_hint,
-            contributes=stacktrace_contributes,
-            frame_counts=frame_counts,
-        )
-
-        return stacktrace_component
 
     def assemble_stacktrace_component(
         self,
@@ -489,7 +421,7 @@ class Enhancements:
         with metrics.timer("grouping.enhancements.get_contributes_and_hint") as metrics_timer_tags:
             metrics_timer_tags.update({"split": True, "variant": variant_name})
 
-            rust_exception_data = make_rust_exception_data(exception_data)
+            rust_exception_data = _make_rust_exception_data(exception_data)
 
             # Create a set of rust frames to which we can ask rust to add in-app hints. (We know all
             # hints generated by classifier enhancements are in-app by definition.)
@@ -543,13 +475,13 @@ class Enhancements:
             frame_component.update(contributes=contributes)
 
             in_app_hint = (
-                get_hint_for_frame(
+                _get_hint_for_frame(
                     variant_name, frame, frame_component, in_app_rust_frame, "in-app"
                 )
                 if variant_name == "app"
                 else None  # In-app hints don't apply to the system stacktrace
             )
-            contributes_hint = get_hint_for_frame(
+            contributes_hint = _get_hint_for_frame(
                 variant_name, frame, frame_component, contributes_rust_frame, "contributes"
             )
             hint = _combine_hints(variant_name, frame_component, in_app_hint, contributes_hint)
@@ -622,7 +554,7 @@ class Enhancements:
                 raise InvalidEnhancerConfig(f"Unknown enhancements version: {version}")
 
             rules = [EnhancementRule._from_config_structure(rule, version) for rule in rules]
-            rust_enhancements = get_rust_enhancements("config_structure", pickled)
+            rust_enhancements = _get_rust_enhancements("config_structure", pickled)
 
         except (LookupError, AttributeError, TypeError, ValueError) as e:
             raise ValueError("invalid stack trace rule config: %s" % e)
@@ -688,7 +620,7 @@ class Enhancements:
                 {"split": version == 3, "source": "rules_text", "referrer": referrer}
             )
 
-            rust_enhancements = get_rust_enhancements("config_string", rules_text)
+            rust_enhancements = _get_rust_enhancements("config_string", rules_text)
             rules = parse_enhancements(rules_text)
             return Enhancements(
                 rules,

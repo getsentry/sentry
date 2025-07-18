@@ -22,14 +22,20 @@ function getReplayTabs({
 }): Record<TabKey, ReactNode> {
   // For video replays, we hide the memory tab (not applicable for mobile)
   return {
-    [TabKey.AI]: organization.features.includes('replay-ai-summaries') ? (
-      <Flex align="center" gap={space(0.75)}>
-        {t('Summary')}
-        <Tooltip title={t('experimental')}>
-          <IconLab isSolid />
-        </Tooltip>
-      </Flex>
-    ) : null,
+    [TabKey.AI]:
+      organization.features.includes('replay-ai-summaries') &&
+      organization.features.includes('gen-ai-features') ? (
+        <Flex align="center" gap={space(0.75)}>
+          {t('Summary')}
+          <Tooltip
+            title={t(
+              'This feature is experimental! Try it out and let us know what you think. No promises!'
+            )}
+          >
+            <IconLab isSolid />
+          </Tooltip>
+        </Flex>
+      ) : null,
     [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
     [TabKey.CONSOLE]: t('Console'),
     [TabKey.NETWORK]: t('Network'),
@@ -81,6 +87,11 @@ export default function FocusTabs({isVideoReplay}: Props) {
 }
 
 const TabContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  min-width: 0;
+
   ${p =>
     p.theme.isChonk
       ? ''

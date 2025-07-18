@@ -30,6 +30,8 @@ def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, 
             "build_number": {"type": "integer"},
             "error_code": {"type": "integer", "minimum": 0, "maximum": 3},
             "error_message": {"type": "string"},
+            "app_id": {"type": "string", "maxLength": 255},
+            "app_name": {"type": "string", "maxLength": 255},
             "apple_app_info": {
                 "type": "object",
                 "properties": {
@@ -51,6 +53,8 @@ def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, 
         "error_message": "The error_message field must be a string.",
         "build_version": "The build_version field must be a string with a maximum length of 255 characters.",
         "build_number": "The build_number field must be an integer.",
+        "app_id": "The app_id field must be a string with a maximum length of 255 characters.",
+        "app_name": "The app_name field must be a string with a maximum length of 255 characters.",
         "apple_app_info": "The apple_app_info field must be an object.",
         "apple_app_info.is_simulator": "The is_simulator field must be a boolean.",
         "apple_app_info.codesigning_type": "The codesigning_type field must be a string.",
@@ -157,6 +161,14 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
         if "build_number" in data:
             preprod_artifact.build_number = data["build_number"]
             updated_fields.append("build_number")
+
+        if "app_id" in data:
+            preprod_artifact.app_id = data["app_id"]
+            updated_fields.append("app_id")
+
+        if "app_name" in data:
+            preprod_artifact.app_name = data["app_name"]
+            updated_fields.append("app_name")
 
         if "apple_app_info" in data:
             apple_info = data["apple_app_info"]

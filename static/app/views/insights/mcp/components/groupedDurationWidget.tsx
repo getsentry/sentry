@@ -12,8 +12,8 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useTopNSpanEAPSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
@@ -43,7 +43,7 @@ export default function GroupedDurationWidget(props: GroupedDurationWidgetProps)
   const theme = useTheme();
   const fullQuery = useCombinedQuery(props.query);
 
-  const topEventsRequest = useEAPSpans(
+  const topEventsRequest = useSpans(
     {
       fields: [props.groupBy, 'avg(span.duration)'],
       sorts: [{field: 'avg(span.duration)', kind: 'desc'}],
@@ -53,7 +53,7 @@ export default function GroupedDurationWidget(props: GroupedDurationWidgetProps)
     props.referrer
   );
 
-  const timeSeriesRequest = useTopNSpanEAPSeries(
+  const timeSeriesRequest = useTopNSpanSeries(
     {
       ...pageFilterChartParams,
       search: fullQuery,
