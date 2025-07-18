@@ -22,7 +22,6 @@ import type {
   EAPSpanProperty,
   SpanFields,
   SpanFunctions,
-  SpanMetricsProperty,
 } from 'sentry/views/insights/types';
 
 import {convertDiscoverTimeseriesResponse} from './convertDiscoverTimeseriesResponse';
@@ -43,7 +42,7 @@ interface UseMetricsSeriesOptions<Fields> {
   yAxis?: Fields;
 }
 
-export const useSpanMetricsSeries = <Fields extends SpanMetricsProperty[]>(
+export const useSpanMetricsSeries = <Fields extends EAPSpanProperty[]>(
   options: UseMetricsSeriesOptions<Fields> = {},
   referrer: string,
   pageFilters?: PageFilters

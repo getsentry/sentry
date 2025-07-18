@@ -7,10 +7,10 @@ import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import type {ModuleFilters} from 'sentry/views/insights/common/views/spans/types';
 import type {SearchHook} from 'sentry/views/insights/types';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 const {NORMALIZED_DESCRIPTION, SPAN_DOMAIN, SPAN_SELF_TIME, USER_GEO_SUBREGION} =
-  SpanMetricsField;
+  SpanFields;
 
 const SPAN_FILTER_KEYS = ['span_operation', SPAN_DOMAIN, 'action'];
 

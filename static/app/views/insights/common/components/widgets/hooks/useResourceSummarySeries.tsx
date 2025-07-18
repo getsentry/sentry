@@ -3,7 +3,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import type {SearchHook} from 'sentry/views/insights/types';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 const {
   SPAN_SELF_TIME,
@@ -11,7 +11,7 @@ const {
   HTTP_DECODED_RESPONSE_CONTENT_LENGTH,
   HTTP_RESPONSE_TRANSFER_SIZE,
   RESOURCE_RENDER_BLOCKING_STATUS,
-} = SpanMetricsField;
+} = SpanFields;
 
 interface Props {
   referrer: string;
@@ -30,9 +30,9 @@ export function useResourceSummarySeriesSearch(groupId?: string): SearchHook {
           [RESOURCE_RENDER_BLOCKING_STATUS]: filters[RESOURCE_RENDER_BLOCKING_STATUS],
         }
       : {}),
-    ...(filters[SpanMetricsField.USER_GEO_SUBREGION]
+    ...(filters[SpanFields.USER_GEO_SUBREGION]
       ? {
-          [SpanMetricsField.USER_GEO_SUBREGION]: `[${filters[SpanMetricsField.USER_GEO_SUBREGION].join(',')}]`,
+          [SpanFields.USER_GEO_SUBREGION]: `[${filters[SpanFields.USER_GEO_SUBREGION].join(',')}]`,
         }
       : {}),
   });

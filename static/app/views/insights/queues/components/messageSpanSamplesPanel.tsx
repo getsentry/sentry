@@ -46,11 +46,7 @@ import {
 } from 'sentry/views/insights/queues/settings';
 import decodeRetryCount from 'sentry/views/insights/queues/utils/queryParameterDecoders/retryCount';
 import decodeTraceStatus from 'sentry/views/insights/queues/utils/queryParameterDecoders/traceStatus';
-import {
-  ModuleName,
-  SpanFields,
-  type SpanMetricsResponse,
-} from 'sentry/views/insights/types';
+import {type EAPSpanResponse, ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 export function MessageSpanSamplesPanel() {
   const navigate = useNavigate();
@@ -380,7 +376,7 @@ function ProducerMetricsRibbon({
   isLoading,
 }: {
   isLoading: boolean;
-  metrics: Array<Partial<SpanMetricsResponse>>;
+  metrics: Array<Partial<EAPSpanResponse>>;
 }) {
   const errorRate = 1 - (metrics[0]?.['trace_status_rate(ok)'] ?? 0);
   return (
@@ -406,7 +402,7 @@ function ConsumerMetricsRibbon({
   isLoading,
 }: {
   isLoading: boolean;
-  metrics: Array<Partial<SpanMetricsResponse>>;
+  metrics: Array<Partial<EAPSpanResponse>>;
 }) {
   const errorRate = 1 - (metrics[0]?.['trace_status_rate(ok)'] ?? 0);
   return (
