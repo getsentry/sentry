@@ -42,10 +42,12 @@ class SummarizeTraceResponse(BaseModel):
     performance_characteristics: str
     suggested_investigations: list[SpanInsight]
 
+
 class PageWebVitalsInsight(SpanInsight):
     trace_id: str
     suggestions: list[str]
     reference_url: str | None = None
+
 
 class SummarizePageWebVitalsResponse(BaseModel):
     trace_ids: list[str]

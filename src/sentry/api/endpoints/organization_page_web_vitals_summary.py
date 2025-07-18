@@ -56,10 +56,10 @@ class OrganizationPageWebVitalsSummaryEndpoint(OrganizationEndpoint):
                 trace_endpoint.query_trace_data(snuba_params, trace_id) for trace_id in trace_ids
             ]
 
-            print('--------------------------------')
-            print('trace_trees')
+            print("--------------------------------")
+            print("trace_trees")
             print(trace_trees)
-            print('--------------------------------')
+            print("--------------------------------")
         except Exception:
             return Response({"detail": "Error fetching trace"}, status=400)
 

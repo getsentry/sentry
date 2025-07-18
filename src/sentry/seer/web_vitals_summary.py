@@ -44,9 +44,9 @@ def get_page_web_vitals_summary(
     if cached_summary := cache.get(cache_key):
         return convert_dict_key_case(cached_summary, snake_to_camel_case), 200
 
-    print('--------------------------------')
-    print('calling seer')
-    print('--------------------------------')
+    print("--------------------------------")
+    print("calling seer")
+    print("--------------------------------")
     trace_summary = _call_seer(
         traceSlugs,
         traceTrees,
@@ -89,9 +89,9 @@ def _call_seer(
     )
 
     response.raise_for_status()
-    print('--------------------------------')
-    print('seer response')
-    print('--------------------------------')
+    print("--------------------------------")
+    print("seer response")
+    print("--------------------------------")
     print(response.json())
 
     return SummarizePageWebVitalsResponse.validate(response.json())
