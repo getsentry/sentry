@@ -164,16 +164,12 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   const navigate = useNavigate();
   const domainViewFilters = useDomainViewFilters();
 
-  const handleStandaloneClsLcp = organization.features.includes(
-    'performance-vitals-standalone-cls-lcp'
-  );
-
   const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
   const subregions = decodeList(
     location.query[SpanMetricsField.USER_GEO_SUBREGION]
   ) as SubregionCode[];
 
-  const defaultDatatype = handleStandaloneClsLcp ? Datatype.LCP : Datatype.PAGELOADS;
+  const defaultDatatype = Datatype.LCP;
   let datatype = defaultDatatype;
   if (
     Object.values(Datatype).includes(
@@ -307,9 +303,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
                 title={
                   <span>
                     {tct('The [webVital] performance rating of this sample.', {
-                      webVital: handleStandaloneClsLcp
-                        ? datatype.toUpperCase()
-                        : 'overall',
+                      webVital: datatype.toUpperCase(),
                     })}
                     <br />
                     <ExternalLink href={`${MODULE_DOC_LINK}#performance-score`}>
@@ -320,7 +314,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
               >
                 <TooltipHeader>
                   {tct('[webVital] Score', {
-                    webVital: handleStandaloneClsLcp ? datatype.toUpperCase() : 'Perf',
+                    webVital: datatype.toUpperCase(),
                   })}
                 </TooltipHeader>
               </StyledTooltip>
@@ -563,58 +557,24 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   return (
     <span>
       <SearchBarContainer>
-        {handleStandaloneClsLcp ? (
-          <CompactSelect
-            triggerProps={{prefix: t('Web Vital')}}
-            value={datatype}
-            options={WEB_VITAL_DATATYPES.map(type => ({
-              label: type.toUpperCase(),
-              value: type,
-            }))}
-            onChange={newDataType => {
-              trackAnalytics('insight.vital.overview.toggle_data_type', {
-                organization,
-                type: newDataType.value,
-              });
-              navigate({
-                ...location,
-                query: {...location.query, [DATATYPE_KEY]: newDataType.value},
-              });
-            }}
-          />
-        ) : (
-          <SegmentedControl
-            size="md"
-            value={datatype}
-            aria-label={t('Data Type')}
-            onChange={newDataSet => {
-              // Reset pagination and sort when switching datatypes
-              trackAnalytics('insight.vital.overview.toggle_data_type', {
-                organization,
-                type: newDataSet,
-              });
-              navigate({
-                ...location,
-                query: {
-                  ...location.query,
-                  sort: undefined,
-                  cursor: undefined,
-                  [DATATYPE_KEY]: newDataSet,
-                },
-              });
-            }}
-          >
-            <SegmentedControl.Item key={Datatype.PAGELOADS} aria-label={t('Pageloads')}>
-              {t('Pageloads')}
-            </SegmentedControl.Item>
-            <SegmentedControl.Item
-              key={Datatype.INTERACTIONS}
-              aria-label={t('Interactions')}
-            >
-              {t('Interactions')}
-            </SegmentedControl.Item>
-          </SegmentedControl>
-        )}
+        <CompactSelect
+          triggerProps={{prefix: t('Web Vital')}}
+          value={datatype}
+          options={WEB_VITAL_DATATYPES.map(type => ({
+            label: type.toUpperCase(),
+            value: type,
+          }))}
+          onChange={newDataType => {
+            trackAnalytics('insight.vital.overview.toggle_data_type', {
+              organization,
+              type: newDataType.value,
+            });
+            navigate({
+              ...location,
+              query: {...location.query, [DATATYPE_KEY]: newDataType.value},
+            });
+          }}
+        />
         <StyledSearchBar>
           <TransactionSearchQueryBuilder
             projects={projectIds}
@@ -627,15 +587,9 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       {datatype === Datatype.PAGELOADS && (
         <GridEditable
           isLoading={isLoading}
-          columnOrder={
-            handleStandaloneClsLcp
-              ? PAGELOADS_COLUMN_ORDER.filter(
-                  col => !['measurements.cls', 'measurements.lcp'].includes(col.key)
-                )
-              : PAGELOADS_COLUMN_ORDER
-          }
+          columnOrder={PAGELOADS_COLUMN_ORDER}
           columnSortBy={[]}
-          data={tableData as any as TransactionSampleRowWithScore[]} // TODO: fix typing
+          data={tableData as TransactionSampleRowWithScore[]}
           grid={{
             renderHeadCell,
             renderBodyCell,

@@ -90,7 +90,7 @@ function getSentryIntegrations() {
 export function initializeSdk(config: Config) {
   // NOTE: This config is mutated by `commonInitialization`
   const {apmSampling, sentryConfig, userIdentity} = config;
-  const tracesSampleRate = apmSampling ?? 0;
+  const tracesSampleRate = 1;
   const extraTracePropagationTargets = SPA_DSN
     ? SPA_MODE_TRACE_PROPAGATION_TARGETS
     : [...sentryConfig.tracePropagationTargets];
@@ -141,6 +141,12 @@ export function initializeSdk(config: Config) {
         event.transaction = normalizeUrl(event.transaction, {forceCustomerDomain: true});
       }
       return event;
+    },
+    beforeSendSpan(span) {
+      span.data.transaction = normalizeUrl(span.data.transaction, {
+        forceCustomerDomain: true,
+      });
+      return span;
     },
 
     ignoreErrors: [

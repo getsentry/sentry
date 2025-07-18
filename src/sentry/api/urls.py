@@ -30,6 +30,7 @@ from sentry.api.endpoints.organization_member_invite.index import (
     OrganizationMemberInviteIndexEndpoint,
 )
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
+from sentry.api.endpoints.organization_page_web_vitals_summary import OrganizationPageWebVitalsSummaryEndpoint
 from sentry.api.endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
 from sentry.api.endpoints.organization_plugins_index import OrganizationPluginsEndpoint
 from sentry.api.endpoints.organization_projects_experiment import (
@@ -1742,6 +1743,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/trace-summary/$",
         OrganizationTraceSummaryEndpoint.as_view(),
         name="sentry-api-0-organization-trace-summary",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/page-web-vitals-summary/$",
+        OrganizationPageWebVitalsSummaryEndpoint.as_view(),
+        name="sentry-api-0-organization-page-web-vitals",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/measurements-meta/$",

@@ -5,16 +5,22 @@ import styled from '@emotion/styled';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
+import {Link} from 'sentry/components/core/link';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {IconFocus, IconLink, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {MarkedText} from 'sentry/utils/marked/markedText';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
+import {usePageSummary} from 'sentry/views/insights/browser/webVitals/queries/usePageSummary';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
@@ -39,6 +45,7 @@ export function PageOverviewSidebar({
   browserTypes,
   subregions,
 }: Props) {
+  const organization = useOrganization();
   const theme = useTheme();
   const pageFilters = usePageFilters();
   const {period, start, end, utc} = pageFilters.selection.datetime;
@@ -106,6 +113,25 @@ export function PageOverviewSidebar({
   const ringSegmentColors = theme.chart.getColorPalette(4);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
+  // SEER STUFF
+
+  const {data: pageSummary, isLoading: isLoadingPageSummary} = usePageSummary([
+    '30c3c594f9ba48748639f2929f05dcee',
+    '800da38cb12349d09d8581f8b1ac2113',
+    // '7d9863fad38e4c6699425529d1314d15',
+  ]);
+
+  const insightCards = [
+    {
+      id: 'suggestions',
+      title: t('Suggestions'),
+      insight: pageSummary?.suggestedInvestigations,
+      icon: <IconFocus size="sm" />,
+    },
+  ];
+
+  console.log(insightCards);
+
   return (
     <Fragment>
       <SectionHeading>
@@ -137,6 +163,61 @@ export function PageOverviewSidebar({
         )}
         {projectScoreIsLoading && <ProjectScoreEmptyLoadingElement />}
       </SidebarPerformanceScoreRingContainer>
+      <SidebarSpacer />
+      <SectionHeading>{t('Seer Suggestions')}</SectionHeading>
+      <Content>
+        <InsightGrid>
+          {isLoadingPageSummary && <Placeholder height="1.5rem" />}
+          {insightCards.map(card => {
+            if (!card.insight) {
+              return null;
+            }
+            if (!card.insight || typeof card.insight !== 'object') {
+              return null;
+            }
+            return card.insight.map(insight => (
+              <InsightCard key={card.id}>
+                <CardTitle>
+                  <CardTitleIcon>
+                    <StyledIconSeer size="md" />
+                  </CardTitleIcon>
+                  <div>
+                    <SpanOp>{insight.spanOp}</SpanOp>
+                    <Summary>
+                      {' - '}
+                      {insight.explanation}
+                    </Summary>
+                  </div>
+                </CardTitle>
+                <CardContentContainer>
+                  <CardLineDecorationWrapper>
+                    <CardLineDecoration />
+                  </CardLineDecorationWrapper>
+                  <CardContent>
+                    <SuggestionsList>
+                      {insight.suggestions.map((suggestion, i) => (
+                        <li key={i}>{suggestion}</li>
+                      ))}
+                    </SuggestionsList>
+                    <SuggestionLinks>
+                      <Link
+                        to={`/organizations/${organization.slug}/insights/frontend/trace/${insight.traceId}/?node=span-${insight.spanId}`}
+                      >
+                        {t('Example')}
+                      </Link>
+                      {insight.referenceUrl && (
+                        <ExternalLink href={insight.referenceUrl}>
+                          {t('Reference')}
+                        </ExternalLink>
+                      )}
+                    </SuggestionLinks>
+                  </CardContent>
+                </CardContentContainer>
+              </InsightCard>
+            ));
+          })}
+        </InsightGrid>
+      </Content>
       <SidebarSpacer />
       <SectionHeading>
         {t('Page Loads')}
@@ -313,4 +394,104 @@ const SectionHeading = styled('h4')`
 const ProjectScoreEmptyLoadingElement = styled('div')`
   width: 220px;
   height: 160px;
+`;
+
+const Content = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+  position: relative;
+  margin: ${space(1)} 0;
+`;
+
+const InsightGrid = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
+
+const InsightCard = styled('div')`
+  display: flex;
+  flex-direction: column;
+  border-radius: ${p => p.theme.borderRadius};
+  width: 100%;
+  min-height: 0;
+`;
+
+const CardTitle = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  padding-bottom: ${space(0.5)};
+`;
+
+const SpanOp = styled('p')`
+  margin: 0;
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  display: inline;
+`;
+const Summary = styled('p')`
+  margin: 0;
+  font-size: ${p => p.theme.fontSize.md};
+  display: inline;
+`;
+
+const CardTitleIcon = styled('div')`
+  display: flex;
+  align-items: center;
+  color: ${p => p.theme.subText};
+`;
+
+const CardContentContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const CardLineDecorationWrapper = styled('div')`
+  display: flex;
+  width: 14px;
+  align-self: stretch;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0.275rem 0;
+`;
+
+const CardLineDecoration = styled('div')`
+  width: 1px;
+  align-self: stretch;
+  background-color: ${p => p.theme.border};
+`;
+
+const CardContent = styled('div')`
+  overflow-wrap: break-word;
+  word-break: break-word;
+  p {
+    margin: 0;
+    white-space: pre-wrap;
+  }
+  code {
+    word-break: break-all;
+  }
+  flex: 1;
+`;
+
+const SuggestionsList = styled('ul')`
+  margin: ${space(0.5)} 0;
+`;
+
+const SuggestionLinks = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+
+  > *:not(:last-child) {
+    border-right: 1px solid ${p => p.theme.border};
+    padding-right: ${space(1)};
+  }
+`;
+
+const StyledIconSeer = styled(IconSeer)`
+  color: ${p => p.theme.blue400};
 `;
