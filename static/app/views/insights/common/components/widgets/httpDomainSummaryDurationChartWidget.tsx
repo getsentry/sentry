@@ -5,7 +5,7 @@ import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/compon
 import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getDurationChartTitle} from 'sentry/views/insights/common/views/spans/types';
 import {Referrer} from 'sentry/views/insights/http/referrers';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 export default function HttpDomainSummaryDurationChartWidget(
   props: LoadableChartWidgetProps
@@ -21,7 +21,7 @@ export default function HttpDomainSummaryDurationChartWidget(
   } = useSpanSeries(
     {
       search: MutableSearch.fromQueryObject(chartFilters),
-      yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
+      yAxis: [`avg(${SpanFields.SPAN_SELF_TIME})`],
       transformAliasToInputFormat: true,
     },
     referrer,

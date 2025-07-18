@@ -6,13 +6,13 @@ import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSer
 import {getThroughputChartTitle} from 'sentry/views/insights/common/views/spans/types';
 import {Referrer} from 'sentry/views/insights/database/referrers';
 import {FIELD_ALIASES} from 'sentry/views/insights/database/settings';
-import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
+import type {SpanQueryFilters} from 'sentry/views/insights/types';
 
 export default function DatabaseSummaryThroughputChartWidget(
   props: LoadableChartWidgetProps
 ) {
   const {groupId} = useParams();
-  const filters: SpanMetricsQueryFilters = {
+  const filters: SpanQueryFilters = {
     'span.group': groupId,
   };
   const search = MutableSearch.fromQueryObject(filters);
