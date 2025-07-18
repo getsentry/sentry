@@ -192,9 +192,13 @@ class MetricIssue(GroupType):
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "description": "A representation of a metric alert firing",
             "type": "object",
-            "required": ["threshold_period", "detection_type"],
+            "required": ["detection_type"],
             "properties": {
-                "threshold_period": {"type": "integer", "minimum": 1, "maximum": 20},
+                "threshold_period": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 20,
+                },  # remove after we complete backfill
                 "comparison_delta": {
                     "type": ["integer", "null"],
                     "enum": COMPARISON_DELTA_CHOICES,
@@ -203,8 +207,8 @@ class MetricIssue(GroupType):
                     "type": "string",
                     "enum": [detection_type.value for detection_type in AlertRuleDetectionType],
                 },
-                "sensitivity": {"type": ["string", "null"]},
-                "seasonality": {"type": ["string", "null"]},
+                "sensitivity": {"type": ["string", "null"]},  # remove after we complete backfill
+                "seasonality": {"type": ["string", "null"]},  # remove after we complete backfill
             },
         },
     )
