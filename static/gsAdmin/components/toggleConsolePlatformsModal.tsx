@@ -13,10 +13,10 @@ import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form from 'sentry/components/forms/form';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import {useMutation} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 
 interface ToggleConsolePlatformsModalProps extends ModalRenderProps {
+  onSuccess: () => void;
   organization: Organization;
 }
 
@@ -25,14 +25,15 @@ export function ToggleConsolePlatformsModal({
   Body,
   closeModal,
   organization,
+  onSuccess,
 }: ToggleConsolePlatformsModalProps) {
-  const api = useApi();
   const {enabledConsolePlatforms = []} = organization;
 
   const {isPending, mutate: updateConsolePlatforms} = useMutation({
     mutationFn: (platforms: Record<string, boolean>) => {
-      return api.requestPromise(`/organizations/${organization.slug}/`, {
+      return fetchMutation({
         method: 'PUT',
+        url: `/organizations/${organization.slug}/`,
         data: {
           enabledConsolePlatforms: Object.keys(platforms).reduce((acc, key) => {
             if (platforms[key]) {
@@ -48,6 +49,7 @@ export function ToggleConsolePlatformsModal({
     },
     onSuccess: () => {
       addSuccessMessage(`Console platforms updated for ${organization.slug}`);
+      onSuccess();
     },
     onError: () => {
       addErrorMessage(`Failed to update console platforms for ${organization.slug}`);
@@ -131,10 +133,16 @@ const StyledFieldFromConfig = styled(FieldFromConfig)`
 
 export function openToggleConsolePlatformsModal({
   organization,
+  onSuccess,
 }: {
+  onSuccess: () => void;
   organization: Organization;
 }) {
   return openModal(deps => (
-    <ToggleConsolePlatformsModal {...deps} organization={organization} />
+    <ToggleConsolePlatformsModal
+      {...deps}
+      organization={organization}
+      onSuccess={onSuccess}
+    />
   ));
 }

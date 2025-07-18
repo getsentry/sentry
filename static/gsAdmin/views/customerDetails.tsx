@@ -810,7 +810,7 @@ export default function CustomerDetails() {
             help: 'Enable or disable a console platform for this organization.',
             skipConfirmModal: true,
             onAction: () => {
-              openToggleConsolePlatformsModal({organization});
+              openToggleConsolePlatformsModal({organization, onSuccess: reloadData});
             },
           },
         ]}
