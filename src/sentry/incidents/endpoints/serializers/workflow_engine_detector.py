@@ -3,7 +3,7 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any, DefaultDict
 
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import Q
+from django.db.models import Q, Subquery
 
 from sentry.api.serializers import Serializer, serialize
 from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
@@ -26,9 +26,11 @@ from sentry.workflow_engine.models import (
     Action,
     AlertRuleDetector,
     DataCondition,
+    DataConditionGroup,
     DataConditionGroupAction,
     DataSourceDetector,
     Detector,
+    DetectorWorkflow,
 )
 from sentry.workflow_engine.models.workflow_action_group_status import WorkflowActionGroupStatus
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -209,6 +211,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
         self, item_list: Sequence[Detector], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> defaultdict[Detector, dict[str, Any]]:
         detectors = {item.id: item for item in item_list}
+        detector_ids = [item.id for item in item_list]
         result: DefaultDict[Detector, dict[str, Any]] = defaultdict(dict)
 
         detector_workflow_condition_group_ids = [
@@ -220,13 +223,23 @@ class WorkflowEngineDetectorSerializer(Serializer):
             condition_group__in=detector_workflow_condition_group_ids,
             condition_result__in=[DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM],
         )
-
+        ###
+        # THIS IS WRONG!!!!!!!!!!
+        ###
+        workflow_dcg_ids = DataConditionGroup.objects.filter(
+            workflowdataconditiongroup__workflow__in=Subquery(
+                DetectorWorkflow.objects.filter(detector__in=detector_ids).values_list(
+                    "workflow_id", flat=True
+                )
+            )
+        ).values_list("id", flat=True)
         action_filter_data_condition_groups = DataCondition.objects.filter(
             comparison__in=[
                 detector_trigger.condition_result
                 for detector_trigger in detector_trigger_data_conditions
             ],
-        ).exclude(condition_group__in=detector_workflow_condition_group_ids)
+            condition_group__in=Subquery(workflow_dcg_ids),
+        )
 
         dcgas = DataConditionGroupAction.objects.filter(
             condition_group__in=[
