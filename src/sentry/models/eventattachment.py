@@ -21,7 +21,7 @@ from sentry.utils import metrics
 from sentry.utils.storage import measure_storage_put
 
 # Attachment file types that are considered a crash report (PII relevant)
-CRASH_REPORT_TYPES = ("event.minidump", "event.applecrashreport")
+CRASH_REPORT_TYPES = ("event.minidump", "event.applecrashreport", "event.prosperodump")
 
 
 def get_crashreport_key(group_id: int) -> str:
