@@ -9,6 +9,7 @@ import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedba
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import type {
   BasePlatformOptions,
+  ContentBlock,
   Docs,
   DocsParams,
   OnboardingConfig,
@@ -275,6 +276,7 @@ Sentry.init({
 const getVerifyJSSnippet = () => `
 myUndefinedFunction();`;
 
+// TODO: Remove once the other product areas support content blocks
 const getInstallConfig = () => [
   {
     language: 'bash',
@@ -301,24 +303,50 @@ const getInstallConfig = () => [
   },
 ];
 
+const installSnippetBlock: ContentBlock = {
+  type: 'code',
+  tabs: [
+    {
+      label: 'npm',
+      language: 'bash',
+      code: 'npm install --save @sentry/browser',
+    },
+    {
+      label: 'yarn',
+      language: 'bash',
+      code: 'yarn add @sentry/browser',
+    },
+    {
+      label: 'pnpm',
+      language: 'bash',
+      code: 'pnpm add @sentry/browser',
+    },
+  ],
+};
+
+const verifySnippetBlock: ContentBlock[] = [
+  {
+    type: 'text',
+    text: t(
+      "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+    ),
+  },
+  {
+    type: 'code',
+    tabs: [
+      {
+        label: 'Javascript',
+        language: 'javascript',
+        code: getVerifyJSSnippet(),
+      },
+    ],
+  },
+];
+
 const getVerifyConfig = () => [
   {
     type: StepType.VERIFY,
-    description: t(
-      "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-    ),
-    configurations: [
-      {
-        code: [
-          {
-            label: 'Javascript',
-            value: 'javascript',
-            language: 'javascript',
-            code: getVerifyJSSnippet(),
-          },
-        ],
-      },
-    ],
+    content: verifySnippetBlock,
   },
 ];
 
@@ -639,24 +667,32 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: t(
-        "Sentry captures data by using an SDK within your application's runtime."
-      ),
-      configurations: getInstallConfig(),
+      content: [
+        {
+          type: 'text',
+          text: t(
+            "Sentry captures data by using an SDK within your application's runtime."
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "Initialize Sentry as early as possible in your application's lifecycle."
-      ),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: t(
+            "Initialize Sentry as early as possible in your application's lifecycle."
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
-              value: 'javascript',
               language: 'javascript',
               code: getSdkSetupSnippet(params),
             },

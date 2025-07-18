@@ -5,9 +5,11 @@ import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/f
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import type {
+  ContentBlock,
   Docs,
   DocsParams,
   OnboardingConfig,
+  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
@@ -116,19 +118,22 @@ root.render(<App />);
 const getVerifySnippet = () => `
 myUndefinedFunction();`;
 
-const getConfigureStep = (params: Params) => {
+const getConfigureStep = (params: Params): OnboardingStep => {
   return {
     type: StepType.CONFIGURE,
-    configurations: [
+    content: [
       {
-        description: tct(
+        type: 'text' as const,
+        text: tct(
           'Register the [code:Sentry@sentry/gatsby] plugin in your Gatsby configuration file (typically [code:gatsby-config.js]).',
           {code: <code />}
         ),
-        code: [
+      },
+      {
+        type: 'code',
+        tabs: [
           {
             label: 'JavaScript',
-            value: 'javascript',
             language: 'javascript',
             code: `module.exports = {
             plugins: [{
@@ -139,14 +144,17 @@ const getConfigureStep = (params: Params) => {
         ],
       },
       {
-        description: tct(
+        type: 'text',
+        text: tct(
           'Then, configure your [codeSentry:Sentry.init:]. For this, create a new file called [codeSentry:sentry.config.js] in the root of your project and add the following code:',
           {codeSentry: <code />}
         ),
-        code: [
+      },
+      {
+        type: 'code',
+        tabs: [
           {
             label: 'JavaScript',
-            value: 'javascript',
             language: 'javascript',
             filename: 'sentry.config.js',
             code: getSdkSetupSnippet(params),
@@ -157,6 +165,7 @@ const getConfigureStep = (params: Params) => {
   };
 };
 
+// TODO: Remove once the other product areas support content blocks
 const getInstallConfig = () => [
   {
     language: 'bash',
@@ -173,6 +182,27 @@ const getInstallConfig = () => [
   },
 ];
 
+const installSnippetBlock: ContentBlock = {
+  type: 'code',
+  tabs: [
+    {
+      label: 'npm',
+      language: 'bash',
+      code: 'npm install --save @sentry/gatsby',
+    },
+    {
+      label: 'yarn',
+      language: 'bash',
+      code: 'yarn add @sentry/gatsby',
+    },
+    {
+      label: 'pnpm',
+      language: 'bash',
+      code: 'pnpm add @sentry/gatsby',
+    },
+  ],
+};
+
 const onboarding: OnboardingConfig = {
   introduction: () =>
     tct(
@@ -184,11 +214,16 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Add the Sentry SDK as a dependency using [code:npm], [code:yarn], or [code:pnpm]:',
-        {code: <code />}
-      ),
-      configurations: getInstallConfig(),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Add the Sentry SDK as a dependency using [code:npm], [code:yarn], or [code:pnpm]:',
+            {code: <code />}
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: (params: Params) => [
@@ -201,12 +236,16 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-      ),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: t(
+            "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
               value: 'javascript',

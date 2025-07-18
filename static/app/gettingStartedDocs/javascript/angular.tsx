@@ -4,7 +4,7 @@ import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedba
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import {
   type BasePlatformOptions,
-  type Configuration,
+  type ContentBlock,
   type Docs,
   type DocsParams,
   type OnboardingConfig,
@@ -214,53 +214,10 @@ export const appConfig: ApplicationConfig = {
 };
 `;
 
-const getVerifySnippetTemplate = () => `
-<button (click)="throwTestError()">Test Sentry Error</button>
-`;
-
 const getVerifySnippetComponent = () => `
 public throwTestError(): void {
   throw new Error("Sentry Test Error");
 }`;
-
-function getVerifyConfiguration(): Configuration {
-  return {
-    description: t(
-      'To verify that everything is working as expected, you can trigger a test error in your app. As an example we will add a button that throws an error when being clicked to your main app component.'
-    ),
-    configurations: [
-      {
-        description: tct(
-          'First add the button element to your [code:app.component.html]:',
-          {code: <code />}
-        ),
-        code: [
-          {
-            label: 'HTML',
-            value: 'html',
-            language: 'html',
-            filename: 'app.component.html',
-            code: getVerifySnippetTemplate(),
-          },
-        ],
-      },
-      {
-        description: tct('Then, in your [code:app.component.ts] add the event handler:', {
-          code: <code />,
-        }),
-        code: [
-          {
-            label: 'TypeScript',
-            value: 'typescript',
-            language: 'typescript',
-            filename: 'app.component.ts',
-            code: getVerifySnippetComponent(),
-          },
-        ],
-      },
-    ],
-  };
-}
 
 const getInstallConfig = () => [
   {
@@ -288,6 +245,27 @@ const getInstallConfig = () => [
   },
 ];
 
+const installSnippetBlock: ContentBlock = {
+  type: 'code',
+  tabs: [
+    {
+      label: 'npm',
+      language: 'bash',
+      code: 'npm install --save @sentry/angular',
+    },
+    {
+      label: 'yarn',
+      language: 'bash',
+      code: 'yarn add @sentry/angular',
+    },
+    {
+      label: 'pnpm',
+      language: 'bash',
+      code: 'pnpm install @sentry/angular',
+    },
+  ],
+};
+
 const onboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
     tct(
@@ -299,29 +277,44 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Add the Sentry SDK as a dependency using [code:npm], [code:yarn] or [code:pnpm]:',
-        {code: <code />}
-      ),
-      configurations: getInstallConfig(),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Add the Sentry SDK as a dependency using [code:npm], [code:yarn] or [code:pnpm]:',
+            {code: <code />}
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      configurations: [
+      content: [
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             `Initialize the Sentry Angular SDK in your [code:main.ts] file as early as possible, before initializing Angular:`,
             {
               code: <code />,
             }
           ),
-          language: 'javascript',
-          code: getSdkSetupSnippet(params),
         },
         {
-          description: isModuleConfig(params)
+          type: 'code',
+          tabs: [
+            {
+              label: 'JavaScript',
+              language: 'javascript',
+              code: getSdkSetupSnippet(params),
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: isModuleConfig(params)
             ? tct(
                 "Register the Sentry Angular SDK's ErrorHandler and Tracing providers in your [code:app.module.ts] file:",
                 {code: <code />}
@@ -330,10 +323,18 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                 "Register the Sentry Angular SDK's ErrorHandler and Tracing providers in your [code:app.config.ts] file:",
                 {code: <code />}
               ),
-          language: 'javascript',
-          code: isModuleConfig(params)
-            ? getConfigureAppModuleSnippet()
-            : getConfigureAppConfigSnippet(),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'JavaScript',
+              language: 'javascript',
+              code: isModuleConfig(params)
+                ? getConfigureAppModuleSnippet()
+                : getConfigureAppConfigSnippet(),
+            },
+          ],
         },
       ],
     },
@@ -345,10 +346,52 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      configurations: [
-        getVerifyConfiguration(),
+      content: [
         {
-          description: t(
+          type: 'text',
+          text: t(
+            'To verify that everything is working as expected, you can trigger a test error in your app. As an example we will add a button that throws an error when being clicked to your main app component.'
+          ),
+        },
+        {
+          type: 'text',
+          text: tct('First add the button element to your [code:app.component.html]:', {
+            code: <code />,
+          }),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'HTML',
+              value: 'html',
+              language: 'html',
+              filename: 'app.component.html',
+              code: '<button (click)="throwTestError()">Test Sentry Error</button>',
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct('Then, in your [code:app.component.ts] add the event handler:', {
+            code: <code />,
+          }),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'TypeScript',
+              value: 'typescript',
+              language: 'typescript',
+              filename: 'app.component.ts',
+              code: getVerifySnippetComponent(),
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: t(
             "After clicking the button, you should see the error on Sentry's Issues page."
           ),
         },
