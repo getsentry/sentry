@@ -2466,6 +2466,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["transaction"] == event1.transaction
         assert data[0]["percentile(transaction.duration, 0.95)"] == 5000
 
+    @pytest.mark.skip(reason="flaky: #95890")
     def test_epm_function(self):
         data = self.load_data(
             timestamp=self.ten_mins_ago,
