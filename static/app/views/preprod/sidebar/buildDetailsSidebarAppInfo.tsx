@@ -1,7 +1,14 @@
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {IconCheckmark, IconClock, IconFile, IconJson, IconWarning} from 'sentry/icons';
+import {
+  IconCheckmark,
+  IconClock,
+  IconFile,
+  IconJson,
+  IconLink,
+  IconWarning,
+} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {type BuildDetailsAppInfo, BuildDetailsState} from 'sentry/views/preprod/types';
@@ -60,6 +67,14 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
             <IconFile />
           </InfoIcon>
           <InfoValue>{getReadableArtifactTypeLabel(appInfo.artifact_type)}</InfoValue>
+        </InfoRow>
+        <InfoRow>
+          <InfoIcon>
+            <IconLink />
+          </InfoIcon>
+          <InfoValue>
+            {appInfo.is_installable ? 'Installable' : 'Not Installable'}
+          </InfoValue>
         </InfoRow>
       </InfoSection>
 
