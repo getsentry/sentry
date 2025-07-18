@@ -26,9 +26,9 @@ from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.profile_functions import ProfileFunctionsQueryBuilder
 from sentry.search.events.fields import resolve_datetime64
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
-from sentry.snuba import spans_rpc
 from sentry.snuba.dataset import Dataset, StorageKey
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.spans_rpc import Spans
 from sentry.utils.iterators import chunked
 from sentry.utils.snuba import bulk_snuba_queries
 
@@ -590,9 +590,9 @@ class FlamegraphExecutor:
             query = f"{query} and {profiling_constraint}"
         else:
             query = profiling_constraint
-        return spans_rpc.run_table_query(
-            self.snuba_params,
-            query,
+        return Spans.run_table_query(
+            params=self.snuba_params,
+            query_string=query,
             selected_columns=[
                 "id",
                 "project.id",

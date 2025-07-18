@@ -26,7 +26,7 @@ from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
-from sentry.snuba.spans_rpc import run_trace_query
+from sentry.snuba.spans_rpc import Spans
 from sentry.utils.numbers import base32_encode
 from sentry.utils.validators import is_event_id
 
@@ -336,12 +336,12 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
         occurrence_query = self.perf_issues_query(snuba_params, trace_id)
 
         spans_future = _query_thread_pool.submit(
-            run_trace_query,
-            trace_id,
-            snuba_params,
-            Referrer.API_TRACE_VIEW_GET_EVENTS.value,
-            SearchResolverConfig(),
-            additional_attributes,
+            Spans.run_trace_query,
+            params=snuba_params,
+            trace_id=trace_id,
+            referrer=Referrer.API_TRACE_VIEW_GET_EVENTS.value,
+            config=SearchResolverConfig(),
+            additional_attributes=additional_attributes,
         )
         errors_future = _query_thread_pool.submit(
             self.run_errors_query,
