@@ -3494,6 +3494,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enable experimental message parameterization in grouping.
+register(
+    "grouping.experimental_parameterization",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Rollout for inferring project platform from events received
 register(
     "sentry:infer_project_platform",
