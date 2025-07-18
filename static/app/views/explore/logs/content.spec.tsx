@@ -145,7 +145,7 @@ describe('LogsPage', function () {
     eventStatsMock.mockClear();
 
     await userEvent.click(screen.getByRole('button', {name: 'Expand sidebar'}));
-    await userEvent.click(screen.getByRole('button', {name: 'None'}));
+    await userEvent.click(screen.getByRole('button', {name: '\u2014'}));
     await userEvent.click(screen.getByRole('option', {name: 'severity'}));
     await userEvent.click(screen.getByRole('tab', {name: 'Aggregates'}));
 

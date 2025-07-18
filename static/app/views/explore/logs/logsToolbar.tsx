@@ -144,7 +144,7 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
           onChange={val =>
             setLogsPageParams({groupBy: val.value ? (val.value as string) : null})
           }
-          value={groupBy}
+          value={groupBy ?? ''}
           searchable
           triggerProps={{style: {width: '100%'}}}
         />
