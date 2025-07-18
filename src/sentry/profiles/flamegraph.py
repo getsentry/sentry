@@ -765,13 +765,9 @@ class FlamegraphExecutor:
                 total_duration += end - start
 
                 # can set max duration to negative to skip this check
-                if (
-                    max_duration >= 0
-                    and total_duration >= max_duration
-                    or (
-                        len(continuous_profile_candidates) + len(transaction_profile_candidates)
-                        >= max_profiles
-                    )
+                if (max_duration >= 0 and total_duration >= max_duration) or (
+                    len(continuous_profile_candidates) + len(transaction_profile_candidates)
+                    >= max_profiles
                 ):
                     break
 
