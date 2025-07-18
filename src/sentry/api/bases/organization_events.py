@@ -435,26 +435,24 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             data = results.get("data", [])
             fields_meta = results.get("meta", {}).get("fields", {})
 
-            for result in data:
-                if "count" in result:
-                    result["count()"] = result["count"]
-                    del result["count"]
-                if "eps" in result:
-                    result["eps()"] = result["eps"]
-                    del result["eps"]
-                if "epm" in result:
-                    result["epm()"] = result["epm"]
-                    del result["epm"]
+            upsampling_affected_functions = [
+                "count",
+                "eps",
+                "epm",
+                "sample_count",
+                "sample_eps",
+                "sample_epm",
+            ]
+            for function in upsampling_affected_functions:
+                for result in data:
+                    if function in result:
+                        result[f"{function}()"] = result[function]
+                        del result[function]
 
-            if "count" in fields_meta:
-                fields_meta["count()"] = fields_meta["count"]
-                del fields_meta["count"]
-            if "eps" in fields_meta:
-                fields_meta["eps()"] = fields_meta["eps"]
-                del fields_meta["eps"]
-            if "epm" in fields_meta:
-                fields_meta["epm()"] = fields_meta["epm"]
-                del fields_meta["epm"]
+            for function in upsampling_affected_functions:
+                if function in fields_meta:
+                    fields_meta[f"{function}()"] = fields_meta[function]
+                    del fields_meta[function]
 
     def handle_issues(
         self, results: Sequence[Any], project_ids: Sequence[int], organization: Organization
