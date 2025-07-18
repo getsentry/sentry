@@ -16,7 +16,7 @@ import {
   type DiscoverSeries,
   useSpanSeries,
 } from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {SpanFields, SpanFields} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 export default function PerformanceScoreBreakdownChartWidget(
   props: LoadableChartWidgetProps

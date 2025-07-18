@@ -20,7 +20,6 @@ import {
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
   EAPSpanProperty,
-  EAPSpanProperty,
   SpanFields,
   SpanFunctions,
 } from 'sentry/views/insights/types';

@@ -16,10 +16,10 @@ import type {
   SpanSample,
 } from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useSpanSamples} from 'sentry/views/insights/common/queries/useSpanSamples';
-import type {SpanMetricsQueryFilters, SubregionCode} from 'sentry/views/insights/types';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import type {SpanQueryFilters, SubregionCode} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
-const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
+const {SPAN_SELF_TIME, SPAN_OP} = SpanFields;
 
 type Props = {
   groupId: string;
@@ -55,7 +55,7 @@ function DurationChart({
 }: Props) {
   const {setPageError} = usePageAlert();
 
-  const filters: SpanMetricsQueryFilters = {
+  const filters: SpanQueryFilters = {
     'span.group': groupId,
     transaction: transactionName,
   };
@@ -70,7 +70,7 @@ function DurationChart({
 
   if (subregions) {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    filters[SpanMetricsField.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
+    filters[SpanFields.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
   }
 
   if (platform) {
@@ -133,7 +133,7 @@ function DurationChart({
     }
 
     return new Samples(spanSamplesData as TabularData, {
-      attributeName: SpanMetricsField.SPAN_SELF_TIME,
+      attributeName: SpanFields.SPAN_SELF_TIME,
       baselineValue: avg,
       baselineLabel: t('Average'),
       onClick: sample => {
@@ -178,7 +178,7 @@ function DurationChart({
       title={t('Average Duration')}
       isLoading={isPending}
       error={spanMetricsSeriesError}
-      series={[spanMetricsSeriesData[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]]}
+      series={[spanMetricsSeriesData[`avg(${SpanFields.SPAN_SELF_TIME})`]]}
       samples={samplesPlottable}
     />
   );

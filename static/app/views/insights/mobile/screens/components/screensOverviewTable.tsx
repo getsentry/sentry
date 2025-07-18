@@ -12,11 +12,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {ScreensTable} from 'sentry/views/insights/mobile/common/components/tables/screensTable';
-import {
-  type EAPSpanResponse,
-  type EAPSpanResponse,
-  ModuleName,
-} from 'sentry/views/insights/types';
+import {type EAPSpanResponse, ModuleName} from 'sentry/views/insights/types';
 
 export type Row =
   | Pick<

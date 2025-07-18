@@ -1,5 +1,5 @@
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
-import {SpanFields, SpanFields} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 // This constant is to be used as an arg for `getInterval`.
 // 'metrics' fidelity is intended to match the granularities of stored metrics.
@@ -20,9 +20,6 @@ export const STARFISH_FIELDS: Record<string, {outputType: AggregationOutputType}
     outputType: 'size',
   },
   [SpanFields.HTTP_RESPONSE_CONTENT_LENGTH]: {
-    outputType: 'size',
-  },
-  [SpanFields.CACHE_ITEM_SIZE]: {
     outputType: 'size',
   },
   [SpanFields.CACHE_ITEM_SIZE]: {

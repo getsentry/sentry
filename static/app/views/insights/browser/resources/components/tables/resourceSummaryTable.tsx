@@ -30,12 +30,7 @@ import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import {
-  type EAPSpanResponse,
-  ModuleName,
-  SpanFields,
-  SpanFields,
-} from 'sentry/views/insights/types';
+import {type EAPSpanResponse, ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const {
   RESOURCE_RENDER_BLOCKING_STATUS,

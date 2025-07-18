@@ -2,7 +2,7 @@ import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import type {EAPSpanProperty, EAPSpanProperty} from 'sentry/views/insights/types';
+import type {EAPSpanProperty} from 'sentry/views/insights/types';
 import {VitalState} from 'sentry/views/performance/vitalDetail/utils';
 
 const formatMetricValue = (metric: MetricValue, field?: string | undefined): string => {

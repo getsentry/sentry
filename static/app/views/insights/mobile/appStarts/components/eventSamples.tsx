@@ -16,7 +16,7 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import {EventSamplesTable} from 'sentry/views/insights/mobile/screenload/components/tables/eventSamplesTable';
-import {SpanFields, SpanFields} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 const DEFAULT_SORT: Sort = {
   kind: 'desc',

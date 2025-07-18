@@ -76,7 +76,7 @@ export enum SpanFields {
   REPLAY_ID = 'replay.id',
   LCP_ELEMENT = 'lcp.element',
   CLS_SOURCE = 'cls.source.1',
-  CACHE_ITEM_SIZE = 'measurements.cache.item_size',
+  CACHE_ITEM_SIZE = 'cache.item_size',
   SPAN_ID = 'span_id',
   DB_SYSTEM = 'db.system',
   CODE_FILEPATH = 'code.filepath',
@@ -105,11 +105,15 @@ export enum SpanFields {
   HTTP_DECODED_RESPONSE_CONTENT_LENGTH = 'http.decoded_response_content_length',
   HTTP_RESPONSE_TRANSFER_SIZE = 'http.response_transfer_size',
   MOBILE_FRAMES_DELAY = 'mobile.frames_delay',
+  PRECISE_START_TS = 'precise.start_ts',
+  PRECISE_FINISH_TS = 'precise.finish_ts',
+  APP_START_TYPE = 'app_start_type',
+  FILE_EXTENSION = 'file_extension',
 
   // Messaging fields
   MESSAGING_MESSAGE_ID = 'messaging.message.id',
   MESSAGING_MESSAGE_BODY_SIZE = 'measurements.messaging.message.body.size',
-  MESSAGING_MESSAGE_RECEIVE_LATENCY = 'measurements.messaging.message.receive.latency',
+  MESSAGING_MESSAGE_RECEIVE_LATENCY = 'messaging.message.receive.latency',
   MESSAGING_MESSAGE_RETRY_COUNT = 'measurements.messaging.message.retry.count',
   MESSAGING_MESSAGE_DESTINATION_NAME = 'messaging.destination.name',
 
@@ -210,7 +214,10 @@ type SpanNumberFields =
   | SpanFields.CODE_LINENO
   | SpanFields.APP_START_COLD
   | SpanFields.APP_START_WARM
-  | SpanFields.CODE_LINENO;
+  | SpanFields.CODE_LINENO
+  | SpanFields.PRECISE_START_TS
+  | SpanFields.PRECISE_FINISH_TS
+  | SpanFields.CACHE_ITEM_SIZE;
 
 export type SpanStringFields =
   | SpanFields.RESOURCE_RENDER_BLOCKING_STATUS
@@ -254,6 +261,8 @@ export type SpanStringFields =
   | SpanFields.MESSAGING_MESSAGE_RETRY_COUNT
   | SpanFields.MESSAGING_MESSAGE_ID
   | SpanFields.TRACE_STATUS
+  | SpanFields.APP_START_TYPE
+  | SpanFields.FILE_EXTENSION
   | 'span_id'
   | 'span.op'
   | 'span.description'

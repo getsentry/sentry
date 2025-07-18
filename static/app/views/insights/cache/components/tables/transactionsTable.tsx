@@ -23,9 +23,7 @@ import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParam
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {
   type EAPSpanResponse,
-  type EAPSpanResponse,
   ModuleName,
-  SpanFields,
   SpanFields,
   SpanFunction,
 } from 'sentry/views/insights/types';
@@ -67,8 +65,8 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `avg(${CACHE_ITEM_SIZE})`,
-    name: DataTitles[`avg(${CACHE_ITEM_SIZE})`],
+    key: `avg(${SpanFields.CACHE_ITEM_SIZE})`,
+    name: DataTitles[`avg(${SpanFields.CACHE_ITEM_SIZE})`],
     width: COL_WIDTH_UNDEFINED,
   },
   {

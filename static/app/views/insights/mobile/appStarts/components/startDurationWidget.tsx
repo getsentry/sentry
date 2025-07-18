@@ -19,7 +19,7 @@ import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components
 import {Referrer} from 'sentry/views/insights/mobile/appStarts/referrers';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import type {EAPSpanProperty} from 'sentry/views/insights/types';
-import {SpanFields, SpanFields} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 const COLD_START_CONDITIONS = [
   'span.op:app.start.cold',

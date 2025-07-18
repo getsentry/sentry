@@ -12,7 +12,7 @@ import {
   parseFunction,
 } from 'sentry/utils/discover/fields';
 import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {SpanFields, SpanFields, SpanFunction} from 'sentry/views/insights/types';
+import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
 type Options = {
   column: GridColumnHeader<string>;

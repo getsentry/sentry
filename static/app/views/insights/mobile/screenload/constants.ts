@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import type {EAPSpanProperty, EAPSpanProperty} from 'sentry/views/insights/types';
+import type {EAPSpanProperty} from 'sentry/views/insights/types';
 
 export enum MobileCursors {
   SPANS_TABLE = 'spansCursor',
