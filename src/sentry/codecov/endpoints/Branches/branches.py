@@ -13,6 +13,7 @@ from sentry.codecov.client import CodecovApiClient
 from sentry.codecov.endpoints.Branches.query import query
 from sentry.codecov.endpoints.Branches.serializers import BranchesSerializer
 from sentry.codecov.enums import NavigationParameter
+from sentry.integrations.services.integration.model import RpcIntegration
 
 MAX_RESULTS_PER_PAGE = 50
 
@@ -44,7 +45,7 @@ class RepositoryBranchesEndpoint(CodecovEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, owner: str, repository: str, **kwargs) -> Response:
+    def get(self, request: Request, owner: RpcIntegration, repository: str, **kwargs) -> Response:
         """
         Retrieves branch data for a given owner and repository.
         """
@@ -52,6 +53,8 @@ class RepositoryBranchesEndpoint(CodecovEndpoint):
         navigation = request.query_params.get("navigation", NavigationParameter.NEXT.value)
         limit_param = request.query_params.get("limit", MAX_RESULTS_PER_PAGE)
         cursor = request.query_params.get("cursor")
+
+        owner_slug = owner.name
 
         # When calling request.query_params, the URL is decoded so + is replaced with spaces. We need to change them back so Codecov can properly fetch the next page.
         if cursor:
@@ -72,7 +75,7 @@ class RepositoryBranchesEndpoint(CodecovEndpoint):
             )
 
         variables = {
-            "owner": owner,
+            "owner": owner_slug,
             "repo": repository,
             "filters": {"searchValue": request.query_params.get("term")},
             "first": limit if navigation != NavigationParameter.PREV.value else None,
@@ -81,7 +84,7 @@ class RepositoryBranchesEndpoint(CodecovEndpoint):
             "after": cursor if cursor and navigation == NavigationParameter.NEXT.value else None,
         }
 
-        client = CodecovApiClient(git_provider_org=owner)
+        client = CodecovApiClient(git_provider_org=owner_slug)
         graphql_response = client.query(query=query, variables=variables)
         branches = BranchesSerializer().to_representation(graphql_response.json())
 

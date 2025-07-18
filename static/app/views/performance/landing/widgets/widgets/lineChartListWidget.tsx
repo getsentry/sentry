@@ -118,9 +118,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 
   const metricsDataset = useEap ? DiscoverDatasets.SPANS_EAP : DiscoverDatasets.METRICS;
 
-  const spanQueryParams: Record<string, string> = useEap
-    ? {...EAP_QUERY_PARAMS}
-    : {dataset: DiscoverDatasets.SPANS_METRICS};
+  const spanQueryParams: Record<string, string> = {...EAP_QUERY_PARAMS};
 
   const metricsQueryParams: Record<string, string> = useEap
     ? {...EAP_QUERY_PARAMS}
