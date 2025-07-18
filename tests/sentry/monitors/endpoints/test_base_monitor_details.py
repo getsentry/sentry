@@ -249,6 +249,18 @@ class BaseUpdateMonitorTest(MonitorTestCase):
             self.organization.slug, monitor.slug, method="PUT", status_code=400, **{"slug": None}
         )
 
+    def test_sluggification(self):
+        monitor = self._create_monitor()
+        resp = self.get_success_response(
+            self.organization.slug, monitor.slug, method="PUT", **{"slug": "a_b_c_"}
+        )
+        assert resp.data["slug"] == "a_b_c"
+
+        resp = self.get_success_response(
+            self.organization.slug, "a_b_c", method="PUT", **{"slug": "-a_--b--_c_-"}
+        )
+        assert resp.data["slug"] == "a_-b-_c"
+
     def test_owner(self):
         monitor = self._create_monitor()
         assert monitor.owner_user_id == self.user.id

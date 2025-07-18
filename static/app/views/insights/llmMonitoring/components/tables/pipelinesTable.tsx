@@ -27,7 +27,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {combineMeta} from 'sentry/views/insights/common/utils/combineMeta';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -112,7 +112,7 @@ export function PipelinesTable() {
     meta: baseMeta,
     pageLinks,
     error,
-  } = useSpanMetrics(
+  } = useSpans(
     {
       search: MutableSearch.fromQueryObject({
         'span.category': 'ai.pipeline',
@@ -136,7 +136,7 @@ export function PipelinesTable() {
     data: tokensUsedData,
     meta: tokensUsedMeta,
     isPending: tokensUsedLoading,
-  } = useSpanMetrics(
+  } = useSpans(
     {
       search: new MutableSearch(
         `span.category:ai span.ai.pipeline.group:[${(data as Row[])
@@ -154,7 +154,7 @@ export function PipelinesTable() {
     meta: tokenCostMeta,
     isPending: tokenCostLoading,
     error: tokenCostError,
-  } = useSpanMetrics(
+  } = useSpans(
     {
       search: new MutableSearch(
         `span.category:ai span.ai.pipeline.group:[${(data as Row[])?.map(x => x['span.group']).join(',')}]`
