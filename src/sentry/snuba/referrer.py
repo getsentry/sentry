@@ -721,7 +721,7 @@ class Referrer(StrEnum):
     # Performance MCP Module
     API_PERFORMANCE_MCP_TRAFFIC_WIDGET = "api.performance.mcp.traffic-widget"
     API_PERFORMANCE_MCP_TRANSPORT_WIDGET = "api.performance.mcp.transport-widget"
-    API_PERFORMANCE_MCP_SOURCES_WIDGET = "api.performance.mcp.sources-widget"
+    API_PERFORMANCE_MCP_TRAFFIC_BY_CLIENT_WIDGET = "api.performance.mcp.traffic-by-client-widget"
     API_PERFORMANCE_MCP_TOOL_TRAFFIC_WIDGET = "api.performance.mcp.tool-traffic-widget"
     API_PERFORMANCE_MCP_PROMPT_TRAFFIC_WIDGET = "api.performance.mcp.prompt-traffic-widget"
     API_PERFORMANCE_MCP_RESOURCE_TRAFFIC_WIDGET = "api.performance.mcp.resource-traffic-widget"
