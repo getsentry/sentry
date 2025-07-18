@@ -209,7 +209,7 @@ class RuleSerializer(Serializer):
                 .annotate(date_added=Max("date_added"))
             }
 
-            if features.has(
+            if item_list and features.has(
                 "organizations:workflow-engine-single-process-workflows",
                 item_list[0].project.organization,
             ):
