@@ -48,7 +48,7 @@ function GenerateSpikeProjectionsForBatch() {
   };
 
   const batchRunTime = useMemo(() => {
-    if (batchId === null || batchId < 0 || batchId > 143) {
+    if (batchId === null || batchId < 0 || batchId > 143 || !Number.isInteger(batchId)) {
       return null;
     }
     return moment
@@ -88,7 +88,14 @@ function GenerateSpikeProjectionsForBatch() {
           type="number"
           name="batchId"
           value={batchId === null ? '' : batchId}
-          onChange={e => setBatchId(Number(e.target.value))}
+          onChange={e => {
+            const value = e.target.value;
+            if (value === '') {
+              setBatchId(null);
+            } else {
+              setBatchId(Number(value));
+            }
+          }}
           min={0}
           max={143}
           placeholder="0-143"
