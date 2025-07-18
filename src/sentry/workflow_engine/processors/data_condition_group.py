@@ -170,7 +170,15 @@ def process_data_condition_group(
         )
         return invalid_group_result
 
-    conditions = get_data_conditions_for_group(group.id)
+    # Check if conditions are already prefetched before using cache
+    conditions: list[DataCondition] = []
+    if (
+        hasattr(group, "_prefetched_objects_cache")
+        and "conditions" in group._prefetched_objects_cache
+    ):
+        conditions = list(group.conditions.all())
+    else:
+        conditions = get_data_conditions_for_group(group.id)
 
     if is_fast:
         conditions, remaining_conditions = split_conditions_by_speed(conditions)
