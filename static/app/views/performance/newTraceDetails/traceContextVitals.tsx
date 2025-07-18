@@ -151,18 +151,13 @@ function VitalPill({vital, vitalDetails}: VitalPillProps) {
 const VitalPillContainer = styled('div')`
   display: flex;
   flex-direction: row;
-  max-width: 'auto';
-  height: 28px;
 `;
 
 const VitalPillName = styled('div')<{status: PerformanceScore}>`
   display: flex;
   align-items: center;
   position: relative;
-  width: max-content;
-
   height: 100%;
-  padding: 0 ${space(1)};
   border: solid 1px
     ${p =>
       p.status === 'none'
@@ -188,9 +183,6 @@ const VitalPillValue = styled('div')`
   flex: 1;
   align-items: center;
   justify-content: flex-end;
-
-  height: 100%;
-  padding: 0 ${space(0.5)};
   border: 1px solid ${p => p.theme.border};
   border-left: none;
   border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
@@ -205,9 +197,8 @@ const VitalMetersContainer = styled('div')`
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: ${space(1)};
-  width: 'auto';
 `;
 
 const SecondaryVitalsCount = styled('span')`
