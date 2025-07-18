@@ -47,6 +47,8 @@ export function isNativePlatform(platform: string | undefined) {
     case 'swift':
     case 'c':
     case 'nintendo-switch':
+    case 'playstation':
+    case 'xbox':
       return true;
     default:
       return false;
