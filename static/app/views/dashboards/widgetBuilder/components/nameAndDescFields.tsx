@@ -32,7 +32,10 @@ function WidgetBuilderNameAndDescription({
 
   return (
     <Fragment>
-      <SectionHeader title={t('Display Name')} />
+      <SectionHeader
+        title={t('Display Name')}
+        tooltipText={t('This will appear in the header of your widget.')}
+      />
       <StyledTextField
         name={t('Name')}
         size="md"

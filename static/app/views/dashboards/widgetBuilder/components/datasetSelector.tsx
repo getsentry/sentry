@@ -127,7 +127,10 @@ const FeatureBadgeAlignmentWrapper = styled('div')`
   }
 `;
 
-const DatasetChoices = styled(RadioGroup<WidgetType>)``;
+const DatasetChoices = styled(RadioGroup<WidgetType>)`
+  flex-direction: row;
+  flex-wrap: wrap;
+`;
 
 const StyledSectionHeader = styled(SectionHeader)`
   margin-bottom: ${space(1)};
