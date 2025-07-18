@@ -148,6 +148,7 @@ class Spans(rpc_dataset_common.RPCBase):
     @sentry_sdk.trace
     def run_trace_query(
         cls,
+        *,
         trace_id: str,
         params: SnubaParams,
         referrer: str,
