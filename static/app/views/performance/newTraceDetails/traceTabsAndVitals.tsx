@@ -91,12 +91,12 @@ export function TraceTabsAndVitals({
 
   return (
     <Flex ref={setRef} justify="space-between">
-      <Tabs value={currentTab} onChange={onTabChange}>
-        <StyledTabsList hideBorder variant="floating">
+      <Tabs value={currentTab} onChange={onTabChange} size="sm">
+        <TabList hideBorder variant="floating">
           {tabOptions.map(tab => (
             <TabList.Item key={tab.slug}>{tab.label}</TabList.Item>
           ))}
-        </StyledTabsList>
+        </TabList>
       </Tabs>
       <TraceContextVitals
         rootEventResults={rootEventResults}
@@ -109,10 +109,4 @@ export function TraceTabsAndVitals({
 
 const StyledPlaceholder = styled(TraceHeaderComponents.StyledPlaceholder)`
   background-color: ${p => p.theme.purple100};
-`;
-
-const StyledTabsList = styled(TabList)`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
