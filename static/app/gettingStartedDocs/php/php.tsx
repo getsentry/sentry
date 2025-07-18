@@ -160,15 +160,22 @@ const performanceOnboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        'To capture all errors and transactions, even the one during the startup of your application, you should initialize the Sentry PHP SDK as soon as possible.'
-      ),
-      configurations: [
+      content: [
         {
-          description: tct(
+          type: 'text',
+          text: t(
+            'To capture all errors and transactions, even the one during the startup of your application, you should initialize the Sentry PHP SDK as soon as possible.'
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
             'To initialize the SDK before everything else, create an external file called [code:instrument.js/mjs] and make sure to import it in your apps entrypoint before anything else.',
             {code: <code />}
           ),
+        },
+        {
+          type: 'code',
           language: 'php',
           code: `
 \\Sentry\\init([
@@ -179,7 +186,10 @@ const performanceOnboarding: OnboardingConfig = {
   'traces_sample_rate' => 1.0,
 ]);
 `,
-          additionalInfo: tct(
+        },
+        {
+          type: 'text',
+          text: tct(
             'We recommend adjusting the value of [code:tracesSampleRate] in production. Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to do [linkSampleTransactions:sampling].',
             {
               code: <code />,
@@ -201,14 +211,19 @@ const performanceOnboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: tct(
-        'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your Node application.',
+      content: [
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/php/tracing/instrumentation/automatic-instrumentation/" />
+          type: 'text',
+          text: tct(
+            'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your Node application.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/php/tracing/instrumentation/automatic-instrumentation/" />
+              ),
+            }
           ),
-        }
-      ),
+        },
+      ],
     },
   ],
   nextSteps: () => [],
