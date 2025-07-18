@@ -128,6 +128,7 @@ const FeatureBadgeAlignmentWrapper = styled('div')`
 `;
 
 const DatasetChoices = styled(RadioGroup<WidgetType>)`
+  display: flex;
   flex-direction: row;
   flex-wrap: wrap;
 `;
