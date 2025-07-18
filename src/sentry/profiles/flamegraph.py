@@ -246,6 +246,7 @@ class FlamegraphExecutor:
         max_chunk_delta = timedelta(hours=max_chunk_delta_hours)
 
         transaction_profile_candidates: list[TransactionProfileCandidate] = []
+        profiler_metas: list[ProfilerMeta] = []
 
         assert self.snuba_params.start is not None and self.snuba_params.end is not None
 
@@ -272,6 +273,17 @@ class FlamegraphExecutor:
                             "profile_id": row["profile.id"],
                         }
                     )
+                elif row["profiler.id"] is not None and row["thread.id"]:
+                    profiler_metas.append(
+                        ProfilerMeta(
+                            project_id=row["project.id"],
+                            profiler_id=row["profiler.id"],
+                            thread_id=row["thread.id"],
+                            start=row["precise.start_ts"],
+                            end=row["precise.finish_ts"],
+                            transaction_id=row["id"],
+                        )
+                    )
             if len(transaction_profile_candidates) >= max_profiles:
                 break
 
@@ -283,18 +295,7 @@ class FlamegraphExecutor:
 
         if max_continuous_profile_candidates > 0:
             continuous_profile_candidates, _ = self.get_chunks_for_profilers(
-                [
-                    ProfilerMeta(
-                        project_id=row["project.id"],
-                        profiler_id=row["profiler.id"],
-                        thread_id=row["thread.id"],
-                        start=row["precise.start_ts"],
-                        end=row["precise.finish_ts"],
-                        transaction_id=row["id"],
-                    )
-                    for row in results["data"]
-                    if row["profiler.id"] is not None and row["thread.id"]
-                ],
+                profiler_metas,
                 max_continuous_profile_candidates,
             )
 
