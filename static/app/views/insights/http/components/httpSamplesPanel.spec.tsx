@@ -232,7 +232,8 @@ describe('HTTPSamplesPanel', () => {
         expect.objectContaining({
           method: 'GET',
           query: {
-            dataset: 'spansMetrics',
+            dataset: 'spans',
+            sampling: SAMPLING_MODE.NORMAL,
             environment: [],
             excludeOther: 0,
             field: ['span.status_code', 'count()'],

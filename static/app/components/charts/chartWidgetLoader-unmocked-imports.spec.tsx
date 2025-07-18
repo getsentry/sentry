@@ -175,12 +175,7 @@ jest.mock('sentry/views/insights/common/queries/useDiscover', () => ({
   })),
 }));
 jest.mock('sentry/views/insights/common/queries/useTopNDiscoverSeries', () => ({
-  useTopNSpanEAPSeries: jest.fn(() => ({
-    data: [mockDiscoverSeries('transaction_a,abc123')],
-    isPending: false,
-    error: null,
-  })),
-  useTopNSpanMetricsSeries: jest.fn(() => ({
+  useTopNSpanSeries: jest.fn(() => ({
     data: [mockDiscoverSeries('transaction_a,abc123')],
     isPending: false,
     error: null,

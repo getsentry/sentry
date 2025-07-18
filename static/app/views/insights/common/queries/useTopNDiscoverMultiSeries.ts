@@ -18,7 +18,6 @@ import {
   getRetryDelay,
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {EAPSpanProperty} from 'sentry/views/insights/types';
 
 import {convertDiscoverTimeseriesResponse} from './convertDiscoverTimeseriesResponse';
@@ -37,7 +36,7 @@ interface UseMetricsSeriesOptions<YAxisFields, Fields> {
   transformAliasToInputFormat?: boolean;
 }
 
-export const useTopNMetricsMultiSeries = <
+export const useTopNSpanMultiSeries = <
   YAxisFields extends EAPSpanProperty[],
   Fields extends EAPSpanProperty[],
 >(
@@ -45,10 +44,9 @@ export const useTopNMetricsMultiSeries = <
   referrer: string,
   pageFilters?: PageFilters
 ) => {
-  const useEap = useInsightsEap();
   return useTopNDiscoverMultiSeries<YAxisFields, Fields>(
     options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.METRICS,
+    DiscoverDatasets.SPANS_EAP_RPC,
     referrer,
     pageFilters
   );

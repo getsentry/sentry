@@ -14,7 +14,7 @@ import {BaseChartActionDropdown} from 'sentry/views/insights/common/components/c
 // eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useTopNSpanMetricsSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
+import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 import {renameDiscoverSeries} from 'sentry/views/insights/common/utils/renameDiscoverSeries';
 import {useAlertsProject} from 'sentry/views/insights/common/utils/useAlertsProject';
@@ -52,7 +52,7 @@ export function ThroughputChart({id, error, destination, pageFilters, referrer}:
     data,
     error: topNError,
     isLoading,
-  } = useTopNSpanMetricsSeries(
+  } = useTopNSpanSeries(
     {
       search,
       yAxis: [yAxis],
