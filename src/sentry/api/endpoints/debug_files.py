@@ -7,7 +7,7 @@ from collections.abc import Sequence
 import jsonschema
 import orjson
 from django.db import IntegrityError, router
-from django.db.models import Q
+from django.db.models import Exists, Q
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework import status
 from rest_framework.request import Request
@@ -265,20 +265,36 @@ class DebugFilesEndpoint(ProjectEndpoint):
             except SymbolicError:
                 pass
 
+        q = Q(project_id=project.id)
+        if file_formats:
+            file_format_q = Q()
+            for file_format in file_formats:
+                known_file_format = DIF_MIMETYPES.get(file_format)
+                if known_file_format:
+                    file_format_q |= Q(file__headers__icontains=known_file_format)
+            q &= file_format_q
+
         if debug_id and code_id:
             # Be lenient when searching for debug files, check either for a matching debug id
-            # or a matching code id, as both of these are unique identifiers for an object.
+            # or a matching code id. We only fallback to code id if there is no debug id match.
+            # While both identifiers should be unique, in practice they are not and the debug id
+            # yields better results.
             #
             # Ideally debug- and code-id yield the same files, but especially on Windows it is possible
             # that the debug id does not perfectly match due to 'age' differences, but the code-id
             # will match.
-            q = Q(debug_id__exact=debug_id) | Q(code_id__exact=code_id)
+            debug_id_qs = ProjectDebugFile.objects.filter(Q(debug_id__exact=debug_id) & q)
+            queryset = debug_id_qs.union(
+                ProjectDebugFile.objects.filter(Q(code_id__exact=code_id) & q).filter(
+                    ~Exists(debug_id_qs)
+                )
+            )
         elif debug_id:
-            q = Q(debug_id__exact=debug_id)
+            queryset = ProjectDebugFile.objects.filter(Q(debug_id__exact=debug_id))
         elif code_id:
-            q = Q(code_id__exact=code_id)
+            queryset = ProjectDebugFile.objects.filter(Q(code_id__exact=code_id))
         elif query:
-            q = (
+            query_q = (
                 Q(object_name__icontains=query)
                 | Q(debug_id__icontains=query)
                 | Q(code_id__icontains=query)
@@ -288,20 +304,13 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
             known_file_format = DIF_MIMETYPES.get(query)
             if known_file_format:
-                q |= Q(file__headers__icontains=known_file_format)
+                query_q |= Q(file__headers__icontains=known_file_format)
+
+            queryset = ProjectDebugFile.objects.filter(query_q)
         else:
-            q = Q()
+            queryset = ProjectDebugFile.objects.all()
 
-        if file_formats:
-            file_format_q = Q()
-            for file_format in file_formats:
-                known_file_format = DIF_MIMETYPES.get(file_format)
-                if known_file_format:
-                    file_format_q |= Q(file__headers__icontains=known_file_format)
-            q &= file_format_q
-
-        q &= Q(project_id=project.id)
-        queryset = ProjectDebugFile.objects.filter(q).select_related("file")
+        queryset = queryset.filter(q).select_related("file")
 
         def on_results(difs: Sequence[ProjectDebugFile]):
             # NOTE: we are only refreshing files if there is direct query for specific files
