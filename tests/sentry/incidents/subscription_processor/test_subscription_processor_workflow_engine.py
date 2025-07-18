@@ -226,7 +226,7 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         )
         data_packet_list = mock_process_data_packets.call_args_list[0][0][0]
         assert data_packet_list[0].source_id == str(self.sub.id)
-        assert data_packet_list[0].packet["values"] == {"value": 10}
+        assert data_packet_list[0].packet.values == {"value": 10}
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
     @patch("sentry.incidents.subscription_processor.process_data_packets")

@@ -4,7 +4,7 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import (
     DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
-    QuerySubscriptionUpdate,
+    ProcessedSubscriptionUpdate,
 )
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
@@ -75,16 +75,16 @@ class BaseMetricIssueTest(TestCase):
 
     def create_subscription_packet(
         self, value: int, time_jump: int = 0
-    ) -> DataPacket[QuerySubscriptionUpdate]:
+    ) -> DataPacket[ProcessedSubscriptionUpdate]:
         # XXX: the timestamp here is just used as a dedupe value, so we can avoid using freeze_time
         # by providing a large timedelta
-        packet = QuerySubscriptionUpdate(
+        packet = ProcessedSubscriptionUpdate(
             entity="entity",
             subscription_id=str(self.query_subscription.id),
             values={"value": value},
             timestamp=datetime.now(UTC) + timedelta(minutes=time_jump),
         )
-        return DataPacket[QuerySubscriptionUpdate](
+        return DataPacket[ProcessedSubscriptionUpdate](
             source_id=str(self.query_subscription.id), packet=packet
         )
 
