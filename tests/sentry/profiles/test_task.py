@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import zipfile
+from base64 import b64encode
 from io import BytesIO
 from os.path import join
 from typing import Any
 from unittest import mock
 from unittest.mock import patch
 
+import msgpack
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
@@ -27,7 +29,6 @@ from sentry.profiles.task import (
     _process_symbolicator_results_for_sample,
     _set_frames_platform,
     _symbolicate_profile,
-    encode_payload,
     process_profile_task,
 )
 from sentry.profiles.utils import Profile
@@ -1058,7 +1059,8 @@ def test_track_latest_sdk_with_payload(
         "received": "2024-01-02T03:04:05",
         "payload": json.dumps(profile),
     }
-    payload = encode_payload(kafka_payload)
+
+    payload = b64encode(msgpack.packb(kafka_payload)).decode("utf-8")
 
     with Feature("organizations:profiling-sdks"):
         process_profile_task(payload=payload)
