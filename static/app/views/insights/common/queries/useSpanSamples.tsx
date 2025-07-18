@@ -7,16 +7,16 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
   EAPSpanProperty,
   EAPSpanResponse,
-  SpanMetricsQueryFilters,
+  SpanQueryFilters,
   SubregionCode,
 } from 'sentry/views/insights/types';
-import {SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_GROUP} = SpanFields;
 
@@ -77,7 +77,7 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
   query.addFilterValue(SPAN_GROUP, groupId);
   query.addFilterValue('transaction', transactionName);
 
-  const filters: SpanMetricsQueryFilters = {
+  const filters: SpanQueryFilters = {
     transaction: transactionName,
   };
 
@@ -92,14 +92,14 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
   }
 
   if (subregions) {
-    query.addDisjunctionFilterValues(SpanMetricsField.USER_GEO_SUBREGION, subregions);
+    query.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    filters[SpanMetricsField.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
+    filters[SpanFields.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
   }
 
   const dateConditions = getDateConditions(pageFilter.selection);
 
-  const {isPending: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries(
+  const {isPending: isLoadingSeries, data: spanMetricsSeriesData} = useSpanSeries(
     {
       search: MutableSearch.fromQueryObject({'span.group': groupId, ...filters}),
       yAxis: [`avg(${SPAN_SELF_TIME})`],

@@ -73,7 +73,7 @@ def EmptyRustFrame() -> RustFrame:  # noqa
 def _merge_rust_enhancements(
     bases: list[str],
     rust_enhancements: RustEnhancements,
-    type: Literal["classifier", "contributes"] | None = None,
+    type: Literal["classifier", "contributes"],
 ) -> RustEnhancements:
     """
     This will merge the parsed enhancements together with the `bases`.
@@ -85,13 +85,9 @@ def _merge_rust_enhancements(
         base = ENHANCEMENT_BASES.get(base_id)
         if base:
             base_rust_enhancements = (
-                base.rust_enhancements
-                if type is None
-                else (
-                    base.classifier_rust_enhancements
-                    if type == "classifier"
-                    else base.contributes_rust_enhancements
-                )
+                base.classifier_rust_enhancements
+                if type == "classifier"
+                else base.contributes_rust_enhancements
             )
             merged_rust_enhancements.extend_from(base_rust_enhancements)
     merged_rust_enhancements.extend_from(rust_enhancements)
@@ -146,7 +142,7 @@ def _can_use_hint(
     variant_name: str,
     frame_component: FrameGroupingComponent,
     hint: str | None,
-    desired_hint_type: Literal["in-app", "contributes"] | None = None,
+    desired_hint_type: Literal["in-app", "contributes"],
 ) -> bool:
     # Prevent clobbering an existing hint with no hint
     if hint is None:
@@ -156,7 +152,7 @@ def _can_use_hint(
     hint_type = "contributes" if "ignored" in hint else "in-app"
 
     # Don't use the hint if we've specifically asked for something different
-    if desired_hint_type and hint_type != desired_hint_type:
+    if hint_type != desired_hint_type:
         return False
 
     # System frames can't contribute to the app variant, no matter what +/-group rules say, so we
@@ -177,7 +173,7 @@ def _get_hint_for_frame(
     frame: dict[str, Any],
     frame_component: FrameGroupingComponent,
     rust_frame: RustFrame,
-    desired_hint_type: Literal["in-app", "contributes"] | None = None,
+    desired_hint_type: Literal["in-app", "contributes"],
 ) -> str | None:
     """
     Determine a hint to use for the frame, handling special-casing and precedence.
@@ -190,10 +186,7 @@ def _get_hint_for_frame(
     )
     incoming_hint = frame_component.hint
 
-    # TODO: We can switch this to `desired_hint_type == "in-app"` once we're only using split
-    # enhancements. For now, we need to also include the case where `desired_hint_type` is None. (At
-    # that point we can also change the type of the parameter to be a required string.)
-    if variant_name == "app" and desired_hint_type != "contributes":
+    if variant_name == "app" and desired_hint_type == "in-app":
         default_in_app_hint = "non app frame" if not frame_component.in_app else None
         client_in_app_hint = (
             f"marked {"in-app" if client_in_app else "out of app"} by the client"
@@ -333,9 +326,6 @@ def get_enhancements_version(project: Project, grouping_config_id: str = "") -> 
     See https://github.com/getsentry/sentry/pull/91695 for a version of this function which
     incorporates sampling.
     """
-    if grouping_config_id.startswith("legacy"):
-        return 2
-
     return DEFAULT_ENHANCEMENTS_VERSION
 
 
@@ -358,8 +348,6 @@ class Enhancements:
         self.rules = rules
         self.version = version or DEFAULT_ENHANCEMENTS_VERSION
         self.bases = bases or []
-
-        self.rust_enhancements = _merge_rust_enhancements(self.bases, rust_enhancements)
 
         classifier_config, contributes_config = split_enhancement_configs or _split_rules(rules)
 
@@ -405,71 +393,6 @@ class Enhancements:
                 set_in_app(frame, in_app)
             if category is not None:
                 set_path(frame, "data", "category", value=category)
-
-    def assemble_stacktrace_component_legacy(
-        self,
-        variant_name: str,
-        frame_components: list[FrameGroupingComponent],
-        frames: list[dict[str, Any]],
-        platform: str | None,
-        exception_data: dict[str, Any] | None = None,
-    ) -> StacktraceGroupingComponent:
-        """
-        This assembles a `stacktrace` grouping component out of the given
-        `frame` components and source frames.
-
-        This also handles cases where the entire stacktrace should be discarded.
-        """
-
-        match_frames: list[Any] = [create_match_frame(frame, platform) for frame in frames]
-        rust_frames = [RustFrame(contributes=c.contributes) for c in frame_components]
-        rust_exception_data = _make_rust_exception_data(exception_data)
-
-        # Modify the rust frames by applying +group/-group rules and getting hints for both those
-        # changes and the `in_app` changes applied by earlier in the ingestion process by
-        # `apply_category_and_updated_in_app_to_frames`. Also, get `hint` and `contributes` values
-        # for the overall stacktrace (returned in `rust_results`).
-        rust_stacktrace_results = self.rust_enhancements.assemble_stacktrace_component(
-            match_frames, rust_exception_data, rust_frames
-        )
-
-        # Tally the number of each type of frame in the stacktrace. Later on, this will allow us to
-        # both collect metrics and use the information in decisions about whether to send the event
-        # to Seer
-        frame_counts: Counter[str] = Counter()
-
-        # Update frame components with results from rust
-        for frame, frame_component, rust_frame in zip(frames, frame_components, rust_frames):
-            rust_contributes = bool(rust_frame.contributes)  # bool-ing this for mypy's sake
-            rust_hint = rust_frame.hint
-            rust_hint_type = (
-                None
-                if rust_hint is None
-                else "in-app" if rust_hint.startswith("marked") else "contributes"
-            )
-
-            hint = _get_hint_for_frame(variant_name, frame, frame_component, rust_frame)
-
-            if not (variant_name == "system" and rust_hint_type == "in-app"):
-                hint = rust_hint
-
-            frame_component.update(contributes=rust_contributes, hint=hint)
-
-            # Add this frame to our tally
-            key = f"{"in_app" if frame_component.in_app else "system"}_{"contributing" if frame_component.contributes else "non_contributing"}_frames"
-            frame_counts[key] += 1
-
-        stacktrace_contributes = rust_stacktrace_results.contributes
-        stacktrace_hint = rust_stacktrace_results.hint
-
-        stacktrace_component = StacktraceGroupingComponent(
-            values=frame_components,
-            hint=stacktrace_hint,
-            contributes=stacktrace_contributes,
-            frame_counts=frame_counts,
-        )
-
-        return stacktrace_component
 
     def assemble_stacktrace_component(
         self,

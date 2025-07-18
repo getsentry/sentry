@@ -1,7 +1,7 @@
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
+import {ELLIPSIS} from 'sentry/utils/string/unicode';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
-import {ELLIPSIS} from 'sentry/views/insights/common/utils/centerTruncate';
 import useTruncatedReleaseNames from 'sentry/views/insights/mobile/common/queries/useTruncatedRelease';
 
 jest.mock('sentry/views/insights/common/queries/useReleases');

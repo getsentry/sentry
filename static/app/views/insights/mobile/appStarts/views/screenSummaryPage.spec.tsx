@@ -8,7 +8,7 @@ import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ScreenSummary} from 'sentry/views/insights/mobile/appStarts/views/screenSummaryPage';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
@@ -90,7 +90,7 @@ describe('Screen Summary', function () {
           transaction: 'MainActivity',
           primaryRelease: 'com.example.vu.android@2.10.5',
           secondaryRelease: 'com.example.vu.android@2.10.3+42',
-          [SpanMetricsField.APP_START_TYPE]: 'cold',
+          [SpanFields.APP_START_TYPE]: 'cold',
         },
         search: '',
         state: undefined,
