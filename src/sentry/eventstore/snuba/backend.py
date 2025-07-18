@@ -24,7 +24,7 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry.eventstore.base import EventStorage
+from sentry.eventstore.base import EventStorage, Filter
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.group import Group
 from sentry.snuba.dataset import Dataset
@@ -47,14 +47,14 @@ NODESTORE_LIMIT = 100
 logger = logging.getLogger(__name__)
 
 
-def get_before_event_condition(event):
+def get_before_event_condition(event: Event | GroupEvent) -> list[list[Any]]:
     return [
         [TIMESTAMP, "<=", event.datetime],
         [[TIMESTAMP, "<", event.datetime], [EVENT_ID, "<", event.event_id]],
     ]
 
 
-def get_after_event_condition(event):
+def get_after_event_condition(event: Event | GroupEvent) -> list[list[Any]]:
     return [
         [TIMESTAMP, ">=", event.datetime],
         [[TIMESTAMP, ">", event.datetime], [EVENT_ID, ">", event.event_id]],
@@ -74,15 +74,15 @@ class SnubaEventStorage(EventStorage):
         end: datetime | None,
         conditions: Sequence[Condition],
         orderby: Sequence[str],
-        limit=DEFAULT_LIMIT,
-        offset=DEFAULT_OFFSET,
-        referrer="eventstore.get_events_snql",
-        dataset=Dataset.Events,
-        tenant_ids=None,
+        limit: int = DEFAULT_LIMIT,
+        offset: int = DEFAULT_OFFSET,
+        referrer: str = "eventstore.get_events_snql",
+        dataset: Dataset = Dataset.Events,
+        tenant_ids: Mapping[str, Any] | None = None,
     ) -> list[Event]:
         cols = self.__get_columns(dataset)
 
-        resolved_order_by = []
+        resolved_order_by: list[OrderBy] = []
         for order_field_alias in orderby:
             if order_field_alias.startswith("-"):
                 direction = Direction.DESC
@@ -123,7 +123,6 @@ class SnubaEventStorage(EventStorage):
                     resolved_order_by.append(
                         OrderBy(Column(resolved_column_or_none), direction=direction)
                     )
-        orderby = resolved_order_by
 
         start, end = _prepare_start_end(
             start,
@@ -145,7 +144,7 @@ class SnubaEventStorage(EventStorage):
                     Condition(Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]), Op.LT, end),
                 ]
                 + list(conditions),
-                orderby=orderby,
+                orderby=resolved_order_by,
                 limit=Limit(limit),
                 offset=Offset(offset),
             ),
@@ -163,13 +162,13 @@ class SnubaEventStorage(EventStorage):
 
     def get_events(
         self,
-        filter,
-        orderby=None,
-        limit=DEFAULT_LIMIT,
-        offset=DEFAULT_OFFSET,
-        referrer="eventstore.get_events",
-        dataset=Dataset.Events,
-        tenant_ids=None,
+        filter: Filter,
+        orderby: Sequence[str] | None = None,
+        limit: int = DEFAULT_LIMIT,
+        offset: int = DEFAULT_OFFSET,
+        referrer: str = "eventstore.get_events",
+        dataset: Dataset = Dataset.Events,
+        tenant_ids: Mapping[str, Any] | None = None,
     ) -> list[Event]:
         """
         Get events from Snuba, with node data loaded.
@@ -188,13 +187,13 @@ class SnubaEventStorage(EventStorage):
 
     def get_unfetched_events(
         self,
-        filter,
-        orderby=None,
-        limit=DEFAULT_LIMIT,
-        offset=DEFAULT_OFFSET,
-        referrer="eventstore.get_unfetched_events",
-        dataset=Dataset.Events,
-        tenant_ids=None,
+        filter: Filter,
+        orderby: Sequence[str] | None = None,
+        limit: int = DEFAULT_LIMIT,
+        offset: int = DEFAULT_OFFSET,
+        referrer: str = "eventstore.get_unfetched_events",
+        dataset: Dataset = Dataset.Events,
+        tenant_ids: Mapping[str, Any] | None = None,
     ) -> list[Event]:
         """
         Get events from Snuba, without node data loaded.
@@ -212,14 +211,14 @@ class SnubaEventStorage(EventStorage):
 
     def __get_events(
         self,
-        filter,
-        orderby=None,
-        limit=DEFAULT_LIMIT,
-        offset=DEFAULT_OFFSET,
-        referrer=None,
-        should_bind_nodes=False,
-        dataset=Dataset.Events,
-        tenant_ids=None,
+        filter: Filter,
+        orderby: Sequence[str] | None = None,
+        limit: int = DEFAULT_LIMIT,
+        offset: int = DEFAULT_OFFSET,
+        referrer: str = "eventstore.get_unfetched_events",
+        should_bind_nodes: bool = False,
+        dataset: Dataset = Dataset.Events,
+        tenant_ids: Mapping[str, Any] | None = None,
     ) -> list[Event]:
         assert filter, "You must provide a filter"
         cols = self.__get_columns(dataset)
@@ -315,7 +314,7 @@ class SnubaEventStorage(EventStorage):
         project_id: int,
         event_id: str,
         group_id: int | None = None,
-        tenant_ids=None,
+        tenant_ids: Mapping[str, Any] | None = None,
         occurrence_id: str | None = None,
         *,
         skip_transaction_groupevent: Literal[True],
@@ -327,7 +326,7 @@ class SnubaEventStorage(EventStorage):
         project_id: int,
         event_id: str,
         group_id: int | None = None,
-        tenant_ids=None,
+        tenant_ids: Mapping[str, Any] | None = None,
         occurrence_id: str | None = None,
         *,
         skip_transaction_groupevent: bool = False,
@@ -338,7 +337,7 @@ class SnubaEventStorage(EventStorage):
         project_id: int,
         event_id: str,
         group_id: int | None = None,
-        tenant_ids=None,
+        tenant_ids: Mapping[str, Any] | None = None,
         occurrence_id: str | None = None,
         *,
         skip_transaction_groupevent: bool = False,
@@ -445,7 +444,7 @@ class SnubaEventStorage(EventStorage):
 
         return event
 
-    def _get_dataset_for_event(self, event):
+    def _get_dataset_for_event(self, event: Event | GroupEvent) -> Dataset:
         if getattr(event, "occurrence", None) or event.get_event_type() == "generic":
             return Dataset.IssuePlatform
         elif event.get_event_type() == "transaction":
@@ -463,7 +462,7 @@ class SnubaEventStorage(EventStorage):
         start: datetime | None = None,
         end: datetime | None = None,
         conditions: Sequence[Condition] | None = None,
-    ):
+    ) -> list[tuple[str, str]]:
         """
         Utility function for grabbing an event's adjacent events,
         which are the ones with the closest timestamps before and after.
@@ -478,7 +477,7 @@ class SnubaEventStorage(EventStorage):
         if not conditions:
             conditions = []
 
-        def make_constant_conditions():
+        def make_constant_conditions() -> list[Condition]:
             environment_conditions = []
             if environments:
                 environment_conditions.append(Condition(Column("environment"), Op.IN, environments))
@@ -497,7 +496,7 @@ class SnubaEventStorage(EventStorage):
         lower_bound = start or (event.datetime - timedelta(days=100))
         upper_bound = end or (event.datetime + timedelta(days=100))
 
-        def make_prev_timestamp_conditions(event):
+        def make_prev_timestamp_conditions(event: Event | GroupEvent) -> list[Condition]:
             return [
                 Condition(
                     Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
@@ -521,7 +520,7 @@ class SnubaEventStorage(EventStorage):
                 ),
             ]
 
-        def make_next_timestamp_conditions(event):
+        def make_next_timestamp_conditions(event: Event | GroupEvent) -> list[Condition]:
             return [
                 Condition(
                     Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
@@ -545,7 +544,7 @@ class SnubaEventStorage(EventStorage):
                 ),
             ]
 
-        def make_request(is_prev):
+        def make_request(is_prev: bool) -> Request:
             order_by_direction = Direction.DESC if is_prev else Direction.ASC
             conditions = make_constant_conditions()
             conditions.extend(
@@ -589,10 +588,16 @@ class SnubaEventStorage(EventStorage):
         bulk_snql_results = bulk_snuba_queries(
             [snql_request_prev, snql_request_next], referrer=referrer
         )
-        event_ids = [self.__get_event_id_from_result(result) for result in bulk_snql_results]
+        event_ids = [
+            result_tuple
+            for result in bulk_snql_results
+            if (result_tuple := self.__get_event_id_from_result(result)) is not None
+        ]
         return event_ids
 
-    def get_adjacent_event_ids(self, event, filter):
+    def get_adjacent_event_ids(
+        self, event: Event | GroupEvent, filter: Filter
+    ) -> tuple[tuple[str, str] | None, tuple[str, str] | None]:
         """
         Returns (project_id, event_id) of a previous event given a current event
         and a filter. Returns None if no previous event is found.
@@ -603,7 +608,6 @@ class SnubaEventStorage(EventStorage):
             return (None, None)
 
         prev_filter = deepcopy(filter)
-        prev_filter.conditions = prev_filter.conditions or []
         prev_filter.conditions.extend(get_before_event_condition(event))
         if not prev_filter.start:
             # We only store 90 days of data, add a few extra days just in case
@@ -614,7 +618,6 @@ class SnubaEventStorage(EventStorage):
         prev_filter.orderby = DESC_ORDERING
 
         next_filter = deepcopy(filter)
-        next_filter.conditions = next_filter.conditions or []
         next_filter.conditions.extend(get_after_event_condition(event))
         next_filter.start = event.datetime
         if not next_filter.end:
@@ -622,16 +625,34 @@ class SnubaEventStorage(EventStorage):
         next_filter.orderby = ASC_ORDERING
 
         dataset = self._get_dataset_for_event(event)
-        return self.__get_event_ids_from_filters(
+        results = self.__get_event_ids_from_filters(
             filters=(prev_filter, next_filter),
             dataset=dataset,
             tenant_ids={"organization_id": event.project.organization_id},
         )
 
-    def __get_columns(self, dataset: Dataset):
-        return [col.value.event_name for col in EventStorage.minimal_columns[dataset]]
+        # Convert the results to the expected format
+        prev_result = results[0] if len(results) > 0 else None
+        next_result = results[1] if len(results) > 1 else None
 
-    def __get_event_ids_from_filters(self, filters=(), dataset=Dataset.Discover, tenant_ids=None):
+        prev_tuple = (prev_result[0], prev_result[1]) if prev_result else None
+        next_tuple = (next_result[0], next_result[1]) if next_result else None
+
+        return (prev_tuple, next_tuple)
+
+    def __get_columns(self, dataset: Dataset) -> list[str]:
+        return [
+            col.value.event_name
+            for col in EventStorage.minimal_columns[dataset]
+            if col.value.event_name is not None
+        ]
+
+    def __get_event_ids_from_filters(
+        self,
+        filters: tuple[Filter, Filter],
+        dataset: Dataset = Dataset.Discover,
+        tenant_ids: Mapping[str, Any] | None = None,
+    ) -> list[tuple[str, str] | None]:
         columns = [Columns.EVENT_ID.value.alias, Columns.PROJECT_ID.value.alias]
         try:
             # This query uses the discover dataset to enable
@@ -664,28 +685,34 @@ class SnubaEventStorage(EventStorage):
 
         return [self.__get_event_id_from_result(result) for result in results]
 
-    def __get_event_id_from_result(self, result: Mapping[str, Any]):
+    def __get_event_id_from_result(self, result: Mapping[str, Any]) -> tuple[str, str] | None:
         if "error" in result or len(result["data"]) == 0:
             return None
 
         row = result["data"][0]
         return (str(row["project_id"]), str(row["event_id"]))
 
-    def __make_event(self, snuba_data):
-        event_id = snuba_data[Columns.EVENT_ID.value.event_name]
-        project_id = snuba_data[Columns.PROJECT_ID.value.event_name]
+    def __make_event(self, snuba_data: Mapping[str, Any]) -> Event:
+        event_id_column = Columns.EVENT_ID.value.event_name
+        project_id_column = Columns.PROJECT_ID.value.event_name
+
+        if event_id_column is None or project_id_column is None:
+            raise ValueError("Event ID or Project ID column name is None")
+
+        event_id = snuba_data[event_id_column]
+        project_id = snuba_data[project_id_column]
 
         return Event(event_id=event_id, project_id=project_id, snuba_data=snuba_data)
 
     def get_unfetched_transactions(
         self,
-        filter,
-        orderby=None,
-        limit=DEFAULT_LIMIT,
-        offset=DEFAULT_OFFSET,
-        referrer="eventstore.get_unfetched_transactions",
-        tenant_ids=None,
-    ):
+        filter: Filter,
+        orderby: Sequence[str] | None = None,
+        limit: int = DEFAULT_LIMIT,
+        offset: int = DEFAULT_OFFSET,
+        referrer: str = "eventstore.get_unfetched_transactions",
+        tenant_ids: Mapping[str, Any] | None = None,
+    ) -> list[Event]:
         """
         Get transactions from Snuba, without node data loaded.
         """
@@ -713,8 +740,14 @@ class SnubaEventStorage(EventStorage):
 
         return []
 
-    def __make_transaction(self, snuba_data):
-        event_id = snuba_data[Columns.EVENT_ID.value.event_name]
-        project_id = snuba_data[Columns.PROJECT_ID.value.event_name]
+    def __make_transaction(self, snuba_data: Mapping[str, Any]) -> Event:
+        event_id_column = Columns.EVENT_ID.value.event_name
+        project_id_column = Columns.PROJECT_ID.value.event_name
+
+        if event_id_column is None or project_id_column is None:
+            raise ValueError("Event ID or Project ID column name is None")
+
+        event_id = snuba_data[event_id_column]
+        project_id = snuba_data[project_id_column]
 
         return Event(event_id=event_id, project_id=project_id, snuba_data=snuba_data)
