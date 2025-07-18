@@ -25,7 +25,8 @@ def build_mock_message(data, topic=None):
 
 @override_options({"spans.process-segments.consumer.enable": True})
 @mock.patch(
-    "sentry.spans.consumers.process_segments.factory.process_segment", side_effect=lambda x: x
+    "sentry.spans.consumers.process_segments.factory.process_segment",
+    side_effect=lambda x, **kwargs: x,
 )
 def test_segment_deserialized_correctly(mock_process_segment):
     topic = ArroyoTopic(get_topic_definition(Topic.BUFFERED_SEGMENTS)["real_topic_name"])
