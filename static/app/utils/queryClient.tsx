@@ -330,6 +330,7 @@ export function fetchMutation<TResponseData = unknown>(
     method,
     query: options?.query,
     headers: options?.headers,
+    host: options?.host,
     data,
   });
 }
