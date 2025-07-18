@@ -73,7 +73,7 @@ def EmptyRustFrame() -> RustFrame:  # noqa
 def _merge_rust_enhancements(
     bases: list[str],
     rust_enhancements: RustEnhancements,
-    type: Literal["classifier", "contributes"] | None = None,
+    type: Literal["classifier", "contributes"],
 ) -> RustEnhancements:
     """
     This will merge the parsed enhancements together with the `bases`.
@@ -85,13 +85,9 @@ def _merge_rust_enhancements(
         base = ENHANCEMENT_BASES.get(base_id)
         if base:
             base_rust_enhancements = (
-                base.rust_enhancements
-                if type is None
-                else (
-                    base.classifier_rust_enhancements
-                    if type == "classifier"
-                    else base.contributes_rust_enhancements
-                )
+                base.classifier_rust_enhancements
+                if type == "classifier"
+                else base.contributes_rust_enhancements
             )
             merged_rust_enhancements.extend_from(base_rust_enhancements)
     merged_rust_enhancements.extend_from(rust_enhancements)
@@ -146,7 +142,7 @@ def _can_use_hint(
     variant_name: str,
     frame_component: FrameGroupingComponent,
     hint: str | None,
-    desired_hint_type: Literal["in-app", "contributes"] | None = None,
+    desired_hint_type: Literal["in-app", "contributes"],
 ) -> bool:
     # Prevent clobbering an existing hint with no hint
     if hint is None:
@@ -156,7 +152,7 @@ def _can_use_hint(
     hint_type = "contributes" if "ignored" in hint else "in-app"
 
     # Don't use the hint if we've specifically asked for something different
-    if desired_hint_type and hint_type != desired_hint_type:
+    if hint_type != desired_hint_type:
         return False
 
     # System frames can't contribute to the app variant, no matter what +/-group rules say, so we
@@ -177,7 +173,7 @@ def _get_hint_for_frame(
     frame: dict[str, Any],
     frame_component: FrameGroupingComponent,
     rust_frame: RustFrame,
-    desired_hint_type: Literal["in-app", "contributes"] | None = None,
+    desired_hint_type: Literal["in-app", "contributes"],
 ) -> str | None:
     """
     Determine a hint to use for the frame, handling special-casing and precedence.
@@ -190,10 +186,7 @@ def _get_hint_for_frame(
     )
     incoming_hint = frame_component.hint
 
-    # TODO: We can switch this to `desired_hint_type == "in-app"` once we're only using split
-    # enhancements. For now, we need to also include the case where `desired_hint_type` is None. (At
-    # that point we can also change the type of the parameter to be a required string.)
-    if variant_name == "app" and desired_hint_type != "contributes":
+    if variant_name == "app" and desired_hint_type == "in-app":
         default_in_app_hint = "non app frame" if not frame_component.in_app else None
         client_in_app_hint = (
             f"marked {"in-app" if client_in_app else "out of app"} by the client"
@@ -355,8 +348,6 @@ class Enhancements:
         self.rules = rules
         self.version = version or DEFAULT_ENHANCEMENTS_VERSION
         self.bases = bases or []
-
-        self.rust_enhancements = _merge_rust_enhancements(self.bases, rust_enhancements)
 
         classifier_config, contributes_config = split_enhancement_configs or _split_rules(rules)
 
