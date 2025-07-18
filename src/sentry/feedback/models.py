@@ -34,17 +34,16 @@ class Feedback(Model):
 
 
 @region_silo_model
-class FeedbackLabel(DefaultFieldsModel):
+class GroupFeedbackLabel(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     group = FlexibleForeignKey("sentry.Group", on_delete=models.CASCADE)
-    label = FlexibleForeignKey(
-        "feedback.Label", on_delete=models.CASCADE
-    )  # rm: Finding the top 10 labels for Groups that are in a given project and date range may be slow (if we don't care about project, date range I think it's fast)
+    # rm: Finding the top 10 labels for Groups that are in a given project and date range may be slow (if we don't care about project, date range I think it's fast)
+    label = FlexibleForeignKey("feedback.Label")
 
     class Meta:
         app_label = "feedback"
-        db_table = "feedback_grouplabel"
+        db_table = "feedback_groupfeedbacklabel"
         unique_together = (("group", "label"),)
         # rm: Allows us to quickly find all labels that a certain feedback has
         indexes = [models.Index(fields=("group", "label"))]
@@ -53,16 +52,18 @@ class FeedbackLabel(DefaultFieldsModel):
 
 
 @region_silo_model
-class Label(DefaultFieldsModel):
+class FeedbackLabel(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
     name = models.CharField(max_length=255)
-    groups = models.ManyToManyField("sentry.Group", through=FeedbackLabel)
+    groups = models.ManyToManyField(
+        "sentry.Group", related_name="labels", through=GroupFeedbackLabel
+    )
 
     class Meta:
         app_label = "feedback"
-        db_table = "feedback_label"
+        db_table = "feedback_feedbacklabel"
         unique_together = (("organization_id", "name"),)
         indexes = [models.Index(fields=("organization_id", "name"))]
 
