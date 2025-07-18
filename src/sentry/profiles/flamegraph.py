@@ -21,6 +21,7 @@ from snuba_sdk import (
 )
 
 from sentry import features, options
+from sentry.models.organization import Organization
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.profile_functions import ProfileFunctionsQueryBuilder
@@ -102,8 +103,20 @@ class FlamegraphExecutor:
         if self.data_source == "functions":
             return self.get_profile_candidates_from_functions()
         elif self.data_source == "transactions":
+            organization = Organization.objects.get_from_cache(id=self.snuba_params.organization_id)
+            if features.has(
+                "organizations:profiling-flamegraph-use-increased-chunks-query-strategy",
+                organization,
+            ):
+                return self.get_profile_candidates_from_transactions_v2
             return self.get_profile_candidates_from_transactions()
         elif self.data_source == "profiles":
+            organization = Organization.objects.get_from_cache(id=self.snuba_params.organization_id)
+            if features.has(
+                "organizations:profiling-flamegraph-use-increased-chunks-query-strategy",
+                organization,
+            ):
+                return self.get_profile_candidates_from_profiles_v2()
             return self.get_profile_candidates_from_profiles()
         elif self.data_source == "spans":
             return self.get_profile_candidates_from_spans()
