@@ -209,7 +209,6 @@ class RuleSerializer(Serializer):
                 .annotate(date_added=Max("date_added"))
             }
 
-            # Query 2: Get last triggered from WorkflowFireHistory for rules that have workflows
             if features.has(
                 "organizations:workflow-engine-single-process-workflows",
                 item_list[0].project.organization,
