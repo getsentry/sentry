@@ -167,9 +167,17 @@ class OrderedQueueWorker(threading.Thread, Generic[T]):
                 break
 
             try:
-                with sentry_sdk.start_transaction(
-                    op="queue_worker.process",
-                    name=f"monitors.{self.identifier}.worker_{self.worker_id}",
+                with (
+                    sentry_sdk.start_transaction(
+                        op="queue_worker.process",
+                        name=f"monitors.{self.identifier}.worker_{self.worker_id}",
+                    ),
+                    metrics.timer(
+                        "remote_subscriptions.queue_worker.processing_time",
+                        tags={
+                            "identifier": self.identifier,
+                        },
+                    ),
                 ):
                     self.result_processor(self.identifier, work_item.result)
             except Exception:
