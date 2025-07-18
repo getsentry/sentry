@@ -51,6 +51,9 @@ class SCMIntegrationInteractionType(StrEnum):
     SYNC_EXTERNAL_ISSUE_COMMENT_CREATE = "sync_external_issue_comment_create"
     SYNC_EXTERNAL_ISSUE_COMMENT_UPDATE = "sync_external_issue_comment_update"
 
+    # Releases
+    COMPARE_COMMITS = "compare_commits"
+
 
 @dataclass
 class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
