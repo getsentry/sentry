@@ -6,7 +6,6 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {MaybeBrowserProfilingBetaWarning} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {t, tct} from 'sentry/locale';
 import {getJavascriptFullStackOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
 import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
@@ -40,12 +39,8 @@ const getInstallConfig = () => [
 ];
 
 const onboarding: OnboardingConfig = {
-  introduction: params => (
-    <Fragment>
-      <MaybeBrowserProfilingBetaWarning {...params} />
-      <p>{t("In this guide you'll set up the Sentry TanStack Start React SDK")}</p>
-    </Fragment>
-  ),
+  introduction: () =>
+    t("In this guide you'll set up the Sentry TanStack Start React SDK"),
   install: () => [
     {
       type: StepType.INSTALL,
