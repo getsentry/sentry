@@ -315,7 +315,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
         def on_results(difs: Sequence[ProjectDebugFile]):
             # NOTE: we are only refreshing files if there is direct query for specific files
             if debug_id and not query and not file_formats:
-                maybe_renew_debug_files(q, difs)
+                maybe_renew_debug_files(difs)
 
             return serialize(difs, request.user)
 
