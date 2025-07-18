@@ -151,7 +151,7 @@ const TitleEmphasis = styled('em')`
 `;
 
 const Hero = styled('div')`
-  padding: 48px 16px;
+  padding: 48px 0;
   gap: ${space(4)};
   display: flex;
   align-items: center;
@@ -173,15 +173,13 @@ const Hero = styled('div')`
     min-width: 320px;
     height: auto;
   }
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: 48px 92px;
-  }
 `;
 
 const Container = styled('div')`
-  max-width: 1134px;
-  width: calc(100vw - 32px);
+  max-width: 1080px;
+  width: 100%;
+  flex-grow: 1;
+  flex-shrink: 1;
   margin-inline: auto;
   display: flex;
   flex-direction: column;
@@ -197,12 +195,12 @@ const Container = styled('div')`
 `;
 
 const CardGrid = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  display: flex;
+  flex-flow: row wrap;
   gap: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   }
 `;
 
@@ -223,12 +221,13 @@ const CardLink = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
   display: flex;
   flex-direction: column;
-  width: 100%;
-  height: 256px;
+  flex-grow: 1;
+  width: calc(100% * 3 / 5);
+  aspect-ratio: 2/1;
   padding: ${space(2)};
   border: 1px solid ${p => p.theme.tokens.border.muted};
   border-radius: ${p => p.theme.borderRadius};
-  transition: initial 80ms ease-out;
+  transition: all 80ms ease-out;
   transition-property: background-color, color, border-color;
 
   &:hover,
@@ -244,15 +243,20 @@ const CardLink = styled(Link)`
     max-width: 509px;
     max-height: 170px;
   }
+
+  @media screen and (min-width: ${p => p.theme.breakpoints.md}) {
+    max-width: calc(50% - 32px);
+  }
 `;
 
 const CardTitle = styled('span')`
   margin: 0;
-  margin-top: ${space(1)};
+  margin-top: auto;
+  margin-bottom: ${space(2)};
+  padding: ${space(1)} ${space(2)};
   width: 100%;
   height: 24px;
   font-size: 24px;
-  padding: ${space(1)} ${space(2)};
   font-weight: ${p => p.theme.fontWeight.bold};
   color: currentColor;
 `;
