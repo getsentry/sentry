@@ -229,10 +229,10 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
 
 const ResizeHandle = styled('div')`
   position: absolute;
-  left: -4px;
+  left: -2px;
   top: 0;
   bottom: 0;
-  width: 16px;
+  width: 8px;
   cursor: ew-resize;
   z-index: ${p => p.theme.zIndex.drawer + 2};
 
@@ -254,7 +254,7 @@ const ResizeHandle = styled('div')`
   &::after {
     content: '';
     position: absolute;
-    left: 4px;
+    left: 2px;
     top: 0;
     bottom: 0;
     width: 4px;
