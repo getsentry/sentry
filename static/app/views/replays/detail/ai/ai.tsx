@@ -5,6 +5,7 @@ import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconSeer, IconSync, IconThumb} from 'sentry/icons';
@@ -24,6 +25,7 @@ export default function Ai() {
   const {replay} = useReplayContext();
   const replayRecord = replay?.getReplay();
   const project = useProjectFromId({project_id: replayRecord?.project_id});
+  const {areAiFeaturesAllowed, setupAcknowledgement} = useOrganizationSeerSetup();
   const {
     data: summaryData,
     isPending,
@@ -36,81 +38,48 @@ export default function Ai() {
       replayRecord?.id &&
         project?.slug &&
         organization.features.includes('replay-ai-summaries') &&
-        organization.features.includes('gen-ai-features') &&
-        !organization.hideAiFeatures
+        areAiFeaturesAllowed
     ),
     retry: false,
   });
 
-  const openForm = useFeedbackForm();
-
-  const feedbackButton = ({type}: {type: 'positive' | 'negative'}) => {
-    return openForm ? (
-      <Button
-        aria-label={t('Give feedback on the replay summary section')}
-        icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
-        title={type === 'positive' ? t('I like this') : t(`I don't like this`)}
-        size={'xs'}
-        onClick={() =>
-          openForm({
-            messagePlaceholder:
-              type === 'positive'
-                ? t('What did you like about the replay summary and chapters?')
-                : t(
-                    'How can we make the replay summary and chapters work better for you?'
-                  ),
-            tags: {
-              ['feedback.source']: 'replay_ai_summary',
-              ['feedback.owner']: 'replay',
-              ['feedback.type']: type,
-            },
-          })
-        }
-      />
-    ) : null;
-  };
-
-  if (
-    !organization.features.includes('replay-ai-summaries') ||
-    !organization.features.includes('gen-ai-features')
-  ) {
+  if (!organization.features.includes('replay-ai-summaries') || !areAiFeaturesAllowed) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <EmptySummaryContainer>
-          <Alert type="info">
-            {t('Replay summary is not available for this organization.')}
+          <Alert type="warning">
+            {t('AI features are not available for this organization.')}
           </Alert>
         </EmptySummaryContainer>
       </Wrapper>
     );
   }
 
-  // If replay-ai-summaries is enabled but genAIConsent is not, then show CTA
-  if (organization.genAIConsent) {
+  // If our `replay-ai-summaries` ff is enabled and the org has gen AI ff enabled,
+  // but the org hasn't acknowledged the gen AI features, then show CTA.
+  if (!setupAcknowledgement.orgHasAcknowledged) {
     return (
-      <EmptySummaryContainer>
-        <CallToActionContainer>
-          <Flex direction="column" gap={space(2)}>
-            <div>
-              <strong>{t('AI-Powered Replay Summaries')}</strong>
-            </div>
-            <div>
-              {t(
-                'Enable generative AI features in your organization settings to see replay summaries.'
-              )}
-            </div>
-            <div>
-              <LinkButton
-                size="sm"
-                priority="primary"
-                to="/settings/organization/#hideAiFeatures"
-              >
-                {t('Enable in Organization Settings')}
-              </LinkButton>
-            </div>
-          </Flex>
-        </CallToActionContainer>
-      </EmptySummaryContainer>
+      <Wrapper data-test-id="replay-details-ai-summary-tab">
+        <EmptySummaryContainer>
+          <CallToActionContainer>
+            <Flex direction="column" gap={space(2)}>
+              <div>
+                <strong>{t('AI-Powered Replay Summaries')}</strong>
+              </div>
+              <div>
+                {t(
+                  'Seer access is required to use replay summaries. Please view the Seer settings page for more information.'
+                )}
+              </div>
+              <div>
+                <LinkButton size="sm" priority="primary" to="/settings/seer/">
+                  {t('View Seer Settings')}
+                </LinkButton>
+              </div>
+            </Flex>
+          </CallToActionContainer>
+        </EmptySummaryContainer>
+      </Wrapper>
     );
   }
 
@@ -171,8 +140,8 @@ export default function Ai() {
         </SummaryLeft>
         <SummaryRight>
           <Flex gap={space(0.5)}>
-            {feedbackButton({type: 'positive'})}
-            {feedbackButton({type: 'negative'})}
+            <FeedbackButton type="positive" />
+            <FeedbackButton type="negative" />
           </Flex>
           <Button
             priority="default"
@@ -196,6 +165,35 @@ export default function Ai() {
         </OverflowBody>
       </StyledTabItemContainer>
     </Wrapper>
+  );
+}
+
+function FeedbackButton({type}: {type: 'positive' | 'negative'}) {
+  const openForm = useFeedbackForm();
+  if (!openForm) {
+    return null;
+  }
+
+  return (
+    <Button
+      aria-label={t('Give feedback on the replay summary section')}
+      icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
+      title={type === 'positive' ? t('I like this') : t(`I don't like this`)}
+      size={'xs'}
+      onClick={() =>
+        openForm({
+          messagePlaceholder:
+            type === 'positive'
+              ? t('What did you like about the replay summary and chapters?')
+              : t('How can we make the replay summary and chapters work better for you?'),
+          tags: {
+            ['feedback.source']: 'replay_ai_summary',
+            ['feedback.owner']: 'replay',
+            ['feedback.type']: type,
+          },
+        })
+      }
+    />
   );
 }
 
@@ -280,8 +278,5 @@ const OverflowBody = styled('section')`
 
 const CallToActionContainer = styled('div')`
   padding: ${space(3)};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
   text-align: center;
-  background: ${p => p.theme.backgroundSecondary};
 `;
