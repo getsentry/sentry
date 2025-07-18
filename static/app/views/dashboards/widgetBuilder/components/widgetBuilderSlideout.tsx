@@ -7,6 +7,7 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
@@ -255,58 +256,60 @@ function WidgetBuilderSlideout({
             <Section>
               <WidgetBuilderDatasetSelector />
             </Section>
-            <Section>
-              <WidgetBuilderTypeSelector error={error} setError={setError} />
-            </Section>
-            <div ref={customPreviewRef}>
+            <DisableTransactionWidget>
+              <Section>
+                <WidgetBuilderTypeSelector error={error} setError={setError} />
+              </Section>
+              <div ref={customPreviewRef}>
+                {isSmallScreen && (
+                  <Section>
+                    <WidgetPreviewContainer
+                      dashboard={dashboard}
+                      dashboardFilters={dashboardFilters}
+                      isWidgetInvalid={isWidgetInvalid}
+                      onDataFetched={onDataFetched}
+                      openWidgetTemplates={openWidgetTemplates}
+                    />
+                  </Section>
+                )}
+              </div>
               {isSmallScreen && (
                 <Section>
-                  <WidgetPreviewContainer
-                    dashboard={dashboard}
-                    dashboardFilters={dashboardFilters}
-                    isWidgetInvalid={isWidgetInvalid}
-                    onDataFetched={onDataFetched}
-                    openWidgetTemplates={openWidgetTemplates}
-                  />
+                  <WidgetBuilderFilterBar releases={dashboard.filters?.release ?? []} />
                 </Section>
               )}
-            </div>
-            {isSmallScreen && (
               <Section>
-                <WidgetBuilderFilterBar releases={dashboard.filters?.release ?? []} />
+                <Visualize error={error} setError={setError} />
               </Section>
-            )}
-            <Section>
-              <Visualize error={error} setError={setError} />
-            </Section>
-            <Section>
-              <WidgetBuilderQueryFilterBuilder
-                onQueryConditionChange={onQueryConditionChange}
-                validatedWidgetResponse={validatedWidgetResponse}
-              />
-            </Section>
-            {state.displayType === DisplayType.BIG_NUMBER && (
               <Section>
-                <ThresholdsSection
-                  dataType={thresholdMetaState?.dataType}
-                  dataUnit={thresholdMetaState?.dataUnit}
-                  error={error}
-                  setError={setError}
-                />
-              </Section>
-            )}
-            {isChartWidget && (
-              <Section>
-                <WidgetBuilderGroupBySelector
+                <WidgetBuilderQueryFilterBuilder
+                  onQueryConditionChange={onQueryConditionChange}
                   validatedWidgetResponse={validatedWidgetResponse}
                 />
               </Section>
-            )}
-            {showSortByStep && (
-              <Section>
-                <WidgetBuilderSortBySelector />
-              </Section>
-            )}
+              {state.displayType === DisplayType.BIG_NUMBER && (
+                <Section>
+                  <ThresholdsSection
+                    dataType={thresholdMetaState?.dataType}
+                    dataUnit={thresholdMetaState?.dataUnit}
+                    error={error}
+                    setError={setError}
+                  />
+                </Section>
+              )}
+              {isChartWidget && (
+                <Section>
+                  <WidgetBuilderGroupBySelector
+                    validatedWidgetResponse={validatedWidgetResponse}
+                  />
+                </Section>
+              )}
+              {showSortByStep && (
+                <Section>
+                  <WidgetBuilderSortBySelector />
+                </Section>
+              )}
+            </DisableTransactionWidget>
             <SaveButtonGroup
               isEditing={isEditing}
               onSave={onSave}
@@ -327,6 +330,43 @@ function Section({children}: {children: React.ReactNode}) {
     <SectionWrapper>
       <ErrorBoundary mini>{children}</ErrorBoundary>
     </SectionWrapper>
+  );
+}
+
+type DisableModeProps = {
+  children: React.ReactNode;
+};
+
+function DisableTransactionWidget({children}: DisableModeProps) {
+  const disableTransactionWidget = useDisableTransactionWidget();
+
+  if (!disableTransactionWidget) {
+    return children;
+  }
+
+  return (
+    <Tooltip
+      title={t(
+        'Transaction widgets are being deprecated. Please use the spans dataset moving forward.'
+      )}
+      delay={500}
+    >
+      <div
+        data-test-id="demo-mode-disabled-wrapper"
+        style={{
+          opacity: 0.6,
+          cursor: 'not-allowed',
+        }}
+      >
+        <div
+          style={{
+            pointerEvents: 'none',
+          }}
+        >
+          {children}
+        </div>
+      </div>
+    </Tooltip>
   );
 }
 
