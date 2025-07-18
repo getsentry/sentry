@@ -268,6 +268,20 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
             return True
 
         self.mark_deletion_in_progress(instance_list)
+
+        error_group_ids = []
+        # XXX: If a group type has been removed, we shouldn't error here.
+        # Ideally, we should refactor `issue_category` to return None if the type is
+        # unregistered.
+        for group in instance_list:
+            try:
+                if group.issue_category == GroupCategory.ERROR:
+                    error_group_ids.append(group.id)
+            except InvalidGroupTypeError:
+                pass
+        # Tell seer to delete grouping records with these group hashes
+        may_schedule_task_to_delete_hashes_from_seer(error_group_ids)
+
         self._delete_children(instance_list)
 
         # Remove group objects with children removed.
@@ -283,9 +297,6 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
             child_relations.append(ModelRelation(model, {"group_id__in": group_ids}))
 
         error_groups, issue_platform_groups = separate_by_group_category(instance_list)
-
-        # Tell seer to delete grouping records with these group hashes
-        may_schedule_task_to_delete_hashes_from_seer([group.id for group in error_groups])
 
         # If this isn't a retention cleanup also remove event data.
         if not os.environ.get("_SENTRY_CLEANUP"):
