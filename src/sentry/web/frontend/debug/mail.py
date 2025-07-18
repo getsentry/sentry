@@ -275,7 +275,7 @@ def make_feedback_issue(project):
 
 
 def get_shared_context(rule, org, project: Project, group, event):
-    rules = get_rules([rule], org, project)
+    rules = get_rules([rule], org, project, group.type)
     snooze_alert = len(rules) > 0
     snooze_alert_url = rules[0].status_url + urlencode({"mute": "1"}) if snooze_alert else ""
     return {

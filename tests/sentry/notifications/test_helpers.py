@@ -92,7 +92,7 @@ class NotificationHelpersTest(TestCase):
 
     def test_get_group_settings_link(self):
         rule: Rule = self.create_project_rule(self.project)
-        rule_details = get_rules([rule], self.organization, self.project)
+        rule_details = get_rules([rule], self.organization, self.project, self.group.type)
         link = get_group_settings_link(
             self.group, self.environment.name, rule_details, 1337, extra="123"
         )
@@ -114,7 +114,7 @@ class NotificationHelpersTest(TestCase):
         project2 = self.create_project()
         rule2 = self.create_project_rule(project2)
 
-        rule_details = get_rules([rule, rule2], self.organization, self.project)
+        rule_details = get_rules([rule, rule2], self.organization, self.project, self.group.type)
         extra_params = {
             k: dict(map(lambda x: (x[0], x[1][0]), parse_qs(v.strip("?")).items()))
             for k, v in get_email_link_extra_params(

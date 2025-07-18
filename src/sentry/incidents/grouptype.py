@@ -3,17 +3,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.handlers.condition import *  # noqa
 from sentry.incidents.metric_issue_detector import MetricIssueDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, ComparisonDeltaChoices
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
-from sentry.incidents.utils.metric_issue_poc import QUERY_AGGREGATION_DISPLAY
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.integrations.metric_alerts import TEXT_COMPARISON_DELTA
 from sentry.issues.grouptype import GroupCategory, GroupType
-from sentry.models.organization import Organization
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.snuba.metrics import format_mri_field, is_mri_field
 from sentry.snuba.models import QuerySubscription, SnubaQuery
@@ -29,6 +26,15 @@ from sentry.workflow_engine.types import DetectorException, DetectorPriorityLeve
 
 COMPARISON_DELTA_CHOICES: list[None | int] = [choice.value for choice in ComparisonDeltaChoices]
 COMPARISON_DELTA_CHOICES.append(None)
+
+QUERY_AGGREGATION_DISPLAY = {
+    "count()": "Number of events",
+    "count_unique(tags[sentry:user])": "Number of users affected",
+    "percentage(sessions_crashed, sessions)": "Crash free session rate",
+    "percentage(users_crashed, users)": "Crash free user rate",
+    "failure_rate()": "Failure rate",
+    "apdex()": "Apdex score",
+}
 
 
 @dataclass
@@ -175,6 +181,7 @@ class MetricIssue(GroupType):
     default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False
     enable_escalation_detection = False
+    enable_status_change_workflow_notifications = False
     detector_settings = DetectorSettings(
         handler=MetricIssueDetectorHandler,
         validator=MetricIssueDetectorValidator,
@@ -198,7 +205,3 @@ class MetricIssue(GroupType):
             },
         },
     )
-
-    @classmethod
-    def allow_post_process_group(cls, organization: Organization) -> bool:
-        return features.has("organizations:workflow-engine-metric-alert-processing", organization)
