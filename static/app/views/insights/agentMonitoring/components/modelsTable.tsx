@@ -77,6 +77,8 @@ const rightAlignColumns = new Set([
   'count()',
   AI_INPUT_TOKENS_ATTRIBUTE_SUM,
   AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
+  AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM,
+  AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM,
   // 'failure_rate()',
   'avg(span.duration)',
   'p95(span.duration)',
