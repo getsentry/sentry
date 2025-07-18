@@ -5,10 +5,11 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
+from sentry.auth_v2.endpoints.base import AuthV2Endpoint
 from sentry.users.api.serializers.user import UserSerializerWithOrgMemberships
 from sentry.users.models.user import User
 from sentry.users.models.user_merge_verification_code import UserMergeVerificationCode
@@ -20,7 +21,7 @@ class AuthMergeUserAccountsValidator(serializers.Serializer):
 
 
 @control_silo_endpoint
-class AuthMergeUserAccountsEndpoint(Endpoint):
+class AuthMergeUserAccountsEndpoint(AuthV2Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
