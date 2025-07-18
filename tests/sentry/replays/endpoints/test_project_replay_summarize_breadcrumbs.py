@@ -695,14 +695,14 @@ def test_as_log_message():
         "timestamp": 0.0,
         "data": {"tag": "breadcrumb", "payload": {"category": "ui.blur"}},
     }
-    assert as_log_message(event) is not None
+    assert as_log_message(event) is None
 
     event = {
         "type": 5,
         "timestamp": 0.0,
         "data": {"tag": "breadcrumb", "payload": {"category": "ui.focus"}},
     }
-    assert as_log_message(event) is not None
+    assert as_log_message(event) is None
 
     event = {
         "type": 5,
