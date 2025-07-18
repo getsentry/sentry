@@ -65,8 +65,8 @@ function GenerateSpikeProjectionsForBatch() {
       <PageHeader title="Generate Spike Projections For Batch" />
       <Column onSubmit={handleSubmit}>
         <p>
-          This will queue a task to generate spike projections for the specified batch of
-          customers in the specified region.
+          This will queue a task to generate spike projections for the next 7 days for the
+          specified batch of customers in the specified region.
         </p>
         <CompactSelect
           triggerProps={{prefix: 'Region'}}
