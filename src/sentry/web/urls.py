@@ -1220,6 +1220,11 @@ urlpatterns += [
         api.security_txt,
         name="sentry-security-txt",
     ),
+    re_path(
+        r"^\.well-known/mcp\.json$",
+        api.mcp_json,
+        name="sentry-mcp-json",
+    ),
     # Force a 404 of favicon.ico.
     # This url is commonly requested by browsers, and without
     # blocking this, it was treated as a 200 OK for a react page view.
