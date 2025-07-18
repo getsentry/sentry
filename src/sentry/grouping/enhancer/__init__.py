@@ -333,9 +333,6 @@ def get_enhancements_version(project: Project, grouping_config_id: str = "") -> 
     See https://github.com/getsentry/sentry/pull/91695 for a version of this function which
     incorporates sampling.
     """
-    if grouping_config_id.startswith("legacy"):
-        return 2
-
     return DEFAULT_ENHANCEMENTS_VERSION
 
 
@@ -405,71 +402,6 @@ class Enhancements:
                 set_in_app(frame, in_app)
             if category is not None:
                 set_path(frame, "data", "category", value=category)
-
-    def assemble_stacktrace_component_legacy(
-        self,
-        variant_name: str,
-        frame_components: list[FrameGroupingComponent],
-        frames: list[dict[str, Any]],
-        platform: str | None,
-        exception_data: dict[str, Any] | None = None,
-    ) -> StacktraceGroupingComponent:
-        """
-        This assembles a `stacktrace` grouping component out of the given
-        `frame` components and source frames.
-
-        This also handles cases where the entire stacktrace should be discarded.
-        """
-
-        match_frames: list[Any] = [create_match_frame(frame, platform) for frame in frames]
-        rust_frames = [RustFrame(contributes=c.contributes) for c in frame_components]
-        rust_exception_data = _make_rust_exception_data(exception_data)
-
-        # Modify the rust frames by applying +group/-group rules and getting hints for both those
-        # changes and the `in_app` changes applied by earlier in the ingestion process by
-        # `apply_category_and_updated_in_app_to_frames`. Also, get `hint` and `contributes` values
-        # for the overall stacktrace (returned in `rust_results`).
-        rust_stacktrace_results = self.rust_enhancements.assemble_stacktrace_component(
-            match_frames, rust_exception_data, rust_frames
-        )
-
-        # Tally the number of each type of frame in the stacktrace. Later on, this will allow us to
-        # both collect metrics and use the information in decisions about whether to send the event
-        # to Seer
-        frame_counts: Counter[str] = Counter()
-
-        # Update frame components with results from rust
-        for frame, frame_component, rust_frame in zip(frames, frame_components, rust_frames):
-            rust_contributes = bool(rust_frame.contributes)  # bool-ing this for mypy's sake
-            rust_hint = rust_frame.hint
-            rust_hint_type = (
-                None
-                if rust_hint is None
-                else "in-app" if rust_hint.startswith("marked") else "contributes"
-            )
-
-            hint = _get_hint_for_frame(variant_name, frame, frame_component, rust_frame)
-
-            if not (variant_name == "system" and rust_hint_type == "in-app"):
-                hint = rust_hint
-
-            frame_component.update(contributes=rust_contributes, hint=hint)
-
-            # Add this frame to our tally
-            key = f"{"in_app" if frame_component.in_app else "system"}_{"contributing" if frame_component.contributes else "non_contributing"}_frames"
-            frame_counts[key] += 1
-
-        stacktrace_contributes = rust_stacktrace_results.contributes
-        stacktrace_hint = rust_stacktrace_results.hint
-
-        stacktrace_component = StacktraceGroupingComponent(
-            values=frame_components,
-            hint=stacktrace_hint,
-            contributes=stacktrace_contributes,
-            frame_counts=frame_counts,
-        )
-
-        return stacktrace_component
 
     def assemble_stacktrace_component(
         self,

@@ -2968,6 +2968,19 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "workflow_engine.issue_alert.group.type_id.rollout",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "workflow_engine.issue_alert.group.type_id.ga",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Restrict uptime issue creation for specific host provider identifiers. Items
 # in this list map to the `host_provider_id` column in the UptimeSubscription
@@ -3476,6 +3489,32 @@ register(
 # endpoint. When this is false, the endpoint will just 404.
 register(
     "issues.browser_reporting.collector_endpoint_enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enable experimental message parameterization in grouping.
+register(
+    "grouping.experimental_parameterization",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rollout for inferring project platform from events received
+register(
+    "sentry:infer_project_platform",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enables the new project option set_value implementation that only reloads the cache if the
+# value has changed. This is a temporary option to allow for a smooth transition to the new
+# implementation, and acts as a killswitch.
+register(
+    "sentry.project_option.reload_cache_only_on_value_change",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

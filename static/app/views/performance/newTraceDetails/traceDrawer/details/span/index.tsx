@@ -45,6 +45,8 @@ import {AIInputSection} from 'sentry/views/performance/newTraceDetails/traceDraw
 import {AIOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import {Attributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
 import {Contexts} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/contexts';
+import {MCPInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/mcpInput';
+import {MCPOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/mcpOutput';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {BreadCrumbs} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/breadCrumbs';
 import ReplayPreview from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/replayPreview';
@@ -277,6 +279,8 @@ export function SpanNodeDetails(
                   />
                   <AIInputSection node={node} />
                   <AIOutputSection node={node} />
+                  <MCPInputSection node={node} />
+                  <MCPOutputSection node={node} />
                   <SpanSections
                     node={node}
                     project={project}
@@ -454,6 +458,8 @@ function EAPSpanNodeDetails({
                     />
                     <AIInputSection node={node} attributes={attributes} />
                     <AIOutputSection node={node} attributes={attributes} />
+                    <MCPInputSection node={node} attributes={attributes} />
+                    <MCPOutputSection node={node} attributes={attributes} />
                     <Attributes
                       node={node}
                       attributes={attributes}

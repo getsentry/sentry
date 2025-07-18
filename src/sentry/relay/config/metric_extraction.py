@@ -40,6 +40,7 @@ from sentry.snuba.metrics.extraction import (
     MetricSpec,
     MetricSpecType,
     OnDemandMetricSpec,
+    OnDemandMetricSpecError,
     OnDemandMetricSpecVersioning,
     SpecVersion,
     TagMapping,
@@ -810,6 +811,13 @@ def _convert_aggregate_and_query_to_metrics(
                     "on_demand_metrics.invalid_metric_spec", tags={"prefilling": prefilling}
                 )
                 logger.exception("Invalid on-demand metric spec", extra=extra)
+
+            except OnDemandMetricSpecError:
+                metrics.incr("on_demand_metrics.invalid_metric_spec.other")
+                logger.warning(
+                    "Failed on-demand metric spec creation due to specification error.", extra=extra
+                )
+
             except Exception:
                 # Since prefilling might include several non-ondemand-compatible alerts, we want to not trigger errors in the
                 metrics.incr("on_demand_metrics.invalid_metric_spec.other")

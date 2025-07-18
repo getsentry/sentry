@@ -30,7 +30,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getDurationChartTitle} from 'sentry/views/insights/common/views/spans/types';
 import {useSpanSamples} from 'sentry/views/insights/http/queries/useSpanSamples';
 import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
@@ -46,11 +46,7 @@ import {
 } from 'sentry/views/insights/queues/settings';
 import decodeRetryCount from 'sentry/views/insights/queues/utils/queryParameterDecoders/retryCount';
 import decodeTraceStatus from 'sentry/views/insights/queues/utils/queryParameterDecoders/traceStatus';
-import {
-  ModuleName,
-  SpanFields,
-  type SpanMetricsResponse,
-} from 'sentry/views/insights/types';
+import {type EAPSpanResponse, ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 export function MessageSpanSamplesPanel() {
   const navigate = useNavigate();
@@ -169,7 +165,7 @@ export function MessageSpanSamplesPanel() {
     isFetching: isDurationDataFetching,
     data: durationData,
     error: durationError,
-  } = useSpanMetricsSeries(
+  } = useSpanSeries(
     {
       search: timeseriesFilters,
       yAxis: [`avg(span.duration)`],
@@ -380,7 +376,7 @@ function ProducerMetricsRibbon({
   isLoading,
 }: {
   isLoading: boolean;
-  metrics: Array<Partial<SpanMetricsResponse>>;
+  metrics: Array<Partial<EAPSpanResponse>>;
 }) {
   const errorRate = 1 - (metrics[0]?.['trace_status_rate(ok)'] ?? 0);
   return (
@@ -406,7 +402,7 @@ function ConsumerMetricsRibbon({
   isLoading,
 }: {
   isLoading: boolean;
-  metrics: Array<Partial<SpanMetricsResponse>>;
+  metrics: Array<Partial<EAPSpanResponse>>;
 }) {
   const errorRate = 1 - (metrics[0]?.['trace_status_rate(ok)'] ?? 0);
   return (

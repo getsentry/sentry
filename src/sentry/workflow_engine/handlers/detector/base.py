@@ -75,14 +75,24 @@ class DetectorOccurrence:
         )
 
 
+# TODO - @saponifi3d - Change this class to be a pure ABC and remove the `__init__` method.
+# TODO - @saponifi3d - Once the change is made, we should introduce a `BaseDetector` class to evaluate simple cases
 class DetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationType]):
     def __init__(self, detector: Detector):
         self.detector = detector
         if detector.workflow_condition_group_id is not None:
             try:
-                group = DataConditionGroup.objects.get_from_cache(
-                    id=detector.workflow_condition_group_id
-                )
+                # Check if workflow_condition_group is already prefetched
+                if (
+                    hasattr(detector, "_prefetched_objects_cache")
+                    and "workflow_condition_group" in detector._prefetched_objects_cache
+                ):
+                    group = detector.workflow_condition_group
+                else:
+                    group = DataConditionGroup.objects.get_from_cache(
+                        id=detector.workflow_condition_group_id
+                    )
+
                 self.condition_group: DataConditionGroup | None = group
             except DataConditionGroup.DoesNotExist:
                 logger.exception(
