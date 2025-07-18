@@ -37,4 +37,21 @@ describe('DashboardTable', () => {
     // The dashboard is starred, so the button should prompt "Unstar"
     expect(screen.getByLabelText('Unstar')).toBeInTheDocument();
   });
+
+  it('renders environments', () => {
+    render(
+      <DashboardTable
+        dashboards={[
+          DashboardListItemFixture({
+            environment: ['production', 'staging'],
+          }),
+        ]}
+        cursorKey="test"
+        isLoading={false}
+        title={''}
+      />
+    );
+
+    expect(screen.getByText('production, staging')).toBeInTheDocument();
+  });
 });

@@ -584,9 +584,11 @@ describe('WidgetBuilderSlideout', () => {
 
     expect(
       await screen.findByText(
-        'Transaction widgets are being deprecated. Please use the spans dataset moving forward.'
+        /You may have limited functionality due to the ongoing migration of transactions to spans/i
       )
     ).toBeInTheDocument();
+
+    expect(screen.getByTestId('transaction-widget-disabled-wrapper')).toBeInTheDocument();
   });
 
   it('should not show deprecation alert when flag enabled', async () => {
@@ -624,9 +626,12 @@ describe('WidgetBuilderSlideout', () => {
     await waitFor(() => {
       expect(
         screen.queryByText(
-          'Transaction widgets are being deprecated. Please use the spans dataset moving forward.'
+          /You may have limited functionality due to the ongoing migration of transactions to spans/i
         )
       ).not.toBeInTheDocument();
     });
+    expect(
+      screen.queryByTestId('transaction-widget-disabled-wrapper')
+    ).not.toBeInTheDocument();
   });
 });
