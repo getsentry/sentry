@@ -7,7 +7,7 @@ import startCase from 'lodash/startCase';
 import {PlatformIcon} from 'platformicons';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
+import {openConsoleModal, openModal} from 'sentry/actionCreators/modal';
 import {removeProject} from 'sentry/actionCreators/projects';
 import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/core/alert';
@@ -423,6 +423,27 @@ export function CreateProject() {
         return;
       }
 
+      if (
+        value.type === 'console' &&
+        !organization.enabledConsolePlatforms?.includes(value.id)
+      ) {
+        // By selecting a console platform, we don't want to jump to another category when its closed
+        updateFormData('platform', {
+          category: formData.platform?.category,
+        });
+        openConsoleModal({
+          selectedPlatform: {
+            key: value.id,
+            name: value.name,
+            type: value.type,
+            language: value.language,
+            category: value.category,
+            link: value.link,
+          },
+        });
+        return;
+      }
+
       updateFormData('platform', {
         ...omit(value, 'id'),
         key: value.id,
@@ -439,6 +460,7 @@ export function CreateProject() {
       formData.projectName,
       formData.platform?.key,
       formData.platform?.category,
+      organization.enabledConsolePlatforms,
     ]
   );
 
