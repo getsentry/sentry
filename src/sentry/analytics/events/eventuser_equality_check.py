@@ -1,17 +1,14 @@
 from sentry import analytics
 
 
+@analytics.eventclass("eventuser_equality.check")
 class EventUserEqualityCheck(analytics.Event):
-    type = "eventuser_equality.check"
-
-    attributes = (
-        analytics.Attribute("event_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("group_id"),
-        analytics.Attribute("snuba_eventuser_equality", type=bool),
-        analytics.Attribute("event_eventuser_equality", type=bool),
-        analytics.Attribute("snuba_event_equality", type=bool),
-    )
+    event_id: str
+    project_id: str
+    group_id: str
+    snuba_eventuser_equality: bool
+    event_eventuser_equality: bool
+    snuba_event_equality: bool
 
 
 analytics.register(EventUserEqualityCheck)

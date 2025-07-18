@@ -1,14 +1,11 @@
 from sentry import analytics
 
 
+@analytics.eventclass("quick_trace.connected_services")
 class QuickTraceConnectedServices(analytics.Event):
-    type = "quick_trace.connected_services"
-
-    attributes = (
-        analytics.Attribute("trace_id"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("projects"),
-    )
+    trace_id: str
+    organization_id: str
+    projects: str
 
 
 analytics.register(QuickTraceConnectedServices)
