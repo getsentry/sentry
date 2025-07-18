@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import ExternalLink from 'sentry/components/links/externalLink';
 import TimeSince from 'sentry/components/timeSince';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
@@ -18,7 +17,6 @@ import {Container} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
-import {isUrl} from 'sentry/utils/string/isUrl';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -146,7 +144,7 @@ function BaseExploreFieldRenderer({
       source: TraceViewSources.TRACES,
     });
 
-    rendered = <Link to={target}>{rendered}</Link>;
+    return <Link to={target}>{rendered}</Link>;
   }
 
   if (['id', 'span_id', 'transaction.id'].includes(field)) {
@@ -162,7 +160,7 @@ function BaseExploreFieldRenderer({
       source: TraceViewSources.TRACES,
     });
 
-    rendered = <Link to={target}>{rendered}</Link>;
+    return <Link to={target}>{rendered}</Link>;
   }
 
   if (field === 'profile.id') {
@@ -171,7 +169,7 @@ function BaseExploreFieldRenderer({
       projectSlug: data.project,
       profileId: data['profile.id'],
     });
-    rendered = <Link to={target}>{rendered}</Link>;
+    return <Link to={target}>{rendered}</Link>;
   }
 
   return (
@@ -238,13 +236,7 @@ function spanDescriptionRenderFunc(projects: Record<string, Project>) {
                 hideName
               />
             )}
-            <WrappingText>
-              {isUrl(value) ? (
-                <ExternalLink href={value}>{value}</ExternalLink>
-              ) : (
-                nullableValue(value)
-              )}
-            </WrappingText>
+            <WrappingText>{nullableValue(value)}</WrappingText>
           </Description>
         </Tooltip>
       </span>
