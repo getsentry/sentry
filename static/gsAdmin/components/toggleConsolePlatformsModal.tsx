@@ -44,13 +44,13 @@ export function ToggleConsolePlatformsModal({
       });
     },
     onMutate: () => {
-      addLoadingMessage('Updating console platforms\u2026');
+      addLoadingMessage(`Updating console platforms for ${organization.slug}\u2026`);
     },
     onSuccess: () => {
-      addSuccessMessage('Console platforms updated');
+      addSuccessMessage(`Console platforms updated for ${organization.slug}`);
     },
     onError: () => {
-      addErrorMessage('Failed to update console platforms');
+      addErrorMessage(`Failed to update console platforms for ${organization.slug}`);
     },
   });
 
