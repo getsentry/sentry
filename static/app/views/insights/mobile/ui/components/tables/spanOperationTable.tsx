@@ -17,7 +17,7 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
@@ -89,7 +89,7 @@ export function SpanOperationTable({
     ],
     query: queryStringPrimary,
     orderby,
-    dataset: DiscoverDatasets.SPANS_METRICS,
+    dataset: DiscoverDatasets.SPANS_EAP_RPC,
     version: 2,
     projects: selection.projects,
     interval: getInterval(selection.datetime, STARFISH_CHART_INTERVAL_FIDELITY),
@@ -97,7 +97,7 @@ export function SpanOperationTable({
 
   const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
-  const {data, meta, isPending, pageLinks} = useSpanMetrics(
+  const {data, meta, isPending, pageLinks} = useSpans(
     {
       cursor,
       search: queryStringPrimary,

@@ -114,7 +114,9 @@ def trigger_action(
         # Here, we probably build the event data from the activity
         raise NotImplementedError("Activity ID is not supported yet")
 
-    should_trigger_actions = should_fire_workflow_actions(detector.project.organization)
+    should_trigger_actions = should_fire_workflow_actions(
+        detector.project.organization, event_data.group.type
+    )
 
     if should_trigger_actions:
         action.trigger(event_data, detector)

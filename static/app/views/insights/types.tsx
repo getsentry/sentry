@@ -109,9 +109,12 @@ export enum SpanFields {
   GEN_AI_RESPONSE_MODEL = 'gen_ai.response.model',
   GEN_AI_TOOL_NAME = 'gen_ai.tool.name',
   GEN_AI_USAGE_INPUT_TOKENS = 'gen_ai.usage.input_tokens',
+  GEN_AI_USAGE_INPUT_TOKENS_CACHED = 'gen_ai.usage.input_tokens.cached',
   GEN_AI_USAGE_OUTPUT_TOKENS = 'gen_ai.usage.output_tokens',
+  GEN_AI_USAGE_OUTPUT_TOKENS_REASONING = 'gen_ai.usage.output_tokens.reasoning',
   GEN_AI_USAGE_TOTAL_COST = 'gen_ai.usage.total_cost',
   GEN_AI_USAGE_TOTAL_TOKENS = 'gen_ai.usage.total_tokens',
+  MCP_CLIENT_NAME = 'mcp.client.name',
   MCP_TRANSPORT = 'mcp.transport',
   MCP_TOOL_NAME = 'mcp.tool.name',
   MCP_RESOURCE_URI = 'mcp.resource.uri',
@@ -269,6 +272,7 @@ export type SpanStringFields =
   | SpanFields.GEN_AI_REQUEST_MODEL
   | SpanFields.GEN_AI_RESPONSE_MODEL
   | SpanFields.GEN_AI_TOOL_NAME
+  | SpanFields.MCP_CLIENT_NAME
   | SpanFields.MCP_TRANSPORT
   | SpanFields.MCP_TOOL_NAME
   | SpanFields.MCP_RESOURCE_URI
@@ -459,6 +463,19 @@ type EAPSpanResponseRaw = {
       | `${Property}(${string},${string})`
       | `${Property}(${string},${string},${string})`
       | `${Property}(${string},${string},${string},${string})`]: number;
+    // TODO: We should allow a nicer way to define functions with multiple arguments and different arg types
+  } & Record<`division(${SpanNumberFields},${SpanNumberFields})`, number> & {
+    // TODO: This should include all valid HTTP codes or just all integers
+    'http_response_count(2)': number;
+    'http_response_count(3)': number;
+    'http_response_count(4)': number;
+    'http_response_count(5)': number;
+    'http_response_rate(2)': number;
+    'http_response_rate(3)': number;
+    'http_response_rate(4)': number;
+    'http_response_rate(5)': number;
+    'ttfd_contribution_rate()': number;
+    'ttid_contribution_rate()': number;
   } & {
     [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
   } & {

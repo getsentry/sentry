@@ -38,6 +38,23 @@ describe('DashboardTable', () => {
     expect(screen.getByLabelText('Unstar')).toBeInTheDocument();
   });
 
+  it('renders environments', () => {
+    render(
+      <DashboardTable
+        dashboards={[
+          DashboardListItemFixture({
+            environment: ['production', 'staging'],
+          }),
+        ]}
+        cursorKey="test"
+        isLoading={false}
+        title={''}
+      />
+    );
+
+    expect(screen.getByText('production, staging')).toBeInTheDocument();
+  });
+
   it('should render last visited', () => {
     const now = new Date().toISOString();
     render(
