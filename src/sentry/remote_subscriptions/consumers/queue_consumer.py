@@ -7,6 +7,7 @@ import time
 from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Generic, TypeVar
 
 import sentry_sdk
@@ -30,25 +31,25 @@ class UnassignedPartitionError(Exception):
 
 @dataclass
 class WorkItem(Generic[T]):
-    """Work item that includes the original message for offset tracking."""
+    """Work item for processing with offset tracking information."""
 
     partition: Partition
     offset: int
+    timestamp: datetime
     result: T
-    message: Message[KafkaPayload | FilteredPayload]
 
 
 class OffsetTracker:
     """
     Tracks outstanding offsets and determines which offsets are safe to commit.
 
-    - Tracks offsets per partition
+    - Tracks offsets per partition with their timestamps
     - Only commits offsets when all prior offsets are processed
     - Thread-safe for concurrent access with per-partition locks
     """
 
     def __init__(self) -> None:
-        self.all_offsets: dict[Partition, set[int]] = defaultdict(set)
+        self.all_offsets: dict[Partition, dict[int, datetime]] = defaultdict(dict)
         self.outstanding: dict[Partition, set[int]] = defaultdict(set)
         self.last_committed: dict[Partition, int] = {}
         self.partition_locks: dict[Partition, threading.Lock] = {}
@@ -57,7 +58,7 @@ class OffsetTracker:
         """Get the lock for a partition."""
         return self.partition_locks[partition]
 
-    def add_offset(self, partition: Partition, offset: int) -> None:
+    def add_offset(self, partition: Partition, offset: int, timestamp: datetime) -> None:
         """Record that we've started processing an offset."""
         if partition not in self.partition_locks:
             raise UnassignedPartitionError(
@@ -65,7 +66,7 @@ class OffsetTracker:
             )
 
         with self._get_partition_lock(partition):
-            self.all_offsets[partition].add(offset)
+            self.all_offsets[partition][offset] = timestamp
             self.outstanding[partition].add(offset)
 
     def complete_offset(self, partition: Partition, offset: int) -> None:
@@ -76,11 +77,12 @@ class OffsetTracker:
         with self._get_partition_lock(partition):
             self.outstanding[partition].discard(offset)
 
-    def get_committable_offsets(self) -> dict[Partition, int]:
+    def get_committable_offsets(self) -> dict[Partition, tuple[int, datetime]]:
         """
         Get the highest offset per partition that can be safely committed.
 
-        For each partition, finds the highest contiguous offset that has been processed.
+        For each partition, finds the highest contiguous offset that has been processed,
+        and returns the timestamp of the oldest offset in the contiguous set.
         """
         committable = {}
         for partition in list(self.all_offsets.keys()):
@@ -92,20 +94,26 @@ class OffsetTracker:
                 outstanding = self.outstanding[partition]
                 last_committed = self.last_committed.get(partition, -1)
 
-                min_offset = min(all_offsets)
-                max_offset = max(all_offsets)
+                offset_keys = set(all_offsets.keys())
+                min_offset = min(offset_keys)
+                max_offset = max(offset_keys)
 
                 start = max(last_committed + 1, min_offset)
 
                 highest_committable = last_committed
+                oldest_timestamp = None
+
                 for offset in range(start, max_offset + 1):
                     if offset in all_offsets and offset not in outstanding:
                         highest_committable = offset
+                        timestamp = all_offsets[offset]
+                        if oldest_timestamp is None or timestamp < oldest_timestamp:
+                            oldest_timestamp = timestamp
                     else:
                         break
 
-                if highest_committable > last_committed:
-                    committable[partition] = highest_committable
+                if highest_committable > last_committed and oldest_timestamp:
+                    committable[partition] = (highest_committable, oldest_timestamp)
 
         return committable
 
@@ -114,7 +122,9 @@ class OffsetTracker:
         with self._get_partition_lock(partition):
             self.last_committed[partition] = offset
             # Remove all offsets <= committed offset
-            self.all_offsets[partition] = {o for o in self.all_offsets[partition] if o > offset}
+            self.all_offsets[partition] = {
+                k: v for k, v in self.all_offsets[partition].items() if k > offset
+            }
 
     def clear(self) -> None:
         """Clear all offset tracking state."""
@@ -193,6 +203,7 @@ class FixedQueuePool(Generic[T]):
         self,
         result_processor: Callable[[str, T], None],
         identifier: str,
+        consumer_group: str,
         num_queues: int = 20,
         commit_interval: float = 1.0,
     ) -> None:
@@ -200,6 +211,7 @@ class FixedQueuePool(Generic[T]):
         self.identifier = identifier
         self.num_queues = num_queues
         self.commit_interval = commit_interval
+        self.consumer_group = consumer_group
         self.offset_tracker = OffsetTracker()
         self.queues: list[queue.Queue[WorkItem[T]]] = []
         self.workers: list[OrderedQueueWorker[T]] = []
@@ -239,9 +251,21 @@ class FixedQueuePool(Generic[T]):
                         len(committable),
                         tags={"identifier": self.identifier},
                     )
+                    for partition, (offset, oldest_timestamp) in committable.items():
+                        metrics.timing(
+                            "arroyo.consumer.latency",
+                            time.time() - oldest_timestamp.timestamp(),
+                            tags={
+                                "partition": partition.index,
+                                "kafka_topic": partition.topic.name,
+                                "consumer_group": self.consumer_group,
+                            },
+                        )
 
-                    self.commit_function(committable)
-                    for partition, offset in committable.items():
+                    self.commit_function(
+                        {partition: offset for partition, (offset, _) in committable.items()}
+                    )
+                    for partition, (offset, _) in committable.items():
                         self.offset_tracker.mark_committed(partition, offset)
             except Exception:
                 logger.exception("Error in commit loop")
@@ -257,7 +281,9 @@ class FixedQueuePool(Generic[T]):
         Submit a work item to the appropriate queue.
         """
         try:
-            self.offset_tracker.add_offset(work_item.partition, work_item.offset)
+            self.offset_tracker.add_offset(
+                work_item.partition, work_item.offset, work_item.timestamp
+            )
         except UnassignedPartitionError:
             logger.exception(
                 "Received message for unassigned partition, skipping",
@@ -400,10 +426,11 @@ class SimpleQueueProcessingStrategy(ProcessingStrategy[KafkaPayload], Generic[T]
             assert isinstance(message.value, BrokerValue)
             partition = message.value.partition
             offset = message.value.offset
+            timestamp = message.value.timestamp
 
             if result is None:
                 try:
-                    self.queue_pool.offset_tracker.add_offset(partition, offset)
+                    self.queue_pool.offset_tracker.add_offset(partition, offset, timestamp)
                     self.queue_pool.offset_tracker.complete_offset(partition, offset)
                 except UnassignedPartitionError:
                     pass
@@ -414,8 +441,8 @@ class SimpleQueueProcessingStrategy(ProcessingStrategy[KafkaPayload], Generic[T]
             work_item = WorkItem(
                 partition=partition,
                 offset=offset,
+                timestamp=timestamp,
                 result=result,
-                message=message,
             )
 
             self.queue_pool.submit(group_key, work_item)
@@ -423,12 +450,15 @@ class SimpleQueueProcessingStrategy(ProcessingStrategy[KafkaPayload], Generic[T]
         except Exception:
             logger.exception("Error submitting message to queue")
             if isinstance(message.value, BrokerValue):
-                self.queue_pool.offset_tracker.add_offset(
-                    message.value.partition, message.value.offset
-                )
-                self.queue_pool.offset_tracker.complete_offset(
-                    message.value.partition, message.value.offset
-                )
+                try:
+                    self.queue_pool.offset_tracker.add_offset(
+                        message.value.partition, message.value.offset, message.value.timestamp
+                    )
+                    self.queue_pool.offset_tracker.complete_offset(
+                        message.value.partition, message.value.offset
+                    )
+                except UnassignedPartitionError:
+                    pass
 
     def poll(self) -> None:
         stats = self.queue_pool.get_stats()
