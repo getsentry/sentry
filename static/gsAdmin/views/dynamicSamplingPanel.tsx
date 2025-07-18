@@ -72,6 +72,7 @@ enum RuleType {
   REBALANCE_TRANSACTIONS = 'Rebalance Transactions', // Boost Low Volume Transactions
   BOOST_REPLAY_ID = 'Boost Replay ID',
   INVESTIGATION_RULE = 'Investigation Rule',
+  MINIMUM_SAMPLE_RATE_TARGET = 'Minimum Sample Rate',
 }
 
 const getRuleType = ({id}: RuleV2): RuleType | undefined => {
@@ -82,6 +83,7 @@ const getRuleType = ({id}: RuleV2): RuleType | undefined => {
     1003: RuleType.BOOST_KEY_TRANSACTIONS,
     1004: RuleType.RECALIBRATION_RULE,
     1005: RuleType.BOOST_REPLAY_ID,
+    1006: RuleType.MINIMUM_SAMPLE_RATE_TARGET,
   };
 
   if (id in RESERVED_IDS) {
