@@ -63,7 +63,7 @@ O0niYEXndk4N2xsvaENku+59+201icBV2XKCtfCcPXWI1oRQrPc=
 MCP_CONFIG = {
     "name": "Sentry",
     "description": "Connect to Sentry, debug faster.",
-    "endpoint": "https://mcp.sentry.dev/mcp"
+    "endpoint": "https://mcp.sentry.dev/mcp",
 }
 
 

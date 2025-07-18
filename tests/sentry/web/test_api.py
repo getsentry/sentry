@@ -733,7 +733,7 @@ class McpJsonTest(TestCase):
 
         assert response.status_code == 200
         assert response["Content-Type"] == "application/json"
-        
+
         data = json.loads(response.content)
         assert data["name"] == "Sentry"
         assert data["description"] == "Connect to Sentry, debug faster."
