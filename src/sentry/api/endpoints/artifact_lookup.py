@@ -171,7 +171,8 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                 individual_files = list(get_legacy_releasefile_by_file_url(release, dist, url))
 
                 maybe_renew_releasefiles(individual_files)
-                renew_releasefiles_by_id(releasefile_ids)
+                if releasefile_ids:
+                    renew_releasefiles_by_id(releasefile_ids)
 
         # Then: Construct our response
         url_constructor = UrlConstructor(request, project)
