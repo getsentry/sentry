@@ -6,6 +6,8 @@ from django.utils import timezone
 
 from sentry import onboarding_tasks
 from sentry.analytics import record
+from sentry.analytics.events.alert_created import AlertCreatedEvent
+from sentry.analytics.events.project_created import ProjectCreatedEvent
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationonboardingtask import (
     OnboardingTask,
@@ -30,6 +32,7 @@ from sentry.signals import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
@@ -170,14 +173,16 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert task is not None
 
         # Verify origin is passed to analytics event
-        record_analytics.assert_called_with(
-            "project.created",
-            user_id=self.user.id,
-            default_user_id=self.organization.default_owner_id,
-            organization_id=self.organization.id,
-            project_id=project.id,
-            platform=project.platform,
-            origin="ui",
+        assert_last_analytics_event(
+            record_analytics,
+            ProjectCreatedEvent(
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                project_id=project.id,
+                platform=project.platform,
+                origin="ui",
+            ),
         )
 
     @patch("sentry.analytics.record", wraps=record)
@@ -854,14 +859,16 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
-        record_analytics.assert_called_with(
-            "project.created",
-            user_id=self.user.id,
-            default_user_id=self.organization.default_owner_id,
-            organization_id=self.organization.id,
-            project_id=project.id,
-            platform=project.platform,
-            origin=None,
+        assert_last_analytics_event(
+            record_analytics,
+            ProjectCreatedEvent(
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                project_id=project.id,
+                platform=project.platform,
+                origin=None,
+            ),
         )
 
         # Set up tracing
@@ -930,21 +937,20 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
-        record_analytics.assert_called_with(
-            "alert.created",
-            user_id=self.user.id,
-            default_user_id=self.organization.default_owner_id,
-            organization_id=self.organization.id,
-            project_id=project.id,
-            rule_id=Rule(id=1).id,
-            rule_type="issue",
-            referrer=None,
-            session_id=None,
-            is_api_token=False,
-            alert_rule_ui_component=None,
-            duplicate_rule=None,
-            wizard_v3=None,
-            query_type=None,
+        assert_last_analytics_event(
+            record_analytics,
+            AlertCreatedEvent(
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                rule_id=Rule(id=1).id,
+                rule_type="issue",
+                is_api_token=False,
+                alert_rule_ui_component=None,
+                duplicate_rule=None,
+                wizard_v3=None,
+                query_type=None,
+            ),
         )
 
         # Track releases
