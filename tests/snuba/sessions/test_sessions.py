@@ -7,8 +7,8 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
-from sentry.release_health.base import OverviewStat
-from sentry.release_health.metrics import MetricsReleaseHealthBackend
+from sentry.releases.release_health.base import OverviewStat
+from sentry.releases.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
 
 pytestmark = pytest.mark.sentry_metrics

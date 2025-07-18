@@ -5,7 +5,7 @@ from django.utils import timezone
 from snuba_sdk import Column, Condition, Function, Op
 
 from sentry.exceptions import InvalidParams
-from sentry.release_health.metrics_sessions_v2 import (
+from sentry.releases.release_health.metrics_sessions_v2 import (
     SessionStatus,
     _extract_status_filter_from_conditions,
 )

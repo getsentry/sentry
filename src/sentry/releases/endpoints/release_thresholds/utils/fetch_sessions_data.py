@@ -6,11 +6,11 @@ from typing import Any
 from django.utils.datastructures import MultiValueDict
 from rest_framework.request import Request
 
-from sentry import release_health
 from sentry.api.bases import FilterParams
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.releases import release_health
 from sentry.snuba.sessions_v2 import QueryDefinition
 
 

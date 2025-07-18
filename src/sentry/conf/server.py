@@ -414,7 +414,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.uptime",
     "sentry.tempest",
     "sentry.replays",
-    "sentry.release_health",
+    "sentry.releases.release_health",
     "sentry.search",
     "sentry.sentry_metrics",
     "sentry.sentry_metrics.indexer.postgres.apps.Config",
@@ -826,7 +826,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.user_report",
     "sentry.tempest.tasks",
     "sentry.profiles.task",
-    "sentry.release_health.tasks",
+    "sentry.releases.release_health.tasks",
     "sentry.rules.processing.delayed_processing",
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
@@ -1209,7 +1209,7 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/15"),
     },
     "monitor-release-adoption": {
-        "task": "sentry.release_health.tasks.monitor_release_adoption",
+        "task": "sentry.releases.release_health.tasks.monitor_release_adoption",
         # Run every 1 hour
         "schedule": crontab(minute="0"),
         "options": {"expires": 3600, "queue": "releasemonitor"},
@@ -1461,7 +1461,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.monitors.tasks.detect_broken_monitor_envs",
     "sentry.notifications.utils.tasks",
     "sentry.profiles.task",
-    "sentry.release_health.tasks",
+    "sentry.releases.release_health.tasks",
     "sentry.relocation.tasks.process",
     "sentry.relocation.tasks.transfer",
     "sentry.replays.tasks",
@@ -1607,7 +1607,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "schedule": task_crontab("*/15", "*", "*", "*", "*"),
     },
     "monitor-release-adoption": {
-        "task": "releasehealth:sentry.release_health.tasks.monitor_release_adoption",
+        "task": "releasehealth:sentry.releases.release_health.tasks.monitor_release_adoption",
         "schedule": task_crontab("0", "*", "*", "*", "*"),
     },
     "fetch-release-registry-data": {

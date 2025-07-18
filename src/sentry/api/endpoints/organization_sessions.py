@@ -6,7 +6,6 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import release_health
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -25,7 +24,8 @@ from sentry.apidocs.parameters import (
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
-from sentry.release_health.base import SessionsQueryResult
+from sentry.releases import release_health
+from sentry.releases.release_health.base import SessionsQueryResult
 from sentry.snuba.sessions_v2 import SNUBA_LIMIT, InvalidField, QueryDefinition
 from sentry.utils.cursors import Cursor, CursorResult
 

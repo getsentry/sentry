@@ -640,10 +640,10 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         assert [1] == [v[1] for v in results[0]["transactionStats"] if v[1] > 0]
 
     @mock.patch(
-        "sentry.api.serializers.models.project.release_health.backend.check_has_health_data"
+        "sentry.api.serializers.models.project.releases.release_health.backend.check_has_health_data"
     )
     @mock.patch(
-        "sentry.api.serializers.models.project.release_health.backend.get_current_and_previous_crash_free_rates"
+        "sentry.api.serializers.models.project.releases.release_health.backend.get_current_and_previous_crash_free_rates"
     )
     def test_stats_with_sessions(
         self, get_current_and_previous_crash_free_rates, check_has_health_data
@@ -665,10 +665,10 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         assert check_has_health_data.call_count == 0
 
     @mock.patch(
-        "sentry.api.serializers.models.project.release_health.backend.check_has_health_data"
+        "sentry.api.serializers.models.project.releases.release_health.backend.check_has_health_data"
     )
     @mock.patch(
-        "sentry.api.serializers.models.project.release_health.backend.get_current_and_previous_crash_free_rates"
+        "sentry.api.serializers.models.project.releases.release_health.backend.get_current_and_previous_crash_free_rates"
     )
     def test_stats_with_sessions_and_none_crash_free_rates(
         self, get_current_and_previous_crash_free_rates, check_has_health_data

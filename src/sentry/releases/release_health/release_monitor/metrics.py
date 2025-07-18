@@ -20,7 +20,7 @@ from snuba_sdk import (
 )
 
 from sentry import options
-from sentry.release_health.release_monitor.base import BaseReleaseMonitorBackend, Totals
+from sentry.releases.release_health.release_monitor.base import BaseReleaseMonitorBackend, Totals
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.indexer.strings import SESSION_METRIC_NAMES
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID

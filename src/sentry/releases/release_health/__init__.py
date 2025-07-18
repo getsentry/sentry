@@ -4,7 +4,7 @@ from .base import ReleaseHealthBackend
 
 backend = LazyServiceWrapper(
     ReleaseHealthBackend,
-    "sentry.release_health.metrics.MetricsReleaseHealthBackend",
+    "sentry.releases.release_health.metrics.MetricsReleaseHealthBackend",
     {},
 )
 backend.expose(locals())

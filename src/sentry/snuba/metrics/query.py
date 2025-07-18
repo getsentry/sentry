@@ -1,4 +1,4 @@
-""" Classes needed to build a metrics query. Inspired by snuba_sdk.query. """
+"""Classes needed to build a metrics query. Inspired by snuba_sdk.query."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ from sentry.snuba.metrics.naming_layer.mri import parse_mri
 
 # TODO: Add __all__ to be consistent with sibling modules
 from ...models import ONE_DAY
-from ...release_health.base import AllowedResolution
+from ...releases.release_health.base import AllowedResolution
 from .naming_layer.mapping import get_public_name_from_mri
 from .utils import (
     MAX_POINTS,

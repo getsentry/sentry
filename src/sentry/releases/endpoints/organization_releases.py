@@ -11,7 +11,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ListField
 
-from sentry import analytics, release_health
+from sentry import analytics
 from sentry.analytics.events.release_created import ReleaseCreatedEvent
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ReleaseAnalyticsMixin, region_silo_endpoint
@@ -33,6 +33,7 @@ from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_t
 from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releases.release_project import ReleaseProject
+from sentry.releases import release_health
 from sentry.releases.exceptions import ReleaseCommitError
 from sentry.releases.util import SemverFilter
 from sentry.search.events.constants import (

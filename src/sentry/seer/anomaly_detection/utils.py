@@ -5,12 +5,12 @@ from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 from rest_framework.exceptions import ParseError
 
-from sentry import release_health
 from sentry.api.bases.organization_events import resolve_axis_column
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.releases import release_health
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.anomaly_detection.types import AnomalyType, TimeSeriesPoint

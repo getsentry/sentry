@@ -9,7 +9,7 @@ from typing import Any, NamedTuple, NotRequired, Protocol, TypedDict
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
-from sentry import features, release_health, tsdb
+from sentry import features, tsdb
 from sentry.api.helpers.error_upsampling import (
     UPSAMPLED_ERROR_AGGREGATION,
     are_any_projects_error_upsampled,
@@ -38,6 +38,7 @@ from sentry.models.groupinbox import InboxDetails, get_inbox_details
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import OwnersSerialized, get_owner_details
 from sentry.notifications.helpers import SubscriptionDetails
+from sentry.releases import release_health
 from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializer,
 )

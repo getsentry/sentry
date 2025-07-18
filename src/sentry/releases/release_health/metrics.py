@@ -9,7 +9,7 @@ from snuba_sdk.expressions import Granularity, Limit, Offset
 
 from sentry.models.environment import Environment
 from sentry.models.project import Project
-from sentry.release_health.base import (
+from sentry.releases.release_health.base import (
     AllowedResolution,
     CrashFreeBreakdown,
     CurrentAndPreviousCrashFreeRates,
@@ -32,7 +32,7 @@ from sentry.release_health.base import (
     SessionsQueryResult,
     StatsPeriod,
 )
-from sentry.release_health.metrics_sessions_v2 import run_sessions_query
+from sentry.releases.release_health.metrics_sessions_v2 import run_sessions_query
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import (

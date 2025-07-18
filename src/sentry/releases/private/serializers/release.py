@@ -9,7 +9,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
 from django.db.models import Sum
 
-from sentry import release_health, tagstore
+from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.release_details_types import VersionInfo
 from sentry.api.serializers.types import (
@@ -23,7 +23,8 @@ from sentry.models.projectplatform import ProjectPlatform
 from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
-from sentry.release_health.base import ReleaseHealthOverview
+from sentry.releases import release_health
+from sentry.releases.release_health.base import ReleaseHealthOverview
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser

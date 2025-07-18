@@ -6,7 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ListField
 
-from sentry import options, release_health
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ReleaseAnalyticsMixin, region_silo_endpoint
@@ -31,6 +31,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.activity import Activity
 from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus
+from sentry.releases import release_health
 from sentry.releases.endpoints.organization_releases import (
     _release_suffix,
     add_environment_to_queryset,

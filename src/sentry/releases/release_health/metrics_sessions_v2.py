@@ -1,7 +1,7 @@
-""" This module offers the same functionality as sessions_v2, but pulls its data
+"""This module offers the same functionality as sessions_v2, but pulls its data
 from the `metrics` dataset instead of `sessions`.
 
-Do not call this module directly. Use the `release_health` service instead. """
+Do not call this module directly. Use the `release_health` service instead."""
 
 import logging
 from abc import ABC, abstractmethod
@@ -28,7 +28,7 @@ from snuba_sdk.conditions import ConditionGroup
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.models.release import Release
-from sentry.release_health.base import (
+from sentry.releases.release_health.base import (
     GroupByFieldName,
     GroupKeyDict,
     ProjectId,

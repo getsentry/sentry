@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sentry.release_health.release_monitor.base import BaseReleaseMonitorBackend
+from sentry.releases.release_health.release_monitor.base import BaseReleaseMonitorBackend
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
 from sentry.testutils.helpers import override_options

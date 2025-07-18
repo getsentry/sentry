@@ -6,7 +6,7 @@ from .base import BaseReleaseMonitorBackend
 
 backend = LazyServiceWrapper(
     BaseReleaseMonitorBackend,
-    "sentry.release_health.release_monitor.metrics.MetricReleaseMonitorBackend",
+    "sentry.releases.release_health.release_monitor.metrics.MetricReleaseMonitorBackend",
     {},
 )
 backend.expose(locals())

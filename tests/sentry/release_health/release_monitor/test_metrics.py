@@ -1,8 +1,8 @@
 import pytest
 
-from sentry.release_health.release_monitor.metrics import MetricReleaseMonitorBackend
+from sentry.releases.release_health.release_monitor.metrics import MetricReleaseMonitorBackend
 from sentry.testutils.cases import BaseMetricsTestCase
-from tests.sentry.release_health.release_monitor import (
+from tests.sentry.releases.release_health.release_monitor import (
     BaseFetchProjectReleaseHealthTotalsTest,
     BaseFetchProjectsWithRecentSessionsTest,
 )

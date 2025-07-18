@@ -643,9 +643,9 @@ class Release(Model):
         """Deletes a release if possible or raises a `UnsafeReleaseDeletion`
         exception.
         """
-        from sentry import release_health
         from sentry.models.group import Group
         from sentry.models.releasefile import ReleaseFile
+        from sentry.releases import release_health
 
         # we don't want to remove the first_release metadata on the Group, and
         # while people might want to kill a release (maybe to remove files),

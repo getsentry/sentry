@@ -8,13 +8,14 @@ from typing import Any, ClassVar, Literal, Protocol, TypedDict
 from django.core.cache import cache
 from snuba_sdk import Op
 
-from sentry import release_health, tsdb
+from sentry import tsdb
 from sentry.issues.constants import (
     get_dataset_column_name,
     get_issue_tsdb_group_model,
     get_issue_tsdb_user_group_model,
 )
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
+from sentry.releases import release_health
 from sentry.rules.conditions.event_attribute import ATTR_CHOICES
 from sentry.rules.conditions.event_frequency import (
     MIN_SESSIONS_TO_FIRE,

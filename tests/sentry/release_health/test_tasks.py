@@ -11,9 +11,9 @@ from sentry.models.grouprelease import GroupRelease
 from sentry.models.project import Project
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.repository import Repository
-from sentry.release_health.release_monitor.base import BaseReleaseMonitorBackend
-from sentry.release_health.release_monitor.metrics import MetricReleaseMonitorBackend
-from sentry.release_health.tasks import (
+from sentry.releases.release_health.release_monitor.base import BaseReleaseMonitorBackend
+from sentry.releases.release_health.release_monitor.metrics import MetricReleaseMonitorBackend
+from sentry.releases.release_health.tasks import (
     has_been_adopted,
     iter_adopted_releases,
     monitor_release_adoption,
@@ -36,7 +36,7 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
     def setUp(self):
         super().setUp()
         backend = self.backend_class()
-        self.backend = mock.patch("sentry.release_health.tasks.release_monitor", backend)
+        self.backend = mock.patch("sentry.releases.release_health.tasks.release_monitor", backend)
         self.backend.__enter__()
         self.project = self.create_project()
         self.project1 = self.create_project()

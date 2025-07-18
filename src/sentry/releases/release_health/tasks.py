@@ -13,8 +13,8 @@ from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
-from sentry.release_health import release_monitor
-from sentry.release_health.release_monitor.base import Totals
+from sentry.releases.release_health import release_monitor
+from sentry.releases.release_health.release_monitor.base import Totals
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import release_health_tasks
@@ -28,7 +28,7 @@ logger = logging.getLogger("sentry.tasks.releasemonitor")
 
 
 @instrumented_task(
-    name="sentry.release_health.tasks.monitor_release_adoption",
+    name="sentry.releases.release_health.tasks.monitor_release_adoption",
     queue="releasemonitor",
     default_retry_delay=5,
     max_retries=5,

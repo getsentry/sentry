@@ -1,7 +1,6 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import release_health
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventsError, ProjectReleasePermission
@@ -9,7 +8,8 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
-from sentry.release_health.base import is_overview_stat
+from sentry.releases import release_health
+from sentry.releases.release_health.base import is_overview_stat
 from sentry.utils.dates import get_rollup_from_request
 
 

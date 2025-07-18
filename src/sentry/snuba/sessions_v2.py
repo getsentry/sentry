@@ -11,7 +11,7 @@ from snuba_sdk import BooleanCondition, Column, Condition, Function
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
-from sentry.release_health.base import AllowedResolution, SessionsQueryConfig
+from sentry.releases.release_health.base import AllowedResolution, SessionsQueryConfig
 from sentry.search.events.builder.sessions import SessionsV2QueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
@@ -282,7 +282,7 @@ class QueryDefinition:
         self.fields = {}
         for key in raw_fields:
             if key not in COLUMN_MAP:
-                from sentry.release_health.metrics_sessions_v2 import FIELD_MAP
+                from sentry.releases.release_health.metrics_sessions_v2 import FIELD_MAP
 
                 if key in FIELD_MAP:
                     # HACK : Do not raise an error for metrics-only fields,

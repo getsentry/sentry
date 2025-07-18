@@ -12,7 +12,7 @@ from django.db import connection
 from django.db.models import prefetch_related_objects
 from django.utils import timezone
 
-from sentry import features, options, projectoptions, quotas, release_health, roles
+from sentry import features, options, projectoptions, quotas, roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import get_org_roles
@@ -42,7 +42,8 @@ from sentry.models.projectplatform import ProjectPlatform
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.release import Release
 from sentry.models.userreport import UserReport
-from sentry.release_health.base import CurrentAndPreviousCrashFreeRate
+from sentry.releases import release_health
+from sentry.releases.release_health.base import CurrentAndPreviousCrashFreeRate
 from sentry.roles import organization_roles
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover

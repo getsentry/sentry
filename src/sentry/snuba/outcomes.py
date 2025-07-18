@@ -14,7 +14,7 @@ from snuba_sdk.function import Function
 from snuba_sdk.query import Query
 
 from sentry.constants import DataCategory
-from sentry.release_health.base import AllowedResolution
+from sentry.releases.release_health.base import AllowedResolution
 from sentry.search.utils import InvalidQuery
 from sentry.snuba.sessions_v2 import (
     InvalidField,
