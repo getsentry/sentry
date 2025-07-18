@@ -8,7 +8,9 @@ export function formatBytes(bytes: number, isSi = false) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-export function getPlatformIconFromPlatform(platform: Platform): string {
+// Mapping of Launchpad platform to PlatformIcon platform
+// PlatformIcon definitions: https://sentry.sentry.io/stories/foundations/icons
+export function getPlatformIconFromPlatform(platform: Platform): 'apple' | 'android' {
   switch (platform) {
     case 'ios':
     case 'macos':
