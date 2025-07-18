@@ -1,6 +1,7 @@
+import {Link} from 'sentry/components/core/link';
 import {TabList} from 'sentry/components/core/tabs';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {SavedQuery} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import {
@@ -20,6 +21,7 @@ import {
   getDatasetFromLocationOrSavedQueryDataset,
   getSavedQueryDataset,
 } from 'sentry/views/discover/savedQuery/utils';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 
 export const DATASET_PARAM = 'queryDataset';
 
@@ -107,6 +109,15 @@ export function DatasetSelectorTabs(props: Props) {
 
   const value = getSavedQueryDataset(organization, location, savedQuery, splitDecision);
 
+  const deprecatingTransactionsDataset = organization.features.includes(
+    'discover-saved-queries-deprecation'
+  );
+
+  const tracesUrl = getExploreUrl({
+    organization,
+    query: 'is_transaction:true',
+  });
+
   const options = [
     {
       value: SavedQueryDatasets.ERRORS,
@@ -115,6 +126,18 @@ export function DatasetSelectorTabs(props: Props) {
     {
       value: SavedQueryDatasets.TRANSACTIONS,
       label: DATASET_LABEL_MAP[SavedQueryDatasets.TRANSACTIONS],
+      disabled: deprecatingTransactionsDataset,
+      tooltip: deprecatingTransactionsDataset
+        ? {
+            title: tct(
+              'Discover\u2192Transactions is going to be merged into Explore\u2192Traces soon. Please browse and save any transaction related queries from [traces:Explore\u2192Traces]',
+              {
+                traces: <Link to={tracesUrl} />,
+              }
+            ),
+            isHoverable: true,
+          }
+        : undefined,
     },
   ];
 
@@ -153,7 +176,13 @@ export function DatasetSelectorTabs(props: Props) {
     >
       <TabList hideBorder>
         {options.map(option => (
-          <TabList.Item key={option.value}>{option.label}</TabList.Item>
+          <TabList.Item
+            key={option.value}
+            disabled={option.disabled}
+            tooltip={option.tooltip}
+          >
+            {option.label}
+          </TabList.Item>
         ))}
       </TabList>
     </Layout.HeaderTabs>

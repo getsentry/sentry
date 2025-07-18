@@ -393,19 +393,46 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
   renderButtonSave(disabled: boolean) {
     const {isNewQuery, isEditingQuery} = this.state;
+    const {organization, savedQuery, location} = this.props;
+
+    const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
+      location,
+      savedQuery?.queryDataset
+    );
+
+    const deprecatingTransactionsDataset =
+      currentDataset === DiscoverDatasets.TRANSACTIONS &&
+      organization.features.includes('discover-saved-queries-deprecation');
 
     if (!isNewQuery && !isEditingQuery) {
       return null;
     }
     // Existing query with edits, show save and save as.
     if (!isNewQuery && isEditingQuery) {
+      const tracesUrl = getExploreUrl({
+        organization,
+        query: 'is_transaction:true',
+      });
+
       return (
         <Fragment>
           <Button
             onClick={this.handleUpdateQuery}
             data-test-id="discover2-savedquery-button-update"
-            disabled={disabled}
+            disabled={disabled || deprecatingTransactionsDataset}
             size="sm"
+            tooltipProps={{
+              isHoverable: true,
+            }}
+            title={
+              deprecatingTransactionsDataset &&
+              tct(
+                'Discover\u2192Transactions is going to be merged into Explore\u2192Traces soon. Please save any transaction related queries from [traces:Explore\u2192Traces]',
+                {
+                  traces: <Link to={tracesUrl} />,
+                }
+              )
+            }
           >
             <IconUpdate />
             {t('Save Changes')}
@@ -622,7 +649,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       savedQuery?.queryDataset
     );
 
-    const deprecatingAddToDashboard =
+    const deprecatingTransactionsDataset =
       currentDataset === DiscoverDatasets.TRANSACTIONS &&
       organization.features.includes('discover-saved-queries-deprecation');
 
@@ -637,9 +664,10 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       contextMenuItems.push({
         key: 'add-to-dashboard',
         label: t('Add to Dashboard'),
-        disabled: deprecatingAddToDashboard,
+        disabled: deprecatingTransactionsDataset,
+        tooltipOptions: {isHoverable: true},
         tooltip:
-          deprecatingAddToDashboard &&
+          deprecatingTransactionsDataset &&
           tct(
             'Discover\u2192Transactions is going to be merged into Explore\u2192Traces soon. Please save any transaction related queries from [traces:Explore\u2192Traces]',
             {

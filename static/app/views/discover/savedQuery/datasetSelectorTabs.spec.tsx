@@ -23,7 +23,7 @@ const EVENT_VIEW_CONSTRUCTOR_PROPS: EventViewOptions = {
 };
 
 describe('Discover DatasetSelector', function () {
-  const {router} = initializeOrg({
+  const {router, organization} = initializeOrg({
     organization: {features: ['performance-view']},
   });
 
@@ -119,6 +119,37 @@ describe('Discover DatasetSelector', function () {
           queryDataset: 'transaction-like',
         }),
       })
+    );
+  });
+
+  it('disables transactions dataset if org has deprecation feature', function () {
+    const eventView = new EventView({
+      ...EVENT_VIEW_CONSTRUCTOR_PROPS,
+      dataset: DiscoverDatasets.ERRORS,
+      id: '1',
+    });
+
+    const org = {
+      ...organization,
+      features: [...organization.features, 'discover-saved-queries-deprecation'],
+    };
+
+    render(
+      <DatasetSelectorTabs
+        isHomepage={false}
+        savedQuery={undefined}
+        eventView={eventView}
+      />,
+      {
+        router,
+        organization: org,
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    expect(screen.getByRole('tab', {name: 'Transactions'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
     );
   });
 });
