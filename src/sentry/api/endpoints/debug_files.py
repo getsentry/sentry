@@ -287,8 +287,8 @@ class DebugFilesEndpoint(ProjectEndpoint):
             debug_id_qs = ProjectDebugFile.objects.filter(Q(debug_id__exact=debug_id) & q)
             queryset = debug_id_qs.select_related("file").union(
                 ProjectDebugFile.objects.filter(Q(code_id__exact=code_id) & q)
-                .filter(~Exists(debug_id_qs))
-                .select_related("file")
+                # Only return any code id matches if there are *no* debug id matches.
+                .filter(~Exists(debug_id_qs)).select_related("file")
             )
         elif debug_id:
             q &= Q(debug_id__exact=debug_id)
