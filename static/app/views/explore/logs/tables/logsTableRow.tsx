@@ -17,7 +17,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import CellAction, {
   Actions,
-  copyToClipBoard,
+  handleCellActionFallback,
 } from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
@@ -304,10 +304,8 @@ export const LogRowContent = memo(function LogRowContent({
                           negated: true,
                         });
                         break;
-                      case Actions.COPY_TO_CLIPBOARD:
-                        copyToClipBoard(cellValue);
-                        break;
                       default:
+                        handleCellActionFallback(actions, cellValue);
                         break;
                     }
                   }}

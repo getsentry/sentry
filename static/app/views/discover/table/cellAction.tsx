@@ -9,10 +9,12 @@ import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {
+  fieldAlignment,
   isEquationAlias,
   isRelativeSpanOperationBreakdownField,
 } from 'sentry/utils/discover/fields';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {isUrl} from 'sentry/utils/string/isUrl';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -27,19 +29,7 @@ export enum Actions {
   DRILLDOWN = 'drilldown',
   EDIT_THRESHOLD = 'edit_threshold',
   COPY_TO_CLIPBOARD = 'copy_to_clipboard',
-}
-
-export function copyToClipBoard(data: any) {
-  function stringifyValue(value: any): string {
-    if (!value) return '';
-    if (typeof value !== 'object') {
-      return value.toString();
-    }
-    return JSON.stringify(value) ?? value.toString();
-  }
-  navigator.clipboard.writeText(stringifyValue(data)).catch(_ => {
-    addErrorMessage('Error copying to clipboard');
-  });
+  OPEN_EXTERNAL_LINK = 'open_external_link',
 }
 
 export function updateQuery(
@@ -97,14 +87,12 @@ export function updateQuery(
     }
     // these actions do not modify the query in any way,
     // instead they have side effects
-    case Actions.COPY_TO_CLIPBOARD:
-      copyToClipBoard(value);
-      break;
     case Actions.RELEASE:
     case Actions.DRILLDOWN:
       break;
     default:
-      throw new Error(`Unknown action type. ${action}`);
+      if (!handleCellActionFallback(action, value))
+        throw new Error(`Unknown action type. ${action}`);
   }
 }
 
@@ -251,6 +239,8 @@ function makeCellActions({
 
   if (value) addMenuItem(Actions.COPY_TO_CLIPBOARD, t('Copy to clipboard'));
 
+  if (isUrl(value)) addMenuItem(Actions.OPEN_EXTERNAL_LINK, t('Open external link'));
+
   if (actions.length === 0) {
     return null;
   }
@@ -262,10 +252,11 @@ type Props = React.PropsWithoutRef<CellActionsOpts>;
 
 function CellAction(props: Props) {
   const organization = useOrganization();
-  const {children} = props;
+  const {children, column} = props;
   const cellActions = makeCellActions(props);
+  const align = fieldAlignment(column.key as string, column.type);
 
-  if (organization.features.includes('organizations:discover-cell-actions-v2'))
+  if (organization.features.includes('discover-cell-actions-v2'))
     return (
       <Container
         data-test-id={cellActions === null ? undefined : 'cell-action-container'}
@@ -276,10 +267,11 @@ function CellAction(props: Props) {
             usePortal
             size="sm"
             offset={4}
-            position="bottom-start"
+            position={align === 'left' ? 'bottom-start' : 'bottom-end'}
             preventOverflowOptions={{padding: 4}}
             flipOptions={{
               fallbackPlacements: [
+                'bottom-start',
                 'bottom-end',
                 'top',
                 'right-start',
@@ -335,6 +327,42 @@ function CellAction(props: Props) {
       )}
     </Container>
   );
+}
+
+/**
+ * A fallback that has default operations for some actions. E.g., copying to clipboard by default copies raw text, opening external link opens a new tab
+ * @param action
+ * @param value
+ * @returns true if a default action was executed, false otherwise
+ */
+export function handleCellActionFallback(
+  action: Actions,
+  value: string | number | string[]
+): boolean {
+  switch (action) {
+    case Actions.COPY_TO_CLIPBOARD: {
+      function stringifyValue(val: any): string {
+        if (!val) return '';
+        if (typeof val !== 'object') {
+          return val.toString();
+        }
+        return JSON.stringify(val) ?? val.toString();
+      }
+      navigator.clipboard.writeText(stringifyValue(value)).catch(_ => {
+        addErrorMessage('Error copying to clipboard');
+      });
+      return true;
+    }
+    case Actions.OPEN_EXTERNAL_LINK:
+      if (typeof value === 'string' && isUrl(value)) {
+        window.open(value, '_blank', 'noopener,noreferrer');
+      } else {
+        addErrorMessage('Could not open link');
+      }
+      return true;
+    default:
+      return false;
+  }
 }
 
 export default CellAction;
