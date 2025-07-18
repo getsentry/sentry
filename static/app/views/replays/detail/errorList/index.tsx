@@ -3,12 +3,12 @@ import type {GridCellProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, MultiGrid} from 'react-virtualized';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout/flex';
 import Placeholder from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import ErrorFilters from 'sentry/views/replays/detail/errorList/errorFilters';
@@ -18,7 +18,6 @@ import ErrorHeaderCell, {
 import ErrorTableCell from 'sentry/views/replays/detail/errorList/errorTableCell';
 import useErrorFilters from 'sentry/views/replays/detail/errorList/useErrorFilters';
 import useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import useVirtualizedGrid from 'sentry/views/replays/detail/useVirtualizedGrid';
 
@@ -125,7 +124,7 @@ export default function ErrorList() {
   };
 
   return (
-    <PaddedFluidHeight>
+    <Flex direction="column" wrap="nowrap">
       <ErrorFilters errorFrames={errorFrames} {...filterProps} />
       <ErrorTable data-test-id="replay-details-errors-tab">
         {errorFrames ? (
@@ -178,13 +177,9 @@ export default function ErrorList() {
           <Placeholder height="100%" />
         )}
       </ErrorTable>
-    </PaddedFluidHeight>
+    </Flex>
   );
 }
-
-const PaddedFluidHeight = styled(FluidHeight)`
-  padding-top: ${space(1)};
-`;
 
 const OverflowHidden = styled('div')`
   position: relative;
@@ -193,7 +188,14 @@ const OverflowHidden = styled('div')`
   display: grid;
 `;
 
-const ErrorTable = styled(FluidHeight)`
+const ErrorTable = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  flex-grow: 1;
+  overflow: hidden;
+  height: 100%;
+
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
 
