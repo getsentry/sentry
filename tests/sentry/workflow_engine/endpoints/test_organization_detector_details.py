@@ -110,28 +110,24 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
         self.get_error_response(self.organization.slug, detector.id, status_code=404)
 
     def test_with_alert_rule_mapping(self):
-        """Test that alertRuleId and ruleId are included when mapping exists"""
         # Create a metric alert rule mapping
         metric_alert_id = 12345
         AlertRuleDetector.objects.create(alert_rule_id=metric_alert_id, detector=self.detector)
 
         response = self.get_success_response(self.organization.slug, self.detector.id)
 
-        # Verify the mapping fields are included
         assert response.data["alertRuleId"] == metric_alert_id
-        assert response.data["ruleId"] is None  # This is a metric alert, not an issue alert
+        assert response.data["ruleId"] is None
 
     def test_with_issue_rule_mapping(self):
-        """Test that ruleId is included when issue alert mapping exists"""
         # Create an issue alert rule mapping
         issue_rule_id = 67890
         AlertRuleDetector.objects.create(rule_id=issue_rule_id, detector=self.detector)
 
         response = self.get_success_response(self.organization.slug, self.detector.id)
 
-        # Verify the mapping fields are included
         assert response.data["ruleId"] == issue_rule_id
-        assert response.data["alertRuleId"] is None  # This is an issue alert, not a metric alert
+        assert response.data["alertRuleId"] is None
 
     def test_without_alert_rule_mapping(self):
         """Test that alertRuleId and ruleId are null when no mapping exists"""
