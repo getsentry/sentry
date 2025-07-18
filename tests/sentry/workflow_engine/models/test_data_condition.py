@@ -69,7 +69,8 @@ class EvaluateValueTest(DataConditionHandlerMixin, BaseWorkflowTest):
         assert dc.evaluate_value(2) == DetectorPriorityLevel.HIGH
 
         dc.update(comparison={"baz": MockDataConditionEnum.FOO})
-        assert dc.evaluate_value(0) == DetectorPriorityLevel.OK
+        result = dc.evaluate_value(0)
+        assert result == DetectorPriorityLevel.OK
         self.teardown_condition_mocks()
 
     def test_bad_condition(self):
