@@ -102,7 +102,9 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         )
         with self.feature(UptimeDomainCheckFailure.build_ingest_feature_name()):
             if consumer is None:
-                factory = UptimeResultsStrategyFactory(mode=self.strategy_processing_mode)
+                factory = UptimeResultsStrategyFactory(
+                    consumer_group="test", mode=self.strategy_processing_mode
+                )
                 commit = mock.Mock()
                 consumer = factory.create_with_partitions(commit, {self.partition: 0})
 
@@ -1106,6 +1108,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         """
 
         factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
             mode="batched-parallel",
             max_batch_size=3,
             max_workers=1,
@@ -1160,6 +1163,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         """
 
         factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
             mode="batched-parallel",
             max_batch_size=3,
             max_workers=1,
@@ -1593,6 +1597,7 @@ class ProcessResultSerialTest(ProcessResultTest):
         """
 
         factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
             mode="batched-parallel",
             max_batch_size=3,
             max_workers=1,
@@ -1648,6 +1653,7 @@ class ProcessResultSerialTest(ProcessResultTest):
         """
 
         factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
             mode="batched-parallel",
             max_batch_size=3,
             max_workers=1,
@@ -1691,6 +1697,7 @@ class ProcessResultSerialTest(ProcessResultTest):
         Validates that the consumer in thread-queue-parallel mode processes messages correctly
         """
         factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
             mode="thread-queue-parallel",
             max_workers=2,
         )
@@ -1735,6 +1742,7 @@ class ProcessResultSerialTest(ProcessResultTest):
         Test that thread-queue-parallel mode preserves order within subscriptions.
         """
         factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
             mode="thread-queue-parallel",
             max_workers=3,
         )
@@ -1782,6 +1790,7 @@ class ProcessResultSerialTest(ProcessResultTest):
         Test that different subscriptions are processed concurrently in thread-queue-parallel mode.
         """
         factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
             mode="thread-queue-parallel",
             max_workers=2,
         )
@@ -1831,6 +1840,7 @@ class ProcessResultSerialTest(ProcessResultTest):
             committed_offsets.update(offsets)
 
         factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
             mode="thread-queue-parallel",
             max_workers=2,
         )
@@ -1881,6 +1891,7 @@ class ProcessResultSerialTest(ProcessResultTest):
             committed_offsets.update(offsets)
 
         factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
             mode="thread-queue-parallel",
             max_workers=2,
         )
@@ -1933,6 +1944,7 @@ class ProcessResultSerialTest(ProcessResultTest):
             all_commits.append(dict(offsets))
 
         factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
             mode="thread-queue-parallel",
             max_workers=1,
         )
@@ -1989,6 +2001,7 @@ class ProcessResultSerialTest(ProcessResultTest):
         Test that the thread-queue-parallel consumer shuts down gracefully.
         """
         factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
             mode="thread-queue-parallel",
             max_workers=3,
         )
@@ -2054,6 +2067,7 @@ class ProcessResultThreadQueueParallelKafkaTest(UptimeTestCase):
             producer.flush()
 
             factory = UptimeResultsStrategyFactory(
+                consumer_group="test",
                 mode="thread-queue-parallel",
                 max_workers=2,
             )

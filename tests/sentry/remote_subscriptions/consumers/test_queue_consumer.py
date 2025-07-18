@@ -35,16 +35,17 @@ class TestOffsetTracker(TestCase):
 
     def test_simple_tracking(self):
         """Test basic offset tracking and committing."""
-        self.tracker.add_offset(self.partition1, 100)
-        self.tracker.add_offset(self.partition1, 101)
-        self.tracker.add_offset(self.partition1, 102)
+        now = datetime.now()
+        self.tracker.add_offset(self.partition1, 100, now)
+        self.tracker.add_offset(self.partition1, 101, now)
+        self.tracker.add_offset(self.partition1, 102, now)
 
         committable = self.tracker.get_committable_offsets()
         assert committable == {}
 
         self.tracker.complete_offset(self.partition1, 100)
         committable = self.tracker.get_committable_offsets()
-        assert committable == {self.partition1: 100}
+        assert committable == {self.partition1: (100, now)}
 
         self.tracker.mark_committed(self.partition1, 100)
         self.tracker.complete_offset(self.partition1, 102)
@@ -53,21 +54,22 @@ class TestOffsetTracker(TestCase):
 
         self.tracker.complete_offset(self.partition1, 101)
         committable = self.tracker.get_committable_offsets()
-        assert committable == {self.partition1: 102}
+        assert committable == {self.partition1: (102, now)}
 
     def test_multiple_partitions(self):
         """Test tracking across multiple partitions."""
-        self.tracker.add_offset(self.partition1, 100)
-        self.tracker.add_offset(self.partition1, 101)
-        self.tracker.add_offset(self.partition2, 200)
-        self.tracker.add_offset(self.partition2, 201)
+        now = datetime.now()
+        self.tracker.add_offset(self.partition1, 100, now)
+        self.tracker.add_offset(self.partition1, 101, now)
+        self.tracker.add_offset(self.partition2, 200, now)
+        self.tracker.add_offset(self.partition2, 201, now)
 
         self.tracker.complete_offset(self.partition1, 100)
         self.tracker.complete_offset(self.partition2, 200)
         self.tracker.complete_offset(self.partition2, 201)
 
         committable = self.tracker.get_committable_offsets()
-        assert committable == {self.partition1: 100, self.partition2: 201}
+        assert committable == {self.partition1: (100, now), self.partition2: (201, now)}
 
 
 class TestFixedQueuePool(TestCase):
@@ -89,6 +91,7 @@ class TestFixedQueuePool(TestCase):
             result_processor=result_processor,
             identifier="test",
             num_queues=3,
+            consumer_group="test",
         )
 
         self.commits: list[dict[Partition, int]] = []
@@ -130,18 +133,12 @@ class TestFixedQueuePool(TestCase):
         self.process_complete_event.clear()
 
         for i in range(5):
+            now = datetime.now()
             work_item = WorkItem(
                 partition=partition,
                 offset=i,
+                timestamp=now,
                 result=f"item_{i}",
-                message=Message(
-                    BrokerValue(
-                        KafkaPayload(b"key", b"value", []),
-                        partition,
-                        i,
-                        datetime.now(),
-                    )
-                ),
             )
             self.pool.submit(group_key, work_item)
 
@@ -159,18 +156,12 @@ class TestFixedQueuePool(TestCase):
 
         for i in range(6):
             group_key = f"group_{i % 3}"
+            now = datetime.now()
             work_item = WorkItem(
                 partition=partition,
                 offset=i,
+                timestamp=now,
                 result=f"item_{group_key}_{i}",
-                message=Message(
-                    BrokerValue(
-                        KafkaPayload(b"key", b"value", []),
-                        partition,
-                        i,
-                        datetime.now(),
-                    )
-                ),
             )
             self.pool.submit(group_key, work_item)
 
@@ -197,18 +188,12 @@ class TestFixedQueuePool(TestCase):
 
         for i in range(10):
             group_key = f"group_{i % 4}"
+            now = datetime.now()
             work_item = WorkItem(
                 partition=partition,
                 offset=i,
+                timestamp=now,
                 result=f"item_{i}",
-                message=Message(
-                    BrokerValue(
-                        KafkaPayload(b"key", b"value", []),
-                        partition,
-                        i,
-                        datetime.now(),
-                    )
-                ),
             )
             self.pool.submit(group_key, work_item)
 
@@ -243,6 +228,7 @@ class TestSimpleQueueProcessingStrategy(TestCase):
             result_processor=result_processor,
             identifier="test",
             num_queues=2,
+            consumer_group="test",
         )
 
         def commit_function(offsets: dict[Partition, int]):
@@ -427,7 +413,7 @@ class TestThreadQueueParallelIntegration(TestCase):
             def identifier(self):
                 return "test"
 
-        factory = MockFactory(mode="thread-queue-parallel", max_workers=5)
+        factory = MockFactory(mode="thread-queue-parallel", max_workers=5, consumer_group="test")
         commit = mock.Mock()
         partition = Partition(Topic("test"), 0)
         strategy = factory.create_with_partitions(commit, {partition: 0})
@@ -509,7 +495,9 @@ class TestRebalancing(TestCase):
             def decode_payload(self, topic_for_codec, payload):
                 return json.loads(payload.value)
 
-        return TestFactory(mode="thread-queue-parallel", max_workers=3, commit_interval=0.01)
+        return TestFactory(
+            mode="thread-queue-parallel", max_workers=3, commit_interval=0.01, consumer_group="test"
+        )
 
     def create_commit_function(self):
         def commit(offsets: dict[Partition, int]):
