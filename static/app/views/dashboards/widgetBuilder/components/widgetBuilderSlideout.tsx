@@ -7,7 +7,6 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
@@ -345,28 +344,21 @@ function DisableTransactionWidget({children}: DisableModeProps) {
   }
 
   return (
-    <Tooltip
-      title={t(
-        'Transaction widgets are being deprecated. Please use the spans dataset moving forward.'
-      )}
-      delay={500}
+    <div
+      data-test-id="demo-mode-disabled-wrapper"
+      style={{
+        opacity: 0.6,
+        cursor: 'not-allowed',
+      }}
     >
       <div
-        data-test-id="demo-mode-disabled-wrapper"
         style={{
-          opacity: 0.6,
-          cursor: 'not-allowed',
+          pointerEvents: 'none',
         }}
       >
-        <div
-          style={{
-            pointerEvents: 'none',
-          }}
-        >
-          {children}
-        </div>
+        {children}
       </div>
-    </Tooltip>
+    </div>
   );
 }
 
