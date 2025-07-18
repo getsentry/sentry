@@ -4,7 +4,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {type EAPSpanProperty, SpanFields} from 'sentry/views/insights/types';
+import {SpanFields, type SpanProperty} from 'sentry/views/insights/types';
 import {SERVICE_ENTRY_SPANS_CURSOR_NAME} from 'sentry/views/performance/transactionSummary/transactionOverview/content';
 import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -18,7 +18,7 @@ type Options = {
 
 const DEFAULT_LIMIT = 5;
 
-const FIELDS: EAPSpanProperty[] = [
+const FIELDS: SpanProperty[] = [
   'span_id',
   'user.id',
   'user.email',

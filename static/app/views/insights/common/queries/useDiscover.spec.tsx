@@ -12,7 +12,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import type {EAPSpanProperty} from 'sentry/views/insights/types';
+import type {SpanProperty} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -51,7 +51,7 @@ describe('useDiscover', () => {
         {
           wrapper: Wrapper,
           initialProps: {
-            fields: ['epm()'] as EAPSpanProperty[],
+            fields: ['epm()'] as SpanProperty[],
             enabled: false,
           },
         }
@@ -97,7 +97,7 @@ describe('useDiscover', () => {
               release: '0.0.1',
               environment: undefined,
             },
-            fields: ['epm()'] as EAPSpanProperty[],
+            fields: ['epm()'] as SpanProperty[],
             sorts: [{field: 'epm()', kind: 'desc' as const}],
             limit: 10,
             referrer: 'api-spec',
@@ -178,7 +178,7 @@ describe('useDiscover', () => {
         {
           wrapper: Wrapper,
           initialProps: {
-            fields: [SpanFields.SPAN_DESCRIPTION] as EAPSpanProperty[],
+            fields: [SpanFields.SPAN_DESCRIPTION] as SpanProperty[],
             enabled: false,
           },
         }
@@ -235,7 +235,7 @@ describe('useDiscover', () => {
               SpanFields.SPAN_OP,
               SpanFields.SPAN_GROUP,
               SpanFields.SPAN_DESCRIPTION,
-            ] as EAPSpanProperty[],
+            ] as SpanProperty[],
             sorts: [{field: 'span.group', kind: 'desc' as const}],
             limit: 10,
             referrer: 'api-spec',

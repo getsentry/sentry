@@ -11,8 +11,8 @@ import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/qu
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
-  type EAPSpanProperty,
   SpanFields,
+  type SpanProperty,
   type SubregionCode,
 } from 'sentry/views/insights/types';
 
@@ -44,7 +44,7 @@ export const useTransactionWebVitalsScoresQuery = ({
   const sort = useWebVitalsSort({sortName, defaultSort});
 
   const totalOpportunityScoreField =
-    'opportunity_score(measurements.score.total)' satisfies EAPSpanProperty;
+    'opportunity_score(measurements.score.total)' satisfies SpanProperty;
 
   if (sort !== undefined) {
     if (sort.field === 'avg(measurements.score.total)') {

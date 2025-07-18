@@ -35,7 +35,7 @@ import {
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
 import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
-import type {EAPSpanResponse, SpanQueryFilters} from 'sentry/views/insights/types';
+import type {SpanQueryFilters, SpanResponse} from 'sentry/views/insights/types';
 import {ModuleName, SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
 // This is similar to http sample table, its difficult to use the generic span samples sidebar as we require a bunch of custom things.
@@ -115,10 +115,7 @@ export function CacheSamplePanel() {
     ['project.id']: query.project,
   };
 
-  const useIndexedCacheSpans = (
-    isCacheHit: EAPSpanResponse['cache.hit'],
-    limit: number
-  ) =>
+  const useIndexedCacheSpans = (isCacheHit: SpanResponse['cache.hit'], limit: number) =>
     useSpans(
       {
         search: MutableSearch.fromQueryObject({

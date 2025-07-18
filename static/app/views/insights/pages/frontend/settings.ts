@@ -2,7 +2,7 @@ import {frontend} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/project';
 import type {ValidSort} from 'sentry/views/insights/pages/frontend/frontendOverviewTable';
-import {type EAPSpanProperty, ModuleName} from 'sentry/views/insights/types';
+import {ModuleName, type SpanProperty} from 'sentry/views/insights/types';
 
 export const FRONTEND_LANDING_SUB_PATH = 'frontend';
 export const FRONTEND_LANDING_TITLE = t('Frontend');
@@ -42,7 +42,7 @@ export const FRONTEND_PLATFORMS: PlatformKey[] = frontend.filter(
 );
 
 export const DEFAULT_SORT: ValidSort = {
-  field: 'sum_if(span.duration,is_transaction,true)' satisfies EAPSpanProperty,
+  field: 'sum_if(span.duration,is_transaction,true)' satisfies SpanProperty,
   kind: 'desc',
 };
 

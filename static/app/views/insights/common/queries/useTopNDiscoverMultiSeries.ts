@@ -18,7 +18,7 @@ import {
   getRetryDelay,
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
-import type {EAPSpanProperty} from 'sentry/views/insights/types';
+import type {SpanProperty} from 'sentry/views/insights/types';
 
 import {convertDiscoverTimeseriesResponse} from './convertDiscoverTimeseriesResponse';
 
@@ -37,8 +37,8 @@ interface UseMetricsSeriesOptions<YAxisFields, Fields> {
 }
 
 export const useTopNSpanMultiSeries = <
-  YAxisFields extends EAPSpanProperty[],
-  Fields extends EAPSpanProperty[],
+  YAxisFields extends SpanProperty[],
+  Fields extends SpanProperty[],
 >(
   options: UseMetricsSeriesOptions<YAxisFields, Fields>,
   referrer: string,

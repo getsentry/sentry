@@ -108,7 +108,7 @@ import {
   MODULE_VISIBLE_FEATURES as SESSIONS_MODULE_VISIBLE_FEATURES,
 } from 'sentry/views/insights/sessions/settings';
 
-import type {EAPSpanProperty} from './types';
+import type {SpanProperty} from './types';
 import {ModuleName} from './types';
 
 export const INSIGHTS_TITLE = t('Insights');
@@ -255,7 +255,7 @@ export const MODULES_CONSIDERED_NEW: Set<ModuleName> = new Set([
 export const INGESTION_DELAY = 90;
 
 // Base aliases used to map insights yAxis to human readable name
-export const BASE_FIELD_ALIASES: Partial<Record<EAPSpanProperty, string>> = {
+export const BASE_FIELD_ALIASES: Partial<Record<SpanProperty, string>> = {
   'avg(span.duration)': DataTitles.avg,
   'avg(span.self_time)': DataTitles.avg,
   'epm()': t('Requests Per Minute'),
