@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -14,8 +14,10 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
 import {
   AI_INPUT_TOKENS_ATTRIBUTE_SUM,
+  AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM,
   AI_MODEL_ID_ATTRIBUTE,
   AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
+  AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM,
   getAIGenerationsFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
@@ -36,6 +38,8 @@ import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/w
 const SERIES_NAME_MAP: Record<string, string> = {
   [AI_INPUT_TOKENS_ATTRIBUTE_SUM]: 'Input Tokens',
   [AI_OUTPUT_TOKENS_ATTRIBUTE_SUM]: 'Output Tokens',
+  [AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM]: 'Output Tokens (Reasoning)',
+  [AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM]: 'Input Tokens (Cached)',
 };
 
 export default function TokenDistributionWidget() {
@@ -51,7 +55,12 @@ export default function TokenDistributionWidget() {
     {
       ...pageFilterChartParams,
       search: fullQuery,
-      yAxis: [AI_INPUT_TOKENS_ATTRIBUTE_SUM, AI_OUTPUT_TOKENS_ATTRIBUTE_SUM],
+      yAxis: [
+        AI_INPUT_TOKENS_ATTRIBUTE_SUM,
+        AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM,
+        AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
+        AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM,
+      ],
     },
     Referrer.TOKEN_USAGE_WIDGET
   );
@@ -59,8 +68,6 @@ export default function TokenDistributionWidget() {
   const timeSeries = timeSeriesRequest.data;
 
   const hasData = Object.keys(timeSeries).length > 0;
-
-  const colorPalette = theme.chart.getColorPalette(2);
 
   const sums = Object.values(timeSeries).reduce(
     (acc, series) => {
@@ -73,9 +80,53 @@ export default function TokenDistributionWidget() {
     },
     {
       [AI_INPUT_TOKENS_ATTRIBUTE_SUM]: 0,
+      [AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM]: 0,
       [AI_OUTPUT_TOKENS_ATTRIBUTE_SUM]: 0,
+      [AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM]: 0,
     }
   );
+
+  // we need to deduct the reasoning tokens from the output tokens and cahced tokens from the input tokens
+  const timeSeriesAdjusted = useMemo(() => {
+    if (!hasData) {
+      return [];
+    }
+
+    return Object.values(timeSeries).map(series => {
+      if (series.seriesName === AI_INPUT_TOKENS_ATTRIBUTE_SUM) {
+        return {
+          ...series,
+          data: series.data.map((point, index) => ({
+            ...point,
+            value:
+              point.value -
+              Number(
+                timeSeries[AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM]?.data[index]?.value || 0
+              ),
+          })),
+        };
+      }
+
+      if (series.seriesName === AI_OUTPUT_TOKENS_ATTRIBUTE_SUM) {
+        return {
+          ...series,
+          data: series.data.map((point, index) => ({
+            ...point,
+            value:
+              point.value -
+              Number(
+                timeSeries[AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM]?.data[index]
+                  ?.value || 0
+              ),
+          })),
+        };
+      }
+
+      return series;
+    });
+  }, [timeSeries, hasData]);
+
+  const colorPalette = theme.chart.getColorPalette(4);
 
   const visualization = (
     <WidgetVisualizationStates
@@ -97,7 +148,7 @@ export default function TokenDistributionWidget() {
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
         showLegend: 'never',
-        plottables: Object.values(timeSeries).map(
+        plottables: timeSeriesAdjusted.map(
           (ts, index) =>
             new Bars(convertSeriesToTimeseries(ts), {
               color:
@@ -112,7 +163,7 @@ export default function TokenDistributionWidget() {
 
   const footer = hasData && (
     <WidgetFooterTable>
-      {Object.values(timeSeries).map((item, index) => {
+      {timeSeriesAdjusted.map((item, index) => {
         const modelId = `${item.seriesName}`;
         return (
           <Fragment key={modelId}>
