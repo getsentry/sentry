@@ -1,3 +1,4 @@
+import type {PropsWithChildren} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -25,18 +26,11 @@ function isLandingPage(location: ReturnType<typeof useLocation>) {
 
 function StoriesLanding() {
   return (
-    <RouteAnalyticsContextProvider>
-      <OrganizationContainer>
-        <Layout style={{gridTemplateColumns: 'auto'}}>
-          <HeaderContainer>
-            <StoryHeader />
-          </HeaderContainer>
-          <StoryMainContainer style={{gridColumn: '1 / -1'}}>
-            <StoryLanding />
-          </StoryMainContainer>
-        </Layout>
-      </OrganizationContainer>
-    </RouteAnalyticsContextProvider>
+    <StoriesLayout>
+      <StoryMainContainer>
+        <StoryLanding />
+      </StoryMainContainer>
+    </StoriesLayout>
   );
 }
 
@@ -47,6 +41,36 @@ function StoryDetail() {
   const story = useStoriesLoader({files});
 
   return (
+    <StoriesLayout>
+      {story.isLoading ? (
+        <VerticalScroll>
+          <LoadingIndicator />
+        </VerticalScroll>
+      ) : story.isError ? (
+        <VerticalScroll>
+          <Alert.Container>
+            <Alert type="error" showIcon>
+              <strong>{story.error.name}:</strong> {story.error.message}
+            </Alert>
+          </Alert.Container>
+        </VerticalScroll>
+      ) : story.isSuccess ? (
+        <StoryMainContainer>
+          {story.data.map(s => {
+            return <StoryExports key={s.filename} story={s} />;
+          })}
+        </StoryMainContainer>
+      ) : (
+        <VerticalScroll>
+          <strong>The file you selected does not export a story.</strong>
+        </VerticalScroll>
+      )}
+    </StoriesLayout>
+  );
+}
+
+function StoriesLayout(props: PropsWithChildren) {
+  return (
     <RouteAnalyticsContextProvider>
       <OrganizationContainer>
         <Layout>
@@ -56,29 +80,7 @@ function StoryDetail() {
 
           <StorySidebar />
 
-          {story.isLoading ? (
-            <VerticalScroll>
-              <LoadingIndicator />
-            </VerticalScroll>
-          ) : story.isError ? (
-            <VerticalScroll>
-              <Alert.Container>
-                <Alert type="error" showIcon>
-                  <strong>{story.error.name}:</strong> {story.error.message}
-                </Alert>
-              </Alert.Container>
-            </VerticalScroll>
-          ) : story.isSuccess ? (
-            <StoryMainContainer>
-              {story.data.map(s => {
-                return <StoryExports key={s.filename} story={s} />;
-              })}
-            </StoryMainContainer>
-          ) : (
-            <VerticalScroll>
-              <strong>The file you selected does not export a story.</strong>
-            </VerticalScroll>
-          )}
+          {props.children}
         </Layout>
       </OrganizationContainer>
     </RouteAnalyticsContextProvider>

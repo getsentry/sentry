@@ -151,7 +151,6 @@ const TitleEmphasis = styled('em')`
 `;
 
 const Hero = styled('div')`
-  width: 100vw;
   padding: 48px 16px;
   gap: ${space(4)};
   display: flex;
