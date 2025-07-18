@@ -8,6 +8,7 @@ from drf_spectacular.utils import extend_schema
 from google.protobuf.timestamp_pb2 import Timestamp
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest, TimeSeriesResponse
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
@@ -230,6 +231,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
                 trace_item_type=trace_item_type,
                 start_timestamp=start_timestamp,
                 end_timestamp=end_timestamp,
+                downsampled_storage_config=DownsampledStorageConfig.MODE_HIGHEST_ACCURACY,
             ),
             aggregations=[
                 AttributeAggregation(
