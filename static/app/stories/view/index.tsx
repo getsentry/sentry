@@ -7,7 +7,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {StorySidebar} from 'sentry/stories/view/storySidebar';
 import {useStoryRedirect} from 'sentry/stories/view/useStoryRedirect';
 import {space} from 'sentry/styles/space';
-import {useDarkTheme} from 'sentry/utils/theme/useDarkTheme';
 import {useLocation} from 'sentry/utils/useLocation';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
@@ -15,6 +14,7 @@ import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextPro
 import {StoryLanding} from './landing';
 import {StoryExports} from './storyExports';
 import {StoryHeader} from './storyHeader';
+import {useStoryDarkModeTheme} from './useStoriesDarkMode';
 import {useStoriesLoader} from './useStoriesLoader';
 
 export default function Stories() {
@@ -94,7 +94,7 @@ function StoriesLayout(props: PropsWithChildren) {
 
 function GlobalStoryStyles() {
   const theme = useTheme();
-  const darkTheme = useDarkTheme();
+  const darkTheme = useStoryDarkModeTheme();
   const location = useLocation();
   const isIndex = isLandingPage(location);
   const styles = css`

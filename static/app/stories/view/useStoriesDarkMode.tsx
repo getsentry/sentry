@@ -7,9 +7,9 @@ import {DO_NOT_USE_darkChonkTheme} from './theme.chonk';
 /**
  * Access the raw values from the dark theme
  *
- * ⚠️ Use the generic `useTheme` hook unless you have a very specific use case!
+ * ⚠️ DO NOT USE OUTSIDE OF STORIES
  */
-export const useDarkTheme = (): Theme => {
+export const useStoryDarkModeTheme = (): Theme => {
   const theme = useTheme();
   if (theme.isChonk) {
     return DO_NOT_USE_darkChonkTheme as any;
@@ -20,8 +20,10 @@ export const useDarkTheme = (): Theme => {
 /**
  * Forces all `children` to be rendered in dark mode,
  * regardless of user preferences.
+ *
+ * ⚠️ DO NOT USE OUTSIDE OF STORIES
  */
-export function DarkThemeProvider(props: PropsWithChildren) {
-  const theme = useDarkTheme();
+export function StoryDarkModeProvider(props: PropsWithChildren) {
+  const theme = useStoryDarkModeTheme();
   return <ThemeProvider theme={theme}>{props.children}</ThemeProvider>;
 }

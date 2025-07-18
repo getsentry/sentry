@@ -11,8 +11,8 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {IconOpen} from 'sentry/icons';
+import {StoryDarkModeProvider} from 'sentry/stories/view/useStoriesDarkMode';
 import {space} from 'sentry/styles/space';
-import {DarkThemeProvider} from 'sentry/utils/theme/useDarkTheme';
 
 import {Colors, Icons, Typography} from './figures';
 
@@ -45,7 +45,7 @@ const frontmatter = {
 export function StoryLanding() {
   return (
     <Fragment>
-      <DarkThemeProvider>
+      <StoryDarkModeProvider>
         <Hero>
           <Container>
             <Flex direction="column" gap={space(3)}>
@@ -70,7 +70,7 @@ export function StoryLanding() {
             />
           </Container>
         </Hero>
-      </DarkThemeProvider>
+      </StoryDarkModeProvider>
 
       <Container>
         <Flex as="section" direction="column" gap={space(4)} flex={1}>
