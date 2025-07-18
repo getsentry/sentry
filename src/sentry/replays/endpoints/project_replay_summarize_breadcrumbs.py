@@ -391,11 +391,11 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 message = event["data"]["payload"]["message"]
                 return f"Logged: {message} at {timestamp}"
             case EventType.UI_BLUR:
-                timestamp_ms = timestamp * 1000
-                return f"User looked away from the tab at {timestamp_ms}"
+                # timestamp_ms = timestamp * 1000
+                return None
             case EventType.UI_FOCUS:
-                timestamp_ms = timestamp * 1000
-                return f"User returned to tab at {timestamp_ms}"
+                # timestamp_ms = timestamp * 1000
+                return None
             case EventType.RESOURCE_FETCH:
                 timestamp_ms = timestamp * 1000
                 payload = event["data"]["payload"]
