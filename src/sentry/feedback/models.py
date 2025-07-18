@@ -37,16 +37,28 @@ class Feedback(Model):
 class GroupFeedbackLabel(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
-    group = FlexibleForeignKey("sentry.Group", on_delete=models.CASCADE)
+    group = FlexibleForeignKey("sentry.Group")
     # rm: Finding the top 10 labels for Groups that are in a given project and date range may be slow (if we don't care about project, date range I think it's fast)
     label = FlexibleForeignKey("feedback.Label")
+
+    # Denormalized fields from group, for performance
+    project = FlexibleForeignKey("sentry.Project")
+    date_added = models.DateTimeField()
+    # TODO: if we want to filter by environment(s), we should add a field for that here
 
     class Meta:
         app_label = "feedback"
         db_table = "feedback_groupfeedbacklabel"
         unique_together = (("group", "label"),)
-        # rm: Allows us to quickly find all labels that a certain feedback has
-        indexes = [models.Index(fields=("group", "label"))]
+        indexes = [
+            # rm: Allows us to quickly find all labels that a certain feedback has
+            # Q: do we need label here? or is group enough
+            models.Index(fields=("group", "label")),
+            # rm: Allows us to quickly find all feedbacks in a given project and date range that have certain label(s)
+            # Also allows us to find all feedbacks and associated labels in a given project and date range
+            # Does this support the query: get top 10 labels by number of groups (counting groups only in a date range and project)? Or do we need another field in this index, like "group"
+            models.Index(fields=("project", "date_added", "label")),
+        ]
 
     __repr__ = sane_repr("group", "label")
 
