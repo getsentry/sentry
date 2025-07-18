@@ -63,21 +63,19 @@ export default function Ai() {
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <EmptySummaryContainer>
           <CallToActionContainer>
-            <Flex direction="column" gap={space(2)}>
-              <div>
-                <strong>{t('AI-Powered Replay Summaries')}</strong>
-              </div>
-              <div>
-                {t(
-                  'Seer access is required to use replay summaries. Please view the Seer settings page for more information.'
-                )}
-              </div>
-              <div>
-                <LinkButton size="sm" priority="primary" to="/settings/seer/">
-                  {t('View Seer Settings')}
-                </LinkButton>
-              </div>
-            </Flex>
+            <div>
+              <strong>{t('AI-Powered Replay Summaries')}</strong>
+            </div>
+            <div>
+              {t(
+                'Seer access is required to use replay summaries. Please view the Seer settings page for more information.'
+              )}
+            </div>
+            <div>
+              <LinkButton size="sm" priority="primary" to="/settings/seer/">
+                {t('View Seer Settings')}
+              </LinkButton>
+            </div>
           </CallToActionContainer>
         </EmptySummaryContainer>
       </Wrapper>
@@ -278,6 +276,10 @@ const OverflowBody = styled('section')`
 `;
 
 const CallToActionContainer = styled('div')`
-  padding: ${space(3)};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+  padding: ${space(2)};
+  align-items: center;
   text-align: center;
 `;
