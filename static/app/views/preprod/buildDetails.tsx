@@ -1,7 +1,6 @@
 import {useCallback, useEffect, useState} from 'react';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -51,16 +50,6 @@ export default function BuildDetails() {
   useEffect(() => {
     fetchBuildDetailsData();
   }, [fetchBuildDetailsData]);
-
-  // TODO: Rich loading state (or push to content components)
-  if (error) {
-    return <div>{error}</div>;
-  }
-
-  // TODO: Rich loading state (or push to content components)
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
 
   let sidebarContentProps: BuildDetailsSidebarContentProps;
   if (error) {
