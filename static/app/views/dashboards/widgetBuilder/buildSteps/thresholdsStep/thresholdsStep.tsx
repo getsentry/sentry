@@ -11,6 +11,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getThresholdUnitSelectOptions} from 'sentry/views/dashboards/utils';
 import {BuildStep} from 'sentry/views/dashboards/widgetBuilder/buildSteps/buildStep';
+import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 
 type ThresholdErrors = Partial<Record<ThresholdMaxKeys, string>>;
 
@@ -64,18 +65,26 @@ function ThresholdRow({
     }
   };
 
+  const transactionWidgetDisabled = useDisableTransactionWidget();
+
   return (
     <ThresholdRowWrapper>
       <CircleIndicator color={color} size={WIDGET_INDICATOR_SIZE} />
       <StyledNumberField {...minInputProps} inline={false} disabled />
       {t('to')}
-      <StyledNumberField onChange={handleChange} {...maxInputProps} inline={false} />
+      <StyledNumberField
+        onChange={handleChange}
+        {...maxInputProps}
+        inline={false}
+        disabled={transactionWidgetDisabled}
+      />
       {unitOptions.length > 0 && (
         <StyledSelectField
           {...unitSelectProps}
           onChange={onUnitChange}
           options={unitOptions}
           inline={false}
+          disabled={transactionWidgetDisabled}
         />
       )}
     </ThresholdRowWrapper>

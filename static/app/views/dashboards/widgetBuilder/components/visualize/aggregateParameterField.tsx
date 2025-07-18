@@ -11,11 +11,13 @@ export function AggregateParameterField({
   fieldValue,
   onChange,
   currentValue,
+  disabled,
 }: {
   currentValue: string;
   fieldValue: QueryFieldValue;
   onChange: (value: string) => void;
   parameter: ParameterDescription;
+  disabled?: boolean;
 }) {
   if (parameter.kind === 'value') {
     const inputProps = {
@@ -30,6 +32,7 @@ export function AggregateParameterField({
         }
       },
       placeholder: parameter.placeholder,
+      disabled,
     };
     switch (parameter.dataType) {
       case 'number':

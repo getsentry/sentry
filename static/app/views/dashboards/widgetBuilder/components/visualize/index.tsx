@@ -534,7 +534,7 @@ function Visualize({error, setError}: VisualizeProps) {
                 return (
                   <SortableVisualizeFieldWrapper
                     dragId={draggableFieldIds[index] ?? ''}
-                    canDrag={!!canDrag}
+                    canDrag={!!canDrag && !disableTransactionWidget}
                     key={draggableFieldIds[index]}
                   >
                     {activeId !== null && index === Number(activeId) ? null : (
@@ -638,6 +638,7 @@ function Visualize({error, setError}: VisualizeProps) {
                                             parameter={parameter}
                                             fieldValue={field}
                                             currentValue={currentValue}
+                                            disabled={disableTransactionWidget}
                                             onChange={value => {
                                               const newFields = cloneDeep(fields);
                                               if (
@@ -667,6 +668,7 @@ function Visualize({error, setError}: VisualizeProps) {
                                     parameter={
                                       matchingAggregate?.value.meta.parameters[0]
                                     }
+                                    disabled={disableTransactionWidget}
                                     fieldValue={field}
                                     currentValue={field.function[1]}
                                     onChange={value => {
