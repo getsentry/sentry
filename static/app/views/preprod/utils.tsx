@@ -43,6 +43,8 @@ export function getReadablePlatformLabel(platform: Platform): string {
       return 'iOS';
     case 'android':
       return 'Android';
+    case 'macos':
+      return 'macOS';
     default:
       throw new Error(`Unknown platform: ${platform}`);
   }

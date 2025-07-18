@@ -19,7 +19,7 @@ export interface BuildDetailsAppInfo {
   // icon?: string | null; // Uncomment when available
 }
 
-export interface BuildDetailsVcsInfo {
+interface BuildDetailsVcsInfo {
   commit_id: string | null;
   // repo?: string; // Uncomment when available
   // provider?: string; // Uncomment when available
