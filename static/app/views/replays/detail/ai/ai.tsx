@@ -18,8 +18,6 @@ import {ChapterList} from 'sentry/views/replays/detail/ai/chapterList';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 
-import {useFetchReplaySummary} from './useFetchReplaySummary';
-
 export default function Ai() {
   return (
     <PaddedFluidHeight>
@@ -34,51 +32,11 @@ export default function Ai() {
 
 function AiContent() {
   const organization = useOrganization();
-  const {replay} = useReplayContext();
+  const {replay, replaySummary} = useReplayContext(); // Data is queried in ReplayDetailsProviders.
   const replayRecord = replay?.getReplay();
   const project = useProjectFromId({project_id: replayRecord?.project_id});
-  const {
-    data: summaryData,
-    isPending,
-    isError,
-    isRefetching,
-    refetch,
-  } = useFetchReplaySummary({
-    staleTime: 0,
-    enabled: Boolean(
-      replayRecord?.id &&
-        project?.slug &&
-        organization.features.includes('replay-ai-summaries') &&
-        organization.features.includes('gen-ai-features')
-    ),
-    retry: false,
-  });
 
   const openForm = useFeedbackForm();
-
-  const feedbackButton = ({type}: {type: 'positive' | 'negative'}) => {
-    return openForm ? (
-      <Button
-        aria-label={t('Give feedback on the AI summary section')}
-        icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
-        title={type === 'positive' ? t('I like this') : t(`I don't like this`)}
-        size={'xs'}
-        onClick={() =>
-          openForm({
-            messagePlaceholder:
-              type === 'positive'
-                ? t('What did you like about the AI summary and chapters?')
-                : t('How can we make the AI summary and chapters work better for you?'),
-            tags: {
-              ['feedback.source']: 'replay_ai_summary',
-              ['feedback.owner']: 'replay',
-              ['feedback.type']: type,
-            },
-          })
-        }
-      />
-    ) : null;
-  };
 
   if (
     !organization.features.includes('replay-ai-summaries') ||
@@ -87,7 +45,7 @@ function AiContent() {
     return (
       <SummaryContainer>
         <Alert type="info">
-          {t('Replay AI summary is not available for this organization.')}
+          {t('Replay summary is not available for this organization.')}
         </Alert>
       </SummaryContainer>
     );
@@ -96,10 +54,26 @@ function AiContent() {
   if (replayRecord?.project_id && !project) {
     return (
       <SummaryContainer>
-        <Alert type="error">{t('Project not found. Unable to load AI summary.')}</Alert>
+        <Alert type="error">{t('Project not found. Unable to load summary.')}</Alert>
       </SummaryContainer>
     );
   }
+
+  if (!replaySummary.apiQueryResult) {
+    return (
+      <SummaryContainer>
+        <Alert type="error">{t('Unable to load summary.')}</Alert>
+      </SummaryContainer>
+    );
+  }
+
+  const {
+    data: summaryData,
+    isPending,
+    isError,
+    isRefetching,
+    refetch,
+  } = replaySummary.apiQueryResult;
 
   if (isPending || isRefetching) {
     return (
@@ -112,7 +86,7 @@ function AiContent() {
   if (isError) {
     return (
       <SummaryContainer>
-        <Alert type="error">{t('Failed to load AI summary')}</Alert>
+        <Alert type="error">{t('Failed to load summary')}</Alert>
       </SummaryContainer>
     );
   }
@@ -124,6 +98,32 @@ function AiContent() {
       </SummaryContainer>
     );
   }
+
+  const feedbackButton = ({type}: {type: 'positive' | 'negative'}) => {
+    return openForm ? (
+      <Button
+        aria-label={t('Give feedback on the summary section')}
+        icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
+        title={type === 'positive' ? t('I like this') : t(`I don't like this`)}
+        size={'xs'}
+        onClick={() =>
+          openForm({
+            messagePlaceholder:
+              type === 'positive'
+                ? t('What did you like about the replay summary and chapters?')
+                : t(
+                    'How can we make the replay summary and chapters work better for you?'
+                  ),
+            tags: {
+              ['feedback.source']: 'replay_ai_summary',
+              ['feedback.owner']: 'replay',
+              ['feedback.type']: type,
+            },
+          })
+        }
+      />
+    ) : null;
+  };
 
   return (
     <ErrorBoundary mini>

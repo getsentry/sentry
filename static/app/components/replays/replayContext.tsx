@@ -7,6 +7,7 @@ import useReplayHighlighting from 'sentry/components/replays/useReplayHighlighti
 import {VideoReplayerWithInteractions} from 'sentry/components/replays/videoReplayerWithInteractions';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import clamp from 'sentry/utils/number/clamp';
+import type {useApiQuery} from 'sentry/utils/queryClient';
 import type useInitialOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useTouchEventsCheck from 'sentry/utils/replays/playback/hooks/useTouchEventsCheck';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
@@ -18,6 +19,7 @@ import usePrevious from 'sentry/utils/usePrevious';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import useRAF from 'sentry/utils/useRAF';
 import {useUser} from 'sentry/utils/useUser';
+import type {SummaryResponse} from 'sentry/views/replays/detail/ai/useFetchReplaySummary';
 
 import {CanvasReplayerPlugin} from './canvasReplayerPlugin';
 
@@ -94,6 +96,10 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
    */
   replay: ReplayReader | null;
 
+  replaySummary: {
+    apiQueryResult?: ReturnType<typeof useApiQuery<SummaryResponse>>;
+  };
+
   /**
    * Restart the replay
    */
@@ -121,6 +127,7 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
 }
 
 const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
+  replaySummary: {},
   analyticsContext: '',
   clearAllHighlights: () => {},
   currentTime: 0,
@@ -169,6 +176,8 @@ type Props = {
    */
   initialTimeOffsetMs?: ReturnType<typeof useInitialOffsetMs>;
 
+  replaySummaryQueryResult?: ReturnType<typeof useApiQuery<SummaryResponse>>;
+
   /**
    * Override return fields for testing
    */
@@ -188,6 +197,7 @@ export function Provider({
   isFetching,
   replay,
   autoStart,
+  replaySummaryQueryResult,
   value = {},
 }: Props) {
   const user = useUser();
@@ -606,6 +616,7 @@ export function Provider({
     <ReplayCurrentTimeContextProvider>
       <ReplayPlayerContext
         value={{
+          replaySummary: {apiQueryResult: replaySummaryQueryResult},
           analyticsContext,
           clearAllHighlights,
           currentTime,
