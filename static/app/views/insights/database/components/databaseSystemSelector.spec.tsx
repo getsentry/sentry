@@ -7,7 +7,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {DatabaseSystemSelector} from 'sentry/views/insights/database/components/databaseSystemSelector';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 jest.mock('sentry/views/insights/common/queries/useDiscover', () => ({
   useSpans: jest.fn(),
@@ -173,7 +173,7 @@ describe('DatabaseSystemSelector', function () {
   });
 
   it('prioritizes the system set in query parameters but does not replace localStorage value until an option is clicked', async function () {
-    const {SPAN_SYSTEM} = SpanMetricsField;
+    const {SPAN_SYSTEM} = SpanFields;
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 

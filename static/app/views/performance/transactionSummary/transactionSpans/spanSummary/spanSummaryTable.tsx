@@ -37,7 +37,7 @@ import {
   type EAPSpanResponse,
   ModuleName,
   SpanFields,
-  type SpanMetricsQueryFilters,
+  type SpanQueryFilters,
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
@@ -104,7 +104,7 @@ export default function SpanSummaryTable(props: Props) {
   const spansCursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
   const spansQuery = decodeScalar(location.query.spansQuery, '');
 
-  const filters: SpanMetricsQueryFilters = {
+  const filters: SpanQueryFilters = {
     'span.group': groupId,
     'span.op': spanOp,
     transaction: transaction as string,

@@ -36,10 +36,10 @@ import {combineMeta} from 'sentry/views/insights/common/utils/combineMeta';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
 const {CACHE_MISS_RATE} = SpanFunction;
-const {CACHE_ITEM_SIZE} = SpanMetricsField;
+const {CACHE_ITEM_SIZE} = SpanFields;
 
 const SDK_UPDATE_ALERT = (
   <Fragment>

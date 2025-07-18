@@ -30,12 +30,11 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   type ModuleName,
   SpanFields,
-  SpanMetricsField,
-  type SpanMetricsQueryFilters,
+  type SpanQueryFilters,
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
-const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
+const {SPAN_SELF_TIME, SPAN_OP} = SpanFields;
 
 type Props = {
   groupId: string;
@@ -83,7 +82,7 @@ export function SpanSamplesContainer({
     });
   }
 
-  const filters: SpanMetricsQueryFilters = {
+  const filters: SpanQueryFilters = {
     'span.group': groupId,
     transaction: transactionName,
   };

@@ -3,7 +3,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {SpanMetricsField, type SubregionCode} from 'sentry/views/insights/types';
+import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
   browserTypes?: BrowserType[];
@@ -26,10 +26,10 @@ export const useProjectRawWebVitalsQuery = ({
     search.addFilterValue(tag.key, tag.name);
   }
   if (subregions) {
-    search.addDisjunctionFilterValues(SpanMetricsField.USER_GEO_SUBREGION, subregions);
+    search.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
   }
   if (browserTypes) {
-    search.addDisjunctionFilterValues(SpanMetricsField.BROWSER_NAME, browserTypes);
+    search.addDisjunctionFilterValues(SpanFields.BROWSER_NAME, browserTypes);
   }
 
   return useSpans(

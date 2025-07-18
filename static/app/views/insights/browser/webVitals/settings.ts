@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import type {SpanMetricsProperty} from 'sentry/views/insights/types';
+import type {EAPSpanProperty} from 'sentry/views/insights/types';
 
 export const MODULE_TITLE = t('Web Vitals');
 export const BASE_URL = 'pageloads';
@@ -20,4 +20,4 @@ export const FIELD_ALIASES = {
   'p75(measurements.inp)': 'INP',
   'p75(measurements.cls)': 'CLS',
   'p75(measurements.ttfb)': 'TTFB',
-} satisfies Partial<Record<SpanMetricsProperty, string>>;
+} satisfies Partial<Record<EAPSpanProperty, string>>;

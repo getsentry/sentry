@@ -7,11 +7,11 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 const DATASET_TO_FIELDS = {
   [DiscoverDatasets.SPANS_INDEXED]: SpanFields,
-  [DiscoverDatasets.SPANS_METRICS]: SpanMetricsField,
+  [DiscoverDatasets.SPANS_METRICS]: SpanFields,
 };
 
 function useSpanFieldBaseTags(

@@ -2,16 +2,16 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 type Query = {
   sort?: string;
 };
 
 const SORTABLE_FIELDS = [
-  `sum(${SpanMetricsField.SPAN_DURATION})`,
+  `sum(${SpanFields.SPAN_DURATION})`,
   'epm()',
-  `avg(${SpanMetricsField.SPAN_DURATION})`,
+  `avg(${SpanFields.SPAN_DURATION})`,
 ] as const;
 
 type ValidSort = Sort & {

@@ -20,10 +20,10 @@ import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {TransactionCell} from 'sentry/views/insights/http/components/tables/transactionCell';
-import type {SpanMetricsResponse} from 'sentry/views/insights/types';
+import type {EAPSpanResponse} from 'sentry/views/insights/types';
 
 type Row = Pick<
-  SpanMetricsResponse,
+  EAPSpanResponse,
   | 'project.id'
   | 'transaction'
   | 'transaction.method'

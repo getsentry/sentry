@@ -25,9 +25,9 @@ import {RELEASE_LEVEL} from 'sentry/views/insights/llmMonitoring/settings';
 import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
 import {
   ModuleName,
+  SpanFields,
   SpanFunction,
-  SpanMetricsField,
-  type SpanMetricsQueryFilters,
+  type SpanQueryFilters,
 } from 'sentry/views/insights/types';
 
 interface Props {
@@ -48,7 +48,7 @@ function LLMMonitoringPage({params}: Props) {
 
   const spanDescription = decodeScalar(location.query?.['span.description']);
 
-  const filters: SpanMetricsQueryFilters = {
+  const filters: SpanQueryFilters = {
     'span.group': groupId,
     'span.category': 'ai.pipeline',
   };
@@ -57,10 +57,10 @@ function LLMMonitoringPage({params}: Props) {
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: [
-        SpanMetricsField.SPAN_OP,
+        SpanFields.SPAN_OP,
         'count()',
         `${SpanFunction.EPM}()`,
-        `avg(${SpanMetricsField.SPAN_DURATION})`,
+        `avg(${SpanFields.SPAN_DURATION})`,
       ],
       enabled: Boolean(groupId),
     },
@@ -130,7 +130,7 @@ function LLMMonitoringPage({params}: Props) {
                       <MetricReadout
                         title={t('Pipeline Duration')}
                         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                        value={spanMetrics?.[`avg(${SpanMetricsField.SPAN_DURATION})`]}
+                        value={spanMetrics?.[`avg(${SpanFields.SPAN_DURATION})`]}
                         unit={DurationUnit.MILLISECOND}
                         isLoading={areSpanMetricsLoading}
                       />

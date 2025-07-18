@@ -11,8 +11,8 @@ import {
 import {t} from 'sentry/locale';
 import {
   type Aggregate,
+  type EAPSpanProperty,
   ModuleName,
-  type SpanMetricsProperty,
 } from 'sentry/views/insights/types';
 
 export const MODULE_TITLE = t('Queries');
@@ -69,4 +69,4 @@ export const MODULE_FEATURES = ['insights-initial-modules'];
 
 export const FIELD_ALIASES = {
   'epm()': t('Queries Per Minute'),
-} satisfies Partial<Record<SpanMetricsProperty, string>>;
+} satisfies Partial<Record<EAPSpanProperty, string>>;

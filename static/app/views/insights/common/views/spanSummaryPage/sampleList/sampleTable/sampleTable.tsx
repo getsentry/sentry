@@ -19,13 +19,13 @@ import type {
 import {useSpanSamples} from 'sentry/views/insights/common/queries/useSpanSamples';
 import type {
   ModuleName,
-  SpanMetricsQueryFilters,
+  SpanQueryFilters,
   SubregionCode,
 } from 'sentry/views/insights/types';
-import {SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
-const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
+const {SPAN_SELF_TIME, SPAN_OP} = SpanFields;
 
 const SpanSamplesTableContainer = styled('div')``;
 
@@ -61,7 +61,7 @@ function SampleTable({
   additionalFilters,
   subregions,
 }: Props) {
-  const filters: SpanMetricsQueryFilters = {
+  const filters: SpanQueryFilters = {
     'span.group': groupId,
     transaction: transactionName,
   };
@@ -76,7 +76,7 @@ function SampleTable({
 
   if (subregions) {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    filters[SpanMetricsField.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
+    filters[SpanFields.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
   }
 
   const {data, isFetching: isFetchingSpanMetrics} = useSpans(
