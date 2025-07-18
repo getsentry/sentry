@@ -1909,4 +1909,65 @@ describe('provisionSubscriptionAction', function () {
       })
     );
   }, 15_000);
+
+  it('confirms byte field has (in GB) suffix', async function () {
+    triggerProvisionSubscription({
+      subscription: mockSub,
+      orgId: mockSub.slug,
+      onSuccess,
+      billingConfig: mockBillingConfig,
+    });
+
+    await loadModal();
+
+    await selectEvent.select(
+      await screen.findByRole('textbox', {name: 'Plan'}),
+      'Enterprise (Business) (am1)'
+    );
+
+    // Verify ATTACHMENTS has (in GB) suffix as expected
+    expect(
+      screen.getByRole('spinbutton', {
+        name: 'Reserved Attachments (in GB)',
+        hidden: true,
+      })
+    ).toBeInTheDocument();
+  });
+
+  it('confirms non-byte categories do not have (in GB) suffix', async function () {
+    triggerProvisionSubscription({
+      subscription: mockSub,
+      orgId: mockSub.slug,
+      onSuccess,
+      billingConfig: mockBillingConfig,
+    });
+
+    await loadModal();
+
+    await selectEvent.select(
+      await screen.findByRole('textbox', {name: 'Plan'}),
+      'Enterprise (Business) (am1)'
+    );
+
+    // Non-byte categories should not have (in GB) suffix
+    expect(
+      screen.getByRole('spinbutton', {name: 'Reserved Errors', hidden: true})
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByRole('spinbutton', {name: 'Reserved Transactions', hidden: true})
+    ).toBeInTheDocument();
+
+    // Verify no incorrect GB suffixes exist
+    expect(
+      screen.queryByRole('spinbutton', {name: 'Reserved Errors (in GB)', hidden: true})
+    ).not.toBeInTheDocument();
+
+    expect(
+      screen.queryByRole('spinbutton', {
+        name: 'Reserved Transactions (in GB)',
+        hidden: true,
+      })
+    ).not.toBeInTheDocument();
+  });
 });
