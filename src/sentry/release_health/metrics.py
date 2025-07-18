@@ -780,6 +780,11 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         select = [
             MetricField(metric_mri=SessionMRI.ABNORMAL.value, alias="abnormal", op=None),
+            MetricField(
+                metric_mri=SessionMRI.UNHANDLED.value,
+                alias="unhandled",
+                op=None,
+            ),
             MetricField(metric_mri=SessionMRI.CRASHED.value, alias="crashed", op=None),
             MetricField(metric_mri=SessionMRI.ALL.value, alias="init", op=None),
             MetricField(
@@ -820,7 +825,13 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             release = by.get("release")
 
             totals = group.get("totals", {})
-            for status in ["abnormal", "crashed", "init", "errored_preaggr"]:
+            for status in [
+                "abnormal",
+                "unhandled",
+                "crashed",
+                "init",
+                "errored_preaggr",
+            ]:
                 value = totals.get(status)
                 if value is not None and value != 0.0:
                     ret_val[(proj_id, release, status)] = value
@@ -1037,6 +1048,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             if not has_health_data and summary_stats_period != "90d":
                 fetch_has_health_data_releases.add((project_id, release))
 
+            sessions_unhandled = rv_sessions.get((project_id, release, "unhandled"), 0)
             sessions_crashed = rv_sessions.get((project_id, release, "crashed"), 0)
 
             users_crashed = rv_users.get((project_id, release, "crashed_users"), 0)
@@ -1051,9 +1063,13 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 "total_sessions": total_sessions,
                 "total_users": total_users,
                 "has_health_data": has_health_data,
+                "sessions_unhandled": sessions_unhandled,
                 "sessions_crashed": sessions_crashed,
                 "crash_free_users": (
                     100 - users_crashed / total_users * 100 if total_users else None
+                ),
+                "handled_sessions": (
+                    100 - (sessions_unhandled + sessions_crashed) / total_sessions * 100
                 ),
                 "crash_free_sessions": (
                     100 - sessions_crashed / float(total_sessions) * 100 if total_sessions else None
@@ -1063,6 +1079,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     rv_errored_sessions.get((project_id, release), 0)
                     + rv_sessions.get((project_id, release, "errored_preaggr"), 0)
                     - sessions_crashed
+                    - sessions_unhandled
                     - rv_sessions.get((project_id, release, "abnormal"), 0),
                 ),
                 "duration_p50": None,
@@ -1428,6 +1445,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     metric_mri=SessionMRI.CRASHED_USER.value, alias="users_crashed", op=None
                 ),
                 MetricField(
+                    metric_mri=SessionMRI.UNHANDLED_USER.value, alias="users_unhandled", op=None
+                ),
+                MetricField(
                     metric_mri=SessionMRI.ERRORED_USER.value, alias="users_errored", op=None
                 ),
                 MetricField(
@@ -1441,6 +1461,11 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     metric_mri=SessionMRI.ABNORMAL.value, alias="sessions_abnormal", op=None
                 ),
                 MetricField(metric_mri=SessionMRI.CRASHED.value, alias="sessions_crashed", op=None),
+                MetricField(
+                    metric_mri=SessionMRI.UNHANDLED.value,
+                    alias="sessions_unhandled",
+                    op=None,
+                ),
                 MetricField(metric_mri=SessionMRI.ERRORED.value, alias="sessions_errored", op=None),
                 MetricField(metric_mri=SessionMRI.HEALTHY.value, alias="sessions_healthy", op=None),
             ]
@@ -1500,6 +1525,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 f"{stat}": 0,
                 f"{stat}_abnormal": 0,
                 f"{stat}_crashed": 0,
+                f"{stat}_unhandled": 0,
                 f"{stat}_errored": 0,
                 f"{stat}_healthy": 0,
             }
