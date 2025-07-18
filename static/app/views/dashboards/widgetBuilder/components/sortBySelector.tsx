@@ -18,6 +18,7 @@ import {SortBySelectors} from 'sentry/views/dashboards/widgetBuilder/buildSteps/
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
+import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {
@@ -33,6 +34,7 @@ function WidgetBuilderSortBySelector() {
   const organization = useOrganization();
   const source = useDashboardWidgetSource();
   const isEditing = useIsEditingWidget();
+  const disableTransactionWidget = useDisableTransactionWidget();
 
   const datasetConfig = getDatasetConfig(state.dataset);
 
@@ -101,7 +103,7 @@ function WidgetBuilderSortBySelector() {
         >
           {isTimeseriesChart && state.limit && (
             <ResultsLimitSelector
-              disabled={disableSortDirection && disableSort}
+              disabled={(disableSortDirection && disableSort) || disableTransactionWidget}
               name="resultsLimit"
               menuPlacement="auto"
               options={[...new Array(maxLimit).keys()].map(resultLimit => {
@@ -122,8 +124,8 @@ function WidgetBuilderSortBySelector() {
             widgetType={state.dataset ?? WidgetType.ERRORS}
             hasGroupBy={isTimeseriesChart && !!widget.queries[0]!.columns.length}
             disableSortReason={disableSortReason}
-            disableSort={disableSort}
-            disableSortDirection={disableSortDirection}
+            disableSort={disableSort || disableTransactionWidget}
+            disableSortDirection={disableSortDirection || disableTransactionWidget}
             widgetQuery={widget.queries[0]!}
             values={{
               sortDirection:

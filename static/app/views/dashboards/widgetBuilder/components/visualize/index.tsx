@@ -716,7 +716,10 @@ function Visualize({error, setError}: VisualizeProps) {
                             icon={<IconDelete />}
                             size="zero"
                             disabled={
-                              fields.length <= 1 || !canDelete || isOnlyFieldOrAggregate
+                              fields.length <= 1 ||
+                              !canDelete ||
+                              isOnlyFieldOrAggregate ||
+                              disableTransactionWidget
                             }
                             onClick={() => {
                               dispatch({

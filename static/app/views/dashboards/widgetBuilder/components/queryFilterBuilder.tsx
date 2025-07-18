@@ -204,6 +204,7 @@ function WidgetBuilderQueryFilterBuilder({
             <LegendAliasInput
               type="text"
               name="name"
+              disabled={disableTransactionWidget}
               placeholder={t('Legend Alias')}
               value={state.legendAlias?.[index] || ''}
               onChange={e => {

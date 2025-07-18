@@ -15,6 +15,7 @@ import {DisplayType} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
+import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
@@ -45,6 +46,7 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
   const source = useDashboardWidgetSource();
   const isEditing = useIsEditingWidget();
   const organization = useOrganization();
+  const disableTransactionWidget = useDisableTransactionWidget();
 
   return (
     <Fragment>
@@ -60,6 +62,7 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
         <Select
           name="displayType"
           value={state.displayType}
+          disabled={disableTransactionWidget}
           options={Object.keys(displayTypes).map(value => ({
             // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             leadingItems: typeIcons[value],
