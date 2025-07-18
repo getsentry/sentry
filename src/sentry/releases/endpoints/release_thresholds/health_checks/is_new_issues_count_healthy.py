@@ -8,7 +8,7 @@ from sentry.models.release_threshold.constants import TriggerType
 logger = logging.getLogger("sentry.release_threshold_status.is_new_issues_count_healthy")
 
 if TYPE_CHECKING:
-    from sentry.api.endpoints.release_thresholds.types import EnrichedThreshold
+    from sentry.releases.endpoints.release_thresholds.types import EnrichedThreshold
 
 
 def is_new_issue_count_healthy(

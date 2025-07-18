@@ -17,18 +17,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
-from sentry.api.endpoints.release_thresholds.constants import CRASH_SESSIONS_DISPLAY
-from sentry.api.endpoints.release_thresholds.health_checks import (
-    is_crash_free_rate_healthy_check,
-    is_error_count_healthy,
-    is_new_issue_count_healthy,
-)
-from sentry.api.endpoints.release_thresholds.types import EnrichedThreshold
-from sentry.api.endpoints.release_thresholds.utils import (
-    fetch_sessions_data,
-    get_errors_counts_timeseries_by_project_and_release,
-    get_new_issue_counts,
-)
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.examples.release_threshold_examples import ReleaseThresholdExamples
@@ -37,6 +25,18 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.release import Release
 from sentry.models.release_threshold.constants import ReleaseThresholdType
 from sentry.organizations.services.organization import RpcOrganization
+from sentry.releases.endpoints.release_thresholds.constants import CRASH_SESSIONS_DISPLAY
+from sentry.releases.endpoints.release_thresholds.health_checks import (
+    is_crash_free_rate_healthy_check,
+    is_error_count_healthy,
+    is_new_issue_count_healthy,
+)
+from sentry.releases.endpoints.release_thresholds.types import EnrichedThreshold
+from sentry.releases.endpoints.release_thresholds.utils import (
+    fetch_sessions_data,
+    get_errors_counts_timeseries_by_project_and_release,
+    get_new_issue_counts,
+)
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.release_threshold_status")

@@ -113,7 +113,7 @@ ignore_missing_imports = true
 module = [
     "sentry.api.endpoints.organization_events_meta",
     "sentry.api.endpoints.organization_events_spans_performance",
-    "sentry.api.endpoints.organization_releases",
+    "sentry.releases.endpoints.organization_releases",
     "sentry.api.endpoints.project_rules_configuration",
     "sentry.api.paginator",
     "sentry.db.postgres.base",
@@ -168,7 +168,7 @@ module = [
     "sentry.api.decorators",
     "sentry.api.endpoints.integrations.sentry_apps.installation.external_issue.*",
     "sentry.api.endpoints.project_repo_path_parsing",
-    "sentry.api.endpoints.release_thresholds.health_checks.*",
+    "sentry.releases.endpoints.release_thresholds.health_checks.*",
     "sentry.api.endpoints.team_all_unresolved_issues",
     "sentry.api.endpoints.team_issue_breakdown",
     "sentry.api.event_search",

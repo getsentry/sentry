@@ -13,7 +13,7 @@ from ..constants import CRASH_USERS_DISPLAY
 logger = logging.getLogger("sentry.release_threshold_status.is_crash_free_rate_healthy")
 
 if TYPE_CHECKING:
-    from sentry.api.endpoints.release_thresholds.types import EnrichedThreshold
+    from sentry.releases.endpoints.release_thresholds.types import EnrichedThreshold
 
 
 def get_groups_totals(

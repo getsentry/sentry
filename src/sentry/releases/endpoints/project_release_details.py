@@ -7,14 +7,14 @@ from sentry import options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ReleaseAnalyticsMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
-from sentry.api.endpoints.organization_releases import get_stats_period_detail
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ReleaseSerializer
 from sentry.models.activity import Activity
 from sentry.models.release import Release
-from sentry.models.releases.exceptions import UnsafeReleaseDeletion
 from sentry.plugins.interfaces.releasehook import ReleaseHook
+from sentry.releases.endpoints.organization_releases import get_stats_period_detail
+from sentry.releases.exceptions import UnsafeReleaseDeletion
 from sentry.snuba.sessions import STATS_PERIODS
 from sentry.types.activity import ActivityType
 from sentry.utils.sdk import bind_organization_context

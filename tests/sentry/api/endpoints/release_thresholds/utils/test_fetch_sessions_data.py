@@ -1,4 +1,4 @@
-# from sentry.api.endpoints.release_thresholds.utils import fetch_sessions_data
+# from sentry.releases.endpoints.release_thresholds.utils import fetch_sessions_data
 from sentry.testutils.cases import TestCase
 
 

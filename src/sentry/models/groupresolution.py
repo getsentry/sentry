@@ -15,7 +15,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.models.release import Release, follows_semver_versioning_scheme
-from sentry.models.releases.constants import DB_VERSION_LENGTH
+from sentry.releases.constants import DB_VERSION_LENGTH
 from sentry.utils import metrics
 
 

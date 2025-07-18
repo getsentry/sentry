@@ -13,9 +13,9 @@ from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironm
 from sentry.models.organization import Organization
 from sentry.models.release import Release
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
-from sentry.models.releases.exceptions import ReleaseCommitError
 from sentry.models.repository import Repository
 from sentry.plugins.base import bindings
+from sentry.releases.exceptions import ReleaseCommitError
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationResourceNotFoundError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry

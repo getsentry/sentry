@@ -408,22 +408,22 @@ class ReleaseThresholdStatusTest(APITestCase):
         assert len(r2_keys) == 0
 
     @patch(
-        "sentry.api.endpoints.release_thresholds.release_threshold_status_index.fetch_sessions_data"
+        "sentry.releases.endpoints.release_thresholds.release_threshold_status_index.fetch_sessions_data"
     )
     @patch(
-        "sentry.api.endpoints.release_thresholds.release_threshold_status_index.is_crash_free_rate_healthy_check"
+        "sentry.releases.endpoints.release_thresholds.release_threshold_status_index.is_crash_free_rate_healthy_check"
     )
     @patch(
-        "sentry.api.endpoints.release_thresholds.release_threshold_status_index.get_errors_counts_timeseries_by_project_and_release"
+        "sentry.releases.endpoints.release_thresholds.release_threshold_status_index.get_errors_counts_timeseries_by_project_and_release"
     )
     @patch(
-        "sentry.api.endpoints.release_thresholds.release_threshold_status_index.is_error_count_healthy"
+        "sentry.releases.endpoints.release_thresholds.release_threshold_status_index.is_error_count_healthy"
     )
     @patch(
-        "sentry.api.endpoints.release_thresholds.release_threshold_status_index.get_new_issue_counts"
+        "sentry.releases.endpoints.release_thresholds.release_threshold_status_index.get_new_issue_counts"
     )
     @patch(
-        "sentry.api.endpoints.release_thresholds.release_threshold_status_index.is_new_issue_count_healthy"
+        "sentry.releases.endpoints.release_thresholds.release_threshold_status_index.is_new_issue_count_healthy"
     )
     def test_fetches_relevant_stats(
         self,

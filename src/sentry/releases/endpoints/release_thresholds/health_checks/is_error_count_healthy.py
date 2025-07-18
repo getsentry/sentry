@@ -11,7 +11,7 @@ from sentry.utils import metrics
 logger = logging.getLogger("sentry.release_threshold_status.is_error_count_healthy")
 
 if TYPE_CHECKING:
-    from sentry.api.endpoints.release_thresholds.types import EnrichedThreshold
+    from sentry.releases.endpoints.release_thresholds.types import EnrichedThreshold
 
 
 def is_error_count_healthy(

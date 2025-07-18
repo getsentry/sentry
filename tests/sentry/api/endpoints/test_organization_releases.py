@@ -7,7 +7,6 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
 from sentry.api.release_search import FINALIZED_KEY
 from sentry.api.serializers.rest_framework.release import ReleaseHeadCommitSerializer
 from sentry.auth import access
@@ -28,6 +27,7 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, R
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
+from sentry.releases.endpoints.organization_releases import ReleaseSerializerWithProjects
 from sentry.search.events.constants import (
     RELEASE_ALIAS,
     RELEASE_STAGE_ALIAS,

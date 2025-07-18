@@ -1433,7 +1433,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         )
 
     @mock.patch(
-        "sentry.api.endpoints.organization_release_health_data.OrganizationReleaseHealthDataEndpoint.default_per_page",
+        "sentry.releases.endpoints.organization_release_health_data.OrganizationReleaseHealthDataEndpoint.default_per_page",
         1,
     )
     def test_no_limit_with_series(self):
@@ -1584,7 +1584,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     @patch("sentry.snuba.metrics.fields.base.get_public_name_from_mri")
     @patch("sentry.snuba.metrics.query_builder.get_mri")
     @patch("sentry.snuba.metrics.query.get_public_name_from_mri")
-    @patch("sentry.api.endpoints.organization_release_health_data.parse_field")
+    @patch("sentry.releases.endpoints.organization_release_health_data.parse_field")
     def test_derived_metric_incorrectly_defined_as_singular_entity(
         self,
         mocked_parse_field,

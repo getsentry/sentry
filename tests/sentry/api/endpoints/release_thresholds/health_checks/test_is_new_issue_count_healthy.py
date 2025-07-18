@@ -3,11 +3,11 @@ from typing import Any
 
 from django.utils import timezone
 
-from sentry.api.endpoints.release_thresholds.health_checks import is_new_issue_count_healthy
-from sentry.api.endpoints.release_thresholds.types import EnrichedThreshold
 from sentry.api.serializers import serialize
 from sentry.models.release import Release
 from sentry.models.release_threshold.constants import ReleaseThresholdType, TriggerType
+from sentry.releases.endpoints.release_thresholds.health_checks import is_new_issue_count_healthy
+from sentry.releases.endpoints.release_thresholds.types import EnrichedThreshold
 from sentry.testutils.cases import TestCase
 
 

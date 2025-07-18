@@ -3,16 +3,16 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.api.endpoints.release_thresholds.constants import CRASH_SESSIONS_DISPLAY
-from sentry.api.endpoints.release_thresholds.health_checks.is_crash_free_rate_healthy import (
+from sentry.api.serializers import serialize
+from sentry.models.release import Release
+from sentry.models.release_threshold.constants import ReleaseThresholdType, TriggerType
+from sentry.releases.endpoints.release_thresholds.constants import CRASH_SESSIONS_DISPLAY
+from sentry.releases.endpoints.release_thresholds.health_checks.is_crash_free_rate_healthy import (
     get_groups_totals,
     get_interval_indexes,
     is_crash_free_rate_healthy_check,
 )
-from sentry.api.endpoints.release_thresholds.types import EnrichedThreshold
-from sentry.api.serializers import serialize
-from sentry.models.release import Release
-from sentry.models.release_threshold.constants import ReleaseThresholdType, TriggerType
+from sentry.releases.endpoints.release_thresholds.types import EnrichedThreshold
 from sentry.testutils.cases import TestCase
 
 from .test_fixtures import mock_sessions_data
@@ -175,10 +175,10 @@ class CrashFreeRateThresholdCheckTest(TestCase):
         self.sessions_data = mock_sessions_data
 
     @patch(
-        "sentry.api.endpoints.release_thresholds.health_checks.is_crash_free_rate_healthy.get_interval_indexes"
+        "sentry.releases.endpoints.release_thresholds.health_checks.is_crash_free_rate_healthy.get_interval_indexes"
     )
     @patch(
-        "sentry.api.endpoints.release_thresholds.health_checks.is_crash_free_rate_healthy.get_groups_totals"
+        "sentry.releases.endpoints.release_thresholds.health_checks.is_crash_free_rate_healthy.get_groups_totals"
     )
     def test_is_crash_free_rate_success(self, mock_get_groups_totals, mock_get_interval_indexes):
         now = datetime.utcnow()
@@ -217,10 +217,10 @@ class CrashFreeRateThresholdCheckTest(TestCase):
         assert metric_value == 100
 
     @patch(
-        "sentry.api.endpoints.release_thresholds.health_checks.is_crash_free_rate_healthy.get_interval_indexes"
+        "sentry.releases.endpoints.release_thresholds.health_checks.is_crash_free_rate_healthy.get_interval_indexes"
     )
     @patch(
-        "sentry.api.endpoints.release_thresholds.health_checks.is_crash_free_rate_healthy.get_groups_totals"
+        "sentry.releases.endpoints.release_thresholds.health_checks.is_crash_free_rate_healthy.get_groups_totals"
     )
     def test_is_crash_free_rate_failure(self, mock_get_groups_totals, mock_get_interval_indexes):
         now = datetime.utcnow()
@@ -259,10 +259,10 @@ class CrashFreeRateThresholdCheckTest(TestCase):
         assert metric_value == 50
 
     @patch(
-        "sentry.api.endpoints.release_thresholds.health_checks.is_crash_free_rate_healthy.get_interval_indexes"
+        "sentry.releases.endpoints.release_thresholds.health_checks.is_crash_free_rate_healthy.get_interval_indexes"
     )
     @patch(
-        "sentry.api.endpoints.release_thresholds.health_checks.is_crash_free_rate_healthy.get_groups_totals"
+        "sentry.releases.endpoints.release_thresholds.health_checks.is_crash_free_rate_healthy.get_groups_totals"
     )
     def test_is_crash_free_rate_catches_interval_idx_error(
         self, mock_get_groups_totals, mock_get_interval_indexes
@@ -307,10 +307,10 @@ class CrashFreeRateThresholdCheckTest(TestCase):
         assert metric_value == -1
 
     @patch(
-        "sentry.api.endpoints.release_thresholds.health_checks.is_crash_free_rate_healthy.get_interval_indexes"
+        "sentry.releases.endpoints.release_thresholds.health_checks.is_crash_free_rate_healthy.get_interval_indexes"
     )
     @patch(
-        "sentry.api.endpoints.release_thresholds.health_checks.is_crash_free_rate_healthy.get_groups_totals"
+        "sentry.releases.endpoints.release_thresholds.health_checks.is_crash_free_rate_healthy.get_groups_totals"
     )
     def test_get_group_catches_totals_errors(
         self, mock_get_groups_totals, mock_get_interval_indexes

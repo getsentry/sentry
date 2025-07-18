@@ -7,7 +7,7 @@ from snuba_sdk import Column, Condition, Function, Op
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.release import Release
-from sentry.models.releases.util import SemverFilter
+from sentry.releases.util import SemverFilter
 from sentry.search.events import constants
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.filter import (

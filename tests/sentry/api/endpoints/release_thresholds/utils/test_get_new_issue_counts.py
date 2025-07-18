@@ -1,7 +1,5 @@
 from datetime import datetime, timedelta, timezone
 
-from sentry.api.endpoints.release_thresholds.types import EnrichedThreshold
-from sentry.api.endpoints.release_thresholds.utils import get_new_issue_counts
 from sentry.api.serializers import serialize
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -10,6 +8,8 @@ from sentry.models.release import Release
 from sentry.models.release_threshold.constants import ReleaseThresholdType, TriggerType
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.releases.endpoints.release_thresholds.types import EnrichedThreshold
+from sentry.releases.endpoints.release_thresholds.utils import get_new_issue_counts
 from sentry.testutils.cases import TestCase
 
 

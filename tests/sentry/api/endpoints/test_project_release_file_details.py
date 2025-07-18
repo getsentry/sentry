@@ -4,14 +4,14 @@ from hashlib import sha1
 
 from django.urls import reverse
 
-from sentry.api.endpoints.project_release_file_details import (
-    INVALID_UPDATE_MESSAGE,
-    ClosesDependentFiles,
-)
 from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
+from sentry.releases.endpoints.project_release_file_details import (
+    INVALID_UPDATE_MESSAGE,
+    ClosesDependentFiles,
+)
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.response import close_streaming_response
 

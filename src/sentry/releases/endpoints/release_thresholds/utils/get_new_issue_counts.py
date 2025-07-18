@@ -7,7 +7,7 @@ from django.db.models import CharField, Count, Q, QuerySet, Value
 from sentry.models.group import Group
 
 if TYPE_CHECKING:
-    from sentry.api.endpoints.release_thresholds.types import EnrichedThreshold
+    from sentry.releases.endpoints.release_thresholds.types import EnrichedThreshold
 
 
 def get_new_issue_counts(

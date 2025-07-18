@@ -16,7 +16,7 @@ from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInbox, GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.models.release import Release
-from sentry.models.releases.exceptions import ReleaseCommitError
+from sentry.releases.exceptions import ReleaseCommitError
 from sentry.signals import issue_resolved
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics

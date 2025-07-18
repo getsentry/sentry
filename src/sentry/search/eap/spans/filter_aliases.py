@@ -3,7 +3,7 @@ from typing import Literal
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.release import Release
-from sentry.models.releases.util import SemverFilter
+from sentry.releases.util import SemverFilter
 from sentry.search.events import constants
 from sentry.search.events.filter import (
     _flip_field_sort,

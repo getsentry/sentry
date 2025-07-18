@@ -5,7 +5,6 @@ from unittest.mock import patch
 import pytest
 from django.urls import reverse
 
-from sentry.api.endpoints.organization_release_details import OrganizationReleaseSerializer
 from sentry.constants import MAX_VERSION_LENGTH
 from sentry.locks import locks
 from sentry.models.activity import Activity
@@ -18,6 +17,7 @@ from sentry.models.releasefile import ReleaseFile
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
+from sentry.releases.endpoints.organization_release_details import OrganizationReleaseSerializer
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
