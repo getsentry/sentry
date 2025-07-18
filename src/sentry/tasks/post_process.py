@@ -983,11 +983,12 @@ def process_workflow_engine_issue_alerts(job: PostProcessJob) -> None:
         return
 
     org = job["event"].project.organization
-    # TODO: only fire one system. To test, fire from both systems and observe metrics
-    if not features.has("organizations:workflow-engine-process-workflows", org):
-        return
 
-    process_workflow_engine(job)
+    # process workflow engine if we are single processing or dual processing for a specific org
+    if features.has("organizations:workflow-engine-single-process-workflows", org) or features.has(
+        "organizations:workflow-engine-process-workflows", org
+    ):
+        process_workflow_engine(job)
 
 
 def process_workflow_engine_metric_issues(job: PostProcessJob) -> None:
@@ -1006,6 +1007,16 @@ def process_workflow_engine_metric_issues(job: PostProcessJob) -> None:
 
 def process_rules(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
+        return
+
+    org = job["event"].project.organization
+
+    if (
+        features.has("organizations:workflow-engine-single-process-workflows", org)
+        and job["event"].group.type
+        in options.get("workflow_engine.issue_alert.group.type_id.rollout")
+    ) or job["event"].group.type in options.get("workflow_engine.issue_alert.group.type_id.ga"):
+        # we are only processing through the workflow engine
         return
 
     from sentry.rules.processing.processor import RuleProcessor
@@ -1032,9 +1043,7 @@ def process_rules(job: PostProcessJob) -> None:
         # objects back and forth isn't super efficient
         callback_and_futures = rp.apply()
 
-        if not features.has(
-            "organizations:workflow-engine-trigger-actions", group_event.project.organization
-        ):
+        if not features.has("organizations:workflow-engine-trigger-actions", org):
             for callback, futures in callback_and_futures:
                 has_alert = True
                 safe_execute(callback, group_event, futures)
@@ -1408,7 +1417,7 @@ def check_has_high_priority_alerts(job: PostProcessJob) -> None:
 
 def link_event_to_user_report(job: PostProcessJob) -> None:
     from sentry.feedback.lib.utils import FeedbackCreationSource
-    from sentry.feedback.usecases.shim_to_feedback import shim_to_feedback
+    from sentry.feedback.usecases.ingest.shim_to_feedback import shim_to_feedback
     from sentry.models.userreport import UserReport
 
     event = job["event"]
@@ -1552,7 +1561,7 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 
 
 def kick_off_seer_automation(job: PostProcessJob) -> None:
-    from sentry.seer.issue_summary import get_issue_summary_lock_key
+    from sentry.seer.autofix.issue_summary import get_issue_summary_lock_key
     from sentry.seer.seer_setup import get_seer_org_acknowledgement
     from sentry.tasks.autofix import start_seer_automation
 
@@ -1561,12 +1570,6 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
 
     # Only run on issues with no existing scan
     if group.seer_fixability_score is not None:
-        return
-
-    # Don't run if there's already a task in progress for this issue
-    lock_key, lock_name = get_issue_summary_lock_key(group.id)
-    lock = locks.get(lock_key, duration=1, name=lock_name)
-    if lock.locked():
         return
 
     # check currently supported issue categories for Seer
@@ -1596,6 +1599,12 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if not project.get_option("sentry:seer_scanner_automation"):
         return
 
+    # Don't run if there's already a task in progress for this issue
+    lock_key, lock_name = get_issue_summary_lock_key(group.id)
+    lock = locks.get(lock_key, duration=1, name=lock_name)
+    if lock.locked():
+        return
+
     seer_enabled = get_seer_org_acknowledgement(group.organization.id)
     if not seer_enabled:
         return
@@ -1609,7 +1618,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if not has_budget:
         return
 
-    from sentry.autofix.utils import is_seer_scanner_rate_limited
+    from sentry.seer.autofix.utils import is_seer_scanner_rate_limited
 
     if is_seer_scanner_rate_limited(project, group.organization):
         return

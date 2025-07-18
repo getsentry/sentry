@@ -39,6 +39,7 @@ interface Props {
   onChange: (fields: QueryFieldValue[]) => void;
   validatedWidgetResponse: UseApiQueryResult<ValidateWidgetResponse, RequestError>;
   columns?: QueryFieldValue[];
+  disable?: boolean;
   style?: React.CSSProperties;
   widgetType?: WidgetType;
 }
@@ -50,6 +51,7 @@ export function GroupBySelector({
   validatedWidgetResponse,
   style,
   widgetType,
+  disable,
 }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const organization = useOrganization();
@@ -155,6 +157,7 @@ export function GroupBySelector({
             fieldOptions={filteredFieldOptions}
             onChange={value => handleSelect(value, 0)}
             canDelete={canDelete}
+            disabled={disable}
           />
         ) : (
           <DndContext
@@ -200,6 +203,7 @@ export function GroupBySelector({
                     onDelete={() => handleRemove(index)}
                     canDrag={canDrag}
                     canDelete={canDelete}
+                    disabled={disable}
                   />
                 ))}
               </SortableQueryFields>
@@ -216,6 +220,7 @@ export function GroupBySelector({
                     onChange={value => handleSelect(value, Number(activeId))}
                     canDrag={canDrag}
                     canDelete={canDelete}
+                    disabled={disable}
                   />
                 </Ghost>
               ) : null}
@@ -224,7 +229,13 @@ export function GroupBySelector({
         )}
       </StyledField>
       {columns.length < GROUP_BY_LIMIT && (
-        <Button size="sm" priority="link" onClick={handleAdd} aria-label={t('Add Group')}>
+        <Button
+          size="sm"
+          priority="link"
+          onClick={handleAdd}
+          aria-label={t('Add Group')}
+          disabled={disable}
+        >
           {t('+ Add Group')}
         </Button>
       )}

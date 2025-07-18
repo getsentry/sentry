@@ -112,8 +112,14 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
       );
       const reposData = selectedRepos.map(repo => {
         const [owner, name] = (repo.name || '/').split('/');
+        let provider = repo.provider?.id || '';
+        if (provider?.startsWith('integrations:')) {
+          provider = provider.split(':')[1]!;
+        }
+
         return {
-          provider: repo.provider?.name?.toLowerCase() || '',
+          integration_id: repo.integrationId,
+          provider,
           owner: owner || '',
           name: name || repo.name || '',
           external_id: repo.externalId,
@@ -187,7 +193,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
     );
 
     const filteredSelected = selected.filter(
-      repo => repo.provider?.id && repo.provider.id !== 'unknown'
+      repo => repo.provider?.id && repo.provider.id !== 'unknown' && repo.integrationId
     );
 
     return {
@@ -258,6 +264,13 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
               icon={<IconAdd />}
               disabled={isRepoLimitReached || unselectedRepositories?.length === 0}
               onClick={openAddRepoModal}
+              priority={
+                !isFetchingRepositories &&
+                !isLoadingPreferences &&
+                filteredSelectedRepositories.length === 0
+                  ? 'primary'
+                  : 'default'
+              }
             >
               {t('Add Repos')}
             </Button>

@@ -85,6 +85,10 @@ export interface DropdownMenuProps
    */
   menuTitle?: React.ReactNode;
   /**
+   * Minimum menu width
+   */
+  minMenuWidth?: number;
+  /**
    * Reference to the container element that the portal should be rendered into.
    */
   portalContainerRef?: React.RefObject<HTMLElement | null>;
@@ -117,7 +121,6 @@ export interface DropdownMenuProps
    * component.
    */
   triggerProps?: DropdownButtonProps;
-
   /**
    * Whether to render the menu inside a React portal (false by default). This should
    * only be enabled if necessary, e.g. when the dropdown menu is inside a small,
@@ -156,6 +159,7 @@ function DropdownMenu({
   flipOptions,
   portalContainerRef,
   shouldApplyMinWidth,
+  minMenuWidth,
   ...props
 }: DropdownMenuProps) {
   const isDisabled = disabledProp ?? (!items || items.length === 0);
@@ -241,7 +245,13 @@ function DropdownMenu({
         {...menuProps}
         size={size}
         disabledKeys={disabledKeys ?? defaultDisabledKeys}
-        overlayPositionProps={overlayProps}
+        overlayPositionProps={{
+          ...overlayProps,
+          style: {
+            ...overlayProps.style,
+            minWidth: minMenuWidth ?? overlayProps.style?.minWidth,
+          },
+        }}
         overlayState={overlayState}
         items={activeItems}
       >

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
@@ -20,6 +21,13 @@ from sentry.utils.snuba import bulk_snuba_queries
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 from ..manager import DeletionTaskManager
+
+logger = logging.getLogger(__name__)
+
+GROUP_CHUNK_SIZE = 100
+EVENT_CHUNK_SIZE = 10000
+# https://github.com/getsentry/snuba/blob/54feb15b7575142d4b3af7f50d2c2c865329f2db/snuba/datasets/configuration/issues/storages/search_issues.yaml#L139
+ISSUE_PLATFORM_MAX_ROWS_TO_DELETE = 2000000
 
 # Group models that relate only to groups and not to events. We assume those to
 # be safe to delete/mutate within a single transaction for user-triggered
@@ -63,7 +71,7 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
     """
 
     # Number of events fetched from eventstore per chunk() call.
-    DEFAULT_CHUNK_SIZE = 10000
+    DEFAULT_CHUNK_SIZE = EVENT_CHUNK_SIZE
     referrer = "deletions.group"
     dataset: Dataset
 
@@ -174,8 +182,7 @@ class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):
     """
 
     dataset = Dataset.IssuePlatform
-    # https://github.com/getsentry/snuba/blob/54feb15b7575142d4b3af7f50d2c2c865329f2db/snuba/datasets/configuration/issues/storages/search_issues.yaml#L139
-    max_rows_to_delete = 2000000
+    max_rows_to_delete = ISSUE_PLATFORM_MAX_ROWS_TO_DELETE
 
     def chunk(self) -> bool:
         """This method is called to delete chunks of data. It returns a boolean to say
@@ -248,9 +255,9 @@ class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):
 
 
 class GroupDeletionTask(ModelDeletionTask[Group]):
-    # Delete groups in blocks of 1000. Using 1000 aims to
+    # Delete groups in blocks of GROUP_CHUNK_SIZE. Using GROUP_CHUNK_SIZE aims to
     # balance the number of snuba replacements with memory limits.
-    DEFAULT_CHUNK_SIZE = 1000
+    DEFAULT_CHUNK_SIZE = GROUP_CHUNK_SIZE
 
     def delete_bulk(self, instance_list: Sequence[Group]) -> bool:
         """
@@ -261,20 +268,6 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
             return True
 
         self.mark_deletion_in_progress(instance_list)
-
-        error_group_ids = []
-        # XXX: If a group type has been removed, we shouldn't error here.
-        # Ideally, we should refactor `issue_category` to return None if the type is
-        # unregistered.
-        for group in instance_list:
-            try:
-                if group.issue_category == GroupCategory.ERROR:
-                    error_group_ids.append(group.id)
-            except InvalidGroupTypeError:
-                pass
-        # Tell seer to delete grouping records with these group hashes
-        may_schedule_task_to_delete_hashes_from_seer(error_group_ids)
-
         self._delete_children(instance_list)
 
         # Remove group objects with children removed.
@@ -290,6 +283,9 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
             child_relations.append(ModelRelation(model, {"group_id__in": group_ids}))
 
         error_groups, issue_platform_groups = separate_by_group_category(instance_list)
+
+        # Tell seer to delete grouping records with these group hashes
+        may_schedule_task_to_delete_hashes_from_seer([group.id for group in error_groups])
 
         # If this isn't a retention cleanup also remove event data.
         if not os.environ.get("_SENTRY_CLEANUP"):

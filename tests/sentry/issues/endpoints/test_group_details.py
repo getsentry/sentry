@@ -7,7 +7,8 @@ from django.utils import timezone
 from sentry import audit_log, buffer, tsdb
 from sentry.buffer.redis import RedisBuffer
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
-from sentry.issues.grouptype import MetricIssuePOC, PerformanceSlowDBQueryGroupType
+from sentry.incidents.grouptype import MetricIssue
+from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.auditlogentry import AuditLogEntry
@@ -318,7 +319,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         url = f"/api/0/issues/{group.id}/"
 
         # test a new group has an open period
-        group.type = MetricIssuePOC.type_id
+        group.type = MetricIssue.type_id
         group.save()
 
         GroupOpenPeriod.objects.all().delete()
@@ -348,7 +349,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         url = f"/api/0/issues/{group.id}/"
 
         # test a new group has an open period
-        group.type = MetricIssuePOC.type_id
+        group.type = MetricIssue.type_id
         group.save()
 
         alert_rule = self.create_alert_rule(
@@ -878,10 +879,7 @@ class GroupDeleteTest(APITestCase):
 
         # Deletion was deferred, so it should still exist
         assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
-        # BUT the hash should be gone
-        assert not GroupHash.objects.filter(group_id=group.id).exists()
-
-        Group.objects.filter(id=group.id).update(status=GroupStatus.UNRESOLVED)
+        assert GroupHash.objects.filter(group_id=group.id).exists()
 
     def test_delete_and_tasks_run(self) -> None:
         self.login_as(user=self.user)

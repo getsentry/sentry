@@ -4,15 +4,16 @@ from time import time
 from typing import Any
 from unittest.mock import ANY, MagicMock, patch
 
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.eventstore.models import Event
 from sentry.grouping.ingest.grouphash_metadata import create_or_update_grouphash_metadata_if_needed
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GROUPHASH_METADATA_SCHEMA_VERSION, HashBasis
-from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.skips import requires_snuba
+from tests.sentry.grouping import NO_MSG_PARAM_CONFIG
 
 pytestmark = [requires_snuba]
 
@@ -100,22 +101,23 @@ class GroupHashMetadataTest(TestCase):
     def test_stores_expected_properties_for_secondary_hashes(self):
         project = self.project
 
-        project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
+        project.update_option("sentry:grouping_config", NO_MSG_PARAM_CONFIG)
 
-        # Ensure the legacy grouphash doesn't have metadata added when it's created as the primary
-        # grouphash, so we can test how the metadata code handles it when it's a seconary grouphash
+        # Ensure the older grouphash doesn't have metadata added when it's created as the primary
+        # grouphash, so we can test how the metadata code handles it when that same grouphash comes
+        # up as a secondary grouphash
         with override_options({"grouping.grouphash_metadata.ingestion_writes_enabled": False}):
             event1 = save_new_event(
                 {"message": "Dogs are great! 1231", "platform": "python"}, self.project
             )
-            legacy_config_grouphash = GroupHash.objects.filter(
+            older_config_grouphash = GroupHash.objects.filter(
                 project=self.project, hash=event1.get_primary_hash()
             ).first()
-            assert legacy_config_grouphash and not legacy_config_grouphash.metadata
+            assert older_config_grouphash and not older_config_grouphash.metadata
 
         # Update the project's grouping config, and set it in transition mode
         project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
-        project.update_option("sentry:secondary_grouping_config", LEGACY_GROUPING_CONFIG)
+        project.update_option("sentry:secondary_grouping_config", NO_MSG_PARAM_CONFIG)
         project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
 
         event2 = save_new_event(
@@ -124,40 +126,41 @@ class GroupHashMetadataTest(TestCase):
         default_config_grouphash = GroupHash.objects.filter(
             project=self.project, hash=event2.get_primary_hash()
         ).first()
-        # The events should end up in the same group, but their hashes should be different, because
-        # the legacy config won't parameterize the number in the message, while the new one will
+        # The events should end up in the same group, but their hashes should be different (because
+        # NO_MSG_PARAM_CONFIG won't parameterize the number in the message, while the default config
+        # will)
         assert event1.group_id == event2.group_id
         assert (
             default_config_grouphash
-            and default_config_grouphash.hash != legacy_config_grouphash.hash
+            and default_config_grouphash.hash != older_config_grouphash.hash
         )
 
         # This time metadata was added
-        legacy_config_grouphash.refresh_from_db()
-        assert legacy_config_grouphash.metadata
+        older_config_grouphash.refresh_from_db()
+        assert older_config_grouphash.metadata
         self.assert_metadata_values(
-            legacy_config_grouphash,
+            older_config_grouphash,
             {
                 "schema_version": GROUPHASH_METADATA_SCHEMA_VERSION,
-                "latest_grouping_config": LEGACY_GROUPING_CONFIG,
+                "latest_grouping_config": NO_MSG_PARAM_CONFIG,
                 "platform": "python",
             },
         )
         # No hash basis or hashing metadata because secondary grouphashes don't come with variants
-        assert legacy_config_grouphash.metadata.hash_basis is None
-        assert legacy_config_grouphash.metadata.hashing_metadata is None
+        assert older_config_grouphash.metadata.hash_basis is None
+        assert older_config_grouphash.metadata.hashing_metadata is None
 
     @override_options({"grouping.grouphash_metadata.backfill_sample_rate": 1.0})
     @patch("sentry.grouping.ingest.grouphash_metadata.metrics.incr")
     def test_does_grouping_config_update(self, mock_metrics_incr: MagicMock):
-        self.project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
+        self.project.update_option("sentry:grouping_config", NO_MSG_PARAM_CONFIG)
 
         event1 = save_new_event({"message": "Dogs are great!"}, self.project)
         grouphash1 = GroupHash.objects.filter(
             project=self.project, hash=event1.get_primary_hash()
         ).first()
 
-        self.assert_metadata_values(grouphash1, {"latest_grouping_config": LEGACY_GROUPING_CONFIG})
+        self.assert_metadata_values(grouphash1, {"latest_grouping_config": NO_MSG_PARAM_CONFIG})
 
         # Update the grouping config. Since there's nothing to parameterize in the message, the
         # hash should be the same under both configs, meaning we'll hit the same grouphash.
@@ -177,21 +180,21 @@ class GroupHashMetadataTest(TestCase):
             "grouping.grouphash_metadata.db_hit",
             tags={
                 "reason": "old_grouping_config",
-                "current_config": LEGACY_GROUPING_CONFIG,
+                "current_config": NO_MSG_PARAM_CONFIG,
                 "new_config": DEFAULT_GROUPING_CONFIG,
             },
         )
 
     @override_options({"grouping.grouphash_metadata.backfill_sample_rate": 0.415})
     def test_updates_obey_sample_rate(self):
-        self.project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
+        self.project.update_option("sentry:grouping_config", NO_MSG_PARAM_CONFIG)
 
         event1 = save_new_event({"message": "Dogs are great!"}, self.project)
         grouphash1 = GroupHash.objects.filter(
             project=self.project, hash=event1.get_primary_hash()
         ).first()
 
-        self.assert_metadata_values(grouphash1, {"latest_grouping_config": LEGACY_GROUPING_CONFIG})
+        self.assert_metadata_values(grouphash1, {"latest_grouping_config": NO_MSG_PARAM_CONFIG})
 
         # Update the grouping config. Since there's nothing to parameterize in the message, the
         # hash should be the same under both configs, meaning we'll hit the same grouphash.
@@ -208,9 +211,7 @@ class GroupHashMetadataTest(TestCase):
             assert grouphash1 == grouphash2
 
             # Grouping config wasn't updated
-            self.assert_metadata_values(
-                grouphash2, {"latest_grouping_config": LEGACY_GROUPING_CONFIG}
-            )
+            self.assert_metadata_values(grouphash2, {"latest_grouping_config": NO_MSG_PARAM_CONFIG})
 
         # Under the sample rate cutoff, so record should be updated
         with patch("sentry.grouping.ingest.grouphash_metadata.random.random", return_value=0.1231):
@@ -288,7 +289,7 @@ class GroupHashMetadataTest(TestCase):
     @override_options({"grouping.grouphash_metadata.backfill_sample_rate": 1.0})
     @patch("sentry.grouping.ingest.grouphash_metadata.metrics.incr")
     def test_does_both_updates(self, mock_metrics_incr: MagicMock):
-        self.project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
+        self.project.update_option("sentry:grouping_config", NO_MSG_PARAM_CONFIG)
 
         with patch(
             "sentry.grouping.ingest.grouphash_metadata.GROUPHASH_METADATA_SCHEMA_VERSION", "11"
@@ -301,7 +302,7 @@ class GroupHashMetadataTest(TestCase):
             self.assert_metadata_values(
                 grouphash1,
                 {
-                    "latest_grouping_config": LEGACY_GROUPING_CONFIG,
+                    "latest_grouping_config": NO_MSG_PARAM_CONFIG,
                     "schema_version": "11",
                     "hashing_metadata": {
                         "message_source": "message",
@@ -346,7 +347,7 @@ class GroupHashMetadataTest(TestCase):
                 "grouping.grouphash_metadata.db_hit",
                 tags={
                     "reason": "config_and_schema",
-                    "current_config": LEGACY_GROUPING_CONFIG,
+                    "current_config": NO_MSG_PARAM_CONFIG,
                     "new_config": DEFAULT_GROUPING_CONFIG,
                     "current_version": "11",
                     "new_version": "12",

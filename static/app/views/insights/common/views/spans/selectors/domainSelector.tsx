@@ -10,10 +10,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {buildEventViewQuery} from 'sentry/views/insights/common/utils/buildEventViewQuery';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useWasSearchSpaceExhausted} from 'sentry/views/insights/common/utils/useWasSearchSpaceExhausted';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {EmptyContainer} from 'sentry/views/insights/common/views/spans/selectors/emptyOption';
@@ -40,7 +39,6 @@ export function DomainSelector({
   const location = useLocation();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
-  const useEap = useInsightsEap();
 
   const [searchQuery, setSearchQuery] = useState<string>(''); // Debounced copy of `searchInputValue` used for the Discover query
 
@@ -71,7 +69,7 @@ export function DomainSelector({
     data: domainData,
     isPending,
     pageLinks,
-  } = useSpanMetrics(
+  } = useSpans(
     {
       limit: LIMIT,
       search: query,
@@ -107,7 +105,7 @@ export function DomainSelector({
       uniqueDomains.add(domains[0]);
       domainList.push({
         label: domains[0],
-        value: useEap ? `*${domains[0]}*` : domains[0],
+        value: `*${domains[0]}*`,
       });
     } else {
       domains?.forEach(domain => {
@@ -117,7 +115,7 @@ export function DomainSelector({
         uniqueDomains.add(domain);
         domainList.push({
           label: domain,
-          value: useEap ? `*,${domain},*` : domain,
+          value: `*,${domain},*`,
         });
       });
     }
@@ -125,13 +123,11 @@ export function DomainSelector({
 
   if (value) {
     let scrubbedValue = value;
-    if (useEap) {
-      if (scrubbedValue.startsWith('*') && scrubbedValue.endsWith('*')) {
-        scrubbedValue = scrubbedValue.slice(1, -1);
-      }
-      if (scrubbedValue.startsWith(',') && scrubbedValue.endsWith(',')) {
-        scrubbedValue = scrubbedValue.slice(1, -1);
-      }
+    if (scrubbedValue.startsWith('*') && scrubbedValue.endsWith('*')) {
+      scrubbedValue = scrubbedValue.slice(1, -1);
+    }
+    if (scrubbedValue.startsWith(',') && scrubbedValue.endsWith(',')) {
+      scrubbedValue = scrubbedValue.slice(1, -1);
     }
     domainList.push({
       label: scrubbedValue,

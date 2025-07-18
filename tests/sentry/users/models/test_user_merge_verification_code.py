@@ -1,5 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
+from django.core import mail
+
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test
@@ -30,3 +32,14 @@ class TestUserMergeVerificationCode(TestCase):
 
         code.regenerate_token()
         assert code.is_valid()
+
+    def test_send_email(self):
+        code = UserMergeVerificationCode(user=self.user)
+        with self.options({"system.url-prefix": "http://testserver"}), self.tasks():
+            code.send_email()
+
+        assert len(mail.outbox) == 1
+        msg = mail.outbox[0]
+        assert msg.to == [self.user.email]
+        assert msg.subject == "[Sentry] Your Verification Code"
+        assert code.token in msg.body
