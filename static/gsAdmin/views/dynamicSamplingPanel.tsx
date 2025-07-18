@@ -322,7 +322,10 @@ function DynamicSamplingRulesTable({
   const round = (value: number) => Math.round(value * 10000) / 10000;
 
   const formatSamplingRateValue = (samplingValue: any) => {
-    if (samplingValue.type === 'sampleRate') {
+    if (
+      samplingValue.type === 'sampleRate' ||
+      samplingValue.type === 'minimumSampleRate'
+    ) {
       return `${round(samplingValue.value * 100)}%`;
     }
     if (samplingValue.type === 'reservoir') {
