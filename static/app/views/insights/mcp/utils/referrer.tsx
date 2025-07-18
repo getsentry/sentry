@@ -7,7 +7,6 @@ export enum MCPReferrer {
   MCP_RESOURCE_ERROR_RATE_WIDGET = 'api.performance.mcp.resource-error-rate-widget',
   MCP_RESOURCE_TABLE = 'api.performance.mcp.resource-table',
   MCP_RESOURCE_TRAFFIC_WIDGET = 'api.performance.mcp.resource-traffic-widget',
-  MCP_SOURCES_WIDGET = 'api.performance.mcp.sources-widget',
   MCP_TOOL_DURATION_WIDGET = 'api.performance.mcp.tool-duration-widget',
   MCP_TOOL_ERROR_RATE_WIDGET = 'api.performance.mcp.tool-error-rate-widget',
   MCP_TOOL_TABLE = 'api.performance.mcp.tool-table',
