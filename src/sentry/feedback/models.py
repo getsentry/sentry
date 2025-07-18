@@ -43,7 +43,7 @@ class GroupFeedbackLabel(DefaultFieldsModel):
 
     # Denormalized fields from group, for performance
     project = FlexibleForeignKey("sentry.Project")
-    date_added = models.DateTimeField()
+    first_seen = models.DateTimeField()
     # TODO: if we want to filter by environment(s), we should add a field for that here
 
     class Meta:
@@ -57,7 +57,7 @@ class GroupFeedbackLabel(DefaultFieldsModel):
             # rm: Allows us to quickly find all feedbacks in a given project and date range that have certain label(s)
             # Also allows us to find all feedbacks and associated labels in a given project and date range
             # Does this support the query: get top 10 labels by number of groups (counting groups only in a date range and project)? Or do we need another field in this index, like "group"
-            models.Index(fields=("project", "date_added", "label")),
+            models.Index(fields=("project", "first_seen", "label")),
         ]
 
     __repr__ = sane_repr("group", "label")
