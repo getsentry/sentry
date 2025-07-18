@@ -207,8 +207,18 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="integer",
         ),
         ResolvedAttribute(
+            public_alias="gen_ai.usage.input_tokens.cached",
+            internal_name="gen_ai.usage.input_tokens.cached",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
             public_alias="gen_ai.usage.output_tokens",
             internal_name="gen_ai.usage.output_tokens",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.usage.output_tokens.reasoning",
+            internal_name="gen_ai.usage.output_tokens.reasoning",
             search_type="integer",
         ),
         ResolvedAttribute(
