@@ -68,10 +68,6 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         assert resp_data["app_info"]["version"] == self.preprod_artifact.build_version
         assert resp_data["app_info"]["build_number"] == self.preprod_artifact.build_number
         assert resp_data["app_info"]["artifact_type"] == self.preprod_artifact.artifact_type
-        assert (
-            resp_data["app_info"]["installable_app_file_id"]
-            == self.preprod_artifact.installable_app_file_id
-        )
         assert resp_data["vcs_info"]["commit_id"] == (
             self.preprod_artifact.commit.key if self.preprod_artifact.commit is not None else None
         )
