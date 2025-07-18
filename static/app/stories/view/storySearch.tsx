@@ -17,6 +17,7 @@ import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
 import {space} from 'sentry/styles/space';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {useStoryBookFilesByCategory} from './storySidebar';
@@ -38,6 +39,7 @@ export function StorySearch() {
     core: coreTree,
     shared: sharedTree,
   } = useStoryBookFilesByCategory();
+  const {stories: recentStories} = useRecentStories();
   const foundations = useMemo(
     () => foundationsTree.flatMap(tree => tree.flat()),
     [foundationsTree]
@@ -53,6 +55,14 @@ export function StorySearch() {
 
   const sectionedItems = useMemo(() => {
     const sections: StorySection[] = [];
+
+    if (recentStories.length > 0) {
+      sections.push({
+        key: 'recent',
+        label: 'Recent',
+        options: recentStories,
+      });
+    }
 
     if (foundations.length > 0) {
       sections.push({
@@ -79,7 +89,7 @@ export function StorySearch() {
     }
 
     return sections;
-  }, [foundations, core, shared]);
+  }, [foundations, core, shared, recentStories]);
 
   return (
     <SearchComboBox
@@ -154,6 +164,7 @@ function SearchComboBox(props: SearchComboBoxProps) {
   const {inputRef} = props;
   const listBoxRef = useRef<HTMLUListElement | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
+  const recentStories = useRecentStories();
   const navigate = useNavigate();
   const handleSelectionChange = (key: Key | null) => {
     if (!key) {
@@ -164,7 +175,21 @@ function SearchComboBox(props: SearchComboBoxProps) {
       return;
     }
     const {state, ...to} = node.location;
+    recentStories.add(node.filesystemPath);
     navigate(to, {replace: true, state});
+  };
+  const hiddenOptions = new Set<string>([]);
+  const handleOpenChange = (isOpen: boolean) => {
+    hiddenOptions.clear();
+    if (!isOpen) {
+      for (const category of props.defaultItems) {
+        if (isStorySection(category) && category.key !== 'recent') {
+          for (const node of category.options) {
+            hiddenOptions.add(node.filesystemPath);
+          }
+        }
+      }
+    }
   };
 
   const state = useComboBoxState({
@@ -175,6 +200,7 @@ function SearchComboBox(props: SearchComboBoxProps) {
     shouldCloseOnBlur: true,
     allowsEmptyCollection: false,
     onSelectionChange: handleSelectionChange,
+    onOpenChange: handleOpenChange,
   });
 
   const {inputProps, listBoxProps, labelProps} = useSearchTokenCombobox<
@@ -212,6 +238,23 @@ function SearchComboBox(props: SearchComboBoxProps) {
       )}
     </StorySearchContainer>
   );
+}
+
+const MAX_STORIES = 5;
+function useRecentStories() {
+  const [keys, setKeys] = useLocalStorageState<string[]>('stories:recent', []);
+  const storiesByCategory = useStoryBookFilesByCategory();
+  function add(key: string) {
+    setKeys(current => Array.from(new Set([key, ...current.slice(0, MAX_STORIES - 1)])));
+  }
+  const stories = Object.values(storiesByCategory)
+    .flat(1)
+    .filter(value => keys.includes(value.filesystemPath));
+
+  return {
+    stories,
+    add,
+  };
 }
 
 const StorySearchContainer = styled('div')`
