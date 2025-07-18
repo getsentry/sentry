@@ -5,6 +5,7 @@ import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/f
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import type {
+  ContentBlock,
   Docs,
   DocsParams,
   OnboardingConfig,
@@ -160,6 +161,27 @@ const getInstallConfig = () => [
   },
 ];
 
+const installSnippetBlock: ContentBlock = {
+  type: 'code',
+  tabs: [
+    {
+      label: 'npm',
+      language: 'bash',
+      code: 'npm install --save @sentry/svelte',
+    },
+    {
+      label: 'yarn',
+      language: 'bash',
+      code: 'yarn add @sentry/svelte',
+    },
+    {
+      label: 'pnpm',
+      language: 'bash',
+      code: 'pnpm add @sentry/svelte',
+    },
+  ],
+};
+
 const onboarding: OnboardingConfig = {
   introduction: params => (
     <Fragment>
@@ -177,23 +199,32 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Add the Sentry SDK as a dependency using [code:npm], [code:yarn], or [code:pnpm]:',
-        {code: <code />}
-      ),
-      configurations: getInstallConfig(),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Add the Sentry SDK as a dependency using [code:npm], [code:yarn], or [code:pnpm]:',
+            {code: <code />}
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        "Initialize Sentry as early as possible in your application's lifecycle, usually your Svelte app's entry point ([code:main.ts/js]):",
-        {code: <code />}
-      ),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: tct(
+            "Initialize Sentry as early as possible in your application's lifecycle, usually your Svelte app's entry point ([code:main.ts/js]):",
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'Svelte v5',
               value: 'svelte v5',
@@ -208,9 +239,11 @@ const onboarding: OnboardingConfig = {
             },
           ],
         },
-        ...(params.isProfilingSelected
-          ? [getProfilingDocumentHeaderConfigurationStep()]
-          : []),
+        {
+          type: 'conditional',
+          condition: params.isProfilingSelected,
+          content: getProfilingDocumentHeaderConfigurationStep().content!,
+        },
       ],
     },
     getUploadSourceMapsStep({
@@ -221,12 +254,16 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-      ),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: t(
+            "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'Svelte v5',
               value: 'svelte v5',
