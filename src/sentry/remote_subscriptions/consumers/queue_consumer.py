@@ -253,7 +253,7 @@ class FixedQueuePool(Generic[T]):
                     )
                     for partition, (offset, oldest_timestamp) in committable.items():
                         metrics.timing(
-                            "arroyo.consumer.latency",
+                            "consumer.arroyo.consumer.latency",
                             time.time() - oldest_timestamp.timestamp(),
                             tags={
                                 "partition": partition.index,
