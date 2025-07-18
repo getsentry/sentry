@@ -7,8 +7,11 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
-import {BuildDetailsSidebarContent} from './sidebar/buildDetailsSidebarContent';
-import type {BuildDetails} from './types';
+import {
+  BuildDetailsSidebarContent,
+  type BuildDetailsSidebarContentProps,
+} from './sidebar/buildDetailsSidebarContent';
+import type {BuildDetailsApiResponse} from './types';
 
 export default function BuildDetails() {
   const api = useApi();
@@ -16,9 +19,10 @@ export default function BuildDetails() {
   const params = useParams<{artifactId: string; projectId: string}>();
   const artifactId = params.artifactId;
   const projectId = params.projectId;
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [buildDetailsData, setBuildDetailsData] = useState<BuildDetails | null>(null);
+  const [buildDetailsData, setBuildDetailsData] =
+    useState<BuildDetailsApiResponse | null>(null);
 
   const fetchBuildDetailsData = useCallback(async () => {
     if (!projectId || !artifactId) {
@@ -48,14 +52,25 @@ export default function BuildDetails() {
     fetchBuildDetailsData();
   }, [fetchBuildDetailsData]);
 
-  // TODO: Rich error state
+  // TODO: Rich loading state (or push to content components)
   if (error) {
     return <div>{error}</div>;
   }
 
-  // TODO: Rich loading state
+  // TODO: Rich loading state (or push to content components)
   if (isLoading) {
     return <LoadingIndicator />;
+  }
+
+  let sidebarContentProps: BuildDetailsSidebarContentProps;
+  if (error) {
+    sidebarContentProps = {status: 'error', error};
+  } else if (isLoading) {
+    sidebarContentProps = {status: 'loading'};
+  } else if (buildDetailsData) {
+    sidebarContentProps = {status: 'success', buildDetails: buildDetailsData};
+  } else {
+    throw new Error('No build details data');
   }
 
   return (
@@ -69,15 +84,12 @@ export default function BuildDetails() {
 
         <Layout.Body>
           <Layout.Main>
+            {/* TODO: Main content */}
             <div>Main</div>
           </Layout.Main>
 
           <Layout.Side>
-            <BuildDetailsSidebarContent
-              buildDetails={buildDetailsData}
-              isLoading={isLoading}
-              error={error}
-            />
+            <BuildDetailsSidebarContent {...sidebarContentProps} />
           </Layout.Side>
         </Layout.Body>
       </Layout.Page>

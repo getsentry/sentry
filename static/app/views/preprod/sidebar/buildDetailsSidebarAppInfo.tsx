@@ -3,6 +3,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {IconCheckmark, IconClock, IconFile, IconJson, IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
+import {getFormattedDate} from 'sentry/utils/dates';
 import {type BuildDetailsAppInfo, BuildDetailsState} from 'sentry/views/preprod/types';
 import {
   formatBytes,
@@ -51,7 +52,9 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
           <InfoIcon>
             <IconClock />
           </InfoIcon>
-          <InfoValue>{appInfo.date_added}</InfoValue>
+          <InfoValue>
+            {getFormattedDate(appInfo.date_added, 'MM/DD/YYYY [at] hh:mm A')}
+          </InfoValue>
         </InfoRow>
         <InfoRow>
           <InfoIcon>
@@ -92,6 +95,14 @@ function StateTag({state}: {state: BuildDetailsState}) {
           <IconWarning color="errorText" />
           Failed
         </ErrorTag>
+      );
+    case BuildDetailsState.UPLOADING:
+    case BuildDetailsState.UPLOADED:
+      return (
+        <ProcessingTag>
+          <IconClock color="warningText" />
+          Processing
+        </ProcessingTag>
       );
     default:
       return null;
@@ -213,6 +224,18 @@ const ErrorTag = styled('div')`
   gap: ${space(1)};
   color: ${p => p.theme.errorText};
   background-color: ${p => p.theme.red100};
+  padding: ${space(0.5)} ${space(1)};
+  border-radius: ${p => p.theme.borderRadius};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
+`;
+
+const ProcessingTag = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  color: ${p => p.theme.warningText};
+  background-color: ${p => p.theme.yellow100};
   padding: ${space(0.5)} ${space(1)};
   border-radius: ${p => p.theme.borderRadius};
   font-size: ${p => p.theme.fontSize.sm};

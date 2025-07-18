@@ -1,6 +1,6 @@
-export type Platform = 'ios' | 'android';
+export type Platform = 'ios' | 'android' | 'macos';
 
-export interface BuildDetails {
+export interface BuildDetailsApiResponse {
   app_info: BuildDetailsAppInfo;
   state: BuildDetailsState;
   vcs_info: BuildDetailsVcsInfo;
