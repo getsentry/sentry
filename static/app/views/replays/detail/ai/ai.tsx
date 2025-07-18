@@ -37,7 +37,7 @@ export default function Ai() {
         project?.slug &&
         organization.features.includes('replay-ai-summaries') &&
         organization.features.includes('gen-ai-features') &&
-        organization.genAIConsent
+        !organization.hideAiFeatures
     ),
     retry: false,
   });
@@ -86,9 +86,9 @@ export default function Ai() {
   }
 
   // If replay-ai-summaries is enabled but genAIConsent is not, then show CTA
-  if (!organization.genAIConsent) {
+  if (organization.genAIConsent) {
     return (
-      <SummaryContainer>
+      <EmptySummaryContainer>
         <CallToActionContainer>
           <Flex direction="column" gap={space(2)}>
             <div>
@@ -110,7 +110,7 @@ export default function Ai() {
             </div>
           </Flex>
         </CallToActionContainer>
-      </SummaryContainer>
+      </EmptySummaryContainer>
     );
   }
 
