@@ -308,8 +308,6 @@ class DebugFilesEndpoint(ProjectEndpoint):
                 query_q |= Q(file__headers__icontains=known_file_format)
 
             q &= query_q
-        else:
-            pass
 
         if queryset is None:
             queryset = ProjectDebugFile.objects.filter(q).select_related("file")
