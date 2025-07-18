@@ -10,6 +10,7 @@ from sentry_kafka_schemas.schema_types.snuba_uptime_results_v1 import (
     CheckStatus,
     CheckStatusReasonType,
 )
+from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     Column,
     TraceItemTableRequest,
@@ -169,6 +170,9 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
                 trace_item_type=trace_item_type,
                 start_timestamp=start_timestamp,
                 end_timestamp=end_timestamp,
+                downsampled_storage_config=DownsampledStorageConfig(
+                    mode=DownsampledStorageConfig.MODE_HIGHEST_ACCURACY
+                ),
             ),
             filter=query_filter,
             columns=self._get_columns_for_trace_item_type(trace_item_type),
