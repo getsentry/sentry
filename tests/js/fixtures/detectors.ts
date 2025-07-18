@@ -110,7 +110,7 @@ export function SnubaQueryDataSourceFixture(
       status: 1,
       subscription: '1',
       snubaQuery: {
-        aggregate: '',
+        aggregate: 'count()',
         dataset: Dataset.ERRORS,
         id: '',
         query: '',
