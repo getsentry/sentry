@@ -1,4 +1,5 @@
 import functools
+import logging
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -30,6 +31,7 @@ from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 ERR_HASHES_AND_OTHER_QUERY = "Cannot use 'hashes' with 'query'"
+logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
@@ -299,4 +301,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         :auth: required
         """
         search_fn = functools.partial(prep_search, request, project)
-        return delete_groups(request, [project], project.organization_id, search_fn)
+        try:
+            return delete_groups(request, [project], project.organization_id, search_fn)
+        except Exception:
+            logger.exception("Error deleting groups")
+            return Response({"detail": "Error deleting groups"}, status=500)
