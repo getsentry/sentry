@@ -211,6 +211,15 @@ function WidgetBuilderSlideout({
         </CloseButton>
       </SlideoutHeaderWrapper>
       <SlideoutBodyWrapper>
+        {disableTransactionWidget && isEditing && (
+          <Section>
+            <Alert type="warning" showIcon>
+              {t(
+                'You may have limited functionality due to the ongoing migration of transactions to spans. To expedite and re-enable edit functionality, switch to the spans dataset below.'
+              )}
+            </Alert>
+          </Section>
+        )}
         {openWidgetTemplates ? (
           <Fragment>
             <div ref={templatesPreviewRef}>
@@ -265,15 +274,6 @@ function WidgetBuilderSlideout({
             {isSmallScreen && (
               <Section>
                 <WidgetBuilderFilterBar releases={dashboard.filters?.release ?? []} />
-              </Section>
-            )}
-            {disableTransactionWidget && isEditing && (
-              <Section>
-                <Alert type="info" showIcon>
-                  {t(
-                    'Transaction widgets are being deprecated. Please use the spans dataset moving forward.'
-                  )}
-                </Alert>
               </Section>
             )}
             <Section>
