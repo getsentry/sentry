@@ -38,29 +38,28 @@ class GroupFeedbackLabel(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     group = FlexibleForeignKey("sentry.Group")
-    # rm: Finding the top 10 labels for Groups that are in a given project and date range may be slow (if we don't care about project, date range I think it's fast)
-    label = FlexibleForeignKey("feedback.Label")
+    feedback_label = FlexibleForeignKey("feedback.Label")
 
     # Denormalized fields from group, for performance
     project = FlexibleForeignKey("sentry.Project")
-    first_seen = models.DateTimeField()
+    first_seen = models.DateTimeField(default=timezone.now)
     # TODO: if we want to filter by environment(s), we should add a field for that here
 
     class Meta:
         app_label = "feedback"
         db_table = "feedback_groupfeedbacklabel"
-        unique_together = (("group", "label"),)
+        unique_together = (("group", "feedback_label"),)
         indexes = [
             # rm: Allows us to quickly find all labels that a certain feedback has
-            # Q: do we need label here? or is group enough
-            models.Index(fields=("group", "label")),
+            # Q: do we need feedback_label here? or is group enough
+            models.Index(fields=("group", "feedback_label")),
             # rm: Allows us to quickly find all feedbacks in a given project and date range that have certain label(s)
             # Also allows us to find all feedbacks and associated labels in a given project and date range
             # Does this support the query: get top 10 labels by number of groups (counting groups only in a date range and project)? Or do we need another field in this index, like "group"
-            models.Index(fields=("project", "first_seen", "label")),
+            models.Index(fields=("project", "first_seen", "feedback_label")),
         ]
 
-    __repr__ = sane_repr("group", "label")
+    __repr__ = sane_repr("group_id", "feedback_label_id")
 
 
 @region_silo_model
@@ -70,7 +69,7 @@ class FeedbackLabel(DefaultFieldsModel):
     organization = FlexibleForeignKey("sentry.Organization")
     name = models.CharField(max_length=255)
     groups = models.ManyToManyField(
-        "sentry.Group", related_name="labels", through=GroupFeedbackLabel
+        "sentry.Group", related_name="feedback_labels", through=GroupFeedbackLabel
     )
 
     class Meta:
@@ -80,7 +79,3 @@ class FeedbackLabel(DefaultFieldsModel):
         indexes = [models.Index(fields=("organization", "name"))]
 
     __repr__ = sane_repr("organization_id", "name")
-
-
-# should we make a new table to support the query: find top 10 labels by number of groups (counting groups only in a date range and project)? one that stores label, project_id, date (date the feedback was submitted), and group_id. This query is cached based on project_id and date range.
-# We also want to find all groups that have a certain list of 20 or so labels, (again filtered by date range and project), maybe the new table would work well here? Note that this specific query is not cached, it would run every time a user clicks on a given category.
