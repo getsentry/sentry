@@ -65,6 +65,7 @@ import SelectableContainer from 'admin/components/selectableContainer';
 import SendWeeklyEmailAction from 'admin/components/sendWeeklyEmailAction';
 import SponsorshipAction from 'admin/components/sponsorshipAction';
 import SuspendAccountAction from 'admin/components/suspendAccountAction';
+import {openToggleConsolePlatformsModal} from 'admin/components/toggleConsolePlatformsModal';
 import toggleSpendAllocationModal from 'admin/components/toggleSpendAllocationModal';
 import TrialSubscriptionAction from 'admin/components/trialSubscriptionAction';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
@@ -802,6 +803,15 @@ export default function CustomerDetails() {
                 onSuccess: reloadData,
                 subscription,
               }),
+          },
+          {
+            key: 'toggleConsolePlatforms',
+            name: 'Toggle Console Platforms',
+            help: 'Enable or disable a console platform for this organization.',
+            skipConfirmModal: true,
+            onAction: () => {
+              openToggleConsolePlatformsModal({organization, onSuccess: reloadData});
+            },
           },
         ]}
         sections={[
