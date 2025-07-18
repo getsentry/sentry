@@ -255,7 +255,7 @@ class OrganizationCodeMappingsTest(APITestCase):
     def test_basic_post_with_no_integrationId(self):
         response = self.make_post({"integrationId": None})
         assert response.status_code == 400, response.content
-        assert response.data == "Missing param: integration_id"
+        assert response.data == "Missing param: integrationId"
 
     def test_empty_roots_post(self):
         response = self.make_post({"stackRoot": "", "sourceRoot": ""})
