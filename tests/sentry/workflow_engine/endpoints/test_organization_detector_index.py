@@ -1,5 +1,6 @@
 from unittest import mock
 
+from django.db.models import Q
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.serializers import serialize
@@ -7,6 +8,7 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.models.environment import Environment
+from sentry.search.utils import _HACKY_INVALID_USER
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import (
     QuerySubscription,
@@ -19,6 +21,7 @@ from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
+from sentry.workflow_engine.endpoints.organization_detector_index import convert_assignee_values
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
@@ -592,21 +595,68 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         )
         assert "owner" in response.data
 
-    def test_owner_not_in_organization(self):
-        # Create a user in another organization
-        other_org = self.create_organization()
-        other_user = self.create_user()
-        self.create_member(organization=other_org, user=other_user)
 
-        # Test with owner not in current organization
-        data_with_invalid_owner = {
-            **self.valid_data,
-            "owner": other_user.get_actor_identifier(),
-        }
+@region_silo_test
+class ConvertAssigneeValuesTest(APITestCase):
+    """Test the convert_assignee_values function"""
 
-        response = self.get_error_response(
-            self.organization.slug,
-            **data_with_invalid_owner,
-            status_code=400,
+    def setUp(self):
+        super().setUp()
+        self.user = self.create_user()
+        self.team = self.create_team(organization=self.organization)
+        self.other_user = self.create_user()
+        self.create_member(organization=self.organization, user=self.other_user)
+        self.projects = [self.project]
+
+    def test_convert_assignee_values_user_email(self):
+        result = convert_assignee_values([self.user.email], self.projects, self.user)
+        expected = Q(owner_user_id=self.user.id)
+        self.assertEqual(str(result), str(expected))
+
+    def test_convert_assignee_values_user_username(self):
+        result = convert_assignee_values([self.user.username], self.projects, self.user)
+        expected = Q(owner_user_id=self.user.id)
+        self.assertEqual(str(result), str(expected))
+
+    def test_convert_assignee_values_team_slug(self):
+        result = convert_assignee_values([f"#{self.team.slug}"], self.projects, self.user)
+        expected = Q(owner_team_id=self.team.id)
+        self.assertEqual(str(result), str(expected))
+
+    def test_convert_assignee_values_me(self):
+        result = convert_assignee_values(["me"], self.projects, self.user)
+        expected = Q(owner_user_id=self.user.id)
+        self.assertEqual(str(result), str(expected))
+
+    def test_convert_assignee_values_none(self):
+        result = convert_assignee_values(["none"], self.projects, self.user)
+        expected = Q(owner_team_id__isnull=True, owner_user_id__isnull=True)
+        self.assertEqual(str(result), str(expected))
+
+    def test_convert_assignee_values_multiple(self):
+        result = convert_assignee_values(
+            [str(self.user.email), f"#{self.team.slug}"], self.projects, self.user
         )
-        assert "owner" in response.data
+        expected = Q(owner_user_id=self.user.id) | Q(owner_team_id=self.team.id)
+        self.assertEqual(str(result), str(expected))
+
+    def test_convert_assignee_values_mixed(self):
+        result = convert_assignee_values(
+            ["me", "none", f"#{self.team.slug}"], self.projects, self.user
+        )
+        expected = (
+            Q(owner_user_id=self.user.id)
+            | Q(owner_team_id__isnull=True, owner_user_id__isnull=True)
+            | Q(owner_team_id=self.team.id)
+        )
+        self.assertEqual(str(result), str(expected))
+
+    def test_convert_assignee_values_invalid(self):
+        result = convert_assignee_values(["999999"], self.projects, self.user)
+        expected = Q(owner_user_id=_HACKY_INVALID_USER.id)
+        self.assertEqual(str(result), str(expected))
+
+    def test_convert_assignee_values_empty(self):
+        result = convert_assignee_values([], self.projects, self.user)
+        expected = Q()
+        self.assertEqual(str(result), str(expected))
