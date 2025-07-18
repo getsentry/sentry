@@ -85,6 +85,11 @@ const useResizable = ({
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
+      // Only allow left mouse button (button 0) to start resizing
+      if (e.button !== 0) {
+        return;
+      }
+
       setIsHeld(true);
       e.preventDefault();
 
