@@ -20,7 +20,7 @@ interface ToggleConsolePlatformsModalProps extends ModalRenderProps {
   organization: Organization;
 }
 
-export function ToggleConsolePlatformsModal({
+function ToggleConsolePlatformsModal({
   Header,
   Body,
   closeModal,
