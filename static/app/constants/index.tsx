@@ -518,7 +518,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Logs'),
     productName: t('Logging'),
     uid: 24,
-    isBilledCategory: false,
+    isBilledCategory: true,
     statsInfo: {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,
