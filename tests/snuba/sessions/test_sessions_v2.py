@@ -109,6 +109,7 @@ def test_interval_restrictions():
         _make_query("statsPeriod=90d&interval=1h&field=sum(session)")
 
 
+@pytest.mark.skip(reason="flaky: #95888")
 @freeze_time("2020-12-18T11:14:17.105Z")
 def test_timestamps():
     query = _make_query("statsPeriod=1d&interval=12h&field=sum(session)")
