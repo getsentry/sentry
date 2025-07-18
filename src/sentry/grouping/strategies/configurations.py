@@ -40,7 +40,7 @@ BASE_STRATEGY = create_strategy_configuration_class(
         # by the message strategy. (Only still configurable so it can be turned off in tests.)
         "normalize_message": True,
         # Turns on some javascript fuzzing features.
-        "javascript_fuzzing": False,
+        "javascript_fuzzing": True,
         # Platforms for which context line should be taken into
         # account when grouping.
         "contextline_platforms": (),
@@ -90,7 +90,6 @@ register_strategy_config(
         * C/C++ and other native stacktraces are more reliably grouped.
     """,
     initial_context={
-        "javascript_fuzzing": True,
         "contextline_platforms": ("javascript", "node", "python", "php", "ruby"),
         "with_context_line_file_origin_bug": True,
         "with_exception_value_fallback": True,
