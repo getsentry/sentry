@@ -88,7 +88,7 @@ def get_transactions_for_project(project_id: int) -> list[Transaction]:
         seen_names.add(normalized_name)
         transactions.append(
             Transaction(
-                name=normalized_name,
+                name=name,  # Use original name, not normalized
                 project_id=project_id,
             )
         )
