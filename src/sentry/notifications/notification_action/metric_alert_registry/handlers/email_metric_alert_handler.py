@@ -64,12 +64,6 @@ class EmailMetricAlertHandler(BaseMetricAlertHandler):
 
         targets = [(user_id, email) for user_id, email in recipients]
 
-        logger.info(
-            "notification_action.execute_via_metric_alert_handler.email",
-            extra={
-                "action_id": alert_context.action_identifier_id,
-            },
-        )
         # TODO(iamrajjoshi): Add analytics
         email_users(
             metric_issue_context=metric_issue_context,
