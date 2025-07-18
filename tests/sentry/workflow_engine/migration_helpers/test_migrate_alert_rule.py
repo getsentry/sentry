@@ -475,7 +475,6 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
         return action, data_condition_group_action, action_alert_rule_trigger_action
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @mock.patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )

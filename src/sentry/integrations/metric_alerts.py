@@ -207,9 +207,7 @@ def incident_attachment_info(
             str(metric_issue_context.metric_value),
         )
 
-    if features.has("organizations:anomaly-detection-alerts", organization) and features.has(
-        "organizations:anomaly-detection-rollout", organization
-    ):
+    if features.has("organizations:anomaly-detection-alerts", organization):
         text += f"\nThreshold: {alert_context.detection_type.title()}"
 
     title = get_title(status, alert_context.name)
@@ -340,9 +338,7 @@ def metric_alert_unfurl_attachment_info(
             str(metric_value),
         )
 
-    if features.has(
-        "organizations:anomaly-detection-alerts", alert_rule.organization
-    ) and features.has("organizations:anomaly-detection-rollout", alert_rule.organization):
+    if features.has("organizations:anomaly-detection-alerts", alert_rule.organization):
         text += f"\nThreshold: {alert_rule.detection_type.title()}"
 
     date_started = None

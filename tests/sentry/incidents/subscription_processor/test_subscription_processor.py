@@ -3148,7 +3148,6 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
     )
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     def test_seer_call(self, mock_seer_request: MagicMock):
         # trigger a warning
         rule = self.dynamic_rule
@@ -3311,7 +3310,6 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
     )
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:performance-view")
     def test_seer_call_performance_rule(self, mock_seer_request: MagicMock):
         throughput_rule = self.dynamic_rule
@@ -3453,7 +3451,6 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
         assert not has_anomaly(not_anomaly, warning_label)
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
@@ -3500,7 +3497,6 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
         assert result is not None
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
@@ -3537,7 +3533,6 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
         assert result is None
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
@@ -3571,7 +3566,6 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
@@ -3606,7 +3600,6 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
@@ -3657,7 +3650,6 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
         )
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
@@ -3678,7 +3670,6 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
         assert result is None
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
@@ -3711,7 +3702,6 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
         assert result is None
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
@@ -3901,7 +3891,6 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         )
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
