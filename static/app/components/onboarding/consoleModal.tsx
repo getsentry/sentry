@@ -9,6 +9,7 @@ import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 
 const consoleConfig = {
@@ -165,20 +166,24 @@ export function ConsoleModal({
   closeModal,
 }: ConsoleModalProps) {
   const platformKey = selectedPlatform.key as keyof typeof consoleConfig;
-  const {content, note} = consoleConfig[platformKey];
+  const config = consoleConfig[platformKey];
+
+  if (!config) {
+    return null;
+  }
 
   return (
     <Fragment>
       <Header closeButton>
-        <HeaderContent>
+        <Flex align="center" gap={space(2)}>
           <PlatformIcon size={32} format="lg" platform={selectedPlatform.key} />
           <h4>{t('Request Access for %s', selectedPlatform.name)}</h4>
-        </HeaderContent>
+        </Flex>
       </Header>
       <Body>
-        {content}
+        {config.content}
         <Divider />
-        {note}
+        {config.note}
       </Body>
       <Footer>
         <Button priority="primary" onClick={closeModal}>
@@ -199,9 +204,4 @@ const Divider = styled('hr')`
 export const modalCss = css`
   max-width: 500px;
   width: 100%;
-`;
-
-const HeaderContent = styled(Flex)`
-  align-items: center;
-  gap: ${p => p.theme.space.xl};
 `;
