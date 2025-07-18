@@ -85,6 +85,7 @@ export function AggregateParameterField({
           onChange(value);
         }}
         searchable
+        disabled={disabled}
       />
     );
   }
