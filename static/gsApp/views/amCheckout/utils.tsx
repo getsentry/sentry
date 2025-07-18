@@ -367,7 +367,12 @@ type CheckoutData = {
   plan: string;
 } & Partial<Record<DataCategory, number>>;
 
-function recordAnalytics(
+type PreviousData = {
+  previous_plan: string;
+} & Partial<Record<`previous_${DataCategory}`, number>>;
+
+/** @internal exported for tests only */
+export function recordAnalytics(
   organization: Organization,
   subscription: Subscription,
   data: CheckoutAPIData,
@@ -386,19 +391,25 @@ function recordAnalytics(
     }
   });
 
-  const previousData: CheckoutData = {
-    plan: subscription.plan,
+  const previousData: PreviousData = {
+    previous_plan: subscription.plan,
   };
 
-  Object.entries(subscription.categories).forEach(([category, value]) => {
-    (previousData as any)[category] = value?.reserved || undefined;
+  Object.entries(subscription.categories).forEach(([category, metricHistory]) => {
+    if (
+      subscription.planDetails.checkoutCategories.includes(category as DataCategory) &&
+      metricHistory.reserved !== null &&
+      metricHistory.reserved !== undefined
+    ) {
+      (previousData as any)[`previous_${category}`] = metricHistory.reserved;
+    }
   });
 
   // TODO(reserved budgets): in future, we should just be able to pass data.selectedProducts
   const selectableProductData = {
     [SelectableProduct.SEER]: {
       enabled: data.seer ?? false,
-      previously_enabled: isTrialPlan(previousData.plan) // don't count trial budgets
+      previously_enabled: isTrialPlan(previousData.previous_plan) // don't count trial budgets
         ? false
         : (subscription.reservedBudgets?.some(
             budget =>
@@ -411,16 +422,7 @@ function recordAnalytics(
   trackGetsentryAnalytics('checkout.upgrade', {
     organization,
     subscription,
-    previous_plan: previousData.plan,
-    previous_errors: previousData.errors,
-    previous_transactions: previousData.transactions,
-    previous_attachments: previousData.attachments,
-    previous_replays: previousData.replays,
-    previous_monitorSeats: previousData.monitorSeats,
-    previous_profileDuration: previousData.profileDuration,
-    previous_spans: previousData.spans,
-    previous_uptime: previousData.uptime,
-    previous_logBytes: previousData.logBytes,
+    ...previousData,
     ...currentData,
   });
 
@@ -443,16 +445,17 @@ function recordAnalytics(
     );
   }
 
+  // TODO: remove this analytic event; this can be inferred from the `checkout.upgrade` event
   if (
     currentData.transactions &&
-    previousData.transactions &&
-    currentData.transactions > previousData.transactions
+    previousData.previous_transactions &&
+    currentData.transactions > previousData.previous_transactions
   ) {
     trackGetsentryAnalytics('checkout.transactions_upgrade', {
       organization,
       subscription,
       plan: data.plan,
-      previous_transactions: previousData.transactions,
+      previous_transactions: previousData.previous_transactions,
       transactions: currentData.transactions,
     });
   }

@@ -98,7 +98,7 @@ type GetsentryEventParameters = {
   } & Checkout;
   // no sub here
   'checkout.upgrade': Partial<
-    Record<DataCategory | `previous_${DataCategory}`, number>
+    Record<DataCategory | `previous_${DataCategory}`, number | undefined>
   > & {previous_plan: string} & Checkout;
   'data_consent_modal.learn_more': Record<PropertyKey, unknown>;
   'data_consent_priority.viewed': Record<PropertyKey, unknown>;
