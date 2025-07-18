@@ -43,7 +43,7 @@ BASE_STRATEGY = create_strategy_configuration_class(
         "javascript_fuzzing": True,
         # Platforms for which context line should be taken into
         # account when grouping.
-        "contextline_platforms": (),
+        "contextline_platforms": ("javascript", "node", "python", "php", "ruby"),
         # This detects anonymous classes in PHP code.
         "php_detect_anonymous_classes": False,
         # Turns on a bug that was present in some variants
@@ -89,9 +89,7 @@ register_strategy_config(
           better.
         * C/C++ and other native stacktraces are more reliably grouped.
     """,
-    initial_context={
-        "contextline_platforms": ("javascript", "node", "python", "php", "ruby"),
-    },
+    initial_context={},
     enhancements_base="common:2019-03-23",
 )
 
