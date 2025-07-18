@@ -95,7 +95,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         )
 
     @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
-    def test_get(self, make_seer_request):
+    def test_get_simple(self, make_seer_request):
         return_value = json.dumps({"hello": "world"}).encode()
         make_seer_request.return_value = return_value
 
@@ -131,6 +131,12 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
         assert response.content == return_value
+
+        make_seer_request.assert_called_once()
+        seer_request = make_seer_request.call_args[0][0]
+        assert "logs" in seer_request
+        assert seer_request["organization_id"] == self.organization.id
+        assert seer_request["replay_id"] == self.replay_id
 
     def test_get_feature_flag_disabled(self):
         self.save_recording_segment(0, json.dumps([]).encode())
@@ -243,10 +249,10 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
             response = self.client.get(self.url)
 
         make_seer_request.assert_called_once()
-        call_args = json.loads(make_seer_request.call_args[0][0])
-        assert "logs" in call_args
-        assert any("ZeroDivisionError" in log for log in call_args["logs"])
-        assert any("division by zero" in log for log in call_args["logs"])
+        seer_request = make_seer_request.call_args[0][0]
+        assert "logs" in seer_request
+        assert any("ZeroDivisionError" in log for log in seer_request["logs"])
+        assert any("division by zero" in log for log in seer_request["logs"])
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
@@ -310,10 +316,10 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
             response = self.client.get(self.url, {"enable_error_context": "false"})
 
         make_seer_request.assert_called_once()
-        call_args = json.loads(make_seer_request.call_args[0][0])
-        assert "logs" in call_args
-        assert not any("ZeroDivisionError" in log for log in call_args["logs"])
-        assert not any("division by zero" in log for log in call_args["logs"])
+        seer_request = make_seer_request.call_args[0][0]
+        assert "logs" in seer_request
+        assert not any("ZeroDivisionError" in log for log in seer_request["logs"])
+        assert not any("division by zero" in log for log in seer_request["logs"])
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
@@ -330,10 +336,10 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
             response = self.client.get(self.url, {"enable_error_context": "true"})
 
         assert make_seer_request.call_count == 2
-        call_args = json.loads(make_seer_request.call_args[0][0])
-        assert "logs" in call_args
-        assert any("ZeroDivisionError" in log for log in call_args["logs"])
-        assert any("division by zero" in log for log in call_args["logs"])
+        seer_request = make_seer_request.call_args[0][0]
+        assert "logs" in seer_request
+        assert any("ZeroDivisionError" in log for log in seer_request["logs"])
+        assert any("division by zero" in log for log in seer_request["logs"])
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
@@ -407,10 +413,10 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
             response = self.client.get(self.url)
 
         make_seer_request.assert_called_once()
-        call_args = json.loads(make_seer_request.call_args[0][0])
-        assert "logs" in call_args
-        assert any("ConnectionError" in log for log in call_args["logs"])
-        assert any("Failed to connect to database" in log for log in call_args["logs"])
+        seer_request = make_seer_request.call_args[0][0]
+        assert "logs" in seer_request
+        assert any("ConnectionError" in log for log in seer_request["logs"])
+        assert any("Failed to connect to database" in log for log in seer_request["logs"])
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
@@ -506,12 +512,12 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
             response = self.client.get(self.url)
 
         make_seer_request.assert_called_once()
-        call_args = json.loads(make_seer_request.call_args[0][0])
-        assert "logs" in call_args
-        assert any("ZeroDivisionError" in log for log in call_args["logs"])
-        assert any("division by zero" in log for log in call_args["logs"])
-        assert any("ConnectionError" in log for log in call_args["logs"])
-        assert any("Failed to connect to database" in log for log in call_args["logs"])
+        seer_request = make_seer_request.call_args[0][0]
+        assert "logs" in seer_request
+        assert any("ZeroDivisionError" in log for log in seer_request["logs"])
+        assert any("division by zero" in log for log in seer_request["logs"])
+        assert any("ConnectionError" in log for log in seer_request["logs"])
+        assert any("Failed to connect to database" in log for log in seer_request["logs"])
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
@@ -568,10 +574,10 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
             response = self.client.get(self.url)
 
         make_seer_request.assert_called_once()
-        call_args = json.loads(make_seer_request.call_args[0][0])
-        assert "logs" in call_args
-        assert any("Great website!" in log for log in call_args["logs"])
-        assert any("User submitted feedback" in log for log in call_args["logs"])
+        seer_request = make_seer_request.call_args[0][0]
+        assert "logs" in seer_request
+        assert any("Great website!" in log for log in seer_request["logs"])
+        assert any("User submitted feedback" in log for log in seer_request["logs"])
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
