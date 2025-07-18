@@ -47,17 +47,26 @@ EVENT_EXPANSION = {
     ],
     "error": ["error.created"],
     "comment": ["comment.created", "comment.deleted", "comment.updated"],
-    "seer": ["seer.issue.ready_to_fix"],
+    "seer": [
+        "seer.root_cause_started",
+        "seer.root_cause_completed",
+        "seer.solution_started",
+        "seer.solution_completed",
+        "seer.coding_started",
+        "seer.coding_completed",
+        "seer.pr_created",
+    ],
 }
 
 # We present Webhook Subscriptions per-resource (Issue, Project, etc.), not
 # per-event-type (issue.created, project.deleted, etc.). These are valid
 # resources a Sentry App may subscribe to.
-VALID_EVENT_RESOURCES = ("issue", "error", "comment")
+VALID_EVENT_RESOURCES = ("issue", "error", "comment", "seer")
 
 REQUIRED_EVENT_PERMISSIONS = {
     "issue": "event:read",
     "error": "event:read",
+    "seer": "event:read",
     "project": "project:read",
     "member": "member:read",
     "organization": "org:read",

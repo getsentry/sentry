@@ -65,7 +65,9 @@ from sentry.seer.fetch_issues.fetch_issues_given_exception_type import (
     get_latest_issue_event,
 )
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
+from sentry.sentry_apps.logic import consolidate_events
 from sentry.sentry_apps.metrics import SentryAppEventType
+from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.tasks.sentry_apps import send_resource_change_webhook
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
@@ -547,73 +549,79 @@ def get_github_enterprise_integration_config(
     }
 
 
-def send_seer_issue_ready_to_fix_webhook(
+def send_seer_webhook(
     *,
+    event_type: str,
     group_id: int,
-    root_cause: dict[str, str],
-    solution: dict[str, str],
+    run_id: str,
 ) -> dict:
     """
-    Send a seer.issue.ready_to_fix webhook event for a given group (issue).
+    Send a seer webhook event for a given group (issue) and run.
 
     Args:
+        event_type: The type of seer event (e.g., "seer.issue.root_cause_started")
         group_id: The ID of the group/issue to send the webhook for
-        root_cause: Dict with 'content' and 'context' string fields
-        solution: Dict with 'content' and 'context' string fields
+        run_id: The unique identifier for the seer run
 
     Returns:
         dict: Status of the webhook sending operation
     """
     try:
-        # Validate required fields in root_cause and solution
-        for field_name, field_data in [("root_cause", root_cause), ("solution", solution)]:
-            if not isinstance(field_data, dict):
-                return {
-                    "success": False,
-                    "error": f"{field_name} must be a dictionary",
-                }
-            if "content" not in field_data or "context" not in field_data:
-                return {
-                    "success": False,
-                    "error": f"{field_name} must contain 'content' and 'context' fields",
-                }
-            if not isinstance(field_data["content"], str) or not isinstance(
-                field_data["context"], str
-            ):
-                return {
-                    "success": False,
-                    "error": f"{field_name} 'content' and 'context' must be strings",
-                }
+        # Validate event type by checking if it's a valid SentryAppEventType
+        valid_events = [member.value for member in SentryAppEventType]
+        if event_type not in valid_events:
+            logger.error("Seer webhook RPC received invalid event type: %s", event_type)
+            return {
+                "success": False,
+                "error": f"Invalid event type: {event_type}",
+            }
 
-        # Build custom data payload
-        custom_data = {
+        # Get the group to access organization
+        group = Group.objects.get(id=group_id)
+
+        # Get installations for this organization
+        installations = app_service.installations_for_organization(
+            organization_id=group.organization.id
+        )
+
+        # Filter for installations that subscribe to seer events
+        relevant_installations = [
+            installation
+            for installation in installations
+            if "seer" in consolidate_events(installation.sentry_app.events)
+        ]
+
+        if not relevant_installations:
+            logger.info("No installations subscribed to seer events for group %s", group_id)
+            return {
+                "success": True,
+                "message": "No installations subscribed to seer events",
+            }
+
+        # Build simplified payload
+        webhook_data = {
             "group_id": group_id,
-            "root_cause": {
-                "content": root_cause["content"],
-                "context": root_cause["context"],
-            },
-            "solution": {
-                "content": solution["content"],
-                "context": solution["context"],
-            },
-            "analysis_timestamp": datetime.utcnow().isoformat(),
+            "run_id": run_id,
         }
 
-        # Send the webhook using the existing webhook infrastructure
-        send_resource_change_webhook.delay(
-            installation_id=None,  # Will be determined by the task based on subscriptions
-            event=SentryAppEventType.SEER_ISSUE_READY_TO_FIX,
-            data=custom_data,
-        )
+        # Send the webhook to each relevant installation
+        for installation in relevant_installations:
+            send_resource_change_webhook.delay(
+                installation_id=installation.id,
+                event=event_type,
+                data=webhook_data,
+            )
+
+            logger.info("sent seer webhook for %s to installation %s", event_type, installation.id)
 
         return {
             "success": True,
-            "message": f"Seer issue ready-to-fix webhook queued for group {group_id}",
+            "message": f"Seer webhook '{event_type}' queued for {len(relevant_installations)} installations",
         }
     except Group.DoesNotExist:
         return {"success": False, "error": f"Group with ID {group_id} not found"}
     except Exception as e:
-        logger.exception("Failed to send seer issue ready-to-fix webhook")
+        logger.exception("Failed to send seer webhook")
         return {"success": False, "error": f"Failed to send webhook: {str(e)}"}
 
 
@@ -631,7 +639,7 @@ seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_attribute_values_with_substring": get_attribute_values_with_substring,
     "get_attributes_and_values": get_attributes_and_values,
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
-    "send_seer_issue_ready_to_fix_webhook": send_seer_issue_ready_to_fix_webhook,
+    "send_seer_webhook": send_seer_webhook,
 }
 
 

@@ -544,7 +544,7 @@ export type AppOrProviderOrPlugin =
 /**
  * Webhooks and servicehooks
  */
-export type WebhookEvent = 'issue' | 'error' | 'comment';
+export type WebhookEvent = 'issue' | 'error' | 'comment' | 'seer';
 
 export type ServiceHook = {
   dateCreated: string;

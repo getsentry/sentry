@@ -54,7 +54,7 @@ function SubscriptionBox({
     issue: `created, resolved, assigned, archived, unresolved`,
     error: 'created',
     comment: 'created, edited, deleted',
-    seer: 'issue ready to fix (trigger agents)',
+    seer: 'root cause, solution generation, coding, and PR creation events',
   };
 
   return (

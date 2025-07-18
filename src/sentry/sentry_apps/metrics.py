@@ -135,4 +135,10 @@ class SentryAppEventType(StrEnum):
     INSTALLATION_CREATE = "install_create"
 
     # seer webhooks
-    SEER_ISSUE_READY_TO_FIX = "seer.issue.ready_to_fix"
+    SEER_ROOT_CAUSE_STARTED = "seer.root_cause_started"
+    SEER_ROOT_CAUSE_COMPLETED = "seer.root_cause_completed"
+    SEER_SOLUTION_STARTED = "seer.solution_started"
+    SEER_SOLUTION_COMPLETED = "seer.solution_completed"
+    SEER_CODING_STARTED = "seer.coding_started"
+    SEER_CODING_COMPLETED = "seer.coding_completed"
+    SEER_PR_CREATED = "seer.pr_created"
