@@ -1,4 +1,5 @@
-import type {PropsWithChildren} from 'react';
+import {Fragment, type PropsWithChildren} from 'react';
+import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -6,6 +7,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {StorySidebar} from 'sentry/stories/view/storySidebar';
 import {useStoryRedirect} from 'sentry/stories/view/useStoryRedirect';
 import {space} from 'sentry/styles/space';
+import {useDarkTheme} from 'sentry/utils/theme/useDarkTheme';
 import {useLocation} from 'sentry/utils/useLocation';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
@@ -71,20 +73,58 @@ function StoryDetail() {
 
 function StoriesLayout(props: PropsWithChildren) {
   return (
-    <RouteAnalyticsContextProvider>
-      <OrganizationContainer>
-        <Layout>
-          <HeaderContainer>
-            <StoryHeader />
-          </HeaderContainer>
+    <Fragment>
+      <GlobalStoryStyles />
+      <RouteAnalyticsContextProvider>
+        <OrganizationContainer>
+          <Layout>
+            <HeaderContainer>
+              <StoryHeader />
+            </HeaderContainer>
 
-          <StorySidebar />
+            <StorySidebar />
 
-          {props.children}
-        </Layout>
-      </OrganizationContainer>
-    </RouteAnalyticsContextProvider>
+            {props.children}
+          </Layout>
+        </OrganizationContainer>
+      </RouteAnalyticsContextProvider>
+    </Fragment>
   );
+}
+
+function GlobalStoryStyles() {
+  const theme = useTheme();
+  const darkTheme = useDarkTheme();
+  const location = useLocation();
+  const isIndex = isLandingPage(location);
+  const styles = css`
+    /* match body background with header story styles */
+    body {
+      background-color: ${isIndex
+        ? darkTheme.tokens.background.secondary
+        : theme.tokens.background.secondary};
+    }
+    /* fixed position color block to match overscroll color to story background */
+    body::after {
+      content: '';
+      display: block;
+      position: fixed;
+      inset: 0;
+      top: unset;
+      background-color: ${theme.tokens.background.primary};
+      height: 50vh;
+      z-index: -1;
+      pointer-events: none;
+    }
+    /* adjust position of global .messages-container element */
+    .messages-container {
+      margin-top: 52px;
+      margin-left: 256px;
+      z-index: ${theme.zIndex.header};
+      background: ${theme.tokens.background.primary};
+    }
+  `;
+  return <Global key="stories" styles={styles} />;
 }
 
 const Layout = styled('div')`
