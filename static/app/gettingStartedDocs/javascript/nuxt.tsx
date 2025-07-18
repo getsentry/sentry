@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import ExternalLink from 'sentry/components/links/externalLink';
 import {CopyDsnField} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
@@ -53,6 +51,7 @@ const getConfigStep = ({isSelfHosted, organization, projectSlug}: Params) => {
   ];
 };
 
+// TODO: Refactor once the other product areas support content blocks
 const getInstallConfig = (params: Params) => [
   {
     type: StepType.INSTALL,
@@ -75,24 +74,50 @@ const onboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       title: t('Automatic Configuration (Recommended)'),
-      configurations: getConfigStep(params),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Configure your app automatically by running the [wizardLink:Sentry wizard] in the root of your project.',
+            {
+              wizardLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nuxt/#install" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'bash',
+              language: 'bash',
+              code: `npx @sentry/wizard@latest -i nuxt ${params.isSelfHosted ? '' : '--saas'}  --org ${params.organization.slug} --project ${params.projectSlug}`,
+            },
+          ],
+        },
+      ],
     },
   ],
   configure: params => [
     {
       collapsible: true,
       title: t('Manual Configuration'),
-      description: tct(
-        'Alternatively, you can also set up the SDK manually, by following the [manualSetupLink:manual setup docs].',
+      content: [
         {
-          manualSetupLink: (
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nuxt/manual-setup/" />
+          type: 'text',
+          text: tct(
+            'Alternatively, you can also set up the SDK manually, by following the [manualSetupLink:manual setup docs].',
+            {
+              manualSetupLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nuxt/manual-setup/" />
+              ),
+            }
           ),
-        }
-      ),
-      configurations: [
+        },
         {
-          description: <CopyDsnField params={params} />,
+          type: 'text',
+          text: <CopyDsnField params={params} />,
         },
       ],
     },
@@ -100,22 +125,22 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: (
-        <Fragment>
-          <p>
-            {tctCode(
-              'Build and run your application and visit [code:/sentry-example-page] if you have set it up. Click the button to trigger a test error.'
-            )}
-          </p>
-          <p>{t('Or, throw an error in a simple vue component.')}</p>
-        </Fragment>
-      ),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: tctCode(
+            'Build and run your application and visit [code:/sentry-example-page] if you have set it up. Click the button to trigger a test error.'
+          ),
+        },
+        {
+          type: 'text',
+          text: t('Or, throw an error in a simple vue component.'),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'Vue',
-              value: 'vue',
               language: 'html',
               code: getVerifyNuxtSnippet(),
             },

@@ -3,6 +3,7 @@ import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/f
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import type {
+  ContentBlock,
   Docs,
   DocsParams,
   OnboardingConfig,
@@ -115,6 +116,7 @@ export default class App extends Application {
 `;
 };
 
+// TODO: Remove once the other product areas support content blocks
 const getInstallConfig = () => [
   {
     language: 'bash',
@@ -124,6 +126,17 @@ ember install @sentry/ember
     `,
   },
 ];
+
+const installSnippetBlock: ContentBlock = {
+  type: 'code',
+  tabs: [
+    {
+      label: 'ember-cli',
+      language: 'bash',
+      code: 'ember install @sentry/ember',
+    },
+  ],
+};
 
 const getVerifyEmberSnippet = () => `
 myUndefinedFunction();`;
@@ -139,21 +152,33 @@ const onboarding: OnboardingConfig = {
       description: t(
         'Sentry captures data by using an SDK within your application’s runtime.'
       ),
-      configurations: getInstallConfig(),
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Sentry captures data by using an SDK within your application’s runtime.'
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'You should [code:init] the Sentry SDK as soon as possible during your application load up in [code:app.js], before initializing Ember:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'You should [code:init] the Sentry SDK as soon as possible during your application load up in [code:app.js], before initializing Ember:',
+            {
+              code: <code />,
+            }
+          ),
+        },
         {
-          code: [
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
               value: 'javascript',
@@ -172,9 +197,26 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-      ),
+      content: [
+        {
+          type: 'text',
+          text: t(
+            "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getVerifyEmberSnippet(),
+            },
+          ],
+        },
+      ],
+
       configurations: [
         {
           code: [
