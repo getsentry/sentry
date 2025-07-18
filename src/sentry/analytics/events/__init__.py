@@ -97,6 +97,7 @@ from .sentry_app_uninstalled import *  # noqa: F401,F403
 from .sentry_app_updated import *  # noqa: F401,F403
 from .sentryapp_issue_webhooks import *  # noqa: F401,F403
 from .sso_enabled import *  # noqa: F401,F403
+from .suspectcommit_assignment import *  # noqa: F401,F403
 from .team_created import *  # noqa: F401,F403
 from .user_created import *  # noqa: F401,F403
 from .user_signup import *  # noqa: F401,F403
