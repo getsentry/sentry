@@ -430,30 +430,44 @@ class PushEventWebhook(GitHubWebhook):
                         author=author,
                         date_added=parse_date(commit["timestamp"]).astimezone(timezone.utc),
                     )
+
+                    file_changes = []
+
                     for fname in commit["added"]:
                         languages.add(get_file_language(fname))
-                        CommitFileChange.objects.create(
-                            organization_id=organization.id,
-                            commit=c,
-                            filename=fname,
-                            type="A",
+                        file_changes.append(
+                            CommitFileChange(
+                                organization_id=organization.id,
+                                commit=c,
+                                filename=fname,
+                                type="A",
+                            )
                         )
+
                     for fname in commit["removed"]:
                         languages.add(get_file_language(fname))
-                        CommitFileChange.objects.create(
-                            organization_id=organization.id,
-                            commit=c,
-                            filename=fname,
-                            type="D",
+                        file_changes.append(
+                            CommitFileChange(
+                                organization_id=organization.id,
+                                commit=c,
+                                filename=fname,
+                                type="D",
+                            )
                         )
+
                     for fname in commit["modified"]:
                         languages.add(get_file_language(fname))
-                        CommitFileChange.objects.create(
-                            organization_id=organization.id,
-                            commit=c,
-                            filename=fname,
-                            type="M",
+                        file_changes.append(
+                            CommitFileChange(
+                                organization_id=organization.id,
+                                commit=c,
+                                filename=fname,
+                                type="M",
+                            )
                         )
+
+                    if file_changes:
+                        CommitFileChange.objects.bulk_create(file_changes)
 
             except IntegrityError:
                 pass
