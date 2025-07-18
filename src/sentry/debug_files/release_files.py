@@ -5,7 +5,6 @@ from datetime import timedelta
 from django.db import router
 from django.utils import timezone
 
-from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.releasefile import ReleaseFile
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
@@ -33,8 +32,8 @@ def renew_releasefiles_by_id(releasefile_ids: list[int]):
     threshold_date = now - timedelta(days=AVAILABLE_FOR_RENEWAL_DAYS)
 
     with metrics.timer("release_files_renewal"):
-        with atomic_transaction(using=(router.db_for_write(ProjectDebugFile),)):
-            updated_rows_count = ProjectDebugFile.objects.filter(
+        with atomic_transaction(using=(router.db_for_write(ReleaseFile),)):
+            updated_rows_count = ReleaseFile.objects.filter(
                 id__in=releasefile_ids, date_accessed__lte=threshold_date
             ).update(date_accessed=now)
             if updated_rows_count > 0:
