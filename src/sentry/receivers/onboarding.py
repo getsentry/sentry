@@ -7,6 +7,7 @@ import sentry_sdk
 from django.db.models import F
 
 from sentry import analytics
+from sentry.analytics.events.first_profile_sent import FirstProfileSentEvent
 from sentry.integrations.base import IntegrationDomain, get_integration_types
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.organization import Organization
@@ -182,11 +183,12 @@ def record_first_transaction(project, event, **kwargs):
 @first_profile_received.connect(weak=False, dispatch_uid="onboarding.record_first_profile")
 def record_first_profile(project, **kwargs):
     analytics.record(
-        "first_profile.sent",
-        user_id=get_owner_id(project),
-        organization_id=project.organization_id,
-        project_id=project.id,
-        platform=project.platform,
+        FirstProfileSentEvent(
+            user_id=get_owner_id(project),
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=project.platform,
+        )
     )
 
 

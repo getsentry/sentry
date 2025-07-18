@@ -5,7 +5,9 @@ from unittest import mock
 from django.test import override_settings
 from django.utils import timezone
 
+from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 
 
@@ -33,10 +35,12 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
 
         assert response.data[0]["value"] == "bar"
 
-        mock_record.assert_called_with(
-            "eventuser_endpoint.request",
-            project_id=project.id,
-            endpoint="sentry.api.endpoints.group_tagkey_values.get",
+        assert_last_analytics_event(
+            mock_record,
+            EventUserEndpointRequest(
+                project_id=project.id,
+                endpoint="sentry.api.endpoints.group_tagkey_values.get",
+            ),
         )
 
     def test_simple_perf(self):
@@ -208,8 +212,10 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
             response = self.client.get(url)
             assert response.status_code == 429
 
-        mock_record.assert_called_with(
-            "eventuser_endpoint.request",
-            project_id=project.id,
-            endpoint="sentry.api.endpoints.group_tagkey_values.get",
+        assert_last_analytics_event(
+            mock_record,
+            EventUserEndpointRequest(
+                project_id=project.id,
+                endpoint="sentry.api.endpoints.group_tagkey_values.get",
+            ),
         )
