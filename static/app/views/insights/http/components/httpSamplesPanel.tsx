@@ -37,7 +37,7 @@ import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDr
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useTopNSpanMetricsSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
+import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {
   DataTitles,
   getDurationChartTitle,
@@ -203,7 +203,7 @@ export function HTTPSamplesPanel() {
     isFetching: isResponseCodeDataLoading,
     data: responseCodeData,
     error: responseCodeError,
-  } = useTopNSpanMetricsSeries(
+  } = useTopNSpanSeries(
     {
       search,
       fields: [SpanFields.SPAN_STATUS_CODE, 'count()'],

@@ -101,8 +101,7 @@ export function DashboardTable({
               <SavedEntityTable.CellProjects projects={dashboard.projects} />
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell data-column="envs">
-              {/* TODO: DAIN-712 Add environments after they are exposed in the API */}
-              <SavedEntityTable.CellEnvironments environments={[]} />
+              <SavedEntityTable.CellEnvironments environments={dashboard.environment} />
             </SavedEntityTable.Cell>
             {/* TODO: DAIN-716 Add release filter as tokens */}
             <SavedEntityTable.Cell data-column="filter">{'\u2014'}</SavedEntityTable.Cell>
