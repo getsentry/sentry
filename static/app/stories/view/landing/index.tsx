@@ -184,10 +184,6 @@ const CardGrid = styled('div')`
   display: flex;
   flex-flow: row wrap;
   gap: ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-  }
 `;
 
 interface CardProps {
