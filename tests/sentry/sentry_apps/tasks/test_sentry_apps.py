@@ -4,12 +4,15 @@ from unittest.mock import ANY, patch
 import pytest
 import responses
 from django.urls import reverse
+from requests import HTTPError
+from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import SentryAppStatus
 from sentry.eventstore.models import GroupEvent
 from sentry.eventstream.types import EventStreamEventType
+from sentry.exceptions import RestrictedIPAddress
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity
@@ -69,6 +72,10 @@ def raiseException():
     raise Exception
 
 
+def raiseHTTPError():
+    raise HTTPError()
+
+
 class RequestMock:
     def __init__(self):
         self.body = "blah blah"
@@ -97,6 +104,9 @@ MockResponseWithHeadersInstance = MockResponse(
 )
 MockResponseInstance = MockResponse({}, b"{}", "", True, 200, raiseStatusFalse, None)
 MockResponse404 = MockResponse({}, b'{"bruh": "bruhhhhhhh"}', "", False, 404, raiseException, None)
+MockResponse504 = MockResponse(headers, json_content, "", False, 504, raiseStatusFalse, None)
+MockResponse503 = MockResponse(headers, json_content, "", False, 503, raiseStatusFalse, None)
+MockResponse502 = MockResponse(headers, json_content, "", False, 502, raiseHTTPError, None)
 
 
 class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
@@ -567,6 +577,224 @@ class TestProcessResourceChange(TestCase):
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
         )
+
+    @patch("sentry_sdk.capture_exception")
+    def test_ignores_restricted_ip_error(self, capture_exception, safe_urlopen):
+        safe_urlopen.side_effect = RestrictedIPAddress("12.8391.231")
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+
+        # The task should complete without retrying when RestrictedIPAddress is raised
+        # because it's in the ignore list of the retry decorator
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        # Verify that the exception was not captured by Sentry since it's ignored
+        assert len(capture_exception.mock_calls) == 0
+        assert safe_urlopen.called
+
+    @patch("sentry_sdk.capture_exception")
+    def test_ignores_timeout_error(self, capture_exception, safe_urlopen):
+        safe_urlopen.side_effect = Timeout()
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+
+        # The task should complete without reporting to sentry when Timeout is raised
+        # because it's in the on_silent list of the retry decorator
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        # Verify that the exception was not captured by Sentry since it's on_silent
+        assert len(capture_exception.mock_calls) == 0
+        assert safe_urlopen.called
+
+    @patch("sentry_sdk.capture_exception")
+    def test_ignores_api_host_error(self, capture_exception, safe_urlopen):
+        safe_urlopen.return_value = MockResponse503
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+
+        # The task should complete without reporting to sentry when ApiHostError is raised
+        # because it's in the on_silent list of the retry decorator
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        # Verify that the exception was not captured by Sentry since it's on_silent
+        assert len(capture_exception.mock_calls) == 0
+        assert safe_urlopen.called
+
+    @patch("sentry_sdk.capture_exception")
+    def test_ignores_api_timeout_error(self, capture_exception, safe_urlopen):
+        safe_urlopen.return_value = MockResponse504
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+
+        # The task should complete without reporting to sentry when ApiTimeoutError is raised
+        # because it's in the on_silent list of the retry decorator
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        # Verify that the exception was not captured by Sentry since it's on_silent
+        assert len(capture_exception.mock_calls) == 0
+        assert safe_urlopen.called
+
+    @patch("sentry_sdk.capture_exception")
+    def test_ignores_connection_error(self, capture_exception, safe_urlopen):
+        safe_urlopen.side_effect = ConnectionError()
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+
+        # The task should complete without reporting to sentry when ConnectionError is raised
+        # because it's in the on_silent list of the retry decorator
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        # Verify that the exception was not captured by Sentry since it's on_silent
+        assert len(capture_exception.mock_calls) == 0
+        assert safe_urlopen.called
+
+    @patch("sentry_sdk.capture_exception")
+    def test_ignores_http_error(self, capture_exception, safe_urlopen):
+        safe_urlopen.return_value = MockResponse502
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+
+        # The task should complete without reporting to sentry when HTTPError is raised
+        # because it's in the on_silent list of the retry decorator
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        # Verify that the exception was not captured by Sentry since it's on_silent
+        assert len(capture_exception.mock_calls) == 0
+        assert safe_urlopen.called
+
+    @patch("sentry_sdk.capture_exception")
+    def test_silently_retries_chunked_encoding_error_unpublished(
+        self, capture_exception, safe_urlopen
+    ):
+        """
+        Test that a chunked encoding error is ignored when the sentry app is unpublished
+        """
+        with assume_test_silo_mode_of(SentryApp):
+            SentryApp.objects.all().delete()
+            SentryAppInstallation.objects.all().delete()
+
+        self.sentry_app = self.create_sentry_app(
+            organization=self.organization, events=["issue.created"]
+        )
+        self.install = self.create_sentry_app_installation(
+            organization=self.organization, slug=self.sentry_app.slug
+        )
+
+        safe_urlopen.side_effect = ChunkedEncodingError("Connection reset by peer")
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        assert len(capture_exception.mock_calls) == 0
+        assert safe_urlopen.call_count == 1
+
+    @patch("sentry_sdk.capture_exception")
+    def test_silently_retries_chunked_encoding_error_published(
+        self, capture_exception, safe_urlopen
+    ):
+        """
+        Test that a chunked encoding error raises a retry error
+        """
+        with assume_test_silo_mode_of(SentryApp):
+            SentryApp.objects.all().delete()
+            SentryAppInstallation.objects.all().delete()
+
+        self.sentry_app = self.create_sentry_app(
+            organization=self.organization, published=True, events=["issue.created"]
+        )
+        self.install = self.create_sentry_app_installation(
+            organization=self.organization, slug=self.sentry_app.slug
+        )
+
+        safe_urlopen.side_effect = ChunkedEncodingError("Connection reset by peer")
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        # Just 1 from the RetryError
+        assert len(capture_exception.mock_calls) == 1
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_does_not_process_no_event(self, mock_record, safe_urlopen):

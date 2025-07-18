@@ -121,3 +121,11 @@ SENTRY_WEB_OPTIONS = {
     # 'workers': 1,  # the number of web workers
     # 'protocol': 'uwsgi',  # Enable uwsgi protocol instead of http
 }
+
+##############
+# Devserver #
+##############
+
+# Exclude logs caused by Relay polling every 100ms.
+# Makes it rather hard to use Python debugger
+DEVSERVER_REQUEST_LOG_EXCLUDES = ["/api/0/relays/projectconfigs/"]

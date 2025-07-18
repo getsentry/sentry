@@ -80,7 +80,7 @@ function Controls({
   const api = useApi();
   if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
     return (
-      <StyledButtonBar gap={1} key="edit-controls">
+      <StyledButtonBar key="edit-controls">
         {renderCancelButton()}
         <Confirm
           priority="danger"
@@ -109,7 +109,7 @@ function Controls({
 
   if (dashboardState === DashboardState.CREATE) {
     return (
-      <StyledButtonBar gap={1} key="create-controls">
+      <StyledButtonBar key="create-controls">
         {renderCancelButton()}
         <Button
           data-test-id="dashboard-commit"
@@ -128,7 +128,7 @@ function Controls({
 
   if (dashboardState === DashboardState.PREVIEW) {
     return (
-      <StyledButtonBar gap={1} key="preview-controls">
+      <StyledButtonBar key="preview-controls">
         {renderCancelButton(t('Go Back'))}
         <Button
           data-test-id="dashboard-commit"
@@ -176,7 +176,7 @@ function Controls({
       : null
     : t('You do not have permission to edit this dashboard');
   return (
-    <StyledButtonBar gap={1} key="controls">
+    <StyledButtonBar key="controls">
       <FeedbackWidgetButton />
       <DashboardEditFeature>
         {hasFeature => (

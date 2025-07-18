@@ -284,11 +284,10 @@ def generate_error_log_message(error: GroupEvent) -> str:
 
 
 def generate_feedback_log_message(feedback: GroupEvent) -> str:
-    title = feedback["title"]
     message = feedback["message"]
     timestamp = feedback["timestamp"]
 
-    return f"User submitted feedback: '{title}: {message}' at {timestamp}"
+    return f"User submitted feedback: '{message}' at {timestamp}"
 
 
 def get_request_data(

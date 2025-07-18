@@ -14,21 +14,21 @@ import {InsightsTimeSeriesWidget} from 'sentry/views/insights/common/components/
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {
   type DiscoverSeries,
-  useMetricsSeries,
+  useSpanSeries,
 } from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
 
 export default function PerformanceScoreBreakdownChartWidget(
   props: LoadableChartWidgetProps
 ) {
   const {
     transaction,
-    [SpanIndexedField.BROWSER_NAME]: browserTypes,
-    [SpanIndexedField.USER_GEO_SUBREGION]: subregions,
+    [SpanFields.BROWSER_NAME]: browserTypes,
+    [SpanFields.USER_GEO_SUBREGION]: subregions,
   } = useLocationQuery({
     fields: {
-      [SpanIndexedField.BROWSER_NAME]: decodeBrowserTypes,
-      [SpanIndexedField.USER_GEO_SUBREGION]: decodeList,
+      [SpanFields.BROWSER_NAME]: decodeBrowserTypes,
+      [SpanFields.USER_GEO_SUBREGION]: decodeList,
       transaction: decodeList,
     },
   });
@@ -54,7 +54,7 @@ export default function PerformanceScoreBreakdownChartWidget(
     data: vitalScoresData,
     isLoading: areVitalScoresLoading,
     error: vitalScoresError,
-  } = useMetricsSeries(
+  } = useSpanSeries(
     {
       search,
       yAxis: [
