@@ -1,5 +1,6 @@
 from collections.abc import Iterable, Sequence
 from functools import partial
+from typing import assert_never
 
 from django.db import router, transaction
 from django.db.models import Count, Q
@@ -71,8 +72,7 @@ def convert_assignee_values(value: Iterable[str], projects: Sequence[Project], u
         elif actor is None:
             assignee_query |= Q(owner_team_id__isnull=True, owner_user_id__isnull=True)
         else:
-            # Unknown actor type, return a query that matches nothing
-            assignee_query |= Q(pk__isnull=True)
+            assert_never()
     return assignee_query
 
 

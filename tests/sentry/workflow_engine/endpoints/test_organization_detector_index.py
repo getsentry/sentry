@@ -278,6 +278,191 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         )
         assert {d["name"] for d in response3.data} == {detector.name, detector2.name}
 
+    def test_query_by_assignee_user_email(self):
+        user = self.create_user(email="assignee@example.com")
+        self.create_member(organization=self.organization, user=user)
+
+        assigned_detector = self.create_detector(
+            project_id=self.project.id,
+            name="Assigned Detector",
+            type=MetricIssue.slug,
+            owner_user_id=user.id,
+        )
+        self.create_detector(
+            project_id=self.project.id,
+            name="Unassigned Detector",
+            type=MetricIssue.slug,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id, "query": f"assignee:{user.email}"},
+        )
+        assert {d["name"] for d in response.data} == {assigned_detector.name}
+
+    def test_query_by_assignee_user_username(self):
+        user = self.create_user(username="testuser")
+        self.create_member(organization=self.organization, user=user)
+
+        assigned_detector = self.create_detector(
+            project_id=self.project.id,
+            name="Assigned Detector",
+            type=MetricIssue.slug,
+            owner_user_id=user.id,
+        )
+        self.create_detector(
+            project_id=self.project.id,
+            name="Unassigned Detector",
+            type=MetricIssue.slug,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id, "query": f"assignee:{user.username}"},
+        )
+        assert {d["name"] for d in response.data} == {assigned_detector.name}
+
+    def test_query_by_assignee_team(self):
+        team = self.create_team(organization=self.organization, slug="test-team")
+        self.project.add_team(team)
+
+        assigned_detector = self.create_detector(
+            project_id=self.project.id,
+            name="Team Detector",
+            type=MetricIssue.slug,
+            owner_team_id=team.id,
+        )
+        self.create_detector(
+            project_id=self.project.id,
+            name="Unassigned Detector",
+            type=MetricIssue.slug,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id, "query": f"assignee:#{team.slug}"},
+        )
+        assert {d["name"] for d in response.data} == {assigned_detector.name}
+
+    def test_query_by_assignee_me(self):
+        self.login_as(user=self.user)
+
+        assigned_detector = self.create_detector(
+            project_id=self.project.id,
+            name="My Detector",
+            type=MetricIssue.slug,
+            owner_user_id=self.user.id,
+        )
+        self.create_detector(
+            project_id=self.project.id,
+            name="Other Detector",
+            type=MetricIssue.slug,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id, "query": "assignee:me"},
+        )
+        assert {d["name"] for d in response.data} == {assigned_detector.name}
+
+    def test_query_by_assignee_none(self):
+        user = self.create_user()
+        self.create_member(organization=self.organization, user=user)
+        team = self.create_team(organization=self.organization)
+
+        self.create_detector(
+            project_id=self.project.id,
+            name="User Assigned",
+            type=MetricIssue.slug,
+            owner_user_id=user.id,
+        )
+        self.create_detector(
+            project_id=self.project.id,
+            name="Team Assigned",
+            type=MetricIssue.slug,
+            owner_team_id=team.id,
+        )
+        unassigned_detector = self.create_detector(
+            project_id=self.project.id,
+            name="Unassigned Detector",
+            type=MetricIssue.slug,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id, "query": "assignee:none"},
+        )
+        assert {d["name"] for d in response.data} == {unassigned_detector.name}
+
+    def test_query_by_assignee_multiple_values(self):
+        user = self.create_user(email="user1@example.com")
+        self.create_member(organization=self.organization, user=user)
+        team = self.create_team(organization=self.organization, slug="test-team")
+        self.project.add_team(team)
+
+        detector1 = self.create_detector(
+            project_id=self.project.id,
+            name="Detector 1",
+            type=MetricIssue.slug,
+            owner_user_id=user.id,
+        )
+        detector2 = self.create_detector(
+            project_id=self.project.id,
+            name="Detector 2",
+            type=MetricIssue.slug,
+            owner_team_id=team.id,
+        )
+        self.create_detector(
+            project_id=self.project.id,
+            name="Other Detector",
+            type=MetricIssue.slug,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={
+                "project": self.project.id,
+                "query": f"assignee:[{user.email}, #{team.slug}]",
+            },
+        )
+        assert {d["name"] for d in response.data} == {detector1.name, detector2.name}
+
+    def test_query_by_assignee_negation(self):
+        user = self.create_user(email="exclude@example.com")
+        self.create_member(organization=self.organization, user=user)
+
+        self.create_detector(
+            project_id=self.project.id,
+            name="Excluded Detector",
+            type=MetricIssue.slug,
+            owner_user_id=user.id,
+        )
+        included_detector = self.create_detector(
+            project_id=self.project.id,
+            name="Included Detector",
+            type=MetricIssue.slug,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id, "query": f"!assignee:{user.email}"},
+        )
+        assert {d["name"] for d in response.data} == {included_detector.name}
+
+    def test_query_by_assignee_invalid_user(self):
+        self.create_detector(
+            project_id=self.project.id,
+            name="Valid Detector",
+            type=MetricIssue.slug,
+        )
+
+        # Query with non-existent user should return no results
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id, "query": "assignee:nonexistent@example.com"},
+        )
+        assert len(response.data) == 0
+
 
 @region_silo_test
 @apply_feature_flag_on_cls("organizations:incidents")
