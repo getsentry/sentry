@@ -15,10 +15,6 @@ import {
   getFeedbackConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {
-  getProfilingDocumentHeaderConfigurationStep,
-  MaybeBrowserProfilingBetaWarning,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
-import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
   getReplayVerifyStep,
@@ -259,9 +255,8 @@ const getInstallConfigWithProfiling = () => [
 ];
 
 const onboarding: OnboardingConfig = {
-  introduction: params => (
+  introduction: () => (
     <Fragment>
-      <MaybeBrowserProfilingBetaWarning {...params} />
       <p>{t("In this guide you'll set up the Sentry React Router SDK")}</p>
       <p>
         {tct(
@@ -373,9 +368,6 @@ const onboarding: OnboardingConfig = {
       ),
       collapsible: true,
     },
-    ...(params.isProfilingSelected
-      ? [getProfilingDocumentHeaderConfigurationStep()]
-      : []),
   ],
   verify: () => [
     {
