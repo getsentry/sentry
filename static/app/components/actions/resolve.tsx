@@ -196,7 +196,7 @@ function ResolveActions({
       {
         key: 'next-release',
         label: t('The next release'),
-        details: actionTitle,
+        details: actionTitle ? actionTitle : t('The next release after the current one'),
         onAction: () => onActionOrConfirm(handleNextReleaseResolution),
       },
       {
