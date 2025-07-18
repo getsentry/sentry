@@ -52,6 +52,8 @@ export const AI_TOTAL_TOKENS_ATTRIBUTE = SpanFields.GEN_AI_USAGE_TOTAL_TOKENS;
 export const AI_TOKEN_USAGE_ATTRIBUTE_SUM = `sum(${SpanFields.GEN_AI_USAGE_TOTAL_TOKENS})`;
 export const AI_INPUT_TOKENS_ATTRIBUTE_SUM = `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS})`;
 export const AI_OUTPUT_TOKENS_ATTRIBUTE_SUM = `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS})`;
+export const AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM = `sum(tags[${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING}, number])`;
+export const AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM = `sum(tags[${SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED}, number])`;
 export const AI_COST_ATTRIBUTE_SUM = `sum(${SpanFields.GEN_AI_USAGE_TOTAL_COST})`;
 
 export const legacyAttributeKeys = new Map<string, string[]>([
