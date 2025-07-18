@@ -165,9 +165,6 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/views/settings/projectAlerts/                 @getsentry/alerts-notifications
 /static/app/views/alerts/                                 @getsentry/alerts-notifications
 /static/app/views/alerts/rules/uptime                     @getsentry/crons
-/static/app/views/releases/                               @getsentry/replay-frontend
-/static/app/views/releases/drawer/                        @getsentry/replay-frontend
-/static/app/views/releases/releaseBubbles/                @getsentry/replay-frontend
 /src/sentry/rules/processing/delayed_processing.py        @getsentry/alerts-notifications
 
 /static/app/views/settings/account/notifications/         @getsentry/alerts-notifications
@@ -448,8 +445,17 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /tests/sentry/auth/test_superuser.py                                    @getsentry/enterprise
 /tests/sentry/middleware/test_staff.py                                  @getsentry/enterprise
 /tests/sentry/integrations/github/                                      @getsentry/enterprise
-/tests/sentry/models/releases/                                          @getsentry/replay-backend
 ## End of Enterprise
+
+
+## Releases
+/tests/sentry/models/releases/              @getsentry/replay-backend
+/src/sentry/releases/                       @getsentry/replay-backend
+/tests/sentry/releases/                     @getsentry/replay-backend
+/static/app/views/releases/                 @getsentry/replay-frontend
+/static/app/views/releases/drawer/          @getsentry/replay-frontend
+/static/app/views/releases/releaseBubbles/  @getsentry/replay-frontend
+## End of Releases
 
 
 ## APIs
