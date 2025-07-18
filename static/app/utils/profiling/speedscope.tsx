@@ -28,8 +28,6 @@ import {mat3, vec2} from 'gl-matrix';
 import {clamp} from 'sentry/utils/profiling/colors/utils';
 
 import type {ColorChannels, LCH} from './flamegraph/flamegraphTheme';
-import type {TrimTextCenter} from './gl/utils';
-import {ELLIPSIS} from './gl/utils';
 
 export class Rect {
   origin: vec2;
@@ -354,32 +352,6 @@ export function makeColorBucketTheme(
     const C = lch.C_0 + lch.C_d * x;
     const L = lch.L_0 - lch.L_d * x;
     return fromLumaChromaHue(L, C, H);
-  };
-}
-
-export function trimTextCenter(text: string, low: number): TrimTextCenter {
-  if (low >= text.length) {
-    return {
-      text,
-      start: 0,
-      end: 0,
-      length: 0,
-    };
-  }
-
-  const prefixLength = Math.floor(low / 2);
-  // Use 1 character less than the low value to account for ellipsis and favor displaying the prefix
-  const postfixLength = low - prefixLength - 1;
-
-  const start = prefixLength;
-  const end = Math.floor(text.length - postfixLength + ELLIPSIS.length);
-  const trimText = `${text.substring(0, start)}${ELLIPSIS}${text.substring(end)}`;
-
-  return {
-    text: trimText,
-    start,
-    end,
-    length: end - start,
   };
 }
 

@@ -5,12 +5,12 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+import {ELLIPSIS} from 'sentry/utils/string/unicode';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import WidgetBuilderSortBySelector from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {ELLIPSIS} from 'sentry/views/insights/common/utils/centerTruncate';
 
 jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: jest.fn(),

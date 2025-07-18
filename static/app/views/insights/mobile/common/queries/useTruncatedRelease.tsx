@@ -1,5 +1,5 @@
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
-import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/centerTruncate';
+import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/formatVersionAndCenterTruncate';
 import {MAX_CHART_RELEASE_CHARS} from 'sentry/views/insights/mobile/constants';
 
 function useTruncatedReleaseNames(truncation?: number) {
