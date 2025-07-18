@@ -371,8 +371,7 @@ type PreviousData = {
   previous_plan: string;
 } & Partial<Record<`previous_${DataCategory}`, number>>;
 
-/** @internal exported for tests only */
-export function recordAnalytics(
+function recordAnalytics(
   organization: Organization,
   subscription: Subscription,
   data: CheckoutAPIData,
