@@ -38,7 +38,8 @@ export default function Ai() {
       replayRecord?.id &&
         project?.slug &&
         organization.features.includes('replay-ai-summaries') &&
-        areAiFeaturesAllowed
+        areAiFeaturesAllowed &&
+        setupAcknowledgement.orgHasAcknowledged
     ),
     retry: false,
   });
