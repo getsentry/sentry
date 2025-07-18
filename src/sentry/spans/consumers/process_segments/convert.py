@@ -1,7 +1,6 @@
 from collections.abc import MutableMapping
 from typing import Any
 
-import orjson
 import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SpanLink
@@ -15,6 +14,7 @@ from sentry_protos.snuba.v1.trace_item_pb2 import (
 )
 
 from sentry.spans.consumers.process_segments.enrichment import Span
+from sentry.utils import json
 
 I64_MAX = 2**63 - 1
 
@@ -80,7 +80,7 @@ def convert_span_to_item(span: Span) -> TraceItem:
     if links := span.get("links"):
         try:
             sanitized_links = [_sanitize_span_link(link) for link in links]
-            v = orjson.dumps(sanitized_links).decode()
+            v = json.dumps(sanitized_links)
             attributes["sentry.links"] = AnyValue(string_value=v)
         except Exception:
             sentry_sdk.capture_exception()
