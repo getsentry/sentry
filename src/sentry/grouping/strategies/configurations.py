@@ -37,8 +37,8 @@ BASE_STRATEGY = create_strategy_configuration_class(
         # strategy.
         "is_recursion": False,
         # This turns on the automatic message trimming and parameter substitution
-        # by the message strategy.
-        "normalize_message": False,
+        # by the message strategy. (Only still configurable so it can be turned off in tests.)
+        "normalize_message": True,
         # Turns on some javascript fuzzing features.
         "javascript_fuzzing": False,
         # Platforms for which context line should be taken into
@@ -93,7 +93,6 @@ register_strategy_config(
         "javascript_fuzzing": True,
         "contextline_platforms": ("javascript", "node", "python", "php", "ruby"),
         "with_context_line_file_origin_bug": True,
-        "normalize_message": True,
         "with_exception_value_fallback": True,
     },
     enhancements_base="common:2019-03-23",
