@@ -13,6 +13,7 @@ from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Query
 
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba
 
 
@@ -56,7 +57,7 @@ def get_errors_counts_timeseries_by_project_and_release(
         tenant_ids={"organization_id": organization_id},
     )
     data = snuba.raw_snql_query(
-        request=request, referrer="snuba.sessions.check_releases_have_health_data"
+        request=request, referrer=Referrer.SNUBA_SESSIONS_CHECK_RELEASES_HAVE_HEALTH_DATA
     )["data"]
 
     return data
