@@ -70,6 +70,13 @@ class AuthMergeUserAccountsEndpoint(AuthV2Endpoint):
 
         ids_to_merge = result["ids_to_merge"]
         ids_to_delete = result["ids_to_delete"]
+        if not set(ids_to_merge).isdisjoint(set(ids_to_delete)):
+            return Response(
+                status=400,
+                data={
+                    "error": "The set of IDs to merge and the set of IDs to delete must be disjoint"
+                },
+            )
         if primary_user.id in ids_to_merge or primary_user.id in ids_to_delete:
             return Response(
                 status=400,

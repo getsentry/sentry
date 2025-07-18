@@ -1,10 +1,11 @@
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, override_settings
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.user import User
 from sentry.users.models.user_merge_verification_code import UserMergeVerificationCode
 
 
 @control_silo_test
+@override_settings(IS_DEV=True)
 class ListUserAccountsWithSharedEmailTest(APITestCase):
     endpoint = "sentry-api-0-auth-merge-accounts"
     method = "get"
@@ -43,6 +44,7 @@ class ListUserAccountsWithSharedEmailTest(APITestCase):
 
 
 @control_silo_test
+@override_settings(IS_DEV=True)
 class MergeUserAccountsWithSharedEmailTest(APITestCase):
     endpoint = "sentry-api-0-auth-merge-accounts"
     method = "post"
@@ -121,4 +123,16 @@ class MergeUserAccountsWithSharedEmailTest(APITestCase):
         assert response.status_code == 400
         assert response.data == {
             "error": "You may not merge the user attached to your current session"
+        }
+
+    def test_not_disjoint(self):
+        data = {
+            "ids_to_merge": [self.user2.id],
+            "ids_to_delete": [self.user2.id, self.user3.id],
+            "verification_code": self.verification_code.token,
+        }
+        response = self.get_error_response(**data)
+        assert response.status_code == 400
+        assert response.data == {
+            "error": "The set of IDs to merge and the set of IDs to delete must be disjoint"
         }
