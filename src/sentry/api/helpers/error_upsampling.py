@@ -19,18 +19,18 @@ def is_errors_query_for_error_upsampled_projects(
 ) -> bool:
     """
     Determine if this query should use error upsampling transformations.
-    Only applies when ALL projects are allowlisted and we're querying error events.
+    Only applies when ANY projects are allowlisted and we're querying error events.
     """
-    if not are_all_projects_error_upsampled(snuba_params.project_ids):
+    if not are_any_projects_error_upsampled(snuba_params.project_ids):
         return False
 
     return _should_apply_sample_weight_transform(dataset, request)
 
 
-def are_all_projects_error_upsampled(project_ids: Sequence[int]) -> bool:
+def are_any_projects_error_upsampled(project_ids: Sequence[int]) -> bool:
     """
-    Check if ALL projects in the query are allowlisted for error upsampling.
-    Only returns True if all projects pass the allowlist condition.
+    Check if ANY projects in the query are allowlisted for error upsampling.
+    Only returns True if any project pass the allowlist condition.
     """
     if not project_ids:
         return False
@@ -39,8 +39,8 @@ def are_all_projects_error_upsampled(project_ids: Sequence[int]) -> bool:
     if not allowlist:
         return False
 
-    # All projects must be in the allowlist
-    result = all(project_id in allowlist for project_id in project_ids)
+    # Any project must be in the allowlist
+    result = any(project_id in allowlist for project_id in project_ids)
     return result
 
 

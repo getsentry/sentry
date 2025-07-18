@@ -998,6 +998,14 @@ function buildRoutes() {
           />
         </Route>
       </Route>
+      <Route path="seer/" name={t('Seer Automation')}>
+        <IndexRoute component={make(() => import('getsentry/views/seerAutomation'))} />
+        <Route
+          path="onboarding/"
+          name={t('Configure Seer for All Projects')}
+          component={make(() => import('getsentry/views/seerAutomation/onboarding'))}
+        />
+      </Route>
       <Route path="stats/" name={t('Stats')}>
         {statsChildRoutes}
       </Route>
@@ -1696,6 +1704,13 @@ function buildRoutes() {
           component={make(() => import('sentry/views/insights/sessions/views/overview'))}
         />
       </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.AGENTS]}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/insights/agentMonitoring/views/agentsOverviewPage')
+          )}
+        />
+      </Route>
       <Route path={`${MODULE_BASE_URLS[ModuleName.MCP]}/`}>
         <IndexRoute
           component={make(() => import('sentry/views/insights/mcp/views/overview'))}
@@ -1744,9 +1759,7 @@ function buildRoutes() {
       </Route>
       <Route path={`${AGENTS_LANDING_SUB_PATH}/`}>
         <IndexRoute
-          component={make(
-            () => import('sentry/views/insights/agentMonitoring/views/agentsOverviewPage')
-          )}
+          component={make(() => import('sentry/views/insights/pages/agents/redirect'))}
         />
         {transactionSummaryRoutes}
         {traceViewRoute}
@@ -2010,11 +2023,11 @@ function buildRoutes() {
 
   const preprodRoutes = (
     <Route
-      path="/preprod/"
+      path="/preprod/:projectId/:artifactId/"
       component={make(() => import('sentry/views/preprod/index'))}
       withOrgPath
     >
-      <IndexRoute component={make(() => import('sentry/views/preprod/sizeAnalysis'))} />
+      <IndexRoute component={make(() => import('sentry/views/preprod/buildDetails'))} />
     </Route>
   );
 

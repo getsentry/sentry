@@ -1026,7 +1026,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         digests.backend.digest = backend.digest
         digests.enabled.return_value = True
 
-        rule = Rule.objects.create(project=self.project, label="my rule")
+        rule = self.create_project_rule(project=self.project)
         ProjectOwnership.objects.create(project_id=self.project.id)
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
@@ -1046,7 +1046,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
         assert (
             fallback_text
-            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/alerts/rules/{event.project.slug}/{rule.id}/details/|my rule>"
+            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/alerts/rules/{event.project.slug}/{rule.id}/details/|Test Alert>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
         assert event.group

@@ -98,7 +98,6 @@ interface EndpointParams extends Partial<PageFilters['datetime']> {
   query?: string;
   sort?: string;
   statsPeriod?: string | null;
-  useGroupSnubaDataset?: boolean;
 }
 
 type CountsEndpointParams = Omit<EndpointParams, 'cursor' | 'page' | 'query'> & {
@@ -310,13 +309,9 @@ function IssueListOverview({
       params.groupStatsPeriod = groupStatsPeriod;
     }
 
-    if (location.query.useGroupSnubaDataset) {
-      params.useGroupSnubaDataset = true;
-    }
-
     // only include defined values.
     return pickBy(params, v => defined(v)) as EndpointParams;
-  }, [selection, location, query, sort, getGroupStatsPeriod]);
+  }, [selection, query, sort, getGroupStatsPeriod]);
 
   const requestParams = useMemo(() => {
     // Used for Issue Stream Performance project, enabled means we are doing saved search look up in the backend

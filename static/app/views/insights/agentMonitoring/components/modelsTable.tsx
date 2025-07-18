@@ -30,8 +30,10 @@ import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useCol
 import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
 import {
   AI_INPUT_TOKENS_ATTRIBUTE_SUM,
+  AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM,
   AI_MODEL_ID_ATTRIBUTE,
   AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
+  AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM,
   getAIGenerationsFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
@@ -43,9 +45,11 @@ import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/Numb
 
 interface TableData {
   avg: number;
+  inputCachedTokens: number;
   // errorRate: number;
   inputTokens: number;
   model: string;
+  outputReasoningTokens: number;
   outputTokens: number;
   p95: number;
   requests: number;
@@ -59,7 +63,13 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'avg(span.duration)', name: t('Avg'), width: 100},
   {key: 'p95(span.duration)', name: t('P95'), width: 100},
   {key: AI_INPUT_TOKENS_ATTRIBUTE_SUM, name: t('Input tokens'), width: 140},
+  {key: AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM, name: t('Cached tokens'), width: 140},
   {key: AI_OUTPUT_TOKENS_ATTRIBUTE_SUM, name: t('Output tokens'), width: 140},
+  {
+    key: AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM,
+    name: t('Reasoning tokens'),
+    width: 140,
+  },
   // {key: 'failure_rate()', name: t('Error Rate'), width: 120},
 ];
 
@@ -67,6 +77,8 @@ const rightAlignColumns = new Set([
   'count()',
   AI_INPUT_TOKENS_ATTRIBUTE_SUM,
   AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
+  AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM,
+  AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM,
   // 'failure_rate()',
   'avg(span.duration)',
   'p95(span.duration)',
@@ -97,10 +109,13 @@ export function ModelsTable() {
 
   const modelsRequest = useSpans(
     {
+      // @ts-expect-error Expression produces a union type that is too complex to represent.ts(2590)
       fields: [
         AI_MODEL_ID_ATTRIBUTE,
         AI_INPUT_TOKENS_ATTRIBUTE_SUM,
         AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
+        AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM,
+        AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM,
         'count()',
         'avg(span.duration)',
         'p95(span.duration)',
@@ -125,12 +140,14 @@ export function ModelsTable() {
 
     return modelsRequest.data.map(span => ({
       model: `${span[AI_MODEL_ID_ATTRIBUTE]}`,
-      requests: span['count()'],
-      avg: span['avg(span.duration)'],
-      p95: span['p95(span.duration)'],
+      requests: span['count()'] ?? 0,
+      avg: span['avg(span.duration)'] ?? 0,
+      p95: span['p95(span.duration)'] ?? 0,
       // errorRate: span['failure_rate()'],
       inputTokens: Number(span[AI_INPUT_TOKENS_ATTRIBUTE_SUM]),
+      inputCachedTokens: Number(span[AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM]),
       outputTokens: Number(span[AI_OUTPUT_TOKENS_ATTRIBUTE_SUM]),
+      outputReasoningTokens: Number(span[AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM]),
     }));
   }, [modelsRequest.data]);
 
@@ -232,6 +249,10 @@ const BodyCell = memo(function BodyCell({
       return <NumberCell value={dataRow.inputTokens} />;
     case AI_OUTPUT_TOKENS_ATTRIBUTE_SUM:
       return <NumberCell value={dataRow.outputTokens} />;
+    case AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM:
+      return <NumberCell value={dataRow.outputReasoningTokens} />;
+    case AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM:
+      return <NumberCell value={dataRow.inputCachedTokens} />;
     case 'avg(span.duration)':
       return <DurationCell milliseconds={dataRow.avg} />;
     case 'p95(span.duration)':

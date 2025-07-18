@@ -97,7 +97,8 @@ describe('CacheLandingPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -120,7 +121,8 @@ describe('CacheLandingPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           field: [
             'project',

@@ -523,6 +523,13 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/php/guides/symfony/',
   },
   {
+    id: 'playstation',
+    name: 'Playstation',
+    type: 'console',
+    language: 'console',
+    link: 'https://docs.sentry.io/platforms/playstation/',
+  },
+  {
     id: 'powershell',
     name: 'PowerShell',
     type: 'language',
@@ -738,6 +745,13 @@ export const platforms: PlatformIntegration[] = [
     type: 'framework',
     language: 'unreal',
     link: 'https://docs.sentry.io/platforms/unreal/',
+  },
+  {
+    id: 'xbox',
+    name: 'Xbox',
+    type: 'console',
+    language: 'console',
+    link: 'https://docs.sentry.io/platforms/xbox/',
   },
 ];
 
