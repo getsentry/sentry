@@ -1,6 +1,6 @@
 import type {PropsWithChildren} from 'react';
-import {Fragment, useMemo} from 'react';
-import {ThemeProvider, useTheme} from '@emotion/react';
+import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import performanceWaitingForSpan from 'sentry-images/spot/performance-waiting-for-span.svg';
@@ -12,11 +12,7 @@ import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {IconOpen} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import type {Theme} from 'sentry/utils/theme';
-// we need the hero to always use values from the dark theme
-// eslint-disable-next-line no-restricted-imports
-import {darkTheme} from 'sentry/utils/theme';
-import {DO_NOT_USE_darkChonkTheme} from 'sentry/utils/theme/theme.chonk';
+import {DarkThemeProvider} from 'sentry/utils/theme/useDarkTheme';
 
 import {Colors, Icons, Typography} from './figures';
 
@@ -49,7 +45,7 @@ const frontmatter = {
 export function StoryLanding() {
   return (
     <Fragment>
-      <AlwaysDarkThemeProvider>
+      <DarkThemeProvider>
         <Hero>
           <Container>
             <Flex direction="column" gap={space(3)}>
@@ -74,7 +70,7 @@ export function StoryLanding() {
             />
           </Container>
         </Hero>
-      </AlwaysDarkThemeProvider>
+      </DarkThemeProvider>
 
       <Container>
         <Flex as="section" direction="column" gap={space(4)} flex={1}>
@@ -132,17 +128,6 @@ function Border() {
   );
 }
 
-function AlwaysDarkThemeProvider(props: PropsWithChildren) {
-  const theme = useTheme();
-
-  const localThemeValue = useMemo(
-    () => (theme.isChonk ? DO_NOT_USE_darkChonkTheme : darkTheme),
-    [theme]
-  );
-
-  return <ThemeProvider theme={localThemeValue as Theme}>{props.children}</ThemeProvider>;
-}
-
 const TitleEmphasis = styled('em')`
   font-style: normal;
   display: inline-block;
@@ -155,8 +140,9 @@ const Hero = styled('div')`
   gap: ${space(4)};
   display: flex;
   align-items: center;
-  background: ${p => p.theme.tokens.background.tertiary};
+  background: ${p => p.theme.tokens.background.secondary};
   color: ${p => p.theme.tokens.content.primary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 
   h1 {
     font-size: 36px;
