@@ -26,15 +26,13 @@ import {
   ModuleName,
   SpanFields,
   SpanFunction,
-  SpanMetricsField,
-  type SpanMetricsResponse,
 } from 'sentry/views/insights/types';
 
 const {CACHE_MISS_RATE, EPM} = SpanFunction;
-const {CACHE_ITEM_SIZE} = SpanMetricsField;
+const {CACHE_ITEM_SIZE} = SpanFields;
 
 type Row = Pick<
-  SpanMetricsResponse,
+  EAPSpanResponse,
   | 'project'
   | 'project.id'
   | 'transaction'
@@ -67,8 +65,8 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `avg(${CACHE_ITEM_SIZE})`,
-    name: DataTitles[`avg(${CACHE_ITEM_SIZE})`],
+    key: `avg(${SpanFields.CACHE_ITEM_SIZE})`,
+    name: DataTitles[`avg(${SpanFields.CACHE_ITEM_SIZE})`],
     width: COL_WIDTH_UNDEFINED,
   },
   {

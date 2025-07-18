@@ -2023,11 +2023,11 @@ function buildRoutes() {
 
   const preprodRoutes = (
     <Route
-      path="/preprod/"
+      path="/preprod/:projectId/:artifactId/"
       component={make(() => import('sentry/views/preprod/index'))}
       withOrgPath
     >
-      <IndexRoute component={make(() => import('sentry/views/preprod/sizeAnalysis'))} />
+      <IndexRoute component={make(() => import('sentry/views/preprod/buildDetails'))} />
     </Route>
   );
 
