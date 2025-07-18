@@ -81,7 +81,13 @@ class OurLogs(rpc_dataset_common.RPCBase):
         cls.validate_granularity(params)
         search_resolver = cls.get_resolver(params, config)
         rpc_request, aggregates, groupbys = cls.get_timeseries_query(
-            search_resolver, params, query_string, y_axes, [], referrer, sampling_mode=None
+            search_resolver=search_resolver,
+            params=params,
+            query_string=query_string,
+            y_axes=y_axes,
+            groupby=[],
+            referrer=referrer,
+            sampling_mode=None,
         )
 
         """Run the query"""

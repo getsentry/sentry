@@ -433,6 +433,7 @@ class RPCBase:
     @classmethod
     def get_timeseries_query(
         cls,
+        *,
         search_resolver: SearchResolver,
         params: SnubaParams,
         query_string: str,
@@ -557,6 +558,7 @@ class RPCBase:
     @sentry_sdk.trace
     def run_top_events_timeseries_query(
         cls,
+        *,
         params: SnubaParams,
         query_string: str,
         y_axes: list[str],
@@ -600,6 +602,7 @@ class RPCBase:
                 equations=equations,
             )
         )
+        # There aren't any top events, just return an empty dict and save a query
         if len(top_events["data"]) == 0:
             return {}
 
@@ -613,24 +616,24 @@ class RPCBase:
         top_conditions, other_conditions = cls.build_top_event_conditions(
             search_resolver, top_events, groupby_columns_without_project
         )
-        """Make the query"""
+        """Make the queries"""
         rpc_request, aggregates, groupbys = cls.get_timeseries_query(
-            search_resolver,
-            params,
-            query_string,
-            y_axes,
-            groupby_columns_without_project,
-            referrer,
+            search_resolver=search_resolver,
+            params=params,
+            query_string=query_string,
+            y_axes=y_axes,
+            groupby=groupby_columns_without_project,
+            referrer=referrer,
             sampling_mode=sampling_mode,
             extra_conditions=top_conditions,
         )
         other_request, other_aggregates, other_groupbys = cls.get_timeseries_query(
-            search_resolver,
-            params,
-            query_string,
-            y_axes,
-            [],  # in the other series, we want eveything in a single group, so the group by
-            referrer,
+            search_resolver=search_resolver,
+            params=params,
+            query_string=query_string,
+            y_axes=y_axes,
+            groupby=[],  # in the other series, we want eveything in a single group, so the group by is empty
+            referrer=referrer,
             sampling_mode=sampling_mode,
             extra_conditions=other_conditions,
         )

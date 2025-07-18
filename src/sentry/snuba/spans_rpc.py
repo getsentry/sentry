@@ -74,7 +74,13 @@ class Spans(rpc_dataset_common.RPCBase):
         cls.validate_granularity(params)
         search_resolver = cls.get_resolver(params, config)
         rpc_request, aggregates, groupbys = cls.get_timeseries_query(
-            search_resolver, params, query_string, y_axes, [], referrer, sampling_mode
+            search_resolver=search_resolver,
+            params=params,
+            query_string=query_string,
+            y_axes=y_axes,
+            groupby=[],
+            referrer=referrer,
+            sampling_mode=sampling_mode,
         )
 
         """Run the query"""
@@ -118,12 +124,12 @@ class Spans(rpc_dataset_common.RPCBase):
 
             search_resolver = cls.get_resolver(comp_query_params, config)
             comp_rpc_request, aggregates, groupbys = cls.get_timeseries_query(
-                search_resolver,
-                comp_query_params,
-                query_string,
-                y_axes,
-                [],
-                referrer,
+                search_resolver=search_resolver,
+                params=comp_query_params,
+                query_string=query_string,
+                y_axes=y_axes,
+                groupby=[],
+                referrer=referrer,
                 sampling_mode=sampling_mode,
             )
             comp_rpc_response = snuba_rpc.timeseries_rpc([comp_rpc_request])[0]
