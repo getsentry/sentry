@@ -1,6 +1,6 @@
 import isEqual from 'lodash/isEqual';
 
-import {DataCategory} from 'sentry/types/core';
+import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 
@@ -14,7 +14,10 @@ import type {
 } from 'getsentry/types';
 import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
 import {displayBudgetName, getOnDemandCategories} from 'getsentry/utils/billing';
-import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
+import {
+  getCategoryInfoFromPlural,
+  getPlanCategoryName,
+} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
@@ -144,12 +147,6 @@ export function hasOnDemandBudgetsFeature(
   );
 }
 
-function getBudgetMode(budget: OnDemandBudgets) {
-  return budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY
-    ? 'per_category'
-    : 'shared';
-}
-
 export function getOnDemandBudget(budget: OnDemandBudgets, dataCategory: DataCategory) {
   if (budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
     return budget.budgets[dataCategory] ?? 0;
@@ -197,31 +194,44 @@ export function trackOnDemandBudgetAnalytics(
 ) {
   const previousTotalBudget = getTotalBudget(previousBudget);
   const totalBudget = getTotalBudget(newBudget);
+  const previousBudgetMode = previousBudget.budgetMode;
+  const newBudgetMode = newBudget.budgetMode;
   if (totalBudget > 0 && previousTotalBudget !== totalBudget) {
+    const newBudgets: Partial<Record<`${DataCategoryExact}_budget`, number>> = {};
+    const previousBudgets: Partial<
+      Record<`previous_${DataCategoryExact}_budget`, number>
+    > = {};
+
+    if (previousBudgetMode === OnDemandBudgetMode.PER_CATEGORY) {
+      Object.entries(previousBudget.budgets).forEach(([category, budget]) => {
+        const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
+        if (categoryInfo) {
+          previousBudgets[`previous_${categoryInfo.name}_budget`] = budget ?? 0;
+        }
+      });
+    }
+
+    if (newBudgetMode === OnDemandBudgetMode.PER_CATEGORY) {
+      Object.entries(newBudget.budgets).forEach(([category, budget]) => {
+        const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
+        if (categoryInfo) {
+          newBudgets[`${categoryInfo.name}_budget`] = budget ?? 0;
+        }
+      });
+    }
+
     trackGetsentryAnalytics(`${prefix}.ondemand_budget.update`, {
       organization,
 
       // new budget
-      strategy: getBudgetMode(newBudget),
+      strategy: newBudgetMode,
       total_budget: totalBudget,
-      error_budget: getOnDemandBudget(newBudget, DataCategory.ERRORS),
-      transaction_budget: getOnDemandBudget(newBudget, DataCategory.TRANSACTIONS),
-      attachment_budget: getOnDemandBudget(newBudget, DataCategory.ATTACHMENTS),
-      log_byte_budget: getOnDemandBudget(newBudget, DataCategory.LOG_BYTE),
+      ...newBudgets,
 
       // previous budget
-      previous_strategy: getBudgetMode(previousBudget),
-      previous_total_budget: getTotalBudget(previousBudget),
-      previous_error_budget: getOnDemandBudget(previousBudget, DataCategory.ERRORS),
-      previous_transaction_budget: getOnDemandBudget(
-        previousBudget,
-        DataCategory.TRANSACTIONS
-      ),
-      previous_attachment_budget: getOnDemandBudget(
-        previousBudget,
-        DataCategory.ATTACHMENTS
-      ),
-      previous_log_byte_budget: getOnDemandBudget(previousBudget, DataCategory.LOG_BYTE),
+      previous_strategy: previousBudgetMode,
+      previous_total_budget: previousTotalBudget,
+      ...previousBudgets,
     });
     return;
   }
