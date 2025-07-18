@@ -17,11 +17,7 @@ import {
   getRetryDelay,
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
-import type {
-  EAPSpanProperty,
-  SpanFields,
-  SpanFunctions,
-} from 'sentry/views/insights/types';
+import type {SpanProperty} from 'sentry/views/insights/types';
 
 import {convertDiscoverTimeseriesResponse} from './convertDiscoverTimeseriesResponse';
 
@@ -41,9 +37,7 @@ interface UseMetricsSeriesOptions<Fields> {
   yAxis?: Fields;
 }
 
-export const useSpanSeries = <
-  Fields extends EAPSpanProperty[] | SpanFields[] | SpanFunctions[] | string[],
->(
+export const useSpanSeries = <Fields extends SpanProperty[]>(
   options: UseMetricsSeriesOptions<Fields> = {},
   referrer: string,
   pageFilters?: PageFilters

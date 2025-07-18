@@ -357,7 +357,7 @@ export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
 
 type WebVitalsFunctions = 'performance_score' | 'count_scores' | 'opportunity_score';
 
-type EAPSpanResponseRaw = {
+type SpanResponseRaw = {
   [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
 } & {
   [Property in SpanFunctions as `${Property}()`]: number;
@@ -433,8 +433,8 @@ type EAPSpanResponseRaw = {
     [Property in SpanFields as `count_if(${Property},${string})`]: number;
   };
 
-export type EAPSpanResponse = Flatten<EAPSpanResponseRaw>;
-export type EAPSpanProperty = keyof EAPSpanResponse; // TODO: rename this to `SpanProperty` when we remove `useInsightsEap`
+export type SpanResponse = Flatten<SpanResponseRaw>;
+export type SpanProperty = keyof SpanResponse;
 
 export enum SpanFunction {
   SPS = 'sps',
