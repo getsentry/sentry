@@ -34,7 +34,6 @@ function GenerateSpikeProjectionsForBatch() {
     onSuccess: () => {
       addSuccessMessage(`Queued spike projection generation task for batch ${batchId}.`);
       setBatchId(null);
-      setRegion(null);
     },
     onError: () => {
       addErrorMessage(
@@ -49,7 +48,7 @@ function GenerateSpikeProjectionsForBatch() {
   };
 
   const batchRunTime = useMemo(() => {
-    if (batchId === null) {
+    if (batchId === null || batchId < 0 || batchId > 143) {
       return null;
     }
     return moment
@@ -67,7 +66,7 @@ function GenerateSpikeProjectionsForBatch() {
       <Column onSubmit={handleSubmit}>
         <p>
           This will queue a task to generate spike projections for the specified batch of
-          customers.
+          customers in the specified region.
         </p>
         <CompactSelect
           triggerProps={{prefix: 'Region'}}
@@ -123,7 +122,7 @@ const Column = styled('form')`
   flex-direction: column;
   gap: ${p => p.theme.space.md};
 
-  > p {
+  > * {
     margin: 0;
   }
   > button {
