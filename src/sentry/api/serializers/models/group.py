@@ -329,7 +329,7 @@ class GroupSerializerBase(Serializer, ABC):
         **kwargs: Any,
     ) -> BaseGroupSerializerResponse:
         status_details, status_label = self._get_status(attrs, obj)
-        permalink = self._get_permalink(attrs, obj)
+        permalink = self._get_permalink(obj)
         is_subscribed, subscription_details = get_subscription_from_attributes(attrs)
         share_id = attrs["share_id"]
         priority_label = PriorityLevel(obj.priority).to_str() if obj.priority else None
@@ -749,12 +749,9 @@ class GroupSerializerBase(Serializer, ABC):
         )
 
     @staticmethod
-    def _get_permalink(attrs, obj: Group):
-        if attrs["authorized"]:
-            with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink.build"):
-                return obj.get_absolute_url()
-        else:
-            return None
+    def _get_permalink(obj: Group) -> str:
+        with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink.build"):
+            return obj.get_absolute_url()
 
     @staticmethod
     def _convert_seen_stats(attrs: SeenStats) -> SeenStatsResponse:
