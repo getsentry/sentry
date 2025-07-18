@@ -7,7 +7,7 @@ import {getFormattedDate} from 'sentry/utils/dates';
 import {type BuildDetailsAppInfo, BuildDetailsState} from 'sentry/views/preprod/types';
 import {
   formatBytes,
-  getPlatformFromArtifactType,
+  getPlatformIconFromPlatform,
   getReadableArtifactTypeLabel,
   getReadablePlatformLabel,
 } from 'sentry/views/preprod/utils';
@@ -21,7 +21,6 @@ interface BuildDetailsSidebarAppInfoProps {
 
 export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProps) {
   const {appInfo, state, installSizeBytes, downloadSizeBytes} = props;
-  const platform = getPlatformFromArtifactType(appInfo.artifact_type);
 
   return (
     <AppInfoContainer>
@@ -38,9 +37,9 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
       <InfoSection>
         <InfoRow>
           <InfoIcon>
-            <PlatformIcon platform={platform} />
+            <PlatformIcon platform={getPlatformIconFromPlatform(appInfo.platform)} />
           </InfoIcon>
-          <InfoValue>{getReadablePlatformLabel(platform)}</InfoValue>
+          <InfoValue>{getReadablePlatformLabel(appInfo.platform)}</InfoValue>
         </InfoRow>
         <InfoRow>
           <InfoIcon>

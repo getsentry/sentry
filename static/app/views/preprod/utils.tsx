@@ -8,17 +8,15 @@ export function formatBytes(bytes: number, isSi = false) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-export function getPlatformFromArtifactType(
-  artifactType: BuildDetailsArtifactType
-): Platform {
-  switch (artifactType) {
-    case BuildDetailsArtifactType.XCARCHIVE:
-      return 'ios';
-    case BuildDetailsArtifactType.AAB:
-    case BuildDetailsArtifactType.APK:
+export function getPlatformIconFromPlatform(platform: Platform): string {
+  switch (platform) {
+    case 'ios':
+    case 'macos':
+      return 'apple';
+    case 'android':
       return 'android';
     default:
-      throw new Error(`Unknown artifact type: ${artifactType}`);
+      throw new Error(`Unsupported platform: ${platform}`);
   }
 }
 
