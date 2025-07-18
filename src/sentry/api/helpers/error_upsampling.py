@@ -55,12 +55,16 @@ def transform_query_columns_for_error_upsampling(query_columns: Sequence[str]) -
 
         if column_lower == "count()":
             transformed_columns.append("upsampled_count() as count")
-
         elif column_lower == "eps()":
             transformed_columns.append("upsampled_eps() as eps")
-
         elif column_lower == "epm()":
             transformed_columns.append("upsampled_epm() as epm")
+        elif column_lower == "sample_count()":
+            transformed_columns.append("count() as sample_count")
+        elif column_lower == "sample_eps()":
+            transformed_columns.append("eps() as sample_eps")
+        elif column_lower == "sample_epm()":
+            transformed_columns.append("epm() as sample_epm")
         else:
             transformed_columns.append(column)
 
