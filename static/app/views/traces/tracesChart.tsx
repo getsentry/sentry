@@ -12,7 +12,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
-import {useSpanIndexedSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
 
 import {areQueriesEmpty} from './utils';
@@ -148,7 +148,7 @@ const useTraceCountSeries = ({
 }) => {
   const pageFilters = usePageFilters();
 
-  return useSpanIndexedSeries(
+  return useSpanSeries(
     {
       search: new MutableSearch(query ?? ''),
       yAxis: ['count()'],

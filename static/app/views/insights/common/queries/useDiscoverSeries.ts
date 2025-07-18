@@ -72,24 +72,6 @@ export const useSpanSeries = <
   );
 };
 
-/**
- * TODO: Remove string type, added to fix types for 'count()'
- */
-export const useSpanIndexedSeries = <
-  Fields extends SpanFields[] | SpanFunctions[] | string[],
->(
-  options: UseMetricsSeriesOptions<Fields> = {},
-  referrer: string,
-  dataset?: DiscoverDatasets
-) => {
-  const useEap = useInsightsEap();
-  return useDiscoverSeries<Fields>(
-    options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : (dataset ?? DiscoverDatasets.SPANS_INDEXED),
-    referrer
-  );
-};
-
 const useDiscoverSeries = <T extends string[]>(
   options: UseMetricsSeriesOptions<T> = {},
   dataset: DiscoverDatasets,
