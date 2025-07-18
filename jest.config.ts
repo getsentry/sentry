@@ -8,6 +8,7 @@ import type {Config as SwcConfig} from '@swc/core';
 const NODE_VERSION = process.versions.node.split('.')[0];
 
 const swcConfig: SwcConfig = {
+  sourceMaps: true,
   jsc: {
     externalHelpers: true,
     experimental: {
