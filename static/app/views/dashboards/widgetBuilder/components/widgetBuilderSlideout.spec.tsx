@@ -584,7 +584,7 @@ describe('WidgetBuilderSlideout', () => {
 
     expect(
       await screen.findByText(
-        'Transaction widgets are being deprecated. Please use the spans dataset moving forward.'
+        /You may have limited functionality due to the ongoing migration of transactions to spans/i
       )
     ).toBeInTheDocument();
   });
@@ -624,7 +624,7 @@ describe('WidgetBuilderSlideout', () => {
     await waitFor(() => {
       expect(
         screen.queryByText(
-          'Transaction widgets are being deprecated. Please use the spans dataset moving forward.'
+          /You may have limited functionality due to the ongoing migration of transactions to spans/i
         )
       ).not.toBeInTheDocument();
     });
