@@ -87,6 +87,11 @@ export default function FocusTabs({isVideoReplay}: Props) {
 }
 
 const TabContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  min-width: 0;
+
   ${p =>
     p.theme.isChonk
       ? ''

@@ -6,7 +6,7 @@ import {
   DATABASE_SYSTEM_TO_LABEL,
   SupportedDatabaseSystem,
 } from 'sentry/views/insights/database/utils/constants';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 export function useSystemSelectorOptions() {
   const [selectedSystem, setSelectedSystem] = useLocalStorageState<string | undefined>(
@@ -18,7 +18,7 @@ export function useSystemSelectorOptions() {
     {
       search: MutableSearch.fromQueryObject({'span.op': 'db'}),
 
-      fields: [SpanMetricsField.SPAN_SYSTEM, 'count()'],
+      fields: [SpanFields.SPAN_SYSTEM, 'count()'],
       sorts: [{field: 'count()', kind: 'desc'}],
     },
     'api.starfish.database-system-selector'

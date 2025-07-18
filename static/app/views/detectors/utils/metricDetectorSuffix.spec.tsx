@@ -1,4 +1,9 @@
-import {MetricDetectorFixture} from 'sentry-fixture/detectors';
+import {
+  MetricDetectorFixture,
+  SnubaQueryDataSourceFixture,
+} from 'sentry-fixture/detectors';
+
+import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 
 import {
   getMetricDetectorSuffix,
@@ -33,6 +38,21 @@ describe('getStaticDetectorThresholdSuffix', function () {
 });
 
 describe('getMetricDetectorSuffix', function () {
+  const spanDurationDataSource = SnubaQueryDataSourceFixture({
+    queryObj: {
+      id: '1',
+      status: 1,
+      subscription: '1',
+      snubaQuery: {
+        aggregate: 'avg(span.duration)',
+        dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+        id: '',
+        query: '',
+        timeWindow: 60,
+        eventTypes: [EventTypes.TRACE_ITEM_SPAN],
+      },
+    },
+  });
   it('returns % for percent detection type', function () {
     const detector = MetricDetectorFixture({
       id: '1',
@@ -47,8 +67,9 @@ describe('getMetricDetectorSuffix', function () {
     expect(getMetricDetectorSuffix(detector)).toBe('%');
   });
 
-  it('returns ms as default for static detection type without data source', function () {
+  it('returns ms as default for static detection type with duration aggregate', function () {
     const detector = MetricDetectorFixture({
+      dataSources: [spanDurationDataSource],
       config: {
         detectionType: 'static',
         thresholdPeriod: 1,
@@ -58,8 +79,9 @@ describe('getMetricDetectorSuffix', function () {
     expect(getMetricDetectorSuffix(detector)).toBe('ms');
   });
 
-  it('returns ms as default for dynamic detection type without data source', function () {
+  it('returns ms as default for dynamic detection type with duration aggregate', function () {
     const detector = MetricDetectorFixture({
+      dataSources: [spanDurationDataSource],
       config: {
         detectionType: 'dynamic',
         thresholdPeriod: 1,

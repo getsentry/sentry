@@ -10,7 +10,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import ResourcesLandingPage from 'sentry/views/insights/browser/resources/views/resourcesLandingPage';
-import {SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
 const {
   SPAN_SELF_TIME,
@@ -21,7 +21,7 @@ const {
   PROJECT_ID,
   RESOURCE_RENDER_BLOCKING_STATUS,
   SPAN_OP,
-} = SpanMetricsField;
+} = SpanFields;
 const {EPM} = SpanFunction;
 
 jest.mock('sentry/utils/useLocation');
