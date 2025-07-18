@@ -112,6 +112,7 @@ export enum SpanFields {
   GEN_AI_USAGE_OUTPUT_TOKENS = 'gen_ai.usage.output_tokens',
   GEN_AI_USAGE_TOTAL_COST = 'gen_ai.usage.total_cost',
   GEN_AI_USAGE_TOTAL_TOKENS = 'gen_ai.usage.total_tokens',
+  MCP_CLIENT_NAME = 'mcp.client.name',
   MCP_TRANSPORT = 'mcp.transport',
   MCP_TOOL_NAME = 'mcp.tool.name',
   MCP_RESOURCE_URI = 'mcp.resource.uri',
@@ -269,6 +270,7 @@ export type SpanStringFields =
   | SpanFields.GEN_AI_REQUEST_MODEL
   | SpanFields.GEN_AI_RESPONSE_MODEL
   | SpanFields.GEN_AI_TOOL_NAME
+  | SpanFields.MCP_CLIENT_NAME
   | SpanFields.MCP_TRANSPORT
   | SpanFields.MCP_TOOL_NAME
   | SpanFields.MCP_RESOURCE_URI
