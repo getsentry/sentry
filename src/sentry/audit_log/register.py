@@ -653,3 +653,19 @@ default_manager.add(
         template="created project {slug} via {origin}",
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=1155,
+        name="REPLAYDELETIONJOBMODEL_START",
+        api_name="replay-deletion-jobs.start",
+        template="started replay deletion job",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=1156,
+        name="REPLAYDELETIONJOBMODEL_CANCELED",
+        api_name="replay-deletion-jobs.stop",
+        template="canceled replay deletion job",
+    )
+)
