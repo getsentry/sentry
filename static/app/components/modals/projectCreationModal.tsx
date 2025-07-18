@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
@@ -10,7 +10,11 @@ import {
   addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {
+  type ModalRenderProps,
+  openConsoleModal,
+  openProjectCreationModal,
+} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import PlatformPicker, {
@@ -42,6 +46,7 @@ export default function ProjectCreationModal({
   closeModal,
   defaultCategory,
 }: Props) {
+  const [category, setCategory] = useState<Category | undefined>(defaultCategory);
   const [platform, setPlatform] = useState<OnboardingSelectedSDK | undefined>(undefined);
   const [step, setStep] = useState(0);
   const [projectName, setProjectName] = useState('');
@@ -52,13 +57,39 @@ export default function ProjectCreationModal({
   const api = useApi();
   const organization = useOrganization();
 
+  useEffect(() => {
+    setCategory(defaultCategory);
+  }, [defaultCategory]);
+
   function handlePlatformChange(selectedPlatform: Platform | null) {
-    if (selectedPlatform) {
-      setPlatform({
-        ...omit(selectedPlatform, 'id'),
-        key: selectedPlatform.id,
+    if (
+      selectedPlatform?.type === 'console' &&
+      !organization.enabledConsolePlatforms?.includes(selectedPlatform.id)
+    ) {
+      openConsoleModal({
+        selectedPlatform: {
+          ...selectedPlatform,
+          key: selectedPlatform.id,
+        },
+        onClose: () => {
+          openProjectCreationModal({
+            defaultCategory: selectedPlatform.category,
+          });
+        },
       });
+      return;
     }
+
+    if (!selectedPlatform) {
+      setPlatform(undefined);
+      return;
+    }
+
+    setPlatform({
+      ...omit(selectedPlatform, 'id'),
+      key: selectedPlatform.id,
+    });
+    setCategory(selectedPlatform.category);
   }
 
   const createProject = useCallback(async () => {
@@ -132,15 +163,13 @@ export default function ProjectCreationModal({
       </Header>
       {step === 0 && (
         <Fragment>
-          <Subtitle>Choose a Platform</Subtitle>
+          <Subtitle>{t('Choose a Platform')}</Subtitle>
           <PlatformPicker
-            defaultCategory={defaultCategory}
+            defaultCategory={category}
             setPlatform={handlePlatformChange}
             organization={organization}
             platform={platform?.key}
-            showFilterBar={false}
-            navClassName="centered"
-            listClassName="centered"
+            noAutoFilter
           />
         </Fragment>
       )}

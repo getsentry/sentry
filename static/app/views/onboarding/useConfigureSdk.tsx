@@ -6,7 +6,7 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
+import {openConsoleModal, openModal} from 'sentry/actionCreators/modal';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
@@ -97,15 +97,7 @@ export function useConfigureSdk({
         selectedPlatform.type === 'console' &&
         !organization.enabledConsolePlatforms?.includes(selectedPlatform.key)
       ) {
-        const {ConsoleModal, modalCss} = await import(
-          'sentry/components/onboarding/consoleModal'
-        );
-        openModal(
-          deps => <ConsoleModal {...deps} selectedPlatform={selectedPlatform} />,
-          {
-            modalCss,
-          }
-        );
+        openConsoleModal({selectedPlatform});
         return;
       }
 

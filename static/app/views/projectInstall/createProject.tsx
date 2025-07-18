@@ -7,7 +7,7 @@ import startCase from 'lodash/startCase';
 import {PlatformIcon} from 'platformicons';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
+import {openConsoleModal, openModal} from 'sentry/actionCreators/modal';
 import {removeProject} from 'sentry/actionCreators/projects';
 import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/core/alert';
@@ -414,7 +414,7 @@ export function CreateProject() {
   );
 
   const handlePlatformChange = useCallback(
-    async (value: Platform | null) => {
+    (value: Platform | null) => {
       if (!value) {
         updateFormData('platform', {
           // By unselecting a platform, we don't want to jump to another category
@@ -430,27 +430,16 @@ export function CreateProject() {
         updateFormData('platform', {
           category: formData.platform?.category,
         });
-        const {ConsoleModal, modalCss} = await import(
-          'sentry/components/onboarding/consoleModal'
-        );
-        openModal(
-          deps => (
-            <ConsoleModal
-              {...deps}
-              selectedPlatform={{
-                key: value.id,
-                name: value.name,
-                type: value.type,
-                language: value.language,
-                category: value.category,
-                link: value.link,
-              }}
-            />
-          ),
-          {
-            modalCss,
-          }
-        );
+        openConsoleModal({
+          selectedPlatform: {
+            key: value.id,
+            name: value.name,
+            type: value.type,
+            language: value.language,
+            category: value.category,
+            link: value.link,
+          },
+        });
         return;
       }
 
