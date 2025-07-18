@@ -20,6 +20,7 @@ class BuildDetailsAppInfo(BaseModel):
     date_built: str | None = None
     artifact_type: PreprodArtifact.ArtifactType
     platform: Platform
+    is_installable: bool
     # build_configuration: Optional[str] = None  # Uncomment when available
     # icon: Optional[str] = None  # Uncomment when available
 
