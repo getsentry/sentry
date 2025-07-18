@@ -12,6 +12,7 @@ export interface BuildDetailsAppInfo {
   build_number: string;
   date_added: string;
   date_built: string;
+  is_installable: boolean;
   name: string;
   platform: Platform;
   version: string;

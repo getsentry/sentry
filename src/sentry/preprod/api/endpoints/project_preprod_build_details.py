@@ -12,6 +12,7 @@ from sentry.preprod.api.models.project_preprod_build_details_models import (
     BuildDetailsVcsInfo,
     platform_from_artifact_type,
 )
+from sentry.preprod.build_distribution_utils import is_installable_artifact
 from sentry.preprod.models import PreprodArtifact
 
 
@@ -71,6 +72,7 @@ class ProjectPreprodBuildDetailsEndpoint(ProjectEndpoint):
             ),
             artifact_type=preprod_artifact.artifact_type,
             platform=platform_from_artifact_type(preprod_artifact.artifact_type),
+            is_installable=is_installable_artifact(preprod_artifact),
             # TODO: Implement in the future when available
             # build_configuration=preprod_artifact.build_configuration.name if preprod_artifact.build_configuration else None,
             # icon=None,
