@@ -7,7 +7,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
@@ -99,7 +99,7 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
 
   const dateConditions = getDateConditions(pageFilter.selection);
 
-  const {isPending: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries(
+  const {isPending: isLoadingSeries, data: spanMetricsSeriesData} = useSpanSeries(
     {
       search: MutableSearch.fromQueryObject({'span.group': groupId, ...filters}),
       yAxis: [`avg(${SPAN_SELF_TIME})`],
