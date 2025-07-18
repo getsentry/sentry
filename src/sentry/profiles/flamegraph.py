@@ -108,7 +108,7 @@ class FlamegraphExecutor:
                 "organizations:profiling-flamegraph-use-increased-chunks-query-strategy",
                 organization,
             ):
-                return self.get_profile_candidates_from_transactions_v2
+                return self.get_profile_candidates_from_transactions_v2()
             return self.get_profile_candidates_from_transactions()
         elif self.data_source == "profiles":
             organization = Organization.objects.get_from_cache(id=self.snuba_params.organization_id)
@@ -237,14 +237,24 @@ class FlamegraphExecutor:
 
     def get_profile_candidates_from_transactions_v2(self) -> ProfileCandidates:
         max_profiles = options.get("profiling.flamegraph.profile-set.size")
-        initial_chunk_delta = options.get("profiling.flamegraph.query.initial_chunk_delta.hours")
-        max_chunk_delta = options.get("profiling.flamegraph.query.max_delta.hours")
+        initial_chunk_delta_hours = options.get(
+            "profiling.flamegraph.query.initial_chunk_delta.hours"
+        )
+        max_chunk_delta_hours = options.get("profiling.flamegraph.query.max_delta.hours")
+
+        initial_chunk_delta = timedelta(hours=initial_chunk_delta_hours)
+        max_chunk_delta = timedelta(hours=max_chunk_delta_hours)
 
         transaction_profile_candidates: list[TransactionProfileCandidate] = []
 
-        for start, end in split_datetime_range_exponential(
+        assert self.snuba_params.start is not None and self.snuba_params.end is not None
+
+        for chunk_start, chunk_end in split_datetime_range_exponential(
             self.snuba_params.start, self.snuba_params.end, initial_chunk_delta, max_chunk_delta
         ):
+            self.snuba_params.start = chunk_start
+            self.snuba_params.end = chunk_end
+
             builder = self.get_transactions_based_candidate_query(
                 query=self.query, limit=max_profiles
             )
@@ -623,16 +633,27 @@ class FlamegraphExecutor:
             raise ValueError("`organization` is required and cannot be `None`")
 
         max_profiles = options.get("profiling.flamegraph.profile-set.size")
-        initial_chunk_delta = options.get("profiling.flamegraph.query.initial_chunk_delta.hours")
-        max_chunk_delta = options.get("profiling.flamegraph.query.max_delta.hours")
+        initial_chunk_delta_hours = options.get(
+            "profiling.flamegraph.query.initial_chunk_delta.hours"
+        )
+        max_chunk_delta_hours = options.get("profiling.flamegraph.query.max_delta.hours")
+
+        initial_chunk_delta = timedelta(hours=initial_chunk_delta_hours)
+        max_chunk_delta = timedelta(hours=max_chunk_delta_hours)
 
         referrer = Referrer.API_PROFILING_PROFILE_FLAMEGRAPH_PROFILE_CANDIDATES.value
         transaction_profile_candidates: list[TransactionProfileCandidate] = []
         profiler_metas: list[ProfilerMeta] = []
 
-        for start, end in split_datetime_range_exponential(
+        assert self.snuba_params.start is not None and self.snuba_params.end is not None
+        original_start, original_end = self.snuba_params.start, self.snuba_params.end
+
+        for chunk_start, chunk_end in split_datetime_range_exponential(
             self.snuba_params.start, self.snuba_params.end, initial_chunk_delta, max_chunk_delta
         ):
+            self.snuba_params.start = chunk_start
+            self.snuba_params.end = chunk_end
+
             builder = self.get_transactions_based_candidate_query(
                 query=self.query, limit=max_profiles
             )
@@ -699,14 +720,10 @@ class FlamegraphExecutor:
             conditions = []
             conditions.append(Condition(Column("project_id"), Op.IN, self.snuba_params.project_ids))
             conditions.append(
-                Condition(
-                    Column("start_timestamp"), Op.LT, resolve_datetime64(self.snuba_params.end)
-                )
+                Condition(Column("start_timestamp"), Op.LT, resolve_datetime64(original_end))
             )
             conditions.append(
-                Condition(
-                    Column("end_timestamp"), Op.GTE, resolve_datetime64(self.snuba_params.start)
-                )
+                Condition(Column("end_timestamp"), Op.GTE, resolve_datetime64(original_start))
             )
             environments = self.snuba_params.environment_names
             if environments:
@@ -749,20 +766,20 @@ class FlamegraphExecutor:
                 if (row["profiler_id"], row["chunk_id"]) in seen_chunks:
                     continue
 
-                start = datetime.fromisoformat(row["start_timestamp"]).timestamp()
-                end = datetime.fromisoformat(row["end_timestamp"]).timestamp()
+                start_timestamp = datetime.fromisoformat(row["start_timestamp"]).timestamp()
+                end_timestamp = datetime.fromisoformat(row["end_timestamp"]).timestamp()
 
                 candidate: ContinuousProfileCandidate = {
                     "project_id": row["project_id"],
                     "profiler_id": row["profiler_id"],
                     "chunk_id": row["chunk_id"],
-                    "start": str(int(start * 1e9)),
-                    "end": str(int(end * 1e9)),
+                    "start": str(int(start_timestamp * 1e9)),
+                    "end": str(int(end_timestamp * 1e9)),
                 }
 
                 continuous_profile_candidates.append(candidate)
 
-                total_duration += end - start
+                total_duration += end_timestamp - start_timestamp
 
                 # can set max duration to negative to skip this check
                 if (max_duration >= 0 and total_duration >= max_duration) or (
