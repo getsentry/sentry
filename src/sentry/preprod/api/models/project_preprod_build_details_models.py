@@ -15,12 +15,11 @@ class BuildDetailsAppInfo(BaseModel):
     app_id: str
     name: str
     version: str
-    build_number: str | None = None
+    build_number: int | None = None
     date_added: str | None = None
     date_built: str | None = None
     artifact_type: PreprodArtifact.ArtifactType
     platform: Platform
-    installable_app_file_id: str | None = None
     # build_configuration: Optional[str] = None  # Uncomment when available
     # icon: Optional[str] = None  # Uncomment when available
 

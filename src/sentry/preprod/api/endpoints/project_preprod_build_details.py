@@ -62,11 +62,7 @@ class ProjectPreprodBuildDetailsEndpoint(ProjectEndpoint):
             app_id=preprod_artifact.app_id,
             name=preprod_artifact.app_name,
             version=preprod_artifact.build_version,
-            build_number=(
-                str(preprod_artifact.build_number)
-                if preprod_artifact.build_number is not None
-                else None
-            ),
+            build_number=preprod_artifact.build_number,
             date_added=(
                 preprod_artifact.date_added.isoformat() if preprod_artifact.date_added else None
             ),
@@ -75,11 +71,6 @@ class ProjectPreprodBuildDetailsEndpoint(ProjectEndpoint):
             ),
             artifact_type=preprod_artifact.artifact_type,
             platform=platform_from_artifact_type(preprod_artifact.artifact_type),
-            installable_app_file_id=(
-                str(preprod_artifact.installable_app_file_id)
-                if preprod_artifact.installable_app_file_id is not None
-                else None
-            ),
             # TODO: Implement in the future when available
             # build_configuration=preprod_artifact.build_configuration.name if preprod_artifact.build_configuration else None,
             # icon=None,
