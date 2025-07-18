@@ -19,10 +19,7 @@ import {
   getFeedbackConfigOptions,
   getFeedbackConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {
-  getProfilingDocumentHeaderConfigurationStep,
-  MaybeBrowserProfilingBetaWarning,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
+import {MaybeBrowserProfilingBetaWarning} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
@@ -238,11 +235,6 @@ const onboarding: OnboardingConfig = {
               code: getSdkSetupSnippet(params, false),
             },
           ],
-        },
-        {
-          type: 'conditional',
-          condition: params.isProfilingSelected,
-          content: getProfilingDocumentHeaderConfigurationStep().content!,
         },
       ],
     },
