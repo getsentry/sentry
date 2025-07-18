@@ -19,10 +19,6 @@ import {
   getFeedbackConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {
-  getProfilingDocumentHeaderConfigurationStep,
-  MaybeBrowserProfilingBetaWarning,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
-import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
   getReplayVerifyStep,
@@ -165,9 +161,8 @@ const getInstallConfig = () => [
 ];
 
 const onboarding: OnboardingConfig = {
-  introduction: params => (
+  introduction: () => (
     <Fragment>
-      <MaybeBrowserProfilingBetaWarning {...params} />
       <p>
         {tct(
           "In this quick guide you'll use [strong:npm], [strong:yarn], or [strong:pnpm] to set up:",
@@ -209,9 +204,6 @@ const onboarding: OnboardingConfig = {
           ],
           additionalInfo: params.isReplaySelected ? <TracePropagationMessage /> : null,
         },
-        ...(params.isProfilingSelected
-          ? [getProfilingDocumentHeaderConfigurationStep()]
-          : []),
       ],
     },
     getUploadSourceMapsStep({
