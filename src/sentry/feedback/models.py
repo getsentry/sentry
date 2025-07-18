@@ -38,7 +38,7 @@ class GroupFeedbackLabel(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     group = FlexibleForeignKey("sentry.Group")
-    feedback_label = FlexibleForeignKey("feedback.Label")
+    feedback_label = FlexibleForeignKey("feedback.FeedbackLabel")
 
     # Denormalized fields from group, for performance
     project = FlexibleForeignKey("sentry.Project")
