@@ -24,7 +24,7 @@ function GenerateSpikeProjectionsForBatch() {
         url: `/_admin/queue-spike-projection-batch/`,
         method: 'POST',
         data: {
-          batchId,
+          batch_id: batchId,
         },
         options: {
           host: region?.url,
