@@ -231,7 +231,9 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
                 trace_item_type=trace_item_type,
                 start_timestamp=start_timestamp,
                 end_timestamp=end_timestamp,
-                downsampled_storage_config=DownsampledStorageConfig.MODE_HIGHEST_ACCURACY,
+                downsampled_storage_config=DownsampledStorageConfig(
+                    mode=DownsampledStorageConfig.MODE_HIGHEST_ACCURACY
+                ),
             ),
             aggregations=[
                 AttributeAggregation(
