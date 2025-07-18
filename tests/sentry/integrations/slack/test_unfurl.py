@@ -15,8 +15,9 @@ from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageB
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
-from sentry.snuba import discover, errors, spans_rpc, transactions
+from sentry.snuba import discover, errors, ourlogs, spans_rpc, transactions
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -422,7 +423,6 @@ class UnfurlTest(TestCase):
         assert chart_data["incidents"][0]["id"] == str(incident.id)
 
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    @pytest.mark.xfail
     def test_unfurl_metric_alerts_chart_eap_spans(self, mock_generate_chart):
         # Using the EventsAnalyticsPlatform dataset
         alert_rule = self.create_alert_rule(
@@ -485,7 +485,6 @@ class UnfurlTest(TestCase):
         "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    @pytest.mark.xfail
     def test_unfurl_metric_alerts_chart_eap_spans_events_stats_call(
         self, mock_generate_chart, mock_get_event_stats_data
     ):
@@ -528,6 +527,55 @@ class UnfurlTest(TestCase):
 
         dataset = mock_get_event_stats_data.mock_calls[0][2]["dataset"]
         assert dataset == spans_rpc
+
+    @patch(
+        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_metric_alerts_chart_eap_ourlogs_events_stats_call(
+        self, mock_generate_chart, mock_get_event_stats_data
+    ):
+        # Using the EventsAnalyticsPlatform dataset with TRACE_ITEM_LOG event type
+        alert_rule = self.create_alert_rule(
+            query="log.level:error",
+            dataset=Dataset.EventsAnalyticsPlatform,
+            event_types=[SnubaQueryEventType.EventType.TRACE_ITEM_LOG],
+        )
+        incident = self.create_incident(
+            status=2,
+            organization=self.organization,
+            projects=[self.project],
+            alert_rule=alert_rule,
+            date_started=timezone.now() - timedelta(minutes=2),
+        )
+
+        url = f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+        links = [
+            UnfurlableUrl(
+                url=url,
+                args={
+                    "org_slug": self.organization.slug,
+                    "alert_rule_id": alert_rule.id,
+                    "incident_id": incident.identifier,
+                    "period": None,
+                    "start": None,
+                    "end": None,
+                },
+            ),
+        ]
+
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:discover",
+                "organizations:performance-view",
+                "organizations:metric-alert-chartcuterie",
+            ]
+        ):
+            link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
+
+        dataset = mock_get_event_stats_data.mock_calls[0][2]["dataset"]
+        assert dataset == ourlogs
 
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_metric_alerts_chart_crash_free(self, mock_generate_chart):
@@ -701,7 +749,6 @@ class UnfurlTest(TestCase):
             "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
             "end": 1652903400,
             "isMetricsData": False,
-            "order": 1,
             "start": 1652817000,
         },
     )

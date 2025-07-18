@@ -15,6 +15,7 @@ export const DOMAIN_VIEW_MODULE_TITLES: Record<
 > = {
   ai: {},
   backend: {},
+  agents: {},
   mobile: {
     [ModuleName.HTTP]: HTTP_MOBILE_MODULE_TITLE,
   },

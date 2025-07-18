@@ -85,35 +85,42 @@ export function useGetTraceItemAttributeKeys({
         throw new Error(`Unable to fetch trace item attribute keys: ${e}`);
       }
 
-      const attributes: TagCollection = {};
-
-      for (const attribute of result ?? []) {
-        if (isKnownAttribute(attribute)) {
-          continue;
-        }
-
-        // EAP spans contain tags with illegal characters
-        // SnQL forbids `-` but is allowed in RPC. So add it back later
-        if (
-          !/^[a-zA-Z0-9_.:-]+$/.test(attribute.key) &&
-          !/^tags\[[a-zA-Z0-9_.:-]+,number\]$/.test(attribute.key)
-        ) {
-          continue;
-        }
-
-        attributes[attribute.key] = {
-          key: attribute.key,
-          name: attribute.name,
-          kind: type === 'number' ? FieldKind.MEASUREMENT : FieldKind.TAG,
-        };
-      }
-
-      return attributes;
+      return getTraceItemTagCollection(result, type);
     },
     [api, organization, selection, traceItemType, projectIds, type]
   );
 
   return getTraceItemAttributeKeys;
+}
+
+export function getTraceItemTagCollection(
+  result: Tag[],
+  type: UseGetTraceItemAttributeKeysProps['type']
+): TagCollection {
+  const attributes: TagCollection = {};
+
+  for (const attribute of result ?? []) {
+    if (isKnownAttribute(attribute)) {
+      continue;
+    }
+
+    // EAP spans contain tags with illegal characters
+    // SnQL forbids `-` but is allowed in RPC. So add it back later
+    if (
+      !/^[a-zA-Z0-9_.:-]+$/.test(attribute.key) &&
+      !/^tags\[[a-zA-Z0-9_.:-]+,number\]$/.test(attribute.key)
+    ) {
+      continue;
+    }
+
+    attributes[attribute.key] = {
+      key: attribute.key,
+      name: attribute.name,
+      kind: type === 'number' ? FieldKind.MEASUREMENT : FieldKind.TAG,
+    };
+  }
+
+  return attributes;
 }
 
 function isKnownAttribute(attribute: Tag) {

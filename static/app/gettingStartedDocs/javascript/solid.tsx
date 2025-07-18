@@ -4,12 +4,12 @@ import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/bui
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getCrashReportJavaScriptInstallStep,
@@ -18,10 +18,6 @@ import {
   getFeedbackConfigOptions,
   getFeedbackConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {
-  getProfilingDocumentHeaderConfigurationStep,
-  MaybeBrowserProfilingBetaWarning,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
@@ -165,9 +161,8 @@ const getInstallConfig = () => [
 ];
 
 const onboarding: OnboardingConfig = {
-  introduction: params => (
+  introduction: () => (
     <Fragment>
-      <MaybeBrowserProfilingBetaWarning {...params} />
       <p>
         {tct(
           "In this quick guide you'll use [strong:npm], [strong:yarn], or [strong:pnpm] to set up:",
@@ -209,9 +204,6 @@ const onboarding: OnboardingConfig = {
           ],
           additionalInfo: params.isReplaySelected ? <TracePropagationMessage /> : null,
         },
-        ...(params.isProfilingSelected
-          ? [getProfilingDocumentHeaderConfigurationStep()]
-          : []),
       ],
     },
     getUploadSourceMapsStep({

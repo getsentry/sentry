@@ -37,8 +37,12 @@ import {
   isUsingPerformanceScore,
   performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
-import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {
+  getWidgetExploreUrl,
+  getWidgetLogURL,
+} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 
@@ -292,6 +296,10 @@ export function getMenuOptions(
 ) {
   const menuOptions: MenuItemProps[] = [];
 
+  const disableTransactionEdit =
+    organization.features.includes('discover-saved-queries-deprecation') &&
+    widget.widgetType === WidgetType.TRANSACTIONS;
+
   if (
     organization.features.includes('discover-basic') &&
     widget.widgetType &&
@@ -356,7 +364,21 @@ export function getMenuOptions(
     menuOptions.push({
       key: 'open-in-explore',
       label: t('Open in Explore'),
-      to: getWidgetExploreUrl(widget, dashboardFilters, selection, organization),
+      to: getWidgetExploreUrl(
+        widget,
+        dashboardFilters,
+        selection,
+        organization,
+        Mode.SAMPLES
+      ),
+    });
+  }
+
+  if (widget.widgetType === WidgetType.LOGS) {
+    menuOptions.push({
+      key: 'open-in-explore',
+      label: t('Open in Explore'),
+      to: getWidgetLogURL(widget, dashboardFilters, selection, organization),
     });
   }
 
@@ -379,6 +401,10 @@ export function getMenuOptions(
     menuOptions.push({
       key: 'add-to-dashboard',
       label: t('Add to Dashboard'),
+      disabled: disableTransactionEdit,
+      tooltip: disableTransactionEdit
+        ? t('This dataset is is no longer supported. Please use the Spans dataset.')
+        : undefined,
       onAction: () => {
         openAddToDashboardModal({
           organization,
@@ -401,7 +427,10 @@ export function getMenuOptions(
       key: 'duplicate-widget',
       label: t('Duplicate Widget'),
       onAction: () => onDuplicate?.(),
-      disabled: widgetLimitReached || !hasEditAccess,
+      tooltip: disableTransactionEdit
+        ? t('This dataset is is no longer supported. Please use the Spans dataset.')
+        : undefined,
+      disabled: widgetLimitReached || !hasEditAccess || disableTransactionEdit,
     });
 
     menuOptions.push({

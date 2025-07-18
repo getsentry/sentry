@@ -3,7 +3,6 @@ import * as Sentry from '@sentry/react';
 
 import HookStore from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
-import {agentsInsightsEventMap} from 'sentry/utils/analytics/agentsInsightsAnalyticsEvents';
 import {
   alertsEventMap,
   type AlertsEventParameters,
@@ -52,6 +51,8 @@ import {issueEventMap} from './analytics/issueAnalyticsEvents';
 import type {LaravelInsightsEventParameters} from './analytics/laravelInsightsAnalyticsEvents';
 import {laravelInsightsEventMap} from './analytics/laravelInsightsAnalyticsEvents';
 import makeAnalyticsFunction from './analytics/makeAnalyticsFunction';
+import type {McpMonitoringEventParameters} from './analytics/mcpMonitoringAnalyticsEvents';
+import {mcpMonitoringEventMap} from './analytics/mcpMonitoringAnalyticsEvents';
 import type {MonitorsEventParameters} from './analytics/monitorsAnalyticsEvents';
 import {monitorsEventMap} from './analytics/monitorsAnalyticsEvents';
 import type {OnboardingEventParameters} from './analytics/onboardingAnalyticsEvents';
@@ -93,6 +94,7 @@ interface EventParameters
     InsightEventParameters,
     IssueEventParameters,
     LaravelInsightsEventParameters,
+    McpMonitoringEventParameters,
     MonitorsEventParameters,
     PerformanceEventParameters,
     ProfilingEventParameters,
@@ -129,7 +131,6 @@ const allEventMap: Record<string, string | null> = {
   ...laravelInsightsEventMap,
   ...monitorsEventMap,
   ...nextJsInsightsEventMap,
-  ...agentsInsightsEventMap,
   ...performanceEventMap,
   ...tracingEventMap,
   ...profilingEventMap,
@@ -151,6 +152,7 @@ const allEventMap: Record<string, string | null> = {
   ...quickStartEventMap,
   ...navigationAnalyticsEventMap,
   ...tempestEventMap,
+  ...mcpMonitoringEventMap,
 };
 
 /**

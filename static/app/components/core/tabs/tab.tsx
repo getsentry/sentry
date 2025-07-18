@@ -8,7 +8,7 @@ import type {TabListState} from '@react-stately/tabs';
 import type {Node, Orientation} from '@react-types/shared';
 
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {space} from 'sentry/styles/space';
 import {isChonkTheme, withChonk} from 'sentry/utils/theme/withChonk';
 

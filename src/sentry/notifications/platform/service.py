@@ -1,13 +1,12 @@
 import logging
 from typing import Final
 
-from sentry.notifications.platform.registry import provider_registry
+from sentry.notifications.platform.registry import provider_registry, template_registry
 from sentry.notifications.platform.target import prepare_targets
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationStrategy,
     NotificationTarget,
-    NotificationTemplate,
 )
 
 logger = logging.getLogger(__name__)
@@ -21,12 +20,8 @@ class NotificationService[T: NotificationData]:
     def __init__(self, *, data: T):
         self.data: Final[T] = data
 
-    def notify_prepared_target(
-        self,
-        *,
-        target: NotificationTarget,
-        template: NotificationTemplate[T],
-    ) -> None:
+    # TODO(ecosystem): Eventually this should be converted to spawn a task with the business logic below
+    def notify_prepared_target(self, *, target: NotificationTarget) -> None:
         """
         Send a notification directly to a prepared target.
         NOTE: This method ignores notification settings. When possible, consider using a strategy instead of
@@ -48,8 +43,11 @@ class NotificationService[T: NotificationData]:
         provider.validate_target(target=target)
 
         # Step 4: Render the template
-        renderer = provider.get_renderer(category=self.data.category)
-        renderable = renderer.render(data=self.data, template=template)
+        template_cls = template_registry.get(self.data.source)
+        template = template_cls()
+        rendered_template = template.render(data=self.data)
+        renderer = provider.get_renderer(data=self.data, category=template.category)
+        renderable = renderer.render(data=self.data, rendered_template=rendered_template)
 
         # Step 5: Send the notification
         provider.send(target=target, renderable=renderable)
@@ -59,9 +57,7 @@ class NotificationService[T: NotificationData]:
         *,
         strategy: NotificationStrategy | None = None,
         targets: list[NotificationTarget] | None = None,
-        template: NotificationTemplate[T],
     ) -> None:
-
         if not strategy and not targets:
             raise NotificationServiceError(
                 "Must provide either a strategy or targets. Strategy is preferred."
@@ -80,4 +76,4 @@ class NotificationService[T: NotificationData]:
         prepare_targets(targets=targets)
 
         for target in targets:
-            self.notify_prepared_target(target=target, template=template)
+            self.notify_prepared_target(target=target)

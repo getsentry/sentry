@@ -65,17 +65,12 @@ export interface DropdownMenuListProps
    * Title to display on top of the menu
    */
   menuTitle?: React.ReactNode;
-  /**
-   * Minimum menu width
-   */
-  minMenuWidth?: number;
   size?: MenuItemProps['size'];
 }
 
 function DropdownMenuList({
   closeOnSelect = true,
   onClose,
-  minMenuWidth,
   size,
   menuTitle,
   menuFooter,
@@ -184,9 +179,7 @@ function DropdownMenuList({
         onClose={onClose}
         closeOnSelect={closeOnSelect}
         menuTitle={node.value.submenuTitle}
-        isDismissable={false}
         shouldCloseOnBlur={false}
-        shouldCloseOnInteractOutside={() => false}
         preventOverflowOptions={{boundary: document.body, altAxis: true}}
         renderWrapAs="li"
         position="right-start"
@@ -245,7 +238,6 @@ function DropdownMenuList({
               {...mergeProps(modifiedMenuProps, keyboardProps)}
               style={{
                 maxHeight: overlayPositionProps.style?.maxHeight,
-                minWidth: minMenuWidth ?? overlayPositionProps.style?.minWidth,
               }}
             >
               {renderCollection(stateCollection)}

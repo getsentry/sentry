@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {IconAdd, IconFire, IconProfiling, IconSubtract} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import type {Aliases, Color} from 'sentry/utils/theme';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 
 export const DividerContainer = styled('div')`
   position: relative;
@@ -50,7 +50,7 @@ export const DividerLineGhostContainer = styled('div')`
 `;
 
 const BadgeBorder = styled('div')<{
-  color: Color | keyof Aliases;
+  color: ColorOrAlias;
   fillBackground?: boolean;
 }>`
   position: absolute;

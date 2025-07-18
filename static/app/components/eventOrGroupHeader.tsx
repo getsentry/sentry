@@ -2,10 +2,10 @@ import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 
+import {Link} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
-import Link from 'sentry/components/links/link';
 import {IconStar} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -26,7 +26,6 @@ interface EventOrGroupHeaderProps {
   eventId?: string;
   hideIcons?: boolean;
   hideLevel?: boolean;
-  index?: number;
   /** Group link clicked */
   onClick?: () => void;
   query?: string;
@@ -76,7 +75,6 @@ function usePreloadGroupOnHover({
  */
 function EventOrGroupHeader({
   data,
-  index,
   query,
   onClick,
   hideIcons,
@@ -126,7 +124,6 @@ function EventOrGroupHeader({
       data,
       eventId,
       referrer: source,
-      streamIndex: index,
       location,
       query,
     });

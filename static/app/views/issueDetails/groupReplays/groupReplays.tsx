@@ -11,6 +11,17 @@ import {
   useSelectedReplayIndex,
 } from 'sentry/components/replays/queryParams/selectedReplayIndex';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
+import ReplayTable from 'sentry/components/replays/table/replayTable';
+import {
+  ReplayActivityColumn,
+  ReplayBrowserColumn,
+  ReplayCountErrorsColumn,
+  ReplayDetailsLinkColumn,
+  ReplayDurationColumn,
+  ReplayOSColumn,
+  ReplayPlayPauseColumn,
+  ReplaySessionColumn,
+} from 'sentry/components/replays/table/replayTableColumns';
 import {replayMobilePlatforms} from 'sentry/data/platformCategories';
 import {IconPlay, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -28,8 +39,6 @@ import {useParams} from 'sentry/utils/useParams';
 import GroupReplaysPlayer from 'sentry/views/issueDetails/groupReplays/groupReplaysPlayer';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
-import ReplayTable from 'sentry/views/replays/replayTable';
-import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 
 import useReplaysFromIssue from './useReplaysFromIssue';
@@ -39,20 +48,22 @@ type Props = {
 };
 
 const VISIBLE_COLUMNS = [
-  ReplayColumn.REPLAY,
-  ReplayColumn.OS,
-  ReplayColumn.BROWSER,
-  ReplayColumn.DURATION,
-  ReplayColumn.COUNT_ERRORS,
-  ReplayColumn.ACTIVITY,
+  ReplaySessionColumn,
+  ReplayOSColumn,
+  ReplayBrowserColumn,
+  ReplayDurationColumn,
+  ReplayCountErrorsColumn,
+  ReplayActivityColumn,
+  ReplayDetailsLinkColumn,
 ];
 
 const VISIBLE_COLUMNS_MOBILE = [
-  ReplayColumn.REPLAY,
-  ReplayColumn.OS,
-  ReplayColumn.DURATION,
-  ReplayColumn.COUNT_ERRORS,
-  ReplayColumn.ACTIVITY,
+  ReplaySessionColumn,
+  ReplayOSColumn,
+  ReplayDurationColumn,
+  ReplayCountErrorsColumn,
+  ReplayActivityColumn,
+  ReplayDetailsLinkColumn,
 ];
 
 function ReplayFilterMessage() {
@@ -109,11 +120,10 @@ export default function GroupReplays({group}: Props) {
           </ReplayCountHeader>
         </ReplayHeader>
         <ReplayTable
-          fetchError={fetchError}
-          isFetching={isFetching}
+          columns={isMobilePlatform ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS}
+          error={fetchError}
+          isPending={isFetching}
           replays={[]}
-          sort={undefined}
-          visibleColumns={isMobilePlatform ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS}
           showDropdownFilters={false}
         />
       </StyledLayoutPage>
@@ -215,8 +225,7 @@ function GroupReplaysTable({
 }) {
   const organization = useOrganization();
   const {allMobileProj} = useAllMobileProj({});
-  const {index: selectedReplayIndex, select: setSelectedReplayIndex} =
-    useSelectedReplayIndex();
+  const {index: selectedReplayIndex} = useSelectedReplayIndex();
 
   const {groupId} = useParams<{groupId: string}>();
   useCleanQueryParamsOnRouteLeave({
@@ -235,16 +244,14 @@ function GroupReplaysTable({
 
   const replayTable = (
     <ReplayTable
-      sort={undefined}
-      visibleColumns={[
-        ...(selectedReplay ? [ReplayColumn.PLAY_PAUSE] : []),
+      columns={[
+        ...(selectedReplay ? [ReplayPlayPauseColumn] : []),
         ...(allMobileProj ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS),
       ]}
+      error={replayListData.fetchError}
+      isPending={replayListData.isFetching}
+      replays={replays ?? []}
       showDropdownFilters={false}
-      onClickRow={setSelectedReplayIndex}
-      fetchError={replayListData.fetchError}
-      isFetching={replayListData.isFetching}
-      replays={replays}
     />
   );
 

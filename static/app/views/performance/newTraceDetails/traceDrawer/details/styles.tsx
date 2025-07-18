@@ -6,6 +6,7 @@ import type {LocationDescriptor} from 'history';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   DropdownMenu,
@@ -24,7 +25,6 @@ import {
   ValueSection,
 } from 'sentry/components/keyValueData';
 import {type LazyRenderProps} from 'sentry/components/lazyRender';
-import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -47,12 +47,13 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {ellipsize} from 'sentry/utils/string/ellipsize';
 import type {Color, ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {getIsAiNode} from 'sentry/views/insights/agentMonitoring/utils/aiTraceNodes';
 import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
-import {getIsAiNode} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
 import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
@@ -1288,7 +1289,7 @@ function MultilineText({children}: {children: string}) {
       {isExpanded || !needsTruncation ? (
         children
       ) : (
-        <Fragment>{children.slice(0, truncatePosition) + '...'}</Fragment>
+        <Fragment>{ellipsize(children, truncatePosition)}</Fragment>
       )}
       {needsTruncation ? (
         <Flex style={{justifyContent: 'center', paddingTop: space(1)}}>
@@ -1345,6 +1346,21 @@ const MultilineTextLabel = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
+function SectionTitleWithQuestionTooltip({
+  title,
+  tooltipText,
+}: {
+  title: string;
+  tooltipText: string;
+}) {
+  return (
+    <Flex style={{gap: space(0.5)}}>
+      <div>{title}</div>
+      <QuestionTooltip title={tooltipText} size="sm" />
+    </Flex>
+  );
+}
+
 export const TraceDrawerComponents = {
   DetailContainer,
   BodyContainer,
@@ -1359,6 +1375,7 @@ export const TraceDrawerComponents = {
   NodeActions,
   KeyValueAction,
   Table,
+  SectionTitleWithQuestionTooltip,
   IconTitleWrapper,
   IconBorder,
   TitleText,

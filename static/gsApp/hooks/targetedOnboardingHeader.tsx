@@ -51,7 +51,7 @@ function TargetedOnboardingHeader({source, subscription}: Props) {
   );
 
   return (
-    <HeaderActionBar gap={2}>
+    <HeaderActionBar gap="xl">
       <SecondaryCTAWrapper>{cta}</SecondaryCTAWrapper>
       <LinkButton
         onClick={trackClickUpgrade}

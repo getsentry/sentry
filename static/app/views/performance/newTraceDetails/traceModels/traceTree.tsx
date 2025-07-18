@@ -144,6 +144,8 @@ export declare namespace TraceTree {
   };
 
   type EAPOccurrence = {
+    culprit: string;
+    description: string;
     event_id: string;
     event_type: 'occurrence';
     issue_id: number;
@@ -152,7 +154,8 @@ export declare namespace TraceTree {
     project_slug: string;
     start_timestamp: number;
     transaction: string;
-    description?: string;
+    type: number;
+    short_id?: string;
   };
 
   type EAPSpan = {
@@ -162,6 +165,7 @@ export declare namespace TraceTree {
     errors: EAPError[];
     event_id: string;
     is_transaction: boolean;
+    name: string;
     occurrences: EAPOccurrence[];
     op: string;
     parent_span_id: string;
@@ -172,6 +176,7 @@ export declare namespace TraceTree {
     start_timestamp: number;
     transaction: string;
     transaction_id: string;
+    additional_attributes?: Record<string, number | string>;
     description?: string;
     measurements?: Record<string, number>;
   };
@@ -330,6 +335,7 @@ function fetchTrace(
 
 export class TraceTree extends TraceTreeEventDispatcher {
   transactions_count = 0;
+  eap_spans_count = 0;
   projects = new Map<number, TraceTree.Project>();
 
   type: 'loading' | 'empty' | 'error' | 'trace' = 'trace';
@@ -438,6 +444,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       if (isTransactionNode(node) || isEAPTransactionNode(node)) {
         tree.transactions_count++;
+      }
+
+      if (isEAPSpanNode(node)) {
+        tree.eap_spans_count++;
       }
 
       if (isTransactionNode(node)) {
@@ -888,7 +898,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         } else {
           const childIndex = child.parent?.children.indexOf(child) ?? -1;
           if (childIndex === -1) {
-            Sentry.captureException('Detecting missing instrumentation failed');
+            Sentry.logger.error('Detecting missing instrumentation failed');
             return;
           }
 
@@ -1489,6 +1499,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       }
       if (isSpanNode(n) || isEAPSpanNode(n)) {
         const spanId = 'span_id' in n.value ? n.value.span_id : n.value.event_id;
+
         if (spanId === eventId) {
           return true;
         }

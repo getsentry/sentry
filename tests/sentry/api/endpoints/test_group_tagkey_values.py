@@ -1,10 +1,12 @@
+import datetime
 from datetime import timedelta
 from unittest import mock
 
+from django.test import override_settings
 from django.utils import timezone
 
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 
 
 class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
@@ -181,3 +183,33 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
 
         assert response.data[1]["email"] == "bar@example.com"
         assert response.data[1]["value"] == "id:2"
+
+    @mock.patch("sentry.analytics.record")
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_ratelimit(self, mock_record) -> None:
+        key, value = "foo", "bar"
+
+        project = self.create_project()
+
+        event = self.store_event(
+            data={"tags": {key: value}, "timestamp": before_now(seconds=1).isoformat()},
+            project_id=project.id,
+        )
+        group = event.group
+
+        self.login_as(user=self.user)
+
+        url = f"/api/0/issues/{group.id}/tags/{key}/values/"
+
+        with freeze_time(datetime.datetime.now()):
+            for i in range(10):
+                response = self.client.get(url)
+                assert response.status_code == 200
+            response = self.client.get(url)
+            assert response.status_code == 429
+
+        mock_record.assert_called_with(
+            "eventuser_endpoint.request",
+            project_id=project.id,
+            endpoint="sentry.api.endpoints.group_tagkey_values.get",
+        )

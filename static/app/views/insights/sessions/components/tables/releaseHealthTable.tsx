@@ -6,12 +6,15 @@ import type {Location} from 'history';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
-import GridEditable from 'sentry/components/gridEditable';
-import useQueryBasedColumnResize from 'sentry/components/gridEditable/useQueryBasedColumnResize';
-import useQueryBasedSorting from 'sentry/components/gridEditable/useQueryBasedSorting';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
+import type {
+  GridColumnHeader,
+  GridColumnOrder,
+} from 'sentry/components/tables/gridEditable';
+import GridEditable from 'sentry/components/tables/gridEditable';
+import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
+import useQueryBasedSorting from 'sentry/components/tables/gridEditable/useQueryBasedSorting';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AvatarProject} from 'sentry/types/project';

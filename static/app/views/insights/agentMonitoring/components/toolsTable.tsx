@@ -1,17 +1,18 @@
 import {Fragment, memo, useCallback, useMemo} from 'react';
 
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
   type GridColumnOrder,
-} from 'sentry/components/gridEditable';
-import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
+} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {
@@ -24,17 +25,17 @@ import {
   useTableSortParams,
 } from 'sentry/views/insights/agentMonitoring/components/headSortCell';
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
+import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
 import {
   AI_TOOL_NAME_ATTRIBUTE,
   getAIToolCallsFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 // import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
-import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 interface TableData {
   avg: number;
@@ -67,9 +68,8 @@ export function ToolsTable() {
   const organization = useOrganization();
 
   const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
-  const {query} = useTransactionNameQuery();
 
-  const fullQuery = `${getAIToolCallsFilter()} ${query}`.trim();
+  const fullQuery = useCombinedQuery(getAIToolCallsFilter());
 
   const handleCursor: CursorHandler = (cursor, pathname, previousQuery) => {
     navigate(
@@ -86,7 +86,7 @@ export function ToolsTable() {
 
   const {sortField, sortOrder} = useTableSortParams();
 
-  const toolsRequest = useEAPSpans(
+  const toolsRequest = useSpans(
     {
       fields: [
         AI_TOOL_NAME_ATTRIBUTE,
@@ -188,14 +188,19 @@ const BodyCell = memo(function BodyCell({
   dataRow: TableData;
 }) {
   const organization = useOrganization();
-
+  const {selection} = usePageFilters();
   const exploreUrl = getExploreUrl({
+    selection,
     organization,
     mode: Mode.SAMPLES,
     visualize: [
       {
         chartType: ChartType.BAR,
         yAxes: ['count(span.duration)'],
+      },
+      {
+        chartType: ChartType.LINE,
+        yAxes: ['avg(span.duration)'],
       },
     ],
     query: `${AI_TOOL_NAME_ATTRIBUTE}:${dataRow.tool}`,

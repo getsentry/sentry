@@ -442,6 +442,28 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         url = org.absolute_api_url("/issues/", query="project=123", fragment="ref")
         assert url == "http://testserver/api/0/organizations/acme/issues/?project=123#ref"
 
+    def test_absolute_api_url_mising_slashes(self):
+        org = self.create_organization(owner=self.user, slug="acme")
+        url = org.absolute_api_url("restore")
+        assert url == "http://testserver/api/0/organizations/acme/restore/"
+
+        url = org.absolute_api_url("/issues", query="project=123", fragment="ref")
+        assert url == "http://testserver/api/0/organizations/acme/issues/?project=123#ref"
+
+        url = org.absolute_api_url("issues/", query="project=123", fragment="ref")
+        assert url == "http://testserver/api/0/organizations/acme/issues/?project=123#ref"
+
+    def test_absolute_api_url_extraneous_slashes(self):
+        org = self.create_organization(owner=self.user, slug="acme")
+        url = org.absolute_api_url("/////restore/////")
+        assert url == "http://testserver/api/0/organizations/acme/restore/"
+
+        url = org.absolute_api_url("////issues", query="project=123", fragment="ref")
+        assert url == "http://testserver/api/0/organizations/acme/issues/?project=123#ref"
+
+        url = org.absolute_api_url("issues////", query="project=123", fragment="ref")
+        assert url == "http://testserver/api/0/organizations/acme/issues/?project=123#ref"
+
     def test_get_bulk_owner_profiles(self):
         u1, u2, u3 = (self.create_user() for _ in range(3))
         o1, o2, o3 = (self.create_organization(owner=u) for u in (u1, u2, u3))

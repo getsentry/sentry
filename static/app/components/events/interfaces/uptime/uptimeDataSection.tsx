@@ -128,7 +128,7 @@ export function UptimeDataSection({group, event, project}: Props) {
   const bucketedData = alertRuleId ? (uptimeStats?.[alertRuleId] ?? []) : [];
 
   const actions = (
-    <ButtonBar gap={1}>
+    <ButtonBar>
       {defined(alertRuleId) && (
         <LinkButton
           icon={<IconSettings />}

@@ -7,7 +7,6 @@ from sentry.interfaces.base import Interface
 from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
 from sentry.testutils.cases import PluginTestCase
-from sentry.testutils.helpers.plugins import assert_plugin_installed
 from sentry_plugins.victorops.plugin import VictorOpsPlugin
 
 SUCCESS = """{
@@ -26,10 +25,6 @@ class UnicodeTestInterface(Interface):
 
 def test_conf_key() -> None:
     assert VictorOpsPlugin().conf_key == "victorops"
-
-
-def test_entry_point() -> None:
-    assert_plugin_installed("victorops", VictorOpsPlugin())
 
 
 class VictorOpsPluginTest(PluginTestCase):

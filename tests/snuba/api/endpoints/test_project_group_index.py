@@ -1636,7 +1636,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             assert response.status_code == 204
             self.assert_groups_are_gone(groups)
 
-    @patch("sentry.api.helpers.group_index.delete.call_delete_seer_grouping_records_by_hash")
+    @patch("sentry.api.helpers.group_index.delete.may_schedule_task_to_delete_hashes_from_seer")
     @patch("sentry.utils.audit.log_service.record_audit_log")
     def test_audit_log_even_if_exception_raised(
         self, mock_record_audit_log: Mock, mock_seer_delete: Mock

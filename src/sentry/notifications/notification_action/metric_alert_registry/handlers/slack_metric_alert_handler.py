@@ -1,3 +1,5 @@
+import logging
+
 from sentry.incidents.models.incident import TriggerStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
@@ -16,6 +18,8 @@ from sentry.notifications.notification_action.metric_alert_registry.handlers.uti
 from sentry.notifications.notification_action.registry import metric_alert_handler_registry
 from sentry.notifications.notification_action.types import BaseMetricAlertHandler
 from sentry.workflow_engine.models import Action, Detector
+
+logger = logging.getLogger(__name__)
 
 
 @metric_alert_handler_registry.register(Action.Type.SLACK)
@@ -43,6 +47,13 @@ class SlackMetricAlertHandler(BaseMetricAlertHandler):
 
         alert_rule_serialized_response = get_alert_rule_serializer(detector)
         incident_serialized_response = get_detailed_incident_serializer(open_period)
+
+        logger.info(
+            "notification_action.execute_via_metric_alert_handler.slack",
+            extra={
+                "action_id": alert_context.action_identifier_id,
+            },
+        )
 
         send_incident_alert_notification(
             notification_context=notification_context,

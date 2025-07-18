@@ -1,5 +1,6 @@
-import AutomationBuilderSelectField from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
-import {tct} from 'sentry/locale';
+import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
+import {t, tct} from 'sentry/locale';
+import type {SelectValue} from 'sentry/types/core';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import {useActionNodeContext} from 'sentry/views/automations/components/actionNodes';
 
@@ -30,20 +31,29 @@ function ServicesField() {
   const services = handler?.services;
 
   return (
-    <AutomationBuilderSelectField
+    <AutomationBuilderSelect
       name={`${actionId}.config.target_identifier`}
+      aria-label={t('Webhook')}
       value={action.config.target_identifier}
       options={services?.map(service => ({
         label: service.name,
         value: service.slug,
       }))}
-      onChange={(value: string) => {
+      onChange={(option: SelectValue<string>) => {
         onUpdate({
           config: {
-            target_identifier: value,
+            ...action.config,
+            target_identifier: option.value,
           },
         });
       }}
     />
   );
+}
+
+export function validateWebhookAction(action: Action): string | undefined {
+  if (!action.config.target_identifier) {
+    return t('You must specify an integration.');
+  }
+  return undefined;
 }

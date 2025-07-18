@@ -415,12 +415,6 @@ const generateThemeAliases = (colors: Colors) => ({
   progressBackground: colors.gray100,
 
   /**
-   * Tag progress bars
-   */
-  tagBarHover: colors.purple200,
-  tagBar: colors.gray200,
-
-  /**
    * Search filter "token" background
    */
   searchTokenBackground: {
@@ -451,7 +445,6 @@ const generateThemeAliases = (colors: Colors) => ({
 });
 
 type Alert = 'muted' | 'info' | 'warning' | 'success' | 'error';
-
 type AlertColors = Record<
   Alert,
   {
@@ -1097,6 +1090,18 @@ const iconSizes: Record<Size, string> = {
   '2xl': '72px',
 } as const;
 
+const space = {
+  none: '0px',
+  '2xs': '2px',
+  xs: '4px',
+  sm: '6px',
+  md: '8px',
+  lg: '12px',
+  xl: '16px',
+  '2xl': '24px',
+  '3xl': '32px',
+} as const;
+
 /**
  * Values shared between light and dark theme
  */
@@ -1105,6 +1110,8 @@ const commonTheme = {
 
   ...lightColors,
   ...lightShadows,
+
+  space,
 
   // Icons
   iconSizes,
@@ -1223,6 +1230,7 @@ const darkAliases = generateThemeAliases(darkColors);
  * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
  */
 export const lightTheme = {
+  type: 'light' as 'light' | 'dark',
   isChonk: false,
   ...commonTheme,
   ...formTheme,
@@ -1242,15 +1250,8 @@ export const lightTheme = {
   level: generateLevelTheme(lightColors),
   stacktraceActiveBackground: lightColors.gray500,
   stacktraceActiveText: lightColors.white,
-  tour: {
-    background: darkColors.surface400,
-    header: darkColors.white,
-    text: darkAliases.textColor,
-    next: lightAliases.textColor,
-    previous: darkColors.white,
-    close: lightColors.white,
-  },
   chart: {
+    neutral: lightColors.gray200,
     colors: CHART_PALETTE,
     getColorPalette: makeChartColorPalette(CHART_PALETTE),
   },
@@ -1277,6 +1278,7 @@ export const lightTheme = {
  * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
  */
 export const darkTheme: typeof lightTheme = {
+  type: 'dark',
   isChonk: false,
   ...commonTheme,
   ...formTheme,
@@ -1301,15 +1303,8 @@ export const darkTheme: typeof lightTheme = {
   ),
   stacktraceActiveBackground: darkColors.gray200,
   stacktraceActiveText: darkColors.white,
-  tour: {
-    background: darkColors.purple300,
-    header: darkColors.white,
-    text: darkAliases.textColor,
-    next: lightAliases.textColor,
-    previous: darkColors.white,
-    close: lightColors.white,
-  },
   chart: {
+    neutral: darkColors.gray200,
     colors: CHART_PALETTE,
     getColorPalette: makeChartColorPalette(CHART_PALETTE),
   },
@@ -1327,7 +1322,7 @@ export const darkTheme: typeof lightTheme = {
 export type ColorMapping = typeof lightColors;
 export type Color = keyof typeof lightColors;
 export type IconSize = Size;
-export type Aliases = typeof lightAliases;
+type Aliases = typeof lightAliases;
 export type ColorOrAlias = keyof Aliases | Color;
 export type Theme = typeof lightTheme;
 

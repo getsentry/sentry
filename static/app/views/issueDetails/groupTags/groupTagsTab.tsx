@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
+import {Link} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import {DeviceName} from 'sentry/components/deviceName';
 import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
@@ -188,7 +188,7 @@ const TagBarBackground = styled('div')<{widthPercent: string}>`
   top: 0;
   bottom: 0;
   left: 0;
-  background: ${p => p.theme.tagBar};
+  background: ${p => p.theme.surface100};
   border-radius: ${p => p.theme.borderRadius};
   width: ${p => p.widthPercent};
 `;
@@ -208,7 +208,7 @@ const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
     color: ${p => p.theme.textColor};
     text-decoration: underline;
     ${TagBarBackground} {
-      background: ${p => p.theme.tagBarHover};
+      background: ${p => (p.theme.isChonk ? p.theme.blue300 : p.theme.purple200)};
     }
   }
 `;

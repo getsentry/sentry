@@ -4,7 +4,7 @@ import Color from 'color';
 import type {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';

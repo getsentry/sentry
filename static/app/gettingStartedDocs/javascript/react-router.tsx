@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
 
 import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportJavaScriptInstallStep,
   getCrashReportModalConfigDescription,
@@ -14,10 +14,6 @@ import {
   getFeedbackConfigOptions,
   getFeedbackConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {
-  getProfilingDocumentHeaderConfigurationStep,
-  MaybeBrowserProfilingBetaWarning,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
@@ -259,9 +255,8 @@ const getInstallConfigWithProfiling = () => [
 ];
 
 const onboarding: OnboardingConfig = {
-  introduction: params => (
+  introduction: () => (
     <Fragment>
-      <MaybeBrowserProfilingBetaWarning {...params} />
       <p>{t("In this guide you'll set up the Sentry React Router SDK")}</p>
       <p>
         {tct(
@@ -373,9 +368,6 @@ const onboarding: OnboardingConfig = {
       ),
       collapsible: true,
     },
-    ...(params.isProfilingSelected
-      ? [getProfilingDocumentHeaderConfigurationStep()]
-      : []),
   ],
   verify: () => [
     {
@@ -460,11 +452,15 @@ const performanceOnboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      configurations: [
+      content: [
         {
-          description: t(
+          type: 'text',
+          text: t(
             "Configuration should happen as early as possible in your application's lifecycle."
           ),
+        },
+        {
+          type: 'code',
           language: 'tsx',
           code: getClientSetupSnippet(params),
         },
@@ -474,14 +470,19 @@ const performanceOnboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: tct(
-        'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your React Router application.',
+      content: [
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react-router/tracing/instrumentation/automatic-instrumentation/" />
+          type: 'text',
+          text: tct(
+            'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your React Router application.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react-router/tracing/instrumentation/automatic-instrumentation/" />
+              ),
+            }
           ),
-        }
-      ),
+        },
+      ],
     },
   ],
   nextSteps: () => [],

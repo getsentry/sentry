@@ -523,11 +523,11 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         with pytest.raises(ApiError):
             self.gitlab_client.get_blame_for_files(files=[self.file_1], extra={})
 
-    @mock.patch(
-        "sentry.integrations.gitlab.blame.logger.error",
-    )
     @responses.activate
-    def test_failure_approaching_rate_limit(self, mock_logger_error):
+    @mock.patch(
+        "sentry.integrations.gitlab.blame.logger.warning",
+    )
+    def test_failure_approaching_rate_limit(self, mock_logger_warning):
         """
         If there aren't enough requests left to stay above the minimum request
         limit, should raise a ApiRateLimitedError.
@@ -549,7 +549,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
             self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2], extra={})
 
         assert excinfo.value.text == "Approaching GitLab API rate limit"
-        mock_logger_error.assert_called_with(
+        mock_logger_warning.assert_called_with(
             "get_blame_for_files.rate_limit_too_low",
             extra={
                 "provider": "gitlab",

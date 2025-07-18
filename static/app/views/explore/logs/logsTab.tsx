@@ -29,12 +29,17 @@ import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/log
 import {
   useLogsAggregate,
   useLogsAggregateFunction,
+  useLogsAggregateSortBys,
   useLogsFields,
   useLogsGroupBy,
+  useLogsMode,
   useLogsSearch,
   useSetLogsFields,
+  useSetLogsMode,
   useSetLogsPageParams,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {
@@ -61,6 +66,8 @@ import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregate
 import {LogsInfiniteTable as LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
+import {useStreamingTimeseriesResult} from 'sentry/views/explore/logs/useStreamingTimeseriesResult';
+import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {PickableDays} from 'sentry/views/explore/utils';
@@ -78,6 +85,9 @@ export function LogsTabContent({
   const logsSearch = useLogsSearch();
   const fields = useLogsFields();
   const groupBy = useLogsGroupBy();
+  const mode = useLogsMode();
+  const sortBys = useLogsAggregateSortBys();
+  const setMode = useSetLogsMode();
   const setFields = useSetLogsFields();
   const setLogsPageParams = useSetLogsPageParams();
   const tableData = useLogsPageDataQueryResult();
@@ -92,26 +102,39 @@ export function LogsTabContent({
   });
   const aggregateFunction = useLogsAggregateFunction();
   const aggregate = useLogsAggregate();
+
+  const orderby: string | string[] | undefined = useMemo(() => {
+    if (!sortBys.length) {
+      return undefined;
+    }
+
+    return sortBys.map(formatSort);
+  }, [sortBys]);
+
   const [sidebarOpen, setSidebarOpen] = useState(
     !!((aggregateFunction && aggregateFunction !== 'count') || groupBy)
   );
-  const timeseriesResult = useSortedTimeSeries(
+
+  const _timeseriesResult = useSortedTimeSeries(
     {
       search: logsSearch,
       yAxis: [aggregate],
       interval,
       fields: [...(groupBy ? [groupBy] : []), aggregate],
       topEvents: groupBy?.length ? 5 : undefined,
+      orderby,
     },
     'explore.ourlogs.main-chart',
     DiscoverDatasets.OURLOGS
   );
-  const [tableTab, setTableTab] = useState('logs');
+  const timeseriesResult = useStreamingTimeseriesResult(tableData, _timeseriesResult);
 
   const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
     useTraceItemAttributes('string');
   const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
     useTraceItemAttributes('number');
+
+  const averageLogsPerSecond = calculateAverageLogsPerSecond(timeseriesResult);
 
   useLogAnalytics({
     logsTableResult: tableData,
@@ -173,6 +196,15 @@ export function LogsTabContent({
       {closeEvents: 'escape-key'}
     );
   }, [fields, setFields, stringAttributes, numberAttributes]);
+
+  const tableTab = mode === Mode.AGGREGATE ? 'aggregates' : 'logs';
+  const setTableTab = useCallback(
+    (tab: 'aggregates' | 'logs') => {
+      setMode(tab === 'aggregates' ? Mode.AGGREGATE : Mode.SAMPLES);
+    },
+    [setMode]
+  );
+
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
       <TopSectionBody noRowGap>
@@ -241,7 +273,10 @@ export function LogsTabContent({
               </Feature>
               <TableActionsContainer>
                 <Feature features="organizations:ourlogs-live-refresh">
-                  <AutorefreshToggle />
+                  <AutorefreshToggle
+                    disabled={tableTab === 'aggregates'}
+                    averageLogsPerSecond={averageLogsPerSecond}
+                  />
                 </Feature>
                 <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
                   {t('Edit Table')}

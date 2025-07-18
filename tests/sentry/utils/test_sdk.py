@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import sentry_sdk.scope
 from django.conf import settings
+from django.db import OperationalError
 from django.http import HttpRequest
 from rest_framework.request import Request
 from sentry_sdk import Scope
@@ -502,3 +503,17 @@ class BindAmbiguousOrgContextTest(TestCase):
             slug_list_in_org_context = mock_scope._contexts["organization"]["multiple possible"]
             assert len(slug_list_in_org_context) == 3
             assert slug_list_in_org_context[-1] == "... (3 more)"
+
+
+def test_before_send_error_level():
+    event = {
+        "tags": {
+            "silo_mode": "REGION",
+            "sentry_region": "testregion456576",
+        },
+        "level": "error",
+    }
+    hint = {"exc_info": (OperationalError, OperationalError("test"), None)}
+    event_with_before_send = sdk.before_send(event, hint)  # type: ignore[arg-type]
+    assert event_with_before_send
+    assert event_with_before_send["level"] == "warning"

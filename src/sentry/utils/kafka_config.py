@@ -97,7 +97,20 @@ def get_kafka_admin_cluster_options(
     )
 
 
-def get_topic_definition(topic: Topic) -> TopicDefinition:
+def get_topic_definition(topic: Topic, kafka_slice_id: int | None = None) -> TopicDefinition:
+    if kafka_slice_id is not None:
+        sliced_topics = settings.SLICED_KAFKA_TOPICS
+        key = (topic.value, kafka_slice_id)
+        if key not in sliced_topics:
+            raise KeyError(
+                f"No configuration found for topic '{topic.value}' with slice ID {kafka_slice_id}"
+            )
+        defn = sliced_topics[key]
+        return {
+            "cluster": defn["cluster"],
+            "real_topic_name": defn["topic"],
+        }
+
     return {
         "cluster": settings.KAFKA_TOPIC_TO_CLUSTER[topic.value],
         "real_topic_name": settings.KAFKA_TOPIC_OVERRIDES.get(topic.value, topic.value),

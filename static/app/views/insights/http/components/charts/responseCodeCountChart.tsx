@@ -71,16 +71,17 @@ export function ResponseCodeCountChart({
 
   const queries = topResponseCodes.map(code => ({
     label: code,
-    query: `${stringifiedSearch} ${SpanFields.RESPONSE_CODE}:${code}`,
+    query: `${stringifiedSearch} ${SpanFields.SPAN_STATUS_CODE}:${code}`,
   }));
 
   queries.push({
     label: t('Other'),
-    query: `${stringifiedSearch} !${SpanFields.RESPONSE_CODE}:[${topResponseCodes.join(',')}]`,
+    query: `${stringifiedSearch} !${SpanFields.SPAN_STATUS_CODE}:[${topResponseCodes.join(',')}]`,
   });
 
   const exploreUrl = getExploreUrl({
     organization,
+    selection,
     visualize: [
       {
         chartType: ChartType.LINE,

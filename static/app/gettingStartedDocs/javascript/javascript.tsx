@@ -1,18 +1,19 @@
-import {css} from '@emotion/react';
+import {Fragment} from 'react';
 
+import {Link} from 'sentry/components/core/link';
 import {SdkProviderEnum as FeatureFlagProviderEnum} from 'sentry/components/events/featureFlags/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getAIRulesForCodeEditorStep,
   getUploadSourceMapsStep,
@@ -25,10 +26,6 @@ import {
   getFeedbackConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {
-  getProfilingDocumentHeaderConfigurationStep,
-  MaybeBrowserProfilingBetaWarning,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
-import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
   getReplayVerifyStep,
@@ -38,10 +35,8 @@ import {
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {updateDynamicSdkLoaderOptions} from './jsLoader/updateDynamicSdkLoaderOptions';
 
@@ -488,6 +483,41 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
           ],
         },
       ],
+      additionalInfo: (
+        <Fragment>
+          <h5>{t('Default Configuration')}</h5>
+          <p>
+            {t(
+              'The Loader Script settings are automatically updated based on the product selection above. Toggling products will dynamically configure the SDK defaults.'
+            )}
+          </p>
+          <p>
+            {tct(
+              'For Tracing, the SDK is initialized with [code:tracesSampleRate: 1], meaning all traces will be captured.',
+              {
+                code: <code />,
+              }
+            )}
+          </p>
+          <p>
+            {tct(
+              'For Session Replay, the default rates are [code:replaysSessionSampleRate: 0.1] and [code:replaysOnErrorSampleRate: 1]. This captures 10% of regular sessions and 100% of sessions with an error.',
+              {
+                code: <code />,
+              }
+            )}
+          </p>
+          <p>
+            {tct('You can review or change these settings in [link:Project Settings].', {
+              link: (
+                <Link
+                  to={`/settings/${params.organization.slug}/projects/${params.projectSlug}/loader-script/`}
+                />
+              ),
+            })}
+          </p>
+        </Fragment>
+      ),
     },
   ],
   configure: params => [
@@ -574,11 +604,12 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
     };
   },
   onProductSelectionChange: params => {
-    return products => {
+    return ({previousProducts, products}) => {
       updateDynamicSdkLoaderOptions({
         orgSlug: params.organization.slug,
         projectSlug: params.projectSlug,
         products,
+        previousProducts,
         projectKey: params.projectKeyId,
         api: params.api,
       });
@@ -631,9 +662,6 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
             },
           ],
         },
-        ...(params.isProfilingSelected
-          ? [getProfilingDocumentHeaderConfigurationStep()]
-          : []),
       ],
     },
     getUploadSourceMapsStep({
@@ -654,7 +682,7 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
     };
   },
   onProductSelectionChange: params => {
-    return products => {
+    return ({products}) => {
       updateDynamicSdkLoaderOptions({
         orgSlug: params.organization.slug,
         projectSlug: params.projectSlug,
@@ -687,22 +715,10 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
 };
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
-  introduction: params => (
-    <div
-      css={css`
-        display: flex;
-        flex-direction: column;
-        gap: ${space(1)};
-      `}
-    >
-      <MaybeBrowserProfilingBetaWarning {...params} />
-      <TextBlock noMargin>
-        {isAutoInstall(params)
-          ? loaderScriptOnboarding.introduction?.(params)
-          : packageManagerOnboarding.introduction?.(params)}
-      </TextBlock>
-    </div>
-  ),
+  introduction: params =>
+    isAutoInstall(params)
+      ? loaderScriptOnboarding.introduction?.(params)
+      : packageManagerOnboarding.introduction?.(params),
   install: params =>
     isAutoInstall(params)
       ? loaderScriptOnboarding.install(params)
@@ -854,12 +870,16 @@ const performanceOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      configurations: [
+      content: [
         {
-          language: 'javascript',
-          description: t(
+          type: 'text',
+          text: t(
             "Configuration should happen as early as possible in your application's lifecycle."
           ),
+        },
+        {
+          type: 'code',
+          language: 'javascript',
           code: `
 import * as Sentry from "@sentry/browser";
 
@@ -878,7 +898,10 @@ Sentry.init({
   sendDefaultPii: true,
 });
 `,
-          additionalInfo: tct(
+        },
+        {
+          type: 'text',
+          text: tct(
             'We recommend adjusting the value of [code:tracesSampleRate] in production. Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to do [linkSampleTransactions:sampling].',
             {
               code: <code />,
@@ -894,9 +917,14 @@ Sentry.init({
             }
           ),
         },
+      ],
+    },
+    {
+      title: t('Add Distributed Tracing (Optional)'),
+      content: [
         {
-          language: 'javascript',
-          description: tct(
+          type: 'text',
+          text: tct(
             "If you're using the current version of our JavaScript SDK and have enabled the [code: BrowserTracing] integration, distributed tracing will work out of the box. To get around possible [link:Browser CORS] issues, define your [code:tracePropagationTargets].",
             {
               code: <code />,
@@ -905,6 +933,10 @@ Sentry.init({
               ),
             }
           ),
+        },
+        {
+          type: 'code',
+          language: 'javascript',
           code: `
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -922,14 +954,19 @@ Sentry.init({
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: tct(
-        'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your JavaScript application.',
+      content: [
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/automatic-instrumentation/" />
+          type: 'text',
+          text: tct(
+            'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your JavaScript application.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/automatic-instrumentation/" />
+              ),
+            }
           ),
-        }
-      ),
+        },
+      ],
     },
   ],
   nextSteps: () => [],

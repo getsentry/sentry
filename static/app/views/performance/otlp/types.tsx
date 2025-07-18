@@ -1,4 +1,7 @@
-import {COL_WIDTH_UNDEFINED, type GridColumnHeader} from 'sentry/components/gridEditable';
+import {
+  COL_WIDTH_UNDEFINED,
+  type GridColumnHeader,
+} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {EAPSpanResponse} from 'sentry/views/insights/types';
 

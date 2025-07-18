@@ -27,14 +27,19 @@ import FeatureTourModal, {
   TourText,
 } from 'sentry/components/modals/featureTourModal';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
+import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
-  type Configuration,
+  OnboardingCodeSnippet,
   TabbedCodeSnippet,
-} from 'sentry/components/onboarding/gettingStartedDoc/step';
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
+import type {
+  Configuration,
+  ContentBlock,
+  DocsParams,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
-  type DocsParams,
   ProductSolution,
+  StepType,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
@@ -62,6 +67,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import {decodeInteger} from 'sentry/utils/queryString';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -168,7 +174,6 @@ function SampleButton({
             generateLinkToEventInTraceView({
               eventId: eventData.eventID,
               location,
-              projectSlug: project.slug,
               organization,
               timestamp: eventData.endTimestamp,
               traceSlug,
@@ -278,7 +283,7 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
             'Something seem slow? Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
           )}
         </p>
-        <ButtonList gap={1}>
+        <ButtonList>
           {setupButton}
           <SampleButton
             triggerText={t('View Sample Transaction')}
@@ -343,86 +348,43 @@ const ButtonList = styled(ButtonBar)`
   margin-bottom: 16px;
 `;
 
-function WaitingIndicator({
-  api,
-  organization,
-  project,
-}: {
-  api: Client;
-  organization: Organization;
-  project: Project;
-}) {
-  const [received, setReceived] = useState<boolean>(false);
-
+function ConfigurationRenderer({configuration}: {configuration: Configuration}) {
+  const subConfigurations = configuration.configurations ?? [];
   return (
-    <EventWaiter
-      api={api}
-      organization={organization}
-      project={project}
-      eventType="transaction"
-      onIssueReceived={() => {
-        setReceived(true);
-      }}
-    >
-      {() => (received ? <EventReceivedIndicator /> : <EventWaitingIndicator />)}
-    </EventWaiter>
+    <ConfigurationWrapper>
+      {configuration.description && (
+        <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
+      )}
+      {configuration.code ? (
+        Array.isArray(configuration.code) ? (
+          <TabbedCodeSnippet tabs={configuration.code} />
+        ) : (
+          <OnboardingCodeSnippet language={configuration.language}>
+            {configuration.code}
+          </OnboardingCodeSnippet>
+        )
+      ) : null}
+      {subConfigurations.map((subConfiguration, index) => (
+        <ConfigurationRenderer key={index} configuration={subConfiguration} />
+      ))}
+      {configuration.additionalInfo && (
+        <AdditionalInfo>{configuration.additionalInfo}</AdditionalInfo>
+      )}
+    </ConfigurationWrapper>
   );
 }
 
-type ConfigurationStepProps = {
-  api: Client;
-  configuration: Configuration;
-  organization: Organization;
-  project: Project;
-  showWaitingIndicator: boolean;
-  stepKey: string;
-  title: React.ReactNode;
-};
-
-function ConfigurationStep({
-  stepKey,
-  title,
-  api,
-  organization,
-  project,
-  configuration,
-  showWaitingIndicator,
-}: ConfigurationStepProps) {
-  return (
-    <GuidedSteps.Step stepKey={stepKey} title={title}>
-      <div>
-        <div>
-          <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
-          <CodeSnippetWrapper>
-            {configuration.code ? (
-              Array.isArray(configuration.code) ? (
-                <TabbedCodeSnippet tabs={configuration.code} />
-              ) : (
-                <OnboardingCodeSnippet language={configuration.language}>
-                  {configuration.code}
-                </OnboardingCodeSnippet>
-              )
-            ) : null}
-          </CodeSnippetWrapper>
-          <CodeSnippetWrapper>
-            {configuration.configurations && configuration.configurations.length > 0 ? (
-              Array.isArray(configuration.configurations[0]!.code) ? (
-                <TabbedCodeSnippet tabs={configuration.configurations[0]!.code} />
-              ) : null
-            ) : null}
-          </CodeSnippetWrapper>
-          <DescriptionWrapper>{configuration.additionalInfo}</DescriptionWrapper>
-          {showWaitingIndicator ? (
-            <WaitingIndicator api={api} organization={organization} project={project} />
-          ) : null}
-        </div>
-        <GuidedSteps.ButtonWrapper>
-          <GuidedSteps.BackButton size="md" />
-          <GuidedSteps.NextButton size="md" />
-        </GuidedSteps.ButtonWrapper>
-      </div>
-    </GuidedSteps.Step>
-  );
+function RenderBlocksOrFallback({
+  contentBlocks,
+  children,
+}: {
+  children: React.ReactNode;
+  contentBlocks?: ContentBlock[];
+}) {
+  if (contentBlocks && contentBlocks.length > 0) {
+    return <ContentBlocksRenderer spacing={space(1)} contentBlocks={contentBlocks} />;
+  }
+  return children;
 }
 
 function OnboardingPanel({
@@ -483,6 +445,12 @@ function OnboardingPanel({
     </Panel>
   );
 }
+
+const STEP_TITLES: Record<StepType, string> = {
+  [StepType.INSTALL]: t('Install Sentry'),
+  [StepType.CONFIGURE]: t('Configure Sentry'),
+  [StepType.VERIFY]: t('Verify Sentry'),
+};
 
 export function Onboarding({organization, project}: OnboardingProps) {
   const api = useApi();
@@ -632,13 +600,11 @@ export function Onboarding({organization, project}: OnboardingProps) {
     isSelfHosted,
   };
 
-  const installStep = performanceDocs.install(docParams)[0]!;
+  const installSteps = performanceDocs.install(docParams);
+  const configureSteps = performanceDocs.configure(docParams);
+  const verifySteps = performanceDocs.verify(docParams);
 
-  const configureStep = performanceDocs.configure(docParams)[0]!;
-  const [sentryConfiguration, addingDistributedTracing] = configureStep.configurations!;
-
-  const verifyStep = performanceDocs.verify(docParams)[0]!;
-  const hasVerifyStep = !!(verifyStep.configurations || verifyStep.description);
+  const steps = [...installSteps, ...configureSteps, ...verifySteps];
 
   const eventWaitingIndicator = (
     <EventWaiter
@@ -671,114 +637,56 @@ export function Onboarding({organization, project}: OnboardingProps) {
           });
         }}
       >
-        <GuidedSteps.Step stepKey="install-sentry" title={t('Install Sentry')}>
-          <div>
-            <div>
-              <DescriptionWrapper>{installStep.description}</DescriptionWrapper>
-              {installStep.configurations?.map((configuration, index) => (
-                <div key={index}>
-                  <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
-                  <CodeSnippetWrapper>
-                    {configuration.code ? (
-                      Array.isArray(configuration.code) ? (
-                        <TabbedCodeSnippet tabs={configuration.code} />
-                      ) : (
-                        <OnboardingCodeSnippet language={configuration.language}>
-                          {configuration.code}
-                        </OnboardingCodeSnippet>
-                      )
-                    ) : null}
-                  </CodeSnippetWrapper>
-                </div>
-              ))}
-              {!configureStep.configurations && !verifyStep.configurations
-                ? eventWaitingIndicator
-                : null}
-            </div>
-            <GuidedSteps.ButtonWrapper>
-              <GuidedSteps.BackButton size="md" />
-              <GuidedSteps.NextButton size="md" />
-            </GuidedSteps.ButtonWrapper>
-          </div>
-        </GuidedSteps.Step>
-        {sentryConfiguration ? (
-          <ConfigurationStep
-            stepKey={'configure-sentry'}
-            title={t('Configure Sentry')}
-            configuration={sentryConfiguration}
-            api={api}
-            organization={organization}
-            project={project}
-            showWaitingIndicator={!hasVerifyStep}
-          />
-        ) : null}
-        {addingDistributedTracing ? (
-          <ConfigurationStep
-            stepKey={'add-distributed-tracing'}
-            title={tct('Add Distributed Tracing [optional:(Optional)]', {
-              optional: <OptionalText />,
-            })}
-            configuration={addingDistributedTracing}
-            api={api}
-            organization={organization}
-            project={project}
-            showWaitingIndicator={!hasVerifyStep}
-          />
-        ) : null}
-        {verifyStep.configurations || verifyStep.description ? (
-          <GuidedSteps.Step stepKey="verify-sentry" title={t('Verify')}>
-            <div>
-              <DescriptionWrapper>{verifyStep.description}</DescriptionWrapper>
-              {verifyStep.configurations?.map((configuration, index) => (
-                <div key={index}>
-                  <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
-                  <CodeSnippetWrapper>
-                    {configuration.code ? (
-                      Array.isArray(configuration.code) ? (
-                        <TabbedCodeSnippet tabs={configuration.code} />
-                      ) : (
-                        <OnboardingCodeSnippet language={configuration.language}>
-                          {configuration.code}
-                        </OnboardingCodeSnippet>
-                      )
-                    ) : null}
-                  </CodeSnippetWrapper>
-                </div>
-              ))}
-              {eventWaitingIndicator}
-            </div>
-            <GuidedSteps.ButtonWrapper>
-              <GuidedSteps.BackButton size="md" />
-              {received ? (
-                <Button
-                  priority="primary"
-                  busy={!traceId}
-                  title={traceId ? undefined : t('Processing trace\u2026')}
-                  onClick={() => {
-                    const params = new URLSearchParams(window.location.search);
-                    params.set('table', Tab.TRACE);
-                    params.set('query', `trace:${traceId}`);
-                    params.delete('guidedStep');
-                    window.location.href = `${window.location.pathname}?${params.toString()}`;
-                  }}
-                >
-                  {t('Take me to my trace')}
-                </Button>
-              ) : isEAPTraceEnabled ? null : (
-                <SampleButton
-                  triggerText={t('Take me to an example')}
-                  loadingMessage={t('Processing sample trace...')}
-                  errorMessage={t('Failed to create sample trace')}
-                  organization={organization}
-                  project={project}
-                  api={api}
-                />
+        {steps.map((step, index) => {
+          const title = step.title ?? STEP_TITLES[step.type];
+          return (
+            <GuidedSteps.Step key={title} stepKey={title} title={title}>
+              <RenderBlocksOrFallback contentBlocks={step.content}>
+                <ConfigurationRenderer configuration={step} />
+              </RenderBlocksOrFallback>
+              {index === steps.length - 1 ? (
+                <Fragment>
+                  {eventWaitingIndicator}
+                  <GuidedSteps.ButtonWrapper>
+                    <GuidedSteps.BackButton size="md" />
+                    {received ? (
+                      <Button
+                        priority="primary"
+                        busy={!traceId}
+                        title={traceId ? undefined : t('Processing trace\u2026')}
+                        onClick={() => {
+                          const params = new URLSearchParams(window.location.search);
+                          params.set('table', Tab.TRACE);
+                          params.set('query', `trace:${traceId}`);
+                          params.delete('guidedStep');
+                          testableWindowLocation.assign(
+                            `${window.location.pathname}?${params.toString()}`
+                          );
+                        }}
+                      >
+                        {t('Take me to my trace')}
+                      </Button>
+                    ) : isEAPTraceEnabled ? null : (
+                      <SampleButton
+                        triggerText={t('Take me to an example')}
+                        loadingMessage={t('Processing sample trace...')}
+                        errorMessage={t('Failed to create sample trace')}
+                        organization={organization}
+                        project={project}
+                        api={api}
+                      />
+                    )}
+                  </GuidedSteps.ButtonWrapper>
+                </Fragment>
+              ) : (
+                <GuidedSteps.ButtonWrapper>
+                  <GuidedSteps.BackButton size="md" />
+                  <GuidedSteps.NextButton size="md" />
+                </GuidedSteps.ButtonWrapper>
               )}
-            </GuidedSteps.ButtonWrapper>
-          </GuidedSteps.Step>
-        ) : (
-          <Fragment />
-        )}
+            </GuidedSteps.Step>
+          );
+        })}
       </GuidedSteps>
     </OnboardingPanel>
   );
@@ -802,11 +710,6 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
 const PulsingIndicator = styled('div')`
   ${pulsingIndicatorStyles};
   margin-left: ${space(1)};
-`;
-
-const OptionalText = styled('span')`
-  color: ${p => p.theme.purple300};
-  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
@@ -913,14 +816,37 @@ const Arcade = styled('iframe')`
   border: 0;
 `;
 
-const CodeSnippetWrapper = styled('div')`
-  margin-bottom: ${space(2)};
+const CONTENT_SPACING = space(1);
+
+const ConfigurationWrapper = styled('div')`
+  margin-bottom: ${CONTENT_SPACING};
 `;
 
 const DescriptionWrapper = styled('div')`
-  margin-bottom: ${space(1)};
-
-  code {
+  code:not([class*='language-']) {
     color: ${p => p.theme.pink400};
   }
+
+  :not(:last-child) {
+    margin-bottom: ${CONTENT_SPACING};
+  }
+
+  && > h4,
+  && > h5,
+  && > h6 {
+    font-size: ${p => p.theme.fontSize.xl};
+    font-weight: ${p => p.theme.fontWeight.bold};
+    line-height: 34px;
+  }
+
+  && > * {
+    margin: 0;
+    &:not(:last-child) {
+      margin-bottom: ${CONTENT_SPACING};
+    }
+  }
+`;
+
+const AdditionalInfo = styled(DescriptionWrapper)`
+  margin-top: ${CONTENT_SPACING};
 `;

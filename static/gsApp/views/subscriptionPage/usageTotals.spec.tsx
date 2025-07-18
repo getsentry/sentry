@@ -181,7 +181,9 @@ describe('Subscription > UsageTotals', function () {
       screen.getByRole('row', {name: 'Total Dropped (estimated) 10 40%'})
     ).toBeInTheDocument();
     expect(screen.getByRole('row', {name: 'Over Quota 0 0%'})).toBeInTheDocument();
-    expect(screen.getByRole('row', {name: 'Spike Protection 0 0%'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('row', {name: 'Spike Protection 0 0%'})
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('row', {name: 'Other 0 0%'})).toBeInTheDocument();
   });
 
@@ -248,7 +250,9 @@ describe('Subscription > UsageTotals', function () {
       screen.getByRole('row', {name: 'Total Dropped (estimated) 5 25%'})
     ).toBeInTheDocument();
     expect(screen.getByRole('row', {name: 'Over Quota 0 0%'})).toBeInTheDocument();
-    expect(screen.getByRole('row', {name: 'Spike Protection 0 0%'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('row', {name: 'Spike Protection 0 0%'})
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('row', {name: 'Other 0 0%'})).toBeInTheDocument();
   });
 
@@ -1124,6 +1128,54 @@ describe('Subscription > CombinedUsageTotals', function () {
     expect(screen.getByRole('row', {name: 'Accepted 1 9%'})).toBeInTheDocument();
   });
 
+  it('shows table with dropped totals breakdown for reserved budgets', async function () {
+    const seerSubscription = SubscriptionWithSeerFixture({
+      organization,
+      plan: 'am3_business',
+    });
+    seerSubscription.planTier = 'am3';
+
+    render(
+      <CombinedUsageTotals
+        productGroup={seerSubscription.reservedBudgets![0]!}
+        subscription={seerSubscription}
+        organization={organization}
+        allTotalsByCategory={{
+          seerAutofix: totals,
+          seerScanner: totals,
+        }}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Expand usage totals'}));
+
+    const acceptedRows = screen.getAllByRole('row', {name: 'Accepted 0 0%'});
+    expect(acceptedRows).toHaveLength(2);
+
+    const totalDroppedRows = screen.getAllByRole('row', {name: 'Total Dropped 10 100%'});
+    expect(totalDroppedRows).toHaveLength(2);
+
+    const overQuotaRows = screen.getAllByRole('row', {name: 'Over Quota 7 70%'});
+    expect(overQuotaRows).toHaveLength(2);
+
+    const spikeProtectionRows = screen.queryAllByRole('row', {
+      name: 'Spike Protection 1 10%',
+    });
+    expect(spikeProtectionRows).toHaveLength(0); // not spike protected
+
+    const otherRows = screen.getAllByRole('row', {name: 'Other 2 20%'});
+    expect(otherRows).toHaveLength(2);
+
+    expect(screen.getByRole('columnheader', {name: 'Issue Fixes'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Issue Scans'})).toBeInTheDocument();
+
+    const seerAutofixTable = screen.getByTestId('category-table-seerAutofix');
+    const seerScannerTable = screen.getByTestId('category-table-seerScanner');
+
+    expect(within(seerAutofixTable).getAllByRole('row')).toHaveLength(5);
+    expect(within(seerScannerTable).getAllByRole('row')).toHaveLength(5);
+  });
+
   it('renders accepted spans in spend mode with reserved budgets and dynamic sampling', async function () {
     const dsSubscription = Am3DsEnterpriseSubscriptionFixture({
       organization,
@@ -1482,50 +1534,6 @@ describe('Subscription > CombinedUsageTotals', function () {
     expect(screen.getByText('On-Demand Issue Scans')).toBeInTheDocument();
 
     organization.features.pop();
-  });
-
-  it('shows accepted rows but hides dropped rows for SEER categories', async function () {
-    const seerSubscription = SubscriptionWithSeerFixture({
-      organization,
-      plan: 'am3_business',
-    });
-    seerSubscription.planTier = 'am3';
-
-    render(
-      <CombinedUsageTotals
-        productGroup={seerSubscription.reservedBudgets![0]!}
-        subscription={seerSubscription}
-        organization={organization}
-        allTotalsByCategory={{
-          seerAutofix: totals,
-          seerScanner: totals,
-        }}
-      />
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Expand usage totals'}));
-
-    const acceptedRows = screen.getAllByRole('row', {name: 'Accepted 0 0%'});
-    expect(acceptedRows).toHaveLength(2);
-
-    // Should NOT show dropped rows for SEER categories
-    expect(
-      screen.queryByRole('row', {name: 'Total Dropped 10 100%'})
-    ).not.toBeInTheDocument();
-    expect(screen.queryByRole('row', {name: 'Over Quota 7 70%'})).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('row', {name: 'Spike Protection 1 10%'})
-    ).not.toBeInTheDocument();
-    expect(screen.queryByRole('row', {name: 'Other 2 20%'})).not.toBeInTheDocument();
-
-    expect(screen.getByRole('columnheader', {name: 'Issue Fixes'})).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', {name: 'Issue Scans'})).toBeInTheDocument();
-
-    const seerAutofixTable = screen.getByTestId('category-table-seerAutofix');
-    const seerScannerTable = screen.getByTestId('category-table-seerScanner');
-
-    expect(within(seerAutofixTable).getAllByRole('row')).toHaveLength(2);
-    expect(within(seerScannerTable).getAllByRole('row')).toHaveLength(2);
   });
 });
 
@@ -1975,7 +1983,7 @@ describe('calculateCategoryPrepaidUsage', () => {
       plan: 'am3_business',
     });
 
-    // Add SEER category but don't include it in reservedBudgetCategories
+    // Add SEER category but don't include it in reservedBudgets
     subscription.categories.seerAutofix = MetricHistoryFixture({
       category: DataCategory.SEER_AUTOFIX,
       usage: 10,
@@ -1992,6 +2000,42 @@ describe('calculateCategoryPrepaidUsage', () => {
     // Should fall back to usage-based calculation since no reserved budget info found
     expect(result.prepaidSpend).toBe(0); // No price bucket found for SEER in regular subscription
     expect(result.prepaidUsage).toBe(10);
+  });
+
+  it('converts prepaid limit to bytes for LOG_BYTE category', () => {
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am2_team',
+      planTier: 'am2',
+    });
+    const prepaidGb = 10; // 10 GB prepaid limit
+    const usageBytes = 5 * GIGABYTE; // 5 GB actual usage
+
+    // Add price bucket information for LOG_BYTE category
+    subscription.planDetails.planCategories.logBytes = [
+      {events: prepaidGb, price: 1000, unitPrice: 0.1, onDemandPrice: 0.2},
+    ];
+
+    subscription.categories.logBytes = MetricHistoryFixture({
+      prepaid: prepaidGb,
+      reserved: prepaidGb,
+      usage: usageBytes,
+    });
+
+    const result = calculateCategoryPrepaidUsage(
+      DataCategory.LOG_BYTE,
+      subscription,
+      prepaidGb
+    );
+
+    // Should multiply prepaid by GIGABYTE for unit conversion
+    expect(result).toEqual({
+      onDemandUsage: 0,
+      prepaidPercentUsed: 50, // 5GB / 10GB = 50%
+      prepaidPrice: 1000,
+      prepaidSpend: 500,
+      prepaidUsage: usageBytes,
+    });
   });
 });
 

@@ -314,6 +314,19 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     valuePropPoints: [],
     imageSrc: screenLoadsPreviewImg,
   },
+  mcp: {
+    heading: t('Model Context Providers'),
+    description: t(
+      'Monitor your MCP servers to ensure your AI applications have reliable access to tools, resources, and data sources they depend on.'
+    ),
+    imageSrc: llmPreviewImg,
+    valuePropDescription: t('MCP monitoring gives you visibility into:'),
+    valuePropPoints: [
+      t('Tool execution success rates and failure patterns.'),
+      t('Resource access performance and availability.'),
+      t('Usage patterns across different tools and prompts.'),
+    ],
+  },
   'mobile-ui': {
     heading: t('TODO'),
     description: t('TODO'),
@@ -323,10 +336,17 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
   },
   'mobile-vitals': {
     heading: t('Mobile Vitals'),
-    description: t('Explore mobile app metrics.'),
-    valuePropDescription: '',
-    valuePropPoints: [],
+    description: t(
+      'Key metrics for for mobile development that help you ensure a great mobile user experience.'
+    ),
+    valuePropDescription: t('With Mobile Vitals:'),
+    valuePropPoints: [
+      t('Get recommendations to improve key mobile metrics.'),
+      t('Track the performance of your application on real user devices.'),
+      t('Understand the full lifecycle of an app, from startup to user interactions.'),
+    ],
     imageSrc: screenLoadsPreviewImg,
+    supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
   cache: {
     heading: t('Bringing you one less hard problem in computer science'),

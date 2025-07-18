@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from sentry.notifications.platform.provider import NotificationProvider
+from sentry.notifications.platform.types import NotificationTemplate
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 from sentry.utils.registry import Registry
 
@@ -33,3 +34,4 @@ class NotificationProviderRegistry(Registry[type[NotificationProvider[Any]]]):
 
 
 provider_registry = NotificationProviderRegistry()
+template_registry = Registry[type[NotificationTemplate[Any]]]()

@@ -6,9 +6,9 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -92,12 +92,12 @@ export default function AddCodeOwnerModal({
     TCodeownersContext
   >({
     mutationFn: ([payload]: TCodeownersVariables) => {
-      return fetchMutation([
-        'POST',
-        `/projects/${organization.slug}/${project.slug}/codeowners/`,
-        {},
-        payload,
-      ]);
+      return fetchMutation({
+        method: 'POST',
+        url: `/projects/${organization.slug}/${project.slug}/codeowners/`,
+        options: {},
+        data: payload,
+      });
     },
     onSuccess: d => {
       const codeMapping = codeMappings?.find(

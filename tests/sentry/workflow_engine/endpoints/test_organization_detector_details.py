@@ -21,6 +21,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.workflow_engine.models import (
+    AlertRuleDetector,
     DataCondition,
     DataConditionGroup,
     DataSource,
@@ -107,6 +108,34 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
         detector.status = ObjectStatus.PENDING_DELETION
         detector.save()
         self.get_error_response(self.organization.slug, detector.id, status_code=404)
+
+    def test_with_alert_rule_mapping(self):
+        # Create a metric alert rule mapping
+        metric_alert_id = 12345
+        AlertRuleDetector.objects.create(alert_rule_id=metric_alert_id, detector=self.detector)
+
+        response = self.get_success_response(self.organization.slug, self.detector.id)
+
+        assert response.data["alertRuleId"] == metric_alert_id
+        assert response.data["ruleId"] is None
+
+    def test_with_issue_rule_mapping(self):
+        # Create an issue alert rule mapping
+        issue_rule_id = 67890
+        AlertRuleDetector.objects.create(rule_id=issue_rule_id, detector=self.detector)
+
+        response = self.get_success_response(self.organization.slug, self.detector.id)
+
+        assert response.data["ruleId"] == issue_rule_id
+        assert response.data["alertRuleId"] is None
+
+    def test_without_alert_rule_mapping(self):
+        """Test that alertRuleId and ruleId are null when no mapping exists"""
+        response = self.get_success_response(self.organization.slug, self.detector.id)
+
+        # Verify the mapping fields are null when no mapping exists
+        assert response.data["alertRuleId"] is None
+        assert response.data["ruleId"] is None
 
 
 @region_silo_test
@@ -329,6 +358,46 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
 
         # Verify serialized response shows no owner
         assert response.data["owner"] is None
+
+    def test_disable_detector(self):
+        assert self.detector.enabled is True
+        assert self.detector.status == ObjectStatus.ACTIVE
+
+        data = {
+            **self.valid_data,
+            "enabled": False,
+        }
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        detector = Detector.objects.get(id=response.data["id"])
+        assert detector.enabled is False
+        assert detector.status == ObjectStatus.DISABLED
+
+    def test_enable_detector(self):
+        self.detector.update(enabled=False)
+        self.detector.update(status=ObjectStatus.DISABLED)
+
+        data = {
+            **self.valid_data,
+            "enabled": True,
+        }
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        detector = Detector.objects.get(id=response.data["id"])
+        assert detector.enabled is True
+        assert detector.status == ObjectStatus.ACTIVE
 
 
 @region_silo_test

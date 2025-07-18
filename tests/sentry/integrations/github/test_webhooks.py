@@ -436,14 +436,12 @@ class PushEventWebhookTest(APITestCase):
         )
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_integration(
-                organization=self.organization,
-                external_id="12345",
-                provider="github",
-                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
-            )
-            integration.add_organization(self.project.organization.id, self.user)
+        self.create_integration(
+            organization=self.organization,
+            external_id="12345",
+            provider="github",
+            metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+        )
 
         org2 = self.create_organization()
         project2 = self.create_project(organization=org2, name="bar")
@@ -454,14 +452,13 @@ class PushEventWebhookTest(APITestCase):
             name="another/repo",
         )
 
-        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="99",
+            provider="github",
+            metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+        )
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_integration(
-                organization=self.organization,
-                external_id="99",
-                provider="github",
-                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
-            )
             integration.add_organization(org2.id, self.user)
 
         response = self.client.post(
@@ -497,14 +494,13 @@ class PushEventWebhookTest(APITestCase):
         org2 = self.create_organization()
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="12345",
+            provider="github",
+            metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+        )
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_integration(
-                organization=self.organization,
-                external_id="12345",
-                provider="github",
-                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
-            )
-            integration.add_organization(self.project.organization.id, self.user)
             integration.add_organization(org2.id, self.user)
 
         response = self.client.post(

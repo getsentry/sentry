@@ -141,6 +141,8 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has(
             "organizations:performance-trace-explorer", organization, actor=request.user
+        ) and not features.has(
+            "organizations:visibility-explore-view", organization, actor=request.user
         ):
             return Response(status=404)
 

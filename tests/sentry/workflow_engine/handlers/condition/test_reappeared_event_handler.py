@@ -41,7 +41,9 @@ class TestReappearedEventCondition(ConditionTestCase):
             dc.save()
 
     def test(self):
-        job = WorkflowEventData(event=self.group_event, has_reappeared=True)
+        job = WorkflowEventData(
+            event=self.group_event, group=self.group_event.group, has_reappeared=True
+        )
         dc = self.create_data_condition(
             type=self.condition,
             comparison=True,

@@ -41,7 +41,6 @@ export function SubscriptionFixture(props: Props): TSubscription {
 
   // Create a safe default for planCategories if it doesn't exist
   const safeCategories = planDetails?.planCategories || {};
-  const defaultErrorEvents = safeCategories.errors?.[0]?.events || 5000;
 
   const isTrial = isTrialPlan(planDetails.id);
   const reservedBudgets = [];
@@ -55,10 +54,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
 
   return {
     customPrice: null,
-    customPriceAttachments: null,
-    customPriceErrors: null,
     customPricePcss: null,
-    customPriceTransactions: null,
     hasDismissedForcedTrialNotice: false,
     hasDismissedTrialEndingNotice: false,
     hasOverageNotificationsDisabled: false,
@@ -118,14 +114,12 @@ export function SubscriptionFixture(props: Props): TSubscription {
     usedLicenses: 1,
     membersDeactivatedFromLimit: 0,
     type: BillingType.CREDIT_CARD,
-    reservedEvents: defaultErrorEvents,
     hasSoftCap: false,
     isPastDue: false,
     onDemandDisabled: false,
     onDemandInvoiced: false,
     gracePeriodEnd: null,
     contractPeriodStart: '2018-09-25',
-    prepaidEventsAllowed: 5000,
     onDemandMaxSpend: 0,
     productTrials: [],
     isManaged: false,
@@ -143,15 +137,8 @@ export function SubscriptionFixture(props: Props): TSubscription {
     isGracePeriod: false,
     onDemandPeriodEnd: '2018-10-24',
     vatID: null,
-    reservedErrors: 5_000,
-    reservedTransactions: 10_000,
-    reservedAttachments: 1,
     msaUpdatedForDataConsent: false,
     dataRetention: null,
-    hasReservedBudgets: false, // false because we don't have a PAID reserved budget
-    reservedBudgetCategories: hasSeer
-      ? [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER]
-      : [],
     reservedBudgets,
     categories: {
       errors: MetricHistoryFixture({
@@ -271,12 +258,7 @@ export function SubscriptionWithSeerFixture(props: Props): TSubscription {
       order: 28,
     }),
   };
-  subscription.reservedBudgetCategories = [
-    DataCategory.SEER_AUTOFIX,
-    DataCategory.SEER_SCANNER,
-  ];
   subscription.reservedBudgets = [SeerReservedBudgetFixture({})];
-  subscription.hasReservedBudgets = true;
   return subscription;
 }
 
@@ -307,12 +289,6 @@ export function Am3DsEnterpriseSubscriptionFixture(props: Props): TSubscription 
     plan: planData.plan,
     planTier: planData.planTier,
   });
-  subscription.hasReservedBudgets = true;
-  subscription.reservedBudgetCategories = [
-    ...(subscription.reservedBudgetCategories || []),
-    DataCategory.SPANS,
-    DataCategory.SPANS_INDEXED,
-  ];
   subscription.reservedBudgets = [
     ...(subscription.reservedBudgets || []),
     DynamicSamplingReservedBudgetFixture({

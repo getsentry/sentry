@@ -159,7 +159,7 @@ describe('TransactionReplays', () => {
     await waitFor(() => {
       expect(replaysMockApi).toHaveBeenCalledTimes(1);
     });
-    expect(screen.getByText('There are no items to display')).toBeInTheDocument();
+    expect(screen.getByText('No replays found')).toBeInTheDocument();
   });
 
   it('should show loading indicator when loading replays', async () => {
@@ -233,13 +233,21 @@ describe('TransactionReplays', () => {
     const expectedQuery =
       'project=1&query=test&referrer=%2Forganizations%2F%3AorgId%2Finsights%2Fsummary%2Freplays%2F&statsPeriod=14d&yAxis=count%28%29';
     // Expect the first row to have the correct href
-    expect(screen.getAllByRole('link', {name: 'testDisplayName'})[0]).toHaveAttribute(
+    expect(
+      screen.getByRole('link', {
+        name: 'T testDisplayName project-slug 346789a7 14 days ago',
+      })
+    ).toHaveAttribute(
       'href',
       `/organizations/org-slug/replays/346789a703f6454384f1de473b8b9fcc/?${expectedQuery}`
     );
 
     // Expect the second row to have the correct href
-    expect(screen.getAllByRole('link', {name: 'testDisplayName'})[1]).toHaveAttribute(
+    expect(
+      screen.getByRole('link', {
+        name: 'T testDisplayName project-slug b05dae9b 7 days ago',
+      })
+    ).toHaveAttribute(
       'href',
       `/organizations/org-slug/replays/b05dae9b6be54d21a4d5ad9f8f02b780/?${expectedQuery}`
     );
@@ -251,10 +259,14 @@ describe('TransactionReplays', () => {
     expect(screen.getByText('06:40')).toBeInTheDocument();
 
     // Expect the first row to have the correct errors
-    expect(screen.getAllByTestId('replay-table-count-errors')[0]).toHaveTextContent('1');
+    expect(
+      screen.getAllByTestId('replay-table-column-count-errors')[0]
+    ).toHaveTextContent('1');
 
     // Expect the second row to have the correct errors
-    expect(screen.getAllByTestId('replay-table-count-errors')[1]).toHaveTextContent('4');
+    expect(
+      screen.getAllByTestId('replay-table-column-count-errors')[1]
+    ).toHaveTextContent('4');
 
     // Expect the first row to have the correct date
     expect(screen.getByText('14 days ago')).toBeInTheDocument();

@@ -1,8 +1,10 @@
+import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
 import LoadingError from 'sentry/components/loadingError';
-import {SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -29,16 +31,15 @@ function LoadingSkeletons() {
 
 function HeaderCell({
   children,
-  className,
   sortKey,
   sort,
+  ...props
 }: {
   children: React.ReactNode;
-  className: string;
   sort: Sort | undefined;
   divider?: boolean;
   sortKey?: string;
-}) {
+} & Omit<ComponentProps<typeof SimpleTable.HeaderCell>, 'sort'>) {
   const location = useLocation();
   const navigate = useNavigate();
   const isSortedByField = sort?.field === sortKey;
@@ -56,10 +57,9 @@ function HeaderCell({
 
   return (
     <SimpleTable.HeaderCell
-      className={className}
-      sort={sort}
-      sortKey={sortKey}
-      handleSortClick={handleSort}
+      {...props}
+      sort={sort && sortKey === sort?.field ? sort.kind : undefined}
+      handleSortClick={sortKey ? handleSort : undefined}
     >
       {children}
     </SimpleTable.HeaderCell>
@@ -76,20 +76,20 @@ function AutomationListTable({
   return (
     <AutomationsSimpleTable>
       <SimpleTable.Header>
-        <HeaderCell className="name" sort={sort} sortKey="name">
+        <HeaderCell sort={sort} sortKey="name">
           {t('Name')}
         </HeaderCell>
-        <HeaderCell className="last-triggered" sort={sort}>
+        <HeaderCell data-column-name="last-triggered" sort={sort}>
           {t('Last Triggered')}
         </HeaderCell>
-        <HeaderCell className="action" sort={sort} sortKey="actions">
+        <HeaderCell data-column-name="action" sort={sort} sortKey="actions">
           {t('Actions')}
         </HeaderCell>
-        <HeaderCell className="projects" sort={sort}>
+        <HeaderCell data-column-name="projects" sort={sort}>
           {t('Projects')}
         </HeaderCell>
         <HeaderCell
-          className="connected-monitors"
+          data-column-name="connected-monitors"
           sort={sort}
           sortKey="connectedDetectors"
         >
@@ -112,17 +112,19 @@ function AutomationListTable({
 const AutomationsSimpleTable = styled(SimpleTable)`
   grid-template-columns: 1fr;
 
-  .last-triggered,
-  .action,
-  .projects,
-  .connected-monitors {
+  margin-bottom: ${space(2)};
+
+  [data-column-name='last-triggered'],
+  [data-column-name='action'],
+  [data-column-name='projects'],
+  [data-column-name='connected-monitors'] {
     display: none;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xs}) {
     grid-template-columns: 2.5fr 1fr;
 
-    .projects {
+    [data-column-name='projects'] {
       display: flex;
     }
   }
@@ -130,7 +132,7 @@ const AutomationsSimpleTable = styled(SimpleTable)`
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 2.5fr 1fr 1fr;
 
-    .action {
+    [data-column-name='action'] {
       display: flex;
     }
   }
@@ -138,7 +140,7 @@ const AutomationsSimpleTable = styled(SimpleTable)`
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 2.5fr 1fr 1fr 1fr;
 
-    .last-triggered {
+    [data-column-name='last-triggered'] {
       display: flex;
     }
   }
@@ -146,7 +148,7 @@ const AutomationsSimpleTable = styled(SimpleTable)`
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: minmax(0, 3fr) 1fr 1fr 1fr 1fr;
 
-    .connected-monitors {
+    [data-column-name='connected-monitors'] {
       display: flex;
     }
   }

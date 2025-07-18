@@ -18,7 +18,8 @@ from sentry import buffer
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventstream.types import EventStreamEventType
-from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
+from sentry.feedback.lib.utils import FeedbackCreationSource
+from sentry.feedback.usecases.ingest.create_feedback import get_feedback_title
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.commit_context import CommitInfo, FileBlameInfo
 from sentry.issues.auto_source_code_config.utils.platform import get_supported_platforms
@@ -599,6 +600,31 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
             )
 
         assert not mock_process_service_hook.delay.mock_calls
+
+    @with_feature("organizations:workflow-engine-single-process-workflows")
+    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
+    @patch("sentry.rules.processing.processor.RuleProcessor")
+    @patch("sentry.tasks.post_process.process_workflow_engine")
+    def test_workflow_engine_single_processing(self, mock_process_workflow_engine, mock_processor):
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+
+        mock_callback = Mock()
+        mock_futures = [Mock()]
+
+        mock_processor.return_value.apply.return_value = [(mock_callback, mock_futures)]
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        # With the workflow engine feature flag enabled, RuleProcessor should not be called
+        assert mock_processor.call_count == 0
+
+        # But process_workflow_engine should be called instead
+        assert mock_process_workflow_engine.call_count == 1
 
 
 class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
@@ -1997,25 +2023,24 @@ class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
         assert UserReport.objects.get(event_id=event_id).environment_id == environment.id
 
     def test_user_report_gets_environment_with_new_link_features(self):
-        with self.feature("organizations:user-feedback-event-link-ingestion-changes"):
-            project = self.create_project()
-            environment = Environment.objects.create(
-                organization_id=project.organization_id, name="production"
-            )
-            environment.add_project(project)
+        project = self.create_project()
+        environment = Environment.objects.create(
+            organization_id=project.organization_id, name="production"
+        )
+        environment.add_project(project)
 
-            event_id = "a" * 32
-            event = self.store_event(
-                data={"environment": environment.name, "event_id": event_id},
-                project_id=project.id,
-            )
-            UserReport.objects.create(
-                project_id=project.id,
-                event_id=event_id,
-                name="foo",
-                email="bar@example.com",
-                comments="It Broke!!!",
-            )
+        event_id = "a" * 32
+        event = self.store_event(
+            data={"environment": environment.name, "event_id": event_id},
+            project_id=project.id,
+        )
+        UserReport.objects.create(
+            project_id=project.id,
+            event_id=event_id,
+            name="foo",
+            email="bar@example.com",
+            comments="It Broke!!!",
+        )
 
         self.call_post_process_group(
             is_new=True,
@@ -2026,93 +2051,96 @@ class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
 
         assert UserReport.objects.get(event_id=event_id).environment_id == environment.id
 
-    @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
+    @patch("sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka")
     def test_user_report_shims_to_feedback(self, mock_produce_occurrence_to_kafka):
-        with self.feature("organizations:user-feedback-event-link-ingestion-changes"):
-            project = self.create_project()
-            environment = Environment.objects.create(
-                organization_id=project.organization_id, name="production"
-            )
-            environment.add_project(project)
+        project = self.create_project()
+        environment = Environment.objects.create(
+            organization_id=project.organization_id, name="production"
+        )
+        environment.add_project(project)
 
-            event_id = "a" * 32
+        event_id = "a" * 32
 
-            UserReport.objects.create(
-                project_id=project.id,
-                event_id=event_id,
-                name="Foo Bar",
-                email="bar@example.com",
-                comments="It Broke!!!",
-            )
+        UserReport.objects.create(
+            project_id=project.id,
+            event_id=event_id,
+            name="Foo Bar",
+            email="bar@example.com",
+            comments="It Broke!!!",
+        )
 
-            event = self.store_event(
-                data={"environment": environment.name, "event_id": event_id},
-                project_id=project.id,
-            )
+        event = self.store_event(
+            data={"environment": environment.name, "event_id": event_id},
+            project_id=project.id,
+        )
 
-            self.call_post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=True,
-                event=event,
-            )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
 
-            report1 = UserReport.objects.get(project_id=project.id, event_id=event.event_id)
-            assert report1.group_id == event.group_id
-            assert report1.environment_id == event.get_environment().id
+        report1 = UserReport.objects.get(project_id=project.id, event_id=event.event_id)
+        assert report1.group_id == event.group_id
+        assert report1.environment_id == event.get_environment().id
 
-            assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
-            mock_event_data = mock_produce_occurrence_to_kafka.call_args_list[0][1]["event_data"]
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
+        mock_event_data = mock_produce_occurrence_to_kafka.call_args_list[0][1]["event_data"]
 
-            assert mock_event_data["contexts"]["feedback"]["contact_email"] == "bar@example.com"
-            assert mock_event_data["contexts"]["feedback"]["message"] == "It Broke!!!"
-            assert mock_event_data["contexts"]["feedback"]["name"] == "Foo Bar"
-            assert mock_event_data["environment"] == environment.name
-            assert mock_event_data["tags"]["environment"] == environment.name
-            assert mock_event_data["tags"]["level"] == "error"
-            assert mock_event_data["tags"]["user.email"] == "bar@example.com"
+        assert mock_event_data["contexts"]["feedback"]["contact_email"] == "bar@example.com"
+        assert mock_event_data["contexts"]["feedback"]["message"] == "It Broke!!!"
+        assert mock_event_data["contexts"]["feedback"]["name"] == "Foo Bar"
+        assert mock_event_data["environment"] == environment.name
+        assert mock_event_data["tags"]["environment"] == environment.name
+        assert mock_event_data["tags"]["level"] == "error"
+        assert mock_event_data["tags"]["user.email"] == "bar@example.com"
 
-            assert mock_event_data["platform"] == "other"
-            assert mock_event_data["contexts"]["feedback"]["associated_event_id"] == event.event_id
-            assert mock_event_data["level"] == "error"
+        assert mock_event_data["platform"] == "other"
+        assert mock_event_data["contexts"]["feedback"]["associated_event_id"] == event.event_id
+        assert mock_event_data["level"] == "error"
 
-    @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
+        occurrence = mock_produce_occurrence_to_kafka.call_args_list[0][1]["occurrence"]
+        assert occurrence.issue_title == get_feedback_title(
+            mock_event_data["contexts"]["feedback"]["message"]
+        )
+
+    @patch("sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka")
     def test_user_reports_no_shim_if_group_exists_on_report(self, mock_produce_occurrence_to_kafka):
-        with self.feature("organizations:user-feedback-event-link-ingestion-changes"):
-            project = self.create_project()
-            environment = Environment.objects.create(
-                organization_id=project.organization_id, name="production"
-            )
-            environment.add_project(project)
+        project = self.create_project()
+        environment = Environment.objects.create(
+            organization_id=project.organization_id, name="production"
+        )
+        environment.add_project(project)
 
-            event_id = "a" * 32
+        event_id = "a" * 32
 
-            UserReport.objects.create(
-                project_id=project.id,
-                event_id=event_id,
-                name="Foo Bar",
-                email="bar@example.com",
-                comments="It Broke!!!",
-                environment_id=environment.id,
-            )
+        UserReport.objects.create(
+            project_id=project.id,
+            event_id=event_id,
+            name="Foo Bar",
+            email="bar@example.com",
+            comments="It Broke!!!",
+            environment_id=environment.id,
+        )
 
-            event = self.store_event(
-                data={"environment": environment.name, "event_id": event_id},
-                project_id=project.id,
-            )
+        event = self.store_event(
+            data={"environment": environment.name, "event_id": event_id},
+            project_id=project.id,
+        )
 
-            self.call_post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=True,
-                event=event,
-            )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
 
-            # since the environment already exists on this user report, we know that
-            # the report and the event have already been linked, so no feedback shim should be produced
-            report1 = UserReport.objects.get(project_id=project.id, event_id=event.event_id)
-            assert report1.environment_id == event.get_environment().id
-            assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
+        # since the environment already exists on this user report, we know that
+        # the report and the event have already been linked, so no feedback shim should be produced
+        report1 = UserReport.objects.get(project_id=project.id, event_id=event.event_id)
+        assert report1.environment_id == event.get_environment().id
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
 
 
 class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
@@ -2582,11 +2610,9 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
     @with_feature("organizations:trigger-autofix-on-issue-summary")
-    def test_kick_off_seer_automation_skips_existing_summary_and_score(
+    def test_kick_off_seer_automation_skips_existing_fixability_score(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
-        from sentry.seer.issue_summary import get_issue_summary_cache_key
-
         self.project.update_option("sentry:seer_scanner_automation", True)
         event = self.create_event(
             data={"message": "testing"},
@@ -2597,10 +2623,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         group = event.group
         group.seer_fixability_score = 0.75
         group.save()
-
-        # Set cached issue summary
-        cache_key = get_issue_summary_cache_key(group.id)
-        cache.set(cache_key, {"summary": "test summary"}, 3600)
 
         self.call_post_process_group(
             is_new=False,  # Not a new group
@@ -2621,8 +2643,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     def test_kick_off_seer_automation_runs_with_missing_fixability_score(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
-        from sentry.seer.issue_summary import get_issue_summary_cache_key
-
         self.project.update_option("sentry:seer_scanner_automation", True)
         event = self.create_event(
             data={"message": "testing"},
@@ -2632,10 +2652,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         # Group has no seer_fixability_score (None by default)
         group = event.group
         assert group.seer_fixability_score is None
-
-        # Set cached issue summary
-        cache_key = get_issue_summary_cache_key(group.id)
-        cache.set(cache_key, {"summary": "test summary"}, 3600)
 
         self.call_post_process_group(
             is_new=False,  # Not a new group
@@ -2653,10 +2669,10 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
     @with_feature("organizations:trigger-autofix-on-issue-summary")
-    def test_kick_off_seer_automation_runs_with_missing_summary_cache(
+    def test_kick_off_seer_automation_skips_with_existing_fixability_score(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
-        from sentry.seer.issue_summary import get_issue_summary_cache_key
+        from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
 
         self.project.update_option("sentry:seer_scanner_automation", True)
         event = self.create_event(
@@ -2680,9 +2696,9 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
 
-        mock_start_seer_automation.assert_called_once_with(group.id)
+        mock_start_seer_automation.assert_not_called()
 
-    @patch("sentry.autofix.utils.is_seer_scanner_rate_limited")
+    @patch("sentry.seer.autofix.utils.is_seer_scanner_rate_limited")
     @patch("sentry.quotas.backend.has_available_reserved_budget")
     @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement")
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
@@ -2789,7 +2805,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
         """Test that seer automation is skipped when another task is already processing the same issue"""
-        from sentry.seer.issue_summary import get_issue_summary_lock_key
+        from sentry.seer.autofix.issue_summary import get_issue_summary_lock_key
         from sentry.tasks.post_process import locks
 
         self.project.update_option("sentry:seer_scanner_automation", True)
@@ -2829,6 +2845,34 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
 
         # Now it should be called since no lock is held
         mock_start_seer_automation.assert_called_once_with(event2.group.id)
+
+    @patch(
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        return_value=True,
+    )
+    @patch("sentry.tasks.autofix.start_seer_automation.delay")
+    @with_feature("organizations:gen-ai-features")
+    @with_feature("organizations:trigger-autofix-on-issue-summary")
+    def test_kick_off_seer_automation_with_hide_ai_features_enabled(
+        self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
+    ):
+        """Test that seer automation is not started when organization has hideAiFeatures set to True"""
+        self.project.update_option("sentry:seer_scanner_automation", True)
+        self.organization.update_option("sentry:hide_ai_features", True)
+
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_start_seer_automation.assert_not_called()
 
 
 class PostProcessGroupErrorTest(
@@ -3174,6 +3218,9 @@ class PostProcessGroupFeedbackTest(
         is_spam=False,
     ):
         data["type"] = "generic"
+        if "message" not in data:
+            data["message"] = "It Broke!!!"
+
         event = self.store_event(
             data=data, project_id=project_id, assert_no_errors=assert_no_errors
         )
@@ -3195,7 +3242,7 @@ class PostProcessGroupFeedbackTest(
             **{
                 "id": uuid.uuid4().hex,
                 "fingerprint": ["c" * 32],
-                "issue_title": "User Feedback",
+                "issue_title": get_feedback_title(data["message"]),
                 "subtitle": "it was bad",
                 "culprit": "api/123",
                 "resource_id": "1234",
@@ -3216,10 +3263,7 @@ class PostProcessGroupFeedbackTest(
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
-        with (
-            self.feature(FeedbackGroup.build_post_process_group_feature_name()),
-            self.feature("organizations:user-feedback-spam-filter-actions"),
-        ):
+        with self.feature(FeedbackGroup.build_post_process_group_feature_name()):
             post_process_group(
                 is_new=is_new,
                 is_regression=is_regression,
@@ -3335,7 +3379,7 @@ class PostProcessGroupFeedbackTest(
 
     def test_ran_if_default_on_new_projects(self):
         event = self.create_event(
-            data={},
+            data={"message": "It Broke!!!"},
             project_id=self.project.id,
             feedback_type=FeedbackCreationSource.CRASH_REPORT_EMBED_FORM,
         )
@@ -3356,10 +3400,11 @@ class PostProcessGroupFeedbackTest(
                 cache_key="total_rubbish",
             )
         assert mock_process_func.call_count == 1
+        assert event.occurrence.issue_title == "User Feedback: It Broke!!!"
 
     def test_ran_if_crash_feedback_envelope(self):
         event = self.create_event(
-            data={},
+            data={"message": "It Broke!!!"},
             project_id=self.project.id,
             feedback_type=FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
         )
@@ -3380,6 +3425,7 @@ class PostProcessGroupFeedbackTest(
                 cache_key="total_rubbish",
             )
         assert mock_process_func.call_count == 1
+        assert event.occurrence.issue_title == "User Feedback: It Broke!!!"
 
     def test_logs_if_source_missing(self):
         event = self.create_event(

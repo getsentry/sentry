@@ -13,13 +13,12 @@ import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
-import {useDiscoverOrEap} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {EventSamplesTable} from 'sentry/views/insights/mobile/screenload/components/tables/eventSamplesTable';
-import {SpanMetricsField} from 'sentry/views/insights/types';
-
+import {SpanFields} from 'sentry/views/insights/types';
+// test
 const DEFAULT_SORT = {
   kind: 'desc',
   field: 'measurements.time_to_initial_display',
@@ -41,34 +40,24 @@ export function ScreenLoadEventSamples({
   showDeviceClassSelector,
 }: Props) {
   const location = useLocation();
-  const useEap = useInsightsEap();
   const {selection} = usePageFilters();
   const {primaryRelease} = useReleaseSelection();
   const cursor = decodeScalar(location.query?.[cursorName]);
   const {selectedPlatform: platform, isProjectCrossPlatform} = useCrossPlatformProject();
 
-  const deviceClass = decodeScalar(location.query[SpanMetricsField.DEVICE_CLASS]);
-  const subregions = decodeList(location.query[SpanMetricsField.USER_GEO_SUBREGION]);
+  const deviceClass = decodeScalar(location.query[SpanFields.DEVICE_CLASS]);
+  const subregions = decodeList(location.query[SpanFields.USER_GEO_SUBREGION]);
 
   const searchQuery = useMemo(() => {
-    const mutableQuery = useEap
-      ? new MutableSearch([
-          'span.op:[ui.load,navigation]',
-          `is_transaction:true`,
-          `transaction:${transaction}`,
-          `release:${release}`,
-        ])
-      : new MutableSearch([
-          'transaction.op:[ui.load,navigation]',
-          `transaction:${transaction}`,
-          `release:${release}`,
-        ]);
+    const mutableQuery = new MutableSearch([
+      'span.op:[ui.load,navigation]',
+      `is_transaction:true`,
+      `transaction:${transaction}`,
+      `release:${release}`,
+    ]);
 
     if (subregions.length > 0) {
-      mutableQuery.addDisjunctionFilterValues(
-        SpanMetricsField.USER_GEO_SUBREGION,
-        subregions
-      );
+      mutableQuery.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
     }
 
     if (isProjectCrossPlatform) {
@@ -84,15 +73,7 @@ export function ScreenLoadEventSamples({
     }
 
     return mutableQuery;
-  }, [
-    deviceClass,
-    isProjectCrossPlatform,
-    platform,
-    release,
-    transaction,
-    subregions,
-    useEap,
-  ]);
+  }, [deviceClass, isProjectCrossPlatform, platform, release, transaction, subregions]);
 
   const sort = decodeSorts(location.query[sortKey])[0] ?? DEFAULT_SORT;
 
@@ -126,7 +107,7 @@ export function ScreenLoadEventSamples({
   const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
   eventView.sorts = [sort];
 
-  const {data, meta, isPending, pageLinks} = useDiscoverOrEap(
+  const {data, meta, isPending, pageLinks} = useSpans(
     {
       search: searchQuery.formatString(),
       cursor,

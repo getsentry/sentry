@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {Link} from 'sentry/components/core/link';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
-import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
@@ -17,7 +17,7 @@ import {useReleaseSelection} from 'sentry/views/insights/common/queries/useRelea
 import {SpanSamplesContainer} from 'sentry/views/insights/mobile/common/components/spanSamplesPanelContainer';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {type ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {type ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 type Props = {
@@ -34,16 +34,16 @@ export function SpanSamplesPanel({groupId, moduleName, transactionRoute}: Props)
   const {view} = useDomainViewFilters();
 
   const {
-    [SpanMetricsField.APP_START_TYPE]: appStartType,
-    [SpanMetricsField.DEVICE_CLASS]: deviceClass,
+    [SpanFields.APP_START_TYPE]: appStartType,
+    [SpanFields.DEVICE_CLASS]: deviceClass,
     transaction: transactionName,
     transactionMethod,
     spanOp,
     spanDescription,
   } = useLocationQuery({
     fields: {
-      [SpanMetricsField.APP_START_TYPE]: decodeScalar,
-      [SpanMetricsField.DEVICE_CLASS]: decodeScalar,
+      [SpanFields.APP_START_TYPE]: decodeScalar,
+      [SpanFields.DEVICE_CLASS]: decodeScalar,
       transaction: decodeScalar,
       transactionMethod: decodeScalar,
       spanOp: decodeScalar,
@@ -52,8 +52,8 @@ export function SpanSamplesPanel({groupId, moduleName, transactionRoute}: Props)
   });
 
   const additionalFilters = {
-    ...(appStartType ? {[SpanMetricsField.APP_START_TYPE]: appStartType} : {}),
-    ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
+    ...(appStartType ? {[SpanFields.APP_START_TYPE]: appStartType} : {}),
+    ...(deviceClass ? {[SpanFields.DEVICE_CLASS]: deviceClass} : {}),
   };
 
   transactionRoute ??= getTransactionSummaryBaseUrl(organization, view);

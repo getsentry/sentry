@@ -35,6 +35,7 @@ export type Project = {
   hasInsightsDb: boolean;
   hasInsightsHttp: boolean;
   hasInsightsLlmMonitoring: boolean;
+  hasInsightsMCP: boolean;
   hasInsightsQueues: boolean;
   hasInsightsScreenLoad: boolean;
   hasInsightsVitals: boolean;
@@ -268,6 +269,7 @@ export type PlatformKey =
   | 'php-monolog'
   | 'php-symfony'
   | 'php-symfony2'
+  | 'playstation'
   | 'powershell'
   | 'python'
   | 'python-aiohttp'
@@ -308,7 +310,8 @@ export type PlatformKey =
   | 'swift'
   | 'switt'
   | 'unity'
-  | 'unreal';
+  | 'unreal'
+  | 'xbox';
 
 export type PlatformIntegration = {
   id: PlatformKey;

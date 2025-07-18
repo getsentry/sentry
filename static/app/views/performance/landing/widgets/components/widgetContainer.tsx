@@ -271,6 +271,7 @@ function WidgetInteractiveTitle({
         typeof eventView.yAxis === 'string' ? [eventView.yAxis] : (eventView.yAxis ?? []);
       navigate(
         getExploreUrl({
+          selection: eventView.getPageFilters(),
           organization,
           visualize: yAxis?.map(y => ({
             chartType: ChartType.LINE,

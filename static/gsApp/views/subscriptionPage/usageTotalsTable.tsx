@@ -18,7 +18,6 @@ import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
   isContinuousProfiling,
-  isSeer,
 } from 'getsentry/utils/dataCategory';
 import {StripedTable} from 'getsentry/views/subscriptionPage/styles';
 import {displayPercentage} from 'getsentry/views/subscriptionPage/usageTotals';
@@ -145,6 +144,8 @@ type Props = {
 };
 
 function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Props) {
+  const categoryInfo = getCategoryInfoFromPlural(category);
+
   function OutcomeTable({children}: {children: React.ReactNode}) {
     const categoryName = isEventBreakdown
       ? toTitleCase(category, {allowInnerUpperCase: true})
@@ -167,10 +168,9 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
               <TextOverflow>
                 {isEventBreakdown
                   ? tct('[singularName] Events', {
-                      singularName: toTitleCase(
-                        getCategoryInfoFromPlural(category)?.displayName ?? category,
-                        {allowInnerUpperCase: true}
-                      ),
+                      singularName: toTitleCase(categoryInfo?.displayName ?? category, {
+                        allowInnerUpperCase: true,
+                      }),
                     })
                   : categoryName}
               </TextOverflow>
@@ -191,6 +191,8 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
     ? t('Total Dropped (estimated)')
     : t('Total Dropped');
 
+  const hasSpikeProtection = categoryInfo?.hasSpikeProtection ?? false;
+
   return (
     <UsageTableWrapper>
       <OutcomeTable>
@@ -200,21 +202,21 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
           category={category}
           totals={totals}
         />
-        {!isSeer(category) && (
-          <OutcomeSection
-            isEventBreakdown={isEventBreakdown}
-            name={totalDropped}
-            quantity={totals.dropped}
+        <OutcomeSection
+          isEventBreakdown={isEventBreakdown}
+          name={totalDropped}
+          quantity={totals.dropped}
+          category={category}
+          totals={totals}
+        >
+          <OutcomeRow
+            indent
+            name={t('Over Quota')}
+            quantity={totals.droppedOverQuota}
             category={category}
             totals={totals}
-          >
-            <OutcomeRow
-              indent
-              name={t('Over Quota')}
-              quantity={totals.droppedOverQuota}
-              category={category}
-              totals={totals}
-            />
+          />
+          {hasSpikeProtection && (
             <OutcomeRow
               indent
               name={t('Spike Protection')}
@@ -222,18 +224,18 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
               category={category}
               totals={totals}
             />
-            <OutcomeRow
-              indent
-              name={t('Other')}
-              quantity={totals.droppedOther}
-              category={category}
-              totals={totals}
-              tooltipTitle={t(
-                'The dropped other category is for all uncategorized dropped events. This is commonly due to user configured rate limits.'
-              )}
-            />
-          </OutcomeSection>
-        )}
+          )}
+          <OutcomeRow
+            indent
+            name={t('Other')}
+            quantity={totals.droppedOther}
+            category={category}
+            totals={totals}
+            tooltipTitle={t(
+              'The dropped other category is for all uncategorized dropped events. This is commonly due to user configured rate limits.'
+            )}
+          />
+        </OutcomeSection>
       </OutcomeTable>
     </UsageTableWrapper>
   );

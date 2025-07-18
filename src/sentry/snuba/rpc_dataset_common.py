@@ -385,7 +385,9 @@ def run_table_query(
 
 
 def process_table_response(
-    rpc_response: TraceItemTableResponse, table_request: TableRequest, debug: bool = False
+    rpc_response: TraceItemTableResponse,
+    table_request: TableRequest,
+    debug: bool = False,
 ) -> EAPResponse:
     """Process the results"""
     final_data: SnubaData = []
@@ -462,7 +464,7 @@ def build_top_event_conditions(
                 )
             )
             if resolved_term is not None:
-                row_conditions.append(resolved_term)
+                row_conditions.extend(resolved_term)
             other_term, context = resolver.resolve_term(
                 SearchFilter(
                     key=SearchKey(name=key),
@@ -471,7 +473,7 @@ def build_top_event_conditions(
                 )
             )
             if other_term is not None:
-                other_row_conditions.append(other_term)
+                other_row_conditions.extend(other_term)
         conditions.append(TraceItemFilter(and_filter=AndFilter(filters=row_conditions)))
         other_conditions.append(TraceItemFilter(or_filter=OrFilter(filters=other_row_conditions)))
     return (

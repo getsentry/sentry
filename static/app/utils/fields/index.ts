@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
-import {SpanFields, SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
 export enum FieldKind {
@@ -826,9 +826,9 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
 };
 
 // TODO: Extend the two lists below with more options upon backend support
-export const ALLOWED_EXPLORE_VISUALIZE_FIELDS: SpanIndexedField[] = [
-  SpanIndexedField.SPAN_DURATION, // DO NOT RE-ORDER: the first element is used as the default
-  SpanIndexedField.SPAN_SELF_TIME,
+export const ALLOWED_EXPLORE_VISUALIZE_FIELDS: SpanFields[] = [
+  SpanFields.SPAN_DURATION, // DO NOT RE-ORDER: the first element is used as the default
+  SpanFields.SPAN_SELF_TIME,
 ];
 
 export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
@@ -857,13 +857,27 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
       {
         name: 'column',
         kind: 'column',
-        columnTypes: validateForNumericAggregate([
-          FieldValueType.DURATION,
-          FieldValueType.NUMBER,
-          FieldValueType.PERCENTAGE,
-        ]),
+        columnTypes: function ({key, valueType}) {
+          return (
+            key === SpanFields.SPAN_DURATION &&
+            (valueType === FieldValueType.DURATION || valueType === FieldValueType.NUMBER)
+          );
+        },
         defaultValue: 'span.duration',
         required: false,
+      },
+    ],
+  },
+  [AggregationKey.COUNT_UNIQUE]: {
+    ...AGGREGATION_FIELDS[AggregationKey.COUNT_UNIQUE],
+    valueType: FieldValueType.INTEGER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [FieldValueType.STRING],
+        defaultValue: 'span.op',
+        required: true,
       },
     ],
   },
@@ -1178,92 +1192,92 @@ const SPAN_OP_FIELDS: Record<SpanOpBreakdown, FieldDefinition> = {
 };
 
 type TraceFields =
-  | SpanIndexedField.IS_TRANSACTION
-  | SpanIndexedField.SPAN_ACTION
-  | SpanIndexedField.SPAN_DESCRIPTION
-  | SpanIndexedField.SPAN_DOMAIN
-  | SpanIndexedField.SPAN_DURATION
-  | SpanIndexedField.SPAN_GROUP
-  | SpanIndexedField.SPAN_CATEGORY
-  | SpanIndexedField.SPAN_OP
-  | SpanIndexedField.NORMALIZED_DESCRIPTION
+  | SpanFields.IS_TRANSACTION
+  | SpanFields.SPAN_ACTION
+  | SpanFields.SPAN_DESCRIPTION
+  | SpanFields.SPAN_DOMAIN
+  | SpanFields.SPAN_DURATION
+  | SpanFields.SPAN_GROUP
+  | SpanFields.SPAN_CATEGORY
+  | SpanFields.SPAN_OP
+  | SpanFields.NORMALIZED_DESCRIPTION
   // TODO: Remove self time field when it is deprecated
-  | SpanIndexedField.SPAN_SELF_TIME
-  | SpanIndexedField.SPAN_STATUS
-  | SpanIndexedField.RESPONSE_CODE
-  | SpanIndexedField.CACHE_HIT;
+  | SpanFields.SPAN_SELF_TIME
+  | SpanFields.SPAN_STATUS
+  | SpanFields.SPAN_STATUS_CODE
+  | SpanFields.CACHE_HIT;
 
 const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
   /** Indexed Fields */
-  [SpanIndexedField.SPAN_ACTION]: {
+  [SpanFields.SPAN_ACTION]: {
     desc: t(
       'The Sentry Insights span action, e.g `SELECT` for a SQL span or `POST` for an HTTP client span'
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [SpanIndexedField.SPAN_DESCRIPTION]: {
+  [SpanFields.SPAN_DESCRIPTION]: {
     desc: t('Description of the span’s operation'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [SpanIndexedField.NORMALIZED_DESCRIPTION]: {
+  [SpanFields.NORMALIZED_DESCRIPTION]: {
     desc: t(
       'Parameterized and normalized description of the span, commonly used for grouping within insights'
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [SpanIndexedField.SPAN_DOMAIN]: {
+  [SpanFields.SPAN_DOMAIN]: {
     desc: t(
       'General scope of the span’s action, i.e. the tables involved in a `db` span or the host name in an `http` span'
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [SpanIndexedField.SPAN_DURATION]: {
+  [SpanFields.SPAN_DURATION]: {
     desc: t('The total time taken by the span'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
-  [SpanIndexedField.SPAN_GROUP]: {
+  [SpanFields.SPAN_GROUP]: {
     desc: t('Unique hash of the span’s description'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [SpanIndexedField.SPAN_CATEGORY]: {
+  [SpanFields.SPAN_CATEGORY]: {
     desc: t(
       'The prefix of the span operation, e.g if `span.op` is `http.client`, then `span.category` is `http`'
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [SpanIndexedField.SPAN_OP]: {
+  [SpanFields.SPAN_OP]: {
     desc: t('The operation of the span, e.g `http.client`, `middleware`'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [SpanIndexedField.SPAN_SELF_TIME]: {
+  [SpanFields.SPAN_SELF_TIME]: {
     desc: t('The duration of the span excluding the duration of its child spans'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
-  [SpanIndexedField.SPAN_STATUS]: {
+  [SpanFields.SPAN_STATUS]: {
     desc: t('Status of the operation the span represents'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [SpanIndexedField.RESPONSE_CODE]: {
+  [SpanFields.SPAN_STATUS_CODE]: {
     desc: t('The HTTP response status code'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [SpanIndexedField.IS_TRANSACTION]: {
+  [SpanFields.IS_TRANSACTION]: {
     desc: t('The span is also a transaction'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.BOOLEAN,
   },
-  [SpanIndexedField.CACHE_HIT]: {
+  [SpanFields.CACHE_HIT]: {
     desc: t('`true` if the  cache was hit, `false` otherwise'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.BOOLEAN,
@@ -1914,8 +1928,15 @@ const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [SpanFields.STATUS]: {
+  [SpanFields.SPAN_STATUS]: {
     desc: t('Span status. Indicates whether the span operation was successful.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanFields.STATUS_MESSAGE]: {
+    desc: t(
+      'Span status message. If the span operation was not successful, this contains an error message.'
+    ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -2511,7 +2532,6 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
 
 export enum FeedbackFieldKey {
   BROWSER_NAME = 'browser.name',
-  BROWSER_VERSION = 'browser.version',
   LOCALE_LANG = 'locale.lang',
   LOCALE_TIMEZONE = 'locale.timezone',
   MESSAGE = 'message',
@@ -2523,10 +2543,8 @@ export enum FeedbackFieldKey {
 export const FEEDBACK_FIELDS = [
   FieldKey.ASSIGNED,
   FeedbackFieldKey.BROWSER_NAME,
-  FeedbackFieldKey.BROWSER_VERSION,
   FieldKey.DEVICE_BRAND,
   FieldKey.DEVICE_FAMILY,
-  FieldKey.DEVICE_MODEL_ID,
   FieldKey.DEVICE_NAME,
   FieldKey.DIST,
   FieldKey.ENVIRONMENT,
@@ -2561,11 +2579,6 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FeedbackFieldKey.BROWSER_VERSION]: {
-    desc: t('Version number of the browser'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
   [FeedbackFieldKey.LOCALE_LANG]: {
     desc: t('Language preference of the user'),
     kind: FieldKind.FIELD,
@@ -2577,7 +2590,9 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FeedbackFieldKey.MESSAGE]: {
-    desc: t('Message written by the user providing feedback.'),
+    desc: t(
+      'Message written by the user providing feedback. Search is case insensitive and supports substrings.'
+    ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowWildcard: true,

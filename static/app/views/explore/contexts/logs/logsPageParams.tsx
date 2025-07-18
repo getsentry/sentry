@@ -25,6 +25,11 @@ import {
   updateLocationWithAggregateSortBys,
   updateLocationWithLogSortBys,
 } from 'sentry/views/explore/contexts/logs/sortBys';
+import {
+  getModeFromLocation,
+  type Mode,
+  updateLocationWithMode,
+} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {useLogsQueryKeyWithInfinite} from 'sentry/views/explore/logs/useLogsQuery';
 
@@ -52,6 +57,7 @@ interface LogsPageParams {
   readonly cursor: string;
   readonly fields: string[];
   readonly isTableFrozen: boolean | undefined;
+  readonly mode: Mode;
   readonly refreshInterval: number;
   readonly search: MutableSearch;
   /**
@@ -113,6 +119,7 @@ const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
 interface LogsPageParamsProviderProps {
   analyticsPageSource: LogsAnalyticsPageSource;
   children: React.ReactNode;
+  _testContext?: Partial<LogsPageParams>;
   blockRowExpanding?: boolean;
   isTableFrozen?: boolean;
   limitToProjectIds?: number[];
@@ -128,6 +135,7 @@ export function LogsPageParamsProvider({
   blockRowExpanding,
   isTableFrozen,
   analyticsPageSource,
+  _testContext,
 }: LogsPageParamsProviderProps) {
   const location = useLocation();
   const logsQuery = decodeLogsQuery(location);
@@ -174,6 +182,7 @@ export function LogsPageParamsProvider({
     ...(groupBy ? [groupBy] : []),
     aggregate,
   ]);
+  const mode = getModeFromLocation(location);
   const pageFilters = usePageFilters();
   const projectIds = isTableFrozen
     ? (limitToProjectIds ?? [-1])
@@ -207,6 +216,8 @@ export function LogsPageParamsProvider({
         groupBy,
         aggregateFn,
         aggregateParam,
+        mode,
+        ..._testContext,
       }}
     >
       {children}
@@ -235,6 +246,7 @@ function setLogsPageParams(location: Location, pageParams: LogPageParamsUpdate) 
   updateNullableLocation(target, LOGS_GROUP_BY_KEY, pageParams.groupBy);
   updateNullableLocation(target, LOGS_AGGREGATE_FN_KEY, pageParams.aggregateFn);
   updateNullableLocation(target, LOGS_AGGREGATE_PARAM_KEY, pageParams.aggregateParam);
+  updateLocationWithMode(target, pageParams.mode); // Can be swapped with updateNullableLocation if we merge page params.
   if (!pageParams.isTableFrozen) {
     updateLocationWithLogSortBys(target, pageParams.sortBys);
     updateLocationWithAggregateSortBys(target, pageParams.aggregateSortBys);
@@ -472,6 +484,21 @@ export function useLogsAnalyticsPageSource() {
   return analyticsPageSource;
 }
 
+export function useLogsMode() {
+  const {mode} = useLogsPageParams();
+  return mode;
+}
+
+export function useSetLogsMode() {
+  const setPageParams = useSetLogsPageParams();
+  return useCallback(
+    (mode: Mode) => {
+      setPageParams({mode});
+    },
+    [setPageParams]
+  );
+}
+
 function getLogCursorFromLocation(location: Location): string {
   if (!location.query?.[LOGS_CURSOR_KEY]) {
     return '';
@@ -511,14 +538,19 @@ export function useLogsAutoRefresh() {
 
 export function useSetLogsAutoRefresh() {
   const setPageParams = useSetLogsPageParams();
-  const {queryKey} = useLogsQueryKeyWithInfinite({referrer: 'api.explore.logs-table'});
+  const {queryKey} = useLogsQueryKeyWithInfinite({
+    referrer: 'api.explore.logs-table',
+    autoRefresh: false,
+  });
   const queryClient = useQueryClient();
   return useCallback(
     (autoRefresh: boolean) => {
-      setPageParams({autoRefresh});
       if (autoRefresh) {
         queryClient.removeQueries({queryKey});
+        // Until we change our timeseries hooks to be build their query keys separately, we need to remove the query via the route.
+        queryClient.removeQueries({queryKey: ['events-stats']});
       }
+      setPageParams({autoRefresh});
     },
     [setPageParams, queryClient, queryKey]
   );

@@ -24,7 +24,7 @@ interface CheckInTimelineConfig<Status extends string> {
   /**
    * Configures the styling of the tooltip labels
    */
-  statusStyle: Record<Status, TickStyle>;
+  statusStyle: TickStyle<Status>;
   timeWindowConfig: TimeWindowConfig;
   className?: string;
   style?: React.CSSProperties;
@@ -152,6 +152,8 @@ const TimelineContainer = styled('div')`
   height: 14px;
   width: 100%;
   overflow: hidden;
+  /* TimelineContainer should be above the GridLineContainer */
+  z-index: 2;
 `;
 
 const JobTick = styled('div')<{

@@ -1,9 +1,8 @@
 import * as Sentry from '@sentry/react';
-import type {Location, LocationDescriptorObject} from 'history';
+import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
-import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import type {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -47,43 +46,34 @@ export function eventDetailsRoute({
  */
 export function generateLinkToEventInTraceView({
   organization,
-  isHomepage,
   location,
   spanId,
-  projectSlug,
   timestamp,
   traceSlug,
   eventId,
-  transactionName,
   eventView,
   targetId,
   demo,
   source,
-  type = 'performance',
   view,
 }: {
   location: Location;
   organization: Organization;
-  projectSlug: string;
   timestamp: string | number;
   traceSlug: string;
   demo?: string;
   eventId?: string;
   eventView?: EventView;
-  isHomepage?: boolean;
   source?: TraceViewSources;
   spanId?: string;
   // targetId represents the span id of the transaction. It will replace eventId once all links
   // to trace view are updated to use spand ids of transactions instead of event ids.
   targetId?: string;
-  transactionName?: string;
-  type?: 'performance' | 'discover';
   view?: DomainView;
 }) {
   const _eventView = eventView ?? EventView.fromLocation(location);
   const dateSelection = _eventView.normalizeDateSelection(location);
   const normalizedTimestamp = getTimeStampFromTableDateField(timestamp);
-  const eventSlug = generateEventSlug({id: eventId, project: projectSlug});
 
   if (!traceSlug) {
     Sentry.withScope(scope => {
@@ -93,45 +83,19 @@ export function generateLinkToEventInTraceView({
     });
   }
 
-  if (organization.features.includes('trace-view-v1')) {
-    return getTraceDetailsUrl({
-      organization,
-      traceSlug,
-      dateSelection,
-      timestamp: normalizedTimestamp,
-      eventId,
-      targetId,
-      spanId,
-      demo,
-      location,
-      source,
-      view,
-    });
-  }
-
-  if (type === 'performance') {
-    return getTransactionDetailsUrl(
-      organization.slug,
-      eventSlug,
-      transactionName,
-      location.query,
-      spanId
-    );
-  }
-
-  const target: LocationDescriptorObject = {
-    pathname: eventDetailsRoute({
-      organization,
-      eventSlug,
-    }),
-    query: {..._eventView.generateQueryStringObject(), homepage: isHomepage},
-  };
-
-  if (spanId) {
-    target.hash = `span-${spanId}`;
-  }
-
-  return target;
+  return getTraceDetailsUrl({
+    organization,
+    traceSlug,
+    dateSelection,
+    timestamp: normalizedTimestamp,
+    eventId,
+    targetId,
+    spanId,
+    demo,
+    location,
+    source,
+    view,
+  });
 }
 
 /**

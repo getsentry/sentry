@@ -21,6 +21,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.auth.access import SystemAccess
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.db.models import Model
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents import tasks
 from sentry.incidents.models.alert_rule import (
@@ -99,6 +100,7 @@ from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.not_set import NOT_SET, NotSet
 from sentry.utils.snuba import is_measurement
+from sentry.workflow_engine.endpoints.validators.utils import toggle_detector
 from sentry.workflow_engine.models.detector import Detector
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
@@ -560,9 +562,7 @@ def create_alert_rule(
 
     :return: The created `AlertRule`
     """
-    has_anomaly_detection = features.has(
-        "organizations:anomaly-detection-alerts", organization
-    ) and features.has("organizations:anomaly-detection-rollout", organization)
+    has_anomaly_detection = features.has("organizations:anomaly-detection-alerts", organization)
 
     if detection_type == AlertRuleDetectionType.DYNAMIC.value and not has_anomaly_detection:
         raise ResourceDoesNotExist("Your organization does not have access to this feature.")
@@ -696,6 +696,19 @@ def snapshot_alert_rule(alert_rule: AlertRule, user: RpcUser | User | None = Non
         snuba_query_snapshot: SnubaQuery = deepcopy(_unpack_snuba_query(alert_rule))
         nullify_id(snuba_query_snapshot)
         snuba_query_snapshot.save()
+
+        event_types = SnubaQueryEventType.objects.filter(
+            snuba_query=_unpack_snuba_query(alert_rule)
+        )
+        new_event_snapshots = []
+        for event_type in event_types:
+            event_type_snapshot = deepcopy(event_type)
+            nullify_id(event_type_snapshot)
+            event_type_snapshot.snuba_query = snuba_query_snapshot
+            new_event_snapshots.append(event_type_snapshot)
+
+        SnubaQueryEventType.objects.bulk_create(new_event_snapshots)
+
         alert_rule_snapshot = deepcopy(alert_rule)
         nullify_id(alert_rule_snapshot)
         alert_rule_snapshot.status = AlertRuleStatus.SNAPSHOT.value
@@ -885,9 +898,7 @@ def update_alert_rule(
             updated_fields["team_id"] = alert_rule.team_id
 
         if detection_type == AlertRuleDetectionType.DYNAMIC:
-            if not features.has(
-                "organizations:anomaly-detection-alerts", organization
-            ) and not features.has("organizations:anomaly-detection-rollout", organization):
+            if not features.has("organizations:anomaly-detection-alerts", organization):
                 raise ResourceDoesNotExist(
                     "Your organization does not have access to this feature."
                 )
@@ -1019,20 +1030,24 @@ def disable_alert_rule(alert_rule: AlertRule) -> None:
         bulk_disable_snuba_subscriptions(_unpack_snuba_query(alert_rule).subscriptions.all())
 
 
-def update_detector(detector: Detector, enabled: bool) -> None:
-    updated_detector_status = ObjectStatus.ACTIVE if enabled else ObjectStatus.DISABLED
+def enable_disable_subscriptions(
+    query_subscriptions: BaseQuerySet[QuerySubscription], enabled: bool
+) -> None:
+    if enabled:
+        bulk_enable_snuba_subscriptions(query_subscriptions)
+    else:
+        bulk_disable_snuba_subscriptions(query_subscriptions)
 
+
+def update_detector(detector: Detector, enabled: bool) -> None:
     with transaction.atomic(router.db_for_write(Detector)):
-        detector.update(status=updated_detector_status)
-        detector.update(enabled=enabled)
+        toggle_detector(detector, enabled)
+
         query_subscriptions = QuerySubscription.objects.filter(
             id__in=[data_source.source_id for data_source in detector.data_sources.all()]
         )
         if query_subscriptions:
-            if enabled:
-                bulk_enable_snuba_subscriptions(query_subscriptions)
-            else:
-                bulk_disable_snuba_subscriptions(query_subscriptions)
+            enable_disable_subscriptions(query_subscriptions, enabled)
 
 
 def delete_alert_rule(

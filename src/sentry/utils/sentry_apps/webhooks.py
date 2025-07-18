@@ -5,10 +5,11 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Concatenate, ParamSpec, TypeVar
 
 from requests import RequestException, Response
-from requests.exceptions import ConnectionError, Timeout
+from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
 from rest_framework import status
 
 from sentry import options
+from sentry.exceptions import RestrictedIPAddress
 from sentry.http import safe_urlopen
 from sentry.sentry_apps.metrics import (
     SentryAppEventType,
@@ -41,7 +42,7 @@ def ignore_unpublished_app_errors(
     ) -> R | None:
         try:
             return func(sentry_app, *args, **kwargs)
-        except Exception:
+        except (Exception, RequestException):
             if sentry_app.is_published:
                 raise
             else:
@@ -120,6 +121,16 @@ def send_and_save_webhook_request(
             lifecycle.record_halt(e)
             # Re-raise the exception because some of these tasks might retry on the exception
             raise
+        except ChunkedEncodingError:
+            lifecycle.record_halt(
+                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.CONNECTION_RESET}"
+            )
+            raise
+        except RestrictedIPAddress:
+            lifecycle.record_halt(
+                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.RESTRICTED_IP}"
+            )
+            raise
 
         track_response_code(response.status_code, slug, event)
         buffer.add_request(
@@ -147,7 +158,8 @@ def send_and_save_webhook_request(
 
         elif 400 <= response.status_code < 500:
             lifecycle.record_halt(
-                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.GOT_CLIENT_ERROR}_{response.status_code}"
+                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.GOT_CLIENT_ERROR}_{response.status_code}",
+                sample_log_rate=0.05,
             )
             raise ClientError(response.status_code, url, response=response)
 

@@ -7,8 +7,8 @@ import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';
-import GridEditable from 'sentry/components/gridEditable';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
+import GridEditable from 'sentry/components/tables/gridEditable';
 import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -25,7 +25,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
-import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {
   SERVICE_ENTRY_SPANS_COLUMN_ORDER,
@@ -67,7 +67,7 @@ export function ServiceEntrySpansTable({
 
   const projectSlug = projects.find(p => p.id === `${eventView.project}`)?.slug;
   const cursor = decodeScalar(location.query?.[SERVICE_ENTRY_SPANS_CURSOR]);
-  const spanCategory = decodeScalar(location.query?.[SpanIndexedField.SPAN_CATEGORY]);
+  const spanCategory = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
   const {selected, options} = getOTelTransactionsListSort(location, spanCategory);
 
   const p95 = totalValues?.['p95()'] ?? 0;
@@ -192,7 +192,6 @@ function renderBodyCell(
     return (
       <SpanIdCell
         moduleName={ModuleName.OTHER}
-        projectSlug={projectSlug ?? ''}
         traceId={row.trace}
         timestamp={row.timestamp}
         transactionId={row.span_id}

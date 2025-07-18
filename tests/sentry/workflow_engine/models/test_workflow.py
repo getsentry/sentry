@@ -15,7 +15,7 @@ class WorkflowTest(BaseWorkflowTest):
         )
         self.data_condition = self.data_condition_group.conditions.first()
         self.group, self.event, self.group_event = self.create_group_event()
-        self.event_data = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
 
     def test_queryset(self):
         """

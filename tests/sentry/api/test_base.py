@@ -239,6 +239,20 @@ class EndpointTest(APITestCase):
             response.render()
             assert "Access-Control-Allow-Credentials" not in response
 
+    @override_options({"system.base-hostname": "acme.com"})
+    def test_disallow_credentials_when_two_origins(self):
+        org = self.create_organization()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
+
+        request = self.make_request(method="GET")
+        request.META["HTTP_ORIGIN"] = "http://evil.com, http://acme.com"
+        request.META["HTTP_AUTHORIZATION"] = self.create_basic_auth_header(apikey.key)
+
+        response = _dummy_endpoint(request)
+        response.render()
+        assert "Access-Control-Allow-Credentials" not in response
+
     def test_invalid_cors_without_auth(self):
         request = self.make_request(method="GET")
         request.META["HTTP_ORIGIN"] = "http://example.com"

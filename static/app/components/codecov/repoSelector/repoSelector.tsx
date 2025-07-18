@@ -1,20 +1,20 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
 import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
+import {useInfiniteRepositories} from 'sentry/components/codecov/repoSelector/useInfiniteRepositories';
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import DropdownButton from 'sentry/components/dropdownButton';
-import Link from 'sentry/components/links/link';
 import {IconInfo, IconSync} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 import {IconRepository} from './iconRepository';
-
-const CODECOV_PLACEHOLDER_REPOS = ['gazebo', 'sentry'];
 
 function SyncRepoButton() {
   return (
@@ -55,7 +55,11 @@ function MenuFooter({repoAccessLink}: MenuFooterProps) {
 }
 
 export function RepoSelector() {
-  const {repository, changeContextValue} = useCodecovContext();
+  const {repository, integratedOrg, changeContextValue} = useCodecovContext();
+  const [searchValue, setSearchValue] = useState<string | undefined>();
+  const {data: repositories} = useInfiniteRepositories({term: searchValue});
+
+  const disabled = !integratedOrg;
 
   const handleChange = useCallback(
     (selectedOption: SelectOption<string>) => {
@@ -64,11 +68,19 @@ export function RepoSelector() {
     [changeContextValue]
   );
 
+  const handleOnSearch = useMemo(
+    () =>
+      debounce((value: string) => {
+        setSearchValue(value);
+      }, 500),
+    [setSearchValue]
+  );
+
   const options = useMemo((): Array<SelectOption<string>> => {
     // TODO: When API is ready, replace placeholder w/ api response
     const repoSet = new Set([
       ...(repository ? [repository] : []),
-      ...(CODECOV_PLACEHOLDER_REPOS.length ? CODECOV_PLACEHOLDER_REPOS : []),
+      ...(repositories.length > 0 ? repositories.map(item => item.name) : []),
     ]);
 
     return [...repoSet].map((value): SelectOption<string> => {
@@ -80,10 +92,18 @@ export function RepoSelector() {
         textValue: value,
       };
     });
-  }, [repository]);
+  }, [repository, repositories]);
+
+  useEffect(() => {
+    // Create a use effect to cancel handleOnSearch fn on unmount to avoid memory leaks
+    return () => {
+      handleOnSearch.cancel();
+    };
+  }, [handleOnSearch]);
 
   return (
     <CompactSelect
+      onSearch={handleOnSearch}
       searchable
       searchPlaceholder={t('search by repository name')}
       options={options}
@@ -92,6 +112,10 @@ export function RepoSelector() {
       menuWidth={'16rem'}
       menuBody={<SyncRepoButton />}
       menuFooter={<MenuFooter repoAccessLink="placeholder" />}
+      disabled={disabled}
+      emptyMessage={
+        'No repositories found. Please enter at least 3 characters to search.'
+      }
       trigger={(triggerProps, isOpen) => {
         const defaultLabel = options.some(item => item.value === repository)
           ? repository

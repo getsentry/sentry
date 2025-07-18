@@ -25,7 +25,7 @@ SIMPLE_ISSUE: StreamGroupSerializerSnubaResponse = {
         "experiments": {},
         "emails": [],
     },
-    "count": 150,
+    "count": "150",
     "culprit": "raven.scripts.runner in main",
     "firstSeen": datetime.fromisoformat("2018-11-06T21:19:55Z"),
     "filtered": None,
@@ -85,7 +85,7 @@ SIMPLE_ISSUE: StreamGroupSerializerSnubaResponse = {
     },
     "platform": "python",
     "lifetime": {
-        "count": 150,
+        "count": "150",
         "userCount": 0,
         "firstSeen": datetime.fromisoformat("2018-11-06T21:19:55Z"),
         "lastSeen": datetime.fromisoformat("2018-12-06T21:19:55Z"),

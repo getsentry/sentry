@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {formatSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatSeriesName';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
@@ -13,8 +13,7 @@ export default function ReleaseSessionCountChartwidget(props: LoadableChartWidge
   });
 
   const aliases = Object.fromEntries(
-    releases?.map(release => [`${release}_total_sessions`, formatSeriesName(release)]) ??
-      []
+    releases?.map(release => [`${release}_total_sessions`, formatVersion(release)]) ?? []
   );
 
   return (

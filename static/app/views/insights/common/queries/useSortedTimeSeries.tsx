@@ -32,7 +32,7 @@ import {
   getRetryDelay,
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
-import type {SpanFunctions, SpanIndexedField} from 'sentry/views/insights/types';
+import type {SpanFields, SpanFunctions} from 'sentry/views/insights/types';
 
 type SeriesMap = Record<string, TimeSeries[]>;
 
@@ -50,7 +50,7 @@ interface Options<Fields> {
 }
 
 export const useSortedTimeSeries = <
-  Fields extends SpanIndexedField[] | SpanFunctions[] | string[],
+  Fields extends SpanFields[] | SpanFunctions[] | string[],
 >(
   options: Options<Fields> = {},
   referrer: string,

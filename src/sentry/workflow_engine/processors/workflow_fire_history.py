@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.eventstore.models import GroupEvent
 from sentry.workflow_engine.models import (
     Action,
     DataCondition,
@@ -19,7 +20,10 @@ EnqueuedAction = tuple[DataConditionGroup, list[DataCondition]]
 
 
 def create_workflow_fire_histories(
-    detector: Detector, actions_to_fire: BaseQuerySet[Action], event_data: WorkflowEventData
+    detector: Detector,
+    actions_to_fire: BaseQuerySet[Action],
+    event_data: WorkflowEventData,
+    is_single_processing: bool,
 ) -> list[WorkflowFireHistory]:
     """
     Record that the workflows associated with these actions were fired for this
@@ -32,12 +36,19 @@ def create_workflow_fire_histories(
         ).values_list("workflow_id", flat=True)
     )
 
+    event_id = (
+        event_data.event.event_id
+        if isinstance(event_data.event, GroupEvent)
+        else event_data.event.id
+    )
+
     fire_histories = [
         WorkflowFireHistory(
             detector_id=detector.id,
             workflow_id=workflow_id,
-            group=event_data.event.group,
-            event_id=event_data.event.event_id,
+            group=event_data.group,
+            event_id=event_id,
+            is_single_written=is_single_processing,
         )
         for workflow_id in workflow_ids
     ]

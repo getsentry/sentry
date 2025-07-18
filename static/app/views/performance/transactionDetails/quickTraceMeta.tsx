@@ -20,8 +20,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {MetaData} from './styles';
 import {TraceLink} from './traceLink';
 
-interface Props
-  extends Pick<React.ComponentProps<typeof QuickTrace>, 'errorDest' | 'transactionDest'> {
+interface Props extends Pick<React.ComponentProps<typeof QuickTrace>, 'errorDest'> {
   anchor: 'left' | 'right';
   event: Event;
   location: Location;
@@ -37,7 +36,6 @@ export default function QuickTraceMeta({
   traceMeta,
   anchor,
   errorDest,
-  transactionDest,
   project,
 }: Props) {
   const organization = useOrganization();
@@ -80,7 +78,6 @@ export default function QuickTraceMeta({
             organization={organization}
             anchor={anchor}
             errorDest={errorDest}
-            transactionDest={transactionDest}
           />
         </ErrorBoundary>
       );

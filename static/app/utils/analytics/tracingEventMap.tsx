@@ -16,7 +16,7 @@ export type TracingEventParameters = {
     visualize_count: number;
   };
   'trace.explorer.ai_query_interface': {
-    action: 'opened' | 'closed';
+    action: 'opened' | 'closed' | 'consent_accepted';
   };
   'trace.explorer.ai_query_rejected': {
     natural_language_query: string;
@@ -71,6 +71,7 @@ export type TracingEventParameters = {
     referrer: string | null;
     shape: string;
     source: TraceWaterFallSource;
+    trace_age: string;
     trace_duration_seconds: number;
   };
   'trace.preferences.autogrouping_change': {

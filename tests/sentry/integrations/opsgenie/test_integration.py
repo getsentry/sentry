@@ -15,7 +15,7 @@ from sentry.integrations.opsgenie.tasks import (
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.rule import Rule
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, ApiUnauthorized
-from sentry.testutils.asserts import assert_slo_metric
+from sentry.testutils.asserts import assert_slo_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
@@ -64,8 +64,12 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         resp = self.client.post(self.init_path, data=config)
         assert resp.status_code == 200
 
-    def test_installation_no_key(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_installation_no_key(self, mock_record):
         self.assert_setup_flow(self.config_no_key)
+
+        # SLO assertions
+        assert_success_metric(mock_record)
 
         integration = Integration.objects.get(provider=self.provider.key)
         org_integration = OrganizationIntegration.objects.get(integration_id=integration.id)
@@ -302,17 +306,20 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             )
         id1 = str(self.organization_integration.id) + "-thonk"
         id2 = str(self.organization_integration.id) + "-thinkies"
-        assert org_integration.config == {
-            "team_table": [
-                {"id": id1, "team": "thonk [MIGRATED]", "integration_key": "123-key"},
-                {"id": id2, "team": "thinkies [MIGRATED]", "integration_key": "456-key"},
-            ]
-        }
+        # Don't assert order to prevent test flakiness
+        assert len(org_integration.config["team_table"]) == 2
+        assert {
+            "id": id1,
+            "team": "thonk [MIGRATED]",
+            "integration_key": "123-key",
+        } in org_integration.config["team_table"]
+        assert {
+            "id": id2,
+            "team": "thinkies [MIGRATED]",
+            "integration_key": "456-key",
+        } in org_integration.config["team_table"]
 
-        rule_updated = Rule.objects.get(
-            label="rule",
-            project=self.project,
-        )
+        rule_updated = Rule.objects.get(label="rule", project=self.project)
 
         assert rule_updated.data["actions"] == [
             ALERT_LEGACY_INTEGRATIONS,
@@ -323,10 +330,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             },
         ]
 
-        rule2_updated = Rule.objects.get(
-            label="rule2",
-            project=project2,
-        )
+        rule2_updated = Rule.objects.get(label="rule2", project=project2)
         assert rule2_updated.data["actions"] == [
             ALERT_LEGACY_INTEGRATIONS,
             {

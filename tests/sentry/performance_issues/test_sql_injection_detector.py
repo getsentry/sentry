@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from sentry.issues.grouptype import DBQueryInjectionVulnerabilityGroupType
+from sentry.issues.grouptype import QueryInjectionVulnerabilityGroupType
 from sentry.performance_issues.detectors.sql_injection_detector import SQLInjectionDetector
 from sentry.performance_issues.performance_detection import (
     get_detection_settings,
@@ -32,10 +32,14 @@ class SQLInjectionDetectorTest(TestCase):
         problems = self.find_problems(injection_event)
         assert len(problems) == 1
         problem = problems[0]
-        assert problem.type == DBQueryInjectionVulnerabilityGroupType
-        assert problem.fingerprint == "1-1020-d9460b7b6c17b64a51f0390b53390cb1b4c39662"
+
+        assert problem.type == QueryInjectionVulnerabilityGroupType
+        assert problem.fingerprint == "1-1021-20e736601b897f6698ef6bca5082d27f5fa765e4"
         assert problem.op == "db"
-        assert problem.desc == "SELECT * FROM users WHERE username = '?' ORDER BY username ASC"
+        assert (
+            problem.desc
+            == "Untrusted Inputs [username] in `SELECT * FROM users WHERE username = %s ORDER BY username ASC`"
+        )
         assert problem.evidence_data is not None
         assert problem.evidence_data["vulnerable_parameters"] == [("username", "hello")]
         assert problem.evidence_data["request_url"] == "http://localhost:3001/vulnerable-login"
@@ -46,10 +50,15 @@ class SQLInjectionDetectorTest(TestCase):
         problems = self.find_problems(injection_event)
         assert len(problems) == 1
         problem = problems[0]
-        assert problem.type == DBQueryInjectionVulnerabilityGroupType
-        assert problem.fingerprint == "1-1020-841b1fd77bae6e89b3570a2ab0bf43d3c8cfbac6"
+
+        assert problem.type == QueryInjectionVulnerabilityGroupType
+        assert problem.fingerprint == "1-1021-da364c9819759827b8401d54783b2462683d461a"
+
         assert problem.op == "db"
-        assert problem.desc == "SELECT * FROM users WHERE username = '?'"
+        assert (
+            problem.desc
+            == "Untrusted Inputs [username] in `SELECT * FROM users WHERE username = %s`"
+        )
         assert problem.evidence_data is not None
         assert problem.evidence_data["vulnerable_parameters"] == [("username", "hello")]
         assert problem.evidence_data["request_url"] == "http://localhost:3001/vulnerable-login"
@@ -60,6 +69,10 @@ class SQLInjectionDetectorTest(TestCase):
 
     def test_sql_injection_not_in_where(self):
         injection_event = get_event("sql-injection/sql-injection-not-in-where-event")
+        assert len(self.find_problems(injection_event)) == 0
+
+    def test_sql_injection_with_comment(self):
+        injection_event = get_event("sql-injection/sql-injection-test-comment")
         assert len(self.find_problems(injection_event)) == 0
 
     def test_sql_injection_on_non_vulnerable_query(self):

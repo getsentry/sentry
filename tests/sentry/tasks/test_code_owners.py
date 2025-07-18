@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.commit import Commit
@@ -18,7 +18,7 @@ LATEST_GITHUB_CODEOWNERS = {
 
 
 class CodeOwnersTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
         self.team = self.create_team(
@@ -49,7 +49,7 @@ class CodeOwnersTest(TestCase):
             self.project, self.code_mapping, raw=self.data["raw"]
         )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
             # new external team mapping
             self.external_team = self.create_external_team(integration=self.integration)
@@ -87,7 +87,9 @@ class CodeOwnersTest(TestCase):
         "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
         return_value=LATEST_GITHUB_CODEOWNERS,
     )
-    def test_codeowners_auto_sync_successful(self, mock_get_codeowner_file, mock_timezone_now):
+    def test_codeowners_auto_sync_successful(
+        self, mock_get_codeowner_file: MagicMock, mock_timezone_now: MagicMock
+    ) -> None:
         with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
             self.create_external_team()
             self.create_external_user(external_name="@NisanthanNanthakumar")
@@ -134,10 +136,9 @@ class CodeOwnersTest(TestCase):
     @patch("sentry.notifications.notifications.codeowners_auto_sync.AutoSyncNotification.send")
     def test_codeowners_auto_sync_failed_to_fetch_file(
         self,
-        mock_send_email,
-        mock_get_codeowner_file,
-    ):
-
+        mock_send_email: MagicMock,
+        mock_get_codeowner_file: MagicMock,
+    ) -> None:
         with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
             commit = Commit.objects.create(
                 repository_id=self.repo.id,

@@ -35,6 +35,7 @@ ITERATOR_CHUNK = 10_000
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=issues_tasks,
+        processing_deadline_duration=60 * 2,
     ),
 )
 def run_escalating_forecast() -> None:
@@ -62,6 +63,7 @@ def run_escalating_forecast() -> None:
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=issues_tasks,
+        processing_deadline_duration=60 * 2,
         retry=Retry(
             times=3,
             delay=60,

@@ -1,7 +1,7 @@
 import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
 
-import SortLink from 'sentry/components/gridEditable/sortLink';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import type {QueryValue} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';

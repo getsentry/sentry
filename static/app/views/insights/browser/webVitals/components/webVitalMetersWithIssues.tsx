@@ -266,9 +266,14 @@ const Flex = styled('div')<{gap?: number}>`
   flex-wrap: wrap;
 `;
 
+// Issues Button starts to overlap with meter text at 1500px
 const StyledIssuesButton = styled(LinkButton)`
   position: absolute;
   right: ${space(1)};
+
+  @media (max-width: 1500px) {
+    bottom: ${space(1)};
+  }
 `;
 
 // This style explicitly hides InteractionStateLayer when the Issues button is hovered
@@ -279,7 +284,7 @@ const MeterBarContainer = styled('div')<{clickable?: boolean}>`
   position: relative;
   padding: 0;
   cursor: ${p => (p.clickable ? 'pointer' : 'default')};
-  min-width: 140px;
+  min-width: 180px;
 
   :has(${StyledIssuesButton}:hover) > ${InteractionStateLayer} {
     display: none;
@@ -300,6 +305,7 @@ const MeterHeader = styled('div')`
   width: 100%;
   padding: 0 ${space(1)};
   align-items: center;
+  white-space: nowrap;
 `;
 
 const MeterValueText = styled('div')`
@@ -312,6 +318,11 @@ const MeterValueText = styled('div')`
   text-align: center;
   padding: 0 ${space(1)};
   gap: ${space(1)};
+  height: 30px;
+
+  @media (max-width: 1500px) {
+    font-size: ${p => p.theme.fontSize.lg};
+  }
 `;
 
 const NoValueContainer = styled('span')`

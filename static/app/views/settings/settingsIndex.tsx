@@ -1,12 +1,11 @@
-import type {Theme} from '@emotion/react';
-import {css} from '@emotion/react';
+import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import type {LinkProps} from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import ExternalLink from 'sentry/components/links/externalLink';
-import type {LinkProps} from 'sentry/components/links/link';
-import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -17,7 +16,6 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {ColorOrAlias} from 'sentry/utils/theme';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -46,6 +44,7 @@ function SettingsIndex(props: SettingsIndexProps) {
   // organization
   const organization = useOrganization({allowNull: true});
   const user = useUser();
+  const theme = useTheme();
   const isSelfHosted = ConfigStore.get('isSelfHosted');
 
   const organizationSettingsUrl =
@@ -102,7 +101,7 @@ function SettingsIndex(props: SettingsIndexProps) {
           </HomeLinkIcon>
         ) : (
           <HomeLinkIcon to="/organizations/new/">
-            <HomeIconContainer color="green300">
+            <HomeIconContainer color={theme.green300}>
               <IconStack size="lg" />
             </HomeIconContainer>
             <HomeLinkLabel>{t('Create an Organization')}</HomeLinkLabel>
@@ -141,7 +140,7 @@ function SettingsIndex(props: SettingsIndexProps) {
     <GridPanel>
       <HomePanelHeader>
         <ExternalHomeLinkIcon href={LINKS.DOCUMENTATION}>
-          <HomeIconContainer color="pink300">
+          <HomeIconContainer color={theme.pink300}>
             <IconDocs size="lg" />
           </HomeIconContainer>
           <HomeLinkLabel>{t('Documentation')}</HomeLinkLabel>
@@ -175,7 +174,7 @@ function SettingsIndex(props: SettingsIndexProps) {
     <GridPanel>
       <HomePanelHeader>
         <SupportLink icon {...supportLinkProps}>
-          <HomeIconContainer color="activeText">
+          <HomeIconContainer color={theme.activeText}>
             <IconSupport size="lg" />
           </HomeIconContainer>
           <HomeLinkLabel>{t('Support')}</HomeLinkLabel>
@@ -300,8 +299,8 @@ const HomePanelBody = styled(PanelBody)`
   }
 `;
 
-const HomeIconContainer = styled('div')<{color?: ColorOrAlias}>`
-  background: ${p => p.theme[p.color || 'gray300']};
+const HomeIconContainer = styled('div')<{color?: string}>`
+  background: ${p => p.color || 'gray300'};
   color: ${p => p.theme.white};
   width: ${HOME_ICON_SIZE}px;
   height: ${HOME_ICON_SIZE}px;

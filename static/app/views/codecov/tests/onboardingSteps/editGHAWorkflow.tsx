@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {InlineCodeSnippet} from 'sentry/views/codecov/styles';

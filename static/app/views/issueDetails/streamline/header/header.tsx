@@ -8,6 +8,7 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -15,7 +16,6 @@ import EventMessage from 'sentry/components/events/eventMessage';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import {TourElement} from 'sentry/components/tours/components';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {IconInfo, IconMegaphone} from 'sentry/icons';
@@ -85,7 +85,7 @@ export default function StreamlinedGroupHeader({
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
   ].includes(groupReprocessingStatus);
 
-  const isQueryInjection = group.issueType === IssueType.DB_QUERY_INJECTION_VULNERABILITY;
+  const isQueryInjection = group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY;
   const openForm = useFeedbackForm();
   const feedbackButton = openForm ? (
     <Button
@@ -134,7 +134,7 @@ export default function StreamlinedGroupHeader({
               ]}
             />
           </Flex>
-          <ButtonBar gap={0.5}>
+          <ButtonBar gap="xs">
             {!hasOnlyOneUIOption && !isQueryInjection && (
               <LinkButton
                 size="xs"
@@ -151,7 +151,25 @@ export default function StreamlinedGroupHeader({
                 {showLearnMore ? t("See What's New") : null}
               </LinkButton>
             )}
-            {isQueryInjection ? feedbackButton : <NewIssueExperienceButton />}
+            {isQueryInjection ? (
+              <ButtonBar gap="xs">
+                <LinkButton
+                  size="xs"
+                  external
+                  title={t('Learn more about the query injection issue')}
+                  href={`https://docs.sentry.io/product/issues/issue-details/query-injection-issues/`}
+                  aria-label={t('Learn more about the query injection issue')}
+                  icon={<IconInfo />}
+                  analyticsEventKey="issue_details.query_injection_learn_more"
+                  analyticsEventName="Issue Details: Query Injection Learn More"
+                >
+                  {t('Learn more')}
+                </LinkButton>
+                {feedbackButton}
+              </ButtonBar>
+            ) : (
+              <NewIssueExperienceButton />
+            )}
           </ButtonBar>
         </Flex>
         <HeaderGrid>
@@ -384,7 +402,8 @@ const Workflow = styled('div')`
 `;
 
 const Title = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: auto min-content;
   align-items: center;
   gap: ${space(0.5)};
 `;

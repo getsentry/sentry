@@ -1,6 +1,9 @@
 import {useCallback, useState} from 'react';
 
-import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
+import type {
+  GridColumnHeader,
+  GridColumnOrder,
+} from 'sentry/components/tables/gridEditable';
 
 export function useColumnOrder(initialValue: Array<GridColumnOrder<string>>) {
   const [columnOrder, setColumnOrder] = useState(initialValue);
