@@ -274,6 +274,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
                     file_format_q |= Q(file__headers__icontains=known_file_format)
             q &= file_format_q
 
+        queryset = None
         if debug_id and code_id:
             # Be lenient when searching for debug files, check either for a matching debug id
             # or a matching code id. We only fallback to code id if there is no debug id match.
@@ -284,15 +285,15 @@ class DebugFilesEndpoint(ProjectEndpoint):
             # that the debug id does not perfectly match due to 'age' differences, but the code-id
             # will match.
             debug_id_qs = ProjectDebugFile.objects.filter(Q(debug_id__exact=debug_id) & q)
-            queryset = debug_id_qs.union(
-                ProjectDebugFile.objects.filter(Q(code_id__exact=code_id) & q).filter(
-                    ~Exists(debug_id_qs)
-                )
+            queryset = debug_id_qs.select_related("file").union(
+                ProjectDebugFile.objects.filter(Q(code_id__exact=code_id) & q)
+                .filter(~Exists(debug_id_qs))
+                .select_related("file")
             )
         elif debug_id:
-            queryset = ProjectDebugFile.objects.filter(Q(debug_id__exact=debug_id))
+            q &= Q(debug_id__exact=debug_id)
         elif code_id:
-            queryset = ProjectDebugFile.objects.filter(Q(code_id__exact=code_id))
+            q &= Q(code_id__exact=code_id)
         elif query:
             query_q = (
                 Q(object_name__icontains=query)
@@ -306,11 +307,12 @@ class DebugFilesEndpoint(ProjectEndpoint):
             if known_file_format:
                 query_q |= Q(file__headers__icontains=known_file_format)
 
-            queryset = ProjectDebugFile.objects.filter(query_q)
+            q &= query_q
         else:
-            queryset = ProjectDebugFile.objects.all()
+            pass
 
-        queryset = queryset.filter(q).select_related("file")
+        if queryset is None:
+            queryset = ProjectDebugFile.objects.filter(q).select_related("file")
 
         def on_results(difs: Sequence[ProjectDebugFile]):
             # NOTE: we are only refreshing files if there is direct query for specific files
