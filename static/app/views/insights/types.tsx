@@ -336,14 +336,12 @@ export type SpanStringFields =
   | 'profile.id'
   | 'profiler.id'
   | 'thread.id'
-  | 'span.domain'; // TODO: With `useInsightsEap` we get a string, without it we get an array
+  | 'span.domain';
 
 export type SpanMetricsQueryFilters = Partial<Record<SpanStringFields, string>> & {
   [SpanMetricsField.PROJECT_ID]?: string;
   [SpanMetricsField.SPAN_DOMAIN]?: string;
 };
-
-type SpanStringArrayFields = 'span.domain';
 
 export const COUNTER_AGGREGATES = ['sum', 'avg', 'min', 'max', 'p100'] as const;
 export const DISTRIBUTION_AGGREGATES = ['p50', 'p75', 'p90', 'p95', 'p99'] as const;
@@ -405,10 +403,9 @@ type SpanMetricsResponseRaw = {
   [Property in SpanFunctions as `${Property}()`]: number;
 } & {
   [Property in SpanStringFields as `${Property}`]: string;
-} & {
-  [Property in SpanStringArrayFields as `${Property}`]: string[];
+} &
   // TODO: We should allow a nicer way to define functions with multiple arguments and different arg types
-} & Record<`division(${SpanNumberFields},${SpanNumberFields})`, number> & {
+  Record<`division(${SpanNumberFields},${SpanNumberFields})`, number> & {
     // TODO: This should include all valid HTTP codes or just all integers
     'http_response_count(2)': number;
     'http_response_count(3)': number;
@@ -449,8 +446,6 @@ type EAPSpanResponseRaw = {
   [Property in SpanStringFields as `${Property}`]: string;
 } & {
   [Property in SpanNumberFields as `${Property}`]: number;
-} & {
-  [Property in SpanStringArrayFields as `${Property}`]: string[];
 } & {} & {
   [Property in SpanBooleanFields as `${Property}`]: boolean;
 } & {
