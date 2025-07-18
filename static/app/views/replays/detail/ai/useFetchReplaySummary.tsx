@@ -213,9 +213,11 @@ function asLogMessage(payload: BreadcrumbFrame | SpanFrame): string | null {
       case EventType.CONSOLE:
         return `Logged: ${payload.message} at ${timestamp}`;
       case EventType.UI_BLUR:
-        return `User looked away from the tab at ${timestamp}.`;
+        // return `User looked away from the tab at ${timestamp}.`;
+        return null;
       case EventType.UI_FOCUS:
         return `User returned to tab at ${timestamp}.`;
+        return null;
       case EventType.FEEDBACK:
         return `User submitted feedback: ${payload.message} at ${timestamp}`;
       case EventType.MUTATIONS:
