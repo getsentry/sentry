@@ -46,7 +46,8 @@ class RunStorage:
         Returns False when the key is set and a task should not be spawned.
         """
         now = timezone.now()
-        duration = next_runtime - now
+        # next_runtime & now could be the same second, and redis gets sad if ex=0
+        duration = min(int((next_runtime - now).total_seconds()), 1)
 
         result = self._redis.set(self._make_key(taskname), now.isoformat(), ex=duration, nx=True)
         return bool(result)
