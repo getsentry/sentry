@@ -23,7 +23,6 @@ COLUMNS_TO_DROP = (
     "count_miserable",
     "count_web_vitals",
     "last_seen",
-    "percentile",
     "total.count",
 )
 
@@ -43,11 +42,19 @@ def format_percentile_term(term):
         translated_column = column_switcheroo(args[0])[0]
         percentile_value = args[1]
         numeric_percentile_value = float(percentile_value)
-        new_function = percentile_replacement_function.get(numeric_percentile_value, function)
-    except (IndexError, ValueError):
-        return term
+        supported_percentiles = [0.5, 0.75, 0.90, 0.95, 0.99, 1.0]
+        smallest_percentile_difference = 1.0
+        nearest_percentile = 0.5
 
-    if new_function == function:
+        for percentile in supported_percentiles:
+            percentile_difference = abs(numeric_percentile_value - percentile)
+            # we're rounding up to the nearest supported percentile if it's the midpoint of two supported percentiles
+            if percentile_difference <= smallest_percentile_difference:
+                nearest_percentile = percentile
+                smallest_percentile_difference = percentile_difference
+
+        new_function = percentile_replacement_function.get(nearest_percentile)
+    except (IndexError, ValueError, NameError):
         return term
 
     return f"{new_function}({translated_column})"
