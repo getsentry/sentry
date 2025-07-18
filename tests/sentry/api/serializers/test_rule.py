@@ -3,7 +3,7 @@ from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.rule import WorkflowEngineRuleSerializer
+from sentry.api.serializers.models.rule import RuleSerializer, WorkflowEngineRuleSerializer
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.conditions.event_frequency import EventUniqueUserFrequencyConditionWithConditions
 from sentry.rules.conditions.reappeared_event import ReappearedEventCondition
@@ -14,10 +14,61 @@ from sentry.rules.filters.event_attribute import EventAttributeFilter
 from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.models import WorkflowDataConditionGroup, WorkflowFireHistory
 from sentry.workflow_engine.models.data_condition import Condition
+
+
+@freeze_time()
+class RuleSerializerTest(TestCase):
+    def test_last_triggered_rule_only(self):
+        rule = self.create_project_rule()
+
+        # Initially no fire history
+        result = serialize(rule, self.user, RuleSerializer(expand=["lastTriggered"]))
+        assert result["lastTriggered"] is None
+
+        # Create a RuleFireHistory
+        RuleFireHistory.objects.create(project=self.project, rule=rule, group=self.group)
+
+        result = serialize(rule, self.user, RuleSerializer(expand=["lastTriggered"]))
+        assert result["lastTriggered"] == timezone.now()
+
+    @with_feature("organizations:workflow-engine-single-process-workflows")
+    def test_last_triggered_with_workflow(self):
+        rule = self.create_project_rule()
+
+        # Create a workflow for the rule
+        workflow = IssueAlertMigrator(rule).run()
+
+        # Create an older RuleFireHistory
+        rfh = RuleFireHistory.objects.create(project=self.project, rule=rule, group=self.group)
+        rfh.update(date_added=before_now(hours=2))
+
+        # Create a newer WorkflowFireHistory
+        WorkflowFireHistory.objects.create(
+            workflow=workflow, group=self.group, event_id="test-event-id", is_single_written=True
+        )
+
+        result = serialize(rule, self.user, RuleSerializer(expand=["lastTriggered"]))
+        assert result["lastTriggered"] == timezone.now()
+
+    def test_last_triggered_workflow_ignore_single_written_false(self):
+        """Test that WorkflowFireHistory with is_single_written=False is ignored."""
+        rule = self.create_project_rule()
+
+        # Create a workflow for the rule
+        workflow = IssueAlertMigrator(rule).run()
+
+        # Create a WorkflowFireHistory with is_single_written=False
+        WorkflowFireHistory.objects.create(
+            workflow=workflow, group=self.group, event_id="test-event-id", is_single_written=False
+        )
+
+        result = serialize(rule, self.user, RuleSerializer(expand=["lastTriggered"]))
+        assert result["lastTriggered"] is None
 
 
 @freeze_time()
