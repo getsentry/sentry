@@ -337,11 +337,11 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
 
         spans_future = _query_thread_pool.submit(
             Spans.run_trace_query,
-            trace_id,
-            snuba_params,
-            Referrer.API_TRACE_VIEW_GET_EVENTS.value,
-            SearchResolverConfig(),
-            additional_attributes,
+            params=snuba_params,
+            trace_id=trace_id,
+            referrer=Referrer.API_TRACE_VIEW_GET_EVENTS.value,
+            config=SearchResolverConfig(),
+            additional_attributes=additional_attributes,
         )
         errors_future = _query_thread_pool.submit(
             self.run_errors_query,
