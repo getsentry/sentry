@@ -425,5 +425,3 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
             if isinstance(process, multiprocessing.Process):
                 process.terminate()
-
-            assert not process.is_alive()
