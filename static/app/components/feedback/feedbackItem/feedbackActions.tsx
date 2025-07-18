@@ -10,7 +10,6 @@ import FeedbackAssignedTo from 'sentry/components/feedback/feedbackItem/feedback
 import useFeedbackActions from 'sentry/components/feedback/feedbackItem/useFeedbackActions';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
@@ -35,7 +34,7 @@ export default function FeedbackActions({
   }
 
   return (
-    <Flex gap={space(1)} align="flex-end" className={className} style={style}>
+    <Flex gap="md" align="flex-end" className={className} style={style}>
       <ErrorBoundary mini>
         <FeedbackAssignedTo
           feedbackIssue={feedbackItem as any as Group}

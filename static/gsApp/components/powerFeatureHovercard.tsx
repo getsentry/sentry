@@ -101,7 +101,7 @@ class PowerFeatureHovercard extends Component<Props> {
 
           return (
             <LearnMoreTextBody data-test-id="power-hovercard">
-              <Flex direction="column" gap={space(1)}>
+              <Flex direction="column" gap="md">
                 <div>
                   {partial
                     ? t('Better With %s Plan', planName)

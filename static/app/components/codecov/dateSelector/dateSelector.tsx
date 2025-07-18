@@ -9,7 +9,6 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import {getArbitraryRelativePeriod} from 'sentry/components/timeRangeSelector/utils';
 import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 export const CODECOV_DEFAULT_RELATIVE_PERIODS = {
   '24h': t('Last 24 hours'),
@@ -65,7 +64,7 @@ export function DateSelector() {
             {...triggerProps}
           >
             <TriggerLabelWrap>
-              <Flex align="center" gap={space(0.75)}>
+              <Flex align="center" gap="sm">
                 <IconCalendar />
                 <TriggerLabel>{defaultLabel}</TriggerLabel>
               </Flex>

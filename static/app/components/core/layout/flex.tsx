@@ -1,11 +1,13 @@
 import type {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
+import type {Space} from 'sentry/utils/theme/theme';
+
 interface FlexProps {
   align?: CSSProperties['alignItems'];
   direction?: CSSProperties['flexDirection'];
   flex?: CSSProperties['flex'];
-  gap?: CSSProperties['gap'];
+  gap?: Space;
   /**
    * Determines whether the flex container should be displayed as an inline-flex.
    */
@@ -22,7 +24,7 @@ export const Flex = styled('div', {
   flex-direction: ${p => p.direction};
   justify-content: ${p => p.justify};
   align-items: ${p => p.align};
-  gap: ${p => p.gap};
+  gap: ${p => p.gap && p.theme.space[p.gap]};
   flex-wrap: ${p => p.wrap};
   flex: ${p => p.flex};
 `;

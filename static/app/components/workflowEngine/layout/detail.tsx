@@ -44,7 +44,7 @@ interface RequiredChildren {
 function Main({children}: RequiredChildren) {
   return (
     <Layout.Main>
-      <Flex direction="column" gap={space(2)}>
+      <Flex direction="column" gap="xl">
         {children}
       </Flex>
     </Layout.Main>
@@ -53,7 +53,7 @@ function Main({children}: RequiredChildren) {
 function Sidebar({children}: RequiredChildren) {
   return (
     <Layout.Side>
-      <Flex direction="column" gap={space(2)}>
+      <Flex direction="column" gap="xl">
         {children}
       </Flex>
     </Layout.Side>
@@ -71,7 +71,7 @@ function HeaderContent({children}: RequiredChildren) {
 function Actions({children}: RequiredChildren) {
   return (
     <HeaderActions>
-      <Flex gap={space(1)}>{children}</Flex>
+      <Flex gap="md">{children}</Flex>
     </HeaderActions>
   );
 }

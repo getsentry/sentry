@@ -58,7 +58,7 @@ const addUsernameDisplay = (logEntryUser: User | undefined) => {
   if (logEntryUser?.isSuperuser) {
     return (
       <Name data-test-id="actor-name">
-        <Flex align="center" gap={space(1)}>
+        <Flex align="center" gap="md">
           {logEntryUser.name}
           <Tag>{t('Sentry Staff')}</Tag>
         </Flex>

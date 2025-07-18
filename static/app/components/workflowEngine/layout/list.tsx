@@ -1,7 +1,6 @@
 import {Flex} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {space} from 'sentry/styles/space';
 
 interface WorkflowEngineListLayoutProps {
   actions: React.ReactNode;
@@ -25,7 +24,7 @@ function WorkflowEngineListLayout({children, actions}: WorkflowEngineListLayoutP
       </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>
-          <Flex direction="column" gap={space(1.5)}>
+          <Flex direction="column" gap="lg">
             {children}
           </Flex>
         </Layout.Main>

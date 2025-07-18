@@ -80,8 +80,8 @@ function filterProjectsWithAccess(projects: Project[], organization: any) {
 function ProjectRow({onClick, project}: {onClick: () => void; project: Project}) {
   return (
     <ClickablePanelItem onClick={onClick}>
-      <Flex align="center" gap={space(1)} justify="space-between" flex={1}>
-        <Flex align="center" gap={space(1)}>
+      <Flex align="center" gap="md" justify="space-between" flex={1}>
+        <Flex align="center" gap="md">
           <ProjectAvatar project={project} title={project.slug} />
           <ProjectName>{project.slug}</ProjectName>
         </Flex>
@@ -627,7 +627,7 @@ function SeerAutomationOnboarding() {
               {projectsWithRepos.length > 0 && (
                 <Fragment>
                   <ThresholdSelectorWrapper>
-                    <Flex gap={space(1)} align="center">
+                    <Flex gap="md" align="center">
                       <SelectorLabel>
                         {t('Automatically diagnose issues that are...')}
                       </SelectorLabel>

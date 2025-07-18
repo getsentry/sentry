@@ -193,7 +193,7 @@ function ReplayConfigureDropdownItem({
   title: ReactNode;
 }) {
   return (
-    <Flex gap={space(1)} align="center">
+    <Flex gap="md" align="center">
       <IconOpen />
       <ButtonContent>
         <ButtonTitle>{title}</ButtonTitle>

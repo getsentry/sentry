@@ -58,7 +58,7 @@ export default Storybook.story('Tooltip', (story, APIReference) => {
           Tooltips can be positioned in different directions. Use the{' '}
           <Storybook.JSXNode name="position" /> prop to control placement.
         </p>
-        <Flex direction="column" gap={1} align="center">
+        <Flex direction="column" gap="md" align="center">
           <div
             style={{
               display: 'flex',

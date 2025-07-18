@@ -120,7 +120,7 @@ export default function PriorityControl({minimumPriority}: PriorityControlProps)
       {priorityIsConfigurable(initialPriorityLevel, DetectorPriorityLevel.MEDIUM) && (
         <PrioritizeRow
           left={
-            <Flex align="center" gap={space(1)}>
+            <Flex align="center" gap="md">
               <SmallNumberField
                 alignRight
                 inline
@@ -141,7 +141,7 @@ export default function PriorityControl({minimumPriority}: PriorityControlProps)
       {priorityIsConfigurable(initialPriorityLevel, DetectorPriorityLevel.HIGH) && (
         <PrioritizeRow
           left={
-            <Flex align="center" gap={space(1)}>
+            <Flex align="center" gap="md">
               <SmallNumberField
                 alignRight
                 inline
