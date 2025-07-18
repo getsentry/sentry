@@ -50,7 +50,7 @@ BASE_STRATEGY = create_strategy_configuration_class(
         "with_context_line_file_origin_bug": True,
         # Turns on falling back to exception values when there
         # is no stacktrace.
-        "with_exception_value_fallback": False,
+        "with_exception_value_fallback": True,
         # Stacktrace is produced in the context of this exception
         "exception_data": None,
         # replaces generated IDs in Java stack frames related to CGLIB and hibernate
@@ -91,7 +91,6 @@ register_strategy_config(
     """,
     initial_context={
         "contextline_platforms": ("javascript", "node", "python", "php", "ruby"),
-        "with_exception_value_fallback": True,
     },
     enhancements_base="common:2019-03-23",
 )
