@@ -55,7 +55,7 @@
     "@react-stately/radio": "^3.10.13",
     "@react-stately/slider": "^3.6.4",
     "@react-stately/tabs": "^3.8.2",
-    "@react-stately/tree": "^3.8.10",
+    "@react-stately/tree": "^3.9.0",
     "@react-types/shared": "^3.29.1",
     "@remix-run/router": "1.23.0",
     "@rsdoctor/rspack-plugin": "1.1.7",
