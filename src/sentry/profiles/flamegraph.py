@@ -249,9 +249,10 @@ class FlamegraphExecutor:
         profiler_metas: list[ProfilerMeta] = []
 
         assert self.snuba_params.start is not None and self.snuba_params.end is not None
+        original_start, original_end = self.snuba_params.start, self.snuba_params.end
 
         for chunk_start, chunk_end in split_datetime_range_exponential(
-            self.snuba_params.start, self.snuba_params.end, initial_chunk_delta, max_chunk_delta
+            original_start, original_end, initial_chunk_delta, max_chunk_delta
         ):
             self.snuba_params.start = chunk_start
             self.snuba_params.end = chunk_end
@@ -650,7 +651,7 @@ class FlamegraphExecutor:
         original_start, original_end = self.snuba_params.start, self.snuba_params.end
 
         for chunk_start, chunk_end in split_datetime_range_exponential(
-            self.snuba_params.start, self.snuba_params.end, initial_chunk_delta, max_chunk_delta
+            original_start, original_end, initial_chunk_delta, max_chunk_delta
         ):
             self.snuba_params.start = chunk_start
             self.snuba_params.end = chunk_end
