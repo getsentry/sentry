@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable
 from typing import NotRequired, TypedDict
 
 from django.db.models.query import QuerySet
@@ -23,6 +22,7 @@ from sentry.debug_files.artifact_bundles import (
     MAX_BUNDLES_QUERY,
     query_artifact_bundles_containing_file,
 )
+from sentry.debug_files.release_files import maybe_renew_releasefiles, renew_releasefiles_by_id
 from sentry.lang.native.sources import get_internal_artifact_lookup_source_url
 from sentry.models.artifactbundle import NULL_STRING, ArtifactBundle
 from sentry.models.distribution import Distribution
@@ -160,14 +160,18 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
 
         # If no `ArtifactBundle`s were found matching the file, we fall back to
         # looking up the file using the legacy `ReleaseFile` infrastructure.
-        individual_files: Iterable[ReleaseFile] = []
+        individual_files: list[ReleaseFile] = []
         if not artifact_bundles:
             release, dist = try_resolve_release_dist(project, release_name, dist_name)
             if release:
                 metrics.incr("sourcemaps.lookup.release_file")
-                for releasefile_id in get_legacy_release_bundles(release, dist):
+                releasefile_ids = list(get_legacy_release_bundles(release, dist))
+                for releasefile_id in releasefile_ids:
                     all_bundles[f"release_file/{releasefile_id}"] = "release-old"
-                individual_files = get_legacy_releasefile_by_file_url(release, dist, url)
+                individual_files = list(get_legacy_releasefile_by_file_url(release, dist, url))
+
+                maybe_renew_releasefiles(individual_files)
+                renew_releasefiles_by_id(releasefile_ids)
 
         # Then: Construct our response
         url_constructor = UrlConstructor(request, project)
