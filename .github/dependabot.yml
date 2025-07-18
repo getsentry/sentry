@@ -15,9 +15,6 @@ updates:
     # https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file#groups
     groups:
       # The name of the group, it will be used in PR titles and branch
-      babel-dependencies:
-        patterns:
-          - '@babel/*'
       sentry-dependencies:
         patterns:
           - '@sentry/core'
