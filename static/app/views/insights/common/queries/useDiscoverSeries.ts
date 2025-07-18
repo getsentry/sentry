@@ -17,7 +17,6 @@ import {
   getRetryDelay,
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
   EAPSpanProperty,
   SpanFields,
@@ -41,20 +40,6 @@ interface UseMetricsSeriesOptions<Fields> {
   transformAliasToInputFormat?: boolean;
   yAxis?: Fields;
 }
-
-export const useSpanMetricsSeries = <Fields extends EAPSpanProperty[]>(
-  options: UseMetricsSeriesOptions<Fields> = {},
-  referrer: string,
-  pageFilters?: PageFilters
-) => {
-  const useEap = useInsightsEap();
-  return useDiscoverSeries<Fields>(
-    options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_METRICS,
-    referrer,
-    pageFilters
-  );
-};
 
 export const useSpanSeries = <
   Fields extends EAPSpanProperty[] | SpanFields[] | SpanFunctions[] | string[],

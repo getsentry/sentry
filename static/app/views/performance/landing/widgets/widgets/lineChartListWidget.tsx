@@ -198,7 +198,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             {field},
           ];
 
-          // Change data set to spansMetrics
+          // Change data set to spans
           eventView.dataset = spanDataset;
           extraQueryParams = {
             ...extraQueryParams,
@@ -226,7 +226,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             {field},
           ];
 
-          // Change data set to spansMetrics
+          // Change data set to spans
           eventView.dataset = spanDataset;
           extraQueryParams = {
             ...extraQueryParams,
@@ -254,7 +254,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             {field},
           ];
 
-          // Change data set to spansMetrics
+          // Change data set to spans
           eventView.dataset = spanDataset;
           extraQueryParams = {
             ...extraQueryParams,
@@ -280,7 +280,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             {field},
           ];
 
-          // Change data set to spansMetrics
+          // Change data set to spans
           eventView.dataset = spanDataset;
           extraQueryParams = {
             ...extraQueryParams,
