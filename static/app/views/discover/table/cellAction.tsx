@@ -32,19 +32,6 @@ export enum Actions {
   OPEN_EXTERNAL_LINK = 'open_external_link',
 }
 
-export function copyToClipBoard(data: any) {
-  function stringifyValue(value: any): string {
-    if (!value) return '';
-    if (typeof value !== 'object') {
-      return value.toString();
-    }
-    return JSON.stringify(value) ?? value.toString();
-  }
-  navigator.clipboard.writeText(stringifyValue(data)).catch(_ => {
-    addErrorMessage('Error copying to clipboard');
-  });
-}
-
 export function updateQuery(
   results: MutableSearch,
   action: Actions,
@@ -343,7 +330,7 @@ function CellAction(props: Props) {
 }
 
 /**
- * A fallback that has default operations for some actions. E.g., copying to clipboard by default copies raw text, opening link by default opens it in a new link
+ * A fallback that has default operations for some actions. E.g., copying to clipboard by default copies raw text, opening external link opens a new tab
  * @param action
  * @param value
  * @returns true if a default action was executed, false otherwise
@@ -353,9 +340,19 @@ export function handleCellActionFallback(
   value: string | number | string[]
 ): boolean {
   switch (action) {
-    case Actions.COPY_TO_CLIPBOARD:
-      copyToClipBoard(value);
+    case Actions.COPY_TO_CLIPBOARD: {
+      function stringifyValue(val: any): string {
+        if (!val) return '';
+        if (typeof val !== 'object') {
+          return val.toString();
+        }
+        return JSON.stringify(val) ?? val.toString();
+      }
+      navigator.clipboard.writeText(stringifyValue(value)).catch(_ => {
+        addErrorMessage('Error copying to clipboard');
+      });
       return true;
+    }
     case Actions.OPEN_EXTERNAL_LINK:
       if (typeof value === 'string' && isUrl(value)) {
         window.open(value, '_blank', 'noopener,noreferrer');
