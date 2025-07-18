@@ -2,7 +2,7 @@ import logging
 from unittest.mock import MagicMock, patch
 
 from sentry.event_manager import EventManager
-from sentry.issues.grouptype import MetricIssuePOC
+from sentry.incidents.grouptype import MetricIssue
 from sentry.models.activity import Activity
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
@@ -337,10 +337,13 @@ class ActivityTest(TestCase):
         mock_send_activity_notifications.assert_called_once_with(activity.id)
         mock_send_activity_notifications.reset_mock()
 
-        group.type = MetricIssuePOC.type_id
+        group.type = MetricIssue.type_id
         group.save()
-        _ = Activity.objects.create_group_activity(
-            group=group, type=ActivityType.SET_RESOLVED, data=None, send_notification=True
-        )
+
+        # Mock the MetricIssue to disable status change notifications
+        with patch.object(MetricIssue, "enable_status_change_workflow_notifications", False):
+            _ = Activity.objects.create_group_activity(
+                group=group, type=ActivityType.SET_RESOLVED, data=None, send_notification=True
+            )
 
         mock_send_activity_notifications.assert_not_called()

@@ -101,22 +101,6 @@ profile_occurrences_producer = SingletonProducer(
 logger = logging.getLogger(__name__)
 
 
-def decode_payload(encoded: str, compressed_profile: bool) -> dict[str, Any]:
-    if compressed_profile:
-        try:
-            res = msgpack.unpackb(
-                zlib.decompress(b64decode(encoded.encode("utf-8"))), use_list=False
-            )
-            metrics.incr("profiling.profile_metrics.decompress", tags={"status": "ok"})
-            return res
-        except Exception as e:
-            logger.exception("Failed to decompress compressed profile", extra={"error": e})
-            metrics.incr("profiling.profile_metrics.decompress", tags={"status": "err"})
-            raise
-    else:
-        return msgpack.unpackb(b64decode(encoded.encode("utf-8")), use_list=False)
-
-
 def encode_payload(message: dict[str, Any]) -> str:
     return b64encode(
         zlib.compress(
@@ -151,14 +135,13 @@ def process_profile_task(
     profile: Profile | None = None,
     payload: str | None = None,
     sampled: bool = True,
-    compressed_profile: bool = True,
     **kwargs: Any,
 ) -> None:
     if not sampled and not options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
         return
 
     if payload:
-        message_dict = decode_payload(payload, compressed_profile)
+        message_dict = msgpack.unpackb(b64decode(payload.encode("utf-8")), use_list=False)
 
         profile = json.loads(message_dict["payload"], use_rapid_json=True)
 

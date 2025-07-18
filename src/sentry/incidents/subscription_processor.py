@@ -40,13 +40,14 @@ from sentry.incidents.models.incident import (
     TriggerStatus,
 )
 from sentry.incidents.tasks import handle_trigger_action
-from sentry.incidents.utils.metric_issue_poc import create_or_update_metric_issue
 from sentry.incidents.utils.process_update_helpers import (
     get_comparison_aggregation_value,
     get_crash_rate_alert_metrics_aggregation_value_helper,
 )
 from sentry.incidents.utils.types import (
     DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+    AnomalyDetectionUpdate,
+    ProcessedSubscriptionUpdate,
     QuerySubscriptionUpdate,
 )
 from sentry.models.project import Project
@@ -377,30 +378,36 @@ class SubscriptionProcessor:
         if aggregation_value is not None:
             if has_metric_alert_processing:
                 if self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
-                    packet = QuerySubscriptionUpdate(
+                    anomaly_detection_packet = AnomalyDetectionUpdate(
                         entity=subscription_update.get("entity", ""),
                         subscription_id=subscription_update["subscription_id"],
                         values={
-                            "values": {
-                                "value": aggregation_value,
-                                "source_id": str(self.subscription.id),
-                                "subscription_id": subscription_update["subscription_id"],
-                                "timestamp": self.last_update,
-                            },
+                            "value": aggregation_value,
+                            "source_id": str(self.subscription.id),
+                            "subscription_id": subscription_update["subscription_id"],
+                            "timestamp": self.last_update,
                         },
                         timestamp=self.last_update,
                     )
+                    anomaly_detection_data_packet = DataPacket[AnomalyDetectionUpdate](
+                        source_id=str(self.subscription.id), packet=anomaly_detection_packet
+                    )
+                    results = process_data_packets(
+                        [anomaly_detection_data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+                    )
                 else:
-                    packet = QuerySubscriptionUpdate(
+                    metric_packet = ProcessedSubscriptionUpdate(
                         entity=subscription_update.get("entity", ""),
                         subscription_id=subscription_update["subscription_id"],
                         values={"value": aggregation_value},
                         timestamp=self.last_update,
                     )
-                data_packet = DataPacket[QuerySubscriptionUpdate](
-                    source_id=str(self.subscription.id), packet=packet
-                )
-                results = process_data_packets([data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
+                    metric_data_packet = DataPacket[ProcessedSubscriptionUpdate](
+                        source_id=str(self.subscription.id), packet=metric_packet
+                    )
+                    results = process_data_packets(
+                        [metric_data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+                    )
 
                 if features.has(
                     "organizations:workflow-engine-metric-alert-dual-processing-logs",
@@ -776,12 +783,6 @@ class SubscriptionProcessor:
                 project_id=self.subscription.project_id,
                 method=method,
                 new_status=new_status,
-                metric_value=metric_value,
-            )
-
-        if features.has("organizations:metric-issue-poc", self.alert_rule.organization):
-            create_or_update_metric_issue(
-                incident=incident,
                 metric_value=metric_value,
             )
 

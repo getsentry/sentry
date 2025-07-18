@@ -13,7 +13,7 @@ import {
 // eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
-import {useTopNSpanMetricsSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
+import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import {Referrer} from 'sentry/views/insights/mobile/appStarts/referrers';
@@ -91,7 +91,7 @@ function StartDurationWidget({additionalFilters}: Props) {
     data,
     isPending: isSeriesLoading,
     error: seriesError,
-  } = useTopNSpanMetricsSeries(
+  } = useTopNSpanSeries(
     {
       yAxis: [yAxis],
       fields: [groupBy, 'avg(span.duration)'],

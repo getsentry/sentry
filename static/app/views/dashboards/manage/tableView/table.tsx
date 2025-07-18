@@ -64,7 +64,7 @@ export function DashboardTable({
             <SavedEntityTable.HeaderCell data-column="created-by">
               {t('Creator')}
             </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell data-column="last-viewed">
+            <SavedEntityTable.HeaderCell data-column="last-visited">
               {t('Last Viewed')}
             </SavedEntityTable.HeaderCell>
             <SavedEntityTable.HeaderCell data-column="created" noBorder>
@@ -101,8 +101,7 @@ export function DashboardTable({
               <SavedEntityTable.CellProjects projects={dashboard.projects} />
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell data-column="envs">
-              {/* TODO: DAIN-712 Add environments after they are exposed in the API */}
-              <SavedEntityTable.CellEnvironments environments={[]} />
+              <SavedEntityTable.CellEnvironments environments={dashboard.environment} />
             </SavedEntityTable.Cell>
             {/* TODO: DAIN-716 Add release filter as tokens */}
             <SavedEntityTable.Cell data-column="filter">{'\u2014'}</SavedEntityTable.Cell>
@@ -118,9 +117,8 @@ export function DashboardTable({
                 <UserAvatar user={dashboard.createdBy} hasTooltip />
               ) : null}
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell data-column="last-viewed">
-              <SavedEntityTable.CellTimeSince date={null} />
-              {/* TODO: DAIN-713 Add last viewed after it is exposed in the API */}
+            <SavedEntityTable.Cell data-column="last-visited">
+              <SavedEntityTable.CellTimeSince date={dashboard.lastVisited ?? null} />
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell data-column="created">
               <SavedEntityTable.CellTimeSince date={dashboard.dateCreated ?? null} />
@@ -170,7 +168,7 @@ const Container = styled('div')`
 
 // TODO: DAIN-719 Update the widths to be consistent with mockup
 const SavedEntityTableWithColumns = styled(SavedEntityTable)`
-  grid-template-areas: 'star name project envs filter num-widgets created-by last-viewed created actions';
+  grid-template-areas: 'star name project envs filter num-widgets created-by last-visited created actions';
   grid-template-columns:
     40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(auto, 120px)
     minmax(auto, 120px) auto auto auto 48px;
