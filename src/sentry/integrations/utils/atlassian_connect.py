@@ -4,6 +4,7 @@ import hashlib
 from collections.abc import Mapping, Sequence
 
 import requests
+import sentry_sdk
 from django.http import HttpRequest
 from jwt import ExpiredSignatureError, InvalidSignatureError
 
@@ -93,6 +94,7 @@ def get_integration_from_jwt(
             else jwt.decode(token, integration.metadata["shared_secret"], audience=False)
         )
     except InvalidSignatureError as e:
+        sentry_sdk.set_tags({"provider": provider, "integration_id": integration.id})
         raise AtlassianConnectValidationError("Signature is invalid") from e
     except ExpiredSignatureError as e:
         raise AtlassianConnectValidationError("Signature is expired") from e
