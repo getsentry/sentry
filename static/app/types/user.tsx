@@ -58,6 +58,10 @@ export interface User extends Omit<AvatarUser, 'options'> {
   authenticators?: UserEnrolledAuthenticator[];
 }
 
+export interface UserWithOrganizations extends Omit<AvatarUser, 'options'> {
+  lastActive: string;
+  organizations: string[];
+}
 // XXX(epurkhiser): we should understand how this is diff from User['emails]
 // above
 export type UserEmail = {
