@@ -596,6 +596,50 @@ class ArtifactLookupTest(APITestCase):
                 == expected_date_added
             )
 
+    def test_renewal_of_releasefiles(self):
+        old_timestamp = datetime.now(tz=timezone.utc) - timedelta(days=45)
+
+        file_headers = {"Sourcemap": "application.js.map"}
+        file = make_file("application.js", b"wat", "release.file", file_headers)
+        releasefile = ReleaseFile.objects.create(
+            organization_id=self.project.organization_id,
+            release_id=self.release.id,
+            file=file,
+            name="http://example.com/application.js",
+            date_accessed=old_timestamp,
+        )
+
+        archive1, archive1_file = self.create_archive(
+            fields={},
+            files={
+                "foo": "foo1",
+                "bar": "bar1",
+            },
+        )
+        archive1.date_accessed = old_timestamp
+        archive1.save()
+
+        self.login_as(user=self.user)
+
+        url = reverse(
+            "sentry-api-0-project-artifact-lookup",
+            kwargs={
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+            },
+        )
+
+        response = self.client.get(
+            f"{url}?release={self.release.version}&url=application.js"
+        ).json()
+
+        # the lookup finds both, as the bundle is resolved only by the release
+        assert len(response) == 2
+        assert response[0]["type"] == "file"
+        assert response[1]["type"] == "bundle"
+        assert ReleaseFile.objects.get(id=releasefile.id).date_accessed > old_timestamp
+        assert ReleaseFile.objects.get(id=archive1.id).date_accessed > old_timestamp
+
     def test_access_control(self):
         # release file
         file_a = make_file("application.js", b"wat", "release.file", {})

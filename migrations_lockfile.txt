@@ -27,7 +27,7 @@ preprod: 0012_installablepreprod
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0952_fix_span_item_event_type_alerts
+sentry: 0953_make_releasefiles_tti
 
 social_auth: 0003_social_auth_json_field
 
