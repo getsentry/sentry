@@ -17,6 +17,7 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconFatal} from 'sentry/icons/iconFatal';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
@@ -45,7 +46,8 @@ function FatalIconTooltip({error}: {error: Error | null}) {
 export default function ReplayView({toggleFullscreen, isLoading}: Props) {
   const isFullscreen = useIsFullscreen();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const {isFetching, replay} = useReplayContext();
+  const replay = useReplayReader();
+  const {isFetching} = useReplayContext();
   const isVideoReplay = replay?.isVideoReplay();
   const needsJetpackComposePiiWarning = useNeedsJetpackComposePiiNotice({
     replays: replay ? [replay.getReplay()] : [],
