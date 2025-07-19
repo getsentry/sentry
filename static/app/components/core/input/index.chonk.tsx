@@ -11,9 +11,10 @@ export const chonkInputStyles = ({
 }: InputStylesProps & {theme: DO_NOT_USE_ChonkTheme}): StrictCSSObject => ({
   display: 'block',
   width: '100%',
-  color: theme.textColor,
-  background: theme.background,
-  border: `1px solid ${theme.border}`,
+  color: theme.tokens.content.primary,
+  background: theme.tokens.background.secondary,
+  boxShadow: `0px 2px 0px 0px ${theme.tokens.border.primary} inset`,
+  border: `1px solid ${theme.tokens.border.primary}`,
   fontWeight: theme.fontWeight.normal,
   resize: 'vertical',
   transition: 'border 0.1s, box-shadow 0.1s',
@@ -25,7 +26,7 @@ export const chonkInputStyles = ({
   ...theme.formRadius[size],
 
   '&::placeholder': {
-    color: theme.subText,
+    color: theme.tokens.content.muted,
     opacity: 1,
   },
 
