@@ -417,10 +417,7 @@ describe('Sidebar', function () {
         body: {data: null},
       });
 
-      renderSidebarWithFeatures([
-        'navigation-sidebar-v2',
-        'navigation-sidebar-v2-banner',
-      ]);
+      renderSidebarWithFeatures(['navigation-sidebar-v2']);
 
       expect(await screen.findByText(/New Navigation/)).toBeInTheDocument();
     });
@@ -431,10 +428,7 @@ describe('Sidebar', function () {
         body: {data: null},
       });
 
-      renderSidebarWithFeatures([
-        'navigation-sidebar-v2',
-        'navigation-sidebar-v2-banner',
-      ]);
+      renderSidebarWithFeatures(['navigation-sidebar-v2']);
 
       await userEvent.click(screen.getByTestId('sidebar-collapse'));
 
@@ -455,10 +449,7 @@ describe('Sidebar', function () {
         body: {},
       });
 
-      renderSidebarWithFeatures([
-        'navigation-sidebar-v2',
-        'navigation-sidebar-v2-banner',
-      ]);
+      renderSidebarWithFeatures(['navigation-sidebar-v2']);
 
       await userEvent.click(await screen.findByRole('button', {name: /Dismiss/}));
 
