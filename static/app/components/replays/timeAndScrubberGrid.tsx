@@ -51,7 +51,7 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
   }, [timelineScale, maxScale, setTimelineScale, organization]);
 
   return (
-    <ButtonBar gap="xs">
+    <ButtonBar gap="none">
       <Button
         size="xs"
         title={t('Zoom out')}
@@ -61,10 +61,10 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
         aria-label={t('Zoom out')}
         disabled={timelineScale === 1 || isLoading}
       />
-      <Numeric>
+      <span>
         {timelineScale}
         {'\u00D7'}
-      </Numeric>
+      </span>
       <Button
         size="xs"
         title={t('Zoom in')}
@@ -88,26 +88,41 @@ export default function TimeAndScrubberGrid({
   const timestampType = prefs.timestampType;
   const startTimestamp = replay?.getStartTimestampMs() ?? 0;
   const durationMs = replay?.getDurationMs();
-  const elem = useRef<HTMLDivElement>(null);
-  const mouseTrackingProps = useScrubberMouseTracking({elem});
+  const timelineElemRef = useRef<HTMLDivElement>(null);
+  const timelineMouseTrackingProps = useScrubberMouseTracking({elem: timelineElemRef});
+  const scrubberElemRef = useRef<HTMLDivElement>(null);
+  const scrubberMouseTrackingProps = useScrubberMouseTracking({elem: scrubberElemRef});
 
   return (
     <TimelineScaleContextProvider>
       <Grid id="replay-timeline-player" isCompact={isCompact}>
-        <Numeric style={{gridArea: 'currentTime'}}>
+        <Padded style={{gridArea: 'currentTime'}}>
           <ReplayCurrentTime />
-        </Numeric>
+        </Padded>
 
-        <div style={{gridArea: 'timeline'}}>
+        <TimelineWrapper
+          style={{gridArea: 'timeline'}}
+          ref={timelineElemRef}
+          {...timelineMouseTrackingProps}
+        >
           <ReplayTimeline />
-        </div>
-        <TimelineSize style={{gridArea: 'timelineSize'}}>
-          {showZoom ? <TimelineSizeBar isLoading={isLoading} /> : null}
-        </TimelineSize>
-        <StyledScrubber style={{gridArea: 'scrubber'}} ref={elem} {...mouseTrackingProps}>
+        </TimelineWrapper>
+
+        {showZoom ? (
+          <div style={{gridArea: 'timelineSize'}}>
+            <TimelineSizeBar isLoading={isLoading} />
+          </div>
+        ) : null}
+
+        <ScrubberWrapper
+          style={{gridArea: 'scrubber'}}
+          ref={scrubberElemRef}
+          {...scrubberMouseTrackingProps}
+        >
           <PlayerScrubber showZoomIndicators={showZoom} />
-        </StyledScrubber>
-        <Numeric style={{gridArea: 'duration'}}>
+        </ScrubberWrapper>
+
+        <Padded style={{gridArea: 'duration'}}>
           {durationMs === undefined ? (
             '--:--'
           ) : timestampType === 'absolute' ? (
@@ -115,7 +130,7 @@ export default function TimeAndScrubberGrid({
           ) : (
             <Duration duration={[durationMs, 'ms']} precision="sec" />
           )}
-        </Numeric>
+        </Padded>
       </Grid>
     </TimelineScaleContextProvider>
   );
@@ -130,6 +145,11 @@ const Grid = styled('div')<{isCompact: boolean}>`
   grid-column-gap: ${space(1)};
   grid-template-columns: max-content auto max-content;
   align-items: center;
+
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-variant-numeric: tabular-nums;
+  font-weight: ${p => p.theme.fontWeight.bold};
   ${p =>
     p.isCompact
       ? css`
@@ -140,20 +160,22 @@ const Grid = styled('div')<{isCompact: boolean}>`
       : ''}
 `;
 
-const StyledScrubber = styled('div')`
+const TimelineWrapper = styled('div')`
+  height: 28px;
+  display: flex;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+`;
+
+const ScrubberWrapper = styled('div')`
   height: 32px;
   display: flex;
   align-items: center;
 `;
 
-const Numeric = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-variant-numeric: tabular-nums;
-  font-weight: ${p => p.theme.fontWeight.bold};
+const Padded = styled('div')`
+  display: flex;
+  justify-content: center;
   padding-inline: ${space(1.5)};
-`;
-
-const TimelineSize = styled('div')`
-  font-variant-numeric: tabular-nums;
 `;

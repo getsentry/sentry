@@ -17,6 +17,9 @@ export const Columns = styled('ul')<{remainder: number; totalColumns: number}>`
   padding: 0;
 
   /* Layout of the lines */
+  position: relative;
+  width: 100%;
+  height: 100%;
   display: grid;
   grid-template-columns: repeat(${p => p.totalColumns}, 1fr) ${p => p.remainder}fr;
 `;

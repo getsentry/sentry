@@ -247,6 +247,7 @@ const ContextContainer = styled('div')`
 `;
 
 const HeaderWrapper = styled('div')`
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;

@@ -88,9 +88,9 @@ export default function ReplayController({
   return (
     <ButtonGrid ref={barRef} isCompact={isCompact}>
       <ReplayPlayPauseBar isLoading={isLoading} />
-      <Container>
-        <TimeAndScrubberGrid isCompact={isCompact} showZoom isLoading={isLoading} />
-      </Container>
+
+      <TimeAndScrubberGrid isCompact={isCompact} showZoom isLoading={isLoading} />
+
       <ButtonBar>
         <ReplayPreferenceDropdown
           isLoading={isLoading}
@@ -109,11 +109,4 @@ const ButtonGrid = styled('div')<{isCompact: boolean}>`
   flex-direction: row;
   justify-content: space-between;
   ${p => (p.isCompact ? `flex-wrap: wrap;` : '')}
-`;
-
-const Container = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1;
-  justify-content: center;
 `;

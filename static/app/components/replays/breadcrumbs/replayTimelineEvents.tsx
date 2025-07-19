@@ -157,7 +157,7 @@ function Event({
 
 const IconPosition = styled('div')`
   position: absolute;
-  transform: translate(-50%);
+  translate: -50% 0;
 `;
 
 const getBackgroundGradient = ({
