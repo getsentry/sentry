@@ -59,12 +59,6 @@ describe('Sidebar', function () {
   const renderSidebar = ({organization: org}: {organization: Organization | null}) =>
     render(getElement(), {organization: org});
 
-  const renderSidebarWithFeatures = (features: string[] = []) => {
-    return renderSidebar({
-      organization: {...organization, features: [...organization.features, ...features]},
-    });
-  };
-
   beforeEach(function () {
     ConfigStore.set('user', user);
     mockUseLocation.mockReturnValue(LocationFixture());
@@ -417,7 +411,7 @@ describe('Sidebar', function () {
         body: {data: null},
       });
 
-      renderSidebarWithFeatures(['navigation-sidebar-v2']);
+      renderSidebar({organization});
 
       expect(await screen.findByText(/New Navigation/)).toBeInTheDocument();
     });
@@ -428,7 +422,7 @@ describe('Sidebar', function () {
         body: {data: null},
       });
 
-      renderSidebarWithFeatures(['navigation-sidebar-v2']);
+      renderSidebar({organization});
 
       await userEvent.click(screen.getByTestId('sidebar-collapse'));
 
@@ -449,7 +443,7 @@ describe('Sidebar', function () {
         body: {},
       });
 
-      renderSidebarWithFeatures(['navigation-sidebar-v2']);
+      renderSidebar({organization});
 
       await userEvent.click(await screen.findByRole('button', {name: /Dismiss/}));
 
