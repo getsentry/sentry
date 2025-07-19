@@ -6,6 +6,13 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.preprod.api.models.project_preprod_build_details_models import (
+    BuildDetailsApiResponse,
+    BuildDetailsAppInfo,
+    BuildDetailsVcsInfo,
+    platform_from_artifact_type,
+)
+from sentry.preprod.build_distribution_utils import is_installable_artifact
 from sentry.preprod.models import PreprodArtifact
 
 
@@ -52,28 +59,37 @@ class ProjectPreprodBuildDetailsEndpoint(ProjectEndpoint):
         except PreprodArtifact.DoesNotExist:
             return Response({"error": f"Preprod artifact {artifact_id} not found"}, status=404)
 
-        return Response(
-            {
-                "state": preprod_artifact.state,
-                "app_info": {
-                    "app_id": preprod_artifact.app_id,
-                    "name": preprod_artifact.app_name,
-                    "version": preprod_artifact.build_version,
-                    "build_number": preprod_artifact.build_number,
-                    "date_added": preprod_artifact.date_added,
-                    "date_built": preprod_artifact.date_built,
-                    "artifact_type": preprod_artifact.artifact_type,
-                    "installable_app_file_id": preprod_artifact.installable_app_file_id,
-                    # TODO: Implement in the future when available
-                    # "build_configuration": preprod_artifact.build_configuration.name,
-                    # "icon": None,
-                },
-                "vcs_info": {
-                    "commit_id": preprod_artifact.commit.key if preprod_artifact.commit else None,
-                    # TODO: Implement in the future when available
-                    # "repo": None,
-                    # "provider": None,
-                    # "branch": None,
-                },
-            }
+        app_info = BuildDetailsAppInfo(
+            app_id=preprod_artifact.app_id,
+            name=preprod_artifact.app_name,
+            version=preprod_artifact.build_version,
+            build_number=preprod_artifact.build_number,
+            date_added=(
+                preprod_artifact.date_added.isoformat() if preprod_artifact.date_added else None
+            ),
+            date_built=(
+                preprod_artifact.date_built.isoformat() if preprod_artifact.date_built else None
+            ),
+            artifact_type=preprod_artifact.artifact_type,
+            platform=platform_from_artifact_type(preprod_artifact.artifact_type),
+            is_installable=is_installable_artifact(preprod_artifact),
+            # TODO: Implement in the future when available
+            # build_configuration=preprod_artifact.build_configuration.name if preprod_artifact.build_configuration else None,
+            # icon=None,
         )
+
+        vcs_info = BuildDetailsVcsInfo(
+            commit_id=preprod_artifact.commit.key if preprod_artifact.commit else None,
+            # TODO: Implement in the future when available
+            # repo=None,
+            # provider=None,
+            # branch=None,
+        )
+
+        api_response = BuildDetailsApiResponse(
+            state=preprod_artifact.state,
+            app_info=app_info,
+            vcs_info=vcs_info,
+        )
+
+        return Response(api_response.dict())
