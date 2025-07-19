@@ -40,6 +40,20 @@ class TestWorkflowEngineSerializer(TestCase):
         self.resolve_trigger_data_condition = migrate_resolve_threshold_data_condition(
             self.alert_rule
         )
+
+        # add some other workflow engine objects to ensure that our filtering is working properly
+        other_alert_rule = self.create_alert_rule()
+        critical_trigger = self.create_alert_rule_trigger(
+            alert_rule=other_alert_rule, label="critical"
+        )
+        critical_trigger_action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=critical_trigger
+        )
+        migrate_alert_rule(other_alert_rule)
+        migrate_metric_data_conditions(critical_trigger)
+
+        migrate_metric_action(critical_trigger_action)
+        migrate_resolve_threshold_data_condition(other_alert_rule)
         self.expected_critical_action = [
             {
                 "id": str(self.critical_trigger_action.id),
