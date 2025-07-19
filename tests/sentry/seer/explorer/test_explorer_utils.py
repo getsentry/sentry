@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry.seer.explorer.utils import convert_profile_to_execution_tree, normalize_description
 
 
@@ -12,11 +14,6 @@ class TestNormalizeDescription:
     def test_normalize_description_empty_string(self):
         """Test with empty string."""
         result = normalize_description("")
-        assert result == ""
-
-    def test_normalize_description_none_input(self):
-        """Test with None input."""
-        result = normalize_description(None)
         assert result == ""
 
     def test_normalize_description_uuid_with_dashes(self):
@@ -116,7 +113,7 @@ class TestConvertProfileToExecutionTree:
 
     def test_convert_profile_missing_required_fields(self):
         """Test with missing required fields in profile."""
-        profile_data = {"profile": {"frames": []}}
+        profile_data: dict[str, Any] = {"profile": {"frames": []}}
         result = convert_profile_to_execution_tree(profile_data)
         assert result == []
 
@@ -126,7 +123,7 @@ class TestConvertProfileToExecutionTree:
 
     def test_convert_profile_empty_profile_data(self):
         """Test with empty but valid profile structure."""
-        profile_data = {
+        profile_data: dict[str, Any] = {
             "profile": {
                 "frames": [],
                 "stacks": [],
@@ -139,7 +136,7 @@ class TestConvertProfileToExecutionTree:
 
     def test_convert_profile_single_frame_single_sample(self):
         """Test with minimal valid profile data."""
-        profile_data = {
+        profile_data: dict[str, Any] = {
             "profile": {
                 "frames": [
                     {
@@ -179,7 +176,7 @@ class TestConvertProfileToExecutionTree:
 
     def test_convert_profile_nested_call_stack(self):
         """Test with nested call stack."""
-        profile_data = {
+        profile_data: dict[str, Any] = {
             "profile": {
                 "frames": [
                     {
@@ -233,7 +230,7 @@ class TestConvertProfileToExecutionTree:
 
     def test_convert_profile_multiple_samples_duration_calculation(self):
         """Test duration calculation with multiple samples."""
-        profile_data = {
+        profile_data: dict[str, Any] = {
             "profile": {
                 "frames": [
                     {
@@ -278,7 +275,7 @@ class TestConvertProfileToExecutionTree:
 
     def test_convert_profile_filters_non_app_frames(self):
         """Test that non-app frames are filtered out."""
-        profile_data = {
+        profile_data: dict[str, Any] = {
             "profile": {
                 "frames": [
                     {
@@ -326,7 +323,7 @@ class TestConvertProfileToExecutionTree:
 
     def test_convert_profile_filters_generated_frames(self):
         """Test that generated frames (with <filename>) are filtered out."""
-        profile_data = {
+        profile_data: dict[str, Any] = {
             "profile": {
                 "frames": [
                     {
@@ -366,7 +363,7 @@ class TestConvertProfileToExecutionTree:
 
     def test_convert_profile_single_thread_fallback(self):
         """Test fallback to single thread when no MainThread is found."""
-        profile_data = {
+        profile_data: dict[str, Any] = {
             "profile": {
                 "frames": [
                     {
@@ -395,7 +392,7 @@ class TestConvertProfileToExecutionTree:
 
     def test_convert_profile_ignores_other_threads(self):
         """Test that samples from other threads are ignored."""
-        profile_data = {
+        profile_data: dict[str, Any] = {
             "profile": {
                 "frames": [
                     {
@@ -442,7 +439,7 @@ class TestConvertProfileToExecutionTree:
 
     def test_convert_profile_complex_call_patterns(self):
         """Test complex call patterns with function entries and exits."""
-        profile_data = {
+        profile_data: dict[str, Any] = {
             "profile": {
                 "frames": [
                     {
@@ -508,7 +505,7 @@ class TestConvertProfileToExecutionTree:
 
     def test_convert_profile_duration_calculation_accuracy(self):
         """Test that duration calculations are reasonable."""
-        profile_data = {
+        profile_data: dict[str, Any] = {
             "profile": {
                 "frames": [
                     {

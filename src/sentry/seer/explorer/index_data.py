@@ -5,11 +5,12 @@ from typing import Any
 import orjson
 
 from sentry import search
-from sentry.api.event_search import parse_search_query
+from sentry.api.event_search import SearchFilter, parse_search_query
+from sentry.api.issue_search import convert_query_values
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.event import EventSerializer
 from sentry.eventstore import backend as eventstore
-from sentry.eventstore.models import GroupEvent
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.project import Project
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.search.eap.types import SearchResolverConfig
@@ -397,27 +398,19 @@ def get_issues_for_transaction(transaction_name: str, project_id: int) -> Transa
     start_time = end_time - timedelta(hours=24)
 
     # Step 1: Search for issues using transaction filter
-    try:
-        parsed_terms = parse_search_query(f'transaction:"{transaction_name}"')
-    except Exception:
-        logger.exception(
-            "Failed to parse transaction search query",
-            extra={"transaction_name": transaction_name, "project_id": project_id},
-        )
-        return None
+    parsed_terms = parse_search_query(f'transaction:"{transaction_name}"')
+    converted_terms = convert_query_values(parsed_terms, [project], None, [])
+    search_filters = [term for term in converted_terms if isinstance(term, SearchFilter)]
 
-    # Query for issues using the search backend
-    query_kwargs = {
-        "projects": [project],
-        "date_from": start_time,
-        "date_to": end_time,
-        "search_filters": parsed_terms,
-        "sort_by": "freq",
-        "limit": 3,
-        "environments": [],
-    }
-
-    results_cursor = search.backend.query(**query_kwargs)
+    results_cursor = search.backend.query(
+        projects=[project],
+        date_from=start_time,
+        date_to=end_time,
+        search_filters=search_filters,
+        sort_by="freq",
+        limit=3,
+        environments=[],
+    )
     issues = list(results_cursor)
 
     if not issues:
@@ -441,7 +434,7 @@ def get_issues_for_transaction(transaction_name: str, project_id: int) -> Transa
             )
             continue
 
-        full_event: GroupEvent | None = eventstore.get_event_by_id(
+        full_event: Event | GroupEvent | None = eventstore.get_event_by_id(
             project_id=group.project_id,
             event_id=recommended_event.event_id,
             group_id=group.id,
@@ -479,3 +472,27 @@ def get_issues_for_transaction(transaction_name: str, project_id: int) -> Transa
         project_id=project_id,
         issues=issue_data_list,
     )
+
+
+# RPC wrappers
+
+
+def rpc_get_transactions_for_project(project_id: int) -> dict[str, Any]:
+    transactions = get_transactions_for_project(project_id)
+    transaction_dicts = [transaction.dict() for transaction in transactions]
+    return {"transactions": transaction_dicts}
+
+
+def rpc_get_trace_for_transaction(transaction_name: str, project_id: int) -> dict[str, Any]:
+    trace = get_trace_for_transaction(transaction_name, project_id)
+    return trace.dict() if trace else {}
+
+
+def rpc_get_profiles_for_trace(trace_id: str, project_id: int) -> dict[str, Any]:
+    profiles = get_profiles_for_trace(trace_id, project_id)
+    return profiles.dict() if profiles else {}
+
+
+def rpc_get_issues_for_transaction(transaction_name: str, project_id: int) -> dict[str, Any]:
+    issues = get_issues_for_transaction(transaction_name, project_id)
+    return issues.dict() if issues else {}

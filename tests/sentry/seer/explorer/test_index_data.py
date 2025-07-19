@@ -126,13 +126,14 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
         assert len(result.spans) == 5
 
         # Verify all spans have correct structure and belong to the chosen trace
-        for span in result.spans:
-            assert hasattr(span, "span_id")
-            assert hasattr(span, "span_description")
-            assert hasattr(span, "parent_span_id")
-            assert hasattr(span, "span_op")
-            assert span.span_description.startswith("span-")
-            assert "trace-medium" in span.span_description  # Should be from the median trace
+        for result_span in result.spans:
+            assert hasattr(result_span, "span_id")
+            assert hasattr(result_span, "span_description")
+            assert hasattr(result_span, "parent_span_id")
+            assert hasattr(result_span, "span_op")
+            assert result_span.span_description is not None
+            assert result_span.span_description.startswith("span-")
+            assert "trace-medium" in result_span.span_description  # Should be from the median trace
 
         # Verify parent-child relationships are preserved
         root_spans = [s for s in result.spans if s.parent_span_id is None]
