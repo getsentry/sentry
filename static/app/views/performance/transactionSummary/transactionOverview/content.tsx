@@ -40,7 +40,7 @@ import type {Actions} from 'sentry/views/discover/table/cellAction';
 import {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 import {ServiceEntrySpansTable} from 'sentry/views/performance/otlp/serviceEntrySpansTable';
 import Filter, {
   decodeFilterFromLocation,
@@ -107,7 +107,7 @@ function OTelSummaryContentInner({
   const theme = useTheme();
   const navigate = useNavigate();
   const domainViewFilters = useDomainViewFilters();
-  const spanCategory = decodeScalar(location.query?.[SpanIndexedField.SPAN_CATEGORY]);
+  const spanCategory = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
 
   const handleSearch = useCallback(
     (query: string) => {
@@ -219,7 +219,7 @@ function OTelSummaryContentInner({
   if (spanCategory) {
     eventView = eventView.clone();
     eventView.query =
-      `${eventView.query} ${SpanIndexedField.SPAN_CATEGORY}:${spanCategory}`.trim();
+      `${eventView.query} ${SpanFields.SPAN_CATEGORY}:${spanCategory}`.trim();
     transactionsListEventView = eventView.clone();
   }
 

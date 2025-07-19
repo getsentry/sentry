@@ -20,7 +20,7 @@ export default function SavedQueriesView() {
             <Layout.Title>{t('All Queries')}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            <ButtonBar gap={1}>
+            <ButtonBar>
               <FeedbackWidgetButton />
               <LinkButton
                 priority="primary"

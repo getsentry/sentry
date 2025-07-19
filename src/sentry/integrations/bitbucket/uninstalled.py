@@ -11,6 +11,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import repository_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.atlassian_connect import (
     AtlassianConnectValidationError,
     get_integration_from_jwt,
@@ -38,7 +39,11 @@ class BitbucketUninstalledEndpoint(Endpoint):
 
         try:
             rpc_integration = get_integration_from_jwt(
-                token, request.path, "bitbucket", request.GET, method="POST"
+                token,
+                request.path,
+                IntegrationProviderSlug.BITBUCKET.value,
+                request.GET,
+                method="POST",
             )
         except AtlassianConnectValidationError:
             return self.respond(status=400)

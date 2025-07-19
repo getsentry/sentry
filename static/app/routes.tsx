@@ -270,7 +270,7 @@ function buildRoutes() {
         <IndexRoute component={make(() => import('sentry/views/onboarding'))} />
       </Route>
       <Route
-        path="/stories/"
+        path="/stories/:storyType?/:storySlug?/"
         component={make(() => import('sentry/stories/view/index'))}
         withOrgPath
       />
@@ -998,6 +998,14 @@ function buildRoutes() {
           />
         </Route>
       </Route>
+      <Route path="seer/" name={t('Seer Automation')}>
+        <IndexRoute component={make(() => import('getsentry/views/seerAutomation'))} />
+        <Route
+          path="onboarding/"
+          name={t('Configure Seer for All Projects')}
+          component={make(() => import('getsentry/views/seerAutomation/onboarding'))}
+        />
+      </Route>
       <Route path="stats/" name={t('Stats')}>
         {statsChildRoutes}
       </Route>
@@ -1696,6 +1704,18 @@ function buildRoutes() {
           component={make(() => import('sentry/views/insights/sessions/views/overview'))}
         />
       </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.AGENTS]}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/insights/agentMonitoring/views/agentsOverviewPage')
+          )}
+        />
+      </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.MCP]}/`}>
+        <IndexRoute
+          component={make(() => import('sentry/views/insights/mcp/views/overview'))}
+        />
+      </Route>
     </Fragment>
   );
 
@@ -1739,9 +1759,7 @@ function buildRoutes() {
       </Route>
       <Route path={`${AGENTS_LANDING_SUB_PATH}/`}>
         <IndexRoute
-          component={make(
-            () => import('sentry/views/insights/agentMonitoring/views/agentsOverviewPage')
-          )}
+          component={make(() => import('sentry/views/insights/pages/agents/redirect'))}
         />
         {transactionSummaryRoutes}
         {traceViewRoute}
@@ -2004,8 +2022,12 @@ function buildRoutes() {
   );
 
   const preprodRoutes = (
-    <Route path="/preprod/" component={make(() => import('sentry/views/preprod/index'))}>
-      <IndexRoute component={make(() => import('sentry/views/preprod/sizeAnalysis'))} />
+    <Route
+      path="/preprod/:projectId/:artifactId/"
+      component={make(() => import('sentry/views/preprod/index'))}
+      withOrgPath
+    >
+      <IndexRoute component={make(() => import('sentry/views/preprod/buildDetails'))} />
     </Route>
   );
 

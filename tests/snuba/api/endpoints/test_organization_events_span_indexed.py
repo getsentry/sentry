@@ -6238,3 +6238,27 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert data[0]["user_misery(span.duration,1000)"] == pytest.approx(
             expected_user_misery, rel=1e-3
         )
+
+    def test_link_field_fails(self):
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", "count()"],
+                "query": "sentry.links:foo",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        response = self.do_request(
+            {
+                "field": ["sentry.links", "description", "count()"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 400, response.content

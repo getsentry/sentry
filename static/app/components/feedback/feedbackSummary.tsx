@@ -12,13 +12,17 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export default function FeedbackSummary() {
-  const {isError, isPending, summary, tooFewFeedbacks} = useFeedbackSummary();
+  const {isError, isPending, summary, tooFewFeedbacks, numFeedbacksUsed} =
+    useFeedbackSummary();
 
   const organization = useOrganization();
 
   const openForm = useFeedbackForm();
 
-  if (!organization.features.includes('user-feedback-ai-summaries')) {
+  if (
+    !organization.features.includes('user-feedback-ai-summaries') ||
+    !organization.features.includes('gen-ai-features')
+  ) {
     return null;
   }
 
@@ -39,6 +43,7 @@ export default function FeedbackSummary() {
               ['feedback.source']: 'feedback_ai_summary',
               ['feedback.owner']: 'replay',
               ['feedback.type']: type,
+              ['feedback.num_feedbacks_used']: numFeedbacksUsed,
             },
           })
         }
