@@ -3,6 +3,7 @@ from typing import Any
 
 import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
+from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SpanLink
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import (
     AnyValue,
@@ -13,6 +14,7 @@ from sentry_protos.snuba.v1.trace_item_pb2 import (
 )
 
 from sentry.spans.consumers.process_segments.enrichment import Span
+from sentry.utils import json
 
 I64_MAX = 2**63 - 1
 
@@ -75,6 +77,15 @@ def convert_span_to_item(span: Span) -> TraceItem:
         if v is not None:
             attributes[attribute_name] = _anyvalue(v)
 
+    if links := span.get("links"):
+        try:
+            sanitized_links = [_sanitize_span_link(link) for link in links]
+            v = json.dumps(sanitized_links)
+            attributes["sentry.links"] = AnyValue(string_value=v)
+        except Exception:
+            sentry_sdk.capture_exception()
+            attributes["sentry.dropped_links_count"] = AnyValue(int_value=len(links))
+
     return TraceItem(
         organization_id=span["organization_id"],
         project_id=span["project_id"],
@@ -116,3 +127,27 @@ def _timestamp(value: float) -> Timestamp:
         seconds=int(value),
         nanos=round((value % 1) * 1_000_000) * 1000,
     )
+
+
+ALLOWED_LINK_ATTRIBUTE_KEYS = ["sentry.link.type"]
+
+
+def _sanitize_span_link(link: SpanLink) -> SpanLink:
+    """
+    Prepares a span link for storage in EAP. EAP does not support array
+    attributes, so span links are stored as a JSON-encoded string. In order to
+    prevent unbounded storage, we only support well-known attributes.
+    """
+    allowed_attributes = {}
+    dropped_attribute_count = 0
+
+    for key, value in link.get("attributes", {}).items():
+        if key in ALLOWED_LINK_ATTRIBUTE_KEYS:
+            allowed_attributes[key] = value
+        else:
+            dropped_attribute_count += 1
+
+    if dropped_attribute_count > 0:
+        allowed_attributes["sentry.dropped_attributes_count"] = dropped_attribute_count
+
+    return {**link, "attributes": allowed_attributes}
