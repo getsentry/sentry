@@ -9,6 +9,7 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import ConsoleFilters from 'sentry/views/replays/detail/console/consoleFilters';
 import ConsoleLogRow from 'sentry/views/replays/detail/console/consoleLogRow';
@@ -26,7 +27,8 @@ const cellMeasurer = {
 };
 
 export default function Console() {
-  const {currentTime, replay} = useReplayContext();
+  const replay = useReplayReader();
+  const {currentTime} = useReplayContext();
   const [currentHoverTime] = useCurrentHoverTime();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 

@@ -8,6 +8,7 @@ import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
@@ -20,7 +21,8 @@ const LOCAL_STORAGE_KEY = 'replay-canvas-supported';
 export function CanvasSupportNotice() {
   const organization = useOrganization();
   const {dismiss, isDismissed} = useDismissAlert({key: LOCAL_STORAGE_KEY});
-  const {isFetching, replay} = useReplayContext();
+  const replay = useReplayReader();
+  const {isFetching} = useReplayContext();
   const projectId = replay?.getReplay().project_id;
   const {needsUpdate} = useProjectSdkNeedsUpdate({
     minVersion: '7.98.0',

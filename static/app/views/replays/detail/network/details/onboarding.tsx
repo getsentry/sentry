@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type {SpanFrame} from 'sentry/utils/replays/types';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -69,7 +69,7 @@ export function Setup({
     projectId: [projectId],
   });
   const sdkNeedsUpdate = !isFetching && Boolean(needsUpdate);
-  const {replay} = useReplayContext();
+  const replay = useReplayReader();
   const isVideoReplay = replay?.isVideoReplay();
 
   const url = item.description || 'http://example.com';

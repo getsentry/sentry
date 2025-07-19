@@ -5,10 +5,10 @@ import type {LocationDescriptor} from 'history';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {KeyValueTable} from 'sentry/components/keyValueTable';
 import Placeholder from 'sentry/components/placeholder';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayTagsTableRow from 'sentry/components/replays/replayTagsTableRow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useOrganization from 'sentry/utils/useOrganization';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import TagFilters from 'sentry/views/replays/detail/tagPanel/tagFilters';
@@ -17,7 +17,7 @@ import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 export default function TagPanel() {
   const organization = useOrganization();
-  const {replay} = useReplayContext();
+  const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
   const tags = replayRecord?.tags;
   const sdkOptions = replay?.getSDKOptions();

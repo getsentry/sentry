@@ -12,6 +12,7 @@ import {
 } from 'sentry/components/replays/player/styles';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayPlayerSize} from 'sentry/utils/replays/playback/providers/replayPlayerSizeContext';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 
 import UnmaskAlert from './unmaskAlert';
 
@@ -46,6 +47,7 @@ function BasePlayerRoot({
   isPreview = false,
   inspectable,
 }: Props) {
+  const replay = useReplayReader();
   const {
     dimensions: videoDimensions,
     fastForwardSpeed,
@@ -55,7 +57,6 @@ function BasePlayerRoot({
     isFetching,
     isFinished,
     isVideoReplay,
-    replay,
   } = useReplayContext();
 
   const sdkOptions = replay?.getSDKOptions();

@@ -22,6 +22,7 @@ import {space} from 'sentry/styles/space';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -57,7 +58,8 @@ export default function ReplayPreviewPlayer({
   const routes = useRoutes();
   const organization = useOrganization();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const {replay, currentTime, isFetching, isFinished, isPlaying, isVideoReplay} =
+  const replay = useReplayReader();
+  const {currentTime, isFetching, isFinished, isPlaying, isVideoReplay} =
     useReplayContext();
 
   const fullscreenRef = useRef<HTMLDivElement | null>(null);
