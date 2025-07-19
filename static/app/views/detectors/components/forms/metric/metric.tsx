@@ -24,6 +24,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
+  TimeWindow,
 } from 'sentry/views/alerts/rules/metric/types';
 import {hasLogAlerts} from 'sentry/views/alerts/wizard/utils';
 import {AssigneeField} from 'sentry/views/detectors/components/forms/assigneeField';
@@ -214,6 +215,18 @@ function useDatasetChoices() {
   }, [organization]);
 }
 
+const baseIntervals: Array<[TimeWindow, string]> = [
+  [TimeWindow.ONE_MINUTE, t('1 minute')],
+  [TimeWindow.FIVE_MINUTES, t('5 minutes')],
+  [TimeWindow.TEN_MINUTES, t('10 minutes')],
+  [TimeWindow.FIFTEEN_MINUTES, t('15 minutes')],
+  [TimeWindow.THIRTY_MINUTES, t('30 minutes')],
+  [TimeWindow.ONE_HOUR, t('1 hour')],
+  [TimeWindow.TWO_HOURS, t('2 hours')],
+  [TimeWindow.FOUR_HOURS, t('4 hours')],
+  [TimeWindow.ONE_DAY, t('1 day')],
+];
+
 function DetectSection() {
   const detectionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.detectionType
@@ -223,6 +236,27 @@ function DetectSection() {
   const aggregate = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
   );
+  const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
+
+  const intervalChoices = useMemo((): Array<[seconds: number, label: string]> => {
+    if (!dataset) {
+      return [];
+    }
+
+    // Filter out 1-minute intervals for:
+    // - EAP datasets (spans, logs)
+    // - Dynamic detectors
+    const shouldExcludeOneMinute =
+      dataset === DetectorDataset.SPANS ||
+      dataset === DetectorDataset.LOGS ||
+      detectionType === 'dynamic';
+
+    const filteredIntervals = shouldExcludeOneMinute
+      ? baseIntervals.filter(([timeWindow]) => timeWindow !== TimeWindow.ONE_MINUTE)
+      : baseIntervals;
+
+    return filteredIntervals.map(([timeWindow, label]) => [timeWindow * 60, label]);
+  }, [dataset, detectionType]);
 
   return (
     <Container>
@@ -268,17 +302,7 @@ function DetectSection() {
               </Tooltip>
             }
             name={METRIC_DETECTOR_FORM_FIELDS.interval}
-            choices={[
-              // TODO: We will probably need to change these options based on dataset
-              // Similar to metric alerts see static/app/views/alerts/rules/metric/constants.tsx
-              [60, t('1 minute')],
-              [5 * 60, t('5 minutes')],
-              [15 * 60, t('15 minutes')],
-              [30 * 60, t('30 minutes')],
-              [60 * 60, t('1 hour')],
-              [4 * 60 * 60, t('4 hours')],
-              [24 * 60 * 60, t('1 day')],
-            ]}
+            choices={intervalChoices}
           />
         </DatasetRow>
         <Visualize />
