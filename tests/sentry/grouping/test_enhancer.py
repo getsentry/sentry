@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.grouping.api import get_grouping_config_dict_for_project, load_grouping_config
 from sentry.grouping.component import FrameGroupingComponent, StacktraceGroupingComponent
 from sentry.grouping.enhancer import (
@@ -23,7 +24,6 @@ from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.enhancer.matchers import ReturnValueCache, _cached, create_match_frame
 from sentry.grouping.enhancer.parser import parse_enhancements
 from sentry.grouping.enhancer.rules import EnhancementRule
-from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.testutils.cases import TestCase
 
 

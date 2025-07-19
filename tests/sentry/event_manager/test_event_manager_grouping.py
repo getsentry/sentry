@@ -8,7 +8,7 @@ from unittest.mock import ANY, MagicMock, patch
 import pytest
 
 from sentry import audit_log
-from sentry.conf.server import SENTRY_GROUPING_CONFIG_TRANSITION_DURATION
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG, SENTRY_GROUPING_CONFIG_TRANSITION_DURATION
 from sentry.event_manager import _get_updated_group_title
 from sentry.eventtypes.base import DefaultEvent
 from sentry.grouping.api import get_grouping_config_dict_for_project
@@ -17,12 +17,12 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
-from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
+from tests.sentry.grouping import NO_MSG_PARAM_CONFIG
 
 pytestmark = [requires_snuba]
 
@@ -148,7 +148,7 @@ class EventManagerGroupingTest(TestCase):
         assert self.project.get_option("sentry:secondary_grouping_config") is None
 
     def test_auto_updates_grouping_config(self):
-        self.project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
+        self.project.update_option("sentry:grouping_config", NO_MSG_PARAM_CONFIG)
 
         save_new_event({"message": "Adopt don't shop"}, self.project)
         assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
@@ -161,7 +161,7 @@ class EventManagerGroupingTest(TestCase):
 
         assert audit_log_entry.data == {
             "sentry:grouping_config": DEFAULT_GROUPING_CONFIG,
-            "sentry:secondary_grouping_config": LEGACY_GROUPING_CONFIG,
+            "sentry:secondary_grouping_config": NO_MSG_PARAM_CONFIG,
             "sentry:secondary_grouping_expiry": ANY,  # tested separately below
             "id": self.project.id,
             "slug": self.project.slug,
@@ -437,8 +437,8 @@ class EventManagerGroupingMetricsTest(TestCase):
         project = self.project
 
         cases: list[Any] = [
-            ["Dogs are great!", LEGACY_GROUPING_CONFIG, None, None, 1],
-            ["Adopt don't shop", DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG, time() + 3600, 2],
+            ["Dogs are great!", NO_MSG_PARAM_CONFIG, None, None, 1],
+            ["Adopt don't shop", DEFAULT_GROUPING_CONFIG, NO_MSG_PARAM_CONFIG, time() + 3600, 2],
         ]
 
         for (
@@ -482,10 +482,10 @@ class EventManagerGroupingMetricsTest(TestCase):
         project = self.project
 
         in_transition_cases: list[Any] = [
-            [LEGACY_GROUPING_CONFIG, None, None, "False"],  # Not in transition
+            [NO_MSG_PARAM_CONFIG, None, None, "False"],  # Not in transition
             [
                 DEFAULT_GROUPING_CONFIG,
-                LEGACY_GROUPING_CONFIG,
+                NO_MSG_PARAM_CONFIG,
                 time() + 3600,
                 "True",
             ],  # In transition
@@ -538,7 +538,7 @@ def test_records_hash_comparison_metric(
 ):
     project = default_project
     project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
-    project.update_option("sentry:secondary_grouping_config", LEGACY_GROUPING_CONFIG)
+    project.update_option("sentry:secondary_grouping_config", NO_MSG_PARAM_CONFIG)
     project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
 
     with mock.patch(

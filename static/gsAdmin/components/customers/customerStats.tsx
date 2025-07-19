@@ -265,7 +265,9 @@ export function populateChartData(
     totalDropped!.subSeries.push({seriesName: data.seriesName, data: data.data});
 
     for (const [dataIndex, dataPoint] of data.data.entries()) {
-      totalDropped!.data[dataIndex]!.value += dataPoint.value;
+      if (totalDropped?.data[dataIndex]) {
+        totalDropped.data[dataIndex].value += dataPoint.value;
+      }
     }
   }
 

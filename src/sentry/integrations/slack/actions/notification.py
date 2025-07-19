@@ -479,7 +479,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             },
             skip_internal=False,
         )
-        if should_fire_workflow_actions(self.project.organization):
+        if should_fire_workflow_actions(self.project.organization, event.group.type):
             yield self.future(send_notification_noa, key=key)
         else:
             yield self.future(send_notification, key=key)

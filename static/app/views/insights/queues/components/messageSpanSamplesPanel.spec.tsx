@@ -176,7 +176,7 @@ describe('messageSpanSamplesPanel', () => {
       expect.objectContaining({
         method: 'GET',
         query: expect.objectContaining({
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
             'count()',
@@ -206,7 +206,7 @@ describe('messageSpanSamplesPanel', () => {
             'trace',
             'span.description',
             'measurements.messaging.message.body.size',
-            'measurements.messaging.message.receive.latency',
+            'messaging.message.receive.latency',
             'measurements.messaging.message.retry.count',
             'messaging.message.id',
             'trace.status',
@@ -288,7 +288,7 @@ describe('messageSpanSamplesPanel', () => {
       expect.objectContaining({
         method: 'GET',
         query: expect.objectContaining({
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
             'count()',
@@ -318,7 +318,7 @@ describe('messageSpanSamplesPanel', () => {
             'trace',
             'span.description',
             'measurements.messaging.message.body.size',
-            'measurements.messaging.message.receive.latency',
+            'messaging.message.receive.latency',
             'measurements.messaging.message.retry.count',
             'messaging.message.id',
             'trace.status',

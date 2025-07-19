@@ -5,6 +5,8 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any, NamedTuple, TypeAlias
 
+import sentry_sdk
+
 from sentry import features, tsdb
 from sentry.digests.types import IdentifierKey, Notification, Record, RecordWithRuleObjects
 from sentry.eventstore.models import Event
@@ -73,13 +75,16 @@ def event_to_record(
     if not rules:
         logger.warning("Creating record for %s that does not contain any rules!", event)
 
+    # TODO(iamrajjoshi): The typing on this function is wrong, the type should be GroupEvent
+    # TODO(iamrajjoshi): Creating a PR to fix this
+    assert event.group is not None
     rule_ids = []
     identifier_key = IdentifierKey.RULE
     if features.has("organizations:workflow-engine-ui-links", event.organization):
         identifier_key = IdentifierKey.WORKFLOW
         for rule in rules:
             rule_ids.append(int(get_key_from_rule_data(rule, "workflow_id")))
-    elif should_fire_workflow_actions(event.organization):
+    elif should_fire_workflow_actions(event.organization, event.group.type):
         for rule in rules:
             rule_ids.append(int(get_key_from_rule_data(rule, "legacy_rule_id")))
     else:
@@ -168,7 +173,6 @@ def _build_digest_impl(
 
 
 def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[int, Rule]:
-    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 
     rules: dict[int, Rule] = {}
     if not workflow_ids:
@@ -223,15 +227,20 @@ def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[i
 
             assert rule.project_id == project.id, "Rule must belong to Project"
 
-            if should_fire_workflow_actions(project.organization):
+            try:
                 rule.data["actions"][0]["legacy_rule_id"] = rule.id
+            except KeyError:
+                # This shouldn't happen, but isn't a deal breaker if it does
+                sentry_sdk.capture_exception(
+                    Exception(f"Rule {rule.id} does not have a legacy_rule_id"),
+                    level="warning",
+                )
 
             rules[workflow_id] = rule
     return rules
 
 
 def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
-    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 
     if not records:
         return DigestInfo({}, {}, {})
@@ -259,9 +268,15 @@ def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
     group_ids = list(groups)
     rules = Rule.objects.in_bulk(rule_ids)
 
-    if should_fire_workflow_actions(project.organization):
-        for rule in rules.values():
+    for rule in rules.values():
+        try:
             rule.data["actions"][0]["legacy_rule_id"] = rule.id
+        except KeyError:
+            # This shouldn't happen, but isn't a deal breaker if it does
+            sentry_sdk.capture_exception(
+                Exception(f"Rule {rule.id} does not have a legacy_rule_id"),
+                level="warning",
+            )
 
     rules.update(get_rules_from_workflows(project, workflow_ids))
 

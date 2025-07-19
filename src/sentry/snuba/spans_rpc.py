@@ -42,7 +42,7 @@ def run_table_query(
     limit: int,
     referrer: str,
     config: SearchResolverConfig,
-    sampling_mode: SAMPLING_MODES | None,
+    sampling_mode: SAMPLING_MODES | None = None,
     equations: list[str] | None = None,
     search_resolver: SearchResolver | None = None,
     debug: bool = False,

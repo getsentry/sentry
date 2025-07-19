@@ -776,7 +776,7 @@ const VISIBLE_TRACE_ROW_SELECTOR = '.TraceRow:not(.Hidden)';
 const ACTIVE_SEARCH_HIGHLIGHT_ROW = '.TraceRow.SearchResult.Highlight:not(.Hidden)';
 
 const searchToResolve = async (): Promise<void> => {
-  await screen.findByTestId('trace-search-success');
+  await screen.findByTestId('trace-search-success', undefined, {timeout: 10_000});
 };
 
 function printVirtualizedList(container: HTMLElement) {

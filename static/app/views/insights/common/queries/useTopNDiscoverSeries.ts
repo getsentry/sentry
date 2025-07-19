@@ -19,12 +19,10 @@ import {
   getRetryDelay,
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
   EAPSpanProperty,
   SpanFields,
   SpanFunctions,
-  SpanMetricsProperty,
 } from 'sentry/views/insights/types';
 
 import {convertDiscoverTimeseriesResponse} from './convertDiscoverTimeseriesResponse';
@@ -44,24 +42,10 @@ interface UseMetricsSeriesOptions<Fields> {
   transformAliasToInputFormat?: boolean;
 }
 
-export const useTopNSpanMetricsSeries = <Fields extends SpanMetricsProperty[]>(
-  options: UseMetricsSeriesOptions<Fields>,
-  referrer: string,
-  pageFilters?: PageFilters
-) => {
-  const useEap = useInsightsEap();
-  return useTopNDiscoverSeries<Fields>(
-    options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_METRICS,
-    referrer,
-    pageFilters
-  );
-};
-
-export const useTopNSpanEAPSeries = <
+export const useTopNSpanSeries = <
   Fields extends
     | EAPSpanProperty[]
-    | SpanMetricsProperty[]
+    | EAPSpanProperty[]
     | SpanFields[]
     | SpanFunctions[]
     | string[],
