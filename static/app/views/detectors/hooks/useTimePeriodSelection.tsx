@@ -51,7 +51,6 @@ export function useTimePeriodSelection({
     return getTimePeriodOptions({
       dataset,
       timeWindow,
-      isSessionAggregate: false,
     });
   }, [dataset, interval]);
 

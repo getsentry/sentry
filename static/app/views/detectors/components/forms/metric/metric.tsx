@@ -243,17 +243,27 @@ function DetectSection() {
       return [];
     }
 
-    // Filter out 1-minute intervals for:
-    // - EAP datasets (spans, logs)
-    // - Dynamic detectors
+    // Simple interval filtering rules:
+    // 1. Releases → No sub-hour intervals (crash-free alert behavior)
+    // 2. Spans/Logs/Dynamic → No 1-minute intervals
+    // 3. Everything else → All intervals allowed
+    const shouldExcludeSubHour = dataset === DetectorDataset.RELEASES;
     const shouldExcludeOneMinute =
       dataset === DetectorDataset.SPANS ||
       dataset === DetectorDataset.LOGS ||
       detectionType === 'dynamic';
 
-    const filteredIntervals = shouldExcludeOneMinute
-      ? baseIntervals.filter(([timeWindow]) => timeWindow !== TimeWindow.ONE_MINUTE)
-      : baseIntervals;
+    let filteredIntervals = baseIntervals;
+
+    if (shouldExcludeSubHour) {
+      filteredIntervals = baseIntervals.filter(
+        ([timeWindow]) => timeWindow >= TimeWindow.ONE_HOUR
+      );
+    } else if (shouldExcludeOneMinute) {
+      filteredIntervals = baseIntervals.filter(
+        ([timeWindow]) => timeWindow !== TimeWindow.ONE_MINUTE
+      );
+    }
 
     return filteredIntervals.map(([timeWindow, label]) => [timeWindow * 60, label]);
   }, [dataset, detectionType]);

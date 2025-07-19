@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import {Dataset, TimePeriod, TimeWindow} from 'sentry/views/alerts/rules/metric/types';
+import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 
 export const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
   [TimeWindow.ONE_MINUTE]: t('1 minute'),
@@ -91,49 +92,45 @@ export interface TimePeriodOptions {
    * The time window (interval) for data aggregation
    */
   timeWindow: TimeWindow;
-  /**
-   * Whether this is for a session-based aggregate
-   */
-  isSessionAggregate?: boolean;
 }
 
 /**
  * Get available time periods based on dataset and time window
- *
- * @param options Configuration options for determining available time periods
- * @returns Array of available TimePeriod values
  */
 function getAvailableTimePeriods({
   dataset,
   timeWindow,
-  isSessionAggregate = false,
-}: TimePeriodOptions): readonly TimePeriod[] {
-  // Special case for sessions: sub-hour windows are available only when time period is six hours or less
-  if (isSessionAggregate) {
-    const sessionPeriods = {
-      ...AVAILABLE_TIME_PERIODS,
-      [TimeWindow.THIRTY_MINUTES]: [TimePeriod.SIX_HOURS],
-    };
-    return sessionPeriods[timeWindow] || [];
+}: TimePeriodOptions): readonly TimePeriod[] | undefined {
+  // For crash-free alerts, shorter intervals are not available due to backend limitations
+  if (isCrashFreeAlert(dataset)) {
+    // Only allow 1 hour and above intervals for crash-free alerts (matches metric alert behavior)
+    const allowedTimeWindows = [
+      TimeWindow.ONE_HOUR,
+      TimeWindow.TWO_HOURS,
+      TimeWindow.FOUR_HOURS,
+      TimeWindow.ONE_DAY,
+    ];
+
+    if (!allowedTimeWindows.includes(timeWindow)) {
+      return undefined;
+    }
+
+    return AVAILABLE_TIME_PERIODS[timeWindow];
   }
 
   // Events Analytics Platform has different restrictions
   if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
-    return EAP_AVAILABLE_TIME_PERIODS[timeWindow] || [];
+    return EAP_AVAILABLE_TIME_PERIODS[timeWindow];
   }
 
-  // Default behavior for other datasets
-  return AVAILABLE_TIME_PERIODS[timeWindow] || [];
+  return AVAILABLE_TIME_PERIODS[timeWindow];
 }
 
 /**
  * Get time period options formatted for select components
- *
- * @param options Configuration options for determining available time periods
- * @returns Array of {value, label} objects for select components
  */
 export function getTimePeriodOptions(options: TimePeriodOptions) {
-  const availablePeriods = getAvailableTimePeriods(options);
+  const availablePeriods = getAvailableTimePeriods(options) ?? [];
 
   return availablePeriods.map(timePeriod => ({
     value: timePeriod,
