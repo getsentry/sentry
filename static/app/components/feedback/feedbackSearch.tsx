@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 import union from 'lodash/union';
 
@@ -275,7 +276,7 @@ export default function FeedbackSearch() {
   );
 
   return (
-    <SearchQueryBuilder
+    <StyledSearchQueryBuilder
       initialQuery={decodeScalar(locationQuery.query, '')}
       fieldDefinitionGetter={getFeedbackFieldDefinition}
       filterKeys={filterKeys}
@@ -287,3 +288,8 @@ export default function FeedbackSearch() {
     />
   );
 }
+
+const StyledSearchQueryBuilder = styled(SearchQueryBuilder)`
+  flex-grow: 1;
+  width: auto;
+`;

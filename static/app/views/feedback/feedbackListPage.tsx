@@ -83,7 +83,10 @@ export default function FeedbackListPage() {
                   <FeedbackWhatsNewBanner />
                 ) : null}
                 <LayoutGrid>
-                  <FeedbackFilters style={{gridArea: 'filters'}} />
+                  <FiltersContainer style={{gridArea: 'top'}}>
+                    <FeedbackFilters />
+                    <FeedbackSearch />
+                  </FiltersContainer>
                   {hasSetupOneFeedback || hasSlug ? (
                     <Fragment>
                       <SummaryListContainer style={{gridArea: 'list'}}>
@@ -92,9 +95,6 @@ export default function FeedbackListPage() {
                           <FeedbackList />
                         </Container>
                       </SummaryListContainer>
-                      <SearchContainer>
-                        <FeedbackSearch />
-                      </SearchContainer>
                       <Container style={{gridArea: 'details'}}>
                         <AnalyticsArea name="details">
                           <FeedbackItemLoader />
@@ -153,14 +153,13 @@ const LayoutGrid = styled('div')`
 
   grid-template-rows: max-content 1fr;
   grid-template-areas:
-    'filters search'
+    'top top'
     'list details';
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr;
     grid-template-areas:
-      'filters'
-      'search'
+      'top'
       'list'
       'details';
   }
@@ -188,7 +187,9 @@ const SetupContainer = styled('div')`
   grid-column: 1 / -1;
 `;
 
-const SearchContainer = styled('div')`
-  flex-grow: 1;
-  min-width: 0;
+const FiltersContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(2)};
+  flex-wrap: wrap;
 `;
