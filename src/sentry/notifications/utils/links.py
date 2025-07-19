@@ -104,11 +104,13 @@ def get_issue_replay_link(group: Group, sentry_query_params: str = ""):
 
 
 def get_rules(
-    rules: Sequence[Rule], organization: Organization, project: Project
+    rules: Sequence[Rule], organization: Organization, project: Project, type_id: int | None = None
 ) -> Sequence[NotificationRuleDetails]:
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
     if features.has("organizations:workflow-engine-ui-links", organization):
         return get_workflow_links(rules, organization, project)
-    elif features.has("organizations:workflow-engine-trigger-actions", organization):
+    elif type_id is None or should_fire_workflow_actions(organization, type_id):
         return get_rules_with_legacy_ids(rules, organization, project)
     return [
         NotificationRuleDetails(
@@ -121,12 +123,21 @@ def get_rules(
     ]
 
 
+def _fetch_rule_id(rule: Rule, type_id: int | None = None):
+    # Try to fetch the legacy rule id, if it fails, return the rule id
+    # This allows us to support both legacy and new rule ids
+    try:
+        return int(get_key_from_rule_data(rule, "legacy_rule_id"))
+    except AssertionError:
+        return rule.id
+
+
 def get_rules_with_legacy_ids(
     rules: Sequence[Rule], organization: Organization, project: Project
 ) -> Sequence[NotificationRuleDetails]:
     rules_with_legacy_ids = []
     for rule in rules:
-        rule_id = int(get_key_from_rule_data(rule, "legacy_rule_id"))
+        rule_id = _fetch_rule_id(rule)
         rules_with_legacy_ids.append(
             NotificationRuleDetails(
                 rule_id,
@@ -161,8 +172,11 @@ def get_snooze_url(
     organization: Organization,
     project: Project,
     sentry_query_params: str,
+    type_id: int,
 ) -> str:
-    if features.has("organizations:workflow-engine-trigger-actions", organization):
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
+    if should_fire_workflow_actions(organization, type_id):
         rule_id = int(get_key_from_rule_data(rule, "legacy_rule_id"))
     else:
         rule_id = rule.id

@@ -1,3 +1,5 @@
+from unittest import mock
+
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
@@ -23,7 +25,6 @@ class TestGetDataConditionsForGroup(TestCase):
 
 
 class TestProcessDataConditionGroup(TestCase):
-
     def test_process_data_condition_group__exists__fails(self):
         data_condition_group = self.create_data_condition_group()
         self.create_data_condition(
@@ -59,6 +60,43 @@ class TestProcessDataConditionGroup(TestCase):
             ],
         )
         assert process_data_condition_group(data_condition_group, 10) == (expected_result, [])
+
+    def test__fetch_conditions__no_prefetch(self):
+        data_condition_group = self.create_data_condition_group()
+        self.condition = self.create_data_condition(
+            condition_group=data_condition_group,
+            type=Condition.GREATER,
+            comparison=5,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+
+        with mock.patch(
+            "sentry.workflow_engine.processors.data_condition_group.get_data_conditions_for_group"
+        ) as mock_fetch_conditions:
+            process_data_condition_group(data_condition_group, 10)
+            mock_fetch_conditions.assert_called_once_with(data_condition_group.id)
+
+    def test_fetch_conditions__with_prefetch(self):
+        data_condition_group = self.create_data_condition_group()
+        self.condition = self.create_data_condition(
+            condition_group=data_condition_group,
+            type=Condition.GREATER,
+            comparison=5,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+
+        prefetched_group = (
+            DataConditionGroup.objects.filter(id=data_condition_group.id)
+            .prefetch_related("conditions")
+            .first()
+        )
+        assert prefetched_group is not None
+
+        with mock.patch(
+            "sentry.workflow_engine.processors.data_condition_group.get_data_conditions_for_group"
+        ) as mock_fetch_conditions:
+            process_data_condition_group(prefetched_group, 10)
+            mock_fetch_conditions.assert_not_called()
 
 
 class TestEvaluationConditionCase(TestCase):

@@ -145,7 +145,7 @@ function SpansTabHeader({organization}: SpansTabHeaderProps) {
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <ButtonBar gap={1}>
+        <ButtonBar>
           {!prefersStackedNav && (
             <LinkButton
               to={`/organizations/${organization.slug}/explore/saved-queries/`}

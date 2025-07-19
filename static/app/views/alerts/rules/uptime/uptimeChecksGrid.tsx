@@ -15,7 +15,7 @@ import {space} from 'sentry/styles/space';
 import {getShortEventId} from 'sentry/utils/events';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {UptimeCheck, UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   reasonToText,
   statusToText,
@@ -36,7 +36,7 @@ const EMPTY_TRACE = '00000000000000000000000000000000';
 export function UptimeChecksGrid({uptimeRule, uptimeChecks}: Props) {
   const traceIds = uptimeChecks?.map(check => check.traceId) ?? [];
 
-  const {data: spanCounts, isPending: spanCountLoading} = useEAPSpans(
+  const {data: spanCounts, isPending: spanCountLoading} = useSpans(
     {
       limit: 10,
       enabled: traceIds.length > 0,

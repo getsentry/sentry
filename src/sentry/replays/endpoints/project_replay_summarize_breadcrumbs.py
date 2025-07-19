@@ -49,6 +49,15 @@ class GroupEvent(TypedDict):
     category: str
 
 
+class SeerRequest(TypedDict):
+    """Corresponds to SummarizeReplayBreadcrumbsRequest in Seer."""
+
+    logs: list[str]
+    replay_id: str
+    organization_id: int
+    project_id: int
+
+
 @region_silo_endpoint
 @extend_schema(tags=["Replays"])
 class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
@@ -117,7 +126,11 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
             paginator_cls=GenericOffsetPaginator,
             data_fn=functools.partial(fetch_segments_metadata, project.id, replay_id),
             on_results=functools.partial(
-                analyze_recording_segments, error_events, replay_id, project.id
+                analyze_recording_segments,
+                error_events,
+                replay_id,
+                project.organization.id,
+                project.id,
             ),
         )
 
@@ -284,11 +297,10 @@ def generate_error_log_message(error: GroupEvent) -> str:
 
 
 def generate_feedback_log_message(feedback: GroupEvent) -> str:
-    title = feedback["title"]
     message = feedback["message"]
     timestamp = feedback["timestamp"]
 
-    return f"User submitted feedback: '{title}: {message}' at {timestamp}"
+    return f"User submitted feedback: '{message}' at {timestamp}"
 
 
 def get_request_data(
@@ -343,24 +355,22 @@ def gen_request_data(
 def analyze_recording_segments(
     error_events: list[GroupEvent],
     replay_id: str,
+    organization_id: int,
     project_id: int,
     segments: list[RecordingSegmentStorageMeta],
 ) -> dict[str, Any]:
     # Combine breadcrumbs and error details
-    request_data = json.dumps(
-        {"logs": get_request_data(iter_segment_data(segments), error_events, project_id)}
+    logs = get_request_data(iter_segment_data(segments), error_events, project_id)
+    request = SeerRequest(
+        logs=logs,
+        replay_id=replay_id,
+        organization_id=organization_id,
+        project_id=project_id,
     )
 
-    # Log when the input string is too large. This is potential for timeout.
-    if len(request_data) > 100000:
-        logger.info(
-            "Replay AI summary: input length exceeds 100k.",
-            extra={"request_len": len(request_data), "replay_id": replay_id},
-        )
-
-    # XXX: I have to deserialize this request so it can be "automatically" reserialized by the
+    # XXX: I have to deserialize this response so it can be "automatically" reserialized by the
     # paginate method. This is less than ideal.
-    return json.loads(make_seer_request(request_data).decode("utf-8"))
+    return json.loads(make_seer_request(request).decode("utf-8"))
 
 
 def as_log_message(event: dict[str, Any]) -> str | None:
@@ -392,11 +402,11 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 message = event["data"]["payload"]["message"]
                 return f"Logged: {message} at {timestamp}"
             case EventType.UI_BLUR:
-                timestamp_ms = timestamp * 1000
-                return f"User looked away from the tab at {timestamp_ms}"
+                # timestamp_ms = timestamp * 1000
+                return None
             case EventType.UI_FOCUS:
-                timestamp_ms = timestamp * 1000
-                return f"User returned to tab at {timestamp_ms}"
+                # timestamp_ms = timestamp * 1000
+                return None
             case EventType.RESOURCE_FETCH:
                 timestamp_ms = timestamp * 1000
                 payload = event["data"]["payload"]
@@ -461,15 +471,31 @@ def as_log_message(event: dict[str, Any]) -> str | None:
         return None
 
 
-def make_seer_request(request_data: str) -> bytes:
+def make_seer_request(request: SeerRequest) -> bytes:
+    serialized_request = json.dumps(request)
+
+    # Log when the input string is too large. This is potential for timeout.
+    request_len_threshold = 1e5
+    if len(serialized_request) > request_len_threshold:
+        logger.info(
+            "Replay AI summary: input length exceeds threshold.",
+            extra={
+                "request_len": len(serialized_request),
+                "request_len_threshold": request_len_threshold,
+                "replay_id": request["replay_id"],
+                "organization_id": request["organization_id"],
+                "project_id": request["project_id"],
+            },
+        )
+
     # XXX: Request isn't streaming. Limitation of Seer authentication. Would be much faster if we
     # could stream the request data since the GCS download will (likely) dominate latency.
     response = requests.post(
         f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/replay/breadcrumbs",
-        data=request_data,
+        data=serialized_request,
         headers={
             "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(request_data.encode()),
+            **sign_with_seer_secret(serialized_request.encode()),
         },
     )
 

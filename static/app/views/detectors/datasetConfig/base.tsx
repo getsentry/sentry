@@ -28,7 +28,7 @@ export interface DetectorSeriesQueryOptions {
    */
   interval: number;
   organization: Organization;
-  projectId: number;
+  projectId: string;
   /**
    * The filter query. eg: `span.op:http`
    */

@@ -3,10 +3,22 @@ import styled from '@emotion/styled';
 
 import Pagination from 'sentry/components/pagination';
 import ReplayTable from 'sentry/components/replays/table/replayTable';
-import * as ReplayTableColumns from 'sentry/components/replays/table/replayTableColumns';
+import {
+  ReplayActivityColumn,
+  ReplayBrowserColumn,
+  ReplayCountDeadClicksColumn,
+  ReplayCountErrorsColumn,
+  ReplayCountRageClicksColumn,
+  ReplayDurationColumn,
+  ReplayOSColumn,
+  ReplaySelectColumn,
+  ReplaySessionColumn,
+} from 'sentry/components/replays/table/replayTableColumns';
 import useReplayTableSort from 'sentry/components/replays/table/useReplayTableSort';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useReplayListQueryKey from 'sentry/utils/replays/hooks/useReplayListQueryKey';
@@ -26,22 +38,24 @@ import {
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 const COLUMNS_WEB = [
-  ReplayTableColumns.ReplaySessionColumn,
-  ReplayTableColumns.ReplayOSColumn,
-  ReplayTableColumns.ReplayBrowserColumn,
-  ReplayTableColumns.ReplayDurationColumn,
-  ReplayTableColumns.ReplayCountDeadClicksColumn,
-  ReplayTableColumns.ReplayCountRageClicksColumn,
-  ReplayTableColumns.ReplayCountErrorsColumn,
-  ReplayTableColumns.ReplayActivityColumn,
+  ReplaySelectColumn,
+  ReplaySessionColumn,
+  ReplayOSColumn,
+  ReplayBrowserColumn,
+  ReplayDurationColumn,
+  ReplayCountDeadClicksColumn,
+  ReplayCountRageClicksColumn,
+  ReplayCountErrorsColumn,
+  ReplayActivityColumn,
 ] as const;
 
 const COLUMNS_MOBILE = [
-  ReplayTableColumns.ReplaySessionColumn,
-  ReplayTableColumns.ReplayOSColumn,
-  ReplayTableColumns.ReplayDurationColumn,
-  ReplayTableColumns.ReplayCountErrorsColumn,
-  ReplayTableColumns.ReplayActivityColumn,
+  ReplaySelectColumn,
+  ReplaySessionColumn,
+  ReplayOSColumn,
+  ReplayDurationColumn,
+  ReplayCountErrorsColumn,
+  ReplayActivityColumn,
 ] as const;
 
 export default function ReplayIndexTable() {
@@ -71,6 +85,8 @@ export default function ReplayIndexTable() {
   const replays = data?.data?.map(mapResponseToReplayRecord) ?? [];
 
   const {allMobileProj} = useAllMobileProj({});
+  const columns = allMobileProj ? COLUMNS_MOBILE : COLUMNS_WEB;
+
   const needsSDKUpdateForClickSearch = useNeedsSDKUpdateForClickSearch(query);
 
   const needsJetpackComposePiiWarning = useNeedsJetpackComposePiiNotice({
@@ -91,19 +107,31 @@ export default function ReplayIndexTable() {
     );
   }
 
+  const pageLinks = getResponseHeader?.('Link') ?? null;
+  const hasNextResultsPage = parseLinkHeader(pageLinks).next?.results;
+  const hasPrevResultsPage = parseLinkHeader(pageLinks).prev?.results;
+
   return (
     <Fragment>
       {needsJetpackComposePiiWarning && <JetpackComposePiiNotice />}
-      <ReplayTable
-        columns={allMobileProj ? COLUMNS_MOBILE : COLUMNS_WEB}
-        error={error}
-        isPending={isPending}
-        onSortClick={onSortClick}
-        replays={replays}
-        showDropdownFilters
-        sort={sortType}
-      />
-      <Paginate pageLinks={getResponseHeader?.('Link') ?? null} />
+      <ListItemCheckboxProvider
+        hits={
+          hasPrevResultsPage || hasNextResultsPage ? replays.length + 1 : replays.length
+        }
+        knownIds={replays.map(replay => replay.id)}
+        queryKey={queryKey}
+      >
+        <ReplayTable
+          columns={columns}
+          error={error}
+          isPending={isPending}
+          onSortClick={onSortClick}
+          replays={replays}
+          showDropdownFilters
+          sort={sortType}
+        />
+      </ListItemCheckboxProvider>
+      <Paginate pageLinks={pageLinks} />
     </Fragment>
   );
 }

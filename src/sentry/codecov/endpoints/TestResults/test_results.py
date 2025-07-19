@@ -12,7 +12,13 @@ from sentry.codecov.base import CodecovEndpoint
 from sentry.codecov.client import CodecovApiClient
 from sentry.codecov.endpoints.TestResults.query import query
 from sentry.codecov.endpoints.TestResults.serializers import TestResultSerializer
-from sentry.codecov.enums import MeasurementInterval, OrderingDirection, OrderingParameter
+from sentry.codecov.enums import (
+    MeasurementInterval,
+    NavigationParameter,
+    OrderingDirection,
+    OrderingParameter,
+)
+from sentry.integrations.services.integration.model import RpcIntegration
 
 
 @extend_schema(tags=["Prevent"])
@@ -38,8 +44,8 @@ class TestResultsEndpoint(CodecovEndpoint):
             PreventParams.TEST_RESULTS_FILTER_BY,
             PreventParams.INTERVAL,
             PreventParams.BRANCH,
-            PreventParams.FIRST,
-            PreventParams.LAST,
+            PreventParams.LIMIT,
+            PreventParams.NAVIGATION,
             PreventParams.CURSOR,
             PreventParams.TERM,
         ],
@@ -51,10 +57,10 @@ class TestResultsEndpoint(CodecovEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(
-        self, request: Request, organization_id_or_slug: str, owner: str, repository: str, **kwargs
-    ) -> Response:
+    def get(self, request: Request, owner: RpcIntegration, repository: str, **kwargs) -> Response:
         """Retrieves the list of test results for a given repository and owner. Also accepts a number of query parameters to filter the results."""
+
+        owner_slug = owner.name
 
         sort_by = request.query_params.get(
             "sortBy", f"-{OrderingParameter.COMMITS_WHERE_FAIL.value}"
@@ -62,32 +68,33 @@ class TestResultsEndpoint(CodecovEndpoint):
 
         if sort_by.startswith("-"):
             sort_by = sort_by[1:]
-            direction = OrderingDirection.DESC.value
+            ordering_direction = OrderingDirection.DESC.value
         else:
-            direction = OrderingDirection.ASC.value
+            ordering_direction = OrderingDirection.ASC.value
 
-        first_param = request.query_params.get("first")
-        last_param = request.query_params.get("last")
         cursor = request.query_params.get("cursor")
+        limit_param = request.query_params.get("limit", "20")
+        try:
+            limit = int(limit_param)
+        except (ValueError, TypeError):
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data={"details": "provided `limit` parameter must be a positive integer"},
+            )
+        navigation = request.query_params.get("navigation", NavigationParameter.NEXT.value)
 
         # When calling request.query_params, the URL is decoded so + is replaced with spaces. We need to change them back so Codecov can properly fetch the next page.
         if cursor:
             cursor = cursor.replace(" ", "+")
 
-        first = int(first_param) if first_param else None
-        last = int(last_param) if last_param else None
-
-        if first and last:
+        if limit <= 0:
             return Response(
                 status=status.HTTP_400_BAD_REQUEST,
-                data={"details": "Cannot specify both `first` and `last`"},
+                data={"details": "provided `limit` parameter must be a positive integer"},
             )
 
-        if not first and not last:
-            first = 20
-
         variables = {
-            "owner": owner,
+            "owner": owner_slug,
             "repo": repository,
             "filters": {
                 "branch": request.query_params.get("branch", "main"),
@@ -100,16 +107,16 @@ class TestResultsEndpoint(CodecovEndpoint):
                 "test_suites": None,
             },
             "ordering": {
-                "direction": direction,
+                "direction": ordering_direction,
                 "parameter": sort_by,
             },
-            "first": first,
-            "last": last,
-            "before": cursor if cursor and last else None,
-            "after": cursor if cursor and first else None,
+            "first": limit if navigation != NavigationParameter.PREV.value else None,
+            "last": limit if navigation == NavigationParameter.PREV.value else None,
+            "before": cursor if cursor and navigation == NavigationParameter.PREV.value else None,
+            "after": cursor if cursor and navigation == NavigationParameter.NEXT.value else None,
         }
 
-        client = CodecovApiClient(git_provider_org=owner)
+        client = CodecovApiClient(git_provider_org=owner_slug)
         graphql_response = client.query(query=query, variables=variables)
 
         test_results = TestResultSerializer().to_representation(graphql_response.json())
