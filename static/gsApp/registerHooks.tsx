@@ -1,5 +1,6 @@
-import {lazy} from 'react';
+import {lazy, useMemo} from 'react';
 
+import {TrackingContextProvider} from 'sentry/components/core/trackingContext';
 import LazyLoad from 'sentry/components/lazyLoad';
 import {IconBusiness} from 'sentry/icons';
 import HookStore from 'sentry/stores/hookStore';
@@ -239,7 +240,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:superuser-warning-excluded': shouldExcludeOrg,
   'component:crons-list-page-header': () => CronsBillingBanner,
   'react-hook:route-activated': useRouteActivatedHook,
-  'react-hook:use-button-tracking': useButtonTracking,
   'react-hook:use-get-max-retention-days': useGetMaxRetentionDays,
   'component:partnership-agreement': p => (
     <LazyLoad LazyComponent={PartnershipAgreement} {...p} />
@@ -379,3 +379,14 @@ const registerHooks = () =>
   entries(GETSENTRY_HOOKS).forEach(entry => HookStore.add(...entry));
 
 export default registerHooks;
+
+export function SentryHooksProvider({children}: {children?: React.ReactNode}) {
+  const buttonTracking = useButtonTracking();
+  const trackingContextValue = useMemo(() => ({buttonTracking}), [buttonTracking]);
+
+  return (
+    <TrackingContextProvider value={trackingContextValue}>
+      {children}
+    </TrackingContextProvider>
+  );
+}
