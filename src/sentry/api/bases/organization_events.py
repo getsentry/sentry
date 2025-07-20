@@ -449,7 +449,6 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                         result[f"{function}()"] = result[function]
                         del result[function]
 
-            for function in upsampling_affected_functions:
                 if function in fields_meta:
                     fields_meta[f"{function}()"] = fields_meta[function]
                     del fields_meta[function]
