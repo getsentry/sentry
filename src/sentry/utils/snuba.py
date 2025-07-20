@@ -1408,13 +1408,12 @@ def query(
     selected_columns = selected_columns or []
     groupby = groupby or []
 
-    # Convert count() aggregations to upsampled_count() for error upsampled projects
-    if (
-        dataset == Dataset.Events
-        and filter_keys.get("project_id")
-        and isinstance(filter_keys["project_id"], (list, tuple))
-    ):
-        _convert_count_aggregations_for_error_upsampling(aggregations, filter_keys["project_id"])
+    if dataset == Dataset.Events and filter_keys.get("project_id"):
+        project_filter = filter_keys.get("project_id")
+        project_ids = (
+            project_filter if isinstance(project_filter, (list, tuple)) else [project_filter]
+        )
+        _convert_count_aggregations_for_error_upsampling(aggregations, project_ids)
 
     try:
         body = raw_query(
