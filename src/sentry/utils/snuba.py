@@ -27,7 +27,10 @@ from snuba_sdk import Column, DeleteQuery, Function, MetricsQuery, Request
 from snuba_sdk.legacy import json_to_snql
 from snuba_sdk.query import SelectableExpression
 
-from sentry.api.helpers.error_upsampling import UPSAMPLED_ERROR_AGGREGATION
+from sentry.api.helpers.error_upsampling import (
+    UPSAMPLED_ERROR_AGGREGATION,
+    are_any_projects_error_upsampled,
+)
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.grouprelease import GroupRelease
@@ -1405,6 +1408,14 @@ def query(
     selected_columns = selected_columns or []
     groupby = groupby or []
 
+    # Convert count() aggregations to upsampled_count() for error upsampled projects
+    if (
+        dataset == Dataset.Events
+        and filter_keys.get("project_id")
+        and isinstance(filter_keys["project_id"], (list, tuple))
+    ):
+        _convert_count_aggregations_for_error_upsampling(aggregations, filter_keys["project_id"])
+
     try:
         body = raw_query(
             dataset=dataset,
@@ -2099,3 +2110,27 @@ def get_upsampled_count_snql_with_alias(alias: str) -> list[SelectableExpression
         ],
         alias=alias,
     )
+
+
+def _convert_count_aggregations_for_error_upsampling(
+    aggregations: list[list[Any]], project_ids: list[int]
+) -> None:
+    """
+    Converts count() aggregations to upsampled_count() for error upsampled projects.
+
+    This function modifies the aggregations list in-place, swapping any "count()"
+    or "count" aggregation functions to "upsampled_count" when any of the projects
+    are configured for error upsampling.
+
+    Args:
+        aggregations: List of aggregation specifications in format [function, column, alias]
+        project_ids: List of project IDs being queried
+    """
+    if not are_any_projects_error_upsampled(project_ids):
+        return
+
+    for aggregation in aggregations:
+        if len(aggregation) >= 1:
+            # Handle both "count()" and "count" formats
+            if aggregation[0] in ("count()", "count"):
+                aggregation[0] = "toInt64(sum(ifNull(sample_weight, 1)))"
