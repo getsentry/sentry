@@ -500,7 +500,7 @@ function BaseChart({
 
     const bucketSize = seriesData ? seriesData[1][0] - seriesData[0][0] : undefined;
     const tooltipOrNone =
-      tooltip === null
+      tooltip === undefined
         ? undefined
         : computeChartTooltip(
             {
