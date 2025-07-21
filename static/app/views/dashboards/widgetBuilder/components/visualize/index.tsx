@@ -971,6 +971,7 @@ export const FieldExtras = styled('div')<{isChartWidget: boolean}>`
   flex-direction: row;
   gap: ${space(1)};
   flex: ${p => (p.isChartWidget ? '0' : '1')};
+  align-items: center;
 `;
 
 const AddButton = styled(Button)`

@@ -106,6 +106,7 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
                 ]
             )
 
+        logger.info("Fetching %s events for deletion.", self.DEFAULT_CHUNK_SIZE)
         events = eventstore.backend.get_unfetched_events(
             filter=eventstore.Filter(
                 conditions=conditions, project_ids=self.project_ids, group_ids=self.group_ids
@@ -140,10 +141,12 @@ class ErrorEventsDeletionTask(EventsBaseDeletionTask):
         if the deletion has completed and if it needs to be called again."""
         events = self.get_unfetched_events()
         if events:
+            # Adding this variable to see the values in stack traces
+            last_event = events[-1]
             self.delete_events_from_nodestore(events)
             self.delete_dangling_attachments_and_user_reports(events)
             # This value will be used in the next call to chunk
-            self.last_event = events[-1]
+            self.last_event = last_event
             # As long as it returns True the task will keep iterating
             return True
         else:
@@ -154,6 +157,7 @@ class ErrorEventsDeletionTask(EventsBaseDeletionTask):
     def delete_events_from_nodestore(self, events: Sequence[Event]) -> None:
         # Remove from nodestore
         node_ids = [Event.generate_node_id(event.project_id, event.event_id) for event in events]
+        logger.info("Deleting %s events from nodestore.", len(node_ids))
         nodestore.backend.delete_multi(node_ids)
 
     def delete_dangling_attachments_and_user_reports(self, events: Sequence[Event]) -> None:
@@ -189,13 +193,15 @@ class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):
         if the deletion has completed and if it needs to be called again."""
         events = self.get_unfetched_events()
         if events:
+            # Adding this variable to see the values in stack traces
+            last_event = events[-1]
             # Ideally, in some cases, we should also delete the associated event from the Nodestore.
             # In the occurrence_consumer [1] we sometimes create a new event but it's hard in post-ingestion to distinguish between
             # a created event and an existing one.
             # https://github.com/getsentry/sentry/blob/a86b9b672709bc9c4558cffb2c825965b8cee0d1/src/sentry/issues/occurrence_consumer.py#L324-L339
             self.delete_events_from_nodestore(events)
             # This value will be used in the next call to chunk
-            self.last_event = events[-1]
+            self.last_event = last_event
             # As long as it returns True the task will keep iterating
             return True
         else:
@@ -268,6 +274,20 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
             return True
 
         self.mark_deletion_in_progress(instance_list)
+
+        error_group_ids = []
+        # XXX: If a group type has been removed, we shouldn't error here.
+        # Ideally, we should refactor `issue_category` to return None if the type is
+        # unregistered.
+        for group in instance_list:
+            try:
+                if group.issue_category == GroupCategory.ERROR:
+                    error_group_ids.append(group.id)
+            except InvalidGroupTypeError:
+                pass
+        # Tell seer to delete grouping records with these group hashes
+        may_schedule_task_to_delete_hashes_from_seer(error_group_ids)
+
         self._delete_children(instance_list)
 
         # Remove group objects with children removed.
@@ -283,9 +303,6 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
             child_relations.append(ModelRelation(model, {"group_id__in": group_ids}))
 
         error_groups, issue_platform_groups = separate_by_group_category(instance_list)
-
-        # Tell seer to delete grouping records with these group hashes
-        may_schedule_task_to_delete_hashes_from_seer([group.id for group in error_groups])
 
         # If this isn't a retention cleanup also remove event data.
         if not os.environ.get("_SENTRY_CLEANUP"):

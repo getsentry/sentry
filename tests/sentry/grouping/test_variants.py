@@ -32,7 +32,7 @@ from tests.sentry.grouping import (
     ids=lambda config_name: config_name.replace("-", "_"),
 )
 @patch("sentry.grouping.strategies.newstyle.logging.exception")
-def test_variants_with_legacy_configs(
+def test_variants_with_older_configs(
     mock_exception_logger: MagicMock,
     config_name: str,
     grouping_input: GroupingInput,
@@ -42,8 +42,8 @@ def test_variants_with_legacy_configs(
     Run the variant snapshot tests using a minimal (and much more performant) save process.
 
     Because manually cherry-picking only certain parts of the save process to run makes us much more
-    likely to fall out of sync with reality, for safety we only do this when testing legacy,
-    inactive grouping configs.
+    likely to fall out of sync with reality, for safety we only do this when testing older grouping
+    configs.
     """
     event = grouping_input.create_event(config_name, use_full_ingest_pipeline=False)
 
@@ -61,7 +61,7 @@ def test_variants_with_legacy_configs(
     "config_name",
     # Technically we don't need to parameterize this since there's only one option, but doing it
     # this way makes snapshots from this test organize themselves neatly alongside snapshots from
-    # the test of the legacy configs above
+    # the test of the older configs above
     {DEFAULT_GROUPING_CONFIG},
     ids=lambda config_name: config_name.replace("-", "_"),
 )
@@ -108,8 +108,7 @@ def _assert_and_snapshot_results(
     assert event.get_grouping_config()["id"] == config_name
 
     # Check that we didn't end up with a caught but unexpected error in any of our strategies
-    if not config_name.startswith("legacy"):
-        assert mock_exception_logger.call_count == 0
+    assert mock_exception_logger.call_count == 0
 
     lines: list[str] = []
 

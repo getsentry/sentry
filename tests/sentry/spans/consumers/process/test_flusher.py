@@ -35,59 +35,62 @@ def test_backpressure(monkeypatch):
         produce_to_pipe=append,
     )
 
-    now = time.time()
+    try:
+        now = time.time()
 
-    for i in range(200):
-        trace_id = f"{i:0>32x}"
+        for i in range(200):
+            trace_id = f"{i:0>32x}"
 
-        spans = [
-            Span(
-                payload=_payload("a" * 16),
-                trace_id=trace_id,
-                span_id="a" * 16,
-                parent_span_id="b" * 16,
-                project_id=1,
-                end_timestamp_precise=now,
-            ),
-            Span(
-                payload=_payload("d" * 16),
-                trace_id=trace_id,
-                span_id="d" * 16,
-                parent_span_id="b" * 16,
-                project_id=1,
-                end_timestamp_precise=now,
-            ),
-            Span(
-                payload=_payload("c" * 16),
-                trace_id=trace_id,
-                span_id="c" * 16,
-                parent_span_id="b" * 16,
-                project_id=1,
-                end_timestamp_precise=now,
-            ),
-            Span(
-                payload=_payload("b" * 16),
-                trace_id=trace_id,
-                span_id="b" * 16,
-                parent_span_id=None,
-                is_segment_span=True,
-                project_id=1,
-                end_timestamp_precise=now,
-            ),
-        ]
+            spans = [
+                Span(
+                    payload=_payload("a" * 16),
+                    trace_id=trace_id,
+                    span_id="a" * 16,
+                    parent_span_id="b" * 16,
+                    project_id=1,
+                    end_timestamp_precise=now,
+                ),
+                Span(
+                    payload=_payload("d" * 16),
+                    trace_id=trace_id,
+                    span_id="d" * 16,
+                    parent_span_id="b" * 16,
+                    project_id=1,
+                    end_timestamp_precise=now,
+                ),
+                Span(
+                    payload=_payload("c" * 16),
+                    trace_id=trace_id,
+                    span_id="c" * 16,
+                    parent_span_id="b" * 16,
+                    project_id=1,
+                    end_timestamp_precise=now,
+                ),
+                Span(
+                    payload=_payload("b" * 16),
+                    trace_id=trace_id,
+                    span_id="b" * 16,
+                    parent_span_id=None,
+                    is_segment_span=True,
+                    project_id=1,
+                    end_timestamp_precise=now,
+                ),
+            ]
 
-        buffer.process_spans(spans, now=int(now))
+            buffer.process_spans(spans, now=int(now))
 
-    # Advance drift to trigger idle timeout of all segments. The flusher should
-    # have way too much to do due to `max_flush_segments=1` and enter
-    # backpressure state.
+        # Advance drift to trigger idle timeout of all segments. The flusher should
+        # have way too much to do due to `max_flush_segments=1` and enter
+        # backpressure state.
 
-    flusher.current_drift.value = 20000
-    sleep(0.1)
+        flusher.current_drift.value = 20000
+        sleep(0.1)
 
-    assert messages
+        assert messages
 
-    assert any(x.value for x in flusher.process_backpressure_since.values())
+        assert any(x.value for x in flusher.process_backpressure_since.values())
+    finally:
+        flusher.join()
 
 
 def create_memory_producer_factory():

@@ -119,14 +119,14 @@ def Feature(names: str | Iterable[str] | dict[str, bool]) -> Generator[None]:
             results = {}
             for project in projects:
                 result_key = f"project:{project.id}"
-                proj_results = {**feature_results, **default_feature_results[result_key]}
+                proj_results = {**feature_results, **default_feature_results.get(result_key, {})}
                 results[result_key] = {
                     name: val for name, val in proj_results.items() if name.startswith("project")
                 }
             return results
         elif organization:
             result_key = f"organization:{organization.id}"
-            results_for_org = {**feature_results, **default_feature_results[result_key]}
+            results_for_org = {**feature_results, **default_feature_results.get(result_key, {})}
             results_for_org = {
                 name: resolve_feature_name_value_for_org(organization, val)
                 for name, val in results_for_org.items()
