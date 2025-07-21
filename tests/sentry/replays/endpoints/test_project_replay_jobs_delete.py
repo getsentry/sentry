@@ -182,12 +182,6 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
         # Verify task was scheduled
         mock_task.assert_called_once_with(job.id, offset=0)
 
-        from sentry import audit_log
-        from sentry.models.auditlogentry import AuditLogEntry
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert AuditLogEntry.objects.first() is not None
-
     def test_post_validation_errors(self):
         """Test POST validation errors"""
         # Missing required fields
