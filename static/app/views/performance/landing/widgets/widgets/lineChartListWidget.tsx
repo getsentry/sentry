@@ -36,7 +36,7 @@ import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleU
 import {EXCLUDED_DB_OPS} from 'sentry/views/insights/database/settings';
 import {DomainCell} from 'sentry/views/insights/http/components/tables/domainCell';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, SpanFunction} from 'sentry/views/insights/types';
 import DurationChart from 'sentry/views/performance/charts/chart';
 import {excludeTransaction} from 'sentry/views/performance/landing/utils';
 import {Accordion} from 'sentry/views/performance/landing/widgets/components/accordion';
@@ -189,16 +189,16 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
         ) {
           // Set fields
           eventView.fields = [
-            {field: SpanMetricsField.SPAN_OP},
-            {field: SpanMetricsField.SPAN_GROUP},
+            {field: SpanFields.SPAN_OP},
+            {field: SpanFields.SPAN_GROUP},
             {field: 'project.id'},
-            {field: SpanMetricsField.NORMALIZED_DESCRIPTION},
-            {field: `sum(${SpanMetricsField.SPAN_SELF_TIME})`},
-            {field: `avg(${SpanMetricsField.SPAN_SELF_TIME})`},
+            {field: SpanFields.NORMALIZED_DESCRIPTION},
+            {field: `sum(${SpanFields.SPAN_SELF_TIME})`},
+            {field: `avg(${SpanFields.SPAN_SELF_TIME})`},
             {field},
           ];
 
-          // Change data set to spansMetrics
+          // Change data set to spans
           eventView.dataset = spanDataset;
           extraQueryParams = {
             ...extraQueryParams,
@@ -219,14 +219,14 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
         ) {
           // Set fields
           eventView.fields = [
-            {field: SpanMetricsField.PROJECT_ID},
-            {field: SpanMetricsField.SPAN_DOMAIN},
-            {field: `sum(${SpanMetricsField.SPAN_SELF_TIME})`},
-            {field: `avg(${SpanMetricsField.SPAN_SELF_TIME})`},
+            {field: SpanFields.PROJECT_ID},
+            {field: SpanFields.SPAN_DOMAIN},
+            {field: `sum(${SpanFields.SPAN_SELF_TIME})`},
+            {field: `avg(${SpanFields.SPAN_SELF_TIME})`},
             {field},
           ];
 
-          // Change data set to spansMetrics
+          // Change data set to spans
           eventView.dataset = spanDataset;
           extraQueryParams = {
             ...extraQueryParams,
@@ -245,16 +245,16 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
         ) {
           // Set fields
           eventView.fields = [
-            {field: SpanMetricsField.NORMALIZED_DESCRIPTION},
-            {field: SpanMetricsField.SPAN_OP},
+            {field: SpanFields.NORMALIZED_DESCRIPTION},
+            {field: SpanFields.SPAN_OP},
             {field: 'project.id'},
-            {field: SpanMetricsField.SPAN_GROUP},
-            {field: `sum(${SpanMetricsField.SPAN_SELF_TIME})`},
-            {field: `avg(${SpanMetricsField.SPAN_SELF_TIME})`},
+            {field: SpanFields.SPAN_GROUP},
+            {field: `sum(${SpanFields.SPAN_SELF_TIME})`},
+            {field: `avg(${SpanFields.SPAN_SELF_TIME})`},
             {field},
           ];
 
-          // Change data set to spansMetrics
+          // Change data set to spans
           eventView.dataset = spanDataset;
           extraQueryParams = {
             ...extraQueryParams,
@@ -275,12 +275,12 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS
         ) {
           eventView.fields = [
-            {field: SpanMetricsField.TRANSACTION},
+            {field: SpanFields.TRANSACTION},
             {field: 'project.id'},
             {field},
           ];
 
-          // Change data set to spansMetrics
+          // Change data set to spans
           eventView.dataset = spanDataset;
           extraQueryParams = {
             ...extraQueryParams,
@@ -368,11 +368,9 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           if (
             !provided.widgetData.list.data[selectedListIndex]?.transaction &&
             !provided.widgetData.list.data[selectedListIndex]?.[
-              SpanMetricsField.NORMALIZED_DESCRIPTION
+              SpanFields.NORMALIZED_DESCRIPTION
             ] &&
-            !provided.widgetData.list.data[selectedListIndex]?.[
-              SpanMetricsField.SPAN_DOMAIN
-            ]
+            !provided.widgetData.list.data[selectedListIndex]?.[SpanFields.SPAN_DOMAIN]
           ) {
             return null;
           }
@@ -428,10 +426,10 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 
             // Update chart options
             partialDataParam = false;
-            yAxis = `avg(${SpanMetricsField.SPAN_SELF_TIME})`;
+            yAxis = `avg(${SpanFields.SPAN_SELF_TIME})`;
             interval = getInterval(pageFilterDatetime, STARFISH_CHART_INTERVAL_FIDELITY);
             includePreviousParam = false;
-            currentSeriesNames = [`avg(${SpanMetricsField.SPAN_SELF_TIME})`];
+            currentSeriesNames = [`avg(${SpanFields.SPAN_SELF_TIME})`];
 
             // Update search query
             removeTransactionFilterForSpanQuery({eventView, useEap});
@@ -441,17 +439,17 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS
             ) {
               eventView.additionalConditions.addFilterValue(
-                SpanMetricsField.SPAN_DOMAIN,
+                SpanFields.SPAN_DOMAIN,
                 provided.widgetData.list.data[selectedListIndex][
-                  SpanMetricsField.SPAN_DOMAIN
+                  SpanFields.SPAN_DOMAIN
                 ]!.toString(),
                 false
               );
             } else {
               eventView.additionalConditions.addFilterValue(
-                SpanMetricsField.SPAN_GROUP,
+                SpanFields.SPAN_GROUP,
                 provided.widgetData.list.data[selectedListIndex][
-                  SpanMetricsField.SPAN_GROUP
+                  SpanFields.SPAN_GROUP
                 ]!.toString()
               );
             }
@@ -647,15 +645,15 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             <Fragment>
               <StyledTextOverflow>
                 <DomainCell
-                  projectId={listItem[SpanMetricsField.PROJECT_ID]!.toString()}
-                  domain={listItem[SpanMetricsField.SPAN_DOMAIN] as any}
+                  projectId={listItem[SpanFields.PROJECT_ID]!.toString()}
+                  domain={listItem[SpanFields.SPAN_DOMAIN] as any}
                 />
               </StyledTextOverflow>
 
               <RightAlignedCell>
                 <TimeSpentCell
                   percentage={listItem[fieldString] as number}
-                  total={listItem[`sum(${SpanMetricsField.SPAN_SELF_TIME})`] as number}
+                  total={listItem[`sum(${SpanFields.SPAN_SELF_TIME})`] as number}
                   op={'http.client'}
                 />
               </RightAlignedCell>
@@ -675,11 +673,11 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           );
         case PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES:
         case PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES: {
-          const description = listItem[SpanMetricsField.NORMALIZED_DESCRIPTION] as string;
-          const group = listItem[SpanMetricsField.SPAN_GROUP] as string;
+          const description = listItem[SpanFields.NORMALIZED_DESCRIPTION] as string;
+          const group = listItem[SpanFields.SPAN_GROUP] as string;
           const projectID = listItem['project.id'] as number;
           const timeSpentPercentage = listItem[fieldString] as number;
-          const totalTime = listItem[`sum(${SpanMetricsField.SPAN_SELF_TIME})`] as number;
+          const totalTime = listItem[`sum(${SpanFields.SPAN_SELF_TIME})`] as number;
 
           const isQueriesWidget =
             props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES;

@@ -27,39 +27,36 @@ import {
   type DomainView,
   useDomainViewFilters,
 } from 'sentry/views/insights/pages/useFilters';
-import {
-  SpanMetricsField,
-  type SpanMetricsQueryFilters,
-} from 'sentry/views/insights/types';
+import {SpanFields, type SpanQueryFilters} from 'sentry/views/insights/types';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {useSpansTabTableSort} from 'sentry/views/performance/transactionSummary/transactionSpans/useSpansTabTableSort';
 
 type DataRow = {
-  [SpanMetricsField.SPAN_OP]: string;
-  [SpanMetricsField.SPAN_DESCRIPTION]: string;
-  [SpanMetricsField.SPAN_GROUP]: string;
+  [SpanFields.SPAN_OP]: string;
+  [SpanFields.SPAN_DESCRIPTION]: string;
+  [SpanFields.SPAN_GROUP]: string;
   'avg(span.duration)': number;
   'epm()': number;
   'sum(span.duration)': number;
 };
 
 type ColumnKeys =
-  | SpanMetricsField.SPAN_OP
-  | SpanMetricsField.SPAN_DESCRIPTION
+  | SpanFields.SPAN_OP
+  | SpanFields.SPAN_DESCRIPTION
   | 'epm()'
-  | `avg(${SpanMetricsField.SPAN_DURATION})`
-  | `sum(${SpanMetricsField.SPAN_DURATION})`;
+  | `avg(${SpanFields.SPAN_DURATION})`
+  | `sum(${SpanFields.SPAN_DURATION})`;
 
 type Column = GridColumnHeader<ColumnKeys>;
 
 const COLUMN_ORDER: Column[] = [
   {
-    key: SpanMetricsField.SPAN_OP,
+    key: SpanFields.SPAN_OP,
     name: t('Span Operation'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: SpanMetricsField.SPAN_DESCRIPTION,
+    key: SpanFields.SPAN_DESCRIPTION,
     name: t('Span Description'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -69,23 +66,23 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `avg(${SpanMetricsField.SPAN_DURATION})`,
+    key: `avg(${SpanFields.SPAN_DURATION})`,
     name: t('Avg Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `sum(${SpanMetricsField.SPAN_DURATION})`,
+    key: `sum(${SpanFields.SPAN_DURATION})`,
     name: t('Time Spent'),
     width: COL_WIDTH_UNDEFINED,
   },
 ];
 
 const COLUMN_TYPE: Record<ColumnKeys, ColumnType> = {
-  [SpanMetricsField.SPAN_OP]: 'string',
-  [SpanMetricsField.SPAN_DESCRIPTION]: 'string',
+  [SpanFields.SPAN_OP]: 'string',
+  [SpanFields.SPAN_DESCRIPTION]: 'string',
   ['epm()']: 'rate',
-  [`avg(${SpanMetricsField.SPAN_DURATION})`]: 'duration',
-  [`sum(${SpanMetricsField.SPAN_DURATION})`]: 'duration',
+  [`avg(${SpanFields.SPAN_DURATION})`]: 'duration',
+  [`sum(${SpanFields.SPAN_DURATION})`]: 'duration',
 };
 
 const LIMIT = 12;
@@ -114,7 +111,7 @@ export default function SpanMetricsTable(props: Props) {
 
   const {spansCursor, spanOp} = query;
 
-  const filters: SpanMetricsQueryFilters = {
+  const filters: SpanQueryFilters = {
     transaction: transactionName,
     ['span.op']: spanOp,
   };
@@ -133,12 +130,12 @@ export default function SpanMetricsTable(props: Props) {
     {
       search: mutableSearch,
       fields: [
-        SpanMetricsField.SPAN_OP,
-        SpanMetricsField.SPAN_DESCRIPTION,
-        SpanMetricsField.SPAN_GROUP,
+        SpanFields.SPAN_OP,
+        SpanFields.SPAN_DESCRIPTION,
+        SpanFields.SPAN_GROUP,
         `epm()`,
-        `avg(${SpanMetricsField.SPAN_DURATION})`,
-        `sum(${SpanMetricsField.SPAN_DURATION})`,
+        `avg(${SpanFields.SPAN_DURATION})`,
+        `sum(${SpanFields.SPAN_DURATION})`,
       ],
       sorts: [sort],
       cursor: spansCursor,
@@ -199,7 +196,7 @@ function renderBodyCell(
   view?: DomainView
 ) {
   return function (column: Column, dataRow: DataRow): React.ReactNode {
-    if (column.key === SpanMetricsField.SPAN_OP) {
+    if (column.key === SpanFields.SPAN_OP) {
       const target = spanDetailsRouteWithQuery({
         organization,
         transaction: transactionName,
@@ -216,7 +213,7 @@ function renderBodyCell(
       );
     }
 
-    if (column.key === SpanMetricsField.SPAN_DESCRIPTION) {
+    if (column.key === SpanFields.SPAN_DESCRIPTION) {
       if (!dataRow['span.group']) {
         return <TableCellContainer>{'\u2014'}</TableCellContainer>;
       }
