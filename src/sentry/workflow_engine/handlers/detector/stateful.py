@@ -486,7 +486,7 @@ class StatefulDetectorHandler(
         """
         Check if value is dict[DetectorGroupKey, DataPacketEvaluationType]
         """
-        if self.has_grouping is False:
+        if self.has_grouping is False or not isinstance(value, dict):
             return False
 
         # Check if all keys are DetectorGroupKey instances
