@@ -74,10 +74,14 @@ export function LandingWidgetSelector({
     return conditions.formatString();
   }, []);
 
+  const options = organization.features.includes('profiling-function-trends')
+    ? [...SUSPECT_FUNCTIONS_WIDGET_OPTIONS, ...FUNCTION_TRENDS_WIDGET_OPTIONS]
+    : SUSPECT_FUNCTIONS_WIDGET_OPTIONS;
+
   const header = (
     <StyledCompactSelect
       value={selectedWidget}
-      options={WIDGET_OPTIONS}
+      options={options}
       onChange={onWidgetChange}
       triggerProps={{borderless: true, size: 'zero'}}
       offset={4}
@@ -174,7 +178,7 @@ export function LandingWidgetSelector({
   }
 }
 
-const WIDGET_OPTIONS: Array<SelectOption<WidgetOption>> = [
+const SUSPECT_FUNCTIONS_WIDGET_OPTIONS: Array<SelectOption<WidgetOption>> = [
   {
     label: t('Slowest Functions (breakdown by AVG)'),
     value: 'slowest functions avg' as const,
@@ -195,6 +199,9 @@ const WIDGET_OPTIONS: Array<SelectOption<WidgetOption>> = [
     label: t('Slowest Functions (breakdown by P99)'),
     value: 'slowest functions p99' as const,
   },
+];
+
+const FUNCTION_TRENDS_WIDGET_OPTIONS: Array<SelectOption<WidgetOption>> = [
   {
     label: t('Most Regressed Functions'),
     value: 'regressed functions' as const,
