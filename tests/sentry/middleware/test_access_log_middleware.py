@@ -303,3 +303,18 @@ class TestOrganizationIdPresentForControl(LogCaptureAPITestCase):
 
         tested_log = self.get_tested_log(args=[self.organization.slug])
         assert tested_log.organization_id == str(self.organization.id)
+
+
+@all_silo_test
+class TestAccessLogRateLimitTypeConsistency(LogCaptureAPITestCase):
+    endpoint = "concurrent-ratelimit-endpoint"
+
+    def test_rate_limit_type_uses_enum_not_dne_string(self):
+        self._caplog.set_level(logging.INFO, logger="sentry")
+        self.login_as(user=self.user)
+        self.get_success_response()
+
+        self.assert_access_log_recorded()
+        tested_log = self.get_tested_log()
+
+        assert tested_log.rate_limit_type == "RateLimitType.NOT_LIMITED"
