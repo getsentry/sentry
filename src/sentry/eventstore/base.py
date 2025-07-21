@@ -280,7 +280,7 @@ class EventStorage(Service):
         event: Event | GroupEvent,
         start: datetime | None = None,
         end: datetime | None = None,
-        conditions: list[list[str, str, Any]] | None = None,
+        conditions: list[tuple[str, str, Any]] | None = None,
     ) -> list[tuple[str, str] | None]:
         raise NotImplementedError
 
