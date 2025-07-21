@@ -100,6 +100,7 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
                 [
                     ["timestamp", "<=", self.last_event.timestamp],
                     [
+                        "or",
                         ["timestamp", "<", self.last_event.timestamp],
                         ["event_id", "<", self.last_event.event_id],
                     ],
