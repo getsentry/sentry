@@ -1028,7 +1028,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         new_biases = {bias["id"]: bias for bias in new_raw_dynamic_sampling_biases}
         for bias_id, new_bias in new_biases.items():
             old_bias = old_biases.get(bias_id)
-            if old_bias is None or new_bias["active"] != old_bias["active"]:
+            if (old_bias is None and new_bias["active"]) or (
+                old_bias is not None and new_bias["active"] != old_bias["active"]
+            ):
                 self.create_audit_entry(
                     request=request,
                     organization=project.organization,
