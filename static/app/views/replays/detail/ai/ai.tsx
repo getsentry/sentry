@@ -224,6 +224,7 @@ const Summary = styled('div')`
   padding: ${space(1)} ${space(1.5)};
   border-bottom: 1px solid ${p => p.theme.border};
   gap: ${space(4)};
+  justify-content: space-between;
 `;
 
 const SummaryLeft = styled('div')`
