@@ -1,4 +1,5 @@
 import type {CSSProperties} from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -20,6 +21,7 @@ interface FlexProps {
 
 export const Flex = styled('div', {
   shouldForwardProp: prop =>
+    isPropValid(prop) &&
     !['align', 'direction', 'flex', 'gap', 'inline', 'justify', 'wrap'].includes(prop),
 })<FlexProps>`
   display: ${p => (p.inline ? 'inline-flex' : 'flex')};
