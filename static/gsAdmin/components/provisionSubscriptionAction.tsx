@@ -42,6 +42,7 @@ import {
 import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
+  isByteCategory,
 } from 'getsentry/utils/dataCategory';
 
 const CPE_DECIMAL_PRECISION = 8;
@@ -839,8 +840,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                             title: true,
                             hadCustomDynamicSampling: isAm3Ds,
                           });
-                          const suffix =
-                            category === DataCategory.ATTACHMENTS ? ' (in GB)' : '';
+                          const suffix = isByteCategory(category) ? ' (in GB)' : '';
                           const capitalizedApiName = this.capitalizeForApiName(
                             categoryInfo.plural
                           );
