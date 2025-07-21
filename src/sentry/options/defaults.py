@@ -3460,6 +3460,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "taskworker.ingest.errors.postprocess.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "taskworker.ingest.transactions.rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
