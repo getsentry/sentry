@@ -258,7 +258,7 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
             try:
                 dataset = Dataset(snuba_query.dataset)
                 alert_type = get_alert_type_from_aggregate_dataset(
-                    aggregate, dataset, self.detector.project.organization
+                    agg_display_key, dataset, self.detector.project.organization
                 )
             except ValueError:
                 logger.exception(
