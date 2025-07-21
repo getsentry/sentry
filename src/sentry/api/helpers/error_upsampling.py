@@ -39,7 +39,7 @@ def convert_fields_for_upsampling(data: list[dict[str, Any]], fields_meta: dict[
         fields_meta: Meta fields dictionary to modify in-place
     """
     # Collect keys that need conversion and exist in data
-    all_present_keys = set()
+    all_present_keys: set[str] = set()
     for result in data:
         all_present_keys.update(result.keys())
 
