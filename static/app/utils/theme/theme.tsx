@@ -1092,7 +1092,11 @@ const iconSizes: Record<Size, string> = {
 
 const space = {
   none: '0px',
-  /** prev. space(0.25) */
+  /**
+    * `2px`
+    *
+    * Equivalent to deprecated `space(0.25)`
+    */
   '2xs': '2px',
   /** prev. space(0.5) */
   xs: '4px',
