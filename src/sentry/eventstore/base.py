@@ -301,7 +301,7 @@ class EventStorage(Service):
         self,
         *,
         project_id: int,
-        event_id: str,
+        event_id: str | None = None,
         group_id: int | None = None,
         data: Mapping[str, Any] | None = None,
     ) -> Event:
