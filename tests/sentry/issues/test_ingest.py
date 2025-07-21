@@ -354,7 +354,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         )
         assert set(hash_fingerprint(other_fingerprint)) == other_grouphashes
 
-    def test_existing_group_different_category(self) -> None:
+    def test_existing_group_different_type(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         occurrence = self.build_occurrence(fingerprint=["some-fingerprint"])
         group_info = save_issue_from_occurrence(occurrence, event, None)
@@ -367,12 +367,12 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         with mock.patch("sentry.issues.ingest.logger") as logger:
             assert save_issue_from_occurrence(new_occurrence, new_event, None) is None
             logger.error.assert_called_once_with(
-                "save_issue_from_occurrence.category_mismatch",
+                "save_issue_from_occurrence.type_mismatch",
                 extra={
-                    "issue_category": group_info.group.issue_category,
+                    "issue_type": group_info.group.issue_type.slug,
+                    "occurrence_type": MonitorIncidentType.slug,
                     "event_type": "platform",
                     "group_id": group_info.group.id,
-                    "occurrence_type": "monitor_check_in_failure",
                 },
             )
 
