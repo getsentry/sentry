@@ -15,6 +15,7 @@ const AM3_CHECKOUT_CATEGORIES = [
   'monitorSeats',
   'spans',
   'uptime',
+  'logBytes',
 ] as DataCategory[];
 
 const AM3_ONDEMAND_CATEGORIES = [
@@ -61,6 +62,7 @@ const AM3_CATEGORY_DISPLAY_NAMES = {
   },
   profileDurationUI: {plural: 'UI profile hours', singular: 'UI profile hour'},
   uptime: {singular: 'uptime monitor', plural: 'uptime monitors'},
+  logBytes: {singular: 'log byte', plural: 'log bytes'},
   seerAutofix: {singular: 'issue fix', plural: 'issue fixes'},
   seerScanner: {singular: 'issue scan', plural: 'issue scans'},
 };
@@ -1945,6 +1947,14 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0,
         },
       ],
+      logBytes: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
       ...SEER_TIERS_DEVELOPER,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
@@ -2036,6 +2046,14 @@ const AM3_PLANS: Record<string, Plan> = {
       spans: [
         {
           events: 0,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      logBytes: [
+        {
+          events: 1000000000, // 1GB enterprise trial quota
           unitPrice: 0,
           price: 0,
           onDemandPrice: 0,
@@ -2140,6 +2158,14 @@ const AM3_PLANS: Record<string, Plan> = {
       spansIndexed: [
         {
           events: 0,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      logBytes: [
+        {
+          events: 1000000000, // 1GB enterprise trial quota
           unitPrice: 0,
           price: 0,
           onDemandPrice: 0,
@@ -3224,6 +3250,14 @@ const AM3_PLANS: Record<string, Plan> = {
       profileDuration: [
         {
           events: 0,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      logBytes: [
+        {
+          events: 1000000000, // 1GB trial quota
           unitPrice: 0,
           price: 0,
           onDemandPrice: 0,

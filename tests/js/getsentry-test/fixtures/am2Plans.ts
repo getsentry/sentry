@@ -19,6 +19,7 @@ const AM2_CHECKOUT_CATEGORIES = [
   'attachments',
   'monitorSeats',
   'uptime',
+  'logBytes',
 ] as DataCategory[];
 
 const AM2_ONDEMAND_CATEGORIES = [
@@ -43,6 +44,7 @@ const AM2_CATEGORY_DISPLAY_NAMES = {
   },
   profileDurationUI: {plural: 'UI profile hours', singular: 'UI profile hour'},
   uptime: {singular: 'uptime monitor', plural: 'uptime monitors'},
+  logBytes: {singular: 'log byte', plural: 'log bytes'},
   seerAutofix: {singular: 'issue fix', plural: 'issue fixes'},
   seerScanner: {singular: 'issue scan', plural: 'issue scans'},
 };
@@ -916,6 +918,13 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      logBytes: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
       ...SEER_TIERS_DEVELOPER,
     },
     budgetTerm: BUDGET_TERM,
@@ -1721,6 +1730,13 @@ const AM2_PLANS: Record<string, Plan> = {
       profileDurationUI: [
         {
           events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      logBytes: [
+        {
+          events: 500000000, // 500MB trial quota
           unitPrice: 0,
           price: 0,
         },
