@@ -1,6 +1,6 @@
-import pytest
 from unittest import mock
 
+import pytest
 from django.http import HttpRequest
 from django.test import override_settings
 from django.urls import reverse
