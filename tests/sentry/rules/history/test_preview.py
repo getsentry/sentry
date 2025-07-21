@@ -98,7 +98,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
             hours,
         )
 
-    def test_reappeared(self):
+    def test_escalating(self):
         hours = self._set_up_activity(ActivityType.SET_UNRESOLVED)
         self._test_preview(
             "sentry.rules.conditions.reappeared_event.ReappearedEventCondition",
@@ -399,6 +399,8 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert len(result) == hours
 
     def test_multiple_projects(self):
+        from sentry.types.group import GroupSubStatus
+
         other_project = Project.objects.create(organization=self.organization)
         prev_hour = timezone.now() - timedelta(hours=1)
         groups = []
@@ -406,6 +408,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
             first_seen = Group.objects.create(project=project, first_seen=prev_hour)
             regression = Group.objects.create(project=project)
             reappearance = Group.objects.create(project=project)
+            reappearance.update(substatus=GroupSubStatus.ESCALATING)
             groups.append((first_seen, regression, reappearance))
             Activity.objects.create(
                 project=project,
@@ -416,7 +419,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
             Activity.objects.create(
                 project=project,
                 group=reappearance,
-                type=ActivityType.SET_UNRESOLVED.value,
+                type=ActivityType.SET_ESCALATING.value,
                 user_id=None,
                 datetime=prev_hour,
             )
