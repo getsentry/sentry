@@ -1963,7 +1963,7 @@ function ChecklistDoneNote() {
 
 function SourceMapStepNotRequiredNote() {
   return (
-    <CheckListInstruction type="muted" showIcon>
+    <CheckListInstruction type="muted">
       {
         "You can safely ignore this step if you don't do any transformations to your code before deploying."
       }
