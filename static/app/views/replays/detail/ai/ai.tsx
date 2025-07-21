@@ -68,7 +68,7 @@ export default function Ai() {
 
   // If our `replay-ai-summaries` ff is enabled and the org has gen AI ff enabled,
   // but the org hasn't acknowledged the gen AI features, then show CTA.
-  if (!isPending && !isRefetching && !setupAcknowledgement.orgHasAcknowledged) {
+  if (!setupAcknowledgement.orgHasAcknowledged) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <EmptySummaryContainer>
