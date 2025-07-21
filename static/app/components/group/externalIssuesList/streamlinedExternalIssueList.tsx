@@ -1,16 +1,21 @@
-import {Fragment} from 'react';
+import {Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 
-import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
+import {SelectContext} from 'sentry/components/core/compactSelect/control';
+import {Flex} from 'sentry/components/core/layout';
+import {MenuListItem, type MenuListItemProps} from 'sentry/components/core/menuListItem';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import DropdownButton from 'sentry/components/dropdownButton';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import type {ExternalIssueAction} from 'sentry/components/group/externalIssuesList/hooks/types';
+import type {
+  ExternalIssueAction,
+  ExternalIssueIntegration,
+} from 'sentry/components/group/externalIssuesList/hooks/types';
 import useGroupExternalIssues from 'sentry/components/group/externalIssuesList/hooks/useGroupExternalIssues';
 import Placeholder from 'sentry/components/placeholder';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -25,7 +30,11 @@ function getActionLabelAndTextValue({
 }: {
   action: ExternalIssueAction;
   integrationDisplayName: string;
-}): {label: string | React.JSX.Element; textValue: string} {
+}): {
+  label: string | React.JSX.Element;
+  textValue: string;
+  details?: string | React.JSX.Element;
+} {
   // If there's no subtext or subtext matches name, just show name
   if (!action.nameSubText || action.nameSubText === action.name) {
     return {
@@ -44,12 +53,8 @@ function getActionLabelAndTextValue({
 
   // Otherwise show both name and subtext
   return {
-    label: (
-      <div>
-        <strong>{action.name}</strong>
-        <div>{action.nameSubText}</div>
-      </div>
-    ),
+    label: action.name,
+    details: action.nameSubText,
     textValue: `${action.name} ${action.nameSubText}`,
   };
 }
@@ -65,7 +70,6 @@ export function StreamlinedExternalIssueList({
   event,
   project,
 }: ExternalIssueListProps) {
-  const organization = useOrganization();
   const {isLoading, integrations, linkedIssues} = useGroupExternalIssues({
     group,
     event,
@@ -76,20 +80,8 @@ export function StreamlinedExternalIssueList({
     return <Placeholder height="25px" testId="issue-tracking-loading" />;
   }
 
-  const hasLinkedIssuesOrIntegrations = integrations.length || linkedIssues.length;
-  if (!hasLinkedIssuesOrIntegrations) {
-    return (
-      <AlertLink
-        type="muted"
-        to={`/settings/${organization.slug}/integrations/?category=issue%20tracking`}
-      >
-        {t('Track this issue in Jira, GitHub, etc.')}
-      </AlertLink>
-    );
-  }
-
   return (
-    <Fragment>
+    <Flex direction="row" wrap="wrap" gap={space(1)} flex={1}>
       {linkedIssues.length > 0 && (
         <IssueActionWrapper>
           {linkedIssues.map(linkedIssue => (
@@ -112,143 +104,157 @@ export function StreamlinedExternalIssueList({
                 }
                 isHoverable
               >
-                <LinkedIssue
+                <LinkButton
                   href={linkedIssue.url}
                   external
                   size="zero"
                   icon={linkedIssue.displayIcon}
                 >
                   <IssueActionName>{linkedIssue.displayName}</IssueActionName>
-                </LinkedIssue>
+                </LinkButton>
               </Tooltip>
             </ErrorBoundary>
           ))}
         </IssueActionWrapper>
       )}
-      {integrations.length > 0 && (
-        <IssueActionWrapper>
-          {integrations.map(integration => {
-            const sharedButtonProps: ButtonProps = {
-              size: 'zero',
-              icon: integration.displayIcon,
-              children: <IssueActionName>{integration.displayName}</IssueActionName>,
-            };
+      <ExternalIssueMenu linkedIssues={linkedIssues} integrations={integrations} />
+    </Flex>
+  );
+}
 
+function ExternalIssueMenu(props: ReturnType<typeof useGroupExternalIssues>) {
+  const organization = useOrganization({allowNull: false});
+
+  return (
+    <Fragment>
+      <CompositeSelect
+        trigger={triggerProps => (
+          <Button {...triggerProps} size="zero" icon={<IconAdd />}>
+            {props.linkedIssues.length === 0 ? t('Add Linked Issue') : null}
+          </Button>
+        )}
+        // Required for submenu interactions
+        isDismissable={false}
+        menuTitle={t('Add Linked Issue')}
+        hideOptions={props.integrations.length === 0}
+        menuBody={props.integrations.length === 0 && <ExternalIssueMenuEmpty />}
+        menuFooter={props.integrations.length > 0 && <ExternalIssueManageLink />}
+      >
+        <CompositeSelect.Region
+          closeOnSelect={({value}) => {
+            const integration = props.integrations.find(({key}) => key === value);
+            if (!integration) {
+              return true;
+            }
+            return integration.actions.length === 1;
+          }}
+          onChange={({value}) => {
+            const integration = props.integrations.find(({key}) => key === value);
+            if (!integration) {
+              return;
+            }
             if (integration.actions.length === 1) {
               const action = integration.actions[0]!;
-              return (
-                <ErrorBoundary key={integration.key} mini>
-                  {action.href ? (
-                    // Exclusively used for group.pluginActions
-                    <IssueActionLinkButton
-                      size="zero"
-                      icon={integration.displayIcon}
-                      disabled={integration.disabled}
-                      title={integration.disabled ? integration.disabledText : undefined}
-                      onClick={() => {
-                        action.onClick();
-                        trackAnalytics('feedback.details-integration-issue-clicked', {
-                          organization,
-                          integration_key: integration.key,
-                        });
-                      }}
-                      href={action.href}
-                      external
-                    >
-                      <IssueActionName>{integration.displayName}</IssueActionName>
-                    </IssueActionLinkButton>
-                  ) : (
-                    <IssueActionButton
-                      {...sharedButtonProps}
-                      disabled={integration.disabled}
-                      title={integration.disabled ? integration.disabledText : undefined}
-                      onClick={() => {
-                        action.onClick();
-                        trackAnalytics('feedback.details-integration-issue-clicked', {
-                          organization,
-                          integration_key: integration.key,
-                        });
-                      }}
-                    />
-                  )}
-                </ErrorBoundary>
-              );
+              trackAnalytics('feedback.details-integration-issue-clicked', {
+                organization,
+                integration_key: integration.key,
+              });
+              action.onClick();
+              return;
             }
-
-            return (
-              <ErrorBoundary key={integration.key} mini>
-                <DropdownMenu
-                  trigger={triggerProps => (
-                    <IssueActionDropdownMenu
-                      {...sharedButtonProps}
-                      {...triggerProps}
-                      showChevron={false}
-                    />
-                  )}
-                  items={integration.actions.map(action => ({
-                    key: action.id,
-                    ...getActionLabelAndTextValue({
-                      action,
-                      integrationDisplayName: integration.displayName,
-                    }),
-                    onAction: action.onClick,
-                    disabled: integration.disabled,
-                  }))}
-                />
-              </ErrorBoundary>
-            );
-          })}
-        </IssueActionWrapper>
-      )}
+          }}
+          options={props.integrations.map(integration => ({
+            key: integration.key,
+            disabled: integration.disabled,
+            leadingItems: (
+              <Flex align="center" justify="center" style={{minHeight: 19}}>
+                {integration.displayIcon}
+              </Flex>
+            ),
+            tooltip: integration.disabled ? integration.disabledText : undefined,
+            label: integration.displayName,
+            hideCheck: true,
+            value: integration.key,
+            textValue: integration.key,
+            details:
+              integration.actions.length > 1 ? (
+                <ExternalIssueSubmenu integration={integration} />
+              ) : undefined,
+            showDetailsInOverlay: true,
+          }))}
+        />
+      </CompositeSelect>
     </Fragment>
   );
 }
+
+function ExternalIssueSubmenu(props: {integration: ExternalIssueIntegration}) {
+  const organization = useOrganization({allowNull: false});
+  const {integration} = props;
+  const {overlayState} = useContext(SelectContext);
+  return integration.actions.map(action => {
+    const itemProps: MenuListItemProps = {
+      tooltip: action.disabled ? action.disabledText : undefined,
+      disabled: action.disabled,
+      ...getActionLabelAndTextValue({
+        action,
+        integrationDisplayName: integration.displayName,
+      }),
+    };
+    const callbackProps: Record<string, () => void> = {
+      onPointerDown: () => {
+        overlayState?.close();
+        trackAnalytics('feedback.details-integration-issue-clicked', {
+          organization,
+          integration_key: integration.key,
+        });
+        action.onClick();
+      },
+    };
+    return <MenuListItem key={action.id} {...callbackProps} {...itemProps} />;
+  });
+}
+
+function ExternalIssueMenuEmpty() {
+  return (
+    <Flex
+      style={{padding: space(3)}}
+      direction="column"
+      align="center"
+      justify="center"
+      gap={space(2)}
+    >
+      <EmptyStateText>{t('No issue linking integration installed')}</EmptyStateText>
+      <ExternalIssueManageLink size="sm" priority="primary" />
+    </Flex>
+  );
+}
+
+function ExternalIssueManageLink(props: Pick<ButtonProps, 'size' | 'priority'>) {
+  const organization = useOrganization({allowNull: false});
+
+  return (
+    <LinkButton
+      size="zero"
+      priority="default"
+      {...props}
+      to={`/settings/${organization.slug}/integrations/?category=issue%20tracking`}
+    >
+      {t('Manage Integrations')}
+    </LinkButton>
+  );
+}
+
+const EmptyStateText = styled('span')`
+  text-align: center;
+  color: ${p => p.theme.tokens.content.muted};
+`;
 
 const IssueActionWrapper = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(1)};
   line-height: 1.2;
-`;
-
-const LinkedIssue = styled(LinkButton)`
-  display: flex;
-  align-items: center;
-  padding: ${space(0.5)} ${space(0.75)};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  font-weight: normal;
-`;
-
-const IssueActionButton = styled(Button)`
-  display: flex;
-  align-items: center;
-  padding: ${space(0.5)} ${space(0.75)};
-  border: 1px dashed ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  font-weight: normal;
-`;
-
-const IssueActionLinkButton = styled(LinkButton)`
-  display: flex;
-  align-items: center;
-  padding: ${space(0.5)} ${space(0.75)};
-  border: 1px dashed ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  font-weight: normal;
-`;
-
-const IssueActionDropdownMenu = styled(DropdownButton)`
-  display: flex;
-  align-items: center;
-  padding: ${space(0.5)} ${space(0.75)};
-  border: 1px dashed ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  font-weight: normal;
-
-  &[aria-expanded='true'] {
-    border: 1px solid ${p => p.theme.border};
-  }
 `;
 
 const IssueActionName = styled('div')`
