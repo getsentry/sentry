@@ -318,7 +318,7 @@ class StatefulDetectorHandler(
         state = self.state_manager.get_state_data(list(group_data_values.keys()))
         results: dict[DetectorGroupKey, DetectorEvaluationResult] = {}
 
-        for group_key in group_data_values.keys():
+        for group_key, data_value in group_data_values.items():
             state_data: DetectorStateData = state[group_key]
             if dedupe_value <= state_data.dedupe_value:
                 metrics.incr("workflow_engine.detector.skipping_already_processed_update")
@@ -375,6 +375,7 @@ class StatefulDetectorHandler(
                 new_priority,
                 condition_results,
                 data_packet,
+                data_value,
             )
 
         self.state_manager.commit_state_updates()
@@ -384,6 +385,7 @@ class StatefulDetectorHandler(
         self,
         condition_results: ProcessedDataConditionGroup,
         data_packet: DataPacket[DataPacketType],
+        data_value: DataPacketEvaluationType,
         group_key: DetectorGroupKey = None,
     ) -> StatusChangeMessage:
         fingerprint = [
@@ -396,6 +398,7 @@ class StatefulDetectorHandler(
             evaluation_result=condition_results,
             new_priority=DetectorPriorityLevel.OK,
             data_packet=data_packet,
+            data_value=data_value,
         )
 
         return StatusChangeMessage(
@@ -437,6 +440,7 @@ class StatefulDetectorHandler(
         new_priority: DetectorPriorityLevel,
         condition_results: ProcessedDataConditionGroup,
         data_packet: DataPacket[DataPacketType],
+        data_value: DataPacketEvaluationType,
     ) -> DetectorEvaluationResult:
         detector_result: IssueOccurrence | StatusChangeMessage
         event_data: EventData | None = None
@@ -446,6 +450,7 @@ class StatefulDetectorHandler(
             detector_result = self._create_resolve_message(
                 condition_results,
                 data_packet,
+                data_value,
                 group_key,
             )
         else:
@@ -454,7 +459,12 @@ class StatefulDetectorHandler(
                 condition_results, data_packet, new_priority
             )
             detector_result = self._create_decorated_issue_occurrence(
-                data_packet, detector_occurrence, condition_results, new_priority, group_key
+                data_packet,
+                detector_occurrence,
+                condition_results,
+                new_priority,
+                group_key,
+                data_value,
             )
 
             # Set the event data with the necessary fields
@@ -507,6 +517,7 @@ class StatefulDetectorHandler(
         evaluation_result: ProcessedDataConditionGroup,
         new_priority: DetectorPriorityLevel,
         data_packet: DataPacket[DataPacketType],
+        data_value: DataPacketEvaluationType,
     ) -> dict[str, Any]:
 
         evidence_data: dict[str, Any] = {}
@@ -517,7 +528,7 @@ class StatefulDetectorHandler(
         evidence_data.update(
             {
                 "detector_id": self.detector.id,
-                "value": new_priority,
+                "value": data_value,
                 "data_packet_source_id": str(data_packet.source_id),
                 "conditions": [
                     result.condition.get_snapshot()
@@ -535,12 +546,17 @@ class StatefulDetectorHandler(
         evaluation_result: ProcessedDataConditionGroup,
         new_priority: DetectorPriorityLevel,
         group_key: DetectorGroupKey,
+        data_value: DataPacketEvaluationType,
     ) -> IssueOccurrence:
         """
         Decorate the issue occurrence with the data from the detector's evaluation result.
         """
         evidence_data = self._build_evidence_data(
-            detector_occurrence, evaluation_result, new_priority, data_packet
+            detector_occurrence,
+            evaluation_result,
+            new_priority,
+            data_packet,
+            data_value,
         )
 
         fingerprint = [

@@ -20,7 +20,7 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
     ):
         evidence_data = {
             "detector_id": self.detector.id,
-            "value": detector_trigger.condition_result,
+            "value": value,
             "alert_id": self.alert_rule.id,
             "data_packet_source_id": str(self.query_subscription.id),
             "conditions": [
