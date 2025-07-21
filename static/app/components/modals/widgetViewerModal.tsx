@@ -304,6 +304,7 @@ function WidgetViewerModal(props: Props) {
   // include the orderby in the table widget aggregates and columns otherwise
   // eventsv2 will complain about sorting on an unselected field.
   if (
+    widget.displayType === DisplayType.TABLE &&
     orderby &&
     !isEquationAlias(rawOrderby) &&
     // Normalize to the aggregate alias because we may still have widgets
