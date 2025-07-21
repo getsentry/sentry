@@ -25,9 +25,6 @@ def test_taskworker_schedule_unique() -> None:
             msg = f"Schedule {key} references a task that is already scheduled: {entry['task']}"
             raise AssertionError(msg)
 
-        if entry["task"] not in visited:
-            visited[entry["task"]] = key
-
 
 @pytest.mark.parametrize("name,config", list(settings.TASKWORKER_SCHEDULES.items()))
 def test_taskworker_schedule_type(name: str, config: dict[str, Any]) -> None:
