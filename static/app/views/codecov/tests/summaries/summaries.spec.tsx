@@ -25,7 +25,7 @@ const mockTestResultAggregates = [
 
 const mockApiCall = () =>
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/prevent/owner/some-org-name/repository/some-repository/test-results-aggregates/`,
+    url: `/organizations/org-slug/prevent/owner/123/repository/some-repository/test-results-aggregates/`,
     method: 'GET',
     body: {
       results: mockTestResultAggregates,
@@ -45,7 +45,7 @@ describe('Summaries', () => {
             pathname: '/codecov/tests',
             query: {
               codecovPeriod: '7d',
-              integratedOrg: 'some-org-name',
+              integratedOrgId: '123',
               repository: 'some-repository',
             },
           },
