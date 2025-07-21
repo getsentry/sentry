@@ -46,8 +46,11 @@ function ProjectSeerSetting({project, orgSlug}: {orgSlug: string; project: Proje
     projectSlug: project.slug,
   });
 
-  const {preference, isPending: isLoadingPreferences} =
-    useProjectSeerPreferences(project);
+  const {
+    preference,
+    isPending: isLoadingPreferences,
+    codeMappingRepos,
+  } = useProjectSeerPreferences(project);
 
   if (detailedProject.isPending || isLoadingPreferences) {
     return (
@@ -64,7 +67,10 @@ function ProjectSeerSetting({project, orgSlug}: {orgSlug: string; project: Proje
   const {autofixAutomationTuning = 'off', seerScannerAutomation = false} =
     detailedProject.data;
 
-  const repoCount = preference?.repositories?.length || 0;
+  let repoCount = preference?.repositories?.length || 0;
+  if (repoCount === 0 && codeMappingRepos) {
+    repoCount = codeMappingRepos.length;
+  }
 
   return (
     <SeerValue>
@@ -211,7 +217,7 @@ export function SeerAutomationProjectList() {
   };
 
   const handleRowClick = (project: Project) => {
-    navigate(`/settings/projects/${project.slug}/seer/`);
+    navigate(`/settings/${organization.slug}/projects/${project.slug}/seer/`);
   };
 
   const handleCheckboxChange = (projectId: string) => {
@@ -322,7 +328,7 @@ export function SeerAutomationProjectList() {
         <Button
           size="md"
           priority="primary"
-          onClick={() => navigate('/settings/seer/onboarding')}
+          onClick={() => navigate(`/settings/${organization.slug}/seer/onboarding`)}
         >
           {t('Open Setup Wizard')}
         </Button>

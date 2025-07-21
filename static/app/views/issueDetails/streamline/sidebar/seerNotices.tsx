@@ -63,8 +63,11 @@ function CustomStepButtons({
 export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNoticesProps) {
   const organization = useOrganization();
   const {repos} = useAutofixRepos(groupId);
-  const {preference, isLoading: isLoadingPreferences} =
-    useProjectSeerPreferences(project);
+  const {
+    preference,
+    isLoading: isLoadingPreferences,
+    codeMappingRepos,
+  } = useProjectSeerPreferences(project);
   const {starredViews: views} = useStarredIssueViews();
 
   const detailedProject = useDetailedProject({
@@ -87,7 +90,8 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
 
   // Onboarding conditions
   const needsGithubIntegration = !hasGithubIntegration;
-  const needsRepoSelection = repos.length === 0 && !preference?.repositories?.length;
+  const needsRepoSelection =
+    repos.length === 0 && !preference?.repositories?.length && !codeMappingRepos?.length;
   const needsAutomation =
     detailedProject?.data &&
     (detailedProject?.data?.autofixAutomationTuning === 'off' ||
