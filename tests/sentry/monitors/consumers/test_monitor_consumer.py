@@ -32,6 +32,7 @@ from sentry.monitors.processing_errors.errors import ProcessingErrorsException, 
 from sentry.monitors.types import CheckinItem
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome
@@ -719,7 +720,7 @@ class MonitorConsumerTest(TestCase):
         now = datetime.now()
         monitor = self._create_monitor(slug="my-monitor")
 
-        with mock.patch("sentry.monitors.consumers.monitor_consumer.CHECKIN_QUOTA_LIMIT", 1):
+        with override_options({"crons.per_monitor_rate_limit": 1}):
             # Try to ingest two the second will be rate limited
             self.send_checkin("my-monitor", ts=now)
             self.send_checkin(
