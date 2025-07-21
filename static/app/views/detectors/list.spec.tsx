@@ -171,6 +171,31 @@ describe('DetectorsList', function () {
       expect(mockDetectorsRequestErrorType).toHaveBeenCalled();
     });
 
+    it('can filter by assignee', async function () {
+      const testUser = UserFixture({id: '2', email: 'test@example.com'});
+      const mockDetectorsRequestAssignee = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/detectors/',
+        body: [MetricDetectorFixture({name: 'Assigned Detector', owner: testUser.id})],
+        match: [MockApiClient.matchQuery({query: 'assignee:test@example.com'})],
+      });
+
+      render(<DetectorsList />, {organization});
+      await screen.findByText('Detector 1');
+
+      // Click through menus to select assignee
+      const searchInput = await screen.findByRole('combobox', {
+        name: 'Add a search term',
+      });
+      await userEvent.type(searchInput, 'assignee:test@example.com');
+
+      // It takes two enters. One to enter the search term, and one to submit the search.
+      await userEvent.keyboard('{enter}');
+      await userEvent.keyboard('{enter}');
+
+      await screen.findByText('Assigned Detector');
+      expect(mockDetectorsRequestAssignee).toHaveBeenCalled();
+    });
+
     it('can sort the table', async function () {
       const mockDetectorsRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/detectors/',

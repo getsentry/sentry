@@ -36,4 +36,9 @@ export const DETECTOR_FILTER_KEYS: Record<
     ] satisfies DetectorType[],
     keywords: ['type'],
   },
+  assignee: {
+    description: 'User or team assigned to the monitor',
+    valueType: FieldValueType.STRING,
+    keywords: ['assigned', 'owner'],
+  },
 };
