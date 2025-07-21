@@ -18,13 +18,16 @@ export type {MenuItemProps};
 
 /**
  * Recursively removes hidden items, including those nested in submenus
+ * Apply href to items that have a to or externalHref prop
  */
-function removeHiddenItems(source: MenuItemProps[]): MenuItemProps[] {
+function removeHiddenItemsAndSetHref(source: MenuItemProps[]): MenuItemProps[] {
   return source
     .filter(item => !item.hidden)
     .map(item => ({
       ...item,
-      ...(item.children ? {children: removeHiddenItems(item.children)} : {}),
+      // react-aria uses the href prop on item state to determine if the item is a link
+      href: item.to ?? item.externalHref,
+      ...(item.children ? {children: removeHiddenItemsAndSetHref(item.children)} : {}),
     }));
 }
 
@@ -221,17 +224,7 @@ function DropdownMenu({
     );
   }
 
-  const activeItems = useMemo(
-    () =>
-      removeHiddenItems(items).map(item => {
-        return {
-          ...item,
-          // react-aria uses the href prop on item state to determine if the item is a link
-          href: item.to ?? item.externalHref,
-        };
-      }),
-    [items]
-  );
+  const activeItems = useMemo(() => removeHiddenItemsAndSetHref(items), [items]);
   const defaultDisabledKeys = useMemo(() => getDisabledKeys(activeItems), [activeItems]);
 
   function renderMenu() {
