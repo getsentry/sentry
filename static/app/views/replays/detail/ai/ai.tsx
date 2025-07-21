@@ -56,9 +56,19 @@ export default function Ai() {
     );
   }
 
+  if (isPending || isRefetching) {
+    return (
+      <Wrapper data-test-id="replay-details-ai-summary-tab">
+        <LoadingContainer>
+          <LoadingIndicator />
+        </LoadingContainer>
+      </Wrapper>
+    );
+  }
+
   // If our `replay-ai-summaries` ff is enabled and the org has gen AI ff enabled,
   // but the org hasn't acknowledged the gen AI features, then show CTA.
-  if (!setupAcknowledgement.orgHasAcknowledged) {
+  if (!isPending && !isRefetching && !setupAcknowledgement.orgHasAcknowledged) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <EmptySummaryContainer>
@@ -90,16 +100,6 @@ export default function Ai() {
             {t('Project not found. Unable to load replay summary.')}
           </Alert>
         </EmptySummaryContainer>
-      </Wrapper>
-    );
-  }
-
-  if (isPending || isRefetching) {
-    return (
-      <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <LoadingContainer>
-          <LoadingIndicator />
-        </LoadingContainer>
       </Wrapper>
     );
   }
