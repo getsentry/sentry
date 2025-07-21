@@ -1,5 +1,6 @@
 import type React from 'react';
 import {createContext, useContext} from 'react';
+import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
 import {t} from 'sentry/locale';
@@ -374,14 +375,18 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
 function OccurenceBasedMonitorsWarning() {
   return (
     <Flex direction="column" gap={space(1)}>
-      <span>
+      <WarningLine>
         {t('These filters will only apply to some of your monitors and triggers.')}
-      </span>
-      <span>
+      </WarningLine>
+      <WarningLine>
         {t(
           'They are only available for occurrence-based monitors \(errors, N+1, and replay\) and only apply to the triggers "A new event is captured for an issue" and "A new issue is created."'
         )}
-      </span>
+      </WarningLine>
     </Flex>
   );
 }
+
+const WarningLine = styled('p')`
+  margin: 0;
+`;
