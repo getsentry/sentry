@@ -1,7 +1,10 @@
 import datetime
 from unittest.mock import patch
 
+from sentry.hybridcloud.models.outbox import RegionOutbox
+from sentry.hybridcloud.outbox.category import OutboxScope
 from sentry.models.apitoken import ApiToken
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.replays.models import ReplayDeletionJobModel
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -156,10 +159,12 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
     def test_post_success(self, mock_task):
         """Test successful POST creates job and schedules task"""
         data = {
-            "rangeStart": "2023-01-01T00:00:00Z",
-            "rangeEnd": "2023-01-02T00:00:00Z",
-            "environments": ["production"],
-            "query": "test query",
+            "data": {
+                "rangeStart": "2023-01-01T00:00:00Z",
+                "rangeEnd": "2023-01-02T00:00:00Z",
+                "environments": ["production"],
+                "query": "test query",
+            }
         }
 
         response = self.get_success_response(
@@ -182,26 +187,38 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
         # Verify task was scheduled
         mock_task.assert_called_once_with(job.id, offset=0)
 
+        with assume_test_silo_mode(SiloMode.REGION):
+            RegionOutbox(
+                shard_scope=OutboxScope.AUDIT_LOG_SCOPE, shard_identifier=self.organization.id
+            ).drain_shard()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            entry = AuditLogEntry.objects.get()
+            assert entry is not None
+            assert entry.event == 1156
+
     def test_post_validation_errors(self):
         """Test POST validation errors"""
         # Missing required fields
         response = self.get_error_response(
-            self.organization.slug, self.project.slug, method="post", status_code=400
+            self.organization.slug, self.project.slug, method="post", status_code=400, data={}
         )
-        assert "environments" in response.data
-        assert "query" in response.data
+        assert "environments" in response.data["data"]
+        assert "query" in response.data["data"]
 
         # Invalid date range (end before start)
         data = {
-            "rangeStart": "2023-01-02T00:00:00Z",
-            "rangeEnd": "2023-01-01T00:00:00Z",
-            "query": "",
-            "environments": [],
+            "data": {
+                "rangeStart": "2023-01-02T00:00:00Z",
+                "rangeEnd": "2023-01-01T00:00:00Z",
+                "query": "",
+                "environments": [],
+            }
         }
         response = self.get_error_response(
             self.organization.slug, self.project.slug, method="post", **data, status_code=400
         )
-        assert "rangeStart must be before rangeEnd" in str(response.data)
+        assert "rangeStart must be before rangeEnd" in str(response.data["data"])
 
     def test_permission_denied_without_project_write(self):
         """Test that users without project:write permissions get 403 Forbidden"""
@@ -219,10 +236,12 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
 
         # POST should return 403
         data = {
-            "rangeStart": "2023-01-01T00:00:00Z",
-            "rangeEnd": "2023-01-02T00:00:00Z",
-            "environments": ["production"],
-            "query": "test query",
+            "data": {
+                "rangeStart": "2023-01-01T00:00:00Z",
+                "rangeEnd": "2023-01-02T00:00:00Z",
+                "environments": ["production"],
+                "query": "test query",
+            }
         }
         self.get_error_response(
             self.organization.slug, project.slug, method="post", **data, status_code=403
@@ -244,10 +263,12 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
 
         # POST should return 403
         data = {
-            "rangeStart": "2023-01-01T00:00:00Z",
-            "rangeEnd": "2023-01-02T00:00:00Z",
-            "environments": ["production"],
-            "query": "test query",
+            "data": {
+                "rangeStart": "2023-01-01T00:00:00Z",
+                "rangeEnd": "2023-01-02T00:00:00Z",
+                "environments": ["production"],
+                "query": "test query",
+            }
         }
         response = self.client.post(
             f"/api/0/projects/{self.organization.slug}/{self.project.slug}/replays/jobs/delete/",
@@ -273,10 +294,12 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
 
         # POST should succeed
         data = {
-            "rangeStart": "2023-01-01T00:00:00Z",
-            "rangeEnd": "2023-01-02T00:00:00Z",
-            "environments": ["production"],
-            "query": "test query",
+            "data": {
+                "rangeStart": "2023-01-01T00:00:00Z",
+                "rangeEnd": "2023-01-02T00:00:00Z",
+                "environments": ["production"],
+                "query": "test query",
+            }
         }
         with patch("sentry.replays.tasks.run_bulk_replay_delete_job.delay"):
             response = self.client.post(
@@ -303,10 +326,12 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
 
         # POST should succeed
         data = {
-            "rangeStart": "2023-01-01T00:00:00Z",
-            "rangeEnd": "2023-01-02T00:00:00Z",
-            "environments": ["production"],
-            "query": "test query",
+            "data": {
+                "rangeStart": "2023-01-01T00:00:00Z",
+                "rangeEnd": "2023-01-02T00:00:00Z",
+                "environments": ["production"],
+                "query": "test query",
+            }
         }
         with patch("sentry.replays.tasks.run_bulk_replay_delete_job.delay"):
             response = self.client.post(

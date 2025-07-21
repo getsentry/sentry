@@ -92,7 +92,9 @@ function LoginForm({authConfig}: Props) {
       >
         {error && (
           <Alert.Container>
-            <Alert type="error">{error}</Alert>
+            <Alert type="error" showIcon={false}>
+              {error}
+            </Alert>
           </Alert.Container>
         )}
         <TextField

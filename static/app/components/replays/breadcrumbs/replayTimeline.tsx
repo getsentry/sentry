@@ -15,10 +15,12 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import divide from 'sentry/utils/number/divide';
 import toPercent from 'sentry/utils/number/toPercent';
 import useTimelineScale from 'sentry/utils/replays/hooks/useTimelineScale';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
 export default function ReplayTimeline() {
-  const {replay, currentTime} = useReplayContext();
+  const replay = useReplayReader();
+  const {currentTime} = useReplayContext();
   const [timelineScale] = useTimelineScale();
 
   const stackedRef = useRef<HTMLDivElement>(null);

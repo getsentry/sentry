@@ -359,7 +359,7 @@ export const getNodeAgentMonitoringOnboarding = ({
   basePackage?: string;
 } = {}): OnboardingConfig => ({
   introduction: () => (
-    <Alert type="info">
+    <Alert type="info" showIcon={false}>
       {tct(
         'Agent Monitoring is currently in beta with support for [vercelai:Vercel AI SDK] and [openai:OpenAI Agents SDK]. If you are using something else, you can use [manual:manual instrumentation].',
         {

@@ -676,7 +676,7 @@ class AMCheckout extends Component<Props, State> {
 
     return (
       <Alert.Container>
-        <Alert type="info" showIcon>
+        <Alert type="info">
           <PartnerAlertContent>
             <PartnerAlertTitle>
               {tct('Billing handled externally through [partnerName]', {
@@ -749,7 +749,7 @@ class AMCheckout extends Component<Props, State> {
         />
         {isOnSponsoredPartnerPlan && (
           <Alert.Container>
-            <Alert type="info" showIcon>
+            <Alert type="info">
               {t(
                 'Your promotional plan with %s ends on %s.',
                 subscription.partner?.partnership.displayName,
@@ -760,9 +760,7 @@ class AMCheckout extends Component<Props, State> {
         )}
         {promotionDisclaimerText && (
           <Alert.Container>
-            <Alert type="info" showIcon>
-              {promotionDisclaimerText}
-            </Alert>
+            <Alert type="info">{promotionDisclaimerText}</Alert>
           </Alert.Container>
         )}
         <SettingsPageHeader

@@ -5,6 +5,7 @@ import Duration from 'sentry/components/duration/duration';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useReplayCurrentTime from 'sentry/utils/replays/playback/hooks/useReplayCurrentTime';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export default function ReplayCurrentTime() {
@@ -25,7 +26,8 @@ function ReplayCurrentTimeNew() {
 }
 
 function OriginalReplayCurrentTime() {
-  const {currentTime, replay} = useReplayContext();
+  const replay = useReplayReader();
+  const {currentTime} = useReplayContext();
   const [prefs] = useReplayPrefs();
   const timestampType = prefs.timestampType;
   const startTimestamp = replay?.getStartTimestampMs() ?? 0;

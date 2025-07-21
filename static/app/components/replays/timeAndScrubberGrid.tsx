@@ -10,13 +10,13 @@ import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline
 import ReplayCurrentTime from 'sentry/components/replays/player/replayCurrentTime';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import useTimelineMouseTracking from 'sentry/components/replays/player/useTimelineMouseTracking';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useTimelineScale from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type TimeAndScrubberGridProps = {
@@ -26,7 +26,7 @@ type TimeAndScrubberGridProps = {
 };
 
 function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
-  const {replay} = useReplayContext();
+  const replay = useReplayReader();
   const organization = useOrganization();
   const [timelineScale, setTimelineScale] = useTimelineScale();
   const durationMs = replay?.getDurationMs();
@@ -81,7 +81,7 @@ export default function TimeAndScrubberGrid({
   showZoom = false,
   isLoading,
 }: TimeAndScrubberGridProps) {
-  const {replay} = useReplayContext();
+  const replay = useReplayReader();
   const [prefs] = useReplayPrefs();
   const timestampType = prefs.timestampType;
   const startTimestamp = replay?.getStartTimestampMs() ?? 0;

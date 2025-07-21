@@ -92,7 +92,6 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   /**
    * The core replay data
    */
-  replay: ReplayReader | null;
 
   /**
    * Restart the replay
@@ -134,7 +133,6 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   isPlaying: false,
   isVideoReplay: false,
   removeHighlight: () => {},
-  replay: null,
   restart: () => {},
   setCurrentTime: () => {},
   setRoot: () => {},
@@ -620,7 +618,6 @@ export function Provider({
           isFinished,
           isPlaying,
           removeHighlight,
-          replay,
           restart,
           setCurrentTime,
           togglePlayPause,

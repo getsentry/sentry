@@ -32,7 +32,6 @@ function DiscoverSplitAlert({onDismiss, splitDecision}: any) {
     <Alert.Container>
       <Alert
         type="warning"
-        showIcon
         trailingItems={
           <StyledCloseButton
             icon={<IconClose size="sm" />}
