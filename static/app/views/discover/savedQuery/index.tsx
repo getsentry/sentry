@@ -411,22 +411,23 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
       return (
         <Fragment>
-          <Button
-            onClick={this.handleUpdateQuery}
-            data-test-id="discover2-savedquery-button-update"
-            disabled={disabled || deprecatingTransactionsDataset}
-            size="sm"
-            tooltipProps={{
-              isHoverable: true,
-            }}
+          <Tooltip
             title={
               deprecatingTransactionsDataset &&
               getTransactionDeprecationMessage(tracesUrl)
             }
+            isHoverable
           >
-            <IconUpdate />
-            {t('Save Changes')}
-          </Button>
+            <Button
+              onClick={this.handleUpdateQuery}
+              data-test-id="discover2-savedquery-button-update"
+              disabled={disabled || deprecatingTransactionsDataset}
+              size="sm"
+            >
+              <IconUpdate />
+              {t('Save Changes')}
+            </Button>
+          </Tooltip>
           {this.renderButtonSaveAs(disabled)}
         </Fragment>
       );
