@@ -17,12 +17,15 @@ from sentry.api.helpers.group_index.update import (
 )
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.issue_search import parse_search_query
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.group import GroupSerializer
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.grouphash import GroupHash
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
+from sentry.models.grouplink import GroupLink
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
@@ -324,6 +327,69 @@ class UpdateGroupsTest(TestCase):
 
         assert group.status == GroupStatus.RESOLVED
         assert send_robust.called
+
+    def test_unresolve_clears_commit_resolution_links(self) -> None:
+        """
+        Test that when an issue is unresolved, commit resolution links are deleted
+
+        Steps:
+        1. Resolve issue via commit (no release association)
+        2. Mark as unresolved
+        3. Manually resolve again
+        4. Should not return inCommit in statusDetails
+        """
+        group = self.create_group()
+        repo = self.create_repo(project=group.project)
+        commit = self.create_commit(project=group.project, repo=repo)
+
+        # Step 1: Simulate resolving via commit by creating GroupLink
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.commit,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=commit.id,
+        )
+        group.update(status=GroupStatus.RESOLVED)
+
+        # GroupLink is created
+        assert GroupLink.objects.filter(
+            group_id=group.id, relationship=GroupLink.Relationship.resolves
+        ).exists()
+        serialized = serialize(group, self.user, GroupSerializer())
+        assert serialized["status"] == "resolved"
+        assert "inCommit" in serialized["statusDetails"]
+        assert serialized["statusDetails"]["inCommit"] is not None
+
+        # Step 2: Mark as unresolved
+        request = self.make_request(user=self.user, method="GET")
+        request.user = self.user
+        request.data = {"status": "unresolved"}
+        request.GET = QueryDict(query_string=f"id={group.id}")
+
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
+
+        # Step 3: GroupLink is deleted
+        assert not GroupLink.objects.filter(
+            group_id=group.id, relationship=GroupLink.Relationship.resolves
+        ).exists()
+
+        # Step 4: Manually resolve again
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+
+        request.data = {"status": "resolved"}
+        update_groups(request, group_list)
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+
+        # statusDetails should NOT contain inCommit anymore
+        serialized = serialize(group, self.user, GroupSerializer())
+        assert serialized["status"] == "resolved"
+        assert "inCommit" not in serialized["statusDetails"]
+        assert serialized["statusDetails"] == {}
 
 
 class MergeGroupsTest(TestCase):
