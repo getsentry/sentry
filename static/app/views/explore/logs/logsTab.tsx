@@ -1,9 +1,11 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
+import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/core/button';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -11,11 +13,28 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {IconChevron, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {NewQuery} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import EventView from 'sentry/utils/discover/eventView';
+import type {Sort} from 'sentry/utils/discover/fields';
+import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
+import useProjects from 'sentry/utils/useProjects';
+import useRouter from 'sentry/utils/useRouter';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {
+  DashboardWidgetSource,
+  DEFAULT_WIDGET_NAME,
+  DisplayType,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
+import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
@@ -73,6 +92,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {PickableDays} from 'sentry/views/explore/utils';
 import {findSuggestedColumns} from 'sentry/views/explore/utils';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 type LogsTabProps = PickableDays;
 
@@ -205,6 +225,14 @@ export function LogsTabContent({
     [setMode]
   );
 
+  const saveAsItems = useSaveAsItems({
+    aggregate,
+    interval,
+    mode,
+    search: logsSearch,
+    sortBys,
+  });
+
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
       <TopSectionBody noRowGap>
@@ -220,6 +248,24 @@ export function LogsTabContent({
               />
             </StyledPageFilterBar>
             <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
+            <DropdownMenu
+              items={saveAsItems}
+              trigger={triggerProps => (
+                <Button
+                  {...triggerProps}
+                  priority="primary"
+                  aria-label={t('Save as')}
+                  onClick={e => {
+                    e.stopPropagation();
+                    e.preventDefault();
+
+                    triggerProps.onClick?.(e);
+                  }}
+                >
+                  {t('Save as')}
+                </Button>
+              )}
+            />
           </FilterBarContainer>
           <SchemaHintsSection>
             <SchemaHintsList
@@ -306,3 +352,149 @@ export function LogsTabContent({
     </SearchQueryBuilderProvider>
   );
 }
+
+interface UseSaveAsItemsOptions {
+  aggregate: string;
+  interval: string;
+  mode: Mode;
+  search: MutableSearch;
+  sortBys: Sort[];
+}
+
+function useSaveAsItems({
+  aggregate,
+  interval,
+  mode,
+  search,
+  sortBys,
+}: UseSaveAsItemsOptions) {
+  const location = useLocation();
+  const router = useRouter();
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const pageFilters = usePageFilters();
+
+  const project =
+    projects.length === 1
+      ? projects[0]
+      : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
+
+  const aggregates = useMemo(() => [aggregate], [aggregate]);
+
+  const saveAsAlert = useMemo(() => {
+    const alertsUrls = aggregates.map((yAxis: string, index: number) => {
+      const func = parseFunction(yAxis);
+      const label = func ? prettifyParsedFunction(func) : yAxis;
+      return {
+        key: `${yAxis}-${index}`,
+        label,
+        to: getAlertsUrl({
+          project,
+          query: search.formatString(),
+          pageFilters: pageFilters.selection,
+          aggregate: yAxis,
+          organization,
+          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+          interval,
+          eventTypes: 'trace_item_log',
+        }),
+        onAction: () => {
+          trackAnalytics('logs.save_as', {
+            save_type: 'alert',
+            ui_source: 'searchbar',
+            organization,
+          });
+        },
+      };
+    });
+
+    return {
+      key: 'create-alert',
+      label: t('An Alert for'),
+      textValue: t('An Alert for'),
+      children: alertsUrls ?? [],
+      disabled: !alertsUrls || alertsUrls.length === 0,
+      isSubmenu: true,
+    };
+  }, [aggregates, interval, organization, pageFilters, project, search]);
+
+  const saveAsDashboard = useMemo(() => {
+    const dashboardsUrls = aggregates.map((yAxis: string, index: number) => {
+      const func = parseFunction(yAxis);
+      const label = func ? prettifyParsedFunction(func) : yAxis;
+
+      return {
+        key: String(index),
+        label,
+        onAction: () => {
+          trackAnalytics('logs.save_as', {
+            save_type: 'dashboard',
+            ui_source: 'searchbar',
+            organization,
+          });
+
+          const fields = mode === Mode.SAMPLES ? [] : [].filter(Boolean); // TODO
+
+          const discoverQuery: NewQuery = {
+            name: DEFAULT_WIDGET_NAME,
+            fields,
+            orderby: sortBys.map(formatSort),
+            query: search.formatString(),
+            version: 2,
+            dataset: DiscoverDatasets.OURLOGS,
+            yAxis: [yAxis],
+          };
+
+          const eventView = EventView.fromNewQueryWithPageFilters(
+            discoverQuery,
+            pageFilters.selection
+          );
+          // the chart currently track the chart type internally so force bar type for now
+          eventView.display = DisplayType.BAR;
+
+          handleAddQueryToDashboard({
+            organization,
+            location,
+            eventView,
+            router,
+            yAxis: eventView.yAxis,
+            widgetType: WidgetType.LOGS,
+            source: DashboardWidgetSource.LOGS,
+          });
+        },
+      };
+    });
+
+    return {
+      key: 'add-to-dashboard',
+      label: (
+        <Feature
+          hookName="feature-disabled:dashboards-edit"
+          features="organizations:dashboards-edit"
+          renderDisabled={() => <DisabledText>{t('A Dashboard widget')}</DisabledText>}
+        >
+          {t('A Dashboard widget')}
+        </Feature>
+      ),
+      textValue: t('A Dashboard widget'),
+      children: dashboardsUrls,
+      disabled: !dashboardsUrls || dashboardsUrls.length === 0,
+      isSubmenu: true,
+    };
+  }, [aggregates, mode, organization, pageFilters, search, sortBys, location, router]);
+
+  return useMemo(() => {
+    const saveAs = [];
+    if (organization.features.includes('ourlogs-alerts')) {
+      saveAs.push(saveAsAlert);
+    }
+    if (organization.features.includes('ourlogs-dashboards')) {
+      saveAs.push(saveAsDashboard);
+    }
+    return saveAs;
+  }, [organization, saveAsAlert, saveAsDashboard]);
+}
+
+const DisabledText = styled('span')`
+  color: ${p => p.theme.disabled};
+`;
