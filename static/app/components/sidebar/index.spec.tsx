@@ -59,6 +59,12 @@ describe('Sidebar', function () {
   const renderSidebar = ({organization: org}: {organization: Organization | null}) =>
     render(getElement(), {organization: org});
 
+  const renderSidebarWithFeatures = (features: string[] = []) => {
+    return renderSidebar({
+      organization: {...organization, features: [...organization.features, ...features]},
+    });
+  };
+
   beforeEach(function () {
     ConfigStore.set('user', user);
     mockUseLocation.mockReturnValue(LocationFixture());
