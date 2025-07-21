@@ -50,6 +50,7 @@ import {
 type ProjectState = {
   isPending: boolean;
   preference: any;
+  codeMappingRepos?: SeerRepoDefinition[];
 };
 
 type ProjectStateMap = Record<string, ProjectState>;
@@ -181,7 +182,12 @@ function ProjectsWithoutRepos({
   onProjectStateUpdate,
   projects,
 }: {
-  onProjectStateUpdate: (project: Project, preference: any, isPending: boolean) => void;
+  onProjectStateUpdate: (
+    project: Project,
+    preference: any,
+    isPending: boolean,
+    codeMappingRepos?: SeerRepoDefinition[]
+  ) => void;
   onProjectSuccess: (projectId: string) => void;
   projects: Project[];
 }) {
@@ -204,7 +210,10 @@ function ProjectsWithoutRepos({
     ) => {
       setProjectStates(prev => {
         const prevState = prev[project.id];
-        const newState = {...prev, [project.id]: {preference, isPending}};
+        const newState = {
+          ...prev,
+          [project.id]: {preference, isPending, codeMappingRepos},
+        };
 
         // If this project just finished loading (was pending, now not pending)
         // and has no repos and wasn't successfully connected, increment counter
@@ -224,7 +233,7 @@ function ProjectsWithoutRepos({
 
         return newState;
       });
-      onProjectStateUpdate(project, preference, isPending);
+      onProjectStateUpdate(project, preference, isPending, codeMappingRepos);
     },
     [onProjectStateUpdate, successfullyConnectedProjects]
   );
@@ -239,10 +248,17 @@ function ProjectsWithoutRepos({
 
   const handleUpdateProjectState = useCallback(
     (projectId: string, preference: any) => {
-      setProjectStates(prev => ({
-        ...prev,
-        [projectId]: {preference, isPending: false},
-      }));
+      setProjectStates(prev => {
+        const existingState = prev[projectId];
+        return {
+          ...prev,
+          [projectId]: {
+            preference,
+            isPending: false,
+            codeMappingRepos: existingState?.codeMappingRepos,
+          },
+        };
+      });
       const project = projects.find(p => p.id === projectId);
       if (project) {
         onProjectStateUpdate(project, preference, false);
@@ -267,7 +283,10 @@ function ProjectsWithoutRepos({
       const state = projectStates[project.id];
       if (!state || state.isPending) return false;
 
-      const repoCount = state.preference?.repositories?.length || 0;
+      let repoCount = state.preference?.repositories?.length || 0;
+      if (repoCount === 0 && state.codeMappingRepos) {
+        repoCount = state.codeMappingRepos?.length || 0;
+      }
       return repoCount === 0;
     });
 
@@ -344,7 +363,7 @@ function ProjectsWithoutRepos({
             />
           ))}
           {projectsWithoutRepos.length === 0 && (
-            <EmptyState>{t('All your projects have repositories connected!')}</EmptyState>
+            <EmptyState>{t('All your projects have repositories connected.')}</EmptyState>
           )}
         </PanelBody>
       </Panel>
@@ -375,7 +394,10 @@ function ProjectsWithReposTracker({
 
       const state = projectStates[project.id];
       if (state && !state.isPending) {
-        const repoCount = state.preference?.repositories?.length || 0;
+        let repoCount = state.preference?.repositories?.length || 0;
+        if (repoCount === 0 && state.codeMappingRepos) {
+          repoCount = state.codeMappingRepos?.length || 0;
+        }
         return repoCount > 0;
       }
 
@@ -574,7 +596,10 @@ function SeerAutomationOnboarding() {
       // Exclude projects that already have repositories
       const state = projectStates[project.id];
       if (state && !state.isPending) {
-        const repoCount = state.preference?.repositories?.length || 0;
+        let repoCount = state.preference?.repositories?.length || 0;
+        if (repoCount === 0 && state.codeMappingRepos) {
+          repoCount = state.codeMappingRepos?.length || 0;
+        }
         return repoCount === 0;
       }
 
@@ -584,10 +609,15 @@ function SeerAutomationOnboarding() {
   }, [filteredProjects, successfullyConnectedProjects, projectStates]);
 
   const handleProjectStatesUpdate = useCallback(
-    (project: Project, preference: any, isPending: boolean) => {
+    (
+      project: Project,
+      preference: any,
+      isPending: boolean,
+      codeMappingRepos?: SeerRepoDefinition[]
+    ) => {
       setProjectStates(prev => ({
         ...prev,
-        [project.id]: {preference, isPending},
+        [project.id]: {preference, isPending, codeMappingRepos},
       }));
     },
     []
