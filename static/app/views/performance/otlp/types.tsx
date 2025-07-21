@@ -9,7 +9,6 @@ import type {EAPSpanResponse} from 'sentry/views/insights/types';
 export type ServiceEntrySpansRow = Pick<
   EAPSpanResponse,
   | 'span_id'
-  | 'user.display'
   | 'user.id'
   | 'user.email'
   | 'user.username'
@@ -26,13 +25,7 @@ export type ServiceEntrySpansRow = Pick<
 >;
 
 export type ServiceEntrySpansColumn = GridColumnHeader<
-  | 'span_id'
-  | 'user.display'
-  | 'span.duration'
-  | 'trace'
-  | 'timestamp'
-  | 'replayId'
-  | 'profile.id'
+  'span_id' | 'span.duration' | 'trace' | 'timestamp' | 'replayId' | 'profile.id'
 >;
 
 export const SERVICE_ENTRY_SPANS_COLUMN_ORDER: ServiceEntrySpansColumn[] = [
@@ -44,11 +37,6 @@ export const SERVICE_ENTRY_SPANS_COLUMN_ORDER: ServiceEntrySpansColumn[] = [
   {
     key: 'span_id',
     name: t('Span ID'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'user.display',
-    name: t('User'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
