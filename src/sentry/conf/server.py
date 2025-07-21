@@ -3414,6 +3414,8 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-ingest-dlq": "default",
     "taskworker-ingest-errors": "default",
     "taskworker-ingest-errors-dlq": "default",
+    "taskworker-ingest-errors-postprocess": "default",
+    "taskworker-ingest-errors-postprocess-dlq": "default",
     "taskworker-ingest-transactions": "default",
     "taskworker-ingest-transactions-dlq": "default",
     "taskworker-ingest-attachments": "default",
