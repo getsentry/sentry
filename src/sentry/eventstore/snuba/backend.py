@@ -82,7 +82,7 @@ class SnubaEventStorage(EventStorage):
     ) -> list[Event]:
         cols = self.__get_columns(dataset)
 
-        resolved_order_by: list[OrderBy] = []
+        resolved_order_by = []
         for order_field_alias in orderby:
             if order_field_alias.startswith("-"):
                 direction = Direction.DESC
@@ -496,7 +496,7 @@ class SnubaEventStorage(EventStorage):
         lower_bound = start or (event.datetime - timedelta(days=100))
         upper_bound = end or (event.datetime + timedelta(days=100))
 
-        def make_prev_timestamp_conditions(event: Event | GroupEvent) -> list[Condition]:
+        def make_prev_timestamp_conditions(event: Event | GroupEvent) -> list[Condition | Or]:
             return [
                 Condition(
                     Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
@@ -589,9 +589,9 @@ class SnubaEventStorage(EventStorage):
             [snql_request_prev, snql_request_next], referrer=referrer
         )
         event_ids = [
-            result_tuple
-            for result in bulk_snql_results
-            if (result_tuple := self.__get_event_id_from_result(result)) is not None
+            result
+            for result in [self.__get_event_id_from_result(result) for result in bulk_snql_results]
+            if result is not None
         ]
         return event_ids
 
@@ -605,6 +605,7 @@ class SnubaEventStorage(EventStorage):
         assert filter, "You must provide a filter"
 
         prev_filter = deepcopy(filter)
+        prev_filter.conditions = prev_filter.conditions or []
         prev_filter.conditions.extend(get_before_event_condition(event))
         if not prev_filter.start:
             # We only store 90 days of data, add a few extra days just in case
@@ -615,6 +616,7 @@ class SnubaEventStorage(EventStorage):
         prev_filter.orderby = DESC_ORDERING
 
         next_filter = deepcopy(filter)
+        next_filter.conditions = next_filter.conditions or []
         next_filter.conditions.extend(get_after_event_condition(event))
         next_filter.start = event.datetime
         if not next_filter.end:
