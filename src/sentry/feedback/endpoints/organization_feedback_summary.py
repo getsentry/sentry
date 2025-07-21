@@ -1,6 +1,9 @@
 import logging
 from datetime import timedelta
+from typing import TypedDict
 
+import requests
+from django.conf import settings
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,11 +15,13 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationUserReportsPermission
 from sentry.api.utils import get_date_range_from_stats_period
 from sentry.exceptions import InvalidParams
-from sentry.feedback.usecases.feedback_summaries import generate_summary
 from sentry.grouping.utils import hash_from_values
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
+from sentry.replays.endpoints.project_replay_summarize_breadcrumbs import SeerRequest
+from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.utils import json
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
@@ -28,6 +33,13 @@ MAX_FEEDBACKS_TO_SUMMARIZE_CHARS = 1000000
 
 # One day since the cache key includes the start and end dates at hour granularity
 SUMMARY_CACHE_TIMEOUT = 86400
+
+
+class SummaryRequest(TypedDict):
+    """Corresponds to SummarizeFeedbacksRequest in Seer."""
+
+    organization_id: int
+    feedbacks: list[str]
 
 
 @region_silo_endpoint
@@ -117,16 +129,16 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
                 break
             group_feedbacks.append(group.data["metadata"]["message"])
 
-        # Edge case
+        # Edge case, but still generate a summary
         if len(group_feedbacks) < MIN_FEEDBACKS_TO_SUMMARIZE:
             logger.error("Too few feedbacks to summarize after enforcing the character limit")
 
-        try:
-            summary = generate_summary(group_feedbacks)
-        except Exception:
-            # Similar to create_feedback.py, just catch all exceptions until we have LLM error types ironed out
-            logger.exception("Error generating summary of user feedbacks")
-            return Response({"detail": "Error generating summary"}, status=500)
+        request = SummaryRequest(
+            organization_id=organization.id,
+            feedbacks=group_feedbacks,
+        )
+
+        summary = make_seer_request(request)
 
         cache.set(
             summary_cache_key,
@@ -141,3 +153,32 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
                 "numFeedbacksUsed": len(group_feedbacks),
             }
         )
+
+
+def make_seer_request(request: SeerRequest) -> bytes:
+    serialized_request = json.dumps(request)
+
+    response = requests.post(
+        f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/feedback/summarize",
+        data=serialized_request,
+        headers={
+            "content-type": "application/json;charset=utf-8",
+            **sign_with_seer_secret(serialized_request.encode()),
+        },
+    )
+
+    if response.status_code != 200:
+        logger.warning(
+            "Feedback: Failed to produce a summary for a list of feedbacks",
+            extra={
+                "status_code": response.status_code,
+                "response": response.text,
+                "content": response.content,
+            },
+        )
+
+    response.raise_for_status()
+
+    return response.content
+
+    return response.content
