@@ -7,10 +7,6 @@ describe('Alert', () => {
     render(<Alert type="info">Hello</Alert>);
     expect(screen.getByRole('img')).toBeInTheDocument();
   });
-  it('renders icon when showIcon is true', () => {
-    render(<Alert type="info">Hello</Alert>);
-    expect(screen.getByRole('img')).toBeInTheDocument();
-  });
 
   describe('expandable', () => {
     it('does not render expand text by default', async () => {

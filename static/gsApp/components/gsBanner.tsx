@@ -951,7 +951,6 @@ class GSBanner extends Component<Props, State> {
       <Alert
         system
         type={isWarning ? 'muted' : 'warning'}
-        showIcon
         data-test-id={'overage-banner-' + eventTypes.join('-')}
         trailingItems={
           <ButtonBar>

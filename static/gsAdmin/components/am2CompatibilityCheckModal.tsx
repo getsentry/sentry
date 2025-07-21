@@ -157,7 +157,6 @@ function ErrorBox({errors}: {errors: string[]}) {
     <Alert.Container>
       <Alert
         type="error"
-        showIcon
         expand={
           <List>
             {errors.map((error, index) => (

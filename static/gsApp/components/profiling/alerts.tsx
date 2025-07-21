@@ -110,7 +110,6 @@ function GraceAlert({children, action, dismiss, type, disableAction}: GraceAlert
   return (
     <Alert
       icon={type ? <IconWarning /> : dismiss ? <IconInfo /> : <IconWarning />}
-      showIcon
       system
       trailingItems={trailingItems}
       type={type ? type : dismiss ? 'info' : 'error'}
@@ -277,7 +276,6 @@ function ContinuousProfilingBetaAlertBannerInner({
     <Alert
       type="warning"
       system
-      showIcon
       trailingItems={
         <AddEventsCTA
           organization={organization}

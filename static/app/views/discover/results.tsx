@@ -632,7 +632,6 @@ export class Results extends Component<Props, State> {
         <Alert.Container>
           <Alert
             type="warning"
-            showIcon
             trailingItems={
               <StyledCloseButton
                 icon={<IconClose size="sm" />}
@@ -668,7 +667,6 @@ export class Results extends Component<Props, State> {
         <Alert.Container>
           <Alert
             type="warning"
-            showIcon
             trailingItems={
               <StyledCloseButton
                 icon={<IconClose size="sm" />}
@@ -697,7 +695,7 @@ export class Results extends Component<Props, State> {
     if (tips) {
       return tips.map((tip, index) => (
         <Alert.Container key={`tip-${index}`}>
-          <Alert type="info" showIcon key={`tip-${index}`}>
+          <Alert type="info" key={`tip-${index}`}>
             <TipContainer as="span" text={tip} />
           </Alert>
         </Alert.Container>
