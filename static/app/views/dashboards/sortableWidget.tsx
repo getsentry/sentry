@@ -93,6 +93,9 @@ function SortableWidget(props: Props) {
       widgetRef.current.scrollIntoView({behavior: 'smooth', block: 'center'});
       onNewWidgetScrollComplete?.();
     }
+    if (isMatchingWidget) {
+      setDisplayWidget(cloneDeep(widget));
+    }
   }, [newlyAddedWidget, widget, isEditingDashboard, onNewWidgetScrollComplete]);
 
   const onWidgetTableSort = (sort: Sort) => {
