@@ -54,7 +54,7 @@ export default function TestPreOnboardingPage() {
     <LayoutGap>
       {!isUSStorage && (
         <Alert.Container>
-          <Alert type="info" showIcon>
+          <Alert type="info">
             {t(
               'Test Analytics data is stored in the U.S. only. To use this feature, create a new Sentry organization with U.S. data storage.'
             )}

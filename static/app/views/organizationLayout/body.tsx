@@ -23,7 +23,7 @@ function DeletionInProgress({organization}: OrganizationProps) {
     <Layout.Body>
       <Layout.Main>
         <Alert.Container>
-          <Alert type="warning" showIcon>
+          <Alert type="warning">
             {tct(
               'The [organization] organization is currently in the process of being deleted from Sentry.',
               {

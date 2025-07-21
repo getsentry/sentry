@@ -296,7 +296,7 @@ function SetPayAsYouGo({
                 bounce: 0.1,
               }}
             >
-              <Alert type="info" icon={<IconInfo />} showIcon>
+              <Alert type="info" icon={<IconInfo />}>
                 {t(
                   'Setting this to $0 may result in you losing the ability to fully monitor your applications within Sentry.'
                 )}

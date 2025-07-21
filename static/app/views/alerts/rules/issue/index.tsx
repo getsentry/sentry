@@ -830,7 +830,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
   renderError() {
     return (
       <Alert.Container>
-        <Alert type="error" showIcon>
+        <Alert type="error">
           {t(
             'Unable to access this alert rule -- check to make sure you have the correct permissions'
           )}
@@ -956,7 +956,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
     return (
       <Alert.Container>
-        <Alert type="warning" showIcon>
+        <Alert type="warning">
           <div>
             {t(
               'Alerts without conditions can fire too frequently. Are you sure you want to save this alert rule?'
@@ -1302,7 +1302,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('conditions') && (
-                              <Alert type="error">
+                              <Alert type="error" showIcon={false}>
                                 {detailedError?.conditions![0]}
                                 {(detailedError?.conditions![0] || '').startsWith(
                                   'You may not exceed'
@@ -1389,7 +1389,9 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('filters') && (
-                              <Alert type="error">{detailedError?.filters![0]}</Alert>
+                              <Alert type="error" showIcon={false}>
+                                {detailedError?.filters![0]}
+                              </Alert>
                             )
                           }
                           incompatibleRules={incompatibleFilters}
@@ -1436,7 +1438,9 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('actions') && (
-                              <Alert type="error">{detailedError?.actions![0]}</Alert>
+                              <Alert type="error" showIcon={false}>
+                                {detailedError?.actions![0]}
+                              </Alert>
                             )
                           }
                           additionalAction={{

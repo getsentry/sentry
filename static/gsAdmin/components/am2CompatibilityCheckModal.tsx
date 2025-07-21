@@ -157,7 +157,6 @@ function ErrorBox({errors}: {errors: string[]}) {
     <Alert.Container>
       <Alert
         type="error"
-        showIcon
         expand={
           <List>
             {errors.map((error, index) => (
@@ -179,9 +178,7 @@ function InfoBox({numOfIssues}: {numOfIssues: number}) {
 
   return (
     <Alert.Container>
-      <Alert showIcon type={numOfIssues ? 'warning' : 'success'}>
-        {message}
-      </Alert>
+      <Alert type={numOfIssues ? 'warning' : 'success'}>{message}</Alert>
     </Alert.Container>
   );
 }
@@ -193,7 +190,7 @@ function OnDemandBanner({onDemandWidgetCount}: {onDemandWidgetCount: number}) {
 
   return (
     <Alert.Container>
-      <Alert showIcon type="info">
+      <Alert type="info">
         On-demand widgets fix support for many of the AM2 incompatible widgets. They are
         listed here so they can be checked for consistency with AM1 data.
       </Alert>

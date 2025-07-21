@@ -18,7 +18,6 @@ function AlertMessage({alert, system}: Props) {
   return (
     <Alert
       type={alert.type}
-      showIcon
       system={system}
       trailingItems={
         <StyledCloseButton

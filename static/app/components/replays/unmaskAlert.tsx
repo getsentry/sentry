@@ -22,7 +22,6 @@ function UnmaskAlert() {
   return (
     <UnmaskAlertContainer data-test-id="unmask-alert">
       <Alert
-        showIcon
         type="info"
         trailingItems={
           <Button

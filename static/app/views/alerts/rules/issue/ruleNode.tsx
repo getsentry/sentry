@@ -500,7 +500,6 @@ function RuleNode({
       return (
         <FooterAlert
           type="info"
-          showIcon
           trailingItems={
             <ExternalLink href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error">
               {t('Learn More')}
@@ -516,7 +515,6 @@ function RuleNode({
       return (
         <FooterAlert
           type="info"
-          showIcon
           trailingItems={
             <ExternalLink href="https://docs.sentry.io/product/accounts/early-adopter-features/discord/#issue-alerts">
               {t('Learn More')}
@@ -554,7 +552,7 @@ function RuleNode({
       return null;
     }
     return (
-      <FooterAlert type="error" showIcon>
+      <FooterAlert type="error">
         {t(
           'The conditions highlighted in red are in conflict. They may prevent the alert from ever being triggered.'
         )}

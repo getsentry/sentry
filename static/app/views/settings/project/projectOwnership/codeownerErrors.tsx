@@ -162,7 +162,6 @@ export function CodeOwnerErrors({
             <Alert
               key={id}
               type="error"
-              showIcon
               expand={
                 <AlertContentContainer key="container">
                   {errorPairs.map(([type, values]) => (

@@ -213,7 +213,7 @@ function WidgetBuilderSlideout({
       <SlideoutBodyWrapper>
         {disableTransactionWidget && isEditing && (
           <Section>
-            <Alert type="warning" showIcon>
+            <Alert type="warning">
               {t(
                 'You may have limited functionality due to the ongoing migration of transactions to spans. To expedite and re-enable edit functionality, switch to the spans dataset below.'
               )}

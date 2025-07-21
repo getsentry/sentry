@@ -8,7 +8,7 @@ import getPendingInvite from 'sentry/utils/getPendingInvite';
 
 function TwoFactorRequired() {
   return getPendingInvite() ? (
-    <StyledAlert data-test-id="require-2fa" type="error" showIcon>
+    <StyledAlert data-test-id="require-2fa" type="error">
       {tct(
         'You have been invited to an organization that requires [link:two-factor authentication]. Setup two-factor authentication below to join your organization.',
         {

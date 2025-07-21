@@ -467,7 +467,7 @@ export function EventGraph({
 
   if (error) {
     return (
-      <GraphAlert type="error" showIcon {...styleProps}>
+      <GraphAlert type="error" {...styleProps}>
         {tct('Graph Query Error: [message]', {message: error.message})}
       </GraphAlert>
     );

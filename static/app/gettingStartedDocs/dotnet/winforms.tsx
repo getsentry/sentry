@@ -169,7 +169,7 @@ const onboarding: OnboardingConfig = {
               },
               {
                 description: (
-                  <Alert type="info">
+                  <Alert type="info" showIcon={false}>
                     {t('Profiling for .NET Framework is not supported.')}
                   </Alert>
                 ),

@@ -685,7 +685,7 @@ function PerformanceCardTable({
         {platformPerformanceRender[performanceType]?.title}
       </HeadCellContainer>
       {isUnknownPlatform && (
-        <StyledAlert type="warning" showIcon system>
+        <StyledAlert type="warning" system>
           {tct(
             'For more performance metrics, specify which platform this project is using in [link]',
             {
