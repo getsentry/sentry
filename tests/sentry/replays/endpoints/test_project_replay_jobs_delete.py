@@ -193,7 +193,7 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             entry = AuditLogEntry.objects.get()
             assert entry is not None
-            assert entry.event == 1155
+            assert entry.event == 1156
 
     def test_post_validation_errors(self):
         """Test POST validation errors"""
