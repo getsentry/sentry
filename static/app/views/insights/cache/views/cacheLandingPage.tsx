@@ -1,8 +1,8 @@
 import React, {Fragment, useEffect} from 'react';
 import keyBy from 'lodash/keyBy';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {

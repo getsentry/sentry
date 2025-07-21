@@ -341,8 +341,6 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             meta = results.get("meta", {})
             fields_meta = meta.get("fields", {})
 
-            self.handle_error_upsampling(project_ids, results)
-
             if standard_meta:
                 isMetricsData = meta.pop("isMetricsData", False)
                 isMetricsExtractedData = meta.pop("isMetricsExtractedData", False)
@@ -428,33 +426,29 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
     def handle_error_upsampling(self, project_ids: Sequence[int], results: dict[str, Any]):
         """
         If the query is for error upsampled projects, we need to rename the fields to include the ()
-        and update the meta fields to reflect the new field names. This works around a limitation in
+        and update the data and meta fields to reflect the new field names. This works around a limitation in
         how aliases are handled in the SnQL parser.
         """
         if are_any_projects_error_upsampled(project_ids):
             data = results.get("data", [])
             fields_meta = results.get("meta", {}).get("fields", {})
 
-            for result in data:
-                if "count" in result:
-                    result["count()"] = result["count"]
-                    del result["count"]
-                if "eps" in result:
-                    result["eps()"] = result["eps"]
-                    del result["eps"]
-                if "epm" in result:
-                    result["epm()"] = result["epm"]
-                    del result["epm"]
+            function_conversions = {
+                "upsampled_count()": "count()",
+                "upsampled_eps()": "eps()",
+                "upsampled_epm()": "epm()",
+            }
 
-            if "count" in fields_meta:
-                fields_meta["count()"] = fields_meta["count"]
-                del fields_meta["count"]
-            if "eps" in fields_meta:
-                fields_meta["eps()"] = fields_meta["eps"]
-                del fields_meta["eps"]
-            if "epm" in fields_meta:
-                fields_meta["epm()"] = fields_meta["epm"]
-                del fields_meta["epm"]
+            # Go over each both data and meta, and convert function names to the non-upsampled version
+            for upsampled_function, count_function in function_conversions.items():
+                for result in data:
+                    if upsampled_function in result:
+                        result[count_function] = result[upsampled_function]
+                        del result[upsampled_function]
+
+                if upsampled_function in fields_meta:
+                    fields_meta[count_function] = fields_meta[upsampled_function]
+                    del fields_meta[upsampled_function]
 
     def handle_issues(
         self, results: Sequence[Any], project_ids: Sequence[int], organization: Organization
