@@ -243,7 +243,7 @@ function DetectSection() {
       return [];
     }
 
-    // Simple interval filtering rules:
+    // Interval filtering rules:
     // 1. Releases → No sub-hour intervals (crash-free alert behavior)
     // 2. Spans/Logs/Dynamic → No 1-minute intervals
     // 3. Everything else → All intervals allowed
@@ -253,17 +253,15 @@ function DetectSection() {
       dataset === DetectorDataset.LOGS ||
       detectionType === 'dynamic';
 
-    let filteredIntervals = baseIntervals;
-
-    if (shouldExcludeSubHour) {
-      filteredIntervals = baseIntervals.filter(
-        ([timeWindow]) => timeWindow >= TimeWindow.ONE_HOUR
-      );
-    } else if (shouldExcludeOneMinute) {
-      filteredIntervals = baseIntervals.filter(
-        ([timeWindow]) => timeWindow !== TimeWindow.ONE_MINUTE
-      );
-    }
+    const filteredIntervals = baseIntervals.filter(([timeWindow]) => {
+      if (shouldExcludeSubHour) {
+        return timeWindow >= TimeWindow.ONE_HOUR;
+      }
+      if (shouldExcludeOneMinute) {
+        return timeWindow !== TimeWindow.ONE_MINUTE;
+      }
+      return true;
+    });
 
     return filteredIntervals.map(([timeWindow, label]) => [timeWindow * 60, label]);
   }, [dataset, detectionType]);
