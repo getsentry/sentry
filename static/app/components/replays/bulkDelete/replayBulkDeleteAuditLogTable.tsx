@@ -48,11 +48,11 @@ export default function ReplayBulkDeleteAuditLogTable({
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>
               <Query>
-                <dt>Query</dt>
+                <dt>{t('Query')}</dt>
                 <dd>
                   <code>{row.query}</code>
                 </dd>
-                <dt>Date Range</dt>
+                <dt>{t('Date Range')}</dt>
                 <dd>
                   <code>
                     <DateTime date={row.rangeStart} />
@@ -63,7 +63,7 @@ export default function ReplayBulkDeleteAuditLogTable({
                     <DateTime date={row.rangeEnd} />
                   </code>
                 </dd>
-                <dt>Environments</dt>
+                <dt>{t('Environments')}</dt>
                 <dd>
                   <code>{row.environments.join(', ')}</code>
                 </dd>
