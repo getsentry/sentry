@@ -19,7 +19,7 @@ def test_import_paths():
 
 
 def test_taskworker_schedule_unique() -> None:
-    visited = {}
+    visited: dict[str, str] = {}
     for key, entry in settings.TASKWORKER_SCHEDULES.items():
         if entry["task"] in visited:
             msg = (
