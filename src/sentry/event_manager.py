@@ -1934,7 +1934,7 @@ severity_connection_pool = connection_from_url(
     timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
 )
 
-severity_gpu_connection_pool = connection_from_url(
+severity_connection_pool_gpu = connection_from_url(
     settings.SEER_GROUPING_URL,
     retries=settings.SEER_SEVERITY_RETRIES,
     timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
@@ -2164,7 +2164,7 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
 
                 # Conditionally route to GPU deployment based on rollout rate
                 if in_random_rollout("issues.severity.gpu-rollout-rate"):
-                    connection_pool = severity_gpu_connection_pool
+                    connection_pool = severity_connection_pool_gpu
                 else:
                     connection_pool = severity_connection_pool
 
