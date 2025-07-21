@@ -155,11 +155,11 @@ function ExternalIssueMenu(props: ReturnType<typeof useGroupExternalIssues>) {
             }
             if (integration.actions.length === 1) {
               const action = integration.actions[0]!;
-              action.onClick();
               trackAnalytics('feedback.details-integration-issue-clicked', {
                 organization,
                 integration_key: integration.key,
               });
+              action.onClick();
               return;
             }
           }}
