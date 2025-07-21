@@ -1,7 +1,5 @@
 from unittest import mock
 
-import pytest
-
 from sentry import features
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.testutils.cases import TestCase
@@ -62,20 +60,35 @@ class TestTestUtilsFeatureHelper(TestCase):
             assert features.has("system:multi-region")
 
 
-class TestWithFeatureClassDecoratorError(TestCase):
-    """Test that with_feature raises an error when used as a class decorator."""
+class TestWithFeatureClassDecorator(TestCase):
+    """Test that with_feature works correctly when used as a class decorator."""
 
-    def test_with_feature_on_class_raises_error(self):
-        """Test that using with_feature as a class decorator raises ValueError."""
+    def test_with_feature_on_class_works(self):
+        """Test that using with_feature as a class decorator enables features for all methods."""
 
-        with pytest.raises(ValueError) as exc_info:
+        @with_feature("organizations:global-views")
+        class TestClassWithFeature(TestCase):
+            def test_method_1(self):
+                org = self.create_organization()
+                assert features.has("organizations:global-views", org)
 
-            @with_feature("organizations:test-feature")
-            class TestClass:
-                pass
+            def test_method_2(self):
+                org = self.create_organization()
+                assert features.has("organizations:global-views", org)
 
-        error_message = str(exc_info.value)
-        assert "with_feature cannot be used as a class decorator" in error_message
-        assert "Use apply_feature_flag_on_cls instead" in error_message
-        assert "organizations:test-feature" in error_message
-        assert "TestClass" in error_message
+        # Verify the fixture was created
+        fixture_found = False
+        for attr_name in dir(TestClassWithFeature):
+            if (
+                attr_name.startswith("_feature_fixture")
+                and "organizations:global-views" in attr_name
+            ):
+                fixture_found = True
+                break
+
+        assert fixture_found, "Feature fixture was not created on the class"
+
+        test_instance = TestClassWithFeature()
+        test_instance.setUp()
+        test_instance.test_method_1()
+        test_instance.test_method_2()
