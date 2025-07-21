@@ -215,7 +215,8 @@ describe('HTTPDomainSummaryPage', function () {
           method: 'GET',
           query: {
             cursor: undefined,
-            dataset: 'spansMetrics',
+            dataset: 'spans',
+            sampling: SAMPLING_MODE.NORMAL,
             environment: [],
             excludeOther: 0,
             field: [],
@@ -242,7 +243,8 @@ describe('HTTPDomainSummaryPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -268,7 +270,8 @@ describe('HTTPDomainSummaryPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],

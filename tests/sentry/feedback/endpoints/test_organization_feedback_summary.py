@@ -26,6 +26,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         self.project2 = self.create_project(teams=[self.team])
         self.features = {
             "organizations:user-feedback-ai-summaries": True,
+            "organizations:gen-ai-features": True,
         }
         self.url = reverse(
             self.endpoint,

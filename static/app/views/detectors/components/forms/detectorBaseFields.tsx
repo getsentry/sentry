@@ -28,6 +28,7 @@ export function DetectorBaseFields() {
               }}
               errorMessage={t('Please set a title')}
               placeholder={t('New Monitor')}
+              aria-label={t('Monitor Name')}
             />
           )}
         </FormField>
