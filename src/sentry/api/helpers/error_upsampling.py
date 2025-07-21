@@ -51,24 +51,20 @@ def transform_query_columns_for_error_upsampling(
     Transform aggregation functions to use sum(sample_weight) instead of count()
     for error upsampling.
     """
+    function_conversions = {
+        "count()": "upsampled_count()",
+        "eps()": "upsampled_eps()",
+        "epm()": "upsampled_epm()",
+    }
+
     transformed_columns = []
     for column in query_columns:
         column_lower = column.lower().strip()
 
-        if column_lower == "count()":
-            transformed = "upsampled_count()"
+        if column_lower in function_conversions:
+            transformed = function_conversions[column_lower]
             if include_alias:
-                transformed += " as count"
-            transformed_columns.append(transformed)
-        elif column_lower == "eps()":
-            transformed = "upsampled_eps()"
-            if include_alias:
-                transformed += " as eps"
-            transformed_columns.append(transformed)
-        elif column_lower == "epm()":
-            transformed = "upsampled_epm()"
-            if include_alias:
-                transformed += " as epm"
+                transformed += " as " + column_lower[:-2]
             transformed_columns.append(transformed)
         else:
             transformed_columns.append(column)
