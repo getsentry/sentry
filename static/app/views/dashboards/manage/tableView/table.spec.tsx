@@ -91,4 +91,18 @@ describe('DashboardTable', () => {
     const lastVisitedContent = lastVisitedCell.textContent;
     expect(lastVisitedContent).toMatch(/[\d\w]+s ago$/);
   });
+
+  it('renders release filters', () => {
+    render(
+      <DashboardTable
+        dashboards={[DashboardListItemFixture({filters: {release: ['1.0.0']}})]}
+        cursorKey="test"
+        isLoading={false}
+        title={''}
+      />
+    );
+
+    const filterCells = screen.getAllByLabelText('release:[1.0.0]');
+    expect(filterCells[0]).toHaveTextContent('release is 1.0.0');
+  });
 });

@@ -103,8 +103,9 @@ export function DashboardTable({
             <SavedEntityTable.Cell data-column="envs">
               <SavedEntityTable.CellEnvironments environments={dashboard.environment} />
             </SavedEntityTable.Cell>
-            {/* TODO: DAIN-716 Add release filter as tokens */}
-            <SavedEntityTable.Cell data-column="filter">{'\u2014'}</SavedEntityTable.Cell>
+            <SavedEntityTable.Cell data-column="filter">
+              <SavedEntityTable.CellQuery query={getDashboardFiltersQuery(dashboard)} />
+            </SavedEntityTable.Cell>
             <SavedEntityTable.Cell data-column="num-widgets">
               {dashboard.widgetPreview.length}
             </SavedEntityTable.Cell>
@@ -162,6 +163,13 @@ export function DashboardTable({
   );
 }
 
+function getDashboardFiltersQuery(dashboard: DashboardListItem) {
+  // Dashboards only currently support release filters
+  return dashboard.filters?.release
+    ? `release:[${dashboard.filters.release.join(',')}]`
+    : '';
+}
+
 const Container = styled('div')`
   container-type: inline-size;
 `;
@@ -170,8 +178,8 @@ const Container = styled('div')`
 const SavedEntityTableWithColumns = styled(SavedEntityTable)`
   grid-template-areas: 'star name project envs filter num-widgets created-by last-visited created actions';
   grid-template-columns:
-    40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(auto, 120px)
-    minmax(auto, 120px) auto auto auto 48px;
+    40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(auto, 200px)
+    minmax(auto, 120px) 80px auto auto 48px;
 `;
 
 const TableHeading = styled('h2')`
