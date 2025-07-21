@@ -1,6 +1,6 @@
 export {JSXNode, JSXProperty} from './jsx';
 export {PropMatrix} from './props';
-export {Section, Title} from './layout';
+export {Section, StoryHeading as Heading} from './layout';
 export {SideBySide} from './layout';
 export {SizingWindow, Grid} from './layout';
 export {Demo} from './demo';

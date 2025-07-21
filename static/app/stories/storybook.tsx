@@ -32,7 +32,7 @@ export function story(title: string, setup: SetupFunction): StoryRenderFunction 
   return function RenderStory() {
     return (
       <Fragment>
-        <Storybook.Title>{title}</Storybook.Title>
+        <Storybook.Heading>{title}</Storybook.Heading>
         {stories.map(({name, render}, i) => (
           <Story key={i} name={name} render={render} />
         ))}
@@ -50,7 +50,7 @@ function Story(props: {name: string; render: StoryRenderFunction}) {
 
   return (
     <Storybook.Section>
-      <Storybook.Title>{props.name}</Storybook.Title>
+      <Storybook.Heading>{props.name}</Storybook.Heading>
       {isOneChild ? children : <Storybook.SideBySide>{children}</Storybook.SideBySide>}
     </Storybook.Section>
   );

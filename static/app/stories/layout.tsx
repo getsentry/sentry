@@ -1,6 +1,8 @@
+import React from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {Heading} from 'sentry/components/core/text';
 import {space} from 'sentry/styles/space';
 
 export const SideBySide = styled('div')`
@@ -36,7 +38,14 @@ export const Section = styled('section')`
   gap: ${space(2)};
 `;
 
-export const Title = styled('h3')`
+export const StoryHeading = styled((props: React.HTMLAttributes<HTMLHeadingElement>) => {
+  const {children, ...rest} = props;
+  return (
+    <Heading {...rest} as="h3">
+      {children}
+    </Heading>
+  );
+})`
   margin: 0;
   scroll-margin-top: ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};

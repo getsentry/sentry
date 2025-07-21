@@ -1,6 +1,8 @@
 import {useLayoutEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import TextOverflow from 'sentry/components/textOverflow';
 import {space} from 'sentry/styles/space';
 
@@ -158,19 +160,21 @@ export function StoryTableOfContents() {
   if (nestedEntries.length === 0) return null;
   return (
     <StoryIndexContainer>
-      <StoryIndexTitle>On this page</StoryIndexTitle>
-      <StoryIndexListContainer>
-        <StoryIndexList>
-          {nestedEntries.map(entry => (
-            <StoryContentsList
-              key={entry.entry.ref.id}
-              entry={entry}
-              activeId={activeId}
-              setActiveId={setActiveId}
-            />
-          ))}
-        </StoryIndexList>
-      </StoryIndexListContainer>
+      <Flex gap={space(1)} direction="column">
+        <Text size="md">On this page</Text>
+        <StoryIndexListContainer>
+          <StoryIndexList>
+            {nestedEntries.map(entry => (
+              <StoryContentsList
+                key={entry.entry.ref.id}
+                entry={entry}
+                activeId={activeId}
+                setActiveId={setActiveId}
+              />
+            ))}
+          </StoryIndexList>
+        </StoryIndexListContainer>
+      </Flex>
     </StoryIndexContainer>
   );
 }
@@ -238,16 +242,6 @@ const StoryIndexContainer = styled('div')`
 `;
 
 const StoryIndexListContainer = styled('div')``;
-
-const StoryIndexTitle = styled('div')`
-  line-height: 1.25;
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.tokens.content.primary};
-  height: 28px;
-  display: flex;
-  align-items: center;
-`;
 
 const StoryIndexList = styled('ul')`
   list-style: none;

@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Heading} from 'sentry/components/core/text';
 import {space} from 'sentry/styles/space';
 
 import {StoryTree, useStoryTree} from './storyTree';
@@ -13,15 +14,15 @@ export function StorySidebar() {
     <SidebarContainer>
       <ul>
         <li>
-          <h3>Foundations</h3>
+          <Heading as="h3">Foundations</Heading>
           <StoryTree nodes={foundations} />
         </li>
         <li>
-          <h3>Components</h3>
+          <Heading as="h3">Components</Heading>
           <StoryTree nodes={core} />
         </li>
         <li>
-          <h3>Shared</h3>
+          <Heading as="h3">Shared</Heading>
           <StoryTree nodes={shared} />
         </li>
       </ul>
