@@ -64,24 +64,26 @@ export default function TestPreOnboardingPage() {
       <IntroSection>
         <img src={isDarkMode ? testsAnalyticsSummaryDark : testsAnalyticsSummary} />
         <div>
-          <h2>{t('Say Goodbye to Flaky Tests')}</h2>
+          <h2>{t('Keep test problems from slowing you down')}</h2>
           <p
             css={css`
               margin-bottom: ${space(1)};
             `}
           >
-            {t(
-              'Test Analytics offers data on test run times, failure rates, and identifies flaky tests to help decrease the risk of deployment failures and make it easier to ship new features quickly. '
-            )}
-            <Link to="https://docs.codecov.com/docs/test-analytics">
-              {t('Learn more')}
-            </Link>
+            {t('Get testing data that helps keep your CI running smoothly.')}
           </p>
-          <ItalicP>
-            {t(
-              'No more staring at failing tests wondering, “Is it me, or is it just flaky?”'
-            )}
-          </ItalicP>
+          <ul>
+            <li>{t('See which lines of code failed which tests.')}</li>
+            <li>
+              {t('Get confirmation of flaky tests and confidently skip or re-run them.')}
+            </li>
+            <li>
+              {t('Identify the most problematic tests and prioritize fixes.')}{' '}
+              <Link to="https://docs.codecov.com/docs/test-analytics">
+                {t('Learn more')}
+              </Link>
+            </li>
+          </ul>
         </div>
       </IntroSection>
       {isUSStorage && (
@@ -162,11 +164,6 @@ export default function TestPreOnboardingPage() {
 const LayoutGap = styled('div')`
   display: grid;
   gap: ${space(2)};
-`;
-
-const ItalicP = styled('p')`
-  font-style: italic;
-  color: ${p => p.theme.headingColor};
 `;
 
 const IntroSection = styled('div')`
