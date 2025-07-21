@@ -303,7 +303,6 @@ def test_process_message_compressed():
         recording_size_uncompressed=len(original_payload),
         recording_size=len(compressed_payload),
         replay_event={},
-        trace_items=[],
         video_size=None,
     )
     assert expected == processed_result
@@ -353,7 +352,6 @@ def test_process_message_uncompressed():
         recording_size_uncompressed=len(original_payload),
         recording_size=len(compressed_payload),
         replay_event={},
-        trace_items=[],
         video_size=None,
     )
     assert expected == processed_result
@@ -403,7 +401,6 @@ def test_process_message_compressed_with_video():
         recording_size_uncompressed=len(original_payload),
         recording_size=len(compressed_payload),
         replay_event={},
-        trace_items=[],
         video_size=5,
     )
     assert expected == processed_result
