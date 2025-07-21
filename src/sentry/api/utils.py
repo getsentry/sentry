@@ -18,7 +18,7 @@ from rest_framework.exceptions import APIException, ParseError, Throttled
 from sentry_sdk import Scope
 from urllib3.exceptions import MaxRetryError, ReadTimeoutError, TimeoutError
 
-from sentry import options
+from sentry import options, quotas
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.discover.arithmetic import ArithmeticError
@@ -462,6 +462,11 @@ def update_snuba_params_with_timestamp(
 
         params.start = max(params.start_date, example_start)
         params.end = min(params.end_date, example_end)
+        retention = quotas.backend.get_event_retention(organization=params.organization)
+        if retention and params.start < timezone.now() - timedelta(days=retention):
+            raise InvalidSearchQuery(
+                "Query dates our outside of retention, try again with a date within retention"
+            )
 
 
 def reformat_timestamp_ms_to_isoformat(timestamp_ms: str) -> Any:

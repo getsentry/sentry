@@ -3,6 +3,7 @@ from uuid import uuid4
 import pytest
 from django.urls import NoReverseMatch, reverse
 
+from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events_trace import (
     OrganizationEventsTraceEndpointBase,
 )
@@ -133,3 +134,15 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["span_count"] == 19
         assert data["span_count_map"]["http.server"] == 19
         assert len(data["transaction_child_count_map"]) == 8
+
+    def test_with_invalid_date(self):
+        self.load_trace(is_eap=True)
+        self.load_default()
+        with self.options({"system.event-retention-days": 10}):
+            with self.feature(self.FEATURES):
+                response = self.client.get(
+                    self.url,
+                    data={"project": -1, "timestamp": before_now(days=120).timestamp()},
+                    format="json",
+                )
+        assert response.status_code == 400, response.content
