@@ -287,7 +287,7 @@ class StatefulDetectorHandler(
         self,
         detector: Detector,
         thresholds: DetectorThresholds | None = None,
-        has_grouping: bool = True,
+        has_grouping: bool = False,
     ):
         super().__init__(detector)
 
