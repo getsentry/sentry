@@ -8,9 +8,7 @@ export function useNavPrompts({
   collapsed: boolean;
   organization: Organization | null;
 }) {
-  const hasNavigationV2Banner =
-    organization?.features.includes('navigation-sidebar-v2') &&
-    organization?.features.includes('navigation-sidebar-v2-banner');
+  const hasNavigationV2Banner = organization?.features.includes('navigation-sidebar-v2');
 
   const {
     isPromptDismissed: isSidebarPromptDismissed,
