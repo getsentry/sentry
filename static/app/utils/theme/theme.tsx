@@ -1134,7 +1134,11 @@ const space = {
     * Equivalent to deprecated `space(3)` (was `20px`)
     */
   '2xl': '24px',
-  /** prev. space(4) */
+  /**
+    * `32px`
+    *
+    * Equivalent to deprecated `space(4)` (was `30px`)
+    */
   '3xl': '32px',
 } as const;
 
