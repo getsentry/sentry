@@ -604,9 +604,6 @@ class SnubaEventStorage(EventStorage):
         """
         assert filter, "You must provide a filter"
 
-        if not event:
-            return (None, None)
-
         prev_filter = deepcopy(filter)
         prev_filter.conditions.extend(get_before_event_condition(event))
         if not prev_filter.start:
@@ -625,20 +622,19 @@ class SnubaEventStorage(EventStorage):
         next_filter.orderby = ASC_ORDERING
 
         dataset = self._get_dataset_for_event(event)
-        return self.__get_event_ids_from_filters(
+        results = self.__get_event_ids_from_filters(
             filters=(prev_filter, next_filter),
             dataset=dataset,
             tenant_ids={"organization_id": event.project.organization_id},
         )
 
-        # Convert the results to the expected format
-        # prev_result = results[0] if len(results) > 0 else None
-        # next_result = results[1] if len(results) > 1 else None
+        prev_result = results[0] if len(results) > 0 else None
+        next_result = results[1] if len(results) > 1 else None
 
-        # prev_tuple = (prev_result[0], prev_result[1]) if prev_result else None
-        # next_tuple = (next_result[0], next_result[1]) if next_result else None
+        prev_tuple = (prev_result[0], prev_result[1]) if prev_result else None
+        next_tuple = (next_result[0], next_result[1]) if next_result else None
 
-        # return (prev_tuple, next_tuple)
+        return (prev_tuple, next_tuple)
 
     def __get_columns(self, dataset: Dataset) -> list[str]:
         return [
@@ -652,7 +648,7 @@ class SnubaEventStorage(EventStorage):
         filters: tuple[Filter, Filter],
         dataset: Dataset = Dataset.Discover,
         tenant_ids: Mapping[str, Any] | None = None,
-    ) -> list[tuple[str, str] | None]:
+    ) -> list[tuple[str, str]]:
         columns = [Columns.EVENT_ID.value.alias, Columns.PROJECT_ID.value.alias]
         try:
             # This query uses the discover dataset to enable
@@ -681,7 +677,7 @@ class SnubaEventStorage(EventStorage):
         except (snuba.QueryOutsideRetentionError, snuba.QueryOutsideGroupActivityError):
             # This can happen when the date conditions for paging
             # and the current event generate impossible conditions.
-            return [None for _ in filters]
+            return []
 
         return [
             result_tuple
