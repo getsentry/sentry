@@ -22,6 +22,14 @@ import {
   getFieldDefinition,
 } from 'sentry/utils/fields';
 import {
+  ToolbarFooter,
+  ToolbarFooterButton,
+  ToolbarHeader,
+  ToolbarLabel,
+  ToolbarRow,
+  ToolbarSection,
+} from 'sentry/views/explore/components/toolbar/styles';
+import {
   useExploreVisualizes,
   useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
@@ -35,15 +43,6 @@ import {
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
-
-import {
-  ToolbarFooter,
-  ToolbarFooterButton,
-  ToolbarHeader,
-  ToolbarLabel,
-  ToolbarRow,
-  ToolbarSection,
-} from './styles';
 
 interface ToolbarVisualizeProps {
   allowEquations: boolean;
