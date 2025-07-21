@@ -62,8 +62,13 @@ function useLocalAiSummary() {
   const replayRecord = replay?.getReplay();
 
   // Sort all events chronologically
-  const allEvents =
-    replay?.getChapterFrames()?.sort((a, b) => a.timestampMs - b.timestampMs) ?? []; // inclues all errors & feedback
+  const allEvents = [
+    ...(replay?.getChapterFrames() ?? []), // inclues all errors & feedback
+    ...(replay?.getNetworkFrames() ?? []).filter(
+      frame => !frame.op.startsWith('navigation')
+    ),
+    ...(replay?.getConsoleFrames() ?? []),
+  ].sort((a, b) => a.timestampMs - b.timestampMs);
 
   const allData =
     allEvents
@@ -241,6 +246,11 @@ function asLogMessage(payload: BreadcrumbFrame | SpanFrame): string | null {
         const duration =
           Number(payload.endTimestamp || 0) - Number(payload.startTimestamp || 0);
         const method = (payload.data as any)?.method;
+
+        if (String(statusCode).startsWith('200')) {
+          return null;
+        }
+
         return `Application initiated request: "${method} ${path} HTTP/2.0" ${statusCode} and response size ${size}; took ${duration} milliseconds at ${timestamp}`;
       }
       case EventType.LCP: {
