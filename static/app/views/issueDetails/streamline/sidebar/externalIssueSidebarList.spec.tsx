@@ -8,7 +8,13 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {SentryAppComponentFixture} from 'sentry-fixture/sentryAppComponent';
 import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
@@ -249,7 +255,6 @@ describe('ExternalIssueSidebarList', () => {
       url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
       body: [],
     });
-
     const groupWithPluginActions = GroupFixture({
       pluginActions: [['Create Redmine Issue', '/path/to/redmine']],
     });
@@ -260,6 +265,7 @@ describe('ExternalIssueSidebarList', () => {
         project={project}
       />
     );
+    renderGlobalModal();
 
     expect(
       await screen.findByRole('button', {name: 'Add Linked Issue'})
@@ -267,11 +273,14 @@ describe('ExternalIssueSidebarList', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Add Linked Issue'}));
 
     expect(
-      await screen.findByRole('link', {name: 'Create Redmine Issue'})
+      await screen.findByRole('option', {name: 'Create Redmine Issue'})
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Create Redmine Issue'})).toHaveAttribute(
-      'href',
-      '/path/to/redmine'
+    await userEvent.click(
+      await screen.findByRole('option', {name: 'Create Redmine Issue'})
     );
+
+    const button = await screen.findByRole('button', {name: 'Continue'});
+    expect(button).toBeInTheDocument();
+    expect(button).toHaveAttribute('href', '/path/to/redmine');
   });
 });
