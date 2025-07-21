@@ -413,8 +413,6 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
 
         additional_attributes = request.GET.getlist("additional_attributes", [])
 
-        update_snuba_params_with_timestamp(request, snuba_params)
-
         error_id = request.GET.get("errorId")
         if error_id is not None and not is_event_id(error_id):
             raise ParseError(f"eventId: {error_id} needs to be a valid uuid")
@@ -422,6 +420,8 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
         def data_fn(offset: int, limit: int) -> list[SerializedEvent]:
             """offset and limit don't mean anything on this endpoint currently"""
             with handle_query_errors():
+                update_snuba_params_with_timestamp(request, snuba_params)
+
                 spans = self.query_trace_data(
                     snuba_params, trace_id, error_id, additional_attributes
                 )

@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from django.urls import reverse
 
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 from tests.snuba.api.endpoints.test_organization_events_trace import (
     OrganizationEventsTraceEndpointBase,
@@ -288,5 +289,14 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             response = self.client_get(
                 data={"timestamp": self.day_ago, "errorId": ",blah blah,"},
             )
+
+        assert response.status_code == 400, response.content
+
+    def test_with_date_outside_retention(self):
+        with self.options({"system.event-retention-days": 10}):
+            with self.feature(self.FEATURES):
+                response = self.client_get(
+                    data={"timestamp": before_now(days=120)},
+                )
 
         assert response.status_code == 400, response.content
