@@ -34,6 +34,23 @@ def run_storage() -> RunStorage:
     return RunStorage(redis)
 
 
+def test_runstorage_zero_duration(run_storage: RunStorage) -> None:
+    with freeze_time("2025-07-19 14:25:00"):
+        now = timezone.now()
+        result = run_storage.set("test:do_stuff", now)
+        assert result is True
+
+
+def test_runstorage_double_set(run_storage: RunStorage) -> None:
+    with freeze_time("2025-07-19 14:25:00"):
+        now = timezone.now()
+        first = run_storage.set("test:do_stuff", now)
+        second = run_storage.set("test:do_stuff", now)
+
+        assert first is True, "initial set should return true"
+        assert second is False, "writing a key that exists should fail"
+
+
 @pytest.mark.django_db
 def test_schedulerunner_add_invalid(taskregistry) -> None:
     run_storage = Mock(spec=RunStorage)
