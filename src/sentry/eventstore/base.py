@@ -276,11 +276,11 @@ class EventStorage(Service):
         organization_id: int,
         project_id: int,
         group_id: int | None,
-        environments: list[str],
+        environments: Sequence[str],
         event: Event | GroupEvent,
         start: datetime | None = None,
         end: datetime | None = None,
-        conditions: list[list[str, str, Any]] | None = None,
+        conditions: list[Any] | None = None,
     ) -> list[tuple[str, str] | None]:
         raise NotImplementedError
 
@@ -308,7 +308,7 @@ class EventStorage(Service):
         """
         Returns an Event from processed data
         """
-        return Event(project_id=project_id, event_id=event_id, group_id=group_id, data=data)
+        return Event(project_id=project_id, event_id=event_id or "", group_id=group_id, data=data)
 
     def bind_nodes(self, object_list: Sequence[Event]) -> None:
         """
