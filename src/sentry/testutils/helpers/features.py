@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Generator, Iterable, Mapping, Sequence
 from contextlib import contextmanager
+from functools import wraps
 from unittest.mock import patch
 
 import pytest
@@ -187,13 +188,11 @@ def with_feature(names: str | Iterable[str] | dict[str, bool]):
                         if callable(original_method):
 
                             def create_wrapped_method(method):
+                                @wraps(method)
                                 def wrapped_method(*args, **kwargs):
                                     with Feature(feature_names):
                                         return method(*args, **kwargs)
 
-                                # Preserve method metadata
-                                wrapped_method.__name__ = method.__name__
-                                wrapped_method.__doc__ = method.__doc__
                                 return wrapped_method
 
                             wrapped = create_wrapped_method(original_method)
@@ -202,13 +201,11 @@ def with_feature(names: str | Iterable[str] | dict[str, bool]):
                 return func_or_cls
 
             # Decorating a function - wrap it with the feature context
+            @wraps(func_or_cls)
             def wrapper(*args, **kwargs):
                 with Feature(self.feature_names):
                     return func_or_cls(*args, **kwargs)
 
-            # Preserve function metadata
-            wrapper.__name__ = getattr(func_or_cls, "__name__", "wrapped_function")
-            wrapper.__doc__ = getattr(func_or_cls, "__doc__", None)
             return wrapper
 
     return FeatureContextManagerOrDecorator(names)
