@@ -10,6 +10,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -23,7 +24,8 @@ interface Props {
 }
 
 export function ChapterList({summaryData}: Props) {
-  const {replay, setCurrentTime} = useReplayContext();
+  const replay = useReplayReader();
+  const {setCurrentTime} = useReplayContext();
   const onClickChapterTimestamp = useCallback(
     (event: React.MouseEvent<Element>, start: number) => {
       event.stopPropagation();
@@ -57,7 +59,9 @@ export function ChapterList({summaryData}: Props) {
   if (!chapterData.length) {
     return (
       <EmptyContainer>
-        <Alert type="info">{t('No chapters available for this replay.')}</Alert>
+        <Alert type="info" showIcon={false}>
+          {t('No chapters available for this replay.')}
+        </Alert>
       </EmptyContainer>
     );
   }
@@ -99,10 +103,12 @@ function ChapterRow({
   title: string;
   className?: string;
 }) {
-  const {replay, currentTime} = useReplayContext();
+  const replay = useReplayReader();
+  const {currentTime} = useReplayContext();
   const {onClickTimestamp} = useCrumbHandlers();
   const [currentHoverTime] = useCurrentHoverTime();
   const [isHovered, setIsHovered] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   const startOffset = Math.max(start - (replay?.getStartTimestampMs() ?? 0), 0);
   const endOffset = Math.max(end - (replay?.getStartTimestampMs() ?? 0), 0);
@@ -113,6 +119,8 @@ function ChapterRow({
 
   return (
     <ChapterWrapper
+      data-has-error={Boolean(error)}
+      data-has-feedback={Boolean(feedback)}
       className={classNames(className, {
         beforeCurrentTime: hasOccurred,
         afterCurrentTime: !hasOccurred,
@@ -122,10 +130,9 @@ function ChapterRow({
       })}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onToggle={e => setIsOpen(e.currentTarget.open)}
     >
       <Chapter
-        error={error}
-        feedback={feedback}
         onClick={() =>
           trackAnalytics('replay.ai-summary.chapter-clicked', {
             chapter_type: error ? 'error' : feedback ? 'feedback' : undefined,
@@ -135,13 +142,13 @@ function ChapterRow({
       >
         <ChapterIconWrapper>
           {error ? (
-            isHovered ? (
-              <ChapterIconArrow direction="right" size="xs" color="errorText" />
+            isOpen || isHovered ? (
+              <ChapterIconArrow direction="right" size="xs" color="red300" />
             ) : (
-              <IconFire size="xs" color="errorText" />
+              <IconFire size="xs" color="red300" />
             )
           ) : feedback ? (
-            isHovered ? (
+            isOpen || isHovered ? (
               <ChapterIconArrow direction="right" size="xs" color="pink300" />
             ) : (
               <IconMegaphone size="xs" color="pink300" />
@@ -237,6 +244,24 @@ const ChapterWrapper = styled('details')`
   &.activeChapter .beforeCurrentTime:last-child {
     border-bottom-color: ${p => p.theme.purple300};
   }
+
+  /* the border-top is used to eliminate some of the top gap */
+
+  &:hover {
+    border-top: 1px solid ${p => p.theme.backgroundSecondary};
+  }
+
+  [data-has-feedback='true'] {
+    &:hover {
+      border-top: 1px solid ${p => p.theme.pink100};
+    }
+  }
+
+  [data-has-error='true'] {
+    &:hover {
+      border-top: 1px solid ${p => p.theme.red100};
+    }
+  }
 `;
 
 const ChapterBreadcrumbRow = styled(BreadcrumbRow)`
@@ -245,29 +270,22 @@ const ChapterBreadcrumbRow = styled(BreadcrumbRow)`
   &::before {
     display: none;
   }
-  &:last-child {
-    background-color: transparent;
-  }
-  details[open]:last-child &:last-child {
-    background-color: ${p => p.theme.background};
+
+  &:hover {
+    background-color: ${p => p.theme.backgroundSecondary};
   }
 `;
 
-const Chapter = styled('summary')<{error?: boolean; feedback?: boolean}>`
+const Chapter = styled('summary')`
   cursor: pointer;
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.fontSize.lg};
   padding: 0 ${space(0.75)};
-  color: ${p =>
-    p.error ? p.theme.errorText : p.feedback ? p.theme.pink300 : p.theme.textColor};
+  color: ${p => p.theme.textColor};
+
   &:hover {
-    background-color: ${p =>
-      p.error
-        ? p.theme.red100
-        : p.feedback
-          ? p.theme.pink100
-          : p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.backgroundSecondary};
   }
 
   /* sorry */
@@ -278,6 +296,22 @@ const Chapter = styled('summary')<{error?: boolean; feedback?: boolean}>`
   list-style-type: none;
   &::-webkit-details-marker {
     display: none;
+  }
+
+  [data-has-feedback='true'] & {
+    color: ${p => p.theme.pink300};
+
+    &:hover {
+      background-color: ${p => p.theme.pink100};
+    }
+  }
+
+  [data-has-error='true'] & {
+    color: ${p => p.theme.red300};
+
+    &:hover {
+      background-color: ${p => p.theme.red100};
+    }
   }
 `;
 
@@ -295,6 +329,7 @@ const ChapterTitle = styled('div')`
   }
 
   border-bottom: 1px solid ${p => p.theme.innerBorder};
+  margin-bottom: -1px; /* Compensate for border to fully eliminate gap */
 
   details:last-child:not([open]) & {
     border-bottom: none;

@@ -11,8 +11,8 @@ import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import type {SpanMetricsQueryFilters, SubregionCode} from 'sentry/views/insights/types';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import type {SpanQueryFilters, SubregionCode} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 type Props = {
   groupId: string;
@@ -26,7 +26,7 @@ function SampleInfo(props: Props) {
   const {groupId, transactionName, transactionMethod, subregions} = props;
   const {setPageError} = usePageAlert();
 
-  const ribbonFilters: SpanMetricsQueryFilters = {
+  const ribbonFilters: SpanQueryFilters = {
     'span.group': groupId,
     transaction: transactionName,
   };
@@ -37,17 +37,17 @@ function SampleInfo(props: Props) {
 
   if (subregions) {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    ribbonFilters[SpanMetricsField.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
+    ribbonFilters[SpanFields.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
   }
 
   const {data, error, isPending} = useSpans(
     {
       search: MutableSearch.fromQueryObject(ribbonFilters),
       fields: [
-        SpanMetricsField.SPAN_OP,
+        SpanFields.SPAN_OP,
         'epm()',
-        `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
-        `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
+        `sum(${SpanFields.SPAN_SELF_TIME})`,
+        `avg(${SpanFields.SPAN_SELF_TIME})`,
       ],
       enabled: Object.values(ribbonFilters).every(value => Boolean(value)),
     },
@@ -61,7 +61,7 @@ function SampleInfo(props: Props) {
   return (
     <StyledReadoutRibbon>
       <MetricReadout
-        title={getThroughputTitle(data[0]?.[SpanMetricsField.SPAN_OP])}
+        title={getThroughputTitle(data[0]?.[SpanFields.SPAN_OP])}
         value={data[0]?.['epm()']}
         unit={RateUnit.PER_MINUTE}
         isLoading={isPending}
@@ -69,14 +69,14 @@ function SampleInfo(props: Props) {
 
       <MetricReadout
         title={DataTitles.avg}
-        value={data[0]?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
+        value={data[0]?.[`avg(${SpanFields.SPAN_SELF_TIME})`]}
         unit={DurationUnit.MILLISECOND}
         isLoading={isPending}
       />
 
       <MetricReadout
         title={DataTitles.timeSpent}
-        value={data[0]?.[`sum(${SpanMetricsField.SPAN_SELF_TIME})`]}
+        value={data[0]?.[`sum(${SpanFields.SPAN_SELF_TIME})`]}
         unit={DurationUnit.MILLISECOND}
         isLoading={isPending}
       />
