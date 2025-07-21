@@ -1317,6 +1317,14 @@ def assign_event_to_group(
 
     # From here on out, we're just doing housekeeping
 
+    # TODO: Temporary metric to debug missing grouphash metadata. This metric *should* exactly match
+    # the `grouping.grouphashmetadata.backfill_needed` metric collected in
+    # `get_or_create_grouphashes`. If it doesn't, perhaps there's a race condition between creation
+    # of the metadata and our ability to pull it from the database immediately thereafter.
+    for grouphash in [*primary.grouphashes, *secondary.grouphashes]:
+        if not grouphash.metadata:
+            metrics.incr("grouping.grouphashmetadata.backfill_needed_2", sample_rate=1.0)
+
     # Background grouping is a way for us to get performance metrics for a new
     # config without having it actually affect on how events are grouped. It runs
     # either before or after the main grouping logic, depending on the option value.
