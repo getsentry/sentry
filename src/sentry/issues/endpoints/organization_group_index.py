@@ -1,9 +1,9 @@
 import functools
+import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
-import sentry_sdk
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError, PermissionDenied
@@ -61,12 +61,14 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.backend import assigned_or_suggested_filter
-from sentry.search.snuba.executors import FIRST_RELEASE_FILTERS, get_search_filter
+from sentry.search.snuba.executors import get_search_filter
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d' and 'auto'"
 allowed_inbox_search_terms = frozenset(["date", "status", "for_review", "assigned_or_suggested"])
+
+logger = logging.getLogger(__name__)
 
 
 def inbox_search(
@@ -195,36 +197,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                 query_kwargs.pop("sort_by")
                 result = inbox_search(**query_kwargs)
             else:
-
-                def use_group_snuba_dataset() -> bool:
-                    # if useGroupSnubaDataset is present, override the flag so we can test the new dataset
-                    # XXX: This query param is omitted from the API docs as it is currently internal.
-                    req_param_value: str | None = request.GET.get("useGroupSnubaDataset")
-                    if req_param_value and req_param_value.lower() == "true":
-                        return True
-
-                    if not features.has("organizations:issue-search-snuba", organization):
-                        return False
-
-                    # haven't migrated trends
-                    if query_kwargs["sort_by"] == "trends":
-                        return False
-
-                    # check for the first_release search filters, which require postgres if the environment is specified
-                    if environments:
-                        return all(
-                            sf.key.name not in FIRST_RELEASE_FILTERS
-                            for sf in query_kwargs.get("search_filters", [])
-                        )
-
-                    return True
-
                 query_kwargs["referrer"] = "search.group_index"
-                query_kwargs["use_group_snuba_dataset"] = use_group_snuba_dataset()
-                sentry_sdk.set_tag(
-                    "search.use_group_snuba_dataset", query_kwargs["use_group_snuba_dataset"]
-                )
-
                 result = search.backend.query(**query_kwargs)
             return result, query_kwargs
 
@@ -531,4 +504,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             self.get_environments(request, organization),
         )
 
-        return delete_groups(request, projects, organization.id, search_fn)
+        try:
+            return delete_groups(request, projects, organization.id, search_fn)
+        except Exception:
+            logger.exception("Error deleting groups")
+            return Response({"detail": "Error deleting groups"}, status=500)

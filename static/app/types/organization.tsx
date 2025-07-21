@@ -64,7 +64,6 @@ export interface Organization extends OrganizationSummary {
   defaultRole: string;
   enhancedPrivacy: boolean;
   eventsMemberAdmin: boolean;
-  genAIConsent: boolean;
   isDefault: boolean;
   isDynamicallySampled: boolean;
   onboardingTasks: OnboardingTaskStatus[];
@@ -104,6 +103,7 @@ export interface Organization extends OrganizationSummary {
   defaultSeerScannerAutomation?: boolean;
   desiredSampleRate?: number | null;
   effectiveSampleRate?: number | null;
+  enabledConsolePlatforms?: string[];
   extraOptions?: {
     traces: {
       checkSpanExtractionDate: boolean;

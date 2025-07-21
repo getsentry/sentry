@@ -63,6 +63,7 @@ class OrganizationSerializerTest(TestCase):
         assert result["id"] == str(organization.id)
         assert result["features"] == [
             "advanced-search",
+            "anomaly-detection-rollout",
             "change-alerts",
             "crash-rate-alerts",
             "custom-symbol-sources",
@@ -91,7 +92,6 @@ class OrganizationSerializerTest(TestCase):
             "new-page-filter",
             "open-membership",
             "performance-tracing-without-performance",
-            "related-issues",
             "relay",
             "session-replay-ui",
             "shared-issues",

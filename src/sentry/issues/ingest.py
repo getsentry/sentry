@@ -280,8 +280,8 @@ def save_issue_from_occurrence(
             logger.error(
                 "save_issue_from_occurrence.type_mismatch",
                 extra={
-                    "issue_type": group.issue_type.type_id,
-                    "occurrence_type": occurrence.type.type_id,
+                    "issue_type": group.issue_type.slug,
+                    "occurrence_type": occurrence.type.slug,
                     "event_type": "platform",
                     "group_id": group.id,
                 },

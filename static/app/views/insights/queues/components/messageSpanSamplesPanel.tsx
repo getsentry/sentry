@@ -30,7 +30,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getDurationChartTitle} from 'sentry/views/insights/common/views/spans/types';
 import {useSpanSamples} from 'sentry/views/insights/http/queries/useSpanSamples';
 import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
@@ -46,11 +46,7 @@ import {
 } from 'sentry/views/insights/queues/settings';
 import decodeRetryCount from 'sentry/views/insights/queues/utils/queryParameterDecoders/retryCount';
 import decodeTraceStatus from 'sentry/views/insights/queues/utils/queryParameterDecoders/traceStatus';
-import {
-  ModuleName,
-  SpanIndexedField,
-  type SpanMetricsResponse,
-} from 'sentry/views/insights/types';
+import {type EAPSpanResponse, ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 export function MessageSpanSamplesPanel() {
   const navigate = useNavigate();
@@ -169,7 +165,7 @@ export function MessageSpanSamplesPanel() {
     isFetching: isDurationDataFetching,
     data: durationData,
     error: durationError,
-  } = useSpanMetricsSeries(
+  } = useSpanSeries(
     {
       search: timeseriesFilters,
       yAxis: [`avg(span.duration)`],
@@ -192,15 +188,15 @@ export function MessageSpanSamplesPanel() {
     max: durationAxisMax,
     enabled: isPanelOpen && durationAxisMax > 0,
     fields: [
-      SpanIndexedField.ID,
-      SpanIndexedField.TRACE,
-      SpanIndexedField.SPAN_DESCRIPTION,
-      SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
-      SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY,
-      SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,
-      SpanIndexedField.MESSAGING_MESSAGE_ID,
-      SpanIndexedField.TRACE_STATUS,
-      SpanIndexedField.SPAN_DURATION,
+      SpanFields.ID,
+      SpanFields.TRACE,
+      SpanFields.SPAN_DESCRIPTION,
+      SpanFields.MESSAGING_MESSAGE_BODY_SIZE,
+      SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY,
+      SpanFields.MESSAGING_MESSAGE_RETRY_COUNT,
+      SpanFields.MESSAGING_MESSAGE_ID,
+      SpanFields.TRACE_STATUS,
+      SpanFields.SPAN_DURATION,
     ],
   });
 
@@ -342,13 +338,13 @@ export function MessageSpanSamplesPanel() {
                 // Samples endpoint doesn't provide meta data, so we need to provide it here
                 meta={{
                   fields: {
-                    [SpanIndexedField.SPAN_DURATION]: 'duration',
-                    [SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE]: 'size',
-                    [SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT]: 'number',
+                    [SpanFields.SPAN_DURATION]: 'duration',
+                    [SpanFields.MESSAGING_MESSAGE_BODY_SIZE]: 'size',
+                    [SpanFields.MESSAGING_MESSAGE_RETRY_COUNT]: 'number',
                   },
                   units: {
-                    [SpanIndexedField.SPAN_DURATION]: DurationUnit.MILLISECOND,
-                    [SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE]: SizeUnit.BYTE,
+                    [SpanFields.SPAN_DURATION]: DurationUnit.MILLISECOND,
+                    [SpanFields.MESSAGING_MESSAGE_BODY_SIZE]: SizeUnit.BYTE,
                   },
                 }}
                 type={messageActorType}
@@ -380,7 +376,7 @@ function ProducerMetricsRibbon({
   isLoading,
 }: {
   isLoading: boolean;
-  metrics: Array<Partial<SpanMetricsResponse>>;
+  metrics: Array<Partial<EAPSpanResponse>>;
 }) {
   const errorRate = 1 - (metrics[0]?.['trace_status_rate(ok)'] ?? 0);
   return (
@@ -406,7 +402,7 @@ function ConsumerMetricsRibbon({
   isLoading,
 }: {
   isLoading: boolean;
-  metrics: Array<Partial<SpanMetricsResponse>>;
+  metrics: Array<Partial<EAPSpanResponse>>;
 }) {
   const errorRate = 1 - (metrics[0]?.['trace_status_rate(ok)'] ?? 0);
   return (

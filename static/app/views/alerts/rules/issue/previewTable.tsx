@@ -56,12 +56,11 @@ function PreviewTable({
       );
     }
     const memberList = indexMembersByProject(members);
-    return previewGroups.map((id, index) => {
+    return previewGroups.map(id => {
       const group = GroupStore.get(id) as Group | undefined;
 
       return (
         <StreamGroup
-          index={index}
           key={id}
           id={id}
           hasGuideAnchor={false}

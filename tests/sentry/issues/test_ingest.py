@@ -369,8 +369,8 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
             logger.error.assert_called_once_with(
                 "save_issue_from_occurrence.type_mismatch",
                 extra={
-                    "issue_type": group_info.group.issue_type.type_id,
-                    "occurrence_type": MonitorIncidentType.type_id,
+                    "issue_type": group_info.group.issue_type.slug,
+                    "occurrence_type": MonitorIncidentType.slug,
                     "event_type": "platform",
                     "group_id": group_info.group.id,
                 },
