@@ -9,6 +9,7 @@ from typing import Any, TypedDict
 from django.db.models import Max, Prefetch, Q, prefetch_related_objects
 from rest_framework import serializers
 
+from sentry import features
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ObjectStatus
 from sentry.db.models.manager.base_query_set import BaseQuerySet
@@ -207,6 +208,37 @@ class RuleSerializer(Serializer):
                 .values("rule_id")
                 .annotate(date_added=Max("date_added"))
             }
+
+            # Update lastTriggered with WorkflowFireHistory if available
+            if item_list and features.has(
+                "organizations:workflow-engine-single-process-workflows",
+                item_list[0].project.organization,
+            ):
+                rule_ids = [rule.id for rule in item_list]
+                workflow_rule_lookup = dict(
+                    AlertRuleWorkflow.objects.filter(rule_id__in=rule_ids).values_list(
+                        "workflow_id", "rule_id"
+                    )
+                )
+
+                workflow_fire_results = (
+                    WorkflowFireHistory.objects.filter(
+                        workflow_id__in=workflow_rule_lookup.keys(), is_single_written=True
+                    )
+                    .values("workflow_id")
+                    .annotate(date_added=Max("date_added"))
+                )
+
+                for wfh in workflow_fire_results:
+                    rule_id = workflow_rule_lookup.get(wfh["workflow_id"])
+                    if rule_id:
+                        # Take the maximum date between RuleFireHistory and WorkflowFireHistory
+                        existing_date = last_triggered_lookup[rule_id]
+                        new_date = wfh["date_added"]
+                        if new_date > existing_date:
+                            last_triggered_lookup[rule_id] = new_date
+
+            # Set the results
             for rule in item_list:
                 result[rule]["last_triggered"] = last_triggered_lookup.get(rule.id, None)
 
