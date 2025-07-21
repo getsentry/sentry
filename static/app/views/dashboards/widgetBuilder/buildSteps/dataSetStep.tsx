@@ -87,6 +87,12 @@ export function DataSetStep({
   if (hasDatasetSelectorFeature) {
     // TODO: Finalize description copy
     datasetChoices.set(DataSet.ERRORS, t('Errors (TypeError, InvalidSearchQuery, etc)'));
+    if (organization.features.includes('discover-saved-queries-deprecation')) {
+      disabledChoices.push([
+        DataSet.TRANSACTIONS,
+        t('This dataset is is no longer supported. Please use the Spans dataset.'),
+      ]);
+    }
     datasetChoices.set(DataSet.TRANSACTIONS, t('Transactions'));
   }
 

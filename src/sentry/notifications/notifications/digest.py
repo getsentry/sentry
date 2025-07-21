@@ -16,7 +16,7 @@ from sentry.digests.utils import (
     should_get_personalized_digests,
 )
 from sentry.eventstore.models import Event
-from sentry.integrations.types import ExternalProviders
+from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.notify import notify
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, UnsubscribeContext
@@ -106,7 +106,11 @@ class DigestNotification(ProjectNotification):
         return self.project
 
     def get_context(self) -> MutableMapping[str, Any]:
-        rule_details = get_rules(list(self.digest.digest), self.project.organization, self.project)
+        rule_details = get_rules(
+            list(self.digest.digest),
+            self.project.organization,
+            self.project,
+        )
         context = DigestNotification.build_context(
             self.digest,
             self.project,
@@ -151,7 +155,7 @@ class DigestNotification(ProjectNotification):
             "user_counts": digest.user_counts,
             "has_alert_integration": has_alert_integration(project),
             "project": project,
-            "slack_link": get_integration_link(organization, "slack"),
+            "slack_link": get_integration_link(organization, IntegrationProviderSlug.SLACK.value),
             "rules_details": {rule.id: rule for rule in rule_details},
             "link_params_for_rule": get_email_link_extra_params(
                 "digest_email",

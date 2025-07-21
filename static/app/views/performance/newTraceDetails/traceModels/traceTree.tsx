@@ -176,6 +176,7 @@ export declare namespace TraceTree {
     start_timestamp: number;
     transaction: string;
     transaction_id: string;
+    additional_attributes?: Record<string, number | string>;
     description?: string;
     measurements?: Record<string, number>;
   };
@@ -334,6 +335,7 @@ function fetchTrace(
 
 export class TraceTree extends TraceTreeEventDispatcher {
   transactions_count = 0;
+  eap_spans_count = 0;
   projects = new Map<number, TraceTree.Project>();
 
   type: 'loading' | 'empty' | 'error' | 'trace' = 'trace';
@@ -442,6 +444,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       if (isTransactionNode(node) || isEAPTransactionNode(node)) {
         tree.transactions_count++;
+      }
+
+      if (isEAPSpanNode(node)) {
+        tree.eap_spans_count++;
       }
 
       if (isTransactionNode(node)) {

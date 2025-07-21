@@ -34,7 +34,7 @@ import {
   OverflowEllipsisTextContainer,
   TextAlignRight,
 } from 'sentry/views/insights/common/components/textAlign';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 
@@ -96,7 +96,7 @@ export function TracesTable() {
 
   const pageLinks = tracesRequest.getResponseHeader?.('Link') ?? undefined;
 
-  const spansRequest = useEAPSpans(
+  const spansRequest = useSpans(
     {
       // Exclude agent runs as they include aggregated data which would lead to double counting e.g. token usage
       search: `${getAgentRunsFilter({negated: true})} trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,

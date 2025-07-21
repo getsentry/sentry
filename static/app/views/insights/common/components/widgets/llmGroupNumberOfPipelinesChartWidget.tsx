@@ -5,7 +5,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useParams} from 'sentry/utils/useParams';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {Referrer} from 'sentry/views/insights/llmMonitoring/referrers';
 
 export default function LlmGroupNumberOfPipelinesChartWidget(
@@ -18,7 +18,7 @@ export default function LlmGroupNumberOfPipelinesChartWidget(
   const search = new MutableSearch(`span.category:"ai.pipeline" span.group:"${groupId}"`);
   const referrer = Referrer.GROUP_NUMBER_OF_PIPELINES_CHART;
 
-  const {data, isPending, error} = useSpanMetricsSeries(
+  const {data, isPending, error} = useSpanSeries(
     {
       yAxis: [aggregate],
       search,

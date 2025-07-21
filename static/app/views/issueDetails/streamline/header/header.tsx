@@ -84,7 +84,7 @@ export default function StreamlinedGroupHeader({
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
   ].includes(groupReprocessingStatus);
 
-  const isQueryInjection = group.issueType === IssueType.DB_QUERY_INJECTION_VULNERABILITY;
+  const isQueryInjection = group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY;
   const openForm = useFeedbackForm();
   const feedbackButton = openForm ? (
     <Button
@@ -133,7 +133,7 @@ export default function StreamlinedGroupHeader({
               ]}
             />
           </Flex>
-          <ButtonBar gap={0.5}>
+          <ButtonBar gap="xs">
             {!hasOnlyOneUIOption && !isQueryInjection && (
               <LinkButton
                 size="xs"
@@ -151,7 +151,7 @@ export default function StreamlinedGroupHeader({
               </LinkButton>
             )}
             {isQueryInjection ? (
-              <ButtonBar gap={0.5}>
+              <ButtonBar gap="xs">
                 <LinkButton
                   size="xs"
                   external

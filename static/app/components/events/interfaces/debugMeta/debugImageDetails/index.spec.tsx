@@ -18,9 +18,12 @@ describe('Debug Meta - Image Details', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/files/dsyms/?debug_id=${image.debug_id}`,
+      url: `/projects/${organization.slug}/${project.slug}/files/dsyms/`,
       method: 'GET',
       body: [],
+      match: [
+        MockApiClient.matchQuery({debug_id: image?.debug_id, code_id: image?.code_id}),
+      ],
     });
 
     MockApiClient.addMockResponse({

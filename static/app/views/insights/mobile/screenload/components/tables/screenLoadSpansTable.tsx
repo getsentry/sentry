@@ -26,7 +26,7 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTTFDConfigured} from 'sentry/views/insights/common/queries/useHasTtfdConfigured';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
@@ -38,10 +38,9 @@ import {
 } from 'sentry/views/insights/mobile/screenload/components/spanOpSelector';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/mobile/screenload/settings';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
-const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
-  SpanMetricsField;
+const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} = SpanFields;
 
 type Props = {
   primaryRelease?: string;
@@ -64,7 +63,7 @@ export function ScreenLoadSpansTable({
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
-  const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
+  const spanOp = decodeScalar(location.query[SpanFields.SPAN_OP]) ?? '';
   const {hasTTFD, isPending: hasTTFDLoading} = useTTFDConfigured([
     `transaction:"${transaction}"`,
   ]);
@@ -75,7 +74,7 @@ export function ScreenLoadSpansTable({
       `transaction:${transaction}`,
       'has:span.description',
       ...(spanOp
-        ? [`${SpanMetricsField.SPAN_OP}:${spanOp}`]
+        ? [`${SpanFields.SPAN_OP}:${spanOp}`]
         : [`span.op:[${TTID_CONTRIBUTING_SPAN_OPS.join(',')}]`]),
     ]);
 
@@ -98,7 +97,7 @@ export function ScreenLoadSpansTable({
     field: 'sum(span.self_time)',
   };
 
-  const {data, meta, isPending, pageLinks} = useSpanMetrics(
+  const {data, meta, isPending, pageLinks} = useSpans(
     {
       cursor,
       search: queryStringPrimary,
@@ -142,13 +141,13 @@ export function ScreenLoadSpansTable({
     }
 
     if (column.key === SPAN_DESCRIPTION) {
-      const label = row[SpanMetricsField.SPAN_DESCRIPTION];
+      const label = row[SpanFields.SPAN_DESCRIPTION];
 
       const query = {
         ...location.query,
         transaction,
-        spanGroup: row[SpanMetricsField.SPAN_GROUP],
-        spanDescription: row[SpanMetricsField.SPAN_DESCRIPTION],
+        spanGroup: row[SpanFields.SPAN_GROUP],
+        spanDescription: row[SpanFields.SPAN_DESCRIPTION],
       };
 
       return (

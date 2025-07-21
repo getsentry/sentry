@@ -4,20 +4,19 @@ import styled from '@emotion/styled';
 import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
+import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconRefresh, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
-import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -37,7 +36,6 @@ type AiSetupDataConsentProps = {
 function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const subscription = useSubscription();
 
@@ -82,29 +80,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
     !isTouchCustomer &&
     !hasSeerButNeedsPayg;
 
-  const autofixAcknowledgeMutation = useMutation({
-    mutationFn: () => {
-      return promptsUpdate(api, {
-        organization,
-        feature: 'seer_autofix_setup_acknowledged',
-        status: 'dismissed',
-      });
-    },
-    onSuccess: () => {
-      // Invalidate the appropriate query based on mode
-      if (isGroupMode && groupId) {
-        queryClient.invalidateQueries({
-          queryKey: [
-            `/organizations/${organization.slug}/issues/${groupId}/autofix/setup/`,
-          ],
-        });
-      } else {
-        queryClient.invalidateQueries({
-          queryKey: [`/organizations/${organization.slug}/seer/setup-check/`],
-        });
-      }
-    },
-  });
+  const autofixAcknowledgeMutation = useSeerAcknowledgeMutation();
 
   function handlePurchaseSeer() {
     navigate(`/settings/billing/checkout/?referrer=ai_setup_data_consent`);

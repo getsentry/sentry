@@ -1,6 +1,6 @@
 from drf_spectacular.utils import OpenApiExample
 
-from sentry.seer.seer_utils import AutofixAutomationTuningSettings
+from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 
 ORG_ROLE_LIST = [
     {
@@ -298,6 +298,7 @@ class OrganizationExamples:
                 "aggregatedDataConsent": False,
                 "defaultAutofixAutomationTuning": AutofixAutomationTuningSettings.OFF,
                 "defaultSeerScannerAutomation": True,
+                "enablePrReviewTestGeneration": True,
                 "issueAlertsThreadFlag": True,
                 "metricAlertsThreadFlag": True,
                 "trustedRelays": [],
