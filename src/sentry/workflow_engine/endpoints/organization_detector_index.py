@@ -145,6 +145,9 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         `````````````````````````````
         Return a list of detectors for a given organization.
         """
+        if not request.user.is_authenticated:
+            return self.respond(status=401)
+
         projects = self.get_projects(request, organization)
         queryset: QuerySet[Detector] = Detector.objects.filter(
             project_id__in=projects,
