@@ -14,6 +14,7 @@ import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/c
 import {IconChevron, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
@@ -440,7 +441,7 @@ function useSaveAsItems({
             mode === Mode.SAMPLES
               ? []
               : [...new Set([groupBy, yAxis, ...sortBys.map(sort => sort.field)])].filter(
-                  Boolean
+                  defined
                 );
 
           const discoverQuery: NewQuery = {
