@@ -18,6 +18,11 @@ describe('Text', () => {
     render(<Text align="center">Hello World</Text>);
     expect(screen.getByText('Hello World')).not.toHaveAttribute('align');
   });
+
+  it('forwards data-test-id', () => {
+    render(<Text data-test-id="test-id">Hello World</Text>);
+    expect(screen.getByText('Hello World')).toHaveAttribute('data-test-id', 'test-id');
+  });
 });
 
 describe('Heading', () => {
@@ -37,5 +42,14 @@ describe('Heading', () => {
       </Heading>
     );
     expect(screen.getByText('Heading 6')).not.toHaveAttribute('align');
+  });
+
+  it('forwards data-test-id', () => {
+    render(
+      <Heading as="h6" data-test-id="test-id">
+        Heading 6
+      </Heading>
+    );
+    expect(screen.getByText('Heading 6')).toHaveAttribute('data-test-id', 'test-id');
   });
 });
