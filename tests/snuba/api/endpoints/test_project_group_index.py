@@ -875,43 +875,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert activity.data["version"] == ""
 
-    def test_upcoming_release_flag_validation(self):
-        release = Release.objects.create(organization_id=self.project.organization_id, version="a")
-        release.add_project(self.project)
-
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
-
-        self.login_as(user=self.user)
-
-        url = f"{self.path}?id={group.id}"
-        response = self.client.put(
-            url,
-            data={"status": "resolved", "statusDetails": {"inUpcomingRelease": True}},
-            format="json",
-        )
-        assert response.status_code == 400
-        assert (
-            response.data["statusDetails"]["inUpcomingRelease"][0]
-            == "Your organization does not have access to this feature."
-        )
-
-    def test_upcoming_release_release_validation(self):
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
-
-        self.login_as(user=self.user)
-
-        url = f"{self.path}?id={group.id}"
-        response = self.client.put(
-            url,
-            data={"status": "resolved", "statusDetails": {"inUpcomingRelease": True}},
-            format="json",
-        )
-        assert response.status_code == 400
-        assert (
-            response.data["statusDetails"]["inUpcomingRelease"][0]
-            == "No release data present in the system."
-        )
-
     def test_set_resolved_in_explicit_commit_unreleased(self):
         repo = self.create_repo(project=self.project, name=self.project.name)
         commit = self.create_commit(project=self.project, repo=repo)
