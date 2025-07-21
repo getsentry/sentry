@@ -2112,7 +2112,7 @@ def get_upsampled_count_snql_with_alias(alias: str) -> list[SelectableExpression
 
 
 def _convert_count_aggregations_for_error_upsampling(
-    aggregations: list[list[Any]], project_ids: list[int]
+    aggregations: list[list[Any]], project_ids: Sequence[int]
 ) -> None:
     """
     Converts count() aggregations to upsampled_count() for error upsampled projects.
