@@ -1,7 +1,10 @@
 import datetime
 from unittest.mock import patch
 
+from sentry.hybridcloud.models.outbox import RegionOutbox
+from sentry.hybridcloud.outbox.category import OutboxScope
 from sentry.models.apitoken import ApiToken
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.replays.models import ReplayDeletionJobModel
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -181,6 +184,14 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
 
         # Verify task was scheduled
         mock_task.assert_called_once_with(job.id, offset=0)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            RegionOutbox(
+                shard_scope=OutboxScope.AUDIT_LOG_SCOPE, shard_identifier=self.organization.id
+            ).drain_shard()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.get() is not None
 
     def test_post_validation_errors(self):
         """Test POST validation errors"""
