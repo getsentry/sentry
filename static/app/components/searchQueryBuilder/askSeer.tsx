@@ -113,7 +113,7 @@ export function AskSeer<T>({state}: {state: ComboBoxState<T>}) {
 
   if (isPendingSetupCheck || isMutating) {
     return (
-      <Feature features="organizations:trace-ai-query-consent">
+      <Feature features="organizations:gen-ai-explore-traces-consent-ui">
         <AskSeerPane>
           <AskSeerListItem>
             <AskSeerLabel width="auto">{t('Loading Seer')}</AskSeerLabel>
@@ -133,7 +133,7 @@ export function AskSeer<T>({state}: {state: ComboBoxState<T>}) {
   }
 
   return (
-    <Feature features="organizations:trace-ai-query-consent">
+    <Feature features="organizations:gen-ai-explore-traces-consent-ui">
       <AskSeerPane>
         <AskSeerConsentOption state={state} />
       </AskSeerPane>
