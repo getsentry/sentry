@@ -32,7 +32,7 @@ type Options<Fields extends NonDefaultSpanSampleFields[]> = {
 };
 
 export type SpanSample = Pick<
-  SpanProperty,
+  SpanResponse,
   | SpanFields.SPAN_SELF_TIME
   | SpanFields.TRANSACTION_SPAN_ID
   | SpanFields.PROJECT

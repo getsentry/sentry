@@ -226,6 +226,7 @@ export type SpanStringFields =
   | SpanFields.RESOURCE_RENDER_BLOCKING_STATUS
   | SpanFields.RAW_DOMAIN
   | SpanFields.ID
+  | SpanFields.SPAN_ID
   | SpanFields.NAME
   | SpanFields.KIND
   | SpanFields.STATUS_MESSAGE
@@ -267,6 +268,7 @@ export type SpanStringFields =
   | SpanFields.TRACE_STATUS
   | SpanFields.APP_START_TYPE
   | SpanFields.FILE_EXTENSION
+  | SpanFields.TIMESTAMP
   | 'span_id'
   | 'span.op'
   | 'span.description'
