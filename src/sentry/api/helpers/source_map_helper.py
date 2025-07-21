@@ -8,6 +8,7 @@ from rest_framework.exceptions import NotFound, ParseError
 
 from sentry import eventstore
 from sentry.api.endpoints.project_release_files import ArtifactSource
+from sentry.debug_files.release_files import maybe_renew_releasefiles
 from sentry.eventstore.models import BaseEvent
 from sentry.interfaces.exception import Exception as ExceptionInterface
 from sentry.interfaces.stacktrace import Frame
@@ -293,6 +294,7 @@ def _get_releasefiles(release: Release, organization_id: int) -> list[ReleaseFil
     file_list = file_list.select_related("file").order_by("name")
 
     data_sources.extend(list(file_list.order_by("name")))
+    maybe_renew_releasefiles(data_sources)
 
     dists = Distribution.objects.filter(organization_id=organization_id, release=release)
     for dist in list(dists) + [None]:
