@@ -20,16 +20,21 @@ import type {ConnectedTraceConnection} from './traceLinkNavigationButton';
 export function useFindNextTrace({
   direction,
   currentTraceID,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  currentSpanId,
   linkedTraceStartTimestamp,
   linkedTraceEndTimestamp,
   projectID,
 }: {
   direction: ConnectedTraceConnection;
+  currentSpanId?: string;
   currentTraceID?: string;
   linkedTraceEndTimestamp?: number;
   linkedTraceStartTimestamp?: number;
   projectID?: string;
 }): TraceContextType | undefined {
+  // const previousTraceAttributeValueOnNextTraceRootSpan = `${currentTraceID}-${currentSpanId}-1`;
+
   const {data: indexedSpans} = useSpans(
     {
       limit: direction === 'next' && projectID ? 100 : 1,

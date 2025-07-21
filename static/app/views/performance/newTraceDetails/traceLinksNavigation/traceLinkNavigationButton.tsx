@@ -13,6 +13,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {isEmptyTrace} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {useFindNextTrace} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/useFindNextTrace';
@@ -23,15 +24,17 @@ export type ConnectedTraceConnection = 'previous' | 'next';
 const LINKED_TRACE_MAX_DURATION = 3600; // 1h in seconds
 
 function useIsTraceAvailable(
-  traceID?: SpanLink['trace_id'],
+  traceID?: string,
   linkedTraceTimestamp?: number
 ): {
   isAvailable: boolean;
   isLoading: boolean;
 } {
+  // eslint-disable-next-line no-console
+  console.log('xx useIsTraceAvailable', {traceID, linkedTraceTimestamp});
   const trace = useTrace({
     traceSlug: traceID,
-    timestamp: linkedTraceTimestamp,
+    // timestamp: linkedTraceTimestamp,
   });
 
   const isAvailable = useMemo(() => {
@@ -51,14 +54,14 @@ function useIsTraceAvailable(
 type TraceLinkNavigationButtonProps = {
   currentTraceTimestamps: {end?: number; start?: number};
   direction: ConnectedTraceConnection;
+  attributes?: TraceItemResponseAttribute[];
   isLoading?: boolean;
   projectID?: string;
-  traceContext?: TraceContextType;
 };
 
 export function TraceLinkNavigationButton({
   direction,
-  traceContext,
+  attributes,
   isLoading,
   projectID,
   currentTraceTimestamps,
@@ -74,16 +77,38 @@ export function TraceLinkNavigationButton({
         ? currentTraceTimestamps.end + LINKED_TRACE_MAX_DURATION // Latest end time of next trace (+ 1h)
         : undefined;
 
-  const previousTraceLink = traceContext?.links?.find(
-    link => link.attributes?.['sentry.link.type'] === `${direction}_trace`
+  const currentTraceID = attributes?.find(a => a.name === 'trace_id' && a.type === 'str')
+    ?.value as string | undefined;
+
+  const previousTraceAttribute = attributes?.find(
+    a => a.name === 'previous_trace' && a.type === 'str'
   );
+
+  const [previousTraceID, previousTraceSpanID, previousTraceSampledFlag] =
+    typeof previousTraceAttribute?.value === 'string'
+      ? previousTraceAttribute?.value.split('-') || []
+      : [];
+
+  const previousTraceSampled = previousTraceSampledFlag === '1';
+
+  // eslint-disable-next-line no-console
+  console.log('xx previous trace', {
+    previousTraceSampled,
+    previousTraceID,
+    previousTraceSpanID,
+  });
 
   const nextTraceData = useFindNextTrace({
     direction,
-    currentTraceID: traceContext?.trace_id,
+    currentTraceID,
     linkedTraceStartTimestamp: currentTraceTimestamps.end,
     linkedTraceEndTimestamp: linkedTraceTimestamp,
     projectID,
+  });
+
+  // eslint-disable-next-line no-console
+  console.log('xx next trace', {
+    nextTraceData,
   });
 
   const dateSelection = useMemo(
@@ -92,9 +117,14 @@ export function TraceLinkNavigationButton({
   );
 
   const {isAvailable: isLinkedTraceAvailable} = useIsTraceAvailable(
-    direction === 'previous' ? previousTraceLink?.trace_id : nextTraceData?.trace_id,
+    direction === 'previous' ? previousTraceID : nextTraceData?.trace_id,
     linkedTraceTimestamp
   );
+
+  // eslint-disable-next-line no-console
+  console.log('xx isLinkedTraceAvailable', {
+    isLinkedTraceAvailable,
+  });
 
   if (isLoading) {
     // We don't show a placeholder/skeleton here as it would cause layout shifts most of the time.
@@ -102,7 +132,7 @@ export function TraceLinkNavigationButton({
     return null;
   }
 
-  if (previousTraceLink && isLinkedTraceAvailable) {
+  if (previousTraceID && isLinkedTraceAvailable) {
     return (
       <StyledTooltip
         position="right"
@@ -124,8 +154,8 @@ export function TraceLinkNavigationButton({
         <TraceLink
           color="gray500"
           to={getTraceDetailsUrl({
-            traceSlug: previousTraceLink.trace_id,
-            spanId: previousTraceLink.span_id,
+            traceSlug: previousTraceID,
+            spanId: previousTraceSpanID,
             dateSelection,
             timestamp: linkedTraceTimestamp,
             location,
@@ -176,7 +206,7 @@ export function TraceLinkNavigationButton({
     );
   }
 
-  if (previousTraceLink?.sampled === false) {
+  if (previousTraceSampled === false) {
     return (
       <StyledTooltip
         position="right"

@@ -144,6 +144,13 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   const showLinkedTraces = organization?.features.includes('trace-view-linked-traces');
 
+  // eslint-disable-next-line no-console
+  console.log('xx showLinkedTraces', showLinkedTraces);
+  // eslint-disable-next-line no-console
+  console.log('xx', props.rootEventResults.data);
+  // eslint-disable-next-line no-console
+  console.log('cc', isTraceItemDetailsResponse(props.rootEventResults.data));
+
   useEffect(() => {
     trackAnalytics('performance_views.trace_view_v1_page_load', {
       organization: props.organization,
@@ -811,25 +818,24 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           traceEventView={props.traceEventView}
         />
       </TraceGrid>
-      {showLinkedTraces && !isTraceItemDetailsResponse(props.rootEventResults.data) && (
+      {showLinkedTraces && isTraceItemDetailsResponse(props.rootEventResults.data) && (
         <TraceLinksNavigationContainer>
           <TraceLinkNavigationButton
             direction={'previous'}
             isLoading={props.rootEventResults.isLoading}
-            traceContext={props.rootEventResults.data?.contexts.trace}
+            attributes={props.rootEventResults.data.attributes}
             currentTraceTimestamps={{
-              start: props.rootEventResults.data?.startTimestamp,
-              end: props.rootEventResults.data?.endTimestamp,
+              start: new Date(props.rootEventResults.data?.timestamp).getTime() / 1000,
+              end: new Date(props.rootEventResults.data?.timestamp).getTime() / 1000,
             }}
           />
           <TraceLinkNavigationButton
             direction={'next'}
             isLoading={props.rootEventResults.isLoading}
-            projectID={props.rootEventResults.data?.projectID ?? ''}
-            traceContext={props.rootEventResults.data?.contexts.trace}
+            attributes={props.rootEventResults.data?.attributes}
             currentTraceTimestamps={{
-              start: props.rootEventResults.data?.startTimestamp,
-              end: props.rootEventResults.data?.endTimestamp,
+              start: new Date(props.rootEventResults.data?.timestamp).getTime() / 1000,
+              end: new Date(props.rootEventResults.data?.timestamp).getTime() / 1000,
             }}
           />
         </TraceLinksNavigationContainer>
