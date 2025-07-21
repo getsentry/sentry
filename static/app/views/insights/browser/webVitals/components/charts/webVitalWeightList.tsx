@@ -1,7 +1,7 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {t} from 'sentry/locale';
 import {Dot} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';

@@ -20,7 +20,7 @@ interface ListLinkProps
   disabled?: boolean;
   index?: boolean;
   /**
-   * Should be should be supplied by the parent component
+   * Should be supplied by the parent component
    */
   isActive?: (location: LocationDescriptor, indexOnly?: boolean) => boolean;
 }

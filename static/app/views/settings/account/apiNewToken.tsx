@@ -1,9 +1,9 @@
 import {useCallback, useState} from 'react';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import ApiForm from 'sentry/components/forms/apiForm';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';

@@ -1,11 +1,10 @@
 import React, {Fragment} from 'react';
 
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Version from 'sentry/components/version';
 import {tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';

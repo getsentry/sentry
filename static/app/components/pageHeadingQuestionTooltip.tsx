@@ -1,10 +1,9 @@
 import styled from '@emotion/styled';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-
-import ExternalLink from './links/externalLink';
 
 type TooltipProps = Omit<React.ComponentProps<typeof QuestionTooltip>, 'size'>;
 

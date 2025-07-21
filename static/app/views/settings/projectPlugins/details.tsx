@@ -9,7 +9,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {disablePlugin, enablePlugin} from 'sentry/actionCreators/plugins';
 import {Button} from 'sentry/components/core/button';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PluginConfig from 'sentry/components/pluginConfig';
