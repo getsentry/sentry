@@ -7,6 +7,7 @@ from django.contrib.auth import logout
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase, HttpResponseRedirect
 
+from sentry import options
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org
 from sentry.organizations.services.organization import organization_service
 
@@ -31,7 +32,8 @@ class DemoModeGuardMiddleware:
 
     def __call__(self, request: HttpRequest) -> HttpResponseBase:
         if (
-            not request.subdomain
+            options.get("demo-mode.middleware.enabled")
+            and not request.subdomain
             and request.path in ("", "/")
             and is_demo_mode_enabled()
             and (session := getattr(request, "session", None))
