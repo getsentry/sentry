@@ -520,7 +520,7 @@ class SnubaEventStorage(EventStorage):
                 ),
             ]
 
-        def make_next_timestamp_conditions(event: Event | GroupEvent) -> list[Condition]:
+        def make_next_timestamp_conditions(event: Event | GroupEvent) -> list[Condition | Or]:
             return [
                 Condition(
                     Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
@@ -588,11 +588,7 @@ class SnubaEventStorage(EventStorage):
         bulk_snql_results = bulk_snuba_queries(
             [snql_request_prev, snql_request_next], referrer=referrer
         )
-        event_ids = [
-            result
-            for result in [self.__get_event_id_from_result(result) for result in bulk_snql_results]
-            if result is not None
-        ]
+        event_ids = [self.__get_event_id_from_result(result) for result in bulk_snql_results]
         return event_ids
 
     def get_adjacent_event_ids(
@@ -624,19 +620,11 @@ class SnubaEventStorage(EventStorage):
         next_filter.orderby = ASC_ORDERING
 
         dataset = self._get_dataset_for_event(event)
-        results = self.__get_event_ids_from_filters(
+        return self.__get_event_ids_from_filters(
             filters=(prev_filter, next_filter),
             dataset=dataset,
             tenant_ids={"organization_id": event.project.organization_id},
         )
-
-        prev_result = results[0] if len(results) > 0 else None
-        next_result = results[1] if len(results) > 1 else None
-
-        prev_tuple = (prev_result[0], prev_result[1]) if prev_result else None
-        next_tuple = (next_result[0], next_result[1]) if next_result else None
-
-        return (prev_tuple, next_tuple)
 
     def __get_columns(self, dataset: Dataset) -> list[str]:
         return [
@@ -679,13 +667,9 @@ class SnubaEventStorage(EventStorage):
         except (snuba.QueryOutsideRetentionError, snuba.QueryOutsideGroupActivityError):
             # This can happen when the date conditions for paging
             # and the current event generate impossible conditions.
-            return []
+            return [None for _ in filters]
 
-        return [
-            result_tuple
-            for result in results
-            if (result_tuple := self.__get_event_id_from_result(result)) is not None
-        ]
+        return [self.__get_event_id_from_result(result) for result in results]
 
     def __get_event_id_from_result(self, result: Mapping[str, Any]) -> tuple[str, str] | None:
         if "error" in result or len(result["data"]) == 0:
@@ -695,14 +679,8 @@ class SnubaEventStorage(EventStorage):
         return (str(row["project_id"]), str(row["event_id"]))
 
     def __make_event(self, snuba_data: Mapping[str, Any]) -> Event:
-        event_id_column = Columns.EVENT_ID.value.event_name
-        project_id_column = Columns.PROJECT_ID.value.event_name
-
-        if event_id_column is None or project_id_column is None:
-            raise ValueError("Event ID or Project ID column name is None")
-
-        event_id = snuba_data[event_id_column]
-        project_id = snuba_data[project_id_column]
+        event_id = snuba_data[Columns.EVENT_ID.value.event_name]
+        project_id = snuba_data[Columns.PROJECT_ID.value.event_name]
 
         return Event(event_id=event_id, project_id=project_id, snuba_data=snuba_data)
 
@@ -743,13 +721,7 @@ class SnubaEventStorage(EventStorage):
         return []
 
     def __make_transaction(self, snuba_data: Mapping[str, Any]) -> Event:
-        event_id_column = Columns.EVENT_ID.value.event_name
-        project_id_column = Columns.PROJECT_ID.value.event_name
-
-        if event_id_column is None or project_id_column is None:
-            raise ValueError("Event ID or Project ID column name is None")
-
-        event_id = snuba_data[event_id_column]
-        project_id = snuba_data[project_id_column]
+        event_id = snuba_data[Columns.EVENT_ID.value.event_name]
+        project_id = snuba_data[Columns.PROJECT_ID.value.event_name]
 
         return Event(event_id=event_id, project_id=project_id, snuba_data=snuba_data)
