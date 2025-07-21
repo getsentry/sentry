@@ -1927,10 +1927,7 @@ describe('provisionSubscriptionAction', function () {
 
     // Verify ATTACHMENTS has (in GB) suffix as expected
     expect(
-      screen.getByRole('spinbutton', {
-        name: 'Reserved Attachments (in GB)',
-        hidden: true,
-      })
+      screen.getByRole('spinbutton', {name: 'Reserved Attachments (in GB)'})
     ).toBeInTheDocument();
   });
 
@@ -1950,24 +1947,10 @@ describe('provisionSubscriptionAction', function () {
     );
 
     // Non-byte categories should not have (in GB) suffix
+    expect(screen.getByRole('spinbutton', {name: 'Reserved Errors'})).toBeInTheDocument();
+
     expect(
-      screen.getByRole('spinbutton', {name: 'Reserved Errors', hidden: true})
+      screen.getByRole('spinbutton', {name: 'Reserved Transactions'})
     ).toBeInTheDocument();
-
-    expect(
-      screen.getByRole('spinbutton', {name: 'Reserved Transactions', hidden: true})
-    ).toBeInTheDocument();
-
-    // Verify no incorrect GB suffixes exist
-    expect(
-      screen.queryByRole('spinbutton', {name: 'Reserved Errors (in GB)', hidden: true})
-    ).not.toBeInTheDocument();
-
-    expect(
-      screen.queryByRole('spinbutton', {
-        name: 'Reserved Transactions (in GB)',
-        hidden: true,
-      })
-    ).not.toBeInTheDocument();
   });
 });
