@@ -1,5 +1,4 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {openPluginActionModal} from 'sentry/components/group/pluginActions';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
@@ -130,7 +129,7 @@ export function usePluginExternalIssues({
           name: action,
           href: action,
           onClick: () => {
-            openNavigateToExternalLinkModal({linkText: action});
+            // Do nothing
           },
         },
       ],
