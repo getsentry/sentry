@@ -30,7 +30,7 @@ export const TIME_PERIOD_MAP: TimePeriodMap = {
 /**
  * Most commonly used time periods (excluding 6 hours and 28 days)
  */
-export const MOST_TIME_PERIODS: readonly TimePeriod[] = [
+const MOST_TIME_PERIODS: readonly TimePeriod[] = [
   TimePeriod.ONE_DAY,
   TimePeriod.THREE_DAYS,
   TimePeriod.SEVEN_DAYS,
@@ -65,7 +65,7 @@ export const AVAILABLE_TIME_PERIODS: Record<TimeWindow, readonly TimePeriod[]> =
 /**
  * EAP (Events Analytics Platform) time periods
  */
-export const MOST_EAP_TIME_PERIOD = [
+const MOST_EAP_TIME_PERIOD = [
   TimePeriod.ONE_DAY,
   TimePeriod.THREE_DAYS,
   TimePeriod.SEVEN_DAYS,
@@ -86,7 +86,7 @@ export const EAP_AVAILABLE_TIME_PERIODS = {
   [TimeWindow.ONE_DAY]: [TimePeriod.SEVEN_DAYS],
 };
 
-export interface TimePeriodOptions {
+interface TimePeriodOptions {
   dataset: Dataset;
   /**
    * The time window (interval) for data aggregation
