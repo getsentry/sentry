@@ -276,7 +276,7 @@ function ProjectSeer({project}: ProjectSeerProps) {
           to={`/settings/${organization.slug}/seer/onboarding/`}
           priority="primary"
         >
-          {t('Set Up All Projects')}
+          {t('Set up my other projects')}
         </LinkButton>
       </Center>
     </Fragment>
