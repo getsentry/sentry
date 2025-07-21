@@ -174,7 +174,6 @@ export const Heading = styled(
   overflow: ${p => (p.ellipsis ? 'hidden' : undefined)};
   text-overflow: ${p => (p.ellipsis ? 'ellipsis' : undefined)};
   white-space: ${p => (p.wrap ? p.wrap : p.ellipsis ? 'nowrap' : undefined)};
-  display: ${p => (p.ellipsis ? 'inline-block' : undefined)};
 
   font-family: ${p => (p.monospace ? p.theme.text.familyMono : p.theme.text.family)};
   font-weight: ${p => ((p.bold ?? true) ? p.theme.fontWeight.bold : undefined)};
