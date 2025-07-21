@@ -12,7 +12,7 @@ interface TextProps {
   /**
    * The HTML element to render the text as.
    */
-  as?: 'span' | 'p';
+  as?: 'span' | 'p' | 'div';
   bold?: boolean;
   /**
    * Density determines the line height of the text.
@@ -115,7 +115,13 @@ export const Text = styled(
   white-space: ${p => (p.wrap ? p.wrap : p.ellipsis ? 'nowrap' : undefined)};
   width: ${p => (p.ellipsis ? '100%' : undefined)};
   display: ${p =>
-    p.ellipsis ? (p.as === 'span' ? 'inline-block' : 'block') : undefined};
+    p.as === 'div'
+      ? 'block'
+      : p.ellipsis || p.align
+        ? p.as === 'span'
+          ? 'inline-block'
+          : 'block'
+        : undefined};
 
   font-family: ${p => (p.monospace ? p.theme.text.familyMono : p.theme.text.family)};
   font-weight: ${p => (p.bold ? p.theme.fontWeight.bold : undefined)};
@@ -132,24 +138,17 @@ export const Text = styled(
   text-box-trim: trim-both;
 `;
 
-interface HeadingProps extends Omit<TextProps, 'as'> {
+interface HeadingProps extends Omit<TextProps, 'as' | 'bold'> {
   /**
    * The HTML element to render the title as.
    */
   as: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
-
-  /**
-   * Headings are bold by default, but can be overridden to render as normal text.
-   * @default true
-   */
-  bold?: boolean;
 }
 
 export const Heading = styled(
   (props: HeadingProps & ExclusiveEllipsisProps) => {
     const {children, as, ...rest} = props;
     const HeadingComponent = as;
-
     return <HeadingComponent {...rest}>{children}</HeadingComponent>;
   },
   {
@@ -170,7 +169,7 @@ export const Heading = styled(
   white-space: ${p => (p.wrap ? p.wrap : p.ellipsis ? 'nowrap' : undefined)};
 
   font-family: ${p => (p.monospace ? p.theme.text.familyMono : p.theme.text.family)};
-  font-weight: ${p => ((p.bold ?? true) ? p.theme.fontWeight.bold : undefined)};
+  font-weight: ${p => p.theme.fontWeight.bold};
   font-variant-numeric: ${p =>
     [
       p.tabular ? 'tabular-nums' : undefined,
