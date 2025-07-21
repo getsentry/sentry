@@ -34,13 +34,8 @@ import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sam
 import {isAValidSort} from 'sentry/views/insights/database/components/tables/queriesTable';
 import {QueryTransactionsTable} from 'sentry/views/insights/database/components/tables/queryTransactionsTable';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
-import {
-  ModuleName,
-  SpanFields,
-  SpanFunction,
-  SpanMetricsField,
-} from 'sentry/views/insights/types';
+import type {SpanQueryFilters} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, SpanFunction} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 type Query = {
@@ -59,7 +54,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
   const {groupId} = params;
 
-  const filters: SpanMetricsQueryFilters = {
+  const filters: SpanQueryFilters = {
     'span.group': groupId,
   };
 
@@ -97,14 +92,14 @@ export function DatabaseSpanSummaryPage({params}: Props) {
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: [
-        SpanMetricsField.SPAN_OP,
-        SpanMetricsField.SPAN_DESCRIPTION,
-        SpanMetricsField.SPAN_ACTION,
-        SpanMetricsField.SPAN_DOMAIN,
+        SpanFields.SPAN_OP,
+        SpanFields.SPAN_DESCRIPTION,
+        SpanFields.SPAN_ACTION,
+        SpanFields.SPAN_DOMAIN,
         'count()',
         `${SpanFunction.EPM}()`,
-        `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
-        `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
+        `sum(${SpanFields.SPAN_SELF_TIME})`,
+        `avg(${SpanFields.SPAN_SELF_TIME})`,
         `${SpanFunction.HTTP_RESPONSE_COUNT}(5)`,
       ],
       enabled: Boolean(groupId),
@@ -127,8 +122,8 @@ export function DatabaseSpanSummaryPage({params}: Props) {
         'transaction',
         'transaction.method',
         'epm()',
-        `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
-        `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
+        `sum(${SpanFields.SPAN_SELF_TIME})`,
+        `avg(${SpanFields.SPAN_SELF_TIME})`,
         `${SpanFunction.HTTP_RESPONSE_COUNT}(5)`,
       ],
       sorts: [sort],
@@ -140,19 +135,19 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
   const span = {
     ...spanMetrics,
-    [SpanMetricsField.SPAN_GROUP]: groupId,
+    [SpanFields.SPAN_GROUP]: groupId,
   } as {
-    [SpanMetricsField.SPAN_OP]: string;
-    [SpanMetricsField.SPAN_DESCRIPTION]: string;
-    [SpanMetricsField.SPAN_ACTION]: string;
-    [SpanMetricsField.SPAN_DOMAIN]: string[];
-    [SpanMetricsField.SPAN_GROUP]: string;
+    [SpanFields.SPAN_OP]: string;
+    [SpanFields.SPAN_DESCRIPTION]: string;
+    [SpanFields.SPAN_ACTION]: string;
+    [SpanFields.SPAN_DOMAIN]: string[];
+    [SpanFields.SPAN_GROUP]: string;
   };
 
   useSamplesDrawer({
     Component: (
       <SampleList
-        groupId={span[SpanMetricsField.SPAN_GROUP]}
+        groupId={span[SpanFields.SPAN_GROUP]}
         moduleName={ModuleName.DB}
         referrer={TraceViewSources.QUERIES_MODULE}
       />
@@ -203,7 +198,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                     <MetricReadout
                       title={DataTitles.avg}
                       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                      value={spanMetrics?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
+                      value={spanMetrics?.[`avg(${SpanFields.SPAN_SELF_TIME})`]}
                       unit={DurationUnit.MILLISECOND}
                       isLoading={areSpanMetricsLoading}
                     />
