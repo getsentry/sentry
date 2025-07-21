@@ -1,7 +1,7 @@
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {
   type BreadcrumbFrame,
   isBreadcrumbFrame,
@@ -58,7 +58,7 @@ export function useFetchReplaySummary(_options?: UseApiQueryOptions<SummaryRespo
 }
 
 function useLocalAiSummary() {
-  const {replay} = useReplayContext();
+  const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
 
   // Sort all events chronologically
