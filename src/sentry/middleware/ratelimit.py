@@ -57,19 +57,8 @@ class RatelimitMiddleware:
             try:
                 # TODO: put these fields into their own object
                 request.will_be_rate_limited = False
-                if settings.SENTRY_SELF_HOSTED:
-                    request.rate_limit_metadata = RateLimitMeta(
-                        rate_limit_type=RateLimitType.NOT_LIMITED,
-                        current=0,
-                        remaining=0,
-                        limit=0,
-                        window=0,
-                        group="self-hosted",
-                        reset_time=0,
-                        concurrent_limit=None,
-                        concurrent_requests=None,
-                    )
-                    return None
+                # if settings.SENTRY_SELF_HOSTED:
+                #     return None
                 request.rate_limit_category = None
                 request.rate_limit_uid = uuid.uuid4().hex
                 view_class = getattr(view_func, "view_class", None)
@@ -112,7 +101,6 @@ class RatelimitMiddleware:
                     rate_limit_config=rate_limit_config,
                 )
                 if rate_limit is None:
-                    # Even if rate limit lookup fails, set metadata to indicate this was a rate-limited endpoint
                     request.rate_limit_metadata = RateLimitMeta(
                         rate_limit_type=RateLimitType.NOT_LIMITED,
                         current=0,

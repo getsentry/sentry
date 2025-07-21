@@ -306,6 +306,7 @@ class TestOrganizationIdPresentForControl(LogCaptureAPITestCase):
 
 
 @all_silo_test
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TestAccessLogRateLimitTypeConsistency(LogCaptureAPITestCase):
     endpoint = "concurrent-ratelimit-endpoint"
 
