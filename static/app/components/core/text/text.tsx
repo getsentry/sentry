@@ -169,7 +169,7 @@ export const Heading = styled(
   white-space: ${p => (p.wrap ? p.wrap : p.ellipsis ? 'nowrap' : undefined)};
 
   font-family: ${p => (p.monospace ? p.theme.text.familyMono : p.theme.text.family)};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeight.bold};
   font-variant-numeric: ${p =>
     [
       p.tabular ? 'tabular-nums' : undefined,
