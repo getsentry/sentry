@@ -9,29 +9,17 @@ export function useDetectorFilterKeys(): TagCollection {
 
   return useMemo(() => {
     return Object.fromEntries(
-      Object.keys(DETECTOR_FILTER_KEYS).map(key => {
-        const {values} = DETECTOR_FILTER_KEYS[key] ?? {};
-
-        // Special handling for assignee field to provide user/team values
-        if (key === 'assignee') {
-          return [
-            key,
-            {
-              key,
-              name: key,
-              predefined: true,
-              values: assignedValues,
-            },
-          ];
-        }
+      Object.entries(DETECTOR_FILTER_KEYS).map(([key, config]) => {
+        const {values} = config ?? {};
+        const isAssignee = key === 'assignee';
 
         return [
           key,
           {
             key,
             name: key,
-            predefined: values !== undefined,
-            values,
+            predefined: isAssignee || values !== undefined,
+            values: isAssignee ? assignedValues : values,
           },
         ];
       })
