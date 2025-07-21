@@ -43,7 +43,7 @@ class Filter:
         self,
         start: datetime | None = None,
         end: datetime | None = None,
-        conditions: list[Condition] | None = None,  # List in order to extend
+        conditions: Sequence[Condition] | None = None,
         having: Sequence[Condition] | None = None,
         user_id: int | None = None,
         organization_id: int | None = None,
@@ -61,8 +61,8 @@ class Filter:
     ) -> None:
         self.start = start
         self.end = end
-        self.conditions = conditions or []
-        self.having = having
+        self.conditions = list(conditions) if conditions is not None else []
+        self.having = having or []
         self.user_id = user_id
         self.organization_id = organization_id
         self.team_id = team_id
