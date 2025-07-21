@@ -40,6 +40,7 @@ class TestWorkflowEngineSerializer(TestCase):
         self.resolve_trigger_data_condition = migrate_resolve_threshold_data_condition(
             self.alert_rule
         )
+
         self.expected_critical_action = [
             {
                 "id": str(self.critical_trigger_action.id),
