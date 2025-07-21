@@ -2,11 +2,16 @@ from __future__ import annotations
 
 import logging
 import random
+import uuid
+from collections.abc import Iterator, MutableMapping
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, TypedDict
 
 import sentry_sdk
+from google.protobuf.timestamp_pb2 import Timestamp
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 
 from sentry.utils import json
 
@@ -54,9 +59,30 @@ class ParsedEventMeta:
     request_response_sizes: list[tuple[Any, Any]]
 
 
+class EventContext(TypedDict):
+    organization_id: int
+    project_id: int
+    received: float
+    retention_days: int
+    trace_id: str | None
+    replay_id: str
+    segment_id: int
+
+
 @sentry_sdk.trace
-def parse_events(events: list[dict[str, Any]]) -> ParsedEventMeta:
-    return parse_highlighted_events(events, sampled=random.randint(0, 499) < 1)
+def parse_events(
+    context: EventContext, events: list[dict[str, Any]]
+) -> tuple[ParsedEventMeta, list[TraceItem]]:
+    sampled = random.randint(0, 499) < 1
+
+    eap_builder = EAPEventsBuilder(context)
+    hev_builder = HighlightedEventsBuilder()
+
+    for event_type, event in which_iter(events):
+        eap_builder.add(event_type, event)
+        hev_builder.add(event_type, event, sampled)
+
+    return (hev_builder.result, eap_builder.result)
 
 
 class EventType(Enum):
@@ -77,6 +103,8 @@ class EventType(Enum):
     CANVAS = 14
     OPTIONS = 15
     FEEDBACK = 16
+    MEMORY = 17
+    SLOW_CLICK = 18
 
 
 def which(event: dict[str, Any]) -> EventType:
@@ -123,7 +151,7 @@ def which(event: dict[str, Any]) -> EventType:
                         else:
                             return EventType.DEAD_CLICK
                     else:
-                        return EventType.UNKNOWN
+                        return EventType.SLOW_CLICK
                 elif category == "navigation":
                     return EventType.NAVIGATION
                 elif category == "console":
@@ -154,6 +182,8 @@ def which(event: dict[str, Any]) -> EventType:
                         return EventType.FCP
                     else:
                         return EventType.UNKNOWN
+                elif op == "memory":
+                    return EventType.MEMORY
                 else:
                     return EventType.UNKNOWN
             elif event["data"]["tag"] == "options":
@@ -169,6 +199,261 @@ def which(event: dict[str, Any]) -> EventType:
         return EventType.UNKNOWN
 
 
+def which_iter(events: list[dict[str, Any]]) -> Iterator[tuple[EventType, dict[str, Any]]]:
+    for event in events:
+        yield (which(event), event)
+
+
+#
+# EAP Trace Item Processor
+#
+
+
+class EAPEventsBuilder:
+
+    def __init__(self, context: EventContext):
+        self.context = context
+        self.events: list[TraceItem] = []
+
+    def add(self, event_type: EventType, event: dict[str, Any]) -> None:
+        trace_item = parse_trace_item(self.context, event_type, event)
+        if trace_item:
+            self.events.append(trace_item)
+
+    @property
+    def result(self) -> list[TraceItem]:
+        return self.events
+
+
+def parse_trace_item(
+    context: EventContext, event_type: EventType, event: dict[str, Any]
+) -> TraceItem | None:
+    try:
+        return as_trace_item(context, event_type, event)
+    except (AttributeError, KeyError, TypeError, ValueError) as e:
+        logger.warning("Could not transform breadcrumb to trace-item", exc_info=e)
+        return None
+
+
+def as_trace_item(
+    context: EventContext, event_type: EventType, event: dict[str, Any]
+) -> TraceItem | None:
+    def _anyvalue(value: bool | str | int | float) -> AnyValue:
+        if isinstance(value, bool):
+            return AnyValue(bool_value=value)
+        elif isinstance(value, str):
+            return AnyValue(string_value=value)
+        elif isinstance(value, int):
+            return AnyValue(int_value=value)
+        elif isinstance(value, float):
+            return AnyValue(double_value=value)
+        else:
+            raise ValueError(f"Invalid value type for AnyValue: {type(value)}")
+
+    trace_item_context = as_trace_item_context(event_type, event)
+
+    # Not every event produces a trace-item.
+    if trace_item_context is None:
+        return None
+
+    # Extend the attributes with the replay_id to make it queryable by replay_id after we
+    # eventually use the trace_id in its rightful position.
+    trace_item_context["attributes"]["replay_id"] = context["replay_id"]
+
+    timestamp = Timestamp()
+    timestamp.FromMilliseconds(int(trace_item_context["timestamp"] * 1000))
+
+    received = Timestamp()
+    received.FromSeconds(int(context["received"]))
+
+    return TraceItem(
+        organization_id=context["organization_id"],
+        project_id=context["project_id"],
+        trace_id=context["trace_id"] or context["replay_id"],
+        item_id=trace_item_context["event_hash"],
+        item_type=TraceItemType.TRACE_ITEM_TYPE_REPLAY,
+        timestamp=timestamp,
+        attributes={k: _anyvalue(v) for k, v in trace_item_context["attributes"].items()},
+        client_sample_rate=1.0,
+        server_sample_rate=1.0,
+        retention_days=context["retention_days"],
+        received=received,
+    )
+
+
+class TraceItemContext(TypedDict):
+    attributes: MutableMapping[str, str | int | bool | float]
+    event_hash: bytes
+    timestamp: float
+
+
+def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> TraceItemContext | None:
+    """Returns a trace-item row or null for each event."""
+    match event_type:
+        case EventType.CLICK | EventType.DEAD_CLICK | EventType.RAGE_CLICK | EventType.SLOW_CLICK:
+            payload = event["data"]["payload"]
+
+            node = payload["data"]["node"]
+            node_attributes = node.get("attributes", {})
+            click_attributes = {
+                "node_id": int(node["id"]),
+                "tag": as_string_strict(node["tagName"]),
+                "text": as_string_strict(node["textContent"][:1024]),
+                "is_dead": event_type in (EventType.DEAD_CLICK, EventType.RAGE_CLICK),
+                "is_rage": event_type == EventType.RAGE_CLICK,
+                "selector": as_string_strict(payload["message"]),
+                "category": "ui.click",
+            }
+            if "alt" in node_attributes:
+                click_attributes["alt"] = as_string_strict(node_attributes["alt"])
+            if "aria-label" in node_attributes:
+                click_attributes["aria_label"] = as_string_strict(node_attributes["aria-label"])
+            if "class" in node_attributes:
+                click_attributes["class"] = as_string_strict(node_attributes["class"])
+            if "data-sentry-component" in node_attributes:
+                click_attributes["component_name"] = as_string_strict(
+                    node_attributes["data-sentry-component"]
+                )
+            if "id" in node_attributes:
+                click_attributes["id"] = as_string_strict(node_attributes["id"])
+            if "role" in node_attributes:
+                click_attributes["role"] = as_string_strict(node_attributes["role"])
+            if "title" in node_attributes:
+                click_attributes["title"] = as_string_strict(node_attributes["title"])
+            if _get_testid(node_attributes):
+                click_attributes["testid"] = _get_testid(node_attributes)
+            if "url" in payload:
+                click_attributes["url"] = as_string_strict(payload["url"])
+
+            return {
+                "attributes": click_attributes,  # type: ignore[typeddict-item]
+                "event_hash": uuid.uuid4().bytes,
+                "timestamp": float(payload["timestamp"]),
+            }
+        case EventType.NAVIGATION:
+            payload = event["data"]["payload"]
+            payload_data = payload["data"]
+
+            navigation_attributes = {"category": "navigation"}
+            if "from" in payload_data:
+                navigation_attributes["from"] = as_string_strict(payload_data["from"])
+            if "to" in payload_data:
+                navigation_attributes["to"] = as_string_strict(payload_data["to"])
+
+            return {
+                "attributes": navigation_attributes,  # type: ignore[typeddict-item]
+                "event_hash": uuid.uuid4().bytes,
+                "timestamp": float(payload["timestamp"]),
+            }
+        case EventType.CONSOLE:
+            return None
+        case EventType.UI_BLUR:
+            return None
+        case EventType.UI_FOCUS:
+            return None
+        case EventType.RESOURCE_FETCH | EventType.RESOURCE_XHR:
+            resource_attributes = {
+                "category": (
+                    "resource.xhr" if event_type == EventType.RESOURCE_XHR else "resource.fetch"
+                ),
+            }
+
+            request_size, response_size = parse_network_content_lengths(event)
+            if request_size:
+                resource_attributes["request_size"] = request_size  # type: ignore[assignment]
+            if response_size:
+                resource_attributes["response_size"] = response_size  # type: ignore[assignment]
+
+            return {
+                "attributes": resource_attributes,  # type: ignore[typeddict-item]
+                "event_hash": uuid.uuid4().bytes,
+                "timestamp": float(event["data"]["payload"]["timestamp"]),
+            }
+        case EventType.LCP | EventType.FCP:
+            payload = event["data"]["payload"]
+            return {
+                "attributes": {
+                    "category": "web-vital.fcp" if event_type == EventType.FCP else "web-vital.lcp",
+                    "rating": as_string_strict(payload["data"]["rating"]),
+                    "size": int(payload["data"]["size"]),
+                    "value": int(payload["data"]["value"]),
+                },
+                "event_hash": uuid.uuid4().bytes,
+                "timestamp": float(payload["timestamp"]),
+            }
+        case EventType.HYDRATION_ERROR:
+            payload = event["data"]["payload"]
+            return {
+                "attributes": {
+                    "category": "replay.hydrate-error",
+                    "url": as_string_strict(payload["data"]["url"]),
+                },
+                "event_hash": uuid.uuid4().bytes,
+                "timestamp": float(event["data"]["payload"]["timestamp"]),
+            }
+        case EventType.MUTATIONS:
+            payload = event["data"]["payload"]
+            return {
+                "attributes": {
+                    "category": "replay.mutations",
+                    "count": int(payload["data"]["count"]),
+                },
+                "event_hash": uuid.uuid4().bytes,
+                "timestamp": event["timestamp"],
+            }
+        case EventType.UNKNOWN:
+            return None
+        case EventType.CANVAS:
+            return None
+        case EventType.OPTIONS:
+            payload = event["data"]["payload"]
+            return {
+                "attributes": {
+                    "category": "sdk.options",
+                    "shouldRecordCanvas": bool(payload["shouldRecordCanvas"]),
+                    "sessionSampleRate": float(payload["sessionSampleRate"]),
+                    "errorSampleRate": float(payload["errorSampleRate"]),
+                    "useCompressionOption": bool(payload["useCompressionOption"]),
+                    "blockAllMedia": bool(payload["blockAllMedia"]),
+                    "maskAllText": bool(payload["maskAllText"]),
+                    "maskAllInputs": bool(payload["maskAllInputs"]),
+                    "useCompression": bool(payload["useCompression"]),
+                    "networkDetailHasUrls": bool(payload["networkDetailHasUrls"]),
+                    "networkCaptureBodies": bool(payload["networkCaptureBodies"]),
+                    "networkRequestHasHeaders": bool(payload["networkRequestHasHeaders"]),
+                    "networkResponseHasHeaders": bool(payload["networkResponseHasHeaders"]),
+                },
+                "event_hash": uuid.uuid4().bytes,
+                "timestamp": event["timestamp"] / 1000,
+            }
+        case EventType.FEEDBACK:
+            return None
+        case EventType.MEMORY:
+            payload = event["data"]["payload"]
+            return {
+                "attributes": {
+                    "category": "memory",
+                    "jsHeapSizeLimit": int(payload["data"]["jsHeapSizeLimit"]),
+                    "totalJSHeapSize": int(payload["data"]["totalJSHeapSize"]),
+                    "usedJSHeapSize": int(payload["data"]["usedJSHeapSize"]),
+                    "endTimestamp": float(payload["endTimestamp"]),
+                },
+                "event_hash": uuid.uuid4().bytes,
+                "timestamp": float(payload["startTimestamp"]),
+            }
+
+
+def as_string_strict(value: Any) -> str:
+    if isinstance(value, str):
+        return value
+    raise ValueError("Value was not a string.")
+
+
+#
+# Highlighted Event Processor
+#
+
+
 class HighlightedEvents(TypedDict, total=False):
     canvas_sizes: list[int]
     hydration_errors: list[HydrationError]
@@ -178,70 +463,58 @@ class HighlightedEvents(TypedDict, total=False):
     options: list[dict[str, Any]]
 
 
-def parse_highlighted_events(events: list[dict[str, Any]], sampled: bool) -> ParsedEventMeta:
-    """Return highlighted events which were parsed from the stream.
+class HighlightedEventsBuilder:
 
-    Highlighted events are any event which is notable enough to be logged, used in a metric,
-    emitted to a database, or otherwise emit an effect in some material way.
-    """
-    hes: HighlightedEvents = {
-        "canvas_sizes": [],
-        "clicks": [],
-        "hydration_errors": [],
-        "mutations": [],
-        "options": [],
-        "request_response_sizes": [],
-    }
+    def __init__(self):
+        self.events: HighlightedEvents = {
+            "canvas_sizes": [],
+            "clicks": [],
+            "hydration_errors": [],
+            "mutations": [],
+            "options": [],
+            "request_response_sizes": [],
+        }
 
-    for event in events:
-        try:
-            event_type = which(event)
-        except (AssertionError, AttributeError, KeyError, TypeError):
-            continue
+    def add(self, event_type: EventType, event: dict[str, Any], sampled: bool) -> None:
+        for k, v in parse_highlighted_event(event_type, event, sampled).items():
+            self.events[k].extend(v)  # type: ignore[literal-required]
 
-        try:
-            highlighted_event = as_highlighted_event(event, event_type)
-        except (AssertionError, AttributeError, KeyError, TypeError):
-            logger.info("Could not parse identified event.", exc_info=True)
-            continue
-
-        if highlighted_event is None:
-            continue
-
-        if "canvas_sizes" in highlighted_event and sampled:
-            hes["canvas_sizes"].extend(highlighted_event["canvas_sizes"])
-        if "hydration_errors" in highlighted_event:
-            hes["hydration_errors"].extend(highlighted_event["hydration_errors"])
-        if "mutations" in highlighted_event and sampled:
-            hes["mutations"].extend(highlighted_event["mutations"])
-        if "clicks" in highlighted_event:
-            hes["clicks"].extend(highlighted_event["clicks"])
-        if "request_response_sizes" in highlighted_event:
-            hes["request_response_sizes"].extend(highlighted_event["request_response_sizes"])
-        if "options" in highlighted_event and sampled:
-            hes["options"].extend(highlighted_event["options"])
-
-    return ParsedEventMeta(
-        hes["canvas_sizes"],
-        hes["clicks"],
-        hes["hydration_errors"],
-        hes["mutations"],
-        hes["options"],
-        hes["request_response_sizes"],
-    )
+    @property
+    def result(self) -> ParsedEventMeta:
+        return ParsedEventMeta(
+            self.events["canvas_sizes"],
+            self.events["clicks"],
+            self.events["hydration_errors"],
+            self.events["mutations"],
+            self.events["options"],
+            self.events["request_response_sizes"],
+        )
 
 
-def as_highlighted_event(event: dict[str, Any], event_type: EventType) -> HighlightedEvents | None:
+def parse_highlighted_event(
+    event_type: EventType, event: dict[str, Any], sampled: bool
+) -> HighlightedEvents:
+    """Attempt to parse an event to a highlighted event."""
+    try:
+        return as_highlighted_event(event, event_type, sampled)
+    except (AssertionError, AttributeError, KeyError, TypeError):
+        logger.warning("Could not parse identified event.", exc_info=True)
+        return {}
+
+
+def as_highlighted_event(
+    event: dict[str, Any], event_type: EventType, sampled: bool
+) -> HighlightedEvents:
     """Transform an event to a HighlightEvent or return None."""
-    if event_type == EventType.CANVAS:
+    if event_type == EventType.CANVAS and sampled:
         return {"canvas_sizes": [len(json.dumps(event))]}
     elif event_type == EventType.HYDRATION_ERROR:
         timestamp = event["data"]["payload"]["timestamp"]
         url = event["data"]["payload"].get("data", {}).get("url")
         return {"hydration_errors": [HydrationError(timestamp=timestamp, url=url)]}
-    elif event_type == EventType.MUTATIONS:
+    elif event_type == EventType.MUTATIONS and sampled:
         return {"mutations": [MutationEvent(event["data"]["payload"])]}
-    elif event_type == EventType.CLICK:
+    elif event_type == EventType.CLICK or event_type == EventType.SLOW_CLICK:
         click = parse_click_event(event["data"]["payload"], is_dead=False, is_rage=False)
         return {"clicks": [click]}
     elif event_type == EventType.DEAD_CLICK:
@@ -254,10 +527,12 @@ def as_highlighted_event(event: dict[str, Any], event_type: EventType) -> Highli
         lengths = parse_network_content_lengths(event)
         if lengths != (None, None):
             return {"request_response_sizes": [lengths]}
-    elif event_type == EventType.OPTIONS:
+        else:
+            return {}
+    elif event_type == EventType.OPTIONS and sampled:
         return {"options": [event]}
-
-    return None
+    else:
+        return {}
 
 
 def parse_network_content_lengths(event: dict[str, Any]) -> tuple[int | None, int | None]:
