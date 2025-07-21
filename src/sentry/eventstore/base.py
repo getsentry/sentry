@@ -43,7 +43,7 @@ class Filter:
         self,
         start: datetime | None = None,
         end: datetime | None = None,
-        conditions: Sequence[tuple[str, str, Any]] | None = None,
+        conditions: Sequence[Any] | None = None,
         having: Sequence[Condition] | None = None,
         user_id: int | None = None,
         organization_id: int | None = None,
@@ -61,7 +61,7 @@ class Filter:
     ) -> None:
         self.start = start
         self.end = end
-        self.conditions = list(conditions) if conditions is not None else []
+        self.conditions = conditions or []
         self.having = having or []
         self.user_id = user_id
         self.organization_id = organization_id

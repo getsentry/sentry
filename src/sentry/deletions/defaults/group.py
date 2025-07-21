@@ -94,7 +94,7 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
         self.project_ids = list(self.project_groups.keys())
 
     def get_unfetched_events(self) -> list[Event]:
-        conditions: list[list[str, str, Any]] = []
+        conditions = []
         if self.last_event is not None:
             conditions.extend(
                 [
