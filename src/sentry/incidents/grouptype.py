@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
+from enum import StrEnum
 
+from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.handlers.condition import *  # noqa
 from sentry.incidents.metric_issue_detector import MetricIssueDetectorValidator
@@ -10,11 +13,13 @@ from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.incidents.utils.types import AnomalyDetectionUpdate, ProcessedSubscriptionUpdate
 from sentry.integrations.metric_alerts import TEXT_COMPARISON_DELTA
 from sentry.issues.grouptype import GroupCategory, GroupType
+from sentry.models.organization import Organization
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.snuba.metrics import format_mri_field, is_mri_field
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.actor import parse_and_validate_actor
 from sentry.types.group import PriorityLevel
+from sentry.utils.snuba import Dataset
 from sentry.workflow_engine.handlers.detector import DetectorOccurrence, StatefulDetectorHandler
 from sentry.workflow_engine.handlers.detector.base import EventData, EvidenceData
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
@@ -22,6 +27,8 @@ from sentry.workflow_engine.models.data_condition import Condition, DataConditio
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
 from sentry.workflow_engine.types import DetectorException, DetectorPriorityLevel, DetectorSettings
+
+logger = logging.getLogger(__name__)
 
 COMPARISON_DELTA_CHOICES: list[None | int] = [choice.value for choice in ComparisonDeltaChoices]
 COMPARISON_DELTA_CHOICES.append(None)
@@ -43,6 +50,79 @@ class MetricIssueEvidenceData(EvidenceData[float]):
 
 MetricUpdate = ProcessedSubscriptionUpdate | AnomalyDetectionUpdate
 MetricResult = int | dict
+
+
+class SessionsAggregate(StrEnum):
+    CRASH_FREE_SESSIONS = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
+    CRASH_FREE_USERS = "percentage(users_crashed, users) AS _crash_rate_alert_aggregate"
+
+
+ALERT_TYPE_IDENTIFIERS: dict[Dataset, dict[str, str]] = {
+    Dataset.Events: {"num_errors": "count()", "users_experiencing_errors": "count_unique(user)"},
+    Dataset.Transactions: {
+        "throughput": "count()",
+        "trans_duration": "transaction.duration",
+        "apdex": "apdex",
+        "failure_rate": "failure_rate()",
+        "lcp": "measurements.lcp",
+        "fid": "measurements.fid",
+        "cls": "measurements.cls",
+    },
+    Dataset.PerformanceMetrics: {
+        "throughput": "count()",
+        "trans_duration": "transaction.duration",
+        "apdex": "apdex",
+        "failure_rate": "failure_rate()",
+        "lcp": "measurements.lcp",
+        "fid": "measurements.fid",
+        "cls": "measurements.cls",
+    },
+    Dataset.Sessions: {
+        "crash_free_sessions": SessionsAggregate.CRASH_FREE_SESSIONS.value,
+        "crash_free_users": SessionsAggregate.CRASH_FREE_USERS.value,
+    },
+    Dataset.Metrics: {
+        "crash_free_sessions": SessionsAggregate.CRASH_FREE_SESSIONS.value,
+        "crash_free_users": SessionsAggregate.CRASH_FREE_USERS.value,
+    },
+    Dataset.EventsAnalyticsPlatform: {
+        "trace_item_throughput": "count(span.duration)",
+        "trace_item_duration": "span.duration",
+        "trace_item_apdex": "apdex",
+        "trace_item_failure_rate": "failure_rate()",
+        "trace_item_lcp": "measurements.lcp",
+    },
+}
+
+
+def get_alert_type_from_aggregate_dataset(
+    aggregate: str, dataset: Dataset, organization: Organization | None = None
+) -> str:
+    """
+    Given an aggregate and dataset object, will return the corresponding wizard alert type
+    e.g. {'aggregate': 'count()', 'dataset': Dataset.ERRORS} will yield 'num_errors'
+
+    This function is used to format the aggregate value for anomaly detection issues.
+    """
+    identifier_for_dataset = ALERT_TYPE_IDENTIFIERS.get(dataset, {})
+
+    # Find matching alert type entry
+    matching_alert_type: None | str = None
+    for alert_type, identifier in identifier_for_dataset.items():
+        if identifier in aggregate:
+            matching_alert_type = alert_type
+            break
+
+    # Special handling for EventsAnalyticsPlatform dataset
+    if dataset == Dataset.EventsAnalyticsPlatform:
+        if organization and features.has(
+            "organizations:performance-transaction-deprecation-alerts", organization
+        ):
+            return matching_alert_type if matching_alert_type else "eap_metrics"
+
+        return "eap_metrics"
+
+    return matching_alert_type if matching_alert_type else "custom_transactions"
 
 
 class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricResult]):
@@ -137,6 +217,21 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
 
         if detection_type == "dynamic":
             alert_type = aggregate
+            try:
+                dataset = Dataset(snuba_query.dataset)
+                alert_type = get_alert_type_from_aggregate_dataset(
+                    aggregate, dataset, self.detector.project.organization
+                )
+            except ValueError:
+                logger.exception(
+                    "Failed to get alert type from aggregate and dataset",
+                    extra={
+                        "aggregate": aggregate,
+                        "dataset": snuba_query.dataset,
+                        "detector_id": self.detector.id,
+                    },
+                )
+
             return f"Detected an anomaly in the query for {alert_type}"
 
         # Determine the higher or lower comparison
