@@ -44,7 +44,9 @@ def are_any_projects_error_upsampled(project_ids: Sequence[int]) -> bool:
     return result
 
 
-def transform_query_columns_for_error_upsampling(query_columns: Sequence[str]) -> list[str]:
+def transform_query_columns_for_error_upsampling(
+    query_columns: Sequence[str], include_alias: bool = True
+) -> list[str]:
     """
     Transform aggregation functions to use sum(sample_weight) instead of count()
     for error upsampling.
@@ -54,13 +56,20 @@ def transform_query_columns_for_error_upsampling(query_columns: Sequence[str]) -
         column_lower = column.lower().strip()
 
         if column_lower == "count()":
-            transformed_columns.append("upsampled_count() as count")
-
+            transformed = "upsampled_count()"
+            if include_alias:
+                transformed += " as count"
+            transformed_columns.append(transformed)
         elif column_lower == "eps()":
-            transformed_columns.append("upsampled_eps() as eps")
-
+            transformed = "upsampled_eps()"
+            if include_alias:
+                transformed += " as eps"
+            transformed_columns.append(transformed)
         elif column_lower == "epm()":
-            transformed_columns.append("upsampled_epm() as epm")
+            transformed = "upsampled_epm()"
+            if include_alias:
+                transformed += " as epm"
+            transformed_columns.append(transformed)
         else:
             transformed_columns.append(column)
 
