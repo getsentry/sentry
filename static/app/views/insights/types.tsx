@@ -74,12 +74,14 @@ export enum SpanFields {
   PRECISE_FINISH_TS = 'precise.finish_ts',
   OS_NAME = 'os.name',
   THREAD_ID = 'thread.id',
+  COMMAND = 'command',
 
   // Cache fields
   CACHE_HIT = 'cache.hit',
   CACHE_ITEM_SIZE = 'cache.item_size',
 
   // HTTP/Resource fields
+  HTTP_REQUEST_METHOD = 'http.request.method',
   HTTP_DECODED_RESPONSE_CONTENT_LENGTH = 'http.decoded_response_content_length',
   HTTP_RESPONSE_TRANSFER_SIZE = 'http.response_transfer_size',
   MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH = 'measurements.http.response_content_length',
@@ -229,7 +231,10 @@ type SpanNumberFields =
   | SpanFields.THREAD_ID
   | SpanFields.PROJECT_ID;
 
+// TODO: Enforce that these fields all come from SpanFields
 export type SpanStringFields =
+  | SpanFields.COMMAND
+  | SpanFields.HTTP_REQUEST_METHOD
   | SpanFields.RESOURCE_RENDER_BLOCKING_STATUS
   | SpanFields.RAW_DOMAIN
   | SpanFields.ID
