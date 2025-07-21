@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink} from 'sentry/components/core/link';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import RangeField from 'sentry/components/forms/fields/rangeField';
@@ -8,7 +9,6 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
 import type FormModel from 'sentry/components/forms/model';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {t, tct} from 'sentry/locale';
