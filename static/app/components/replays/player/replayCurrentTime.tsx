@@ -18,11 +18,21 @@ export default function ReplayCurrentTime() {
 }
 
 function ReplayCurrentTimeNew() {
+  const [prefs] = useReplayPrefs();
+  const replay = useReplayReader();
   const [currentTime, setCurrentTime] = useState({timeMs: 0});
 
   useReplayCurrentTime({callback: setCurrentTime});
 
-  return <Duration duration={[currentTime.timeMs, 'ms']} precision="sec" />;
+  switch (prefs.timestampType) {
+    case 'absolute': {
+      const startTimestamp = replay?.getStartTimestampMs() ?? 0;
+      return <DateTime date={currentTime.timeMs + startTimestamp} seconds timeOnly />;
+    }
+    case 'relative':
+    default:
+      return <Duration duration={[currentTime.timeMs, 'ms']} precision="sec" />;
+  }
 }
 
 function OriginalReplayCurrentTime() {
