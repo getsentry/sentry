@@ -286,7 +286,7 @@ class EventStorage(Service):
 
     def get_adjacent_event_ids(
         self, event: Event | GroupEvent, filter: Filter
-    ) -> tuple[tuple[int, str] | None, tuple[int, str] | None]:
+    ) -> tuple[tuple[str, str] | None, tuple[str, str] | None]:
         """
         Gets the previous and next event IDs given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id) for (prev_ids, next_ids)
