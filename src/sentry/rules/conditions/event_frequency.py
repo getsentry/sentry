@@ -18,8 +18,8 @@ from snuba_sdk import Op
 from sentry import features, release_health, tsdb
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_user_group_model
-from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
-from sentry.models.group import Group
+from sentry.issues.grouptype import GroupCategory
+from sentry.models.group import DEFAULT_TYPE_ID, Group
 from sentry.models.project import Project
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition, GenericCondition
@@ -405,8 +405,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         error_issue_ids = []
 
         for group in groups:
-            issue_type = get_group_type_by_type_id(group["type"])
-            if GroupCategory(issue_type.category) == GroupCategory.ERROR:
+            if group["type"] == DEFAULT_TYPE_ID:
                 error_issue_ids.append(group["id"])
             else:
                 generic_issue_ids.append(group["id"])
