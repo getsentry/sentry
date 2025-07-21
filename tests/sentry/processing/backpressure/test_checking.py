@@ -67,7 +67,6 @@ def test_bad_config():
         "backpressure.checking.interval": 5,
         "backpressure.monitoring.enabled": True,
         "backpressure.status_ttl": 60,
-        "taskworker.try_compress.profile_metrics.level": 1,
     }
 )
 def test_backpressure_healthy_profiles(process_profile_task):
@@ -139,7 +138,6 @@ def test_backpressure_healthy_events(preprocess_event):
     {
         "backpressure.checking.enabled": False,
         "backpressure.checking.interval": 5,
-        "taskworker.try_compress.profile_metrics.level": 1,
     }
 )
 def test_backpressure_not_enabled(process_profile_task):
