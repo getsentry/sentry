@@ -455,9 +455,7 @@ export default function AccountSecurityEnroll() {
 
       {authenticator.rotationWarning && authenticator.status === 'rotation' && (
         <Alert.Container>
-          <Alert type="warning" showIcon>
-            {authenticator.rotationWarning}
-          </Alert>
+          <Alert type="warning">{authenticator.rotationWarning}</Alert>
         </Alert.Container>
       )}
 

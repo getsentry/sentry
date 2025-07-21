@@ -118,7 +118,9 @@ export default function Ai() {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <EmptySummaryContainer>
-          <Alert type="info">{t('No summary available for this replay.')}</Alert>
+          <Alert type="info" showIcon={false}>
+            {t('No summary available for this replay.')}
+          </Alert>
         </EmptySummaryContainer>
       </Wrapper>
     );

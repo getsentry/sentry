@@ -132,6 +132,7 @@ export type DashboardPermissions = {
  */
 export type DashboardListItem = {
   environment: string[];
+  filters: DashboardFilters;
   id: string;
   projects: number[];
   title: string;

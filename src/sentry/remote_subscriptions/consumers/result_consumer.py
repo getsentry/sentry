@@ -105,6 +105,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
 
     def __init__(
         self,
+        consumer_group: str,
         mode: Literal["batched-parallel", "parallel", "serial", "thread-queue-parallel"] = "serial",
         max_batch_size: int | None = None,
         max_batch_time: int | None = None,
@@ -115,6 +116,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         commit_interval: float | None = None,
     ) -> None:
         self.mode = mode
+        self.consumer_group = consumer_group
         metric_tags = {"identifier": self.identifier, "mode": self.mode}
         self.result_processor = self.result_processor_cls()
         if mode == "batched-parallel":
@@ -134,6 +136,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
             self.queue_pool = FixedQueuePool(
                 result_processor=self.result_processor,
                 identifier=self.identifier,
+                consumer_group=consumer_group,
                 num_queues=max_workers or 20,
                 commit_interval=commit_interval or 1.0,
             )

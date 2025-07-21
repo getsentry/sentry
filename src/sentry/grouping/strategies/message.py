@@ -72,6 +72,7 @@ def normalize_message_for_grouping(message: str, event: Event) -> str:
 def message_v1(
     interface: Message, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
+    # This is true for all but our test config
     if context["normalize_message"]:
         raw = interface.message or interface.formatted or ""
         normalized = normalize_message_for_grouping(raw, event)
