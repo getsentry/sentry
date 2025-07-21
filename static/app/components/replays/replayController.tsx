@@ -13,6 +13,7 @@ import {IconNext, IconRewind10} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getNextReplayFrame} from 'sentry/utils/replays/getReplayEvent';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 
 const SECOND = 1000;
 
@@ -26,7 +27,8 @@ interface Props {
 }
 
 function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
-  const {currentTime, replay, setCurrentTime} = useReplayContext();
+  const replay = useReplayReader();
+  const {currentTime, setCurrentTime} = useReplayContext();
 
   return (
     <ButtonBar>

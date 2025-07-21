@@ -6,8 +6,7 @@ import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-
-import {useReplayContext} from './replayContext';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 
 interface Props {
   processingErrors: readonly string[];
@@ -15,7 +14,7 @@ interface Props {
 }
 
 export default function ReplayProcessingError({className}: Props) {
-  const {replay} = useReplayContext();
+  const replay = useReplayReader();
   const {sdk} = replay?.getReplay() || {};
 
   useEffect(() => {

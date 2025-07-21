@@ -5,11 +5,11 @@ import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconSeer, IconSync, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
@@ -20,7 +20,7 @@ import {useFetchReplaySummary} from './useFetchReplaySummary';
 
 export default function Ai() {
   const organization = useOrganization();
-  const {replay} = useReplayContext();
+  const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
   const project = useProjectFromId({project_id: replayRecord?.project_id});
   const {

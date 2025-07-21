@@ -10,6 +10,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -23,7 +24,8 @@ interface Props {
 }
 
 export function ChapterList({summaryData}: Props) {
-  const {replay, setCurrentTime} = useReplayContext();
+  const replay = useReplayReader();
+  const {setCurrentTime} = useReplayContext();
   const onClickChapterTimestamp = useCallback(
     (event: React.MouseEvent<Element>, start: number) => {
       event.stopPropagation();
@@ -101,7 +103,8 @@ function ChapterRow({
   title: string;
   className?: string;
 }) {
-  const {replay, currentTime} = useReplayContext();
+  const replay = useReplayReader();
+  const {currentTime} = useReplayContext();
   const {onClickTimestamp} = useCrumbHandlers();
   const [currentHoverTime] = useCurrentHoverTime();
   const [isHovered, setIsHovered] = useState(false);
