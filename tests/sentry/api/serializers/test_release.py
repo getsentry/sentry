@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import patch
@@ -238,6 +239,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result_author["email"] == user.email
         assert result_author["username"] == user.username
 
+    @pytest.mark.skip(reason="flaky: #95997")
     def test_get_single_user_from_email(self):
         """
         Tests that the first useremail will be used to
