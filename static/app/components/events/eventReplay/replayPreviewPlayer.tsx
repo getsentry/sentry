@@ -68,7 +68,7 @@ export default function ReplayPreviewPlayer({
   const startOffsetMs = replay?.getStartOffsetMs() ?? 0;
 
   const referrer = getRouteStringFromRoutes(routes);
-  const fromFeedback = referrer === '/feedback/';
+  const fromFeedback = referrer === '/issues/feedback/';
 
   const {groupId} = useParams<{groupId: string}>();
 
