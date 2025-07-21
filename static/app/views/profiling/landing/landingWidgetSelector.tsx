@@ -84,8 +84,8 @@ export function LandingWidgetSelector({
     />
   );
 
-  switch (selectedWidget) {
-    case 'regressed functions':
+  if (organization.features.includes('profiling-function-trends')) {
+    if (selectedWidget === 'regressed functions') {
       return (
         <FunctionTrendsWidget
           cursorName={cursorName}
@@ -97,7 +97,9 @@ export function LandingWidgetSelector({
           onDataState={onDataState}
         />
       );
-    case 'improved functions':
+    }
+
+    if (selectedWidget === 'improved functions') {
       return (
         <FunctionTrendsWidget
           cursorName={cursorName}
@@ -109,6 +111,10 @@ export function LandingWidgetSelector({
           onDataState={onDataState}
         />
       );
+    }
+  }
+
+  switch (selectedWidget) {
     case 'slowest functions avg':
       return (
         <SlowestFunctionsWidget
