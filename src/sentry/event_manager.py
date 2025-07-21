@@ -2162,7 +2162,6 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                     settings.SEER_SEVERITY_TIMEOUT / 1000,
                 )
 
-                # Conditionally route to GPU deployment based on rollout rate
                 if in_random_rollout("issues.severity.gpu-rollout-rate"):
                     connection_pool = severity_connection_pool_gpu
                 else:
