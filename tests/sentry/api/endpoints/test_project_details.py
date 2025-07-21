@@ -1893,7 +1893,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
                     target_object=self.project.id,
                 )
                 assert audit_entry is not None
-                assert audit_entry.data["name"] == "minimumSampleRate"
+                assert audit_entry.data["name"] == RuleType.MINIMUM_SAMPLE_RATE_RULE.value
 
     def test_dynamic_sampling_bias_disable_audit_log(self):
         """Test that disabling a dynamic sampling bias creates the correct audit log entry."""
