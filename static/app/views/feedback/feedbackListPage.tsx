@@ -87,7 +87,10 @@ export default function FeedbackListPage() {
                   {hasSetupOneFeedback || hasSlug ? (
                     <Fragment>
                       <SummaryListContainer style={{gridArea: 'list'}}>
-                        <FeedbackSummary />
+                        {organization.features.includes('user-feedback-ai-summaries') &&
+                          organization.features.includes('gen-ai-features') && (
+                            <FeedbackSummary />
+                          )}
                         <Container>
                           <FeedbackList />
                         </Container>
