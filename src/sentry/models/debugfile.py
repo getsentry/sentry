@@ -87,7 +87,7 @@ class ProjectDebugFileManager(BaseManager["ProjectDebugFile"]):
         # because otherwise this would be a circular import:
         from sentry.debug_files.debug_files import maybe_renew_debug_files
 
-        maybe_renew_debug_files(query, difs)
+        maybe_renew_debug_files(difs)
 
         difs_by_id: dict[str, list[ProjectDebugFile]] = {}
         for dif in difs:

@@ -940,6 +940,49 @@ class MonitorConsumerTest(TestCase):
         assert monitor is not None
         assert "timezone" not in monitor.config
 
+    def test_team_name_as_owner(self):
+        monitor = self._create_monitor(slug="my-monitor", owner_user_id=self.user.id)
+        self.send_checkin(
+            "my-monitor",
+            monitor_config={
+                "schedule": {"type": "crontab", "value": "13 * * * *"},
+                "owner": f"team:{self.team.name}",
+            },
+        )
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+
+        monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
+        assert monitor_environment.status == MonitorStatus.OK
+        monitor.refresh_from_db()
+        assert monitor.owner_user_id is None
+        assert monitor.owner_team_id == self.team.id
+
+    def test_user_name_as_owner(self):
+        named_user = self.create_user(
+            "admin2@localhost",
+            username="test_user",
+            is_superuser=True,
+            is_staff=True,
+            is_sentry_app=False,
+        )
+        monitor = self._create_monitor(slug="my-monitor", owner_user_id=named_user.id)
+
+        self.send_checkin(
+            "my-monitor",
+            monitor_config={
+                "schedule": {"type": "crontab", "value": "13 * * * *"},
+                "owner": f"user:{named_user.username}",
+            },
+        )
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+
+        monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
+        assert monitor_environment.status == MonitorStatus.OK
+        assert monitor.owner_user_id == named_user.id
+        assert monitor.owner_team_id is None
+
     def test_monitor_upsert_invalid_slug(self):
         self.send_checkin(
             "some/slug@with-weird|stuff",
