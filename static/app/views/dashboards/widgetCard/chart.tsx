@@ -70,7 +70,7 @@ import {
   decodeColumnAliases,
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
-import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
+import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 

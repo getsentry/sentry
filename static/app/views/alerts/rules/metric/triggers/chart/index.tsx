@@ -63,8 +63,8 @@ import {isSessionAggregate, SESSION_AGGREGATE_TO_FIELD} from 'sentry/views/alert
 import {getComparisonMarkLines} from 'sentry/views/alerts/utils/getComparisonMarkLines';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
-import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 import ThresholdsChart from './thresholdsChart';
