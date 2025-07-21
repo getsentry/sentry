@@ -85,7 +85,9 @@ export default function FeedbackListPage() {
                 <LayoutGrid>
                   <FiltersContainer style={{gridArea: 'top'}}>
                     <FeedbackFilters />
-                    <FeedbackSearch />
+                    <SearchContainer>
+                      <FeedbackSearch />
+                    </SearchContainer>
                   </FiltersContainer>
                   {hasSetupOneFeedback || hasSlug ? (
                     <Fragment>
@@ -187,9 +189,18 @@ const SetupContainer = styled('div')`
   grid-column: 1 / -1;
 `;
 
+/**
+ * Prevent the search box from growing infinitely.
+ * See https://github.com/getsentry/sentry/pull/80328
+ */
+const SearchContainer = styled('div')`
+  flex-grow: 1;
+  width: 100%;
+`;
+
 const FiltersContainer = styled('div')`
   display: flex;
-  flex-direction: row;
-  gap: ${space(2)};
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: ${space(1)};
+  align-items: flex-start;
 `;
