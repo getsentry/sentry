@@ -4,6 +4,7 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
@@ -154,7 +155,7 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
           {t('Automation')}
           <Subheading>
             {tct(
-              "Choose how Seer automatically triages and diagnoses incoming issues, before you even notice them. This analysis is billed at the [link:standard rates] for Seer's Issue Scan and Issue Fix. See [spendlink:docs] on how to manage your Seer spend. You can also [bulklink:configure automation for other projects].",
+              "Choose how Seer automatically triages and diagnoses incoming issues, before you even notice them. This analysis is billed at the [link:standard rates] for Seer's Issue Scan and Issue Fix. See [spendlink:docs] on how to manage your Seer spend.",
               {
                 link: (
                   <ExternalLink href={'https://docs.sentry.io/pricing/#seer-pricing'} />
@@ -270,6 +271,14 @@ function ProjectSeer({project}: ProjectSeerProps) {
         <ProjectSeerGeneralForm project={project} />
       )}
       <AutofixRepositories project={project} />
+      <Center>
+        <LinkButton
+          to={`/settings/${organization.slug}/seer/onboarding/`}
+          priority="primary"
+        >
+          {t('Set Up All Projects')}
+        </LinkButton>
+      </Center>
     </Fragment>
   );
 }
@@ -298,4 +307,10 @@ const Subheading = styled('div')`
   text-transform: none;
   margin-top: ${space(1)};
   line-height: 1.4;
+`;
+
+const Center = styled('div')`
+  display: flex;
+  justify-content: center;
+  margin-top: ${p => p.theme.space.lg};
 `;
