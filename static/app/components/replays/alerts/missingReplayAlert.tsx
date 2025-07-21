@@ -39,7 +39,6 @@ export default function MissingReplayAlert({orgSlug}: Props) {
     <Alert.Container>
       <Alert
         type="info"
-        showIcon
         data-test-id="replay-error"
         expand={
           <Fragment>

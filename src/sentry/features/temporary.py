@@ -134,6 +134,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:gen-ai-features", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the 'generate me a query' functionality on the explore > traces page
     manager.add("organizations:gen-ai-explore-traces", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable the GenAI consent UI on the explore > traces page
+    manager.add("organizations:gen-ai-explore-traces-consent-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable GenAI consent
     manager.add("organizations:gen-ai-consent", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable disabling gitlab integrations when broken is detected
@@ -560,6 +562,8 @@ def register_temporary_features(manager: FeatureManager):
     # Adds additional filters and a new section to issue alert rules.
     manager.add("projects:alert-filters", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     manager.add("projects:discard-transaction", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
+    # Enable error upsampling
+    manager.add("projects:error-upsampling", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=True)
     # Enable calculating a severity score for events which create a new group
     manager.add("projects:first-event-severity-calculation", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable similarity embeddings API call

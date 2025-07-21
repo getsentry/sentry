@@ -44,7 +44,7 @@ function OrganizationFeatureFlagsNewSecet() {
         )}
       </TextBlock>
       <Alert.Container>
-        <Alert type="info" showIcon>
+        <Alert type="info">
           {t('Note that each provider can only have one associated signing secret.')}
         </Alert>
       </Alert.Container>

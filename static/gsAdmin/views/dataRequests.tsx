@@ -192,7 +192,7 @@ class DataRequests extends Component<Props, State> {
         <PageHeader title="Data Requests" />
 
         <Alert.Container>
-          <Alert type="warning">
+          <Alert type="warning" showIcon={false}>
             Use this form to determine what action needs taken for a data request.
           </Alert>
         </Alert.Container>

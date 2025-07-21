@@ -268,7 +268,7 @@ class IncidentsList extends DeprecatedAsyncComponent<
             <Layout.Main fullWidth>
               {!this.tryRenderOnboarding() && (
                 <Fragment>
-                  <StyledAlert type="info" showIcon>
+                  <StyledAlert type="info">
                     {t('This page only shows metric alerts.')}
                   </StyledAlert>
                   <FilterBar
@@ -301,7 +301,9 @@ function IncidentsListContainer(props: Props) {
     <Layout.Body>
       <Layout.Main fullWidth>
         <Alert.Container>
-          <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+          <Alert type="warning" showIcon={false}>
+            {t("You don't have access to this feature")}
+          </Alert>
         </Alert.Container>
       </Layout.Main>
     </Layout.Body>

@@ -307,7 +307,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                 additionalInfo: params.isPerformanceSelected ? (
                   <Fragment>
                     <p>{configureAdditionalInfo}</p>
-                    <Alert type="info">
+                    <Alert type="info" showIcon={false}>
                       {t(
                         'To monitor performance, you need to add extra instrumentation as described in the Tracing section below.'
                       )}

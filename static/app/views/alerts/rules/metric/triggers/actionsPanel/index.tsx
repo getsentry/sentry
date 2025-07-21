@@ -153,7 +153,6 @@ class ActionsPanel extends PureComponent<Props> {
       return (
         <FooterAlert
           type="info"
-          showIcon
           trailingItems={
             <ExternalLink href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error">
               {t('Learn More')}
@@ -168,7 +167,6 @@ class ActionsPanel extends PureComponent<Props> {
       return (
         <FooterAlert
           type="info"
-          showIcon
           trailingItems={
             <ExternalLink href="https://docs.sentry.io/product/accounts/early-adopter-features/discord/#issue-alerts">
               {t('Learn More')}

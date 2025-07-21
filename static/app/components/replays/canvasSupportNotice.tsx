@@ -44,7 +44,6 @@ export function CanvasSupportNotice() {
   return (
     <StyledAlert
       type="info"
-      showIcon
       trailingItems={
         <Button
           aria-label={t('Dismiss banner')}

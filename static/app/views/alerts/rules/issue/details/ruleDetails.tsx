@@ -289,7 +289,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     if (incompatibleRule.conditionIndices || incompatibleRule.filterIndices) {
       return (
         <Alert.Container>
-          <Alert type="error" showIcon>
+          <Alert type="error">
             {tct(
               'The conditions in this alert rule conflict and might not be working properly. [link:Edit alert rule]',
               {
@@ -315,7 +315,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     if (rule?.status === 'disabled' && moment(new Date()).isAfter(rule.disableDate)) {
       return (
         <Alert.Container>
-          <Alert type="warning" showIcon>
+          <Alert type="warning">
             {tct(
               'This alert was disabled due to lack of activity. Please [keepAlive] to enable this alert.',
               {
@@ -335,7 +335,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     if (rule?.status === 'disabled') {
       return (
         <Alert.Container>
-          <Alert type="warning" showIcon>
+          <Alert type="warning">
             {rule.actions?.length === 0
               ? t(
                   'This alert is disabled due to missing actions. Please edit the alert rule to enable this alert.'
@@ -352,7 +352,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     if (rule?.disableDate && moment(rule.disableDate).isAfter(new Date())) {
       return (
         <Alert.Container>
-          <Alert type="warning" showIcon>
+          <Alert type="warning">
             {tct(
               'This alert is scheduled to be disabled [date] due to lack of activity. Please [keepAlive] to keep this alert active. [docs:Learn more]',
               {
@@ -465,7 +465,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
           {renderDisabledAlertBanner()}
           {isSnoozed && (
             <Alert.Container>
-              <Alert type="info" showIcon>
+              <Alert type="info">
                 {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
                   ? tct(
                       "[creator] muted this alert so these notifications won't be sent in the future.",

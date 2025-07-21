@@ -317,7 +317,7 @@ export default function SentryApplicationDetails(props: Props) {
           <Header>{t('Your new Client Secret')}</Header>
           <Body>
             <Alert.Container>
-              <Alert type="info" showIcon>
+              <Alert type="info">
                 {t('This will be the only time your client secret is visible!')}
               </Alert>
             </Alert.Container>
