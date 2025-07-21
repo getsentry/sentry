@@ -510,7 +510,7 @@ function AutofixSolutionDisplay({
                       )
                     : cantReadRepos
                       ? t(
-                          "Seer can't access any of your repos. Check your GitHub integration and configure repository access for Seer to write code for you."
+                          "Seer can't access any of your selected repos. Check your GitHub integration and make sure Seer has read access."
                         )
                       : undefined
                 }

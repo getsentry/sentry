@@ -46,8 +46,11 @@ function ProjectSeerSetting({project, orgSlug}: {orgSlug: string; project: Proje
     projectSlug: project.slug,
   });
 
-  const {preference, isPending: isLoadingPreferences} =
-    useProjectSeerPreferences(project);
+  const {
+    preference,
+    isPending: isLoadingPreferences,
+    codeMappingRepos,
+  } = useProjectSeerPreferences(project);
 
   if (detailedProject.isPending || isLoadingPreferences) {
     return (
@@ -64,7 +67,10 @@ function ProjectSeerSetting({project, orgSlug}: {orgSlug: string; project: Proje
   const {autofixAutomationTuning = 'off', seerScannerAutomation = false} =
     detailedProject.data;
 
-  const repoCount = preference?.repositories?.length || 0;
+  let repoCount = preference?.repositories?.length || 0;
+  if (repoCount === 0 && codeMappingRepos) {
+    repoCount = codeMappingRepos.length;
+  }
 
   return (
     <SeerValue>

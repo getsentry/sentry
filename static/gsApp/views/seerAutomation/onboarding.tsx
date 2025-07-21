@@ -17,6 +17,7 @@ import {Flex} from 'sentry/components/core/layout';
 import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
+import type {SeerRepoDefinition} from 'sentry/components/events/autofix/types';
 import {
   GuidedSteps,
   useGuidedStepsContext,
@@ -158,14 +159,19 @@ function ProjectPreferenceLoader({
   project,
   onUpdate,
 }: {
-  onUpdate: (project: Project, preference: any, isPending: boolean) => void;
+  onUpdate: (
+    project: Project,
+    preference: any,
+    isPending: boolean,
+    codeMappingRepos?: SeerRepoDefinition[]
+  ) => void;
   project: Project;
 }) {
-  const {preference, isPending} = useProjectSeerPreferences(project);
+  const {preference, isPending, codeMappingRepos} = useProjectSeerPreferences(project);
 
   useEffect(() => {
-    onUpdate(project, preference, isPending);
-  }, [project, preference, isPending, onUpdate]);
+    onUpdate(project, preference, isPending, codeMappingRepos);
+  }, [project, preference, isPending, onUpdate, codeMappingRepos]);
 
   return null;
 }
@@ -190,7 +196,12 @@ function ProjectsWithoutRepos({
   const [projectsWithoutReposCount, setProjectsWithoutReposCount] = useState(0);
 
   const handleProjectUpdate = useCallback(
-    (project: Project, preference: any, isPending: boolean) => {
+    (
+      project: Project,
+      preference: any,
+      isPending: boolean,
+      codeMappingRepos?: SeerRepoDefinition[]
+    ) => {
       setProjectStates(prev => {
         const prevState = prev[project.id];
         const newState = {...prev, [project.id]: {preference, isPending}};
@@ -202,7 +213,10 @@ function ProjectsWithoutRepos({
           !isPending &&
           !successfullyConnectedProjects.has(project.id)
         ) {
-          const repoCount = preference?.repositories?.length || 0;
+          let repoCount = preference?.repositories?.length || 0;
+          if (repoCount === 0 && codeMappingRepos) {
+            repoCount = codeMappingRepos.length;
+          }
           if (repoCount === 0) {
             setProjectsWithoutReposCount(count => count + 1);
           }
