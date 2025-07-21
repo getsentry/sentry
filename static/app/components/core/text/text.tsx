@@ -12,7 +12,7 @@ interface TextProps {
   /**
    * The HTML element to render the text as.
    */
-  as?: 'span' | 'p';
+  as?: 'span' | 'p' | 'div';
   bold?: boolean;
   /**
    * Density determines the line height of the text.
@@ -115,7 +115,13 @@ export const Text = styled(
   white-space: ${p => (p.wrap ? p.wrap : p.ellipsis ? 'nowrap' : undefined)};
   width: ${p => (p.ellipsis ? '100%' : undefined)};
   display: ${p =>
-    p.ellipsis ? (p.as === 'span' ? 'inline-block' : 'block') : undefined};
+    p.as === 'div'
+      ? 'block'
+      : p.ellipsis || p.align
+        ? p.as === 'span'
+          ? 'inline-block'
+          : 'block'
+        : undefined};
 
   font-family: ${p => (p.monospace ? p.theme.text.familyMono : p.theme.text.family)};
   font-weight: ${p => (p.bold ? p.theme.fontWeight.bold : undefined)};
