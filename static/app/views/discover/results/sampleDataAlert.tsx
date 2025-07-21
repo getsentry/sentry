@@ -42,7 +42,7 @@ export function SampleDataAlert({query}: {query?: string}) {
 
   return (
     <Alert.Container>
-      <Alert type="warning" showIcon>
+      <Alert type="warning">
         <AlertContent>
           {t(
             'Based on your search criteria and sample rate, the events available may be limited because Discover uses sampled data only.'

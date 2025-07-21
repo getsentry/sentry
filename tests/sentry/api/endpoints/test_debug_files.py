@@ -85,6 +85,42 @@ class DebugFilesTest(DebugFilesTestCases):
         dsyms = response.data
         assert len(dsyms) == 20
 
+    def test_dsyms_debugid_codeid_full_match(self):
+        self._do_test_dsyms_by_debugid_and_codeid(
+            ("dfb8e43a-f242-3d73-a453-aeb6a777ef75", "ae0459704fc7256"),
+            [(True, "dfb8e43a-f242-3d73-a453-aeb6a777ef75", "ae0459704fc7256")],
+        )
+
+    def test_dsyms_debugid_codeid_full_match_and_partials(self):
+        self._do_test_dsyms_by_debugid_and_codeid(
+            ("dfb8e43a-f242-3d73-a453-aeb6a777ef75", "ae0459704fc7256"),
+            [
+                (True, "dfb8e43a-f242-3d73-a453-aeb6a777ef75", "ae0459704fc7256"),
+                (False, "00000000-000000000-0000-000000000000", "ae0459704fc7256"),
+                (True, "dfb8e43a-f242-3d73-a453-aeb6a777ef75", "000000000000000"),
+            ],
+        )
+
+    def test_dsyms_debugid_codeid_only_codeid(self):
+        self._do_test_dsyms_by_debugid_and_codeid(
+            ("22222222-000000000-0000-000000000000", "ae0459704fc7256"),
+            [
+                (True, "10000000-000000000-0000-000000000000", "ae0459704fc7256"),
+                (True, "00000000-000000000-0000-000000000000", "ae0459704fc7256"),
+                (False, "dfb8e43a-f242-3d73-a453-aeb6a777ef75", "000000000000000"),
+            ],
+        )
+
+    def _do_test_dsyms_by_debugid_and_codeid(self, query, files):
+        for _, debug_id, code_id in files:
+            self.create_dif_file(debug_id=debug_id, code_id=code_id)
+
+        response = self.client.get(f"{self.url}?debug_id={query[0]}&code_id={query[1]}")
+        assert response.status_code == 200, response.content
+
+        actual = sorted((dsym["debugId"], dsym["codeId"]) for dsym in response.data)
+        assert actual == sorted((debug_id, code_id) for (exp, debug_id, code_id) in files if exp)
+
     def test_access_control(self):
         # create a debug files such as proguard:
         response = self._upload_proguard(self.url, PROGUARD_UUID)

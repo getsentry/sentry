@@ -40,7 +40,8 @@ function ReplayCurrentTimeNew() {
 }
 
 function OriginalReplayCurrentTime() {
-  const {currentTime, replay} = useReplayContext();
+  const replay = useReplayReader();
+  const {currentTime} = useReplayContext();
   const [prefs] = useReplayPrefs();
   const timestampType = prefs.timestampType;
   const startTimestamp = replay?.getStartTimestampMs() ?? 0;
