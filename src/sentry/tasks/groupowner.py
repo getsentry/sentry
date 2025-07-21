@@ -81,19 +81,40 @@ def _process_suspect_commits(
                     sorted(owner_scores.items(), reverse=True, key=lambda item: item[1])
                 )[:PREFERRED_GROUP_OWNERS]:
                     try:
-                        go, created = GroupOwner.objects.update_or_create(
-                            group_id=group_id,
-                            type=GroupOwnerType.SUSPECT_COMMIT.value,
-                            user_id=owner_id,
-                            project=project,
-                            organization_id=project.organization_id,
-                            defaults={
-                                "date_added": timezone.now(),
-                                "context": {
-                                    "suspectCommitStrategy": SuspectCommitStrategy.LEGACY.value,
+                        # update_or_create but handled this way to preserve other `context` content
+                        try:
+                            go = GroupOwner.objects.get(
+                                group_id=group_id,
+                                type=GroupOwnerType.SUSPECT_COMMIT.value,
+                                user_id=owner_id,
+                                project=project,
+                                organization_id=project.organization_id,
+                            )
+                            # Update existing fields: context and date_added
+                            existing_context = go.context or {}
+                            existing_context.update(
+                                {
+                                    "suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED.value,
+                                }
+                            )
+                            go.context = existing_context
+                            go.date_added = timezone.now()
+                            go.save()
+                            created = False
+                        except GroupOwner.DoesNotExist:
+                            # Create new record
+                            go = GroupOwner.objects.create(
+                                group_id=group_id,
+                                type=GroupOwnerType.SUSPECT_COMMIT.value,
+                                user_id=owner_id,
+                                project=project,
+                                organization_id=project.organization_id,
+                                date_added=timezone.now(),
+                                context={
+                                    "suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED.value,
                                 },
-                            },  # Updates date of an existing owner, since we just matched them with this new event
-                        )
+                            )
+                            created = True
                         if created:
                             owner_count += 1
                             if owner_count > PREFERRED_GROUP_OWNERS:

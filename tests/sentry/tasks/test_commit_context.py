@@ -247,7 +247,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         assert created_group_owner
         assert created_group_owner.context == {
             "commitId": existing_commit.id,
-            "suspectCommitStrategy": SuspectCommitStrategy.CURRENT.value,
+            "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED.value,
         }
 
         assert_any_analytics_event(
@@ -266,6 +266,88 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
                 selected_code_mapping_id=self.code_mapping.id,
             ),
         )
+
+    @patch("sentry.analytics.record")
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
+    )
+    def test_success_updating_group_owner(self, mock_get_commit_context, mock_record):
+        """
+        Runs through process_commit_context twice to make sure we aren't creating duplicate
+        GroupOwners for the same suggestion.
+        """
+        mock_get_commit_context.return_value = [self.blame_existing_commit]
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            existing_commit = self.create_commit(
+                project=self.project,
+                repo=self.repo,
+                author=self.commit_author,
+                key="existing-commit",
+            )
+            existing_commit.update(message="")
+            assert Commit.objects.count() == 2
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+
+        created_group_owner = GroupOwner.objects.get(
+            group=self.event.group,
+            project=self.event.project,
+            organization=self.event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        )
+
+        # Number of commit objects should remain the same
+        assert Commit.objects.count() == 2
+        commit = Commit.objects.get(key="existing-commit")
+
+        # Message should be updated
+        assert commit.message == "placeholder commit message"
+
+        assert created_group_owner
+        assert created_group_owner.context == {
+            "commitId": existing_commit.id,
+            "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED.value,
+        }
+
+        with self.tasks():
+            assert GroupOwner.objects.filter(group=self.event.group).count() == 1
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+
+        assert GroupOwner.objects.filter(group=self.event.group).count() == 1
+
+        updated_group_owner = GroupOwner.objects.get(
+            group=self.event.group,
+            project=self.event.project,
+            organization=self.event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        )
+
+        # Number of commit objects should remain the same
+        assert Commit.objects.count() == 2
+        commit = Commit.objects.get(key="existing-commit")
+
+        # Message should be unchanged
+        assert commit.message == "placeholder commit message"
+
+        assert updated_group_owner
+        assert updated_group_owner.context == {
+            "commitId": existing_commit.id,
+            "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED.value,
+        }
 
     @patch("sentry.analytics.record")
     @patch(
@@ -315,7 +397,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         ).context == {
             "commitId": created_commit.id,
-            "suspectCommitStrategy": SuspectCommitStrategy.CURRENT.value,
+            "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED.value,
         }
 
     @patch("sentry.analytics.record")
@@ -356,7 +438,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
 
         assert created_group_owner.context == {
             "commitId": created_commit.id,
-            "suspectCommitStrategy": SuspectCommitStrategy.CURRENT.value,
+            "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED.value,
         }
 
     @patch("sentry.analytics.record")
@@ -1261,7 +1343,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             organization_id=self.project.organization_id,
             context={
                 "commitId": self.commit.id,
-                "suspectCommitStrategy": SuspectCommitStrategy.CURRENT.value,
+                "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED.value,
             },
             date_added=timezone.now(),
         )
@@ -1314,7 +1396,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             organization_id=self.project.organization_id,
             context={
                 "commitId": self.commit.id,
-                "suspectCommitStrategy": SuspectCommitStrategy.CURRENT.value,
+                "suspectCommitStrategy": "scm_based",
             },
             date_added=timezone.now(),
         )

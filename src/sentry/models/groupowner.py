@@ -4,7 +4,7 @@ import itertools
 from collections import defaultdict
 from collections.abc import Sequence
 from datetime import datetime, timedelta
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Any, TypedDict
 
 from django.conf import settings
@@ -48,9 +48,9 @@ GROUP_OWNER_TYPE = {
 }
 
 
-class SuspectCommitStrategy(Enum):
-    LEGACY = 0
-    CURRENT = 1
+class SuspectCommitStrategy(StrEnum):
+    RELEASE_BASED = "release_based"  # legacy strategy, used as fallback if scm_based fails
+    SCM_BASED = "scm_based"
 
 
 class OwnersSerialized(TypedDict):

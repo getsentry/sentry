@@ -183,21 +183,42 @@ def process_commit_context(
             author_to_user = get_users_for_authors(commit.organization_id, authors)
             user_dct: Mapping[str, Any] = author_to_user.get(str(commit.author_id), {})
 
-            group_owner, created = GroupOwner.objects.update_or_create(
-                group_id=group_id,
-                type=GroupOwnerType.SUSPECT_COMMIT.value,
-                user_id=user_dct.get("id"),
-                project=project,
-                organization_id=project.organization_id,
-                context={"commitId": commit.id},
-                defaults={
-                    "date_added": django_timezone.now(),
-                    "context": {
+            # update_or_create but handled this way to preserve other `context` content
+            try:
+                group_owner = GroupOwner.objects.get(
+                    group_id=group_id,
+                    type=GroupOwnerType.SUSPECT_COMMIT.value,
+                    user_id=user_dct.get("id"),
+                    project=project,
+                    organization_id=project.organization_id,
+                    context__contains=f'"commitId":{commit.id}',
+                )
+                # Update existing fields: context and date_added
+                existing_context = group_owner.context or {}
+                existing_context.update(
+                    {
+                        "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED.value,
+                    }
+                )
+                group_owner.context = existing_context
+                group_owner.date_added = django_timezone.now()
+                group_owner.save()
+                created = False
+            except GroupOwner.DoesNotExist:
+                # Create new record
+                group_owner = GroupOwner.objects.create(
+                    group_id=group_id,
+                    type=GroupOwnerType.SUSPECT_COMMIT.value,
+                    user_id=user_dct.get("id"),
+                    project=project,
+                    organization_id=project.organization_id,
+                    date_added=django_timezone.now(),
+                    context={
                         "commitId": commit.id,
-                        "suspectCommitStrategy": SuspectCommitStrategy.CURRENT.value,
+                        "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED.value,
                     },
-                },
-            )
+                )
+                created = True
 
             if installation and isinstance(installation, CommitContextIntegration):
                 installation.queue_pr_comment_task_if_needed(project, commit, group_owner, group_id)
