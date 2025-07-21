@@ -74,9 +74,26 @@ Text components support various color variants: `primary` (default), `muted`, `a
 <Text variant="promotion">Promotion text</Text>
 ```
 
+### Custom Elements with `as` Prop
+
+The `<Text>` component can be rendered as different HTML elements using the `as` prop. This allows you to maintain semantic meaning while applying the component's styling.
+
+<Storybook.Demo>
+  <Storybook.SideBySide vertical>
+    <Text as="p">Text rendered as a paragraph element</Text>
+    <Text as="span">Text rendered as a span element</Text>
+    <Text as="div">Text rendered as a div element</Text>
+  </Storybook.SideBySide>
+</Storybook.Demo>
+```jsx
+<Text as="p">Text rendered as a paragraph element</Text>
+<Text as="span">Text rendered as a span element</Text>
+<Text as="div">Text rendered as a div element</Text>
+```
+
 ### Headings
 
-The `<Heading>` component creates semantic heading elements with appropriate default sizes. Headings are bold by default.
+The `<Heading>` component creates semantic heading elements with appropriate default sizes. The size of a heading can be overridden with the `size` prop.
 
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
