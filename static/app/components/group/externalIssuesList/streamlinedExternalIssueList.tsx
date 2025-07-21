@@ -189,6 +189,7 @@ function ExternalIssueMenu(props: ReturnType<typeof useGroupExternalIssues>) {
 }
 
 function ExternalIssueSubmenu(props: {integration: ExternalIssueIntegration}) {
+  const organization = useOrganization({allowNull: false});
   const {integration} = props;
   const {overlayState} = useContext(SelectContext);
   return integration.actions.map(action => {
@@ -203,6 +204,10 @@ function ExternalIssueSubmenu(props: {integration: ExternalIssueIntegration}) {
     const callbackProps: Record<string, () => void> = {
       onPointerDown: () => {
         overlayState?.close();
+        trackAnalytics('feedback.details-integration-issue-clicked', {
+          organization,
+          integration_key: integration.key,
+        });
         action.onClick();
       },
     };
