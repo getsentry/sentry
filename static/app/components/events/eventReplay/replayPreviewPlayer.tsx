@@ -22,6 +22,7 @@ import {space} from 'sentry/styles/space';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
+import {TimelineScaleContextProvider} from 'sentry/utils/replays/hooks/useTimelineScale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -173,7 +174,9 @@ export default function ReplayPreviewPlayer({
                 />
               )}
               <Container>
-                <TimeAndScrubberGrid />
+                <TimelineScaleContextProvider>
+                  <TimeAndScrubberGrid />
+                </TimelineScaleContextProvider>
               </Container>
               <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />
             </ButtonGrid>

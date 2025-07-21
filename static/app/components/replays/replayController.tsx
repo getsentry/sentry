@@ -13,6 +13,7 @@ import {IconNext, IconRewind10} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getNextReplayFrame} from 'sentry/utils/replays/getReplayEvent';
+import {TimelineScaleContextProvider} from 'sentry/utils/replays/hooks/useTimelineScale';
 
 const SECOND = 1000;
 
@@ -89,7 +90,9 @@ export default function ReplayController({
     <ButtonGrid ref={barRef} isCompact={isCompact}>
       <ReplayPlayPauseBar isLoading={isLoading} />
 
-      <TimeAndScrubberGrid isCompact={isCompact} showZoom isLoading={isLoading} />
+      <TimelineScaleContextProvider>
+        <TimeAndScrubberGrid isCompact={isCompact} showZoom isLoading={isLoading} />
+      </TimelineScaleContextProvider>
 
       <ButtonBar>
         <ReplayPreferenceDropdown

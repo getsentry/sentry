@@ -9,15 +9,16 @@ import Duration from 'sentry/components/duration/duration';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
 import ReplayCurrentTime from 'sentry/components/replays/player/replayCurrentTime';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
-import {useScrubberMouseTracking} from 'sentry/components/replays/player/useScrubberMouseTracking';
+import {
+  useScrubberMouseTracking,
+  useTimelineMouseTracking,
+} from 'sentry/components/replays/player/useReplayControllerMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useTimelineScale, {
-  TimelineScaleContextProvider,
-} from 'sentry/utils/replays/hooks/useTimelineScale';
+import useTimelineScale from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -89,50 +90,52 @@ export default function TimeAndScrubberGrid({
   const startTimestamp = replay?.getStartTimestampMs() ?? 0;
   const durationMs = replay?.getDurationMs();
   const timelineElemRef = useRef<HTMLDivElement>(null);
-  const timelineMouseTrackingProps = useScrubberMouseTracking({elem: timelineElemRef});
+  const [timelineScale] = useTimelineScale();
+  const timelineMouseTrackingProps = useTimelineMouseTracking({
+    elem: timelineElemRef,
+    scale: timelineScale,
+  });
   const scrubberElemRef = useRef<HTMLDivElement>(null);
   const scrubberMouseTrackingProps = useScrubberMouseTracking({elem: scrubberElemRef});
 
   return (
-    <TimelineScaleContextProvider>
-      <Grid id="replay-timeline-player" isCompact={isCompact}>
-        <Padded style={{gridArea: 'currentTime'}}>
-          <ReplayCurrentTime />
-        </Padded>
+    <Grid id="replay-timeline-player" isCompact={isCompact}>
+      <Padded style={{gridArea: 'currentTime'}}>
+        <ReplayCurrentTime />
+      </Padded>
 
-        <TimelineWrapper
-          style={{gridArea: 'timeline'}}
-          ref={timelineElemRef}
-          {...timelineMouseTrackingProps}
-        >
-          <ReplayTimeline />
-        </TimelineWrapper>
+      <TimelineWrapper
+        style={{gridArea: 'timeline'}}
+        ref={timelineElemRef}
+        {...timelineMouseTrackingProps}
+      >
+        <ReplayTimeline />
+      </TimelineWrapper>
 
-        {showZoom ? (
-          <div style={{gridArea: 'timelineSize'}}>
-            <TimelineSizeBar isLoading={isLoading} />
-          </div>
-        ) : null}
+      {showZoom ? (
+        <div style={{gridArea: 'timelineSize'}}>
+          <TimelineSizeBar isLoading={isLoading} />
+        </div>
+      ) : null}
 
-        <ScrubberWrapper
-          style={{gridArea: 'scrubber'}}
-          ref={scrubberElemRef}
-          {...scrubberMouseTrackingProps}
-        >
-          <PlayerScrubber showZoomIndicators={showZoom} />
-        </ScrubberWrapper>
+      <ScrubberWrapper
+        style={{gridArea: 'scrubber'}}
+        ref={scrubberElemRef}
+        {...scrubberMouseTrackingProps}
+      >
+        <PlayerScrubber showZoomIndicators={showZoom} />
+      </ScrubberWrapper>
 
-        <Padded style={{gridArea: 'duration'}}>
-          {durationMs === undefined ? (
-            '--:--'
-          ) : timestampType === 'absolute' ? (
-            <DateTime timeOnly seconds date={startTimestamp + durationMs} />
-          ) : (
-            <Duration duration={[durationMs, 'ms']} precision="sec" />
-          )}
-        </Padded>
-      </Grid>
-    </TimelineScaleContextProvider>
+      <Padded style={{gridArea: 'duration'}}>
+        {durationMs === undefined ? (
+          '--:--'
+        ) : timestampType === 'absolute' ? (
+          <DateTime timeOnly seconds date={startTimestamp + durationMs} />
+        ) : (
+          <Duration duration={[durationMs, 'ms']} precision="sec" />
+        )}
+      </Padded>
+    </Grid>
   );
 }
 
