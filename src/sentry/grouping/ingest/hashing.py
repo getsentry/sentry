@@ -256,7 +256,7 @@ def get_or_create_grouphashes(
             # existing hash. (Yes, this is an overestimate, because this will fire every time we see a given
             # non-backfilled grouphash, not the once per non-backfilled grouphash we'd actually be doing a
             # backfill, but it will give us a ceiling from which we can work down.)
-            metrics.incr("grouping.grouphashmetadata.backfill_needed")
+            metrics.incr("grouping.grouphashmetadata.backfill_needed", sample_rate=1.0)
 
         grouphashes.append(grouphash)
 
