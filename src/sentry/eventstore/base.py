@@ -22,7 +22,7 @@ class Filter:
 
     start (DateTime): Start datetime - default None
     end (DateTime): Start datetime - default None
-    conditions (Sequence[Sequence[str, str, Any]]): List of conditions to fetch - default None
+    conditions (Sequence[tuple[str, str, Any]]): List of conditions to fetch - default None
     having (Sequence[str, str, Any]]): List of having conditions to filter by - default None
     user_id (int): The user ID to fetch - default None
     organization_id (int): The organization ID to fetch - default None
@@ -43,7 +43,7 @@ class Filter:
         self,
         start: datetime | None = None,
         end: datetime | None = None,
-        conditions: Sequence[Sequence[str, str, Any]] | None = None,
+        conditions: Sequence[tuple[str, str, Any]] | None = None,
         having: Sequence[Condition] | None = None,
         user_id: int | None = None,
         organization_id: int | None = None,
@@ -280,7 +280,7 @@ class EventStorage(Service):
         event: Event | GroupEvent,
         start: datetime | None = None,
         end: datetime | None = None,
-        conditions: Sequence[Condition] | None = None,
+        conditions: list[list[str, str, Any]] | None = None,
     ) -> list[tuple[str, str] | None]:
         raise NotImplementedError
 

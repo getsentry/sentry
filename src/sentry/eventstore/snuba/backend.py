@@ -461,7 +461,7 @@ class SnubaEventStorage(EventStorage):
         event: Event | GroupEvent,
         start: datetime | None = None,
         end: datetime | None = None,
-        conditions: Sequence[Condition] | None = None,
+        conditions: list[list[str, str, Any]] | None = None,
     ) -> list[tuple[str, str] | None]:
         """
         Utility function for grabbing an event's adjacent events,
@@ -605,7 +605,7 @@ class SnubaEventStorage(EventStorage):
 
         prev_filter = deepcopy(filter)
         prev_filter.conditions = prev_filter.conditions or []
-        prev_filter.conditions.extend(get_before_event_condition(event))
+        prev_filter.conditions.extend(get_before_event_condition(event))  # type: ignore[arg-type]
         if not prev_filter.start:
             # We only store 90 days of data, add a few extra days just in case
             prev_filter.start = event.datetime - timedelta(days=100)
@@ -616,7 +616,7 @@ class SnubaEventStorage(EventStorage):
 
         next_filter = deepcopy(filter)
         next_filter.conditions = next_filter.conditions or []
-        next_filter.conditions.extend(get_after_event_condition(event))
+        next_filter.conditions.extend(get_after_event_condition(event))  # type: ignore[arg-type]
         next_filter.start = event.datetime
         if not next_filter.end:
             next_filter.end = datetime.utcnow()
