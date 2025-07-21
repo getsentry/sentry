@@ -22,9 +22,10 @@ def make_exception_snapshot(insta_snapshot):
             "to_string": interface and interface.to_string(evt),
         }
 
-        tags = sorted(interface.iter_tags())
-        if len(tags) > 0:
-            snapshot_values["tags"] = tags
+        if interface:
+            tags = sorted(interface.iter_tags())
+            if len(tags) > 0:
+                snapshot_values["tags"] = tags
 
         insta_snapshot(snapshot_values)
 
