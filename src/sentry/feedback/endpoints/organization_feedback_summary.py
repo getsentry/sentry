@@ -138,8 +138,12 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
             feedbacks=group_feedbacks,
         )
 
-        summary = json.loads(make_seer_request(request).decode("utf-8"))
-        summary = summary["data"]
+        try:
+            summary = json.loads(make_seer_request(request).decode("utf-8"))
+            summary = summary["data"]
+        except Exception:
+            logger.exception("Error generating summary of user feedbacks")
+            return Response({"detail": "Error generating summary"}, status=500)
 
         cache.set(
             summary_cache_key,
