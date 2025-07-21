@@ -461,7 +461,7 @@ class SnubaEventStorage(EventStorage):
         event: Event | GroupEvent,
         start: datetime | None = None,
         end: datetime | None = None,
-        conditions: Sequence[Any] | None = None,
+        conditions: list[Any] | None = None,
     ) -> list[tuple[str, str] | None]:
         """
         Utility function for grabbing an event's adjacent events,
