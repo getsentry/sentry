@@ -33,6 +33,7 @@ describe('add to dashboard modal', () => {
     widgetPreview: [],
     projects: [],
     environment: [],
+    filters: {},
   };
   const testDashboard: DashboardDetails = {
     id: '1',

@@ -35,9 +35,9 @@ function EmptySelectorsMessage() {
 }
 
 export default function TestsPage() {
-  const {integratedOrg, repository, branch, codecovPeriod} = useCodecovContext();
+  const {integratedOrgId, repository, branch, codecovPeriod} = useCodecovContext();
 
-  const shouldDisplayContent = integratedOrg && repository && branch && codecovPeriod;
+  const shouldDisplayContent = integratedOrgId && repository && branch && codecovPeriod;
 
   return (
     <LayoutGap>
