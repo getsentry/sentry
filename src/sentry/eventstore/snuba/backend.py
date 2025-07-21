@@ -625,20 +625,20 @@ class SnubaEventStorage(EventStorage):
         next_filter.orderby = ASC_ORDERING
 
         dataset = self._get_dataset_for_event(event)
-        results = self.__get_event_ids_from_filters(
+        return self.__get_event_ids_from_filters(
             filters=(prev_filter, next_filter),
             dataset=dataset,
             tenant_ids={"organization_id": event.project.organization_id},
         )
 
         # Convert the results to the expected format
-        prev_result = results[0] if len(results) > 0 else None
-        next_result = results[1] if len(results) > 1 else None
+        # prev_result = results[0] if len(results) > 0 else None
+        # next_result = results[1] if len(results) > 1 else None
 
-        prev_tuple = (prev_result[0], prev_result[1]) if prev_result else None
-        next_tuple = (next_result[0], next_result[1]) if next_result else None
+        # prev_tuple = (prev_result[0], prev_result[1]) if prev_result else None
+        # next_tuple = (next_result[0], next_result[1]) if next_result else None
 
-        return (prev_tuple, next_tuple)
+        # return (prev_tuple, next_tuple)
 
     def __get_columns(self, dataset: Dataset) -> list[str]:
         return [
@@ -683,7 +683,11 @@ class SnubaEventStorage(EventStorage):
             # and the current event generate impossible conditions.
             return [None for _ in filters]
 
-        return [self.__get_event_id_from_result(result) for result in results]
+        return [
+            result_tuple
+            for result in results
+            if (result_tuple := self.__get_event_id_from_result(result)) is not None
+        ]
 
     def __get_event_id_from_result(self, result: Mapping[str, Any]) -> tuple[str, str] | None:
         if "error" in result or len(result["data"]) == 0:

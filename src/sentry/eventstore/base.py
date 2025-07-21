@@ -52,7 +52,7 @@ class Filter:
         group_ids: Sequence[int] | None = None,
         event_ids: Sequence[str] | None = None,
         selected_columns: Sequence[str] | None = None,
-        aggregations: Sequence[Any] | None = None,
+        aggregations: Sequence[str] | None = None,
         rollup: int | None = None,
         groupby: Sequence[str] | None = None,
         orderby: Sequence[str] | None = None,
