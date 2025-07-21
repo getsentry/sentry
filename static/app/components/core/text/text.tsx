@@ -181,6 +181,11 @@ export const Heading = styled(
 
   text-box-edge: text text;
   text-box-trim: trim-both;
+
+  /**
+   * Our global CSS styles set heading margins for each heading element
+   */
+  margin: 0;
 `;
 
 function getDefaultHeadingFontSize(as: HeadingProps['as']): TextProps['size'] {
