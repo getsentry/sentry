@@ -37,6 +37,7 @@ OPTION_KEYS = frozenset(
         "sentry:default_environment",
         "sentry:blacklisted_ips",
         "sentry:releases",
+        "sentry:releases_package_name_override",
         "sentry:error_messages",
         "sentry:scrape_javascript",
         "sentry:replay_hydration_error_issues",

@@ -886,6 +886,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "sentry:blacklisted_ips",
                     clean_newline_inputs(options["filters:blacklisted_ips"]),
                 )
+            if "sentry:releases_package_name_override" in options:
+                project.update_option(
+                    "sentry:releases_package_name_override",
+                    options["sentry:releases_package_name_override"],
+                )
             if f"filters:{FilterTypes.RELEASES}" in options:
                 if features.has("projects:custom-inbound-filters", project, actor=request.user):
                     project.update_option(

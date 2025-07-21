@@ -1136,6 +1136,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "filters:react-hydration-errors": options.get("filters:react-hydration-errors", "1")
             in ("1", True),
             "filters:chunk-load-error": options.get("filters:chunk-load-error", "1") == "1",
+            "sentry:releases_package_name_override": options.get(
+                "sentry:releases_package_name_override", None
+            ),
             f"filters:{FilterTypes.RELEASES}": "\n".join(
                 options.get(f"sentry:{FilterTypes.RELEASES}", [])
             ),

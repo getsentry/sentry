@@ -138,6 +138,11 @@ register(
 )
 
 register(
+    key="sentry:releases_package_name_override",
+    default=None,
+)
+
+register(
     key="sentry:feedback_ai_spam_detection",
     default=True,
 )

@@ -785,6 +785,19 @@ class DetailedProjectSerializerTest(TestCase):
         result = serialize(self.project, self.user, DetailedProjectSerializer())
         assert result["options"]["sentry:feedback_user_report_notifications"] is False
 
+    def test_releases_package_name_override(self):
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["options"]["sentry:releases_package_name_override"] is None
+
+        self.project.update_option("sentry:releases_package_name_override", "hello")
+        assert result["options"]["sentry:releases_package_name_override"] == "hello"
+
+        self.project.update_option("sentry:releases_package_name_override", "world")
+        assert result["options"]["sentry:releases_package_name_override"] == "world"
+
+        self.project.update_option("sentry:releases_package_name_override", None)
+        assert result["options"]["sentry:releases_package_name_override"] is None
+
     def test_replay_rage_click_flag(self):
         result = serialize(self.project, self.user, DetailedProjectSerializer())
         # default should be true
