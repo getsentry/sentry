@@ -172,7 +172,7 @@ def make_seer_request(request: SummaryRequest) -> bytes:
     )
 
     if response.status_code != 200:
-        logger.warning(
+        logger.error(
             "Feedback: Failed to produce a summary for a list of feedbacks",
             extra={
                 "status_code": response.status_code,
