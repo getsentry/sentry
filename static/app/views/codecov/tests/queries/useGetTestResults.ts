@@ -61,12 +61,14 @@ interface TestResults {
 type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions];
 
 export function useInfiniteTestResults() {
-  const {integratedOrg, repository, branch, codecovPeriod} = useCodecovContext();
+  const {integratedOrgId, repository, branch, codecovPeriod} = useCodecovContext();
   const organization = useOrganization();
   const [searchParams] = useSearchParams();
 
   const sortBy = searchParams.get('sort') || '-commitsFailed';
   const signedSortBy = sortValueToSortKey(sortBy);
+
+  const term = searchParams.get('term') || '';
 
   const filterBy = searchParams.get('filterBy') as SummaryFilterKey;
   let mappedFilterBy = null;
@@ -81,8 +83,8 @@ export function useInfiniteTestResults() {
     QueryKey
   >({
     queryKey: [
-      `/organizations/${organization.slug}/prevent/owner/${integratedOrg}/repository/${repository}/test-results/`,
-      {query: {branch, codecovPeriod, signedSortBy, mappedFilterBy}},
+      `/organizations/${organization.slug}/prevent/owner/${integratedOrgId}/repository/${repository}/test-results/`,
+      {query: {branch, codecovPeriod, signedSortBy, mappedFilterBy, term}},
     ],
     queryFn: async ({
       queryKey: [url],
@@ -101,6 +103,7 @@ export function useInfiniteTestResults() {
                 ],
               sortBy: signedSortBy,
               branch,
+              term,
               ...(mappedFilterBy ? {filterBy: mappedFilterBy} : {}),
             },
           },

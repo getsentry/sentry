@@ -328,7 +328,9 @@ function ManageDashboards() {
     return (
       <Layout.Page>
         <Alert.Container>
-          <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+          <Alert type="warning" showIcon={false}>
+            {t("You don't have access to this feature")}
+          </Alert>
         </Alert.Container>
       </Layout.Page>
     );
@@ -476,7 +478,7 @@ function ManageDashboards() {
                     </Layout.Title>
                   </Layout.HeaderContent>
                   <Layout.HeaderActions>
-                    <ButtonBar gap={1.5}>
+                    <ButtonBar gap="lg">
                       <TemplateSwitch>
                         {t('Show Templates')}
                         <Switch

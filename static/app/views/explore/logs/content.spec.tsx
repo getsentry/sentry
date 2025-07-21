@@ -2,25 +2,10 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import LogsPage from './content';
 
-function ProviderWrapper({
-  children,
-  organization,
-}: {
-  children: React.ReactNode;
-  organization: any;
-}) {
-  return (
-    <OrganizationContext.Provider value={organization}>
-      {children}
-    </OrganizationContext.Provider>
-  );
-}
-
-const BASE_FEATURES = ['ourlogs-enabled'];
+const BASE_FEATURES = ['ourlogs-enabled', 'ourlogs-visualize-sidebar'];
 
 describe('LogsPage', function () {
   const {organization, project} = initializeOrg({
@@ -118,16 +103,12 @@ describe('LogsPage', function () {
   });
 
   it('should call APIs as expected', async function () {
-    render(
-      <ProviderWrapper organization={organization}>
-        <LogsPage />
-      </ProviderWrapper>,
-      {
-        initialRouterConfig: {
-          location: `/organizations/${organization.slug}/explore/logs/`,
-        },
-      }
-    );
+    render(<LogsPage />, {
+      organization,
+      initialRouterConfig: {
+        location: `/organizations/${organization.slug}/explore/logs/`,
+      },
+    });
 
     await waitFor(() => {
       expect(eventTableMock).toHaveBeenCalled();
@@ -142,6 +123,63 @@ describe('LogsPage', function () {
     expect(table).not.toHaveTextContent(/auto refresh/i);
     expect(table).toHaveTextContent(/some log message1/);
     expect(table).toHaveTextContent(/some log message2/);
+  });
+
+  it('should call aggregates APIs as expected', async function () {
+    render(<LogsPage />, {
+      organization,
+      initialRouterConfig: {
+        location: `/organizations/${organization.slug}/explore/logs/`,
+      },
+    });
+
+    await waitFor(() => {
+      expect(eventTableMock).toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      expect(eventStatsMock).toHaveBeenCalled();
+    });
+
+    eventTableMock.mockClear();
+    eventStatsMock.mockClear();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Expand sidebar'}));
+    await userEvent.click(screen.getByRole('button', {name: '\u2014'}));
+    await userEvent.click(screen.getByRole('option', {name: 'severity'}));
+    await userEvent.click(screen.getByRole('tab', {name: 'Aggregates'}));
+
+    await waitFor(() => {
+      expect(eventTableMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            environment: [],
+            statsPeriod: '24h',
+            dataset: 'ourlogs',
+            field: ['severity', 'count(message)'],
+            sort: '-count(message)',
+          }),
+        })
+      );
+    });
+
+    await waitFor(() => {
+      expect(eventStatsMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events-stats/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            environment: [],
+            statsPeriod: '24h',
+            dataset: 'ourlogs',
+            field: ['severity', 'count(message)'],
+            yAxis: 'count(message)',
+            orderby: '-count_message',
+            interval: '5m',
+          }),
+        })
+      );
+    });
   });
 
   it('enables autorefresh when Switch is clicked', async function () {
@@ -171,16 +209,12 @@ describe('LogsPage', function () {
       },
     });
 
-    render(
-      <ProviderWrapper organization={newOrganization}>
-        <LogsPage />
-      </ProviderWrapper>,
-      {
-        initialRouterConfig: {
-          location: `/organizations/${newOrganization.slug}/explore/logs/`,
-        },
-      }
-    );
+    render(<LogsPage />, {
+      organization: newOrganization,
+      initialRouterConfig: {
+        location: `/organizations/${newOrganization.slug}/explore/logs/`,
+      },
+    });
 
     await waitFor(() => {
       expect(screen.getByTestId('logs-table')).toBeInTheDocument();

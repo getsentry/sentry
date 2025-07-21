@@ -29,6 +29,30 @@ class PreprodArtifactApiAssembleGenericEvent(analytics.Event):
     )
 
 
+class PreprodArtifactApiSizeAnalysisDownloadEvent(analytics.Event):
+    type = "preprod_artifact.api.size_analysis_download"
+
+    attributes = (
+        analytics.Attribute("organization_id"),
+        analytics.Attribute("project_id"),
+        analytics.Attribute("user_id", required=False),
+        analytics.Attribute("artifact_id"),
+    )
+
+
+class PreprodArtifactApiGetBuildDetailsEvent(analytics.Event):
+    type = "preprod_artifact.api.get_build_details"
+
+    attributes = (
+        analytics.Attribute("organization_id"),
+        analytics.Attribute("project_id"),
+        analytics.Attribute("user_id", required=False),
+        analytics.Attribute("artifact_id"),
+    )
+
+
 analytics.register(PreprodArtifactApiAssembleEvent)
 analytics.register(PreprodArtifactApiUpdateEvent)
 analytics.register(PreprodArtifactApiAssembleGenericEvent)
+analytics.register(PreprodArtifactApiSizeAnalysisDownloadEvent)
+analytics.register(PreprodArtifactApiGetBuildDetailsEvent)

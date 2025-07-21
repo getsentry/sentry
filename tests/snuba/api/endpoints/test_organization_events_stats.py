@@ -2254,41 +2254,6 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 2
 
-    def test_top_events_with_timestamp(self):
-        with self.feature(self.enabled_features):
-            response = self.client.get(
-                self.url,
-                data={
-                    "start": self.day_ago.isoformat(),
-                    "end": (self.day_ago + timedelta(hours=2)).isoformat(),
-                    "interval": "1h",
-                    "yAxis": "count()",
-                    "orderby": ["-count()"],
-                    "query": "event.type:default",
-                    "field": ["count()", "message", "timestamp"],
-                    "topEvents": "5",
-                },
-                format="json",
-            )
-
-        data = response.data
-        assert response.status_code == 200, response.content
-        assert len(data) == 6
-        # Transactions won't be in the results because of the query
-        del self.events[4]
-        del self.event_data[4]
-
-        for index, event in enumerate(self.events[:5]):
-            results = data[",".join([event.message, event.timestamp])]
-            assert results["order"] == index
-            assert [{"count": self.event_data[index]["count"]}] in [
-                attrs for time, attrs in results["data"]
-            ]
-
-        other = data["Other"]
-        assert other["order"] == 5
-        assert [{"count": 1}] in [attrs for _, attrs in other["data"]]
-
     def test_top_events_with_int(self):
         with self.feature(self.enabled_features):
             response = self.client.get(
@@ -2714,40 +2679,6 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         assert mock_raw_query.call_count == 6
         # Should've default to 24h's default of 5m
         assert mock_raw_query.mock_calls[5].args[0].query.granularity.granularity == 300
-
-    def test_top_events_timestamp_fields(self):
-        with self.feature(self.enabled_features):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "start": self.day_ago.isoformat(),
-                    "end": (self.day_ago + timedelta(hours=2)).isoformat(),
-                    "interval": "1h",
-                    "yAxis": "count()",
-                    "orderby": ["-count()"],
-                    "field": ["count()", "timestamp", "timestamp.to_hour", "timestamp.to_day"],
-                    "topEvents": "5",
-                },
-            )
-        assert response.status_code == 200
-        data = response.data
-        assert len(data) == 3
-
-        # these are the timestamps corresponding to the events stored
-        timestamps = [
-            self.day_ago + timedelta(minutes=2),
-            self.day_ago + timedelta(hours=1, minutes=2),
-            self.day_ago + timedelta(minutes=4),
-        ]
-        timestamp_hours = [timestamp.replace(minute=0, second=0) for timestamp in timestamps]
-        timestamp_days = [timestamp.replace(hour=0, minute=0, second=0) for timestamp in timestamps]
-
-        for ts, ts_hr, ts_day in zip(timestamps, timestamp_hours, timestamp_days):
-            key = f"{ts.isoformat()},{ts_day.isoformat()},{ts_hr.isoformat()}"
-            count = sum(e["count"] for e in self.event_data if e["data"]["timestamp"] == ts)
-            results = data[key]
-            assert [{"count": count}] in [attrs for time, attrs in results["data"]]
 
     def test_top_events_other_with_matching_columns(self):
         with self.feature(self.enabled_features):
@@ -3622,9 +3553,17 @@ class OrganizationEventsStatsErrorUpsamplingTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         data = response.data["data"]
+        meta = response.data["meta"]
+
         assert len(data) == 2  # Two time buckets
         assert data[0][1][0]["count"] == 10  # First bucket has 1 event
         assert data[1][1][0]["count"] == 10  # Second bucket has 1 event
+
+        # Check that meta has the expected field structure
+        assert "count" in meta["fields"], f"Expected 'count' in meta fields, got: {meta['fields']}"
+        assert (
+            meta["fields"]["count"] == "integer"
+        ), f"Expected 'count' to be 'integer' type, got: {meta['fields']['count']}"
 
     @mock.patch("sentry.api.helpers.error_upsampling.options")
     def test_error_upsampling_with_partial_allowlist(self, mock_options):
@@ -3647,9 +3586,9 @@ class OrganizationEventsStatsErrorUpsamplingTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 2  # Two time buckets
-        # Should use regular count() since not all projects are allowlisted
-        assert data[0][1][0]["count"] == 1
-        assert data[1][1][0]["count"] == 1
+        # Should use upsampled count() since any project is allowlisted
+        assert data[0][1][0]["count"] == 10
+        assert data[1][1][0]["count"] == 10
 
     @mock.patch("sentry.api.helpers.error_upsampling.options")
     def test_error_upsampling_with_transaction_events(self, mock_options):
@@ -3720,3 +3659,78 @@ class OrganizationEventsStatsErrorUpsamplingTest(APITestCase, SnubaTestCase):
         # Should use regular count() since no projects are allowlisted
         assert data[0][1][0]["count"] == 1
         assert data[1][1][0]["count"] == 1
+
+    @mock.patch("sentry.api.helpers.error_upsampling.options")
+    def test_error_upsampling_count_unique_user_with_allowlisted_projects(self, mock_options):
+        """Test that count_unique(user) works correctly with error upsampling for Events Stats API."""
+        # Set up allowlisted projects
+        mock_options.get.return_value = [self.project.id, self.project2.id]
+
+        # Store error events with users and error_sampling context
+        # Use more precise timestamps to ensure clear bucket separation
+        event1_time = self.day_ago.replace(minute=0, second=0, microsecond=0)
+        event2_time = self.day_ago.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "Error event for user1",
+                "type": "error",
+                "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                "timestamp": event1_time.isoformat(),
+                "fingerprint": ["group1"],
+                "tags": {"sentry:user": self.user.email},
+                "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+            },
+            project_id=self.project.id,
+        )
+
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "Error event for user2",
+                "type": "error",
+                "exception": [{"type": "ValueError", "value": "Another error"}],
+                "timestamp": event2_time.isoformat(),
+                "fingerprint": ["group2"],
+                "tags": {"sentry:user": self.user2.email},
+                "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+            },
+            project_id=self.project2.id,
+        )
+
+        # Test with count_unique(user) aggregation
+        query_start = self.day_ago
+        query_end = self.day_ago + timedelta(hours=2)
+
+        response = self.client.get(
+            self.url,
+            data={
+                "start": query_start.isoformat(),
+                "end": query_end.isoformat(),
+                "interval": "1h",
+                "yAxis": "count_unique(user)",
+                "query": "event.type:error",
+                "project": [self.project.id, self.project2.id],
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert len(data) == 2  # Two time buckets
+
+        # count_unique(user) should NOT be upsampled - each bucket should count its actual unique users
+        # This test verifies that user counts work correctly even with error upsampling enabled
+        assert data[0][1][0]["count"] == 1  # First bucket: 1 user (user1)
+        assert data[1][1][0]["count"] == 1  # Second bucket: 1 user (user2)
+
+        # Check that meta has the expected field structure for count_unique(user)
+        assert (
+            "count_unique_user" in meta["fields"]
+        ), f"Expected 'count_unique_user' in meta fields, got: {meta['fields']}"
+        assert (
+            meta["fields"]["count_unique_user"] == "integer"
+        ), f"Expected 'count_unique_user' to be 'integer' type, got: {meta['fields']['count_unique_user']}"

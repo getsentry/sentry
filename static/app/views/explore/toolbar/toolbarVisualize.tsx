@@ -22,6 +22,14 @@ import {
   getFieldDefinition,
 } from 'sentry/utils/fields';
 import {
+  ToolbarFooter,
+  ToolbarFooterButton,
+  ToolbarHeader,
+  ToolbarLabel,
+  ToolbarRow,
+  ToolbarSection,
+} from 'sentry/views/explore/components/toolbar/styles';
+import {
   useExploreVisualizes,
   useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
@@ -33,16 +41,8 @@ import {
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
-
-import {
-  ToolbarFooter,
-  ToolbarFooterButton,
-  ToolbarHeader,
-  ToolbarLabel,
-  ToolbarRow,
-  ToolbarSection,
-} from './styles';
 
 interface ToolbarVisualizeProps {
   allowEquations: boolean;
@@ -206,6 +206,11 @@ function VisualizeEquation({
     [group, setVisualizes, visualizes]
   );
 
+  const getSuggestedAttribute = useExploreSuggestedAttribute({
+    numberAttributes: numberTags,
+    stringAttributes: stringTags,
+  });
+
   return (
     <ToolbarRow>
       <ArithmeticBuilder
@@ -214,6 +219,7 @@ function VisualizeEquation({
         getFieldDefinition={getSpanFieldDefinition}
         expression={expression}
         setExpression={handleExpressionChange}
+        getSuggestedKey={getSuggestedAttribute}
       />
       <Button
         borderless

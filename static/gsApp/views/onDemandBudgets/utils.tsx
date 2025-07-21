@@ -63,6 +63,7 @@ export function parseOnDemandBudgets(
       profileDurationBudget: 0,
       profileDurationUIBudget: 0,
       uptimeBudget: 0,
+      logBytesBudget: 0,
       // Spread the calculated values over the defaults
       ...categoryBudgets,
       budgets: parsedBudgets,
@@ -150,10 +151,7 @@ function getBudgetMode(budget: OnDemandBudgets) {
 }
 
 export function getOnDemandBudget(budget: OnDemandBudgets, dataCategory: DataCategory) {
-  if (
-    budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY &&
-    dataCategory in budget.budgets
-  ) {
+  if (budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
     return budget.budgets[dataCategory] ?? 0;
   }
   return getTotalBudget(budget);
@@ -209,6 +207,7 @@ export function trackOnDemandBudgetAnalytics(
       error_budget: getOnDemandBudget(newBudget, DataCategory.ERRORS),
       transaction_budget: getOnDemandBudget(newBudget, DataCategory.TRANSACTIONS),
       attachment_budget: getOnDemandBudget(newBudget, DataCategory.ATTACHMENTS),
+      log_byte_budget: getOnDemandBudget(newBudget, DataCategory.LOG_BYTE),
 
       // previous budget
       previous_strategy: getBudgetMode(previousBudget),
@@ -222,6 +221,7 @@ export function trackOnDemandBudgetAnalytics(
         previousBudget,
         DataCategory.ATTACHMENTS
       ),
+      previous_log_byte_budget: getOnDemandBudget(previousBudget, DataCategory.LOG_BYTE),
     });
     return;
   }
@@ -256,6 +256,7 @@ export function convertOnDemandBudget(
       uptime: 0,
       profileDuration: 0,
       profileDurationUI: 0,
+      logBytes: 0,
     };
 
     if (currentOnDemandBudget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
@@ -288,6 +289,7 @@ export function convertOnDemandBudget(
       uptimeBudget: 0,
       profileDurationBudget: 0,
       profileDurationUIBudget: 0,
+      logBytesBudget: 0,
       // Spread the calculated values over the defaults
       ...categoryBudgets,
       budgets: newBudgets,

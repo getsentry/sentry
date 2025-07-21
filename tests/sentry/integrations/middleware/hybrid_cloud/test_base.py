@@ -32,10 +32,10 @@ class ExampleRequestParser(BaseRequestParser):
 
 class BaseRequestParserTest(TestCase):
     response_handler = MagicMock()
-    region_config = (
+    region_config = [
         Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT),
         Region("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT),
-    )
+    ]
     factory = RequestFactory()
 
     def setUp(self):

@@ -40,6 +40,8 @@ query = """query GetTestResults(
             pageInfo {
               endCursor
               hasNextPage
+              hasPreviousPage
+              startCursor
             }
             totalCount
           }

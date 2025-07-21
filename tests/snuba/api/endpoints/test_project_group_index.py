@@ -9,6 +9,7 @@ from urllib.parse import quote
 from uuid import uuid4
 
 from django.conf import settings
+from django.db.utils import OperationalError
 from django.utils import timezone
 
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -1636,24 +1637,55 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             assert response.status_code == 204
             self.assert_groups_are_gone(groups)
 
-    @patch("sentry.api.helpers.group_index.delete.call_delete_seer_grouping_records_by_hash")
-    @patch("sentry.utils.audit.log_service.record_audit_log")
-    def test_audit_log_even_if_exception_raised(
-        self, mock_record_audit_log: Mock, mock_seer_delete: Mock
-    ):
+    @patch("sentry.api.helpers.group_index.delete.may_schedule_task_to_delete_hashes_from_seer")
+    def test_do_not_mark_as_pending_deletion_if_seer_fails(self, mock_seer_delete: Mock):
         """
-        Test that audit log is created even if an exception is raised after the audit log is created.
+        Test that the issue is not marked as pending deletion if the seer call fails.
         """
-        # Calling seer happens after creating the audit log entry
-        mock_seer_delete.side_effect = Exception("Seer error!")
-        group1 = self.create_group()
+        # When trying to gather the hashes, the query could be cancelled by the user
+        mock_seer_delete.side_effect = OperationalError(
+            "QueryCanceled('canceling statement due to user request\n')"
+        )
+        event = self.store_event(data={}, project_id=self.project.id)
+        group1 = Group.objects.get(id=event.group_id)
+        assert GroupHash.objects.filter(group=group1).exists()
+
         self.login_as(user=self.user)
         url = f"{self.path}?id={group1.id}"
         with self.tasks():
             response = self.client.delete(url, format="json")
             assert response.status_code == 500
+            assert response.data["detail"] == "Error deleting groups"
 
-        self.assert_audit_log_entry([group1], mock_record_audit_log)
+        # The group has not been marked as pending deletion
+        assert Group.objects.get(id=group1.id).status == group1.status
+        assert GroupHash.objects.filter(group=group1).exists()
 
-        # They have been marked as pending deletion but the exception prevented their complete deletion
-        assert Group.objects.get(id=group1.id).status == GroupStatus.PENDING_DELETION
+    def test_new_event_for_pending_deletion_group_creates_new_group(self):
+        """Test that after deleting a group, new events with the same fingerprint create a new group."""
+        data = {
+            "fingerprint": ["test-fingerprint"],
+            "timestamp": timezone.now().isoformat(),
+        }
+        # Store an event to create a group
+        event1 = self.store_event(data=data, project_id=self.project.id)
+        original_group = event1.group
+        original_group_id = original_group.id
+
+        # First we call the endpoint which will mark the group as pending deletion & delete the hashes
+        self.login_as(user=self.user)
+
+        # Since we're calling without self.tasks(), the group will not be deleted
+        # We're emulating the delay between the endpoint being called and the task being executed
+        response = self.client.delete(f"{self.path}?id={original_group_id}", format="json")
+        assert response.status_code == 204
+
+        assert Group.objects.get(id=original_group_id).status == GroupStatus.PENDING_DELETION
+        assert not GroupHash.objects.filter(group_id=original_group_id).exists()
+
+        # Since the group hash has been deleted, a new group will be created
+        event2 = self.store_event(data=data, project_id=self.project.id)
+        # Verify a new group is created with a different ID
+        new_group = event2.group
+        assert new_group.id != original_group_id
+        assert Group.objects.filter(id=new_group.id).exists()

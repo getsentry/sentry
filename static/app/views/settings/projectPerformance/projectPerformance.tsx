@@ -7,11 +7,11 @@ import Feature from 'sentry/components/acl/feature';
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ExternalLink} from 'sentry/components/core/link';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {Field, JsonFormObject} from 'sentry/components/forms/types';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -510,7 +510,7 @@ function ProjectPerformance() {
         );
       },
     },
-    [IssueTitle.DB_QUERY_INJECTION_VULNERABILITY]: {
+    [IssueTitle.QUERY_INJECTION_VULNERABILITY]: {
       name: DetectorConfigAdmin.DB_QUERY_INJECTION_ENABLED,
       type: 'boolean',
       label: t('Potential Database Query Injection Vulnerability Detection'),
@@ -526,7 +526,7 @@ function ProjectPerformance() {
         );
       },
       visible: organization.features.includes(
-        'issue-db-query-injection-vulnerability-visible'
+        'issue-query-injection-vulnerability-visible'
       ),
     },
   };
@@ -895,7 +895,7 @@ function ProjectPerformance() {
         initiallyCollapsed: issueType !== IssueType.PERFORMANCE_HTTP_OVERHEAD,
       },
       {
-        title: IssueTitle.DB_QUERY_INJECTION_VULNERABILITY,
+        title: IssueTitle.QUERY_INJECTION_VULNERABILITY,
         fields: [
           {
             name: DetectorConfigCustomer.SQL_INJECTION_QUERY_VALUE_LENGTH,
@@ -914,11 +914,11 @@ function ProjectPerformance() {
             formatLabel: value => value && value.toString(),
             disabledReason,
             visible: organization.features.includes(
-              'issue-db-query-injection-vulnerability-visible'
+              'issue-query-injection-vulnerability-visible'
             ),
           },
         ],
-        initiallyCollapsed: issueType !== IssueType.DB_QUERY_INJECTION_VULNERABILITY,
+        initiallyCollapsed: issueType !== IssueType.QUERY_INJECTION_VULNERABILITY,
       },
     ];
 

@@ -8,8 +8,8 @@ import {
 } from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
-import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
-import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 export const INTERACTION_SPANS_FILTER =
   'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press]';
@@ -54,71 +54,69 @@ export function useSpanSamplesWebVitalsQuery({
 
   const mutableSearch = MutableSearch.fromQueryObject({
     has: 'message',
-    [`!${SpanIndexedField.SPAN_DESCRIPTION}`]: '<unknown>',
+    [`!${SpanFields.SPAN_DESCRIPTION}`]: '<unknown>',
   });
   if (transaction !== undefined) {
-    mutableSearch.addFilterValue(SpanIndexedField.TRANSACTION, transaction);
+    mutableSearch.addFilterValue(SpanFields.TRANSACTION, transaction);
   }
   if (browserTypes) {
-    mutableSearch.addDisjunctionFilterValues(SpanIndexedField.BROWSER_NAME, browserTypes);
+    mutableSearch.addDisjunctionFilterValues(SpanFields.BROWSER_NAME, browserTypes);
   }
   if (subregions) {
-    mutableSearch.addDisjunctionFilterValues(
-      SpanIndexedField.USER_GEO_SUBREGION,
-      subregions
-    );
+    mutableSearch.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
   }
 
-  let field: SpanIndexedField | undefined;
-  let ratioField: SpanIndexedField | undefined;
+  let field: SpanFields | undefined;
+  let ratioField: SpanFields | undefined;
   switch (webVital) {
     case 'lcp':
-      field = SpanIndexedField.LCP;
-      ratioField = SpanIndexedField.LCP_SCORE_RATIO;
+      field = SpanFields.LCP;
+      ratioField = SpanFields.LCP_SCORE_RATIO;
       break;
     case 'cls':
-      field = SpanIndexedField.CLS;
-      ratioField = SpanIndexedField.CLS_SCORE_RATIO;
+      field = SpanFields.CLS;
+      ratioField = SpanFields.CLS_SCORE_RATIO;
       break;
     case 'fcp':
-      field = SpanIndexedField.FCP;
-      ratioField = SpanIndexedField.FCP_SCORE_RATIO;
+      field = SpanFields.FCP;
+      ratioField = SpanFields.FCP_SCORE_RATIO;
       break;
     case 'ttfb':
-      field = SpanIndexedField.TTFB;
-      ratioField = SpanIndexedField.TTFB_SCORE_RATIO;
+      field = SpanFields.TTFB;
+      ratioField = SpanFields.TTFB_SCORE_RATIO;
       break;
     case 'inp':
     default:
-      field = SpanIndexedField.INP;
-      ratioField = SpanIndexedField.INP_SCORE_RATIO;
+      field = SpanFields.INP;
+      ratioField = SpanFields.INP_SCORE_RATIO;
       break;
   }
 
-  const {data, isPending, ...rest} = useSpansIndexed(
+  const {data, isPending, ...rest} = useSpans(
     {
       search: `${mutableSearch.formatString()} ${filter}`,
       sorts: [sort],
       fields: [
         ...(field && ratioField ? [field, ratioField] : []),
-        SpanIndexedField.TOTAL_SCORE,
-        SpanIndexedField.TRACE,
-        SpanIndexedField.PROFILE_ID,
-        SpanIndexedField.PROFILEID,
-        SpanIndexedField.REPLAY_ID,
-        SpanIndexedField.REPLAYID,
-        SpanIndexedField.USER_EMAIL,
-        SpanIndexedField.USER_USERNAME,
-        SpanIndexedField.USER_ID,
-        SpanIndexedField.USER_IP,
-        SpanIndexedField.PROJECT,
-        SpanIndexedField.SPAN_DESCRIPTION,
-        SpanIndexedField.TIMESTAMP,
-        SpanIndexedField.SPAN_SELF_TIME,
-        SpanIndexedField.TRANSACTION,
-        SpanIndexedField.SPAN_OP,
-        SpanIndexedField.LCP_ELEMENT,
-        SpanIndexedField.CLS_SOURCE,
+        SpanFields.TOTAL_SCORE,
+        SpanFields.TRACE,
+        SpanFields.PROFILE_ID,
+        SpanFields.PROFILEID,
+        SpanFields.REPLAY_ID,
+        SpanFields.REPLAYID,
+        SpanFields.USER_EMAIL,
+        SpanFields.USER_USERNAME,
+        SpanFields.USER_ID,
+        SpanFields.USER_IP,
+        SpanFields.PROJECT,
+        SpanFields.SPAN_DESCRIPTION,
+        SpanFields.TIMESTAMP,
+        SpanFields.SPAN_SELF_TIME,
+        SpanFields.TRANSACTION,
+        SpanFields.SPAN_OP,
+        SpanFields.LCP_ELEMENT,
+        SpanFields.CLS_SOURCE,
+        SpanFields.ID,
       ],
       enabled,
       limit,
@@ -132,20 +130,19 @@ export function useSpanSamplesWebVitalsQuery({
             ...row,
             [`measurements.${webVital}`]: row[ratioField] > 0 ? row[field] : undefined,
             'user.display':
-              row[SpanIndexedField.USER_EMAIL] ??
-              row[SpanIndexedField.USER_USERNAME] ??
-              row[SpanIndexedField.USER_ID] ??
-              row[SpanIndexedField.USER_IP],
-            replayId: row[SpanIndexedField.REPLAY_ID] ?? row[SpanIndexedField.REPLAYID],
-            'profile.id':
-              row[SpanIndexedField.PROFILEID] ?? row[SpanIndexedField.PROFILE_ID],
+              row[SpanFields.USER_EMAIL] ??
+              row[SpanFields.USER_USERNAME] ??
+              row[SpanFields.USER_ID] ??
+              row[SpanFields.USER_IP],
+            replayId: row[SpanFields.REPLAY_ID] ?? row[SpanFields.REPLAYID],
+            'profile.id': row[SpanFields.PROFILEID] ?? row[SpanFields.PROFILE_ID],
             totalScore: Math.round((row[`measurements.score.total`] ?? 0) * 100),
-            inpScore: Math.round((row[SpanIndexedField.INP_SCORE_RATIO] ?? 0) * 100),
-            lcpScore: Math.round((row[SpanIndexedField.LCP_SCORE_RATIO] ?? 0) * 100),
-            clsScore: Math.round((row[SpanIndexedField.CLS_SCORE_RATIO] ?? 0) * 100),
-            fcpScore: Math.round((row[SpanIndexedField.FCP_SCORE_RATIO] ?? 0) * 100),
-            ttfbScore: Math.round((row[SpanIndexedField.TTFB_SCORE_RATIO] ?? 0) * 100),
-            projectSlug: row[SpanIndexedField.PROJECT],
+            inpScore: Math.round((row[SpanFields.INP_SCORE_RATIO] ?? 0) * 100),
+            lcpScore: Math.round((row[SpanFields.LCP_SCORE_RATIO] ?? 0) * 100),
+            clsScore: Math.round((row[SpanFields.CLS_SCORE_RATIO] ?? 0) * 100),
+            fcpScore: Math.round((row[SpanFields.FCP_SCORE_RATIO] ?? 0) * 100),
+            ttfbScore: Math.round((row[SpanFields.TTFB_SCORE_RATIO] ?? 0) * 100),
+            projectSlug: row[SpanFields.PROJECT],
           };
         })
       : [];

@@ -131,6 +131,8 @@ export type DashboardPermissions = {
  * The response shape from dashboard list endpoint
  */
 export type DashboardListItem = {
+  environment: string[];
+  filters: DashboardFilters;
   id: string;
   projects: number[];
   title: string;
@@ -139,6 +141,7 @@ export type DashboardListItem = {
   createdBy?: User;
   dateCreated?: string;
   isFavorited?: boolean;
+  lastVisited?: string;
   permissions?: DashboardPermissions;
 };
 

@@ -32,6 +32,7 @@ from sentry.monitors.processing_errors.errors import ProcessingErrorsException, 
 from sentry.monitors.types import CheckinItem
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome
@@ -719,7 +720,7 @@ class MonitorConsumerTest(TestCase):
         now = datetime.now()
         monitor = self._create_monitor(slug="my-monitor")
 
-        with mock.patch("sentry.monitors.consumers.monitor_consumer.CHECKIN_QUOTA_LIMIT", 1):
+        with override_options({"crons.per_monitor_rate_limit": 1}):
             # Try to ingest two the second will be rate limited
             self.send_checkin("my-monitor", ts=now)
             self.send_checkin(
@@ -939,6 +940,49 @@ class MonitorConsumerTest(TestCase):
         monitor = Monitor.objects.get(slug="my-monitor")
         assert monitor is not None
         assert "timezone" not in monitor.config
+
+    def test_team_name_as_owner(self):
+        monitor = self._create_monitor(slug="my-monitor", owner_user_id=self.user.id)
+        self.send_checkin(
+            "my-monitor",
+            monitor_config={
+                "schedule": {"type": "crontab", "value": "13 * * * *"},
+                "owner": f"team:{self.team.name}",
+            },
+        )
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+
+        monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
+        assert monitor_environment.status == MonitorStatus.OK
+        monitor.refresh_from_db()
+        assert monitor.owner_user_id is None
+        assert monitor.owner_team_id == self.team.id
+
+    def test_user_name_as_owner(self):
+        named_user = self.create_user(
+            "admin2@localhost",
+            username="test_user",
+            is_superuser=True,
+            is_staff=True,
+            is_sentry_app=False,
+        )
+        monitor = self._create_monitor(slug="my-monitor", owner_user_id=named_user.id)
+
+        self.send_checkin(
+            "my-monitor",
+            monitor_config={
+                "schedule": {"type": "crontab", "value": "13 * * * *"},
+                "owner": f"user:{named_user.username}",
+            },
+        )
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+
+        monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
+        assert monitor_environment.status == MonitorStatus.OK
+        assert monitor.owner_user_id == named_user.id
+        assert monitor.owner_team_id is None
 
     def test_monitor_upsert_invalid_slug(self):
         self.send_checkin(

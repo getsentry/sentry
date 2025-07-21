@@ -18,16 +18,26 @@ interface ArithmeticBuilderProps {
   functionArguments: FunctionArgument[];
   getFieldDefinition: (key: string) => FieldDefinition | null;
   className?: string;
+  'data-test-id'?: string;
   disabled?: boolean;
+  /**
+   * This is used when a user types in a search key and submits the token.
+   * The submission happens when the user types a colon or presses enter.
+   * When this happens, this function is used to try to map the user input
+   * to a known column.
+   */
+  getSuggestedKey?: (key: string) => string | null;
   setExpression?: (expression: Expression) => void;
 }
 
 export function ArithmeticBuilder({
+  'data-test-id': dataTestId,
   expression,
   setExpression,
   aggregations,
   functionArguments,
   getFieldDefinition,
+  getSuggestedKey,
   className,
   disabled,
 }: ArithmeticBuilderProps) {
@@ -45,8 +55,16 @@ export function ArithmeticBuilder({
       }),
       functionArguments,
       getFieldDefinition,
+      getSuggestedKey,
     };
-  }, [state, dispatch, aggregations, functionArguments, getFieldDefinition]);
+  }, [
+    state,
+    dispatch,
+    aggregations,
+    functionArguments,
+    getFieldDefinition,
+    getSuggestedKey,
+  ]);
 
   return (
     <PanelProvider>
@@ -54,7 +72,7 @@ export function ArithmeticBuilder({
         <Wrapper
           className={className}
           aria-disabled={disabled}
-          data-test-id="arithmetic-builder"
+          data-test-id={dataTestId ?? 'arithmetic-builder'}
           state={state.expression.isValid ? 'valid' : 'invalid'}
         >
           <TokenGrid tokens={state.expression.tokens} />

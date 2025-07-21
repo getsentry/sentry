@@ -5,8 +5,8 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ExternalLink} from 'sentry/components/core/link';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -116,7 +116,7 @@ export function AutofixSetupWriteAccessModal({
       </Body>
       {!canCreatePullRequests && (
         <Footer>
-          <ButtonBar gap={1}>
+          <ButtonBar>
             <Button onClick={closeModal}>{t('Later')}</Button>
             <LinkButton
               href="https://github.com/apps/seer-by-sentry/installations/new"

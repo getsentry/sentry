@@ -19,18 +19,18 @@ def is_errors_query_for_error_upsampled_projects(
 ) -> bool:
     """
     Determine if this query should use error upsampling transformations.
-    Only applies when ALL projects are allowlisted and we're querying error events.
+    Only applies when ANY projects are allowlisted and we're querying error events.
     """
-    if not are_all_projects_error_upsampled(snuba_params.project_ids):
+    if not are_any_projects_error_upsampled(snuba_params.project_ids):
         return False
 
     return _should_apply_sample_weight_transform(dataset, request)
 
 
-def are_all_projects_error_upsampled(project_ids: Sequence[int]) -> bool:
+def are_any_projects_error_upsampled(project_ids: Sequence[int]) -> bool:
     """
-    Check if ALL projects in the query are allowlisted for error upsampling.
-    Only returns True if all projects pass the allowlist condition.
+    Check if ANY projects in the query are allowlisted for error upsampling.
+    Only returns True if any project pass the allowlist condition.
     """
     if not project_ids:
         return False
@@ -39,26 +39,33 @@ def are_all_projects_error_upsampled(project_ids: Sequence[int]) -> bool:
     if not allowlist:
         return False
 
-    # All projects must be in the allowlist
-    result = all(project_id in allowlist for project_id in project_ids)
+    # Any project must be in the allowlist
+    result = any(project_id in allowlist for project_id in project_ids)
     return result
 
 
 def transform_query_columns_for_error_upsampling(
-    query_columns: Sequence[str],
+    query_columns: Sequence[str], include_alias: bool = True
 ) -> list[str]:
     """
     Transform aggregation functions to use sum(sample_weight) instead of count()
-    for error upsampling. Only called when all projects are allowlisted.
+    for error upsampling.
     """
+    function_conversions = {
+        "count()": "upsampled_count()",
+        "eps()": "upsampled_eps()",
+        "epm()": "upsampled_epm()",
+    }
+
     transformed_columns = []
     for column in query_columns:
         column_lower = column.lower().strip()
 
-        if column_lower == "count()":
-            # Simple count becomes sum of sample weights
-            transformed_columns.append("upsampled_count() as count")
-
+        if column_lower in function_conversions:
+            transformed = function_conversions[column_lower]
+            if include_alias:
+                transformed += " as " + column_lower[:-2]
+            transformed_columns.append(transformed)
         else:
             transformed_columns.append(column)
 

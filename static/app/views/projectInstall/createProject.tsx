@@ -7,15 +7,15 @@ import startCase from 'lodash/startCase';
 import {PlatformIcon} from 'platformicons';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
+import {openConsoleModal, openModal} from 'sentry/actionCreators/modal';
 import {removeProject} from 'sentry/actionCreators/projects';
 import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
@@ -423,6 +423,27 @@ export function CreateProject() {
         return;
       }
 
+      if (
+        value.type === 'console' &&
+        !organization.enabledConsolePlatforms?.includes(value.id)
+      ) {
+        // By selecting a console platform, we don't want to jump to another category when its closed
+        updateFormData('platform', {
+          category: formData.platform?.category,
+        });
+        openConsoleModal({
+          selectedPlatform: {
+            key: value.id,
+            name: value.name,
+            type: value.type,
+            language: value.language,
+            category: value.category,
+            link: value.link,
+          },
+        });
+        return;
+      }
+
       updateFormData('platform', {
         ...omit(value, 'id'),
         key: value.id,
@@ -439,6 +460,7 @@ export function CreateProject() {
       formData.projectName,
       formData.platform?.key,
       formData.platform?.category,
+      organization.enabledConsolePlatforms,
     ]
   );
 
@@ -536,7 +558,7 @@ export function CreateProject() {
           </FormFieldGroup>
           {createProjectAndRules.isError && createProjectAndRules.error.responseJSON && (
             <Alert.Container>
-              <Alert type="error">
+              <Alert type="error" showIcon={false}>
                 {Object.keys(createProjectAndRules.error.responseJSON).map(key => (
                   <div key={key}>
                     <strong>{keyToErrorText[key] ?? startCase(key)}</strong>:{' '}

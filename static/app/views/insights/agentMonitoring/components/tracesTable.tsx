@@ -34,7 +34,7 @@ import {
   OverflowEllipsisTextContainer,
   TextAlignRight,
 } from 'sentry/views/insights/common/components/textAlign';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 
@@ -44,7 +44,7 @@ interface TableData {
   llmCalls: number;
   timestamp: number;
   toolCalls: number;
-  totalCost: number;
+  totalCost: number | null;
   totalTokens: number;
   traceId: string;
   transaction: string;
@@ -96,7 +96,7 @@ export function TracesTable() {
 
   const pageLinks = tracesRequest.getResponseHeader?.('Link') ?? undefined;
 
-  const spansRequest = useEAPSpans(
+  const spansRequest = useSpans(
     {
       // Exclude agent runs as they include aggregated data which would lead to double counting e.g. token usage
       search: `${getAgentRunsFilter({negated: true})} trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
@@ -164,7 +164,7 @@ export function TracesTable() {
       llmCalls: spanDataMap[span.trace]?.llmCalls ?? 0,
       toolCalls: spanDataMap[span.trace]?.toolCalls ?? 0,
       totalTokens: spanDataMap[span.trace]?.totalTokens ?? 0,
-      totalCost: spanDataMap[span.trace]?.totalCost ?? 0,
+      totalCost: spanDataMap[span.trace]?.totalCost ?? null,
       timestamp: span.start,
       isSpanDataLoading: spansRequest.isLoading,
     }));
