@@ -37,7 +37,6 @@ export default function BulkDeleteAlert({projectId}: Props) {
     return (
       <Alert
         type="info"
-        showIcon
         expand={tct('Visit the [link: Job log] to see more details and track progress.', {
           link: (
             <Link

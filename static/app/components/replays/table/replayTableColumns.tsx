@@ -10,10 +10,9 @@ import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Flex} from 'sentry/components/core/layout/flex';
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Duration from 'sentry/components/duration/duration';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {useSelectedReplayIndex} from 'sentry/components/replays/queryParams/selectedReplayIndex';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import NumericDropdownFilter from 'sentry/components/replays/table/filters/numericDropdownFilter';
@@ -503,14 +502,12 @@ export const ReplaySessionColumn: ReplayTableColumn = {
     if (replay.is_archived) {
       return (
         <Flex gap={space(1)} align="center" justify="center">
-          <div style={{paddingInline: space(0.5)}}>
+          <ArchivedWrapper>
             <IconDelete color="gray500" size="md" />
-          </div>
+          </ArchivedWrapper>
 
-          <Flex direction="column" gap={space(0.5)}>
-            <Flex gap={space(0.5)} align="center">
-              {t('Deleted Replay')}
-            </Flex>
+          <Flex direction="column" gap={space(0.25)}>
+            <DisplayName>{t('Deleted Replay')}</DisplayName>
             <Flex gap={space(0.5)} align="center">
               {project ? <ProjectAvatar size={12} project={project} /> : null}
               <SmallFont>{getShortEventId(replay.id)}</SmallFont>
@@ -615,6 +612,12 @@ export const ReplaySlowestTransactionColumn: ReplayTableColumn = {
   },
 };
 
+const ArchivedWrapper = styled(Flex)`
+  width: ${p => p.theme.space['2xl']};
+  align-items: center;
+  justify-content: center;
+`;
+
 const DetailsLink = styled(Link)`
   z-index: 1;
   margin: -${p => p.theme.space.md};
@@ -672,7 +675,6 @@ const DisplayName = styled('span')`
 
   &:hover {
     color: ${p => p.theme.textColor};
-    text-decoration: underline;
   }
 `;
 
