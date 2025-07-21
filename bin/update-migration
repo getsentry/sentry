@@ -78,7 +78,7 @@ def find_highest_migration(migrations_path: str, renamed_migration: MigrationMet
 
 @click.command()
 @click.argument("migration", required=True)
-@click.argument("app_label", default="sentry")
+@click.argument("app_label", default="workflow_engine")
 def main(migration: str, app_label: str):
     """
     Update a migration to the top of the migration history.

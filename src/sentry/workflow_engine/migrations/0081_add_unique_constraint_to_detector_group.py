@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("sentry", "0952_fix_span_item_event_type_alerts"),
-        ("workflow_engine", "0079_add_unique_constraint_to_detector_group"),
+        ("workflow_engine", "0080_update_metric_detector_config_fields"),
     ]
 
     operations = [
