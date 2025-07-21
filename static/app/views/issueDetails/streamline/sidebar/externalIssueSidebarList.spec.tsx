@@ -267,7 +267,11 @@ describe('ExternalIssueSidebarList', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Add Linked Issue'}));
 
     expect(
-      await screen.findByRole('option', {name: 'Create Redmine Issue'})
+      await screen.findByRole('link', {name: 'Create Redmine Issue'})
     ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Create Redmine Issue'})).toHaveAttribute(
+      'href',
+      '/path/to/redmine'
+    );
   });
 });
