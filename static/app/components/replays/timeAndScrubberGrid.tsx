@@ -9,10 +9,7 @@ import Duration from 'sentry/components/duration/duration';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
 import ReplayCurrentTime from 'sentry/components/replays/player/replayCurrentTime';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
-import {
-  useScrubberMouseTracking,
-  useTimelineMouseTracking,
-} from 'sentry/components/replays/player/useReplayControllerMouseTracking';
+import {useTimelineMouseTracking} from 'sentry/components/replays/player/useReplayControllerMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -96,7 +93,10 @@ export default function TimeAndScrubberGrid({
     scale: timelineScale,
   });
   const scrubberElemRef = useRef<HTMLDivElement>(null);
-  const scrubberMouseTrackingProps = useScrubberMouseTracking({elem: scrubberElemRef});
+  const scrubberMouseTrackingProps = useTimelineMouseTracking({
+    elem: scrubberElemRef,
+    scale: 1,
+  });
 
   return (
     <Grid id="replay-timeline-player" isCompact={isCompact}>
