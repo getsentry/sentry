@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import Literal
 
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
@@ -57,7 +58,44 @@ class SessionsAggregate(StrEnum):
     CRASH_FREE_USERS = "percentage(users_crashed, users) AS _crash_rate_alert_aggregate"
 
 
-ALERT_TYPE_IDENTIFIERS: dict[Dataset, dict[str, str]] = {
+# Define all possible alert type values as a literal type
+MetricAlertType = Literal[
+    "num_errors",
+    "users_experiencing_errors",
+    "throughput",
+    "trans_duration",
+    "apdex",
+    "failure_rate",
+    "lcp",
+    "fid",
+    "cls",
+    "crash_free_sessions",
+    "crash_free_users",
+    "trace_item_throughput",
+    "trace_item_duration",
+    "trace_item_apdex",
+    "trace_item_failure_rate",
+    "trace_item_lcp",
+    "custom_transactions",
+    "eap_metrics",
+]
+
+AggregateIdentifier = Literal[
+    "count()",
+    "count_unique(user)",
+    "transaction.duration",
+    "apdex",
+    "failure_rate()",
+    "measurements.lcp",
+    "measurements.fid",
+    "measurements.cls",
+    "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
+    "percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
+    "count(span.duration)",
+    "span.duration",
+]
+
+ALERT_TYPE_IDENTIFIERS: dict[Dataset, dict[MetricAlertType, AggregateIdentifier]] = {
     Dataset.Events: {"num_errors": "count()", "users_experiencing_errors": "count_unique(user)"},
     Dataset.Transactions: {
         "throughput": "count()",
@@ -97,7 +135,7 @@ ALERT_TYPE_IDENTIFIERS: dict[Dataset, dict[str, str]] = {
 
 def get_alert_type_from_aggregate_dataset(
     aggregate: str, dataset: Dataset, organization: Organization | None = None
-) -> str:
+) -> MetricAlertType:
     """
     Given an aggregate and dataset object, will return the corresponding wizard alert type
     e.g. {'aggregate': 'count()', 'dataset': Dataset.ERRORS} will yield 'num_errors'
@@ -107,7 +145,7 @@ def get_alert_type_from_aggregate_dataset(
     identifier_for_dataset = ALERT_TYPE_IDENTIFIERS.get(dataset, {})
 
     # Find matching alert type entry
-    matching_alert_type: None | str = None
+    matching_alert_type: MetricAlertType = "custom_transactions"
     for alert_type, identifier in identifier_for_dataset.items():
         if identifier in aggregate:
             matching_alert_type = alert_type
@@ -122,7 +160,7 @@ def get_alert_type_from_aggregate_dataset(
 
         return "eap_metrics"
 
-    return matching_alert_type if matching_alert_type else "custom_transactions"
+    return matching_alert_type
 
 
 class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricResult]):
