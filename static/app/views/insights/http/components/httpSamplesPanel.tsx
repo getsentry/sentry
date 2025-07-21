@@ -36,7 +36,7 @@ import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {
   DataTitles,
@@ -56,8 +56,7 @@ import {
   ModuleName,
   SpanFields,
   SpanFunction,
-  SpanMetricsField,
-  type SpanMetricsQueryFilters,
+  type SpanQueryFilters,
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
@@ -74,7 +73,7 @@ export function HTTPSamplesPanel() {
       panel: decodePanel,
       responseCodeClass: decodeResponseCodeClass,
       spanSearchQuery: decodeScalar,
-      [SpanMetricsField.USER_GEO_SUBREGION]: decodeList,
+      [SpanFields.USER_GEO_SUBREGION]: decodeList,
     },
   });
 
@@ -132,22 +131,22 @@ export function HTTPSamplesPanel() {
     'span.domain':
       query.domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(query.domain),
     transaction: query.transaction,
-    ...(query[SpanMetricsField.USER_GEO_SUBREGION].length > 0
+    ...(query[SpanFields.USER_GEO_SUBREGION].length > 0
       ? {
-          [SpanMetricsField.USER_GEO_SUBREGION]: `[${query[SpanMetricsField.USER_GEO_SUBREGION].join(',')}]`,
+          [SpanFields.USER_GEO_SUBREGION]: `[${query[SpanFields.USER_GEO_SUBREGION].join(',')}]`,
         }
       : {}),
   };
 
   // The ribbon is above the data selectors, and not affected by them. So, it has its own filters.
-  const ribbonFilters: SpanMetricsQueryFilters = {
+  const ribbonFilters: SpanQueryFilters = {
     ...BASE_FILTERS,
     ...ADDITONAL_FILTERS,
     ...new MutableSearch(query.spanSearchQuery).filters,
   };
 
   // These filters are for the charts and samples tables
-  const filters: SpanMetricsQueryFilters = {
+  const filters: SpanQueryFilters = {
     ...BASE_FILTERS,
     ...ADDITONAL_FILTERS,
     ...new MutableSearch(query.spanSearchQuery).filters,
@@ -174,8 +173,8 @@ export function HTTPSamplesPanel() {
       search: MutableSearch.fromQueryObject(ribbonFilters),
       fields: [
         `${SpanFunction.EPM}()`,
-        `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
-        `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+        `avg(${SpanFields.SPAN_SELF_TIME})`,
+        `sum(${SpanFields.SPAN_SELF_TIME})`,
         'http_response_rate(3)',
         'http_response_rate(4)',
         'http_response_rate(5)',
@@ -189,7 +188,7 @@ export function HTTPSamplesPanel() {
     isFetching: isDurationDataFetching,
     data: durationData,
     error: durationError,
-  } = useSpanMetricsSeries(
+  } = useSpanSeries(
     {
       search,
       yAxis: [`avg(span.self_time)`],
@@ -344,9 +343,7 @@ export function HTTPSamplesPanel() {
                 <MetricReadout
                   title={DataTitles.avg}
                   value={
-                    domainTransactionMetrics?.[0]?.[
-                      `avg(${SpanMetricsField.SPAN_SELF_TIME})`
-                    ]
+                    domainTransactionMetrics?.[0]?.[`avg(${SpanFields.SPAN_SELF_TIME})`]
                   }
                   unit={DurationUnit.MILLISECOND}
                   isLoading={areDomainTransactionMetricsFetching}

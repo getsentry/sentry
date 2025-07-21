@@ -1660,3 +1660,32 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         # The group has not been marked as pending deletion
         assert Group.objects.get(id=group1.id).status == group1.status
         assert GroupHash.objects.filter(group=group1).exists()
+
+    def test_new_event_for_pending_deletion_group_creates_new_group(self):
+        """Test that after deleting a group, new events with the same fingerprint create a new group."""
+        data = {
+            "fingerprint": ["test-fingerprint"],
+            "timestamp": timezone.now().isoformat(),
+        }
+        # Store an event to create a group
+        event1 = self.store_event(data=data, project_id=self.project.id)
+        original_group = event1.group
+        original_group_id = original_group.id
+
+        # First we call the endpoint which will mark the group as pending deletion & delete the hashes
+        self.login_as(user=self.user)
+
+        # Since we're calling without self.tasks(), the group will not be deleted
+        # We're emulating the delay between the endpoint being called and the task being executed
+        response = self.client.delete(f"{self.path}?id={original_group_id}", format="json")
+        assert response.status_code == 204
+
+        assert Group.objects.get(id=original_group_id).status == GroupStatus.PENDING_DELETION
+        assert not GroupHash.objects.filter(group_id=original_group_id).exists()
+
+        # Since the group hash has been deleted, a new group will be created
+        event2 = self.store_event(data=data, project_id=self.project.id)
+        # Verify a new group is created with a different ID
+        new_group = event2.group
+        assert new_group.id != original_group_id
+        assert Group.objects.filter(id=new_group.id).exists()
