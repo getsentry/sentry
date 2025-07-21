@@ -145,7 +145,7 @@ def get_alert_type_from_aggregate_dataset(
     identifier_for_dataset = ALERT_TYPE_IDENTIFIERS.get(dataset, {})
 
     # Find matching alert type entry
-    matching_alert_type: MetricAlertType = "custom_transactions"
+    matching_alert_type: MetricAlertType | None = None
     for alert_type, identifier in identifier_for_dataset.items():
         if identifier in aggregate:
             matching_alert_type = alert_type
@@ -160,7 +160,7 @@ def get_alert_type_from_aggregate_dataset(
 
         return "eap_metrics"
 
-    return matching_alert_type
+    return matching_alert_type if matching_alert_type else "custom_transactions"
 
 
 class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricResult]):
