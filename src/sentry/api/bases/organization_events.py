@@ -18,7 +18,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.base import CURSOR_LINK_HEADER
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import FilterParamsDateNotNull, OrganizationEndpoint
-from sentry.api.helpers.error_upsampling import are_any_projects_error_upsampled
+from sentry.api.helpers.error_upsampling import (
+    are_any_projects_error_upsampled,
+    convert_fields_for_upsampling,
+)
 from sentry.api.helpers.mobile import get_readable_device_name
 from sentry.api.helpers.teams import get_teams
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
@@ -341,8 +344,6 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             meta = results.get("meta", {})
             fields_meta = meta.get("fields", {})
 
-            self.handle_error_upsampling(project_ids, results)
-
             if standard_meta:
                 isMetricsData = meta.pop("isMetricsData", False)
                 isMetricsExtractedData = meta.pop("isMetricsExtractedData", False)
@@ -427,34 +428,14 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
     def handle_error_upsampling(self, project_ids: Sequence[int], results: dict[str, Any]):
         """
-        If the query is for error upsampled projects, we need to rename the fields to include the ()
-        and update the meta fields to reflect the new field names. This works around a limitation in
-        how aliases are handled in the SnQL parser.
+        If the query is for error upsampled projects, we convert various functions under the hood.
+        We need to rename these fields before returning the results to the client, to hide the conversion.
+        This is done here to work around a limitation in how aliases are handled in the SnQL parser.
         """
         if are_any_projects_error_upsampled(project_ids):
             data = results.get("data", [])
             fields_meta = results.get("meta", {}).get("fields", {})
-
-            for result in data:
-                if "count" in result:
-                    result["count()"] = result["count"]
-                    del result["count"]
-                if "eps" in result:
-                    result["eps()"] = result["eps"]
-                    del result["eps"]
-                if "epm" in result:
-                    result["epm()"] = result["epm"]
-                    del result["epm"]
-
-            if "count" in fields_meta:
-                fields_meta["count()"] = fields_meta["count"]
-                del fields_meta["count"]
-            if "eps" in fields_meta:
-                fields_meta["eps()"] = fields_meta["eps"]
-                del fields_meta["eps"]
-            if "epm" in fields_meta:
-                fields_meta["epm()"] = fields_meta["epm"]
-                del fields_meta["epm"]
+            convert_fields_for_upsampling(data, fields_meta)
 
     def handle_issues(
         self, results: Sequence[Any], project_ids: Sequence[int], organization: Organization

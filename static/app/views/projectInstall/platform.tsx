@@ -130,7 +130,7 @@ export function ProjectInstallPlatform({
               }
               return (
                 <Alert.Container>
-                  <StyledAlert type="info" showIcon>
+                  <StyledAlert type="info">
                     {t(
                       `Your selected platform supports performance, but your organization does not have performance enabled.`
                     )}
