@@ -99,7 +99,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         )
 
     def test_escalating(self):
-        hours = self._set_up_activity(ActivityType.SET_UNRESOLVED)
+        hours = self._set_up_activity(ActivityType.SET_ESCALATING)
         self._test_preview(
             "sentry.rules.conditions.reappeared_event.ReappearedEventCondition",
             hours,
