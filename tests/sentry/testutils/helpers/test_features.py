@@ -1,5 +1,7 @@
 from unittest import mock
 
+import pytest
+
 from sentry import features
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.testutils.cases import TestCase
@@ -56,3 +58,24 @@ class TestTestUtilsFeatureHelper(TestCase):
             assert isinstance(org_context.organization, RpcOrganization)
 
             assert features.has("system:multi-region")
+
+            assert features.has("system:multi-region")
+
+
+class TestWithFeatureClassDecoratorError(TestCase):
+    """Test that with_feature raises an error when used as a class decorator."""
+
+    def test_with_feature_on_class_raises_error(self):
+        """Test that using with_feature as a class decorator raises ValueError."""
+
+        with pytest.raises(ValueError) as exc_info:
+
+            @with_feature("organizations:test-feature")
+            class TestClass:
+                pass
+
+        error_message = str(exc_info.value)
+        assert "with_feature cannot be used as a class decorator" in error_message
+        assert "Use apply_feature_flag_on_cls instead" in error_message
+        assert "organizations:test-feature" in error_message
+        assert "TestClass" in error_message
