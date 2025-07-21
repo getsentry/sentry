@@ -116,3 +116,9 @@ class GroupEventDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert response.data["eventID"] == event.event_id
+
+    def test_invalid_query(self):
+        event = self.create_performance_issue()
+        url = f"/api/0/issues/{event.group.id}/events/{event.event_id}/"
+        response = self.client.get(url, format="json", data={"query": "release.version:foobar"})
+        assert response.status_code == 400
