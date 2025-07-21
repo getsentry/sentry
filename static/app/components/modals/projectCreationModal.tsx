@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
@@ -52,10 +52,6 @@ export default function ProjectCreationModal({
 
   const api = useApi();
   const organization = useOrganization();
-
-  useEffect(() => {
-    setCategory(defaultCategory);
-  }, [defaultCategory]);
 
   function handlePlatformChange(selectedPlatform: Platform | null) {
     if (!selectedPlatform) {
