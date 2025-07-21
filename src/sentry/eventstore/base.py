@@ -61,14 +61,14 @@ class Filter:
     ) -> None:
         self.start = start
         self.end = end
-        self.conditions = conditions or []
-        self.having = having or []
+        self.conditions = conditions
+        self.having = having
         self.user_id = user_id
         self.organization_id = organization_id
         self.team_id = team_id
         self.project_ids = project_ids
         self.group_ids = group_ids
-        self.event_ids = event_ids or []
+        self.event_ids = event_ids
 
         self.rollup = rollup
         self.selected_columns = selected_columns if selected_columns is not None else []
