@@ -6,6 +6,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {ReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelete/types';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
 
@@ -46,16 +47,27 @@ export default function ReplayBulkDeleteAuditLogTable({
               <DateTime date={row.dateCreated} />
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>
-              <dl>
+              <Query>
                 <dt>Query</dt>
-                <dd>{row.query}</dd>
-                <dt>Range</dt>
                 <dd>
-                  <DateTime date={row.rangeStart} /> - <DateTime date={row.rangeEnd} />
+                  <code>{row.query}</code>
+                </dd>
+                <dt>Date Range</dt>
+                <dd>
+                  <code>
+                    <DateTime date={row.rangeStart} />
+                  </code>
+                  <br />
+
+                  <code>
+                    <DateTime date={row.rangeEnd} />
+                  </code>
                 </dd>
                 <dt>Environments</dt>
-                <dd>{row.environments.join(', ')}</dd>
-              </dl>
+                <dd>
+                  <code>{row.environments.join(', ')}</code>
+                </dd>
+              </Query>
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>{row.countDeleted}</SimpleTable.RowCell>
             <SimpleTable.RowCell>{row.status}</SimpleTable.RowCell>
@@ -69,7 +81,7 @@ export default function ReplayBulkDeleteAuditLogTable({
 }
 
 const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: max-content max-content 1fr max-content max-content;
 `;
 
 function getErrorMessage(fetchError: RequestError) {
@@ -89,3 +101,9 @@ function getErrorMessage(fetchError: RequestError) {
     'This could be due to invalid search parameters or an internal systems error.'
   );
 }
+
+const Query = styled('dl')`
+  max-width: 100%;
+  overflow: scroll;
+  padding-bottom: ${space(1)};
+`;
