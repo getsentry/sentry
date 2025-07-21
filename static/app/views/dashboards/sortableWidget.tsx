@@ -1,5 +1,6 @@
-import {type ComponentProps, useEffect, useRef} from 'react';
+import {type ComponentProps, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import cloneDeep from 'lodash/cloneDeep';
 
 import {LazyRender} from 'sentry/components/lazyRender';
 import PanelAlert from 'sentry/components/panels/panelAlert';
@@ -42,13 +43,13 @@ type Props = {
   isPreview?: boolean;
   newlyAddedWidget?: Widget;
   onNewWidgetScrollComplete?: () => void;
-  onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
-  onWidgetTableSort?: (sort: Sort) => void;
   windowWidth?: number;
 };
 
 function SortableWidget(props: Props) {
   const widgetRef = useRef<HTMLDivElement>(null);
+  // Used to display non persistent changes to widgets (ex. changing sort, resizing columns)
+  const [displayWidget, setDisplayWidget] = useState<Widget>(props.widget);
   const {
     widget,
     isEditingDashboard,
@@ -67,8 +68,6 @@ function SortableWidget(props: Props) {
     dashboardCreator,
     newlyAddedWidget,
     onNewWidgetScrollComplete,
-    onWidgetTableSort,
-    onWidgetTableResizeColumn,
   } = props;
 
   const organization = useOrganization();
@@ -96,8 +95,22 @@ function SortableWidget(props: Props) {
     }
   }, [newlyAddedWidget, widget, isEditingDashboard, onNewWidgetScrollComplete]);
 
+  const onWidgetTableSort = (sort: Sort) => {
+    const newOrderBy = `${sort.kind === 'desc' ? '-' : ''}${sort.field}`;
+    const newDisplayWidget = cloneDeep(displayWidget);
+    if (newDisplayWidget.queries[0]) newDisplayWidget.queries[0].orderby = newOrderBy;
+    setDisplayWidget(newDisplayWidget);
+  };
+
+  const onWidgetTableResizeColumn = (columns: TabularColumn[]) => {
+    const widths = columns.map(column => column.width as number);
+    const newDisplayWidget = cloneDeep(displayWidget);
+    newDisplayWidget.tableWidths = widths;
+    setDisplayWidget(newDisplayWidget);
+  };
+
   const widgetProps: ComponentProps<typeof WidgetCard> = {
-    widget,
+    widget: displayWidget,
     isEditingDashboard,
     widgetLimitReached,
     hasEditAccess,

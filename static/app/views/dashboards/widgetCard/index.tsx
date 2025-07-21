@@ -226,7 +226,13 @@ function WidgetCard(props: Props) {
           pathname: `${location.pathname}${
             location.pathname.endsWith('/') ? '' : '/'
           }widget/${props.index}/`,
-          query: location.query,
+          query: {
+            ...location.query,
+            sort:
+              widget.displayType === DisplayType.TABLE
+                ? widget.queries[0]?.orderby
+                : location.query.sort,
+          },
         },
         {preventScrollReset: true}
       );
