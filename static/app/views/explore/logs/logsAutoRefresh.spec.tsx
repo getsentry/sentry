@@ -32,7 +32,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
     location: {
       pathname: `/organizations/${organization.slug}/explore/logs/`,
       query: {
-        // Toggle is disabled if sort is not a timestamp.
+        // Toggle is disabled if sort is not a timestamp
         [LOGS_SORT_BYS_KEY]: '-timestamp',
         [LOGS_REFRESH_INTERVAL_KEY]: '2', // Fast refresh for testing
       },
@@ -116,7 +116,6 @@ describe('LogsAutoRefresh Integration Tests', () => {
       expect(mockApi).toHaveBeenCalledTimes(1);
     });
 
-    // Verify initial state in URL
     expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBeUndefined();
   });
 
@@ -131,12 +130,10 @@ describe('LogsAutoRefresh Integration Tests', () => {
 
     await userEvent.click(toggleSwitch);
 
-    // Verify URL is updated
     await waitFor(() => {
       expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('enabled');
     });
 
-    // The toggle should be checked after navigation completes
     await waitFor(() => {
       expect(toggleSwitch).toBeChecked();
     });
@@ -154,12 +151,10 @@ describe('LogsAutoRefresh Integration Tests', () => {
 
     const toggleSwitch = screen.getByRole('checkbox', {name: 'Auto-refresh'});
 
-    // Should start as checked
     expect(toggleSwitch).toBeChecked();
 
     await userEvent.click(toggleSwitch);
 
-    // Verify URL is updated
     await waitFor(() => {
       expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBeUndefined();
     });
@@ -179,7 +174,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
         ...initialRouterConfig.location,
         query: {
           [LOGS_SORT_BYS_KEY]: 'level', // Non-timestamp sort
-          [LOGS_FIELDS_KEY]: ['level', 'timestamp'], // Fields have to be set for sort bys to be applied.
+          [LOGS_FIELDS_KEY]: ['level', 'timestamp'], // Fields have to be set for sort bys to be applied
         },
       },
     };
@@ -192,7 +187,6 @@ describe('LogsAutoRefresh Integration Tests', () => {
     const toggleSwitch = screen.getByRole('checkbox', {name: 'Auto-refresh'});
     expect(toggleSwitch).toBeDisabled();
 
-    // Hover to see tooltip
     await userEvent.hover(toggleSwitch);
 
     await waitFor(() => {
@@ -223,7 +217,6 @@ describe('LogsAutoRefresh Integration Tests', () => {
     const toggleSwitch = screen.getByRole('checkbox', {name: 'Auto-refresh'});
     expect(toggleSwitch).toBeDisabled();
 
-    // Hover to see tooltip
     await userEvent.hover(toggleSwitch);
 
     await waitFor(() => {
@@ -243,11 +236,9 @@ describe('LogsAutoRefresh Integration Tests', () => {
       organization,
     });
 
-    // Wait for initial load
     await screen.findByRole('checkbox', {name: 'Auto-refresh'});
     expect(mockCall).toHaveBeenCalledTimes(1);
 
-    // Now make subsequent requests fail
     MockApiClient.clearMockResponses();
     const mockErrorCall = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -260,7 +251,6 @@ describe('LogsAutoRefresh Integration Tests', () => {
       expect(mockErrorCall).toHaveBeenCalledTimes(1);
     });
 
-    // Wait for error state to be set
     await waitFor(() => {
       expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('error');
     });

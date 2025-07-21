@@ -523,7 +523,7 @@ export function useInfiniteLogsQuery({
     refetchInterval: autoRefresh
       ? query => refetchIntervalCallback(query.state.data, query.state.error)
       : false,
-    refetchIntervalInBackground: true, // Don't refetch when tab is not visible
+    refetchIntervalInBackground: false, // Don't refetch when tab is not visible
   });
 
   const {

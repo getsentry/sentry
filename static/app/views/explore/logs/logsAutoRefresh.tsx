@@ -1,5 +1,4 @@
-import {Fragment, type ReactNode, useEffect} from 'react';
-import isEqual from 'lodash/isEqual';
+import {Fragment, type ReactNode} from 'react';
 
 import {Switch} from 'sentry/components/core/switch';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -7,7 +6,6 @@ import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import usePrevious from 'sentry/utils/usePrevious';
 import {
   type AutoRefreshState,
   useLogsAutoRefreshEnabled,
@@ -24,12 +22,12 @@ import {checkSortIsTimeBasedDescending} from 'sentry/views/explore/logs/utils';
 
 const MAX_LOGS_PER_SECOND = 100; // Rate limit for initial check
 
-// Pre-flight reasons that prevent enabling autorefresh
 type PreFlightDisableReason =
   | 'sort' // Wrong sort order
   | 'absolute_time' // Using absolute date range
   | 'aggregates' // In aggregates view
-  | 'rate_limit_initial'; // Too many logs per second
+  | 'rate_limit_initial' // Too many logs per second
+  | 'initial_error'; // Initial table query errored
 
 interface AutorefreshToggleProps {
   averageLogsPerSecond?: number | null;
@@ -43,8 +41,8 @@ interface AutorefreshToggleProps {
  * - Pre-flight conditions (PreFlightDisableReason): Checked locally before enabling, prevents toggle activation
  * - Runtime state (AutoRefreshState): Stored in URL params, tracks active refresh status and failures
  *
- * The toggle is disabled when pre-flight conditions aren't met. When enabled, it uses
- * React Query's refetchInterval to fetch new logs at regular intervals.
+ * Preflight conditions don't disable autorefresh when values change (eg. sort changes), it's assumed all preflight conditions
+ * should be handled via logs page params resetting autorefresh state meaning future values will be checked again before the toggle can be re-enabled.
  */
 export function AutorefreshToggle({
   disabled: externallyDisabled,
@@ -57,37 +55,19 @@ export function AutorefreshToggle({
   const sortBys = useLogsSortBys();
   const mode = useLogsMode();
   const {selection} = usePageFilters();
-  const previousSelection = usePrevious(selection);
   const {infiniteLogsQueryResult} = useLogsPageData();
   const {isError} = infiniteLogsQueryResult;
 
   const hasAbsoluteDates = Boolean(selection.datetime.start && selection.datetime.end);
 
-  // Check pre-flight conditions
   const preFlightDisableReason = getPreFlightDisableReason({
     sortBys,
     hasAbsoluteDates,
     mode,
     averageLogsPerSecond,
+    initialIsError: isError,
   });
 
-  // Detect selection changes and update state
-  useEffect(() => {
-    if (previousSelection && !isEqual(previousSelection, selection)) {
-      if (autorefreshEnabled) {
-        setAutorefresh('idle');
-      }
-    }
-  }, [selection, previousSelection, autorefreshEnabled, setAutorefresh]);
-
-  // Handle error state from React Query
-  useEffect(() => {
-    if (isError && autorefreshEnabled) {
-      setAutorefresh('error');
-    }
-  }, [isError, autorefreshEnabled, setAutorefresh]);
-
-  // Determine UI state
   const isToggleDisabled = !!preFlightDisableReason || externallyDisabled;
   const tooltipReason =
     preFlightDisableReason || (autorefreshEnabled ? null : preFlightDisableReason);
@@ -131,11 +111,13 @@ function getPreFlightDisableReason({
   hasAbsoluteDates,
   mode,
   averageLogsPerSecond,
+  initialIsError,
 }: {
   hasAbsoluteDates: boolean;
   mode: string;
   sortBys: ReturnType<typeof useLogsSortBys>;
   averageLogsPerSecond?: number | null;
+  initialIsError?: boolean;
 }): PreFlightDisableReason | null {
   if (mode === 'aggregates') {
     return 'aggregates';
@@ -148,6 +130,9 @@ function getPreFlightDisableReason({
   }
   if (averageLogsPerSecond && averageLogsPerSecond > MAX_LOGS_PER_SECOND) {
     return 'rate_limit_initial';
+  }
+  if (initialIsError) {
+    return 'initial_error';
   }
   return null;
 }
@@ -188,6 +173,10 @@ function getTooltipMessage(
       );
     case 'aggregates':
       return t('Auto-refresh is not available in the aggregates view.');
+    case 'initial_error':
+      return t(
+        'Auto-refresh is not available due to an error fetching logs. If the issue persists, please contact support.'
+      );
     default:
       return null;
   }

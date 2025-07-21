@@ -16,17 +16,16 @@ export const LOGS_AUTO_REFRESH_KEY = 'live';
 export const LOGS_REFRESH_INTERVAL_KEY = 'refreshEvery';
 export const LOGS_REFRESH_INTERVAL_DEFAULT = 5000;
 
-// Constants for rate limiting and timeout
 export const ABSOLUTE_MAX_AUTO_REFRESH_TIME_MS = 10 * 60 * 1000; // 10 minutes
 export const CONSECUTIVE_PAGES_WITH_MORE_DATA = 3;
 
-// Valid states for autorefresh
+// These don't include the pre-flight conditions (wrong sort, absolute time, aggregates view, or initial rate limit) which are handled inside the toggle.
 export type AutoRefreshState =
   | 'enabled'
   | 'timeout' // Hit 10 minute limit
   | 'rate_limit' // Too much data during refresh
   | 'error' // Fetch error
-  | 'idle'; // Default/inactive state
+  | 'idle'; // Default (inactive ) state. Should never appear in query params.
 
 interface LogsAutoRefreshContextValue {
   autoRefresh: AutoRefreshState;
@@ -84,10 +83,9 @@ const useLogsAutoRefresh = _useLogsAutoRefresh;
 export {useLogsAutoRefresh};
 
 /**
- * Hook that returns a refetch interval callback for auto-refresh functionality.
- * Handles rate limiting, error checking, and timeout conditions.
+ * Hook that returns a refetch interval callback for react query that handles auto-refresh interval.
  *
- * @returns A callback function that can be passed to React Query's refetchInterval option
+ * Also handles rate limiting, error checking, and timeout conditions.
  */
 export function useLogsAutoRefreshRefetchIntervalCallback() {
   const {autoRefresh, refreshInterval} = useLogsAutoRefresh();
@@ -164,8 +162,6 @@ export function useLogsAutoRefreshRefetchIntervalCallback() {
  * Those conditions are handled separately in the UI to prevent enabling autorefresh.
  *
  * For frozen tables (embedded views), this always returns false regardless of state.
- *
- * @returns true if autorefresh is actively running, false otherwise
  */
 export function useLogsAutoRefreshEnabled() {
   const {autoRefresh, isTableFrozen} = useLogsAutoRefresh();
