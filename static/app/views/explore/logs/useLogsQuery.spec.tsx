@@ -11,7 +11,9 @@ import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent
 import type {InfiniteData} from 'sentry/utils/queryClient';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {type AutoRefreshState} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import type {
@@ -30,6 +32,9 @@ const mockedUsedLocation = jest.mocked(useLocation);
 
 jest.mock('sentry/utils/usePageFilters');
 const mockUsePageFilters = jest.mocked(usePageFilters);
+
+jest.mock('sentry/utils/useNavigate');
+const mockUseNavigate = jest.mocked(useNavigate);
 
 type CachedQueryData = InfiniteData<ApiResult<EventsLogsResult>, LogPageParam>;
 
@@ -411,11 +416,11 @@ function createAscendingMocks(organization: Organization) {
 }
 
 // Virtual Streaming Tests
-describe('Virtual Streaming Integration (Auto Refresh enabled)', () => {
+describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
   const organization = OrganizationFixture();
   const queryClient = makeTestQueryClient();
 
-  function createWrapper({autoRefresh = true}: {autoRefresh?: boolean}) {
+  function createWrapper({autoRefresh = 'enabled'}: {autoRefresh?: AutoRefreshState}) {
     return function ({children}: {children?: React.ReactNode}) {
       return (
         <QueryClientProvider client={queryClient}>
@@ -423,7 +428,7 @@ describe('Virtual Streaming Integration (Auto Refresh enabled)', () => {
             analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
             _testContext={{
               autoRefresh,
-              refreshInterval: autoRefresh ? 1 : 0,
+              refreshInterval: 5, // Fast refresh for testing
             }}
           >
             <OrganizationContext.Provider value={organization}>
@@ -437,6 +442,7 @@ describe('Virtual Streaming Integration (Auto Refresh enabled)', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+    mockUseNavigate.mockReturnValue(jest.fn());
     MockApiClient.clearMockResponses();
     queryClient.clear();
     mockedUsedLocation.mockReturnValue(LocationFixture());
@@ -465,7 +471,7 @@ describe('Virtual Streaming Integration (Auto Refresh enabled)', () => {
     });
 
     const {result} = renderHook(() => useInfiniteLogsQuery(), {
-      wrapper: createWrapper({autoRefresh: true}),
+      wrapper: createWrapper({autoRefresh: 'enabled'}),
     });
 
     await waitFor(() => {
@@ -492,7 +498,7 @@ describe('Virtual Streaming Integration (Auto Refresh enabled)', () => {
     });
 
     const {result} = renderHook(() => useInfiniteLogsQuery(), {
-      wrapper: createWrapper({autoRefresh: false}),
+      wrapper: createWrapper({autoRefresh: 'idle'}),
     });
 
     await waitFor(() => {
@@ -547,7 +553,7 @@ describe('Virtual Streaming Integration (Auto Refresh enabled)', () => {
     });
 
     const {result} = renderHook(() => useInfiniteLogsQuery(), {
-      wrapper: createWrapper({autoRefresh: true}),
+      wrapper: createWrapper({autoRefresh: 'enabled'}),
     });
 
     await waitFor(() => {
@@ -608,7 +614,7 @@ describe('Virtual Streaming Integration (Auto Refresh enabled)', () => {
     });
 
     const {result} = renderHook(() => useInfiniteLogsQuery(), {
-      wrapper: createWrapper({autoRefresh: false}), // Disable auto refresh to avoid virtual streaming filtering
+      wrapper: createWrapper({autoRefresh: 'idle'}), // Disable auto refresh to avoid virtual streaming filtering
     });
 
     await waitFor(() => {

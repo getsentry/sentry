@@ -18,10 +18,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
+  useLogsAutoRefreshEnabled,
+  useLogsAutoRefreshRefetchIntervalCallback,
+} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {
   useLogsAggregate,
   useLogsAggregateCursor,
   useLogsAggregateSortBys,
-  useLogsAutoRefresh,
   useLogsBaseSearch,
   useLogsCursor,
   useLogsFields,
@@ -448,7 +451,8 @@ export function useInfiniteLogsQuery({
   referrer?: string;
 } = {}) {
   const _referrer = referrer ?? 'api.explore.logs-table';
-  const autoRefresh = useLogsAutoRefresh();
+  const autoRefresh = useLogsAutoRefreshEnabled();
+  const refetchIntervalCallback = useLogsAutoRefreshRefetchIntervalCallback();
   const {queryKey: queryKeyWithInfinite, other} = useLogsQueryKeyWithInfinite({
     referrer: _referrer,
     autoRefresh,
@@ -516,6 +520,10 @@ export function useInfiniteLogsQuery({
     enabled: !disabled,
     staleTime: getStaleTimeForEventView(other.eventView),
     maxPages: 30, // This number * the refresh interval must be more seconds than 2 * the smallest time interval in the chart for streaming to work.
+    refetchInterval: autoRefresh
+      ? query => refetchIntervalCallback(query.state.data, query.state.error)
+      : false,
+    refetchIntervalInBackground: true, // Don't refetch when tab is not visible
   });
 
   const {

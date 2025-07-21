@@ -9,6 +9,7 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {Organization} from 'sentry/types/organization';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useLocation} from 'sentry/utils/useLocation';
+import {type AutoRefreshState} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
@@ -53,18 +54,17 @@ describe('useStreamingTimeseriesResult', () => {
   });
 
   const createWrapper = ({
-    autoRefresh,
+    autoRefresh = 'idle',
     groupBy,
     organization,
   }: {
-    autoRefresh?: boolean;
+    autoRefresh?: AutoRefreshState;
     groupBy?: string;
     organization?: Organization;
   }) => {
-    const testContext: Record<string, any> = {};
-    if (autoRefresh !== undefined) {
-      testContext.autoRefresh = autoRefresh;
-    }
+    const testContext: Record<string, any> = {
+      autoRefresh,
+    };
     if (groupBy !== undefined) {
       testContext.groupBy = groupBy;
     }
@@ -222,7 +222,7 @@ describe('useStreamingTimeseriesResult', () => {
     const {result} = renderHook(
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData),
       {
-        wrapper: createWrapper({autoRefresh: true, organization: orgWithFeature}),
+        wrapper: createWrapper({autoRefresh: 'enabled', organization: orgWithFeature}),
       }
     );
 
@@ -236,7 +236,7 @@ describe('useStreamingTimeseriesResult', () => {
     const {result} = renderHook(
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData),
       {
-        wrapper: createWrapper({autoRefresh: false}),
+        wrapper: createWrapper({autoRefresh: 'idle'}),
       }
     );
 
@@ -252,7 +252,7 @@ describe('useStreamingTimeseriesResult', () => {
           useStreamingTimeseriesResult(tableData, mockTimeseriesData),
         {
           initialProps: createMockTableData([]),
-          wrapper: createWrapper({autoRefresh: true}),
+          wrapper: createWrapper({autoRefresh: 'enabled'}),
         }
       );
 
@@ -291,6 +291,7 @@ describe('useStreamingTimeseriesResult', () => {
       });
 
       const mergedData = result.current.data['count(message)']?.[0]?.values;
+      expect(result.current.data['count(message)']).toHaveLength(1);
       expect(mergedData).toEqual([
         {timestamp: 2000, value: 20},
         {timestamp: 3000, value: 30},
@@ -298,8 +299,8 @@ describe('useStreamingTimeseriesResult', () => {
         {timestamp: 5000, value: 0},
         {timestamp: 6000, value: 60},
         {timestamp: 7000, value: 70},
-        {timestamp: 8000, value: 0},
-        {timestamp: 9000, value: 0, incomplete: true},
+        {timestamp: 8000, value: 3},
+        {timestamp: 9000, value: 1, incomplete: true},
       ]);
     });
   });
@@ -314,7 +315,7 @@ describe('useStreamingTimeseriesResult', () => {
         {
           initialProps: createMockTableData([]),
           wrapper: createWrapper({
-            autoRefresh: true,
+            autoRefresh: 'enabled',
             groupBy: OurLogKnownFieldKey.SEVERITY,
           }),
         }

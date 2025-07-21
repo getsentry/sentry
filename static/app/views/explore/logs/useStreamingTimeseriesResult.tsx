@@ -11,9 +11,10 @@ import type {
   TimeSeries,
   TimeSeriesItem,
 } from 'sentry/views/dashboards/widgets/common/types';
+import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import type {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
-  useLogsAutoRefresh,
+  useLogsAggregate,
   useLogsGroupBy,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
@@ -79,7 +80,9 @@ export function useStreamingTimeseriesResult(
 ): ReturnType<typeof useSortedTimeSeries> {
   const organization = useOrganization();
   const groupByKey = useLogsGroupBy();
-  const autoRefresh = useLogsAutoRefresh();
+  const aggregate = useLogsAggregate();
+
+  const autoRefresh = useLogsAutoRefreshEnabled();
   const {selection} = usePageFilters();
   const previousSelection = usePrevious(selection);
 
@@ -126,6 +129,7 @@ export function useStreamingTimeseriesResult(
       groupBuffersRef.current,
       lastProcessedBucketRef,
       autoRefresh,
+      aggregate,
       timeseriesResult.data ? Object.values(timeseriesResult.data)[0] : undefined
     );
     groupBuffersRef.current = buffers;
@@ -141,6 +145,7 @@ export function useStreamingTimeseriesResult(
     groupByKey,
     autoRefresh,
     timeseriesResult.data,
+    aggregate,
   ]);
 
   return useMemo(() => {
@@ -179,6 +184,7 @@ function createBufferFromTableData(
   groupBuffers: Record<string, BufferedTimeseriesGroup>,
   lastProcessedBucketRef: RefObject<number | null>,
   autoRefresh: boolean,
+  aggregateKey: string,
   originalTimeseries?: TimeSeries[]
 ) {
   if (
@@ -227,7 +233,11 @@ function createBufferFromTableData(
       continue;
     }
 
-    const groupValue = groupBy ? String(row[groupBy] ?? '') : '';
+    const groupValue = groupBy ? String(row[groupBy] ?? '') : aggregateKey;
+    if (!groupValue) {
+      // In the case that group value is still missing, we shouldn't construct a buffer group for it as it's not in the row.
+      continue;
+    }
 
     if (!groupBuffers[groupValue]) {
       groupBuffers[groupValue] = {

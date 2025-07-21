@@ -3,9 +3,9 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import type {ApiResult} from 'sentry/api';
 import type {InfiniteData} from 'sentry/utils/queryClient';
 import {
-  useLogsAutoRefresh,
+  useLogsAutoRefreshEnabled,
   useLogsRefreshInterval,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
   MAX_LOG_INGEST_DELAY,
   VIRTUAL_STREAMED_INTERVAL_MS,
@@ -49,7 +49,7 @@ import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 export function useVirtualStreaming(
   data: InfiniteData<ApiResult<EventsLogsResult>> | undefined
 ) {
-  const autoRefresh = useLogsAutoRefresh();
+  const autoRefresh = useLogsAutoRefreshEnabled();
   const refreshInterval = useLogsRefreshInterval();
   const rafOn = useRef(false);
   const [virtualTimestamp, setVirtualTimestamp] = useState<number | undefined>(undefined);
