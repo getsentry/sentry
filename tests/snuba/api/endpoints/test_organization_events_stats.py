@@ -3136,7 +3136,8 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
                     "message": "poof",
                     "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                     "user": {"email": self.user.email},
-                    "tags": {"shared-tag": "yup"},
+                    "tags": {"shared-tag": "yup", "env": "prod"},
+                    "exception": {"values": [{"type": "NameError"}]},
                     "fingerprint": ["group1"],
                 },
                 "project": self.project2,
@@ -3148,7 +3149,8 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
                     "timestamp": (self.day_ago + timedelta(hours=1, minutes=2)).isoformat(),
                     "fingerprint": ["group2"],
                     "user": {"email": self.user2.email},
-                    "tags": {"shared-tag": "yup"},
+                    "tags": {"shared-tag": "yup", "env": "prod"},
+                    "exception": {"values": [{"type": "NameError"}]},
                 },
                 "project": self.project2,
                 "count": 6,
@@ -3159,7 +3161,8 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
                     "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                     "fingerprint": ["group3"],
                     "user": {"email": "foo@example.com"},
-                    "tags": {"shared-tag": "yup"},
+                    "tags": {"shared-tag": "yup", "env": "prod"},
+                    "exception": {"values": [{"type": "NameError"}]},
                 },
                 "project": self.project,
                 "count": 5,
@@ -3170,7 +3173,8 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
                     "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                     "fingerprint": ["group4"],
                     "user": {"email": "bar@example.com"},
-                    "tags": {"shared-tag": "yup"},
+                    "tags": {"shared-tag": "yup", "env": "prod"},
+                    "exception": {"values": [{"type": "ValueError"}]},
                 },
                 "project": self.project,
                 "count": 4,
@@ -3180,7 +3184,8 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
                     "message": "kinda bad",
                     "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                     "user": {"email": self.user.email},
-                    "tags": {"shared-tag": "yup"},
+                    "tags": {"shared-tag": "yup", "env": "staging"},
+                    "exception": {"values": [{"type": "NameError"}]},
                     "fingerprint": ["group7"],
                 },
                 "project": self.project,
@@ -3193,7 +3198,8 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
                     "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                     "fingerprint": ["group5"],
                     "user": {"email": "bar@example.com"},
-                    "tags": {"shared-tag": "yup"},
+                    "tags": {"shared-tag": "yup", "env": "dev"},
+                    "exception": {"values": [{"type": "ValueError"}]},
                 },
                 "project": self.project,
                 "count": 2,
@@ -3204,7 +3210,8 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
                     "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                     "fingerprint": ["group6"],
                     "user": {"email": "bar@example.com"},
-                    "tags": {"shared-tag": "yup"},
+                    "tags": {"shared-tag": "yup", "env": "dev"},
+                    "exception": {"values": [{"type": "ValueError"}]},
                 },
                 "project": self.project,
                 "count": 1,
@@ -3261,6 +3268,37 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
         other = data["Other"]
         assert other["order"] == 5
         assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
+
+    def test_top_events_with_query_on_field(self):
+        """
+        Test that if there is a query on one of the group by fields, the top
+        events are filtered correctly. In this case, we are asking for the top 2
+        error types, with a query on the `error.type` field. The test data only
+        has two error types, so there should _not_ be an `"Other"` group.
+        """
+
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": self.day_ago.isoformat(),
+                    "end": (self.day_ago + timedelta(hours=2)).isoformat(),
+                    "interval": "1h",
+                    "project": self.project.id,
+                    "query": "!error.type:*Exception*",
+                    "yAxis": "count_unique(user)",
+                    "orderby": ["-count_unique(user)"],
+                    "field": ["error.type", "count_unique(user)"],
+                    "topEvents": "2",
+                    "dataset": "errors",
+                },
+                format="json",
+            )
+
+        data = response.data
+
+        assert response.status_code == 200, response.content
+        assert len(data) == 2
 
     def test_top_events_with_projects_other(self):
         with self.feature(self.enabled_features):
