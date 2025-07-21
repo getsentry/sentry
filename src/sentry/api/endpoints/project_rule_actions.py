@@ -81,7 +81,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
             group=test_event.group,
         )
 
-        if should_fire_workflow_actions(project.organization, ErrorGroupType.type_idg):
+        if should_fire_workflow_actions(project.organization, ErrorGroupType.type_id):
             return self.execute_future_on_test_event_workflow_engine(group_event, rule)
         else:
             return self.execute_future_on_test_event(group_event, rule)
