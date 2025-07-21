@@ -1704,6 +1704,13 @@ function buildRoutes() {
           component={make(() => import('sentry/views/insights/sessions/views/overview'))}
         />
       </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.AGENTS]}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/insights/agentMonitoring/views/agentsOverviewPage')
+          )}
+        />
+      </Route>
       <Route path={`${MODULE_BASE_URLS[ModuleName.MCP]}/`}>
         <IndexRoute
           component={make(() => import('sentry/views/insights/mcp/views/overview'))}
@@ -1752,9 +1759,7 @@ function buildRoutes() {
       </Route>
       <Route path={`${AGENTS_LANDING_SUB_PATH}/`}>
         <IndexRoute
-          component={make(
-            () => import('sentry/views/insights/agentMonitoring/views/agentsOverviewPage')
-          )}
+          component={make(() => import('sentry/views/insights/pages/agents/redirect'))}
         />
         {transactionSummaryRoutes}
         {traceViewRoute}

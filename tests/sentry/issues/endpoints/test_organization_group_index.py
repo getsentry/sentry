@@ -13,7 +13,7 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.feedback.lib.utils import FeedbackCreationSource
-from sentry.feedback.usecases.create_feedback import create_feedback_issue
+from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.issues.grouptype import (
@@ -4312,7 +4312,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
     def assert_pending_deletion_groups(self, groups: Sequence[Group]) -> None:
         for group in groups:
             assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
-            assert GroupHash.objects.filter(group_id=group.id).exists()
+            assert not GroupHash.objects.filter(group_id=group.id).exists()
 
     def assert_deleted_groups(self, groups: Sequence[Group]) -> None:
         for group in groups:
@@ -4349,7 +4349,12 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 204
-        self.assert_pending_deletion_groups([group1, group2])
+
+        assert Group.objects.get(id=group1.id).status == GroupStatus.PENDING_DELETION
+        assert not GroupHash.objects.filter(group_id=group1.id).exists()
+
+        assert Group.objects.get(id=group2.id).status == GroupStatus.PENDING_DELETION
+        assert not GroupHash.objects.filter(group_id=group2.id).exists()
 
         assert Group.objects.get(id=group3.id).status != GroupStatus.PENDING_DELETION
         assert GroupHash.objects.filter(group_id=group3.id).exists()
