@@ -119,7 +119,7 @@ describe('GroupDetailsLayout', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Close sidebar'}));
     expect(await screen.findByTestId('children')).toBeInTheDocument();
     expect(
-      await screen.findByRole('button', {name: 'Add Linked Issue'})
+      screen.queryByRole('button', {name: 'Add Linked Issue'})
     ).not.toBeInTheDocument();
   });
 });
