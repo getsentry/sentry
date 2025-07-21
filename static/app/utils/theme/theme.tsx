@@ -1092,13 +1092,21 @@ const iconSizes: Record<Size, string> = {
 
 const space = {
   none: '0px',
+  /** prev. space(0.25) */
   '2xs': '2px',
+  /** prev. space(0.5) */
   xs: '4px',
+  /** prev. space(0.75) */
   sm: '6px',
+  /** prev. space(1) */
   md: '8px',
+  /** prev. space(1.5) */
   lg: '12px',
+  /** prev. space(2) */
   xl: '16px',
+  /** prev. space(3) */
   '2xl': '24px',
+  /** prev. space(4) */
   '3xl': '32px',
 } as const;
 
