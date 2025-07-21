@@ -30,7 +30,7 @@ from sentry.apidocs.examples.event_examples import EventExamples
 from sentry.apidocs.parameters import EventParams, GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.exceptions import InvalidParams
+from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.issues.endpoints.project_event_details import (
     GroupEventDetailsResponse,
     wrap_event_response,
@@ -172,6 +172,9 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
             )
         except ValidationError:
             raise ParseError(detail="Invalid event query")
+        except InvalidSearchQuery as error:
+            message = str(error)
+            raise ParseError(detail=message)
         except Exception:
             logging.exception(
                 "group_event_details.parse_query",
