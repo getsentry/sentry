@@ -46,7 +46,7 @@ export interface ExternalIssueAction {
  * Integrations, apps, or plugins that can create external issues.
  * Each integration can have one or more configurations.
  */
-export interface ExternalIssueIntegration extends BaseIssueAction {
+interface ExternalIssueIntegration extends BaseIssueAction {
   actions: ExternalIssueAction[];
 }
 
