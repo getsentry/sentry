@@ -141,7 +141,57 @@ def Feature(names: str | Iterable[str] | dict[str, bool]) -> Generator[None]:
             yield
 
 
-with_feature = Feature
+def with_feature(names: str | Iterable[str] | dict[str, bool]):
+    """
+    Control whether a feature is enabled.
+
+    Can be used as a context manager or method decorator, but NOT as a class decorator.
+    For class decorators, use apply_feature_flag_on_cls instead.
+
+    Examples:
+    - Context manager: with with_feature('feature-name'):
+    - Method decorator: @with_feature('feature-name')
+    - Class decorator: Use @apply_feature_flag_on_cls('feature-name') instead
+    """
+
+    class FeatureContextManagerOrDecorator:
+        def __init__(self, feature_names):
+            self.feature_names = feature_names
+            self._context_manager = None
+
+        def __enter__(self):
+            self._context_manager = Feature(self.feature_names)
+            return self._context_manager.__enter__()
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            if self._context_manager:
+                return self._context_manager.__exit__(exc_type, exc_val, exc_tb)
+
+        def __call__(self, func_or_cls):
+            # Check if we're decorating a class
+            if isinstance(func_or_cls, type):
+                raise ValueError(
+                    f"with_feature cannot be used as a class decorator. "
+                    f"Use apply_feature_flag_on_cls instead.\n"
+                    f"Change:\n"
+                    f"    @with_feature({self.feature_names!r})\n"
+                    f"    class {func_or_cls.__name__}(...):\n"
+                    f"to:\n"
+                    f"    @apply_feature_flag_on_cls({self.feature_names!r})\n"
+                    f"    class {func_or_cls.__name__}(...):"
+                )
+
+            # Decorating a function - wrap it with the feature context
+            def wrapper(*args, **kwargs):
+                with Feature(self.feature_names):
+                    return func_or_cls(*args, **kwargs)
+
+            # Preserve function metadata
+            wrapper.__name__ = getattr(func_or_cls, "__name__", "wrapped_function")
+            wrapper.__doc__ = getattr(func_or_cls, "__doc__", None)
+            return wrapper
+
+    return FeatureContextManagerOrDecorator(names)
 
 
 def apply_feature_flag_on_cls(feature_flag):
