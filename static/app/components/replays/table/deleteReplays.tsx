@@ -42,10 +42,11 @@ export default function DeleteReplays({selectedIds, replays, queryOptions}: Prop
   });
 
   const project = useProjectFromId({
-    project_id: projectIds?.length === 1 ? projectIds[0] : undefined,
+    project_id: projectIds.length === 1 ? projectIds[0] : undefined,
   });
+  const hasOneProjectSelected = Boolean(project);
 
-  const {bulkDelete, canDelete, queryOptionsToPayload} = useDeleteReplays({
+  const {bulkDelete, hasAccess, queryOptionsToPayload} = useDeleteReplays({
     projectSlug: project?.slug ?? '',
   });
   const deletePayload = queryOptionsToPayload(selectedIds, queryOptions ?? {});
@@ -54,60 +55,67 @@ export default function DeleteReplays({selectedIds, replays, queryOptions}: Prop
 
   return (
     <Tooltip
-      disabled={canDelete}
+      disabled={hasOneProjectSelected}
       title={t('Select a single project from the dropdown to delete replays')}
     >
-      <Button
-        disabled={!canDelete}
-        icon={<IconDelete />}
-        onClick={() =>
-          openConfirmModal({
-            bypass: selectedIds !== 'all' && selectedIds.length === 1,
-            renderMessage: _props => (
-              <Fragment>
-                {selectedIds === 'all' ? (
+      <Tooltip
+        disabled={!hasOneProjectSelected || hasAccess}
+        title={t('You must have project:write or project:admin access to delete replays')}
+      >
+        <Button
+          disabled={!hasOneProjectSelected || !hasAccess}
+          icon={<IconDelete />}
+          onClick={() =>
+            openConfirmModal({
+              bypass: selectedIds !== 'all' && selectedIds.length === 1,
+              renderMessage: _props =>
+                selectedIds === 'all' ? (
                   <ReplayQueryPreview deletePayload={deletePayload} project={project!} />
                 ) : (
                   <ErrorBoundary mini>
-                    <ReplayPreviewTable
-                      replays={replays}
-                      selectedIds={selectedIds}
-                      project={project!}
-                    />
+                    <Title project={project!}>
+                      {tn(
+                        'The following %s replay will be deleted',
+                        'The following %s replays will be deleted',
+                        selectedIds.length
+                      )}
+                    </Title>
+                    <ReplayPreviewTable replays={replays} selectedIds={selectedIds} />
                   </ErrorBoundary>
-                )}
-              </Fragment>
-            ),
-            renderConfirmButton: ({defaultOnClick}) => (
-              <Button onClick={defaultOnClick} priority="danger">
-                {t('Delete')}
-              </Button>
-            ),
-            onConfirm: () => {
-              bulkDelete([deletePayload], {
-                onSuccess: () =>
-                  addSuccessMessage(
-                    tct('Replays are being deleted. [link:View progress]', {
-                      settings: <LinkWithUnderline to={settingsPath} />,
-                    })
-                  ),
-                onError: () =>
-                  addErrorMessage(
-                    tn(
-                      'Failed to delete replay',
-                      'Failed to delete replays',
-                      selectedIds === 'all' ? Number.MAX_SAFE_INTEGER : selectedIds.length
-                    )
-                  ),
-                onSettled: () => {},
-              });
-            },
-          })
-        }
-        size="xs"
-      >
-        {t('Delete')}
-      </Button>
+                ),
+              renderConfirmButton: ({defaultOnClick}) => (
+                <Button onClick={defaultOnClick} priority="danger">
+                  {t('Delete')}
+                </Button>
+              ),
+              onConfirm: () => {
+                bulkDelete([deletePayload], {
+                  onSuccess: () =>
+                    addSuccessMessage(
+                      tct('Replays are being deleted. [link:View progress]', {
+                        settings: <LinkWithUnderline to={settingsPath} />,
+                      })
+                    ),
+                  onError: () =>
+                    addErrorMessage(
+                      tn(
+                        'Failed to delete replay',
+                        'Failed to delete replays',
+                        selectedIds === 'all'
+                          ? Number.MAX_SAFE_INTEGER
+                          : selectedIds.length
+                      )
+                    ),
+                  onSettled: () => {},
+                });
+              },
+            })
+          }
+          size="xs"
+        >
+          {t('Delete')}
+        </Button>
+      </Tooltip>
     </Tooltip>
   );
 }
@@ -137,79 +145,68 @@ function ReplayQueryPreview({
 }
 
 function ReplayPreviewTable({
-  project,
   replays,
   selectedIds,
 }: {
-  project: Project;
   replays: ReplayListRecord[];
   selectedIds: string[];
 }) {
   return (
-    <Fragment>
-      <Title project={project}>
-        {tn(
-          'The following %s replay will be deleted',
-          'The following %s replays will be deleted',
-          selectedIds.length
-        )}
-      </Title>
-      <SimpleTableWithTwoColumns>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell>{t('Replay')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell>{t('Duration')}</SimpleTable.HeaderCell>
-        </SimpleTable.Header>
-        {selectedIds.map(id => {
-          const replay = replays.find(r => r.id === id) as ReplayListRecord;
-          if (replay.is_archived) {
-            return null;
-          }
-          invariant(
-            replay.duration && replay.started_at,
-            'For TypeScript: replay.duration and replay.started_at are implied because replay.is_archived is false'
-          );
+    <SimpleTableWithTwoColumns>
+      <SimpleTable.Header>
+        <SimpleTable.HeaderCell>{t('Replay')}</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell>{t('Duration')}</SimpleTable.HeaderCell>
+      </SimpleTable.Header>
+      {selectedIds.map(id => {
+        const replay = replays.find(r => r.id === id) as ReplayListRecord;
+        if (replay.is_archived) {
+          return null;
+        }
+        invariant(
+          replay.duration && replay.started_at,
+          'For TypeScript: replay.duration and replay.started_at are implied because replay.is_archived is false'
+        );
 
-          return (
-            <SimpleTable.Row key={id}>
-              <SimpleTable.RowCell>
-                <Flex key="session" align="center" gap={space(1)}>
-                  <UserAvatar
-                    user={{
-                      username: replay.user?.display_name || '',
-                      email: replay.user?.email || '',
-                      id: replay.user?.id || '',
-                      ip_address: replay.user?.ip || '',
-                      name: replay.user?.username || '',
-                    }}
-                    size={24}
-                  />
-                  <SubText>
-                    <Flex gap={space(0.5)} align="flex-start">
-                      <DisplayName>
-                        {replay.user.display_name || t('Anonymous User')}
-                      </DisplayName>
-                    </Flex>
-                    <Flex gap={space(0.5)}>
-                      {getShortEventId(replay.id)}
-                      <Flex gap={space(0.5)}>
-                        <IconCalendar color="gray300" size="xs" />
-                        <TimeSince date={replay.started_at} />
-                      </Flex>
-                    </Flex>
-                  </SubText>
-                </Flex>
-              </SimpleTable.RowCell>
-              <SimpleTable.RowCell justify="flex-end">
-                <Duration
-                  duration={[replay.duration.asMilliseconds() ?? 0, 'ms']}
-                  precision="sec"
+        return (
+          <SimpleTable.Row key={id}>
+            <SimpleTable.RowCell>
+              <Flex key="session" align="center" gap={space(1)}>
+                <UserAvatar
+                  user={{
+                    username: replay.user?.display_name || '',
+                    email: replay.user?.email || '',
+                    id: replay.user?.id || '',
+                    ip_address: replay.user?.ip || '',
+                    name: replay.user?.username || '',
+                  }}
+                  size={24}
                 />
-              </SimpleTable.RowCell>
-            </SimpleTable.Row>
-          );
-        })}
-      </SimpleTableWithTwoColumns>
-    </Fragment>
+                <SubText>
+                  <Flex gap={space(0.5)} align="flex-start">
+                    <DisplayName>
+                      {replay.user.display_name || t('Anonymous User')}
+                    </DisplayName>
+                  </Flex>
+                  <Flex gap={space(0.5)}>
+                    {getShortEventId(replay.id)}
+                    <Flex gap={space(0.5)}>
+                      <IconCalendar color="gray300" size="xs" />
+                      <TimeSince date={replay.started_at} />
+                    </Flex>
+                  </Flex>
+                </SubText>
+              </Flex>
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell justify="flex-end">
+              <Duration
+                duration={[replay.duration.asMilliseconds() ?? 0, 'ms']}
+                precision="sec"
+              />
+            </SimpleTable.RowCell>
+          </SimpleTable.Row>
+        );
+      })}
+    </SimpleTableWithTwoColumns>
   );
 }
 
@@ -235,6 +232,16 @@ function Title({children, project}: {children: React.ReactNode; project: Project
 
 const SimpleTableWithTwoColumns = styled(SimpleTable)`
   grid-template-columns: 1fr max-content;
+
+  max-height: calc(100vh - 315px);
+  min-height: 200px;
+  overflow-y: auto;
+
+  & > div:first-child {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
 `;
 
 const SubText = styled('div')`

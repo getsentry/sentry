@@ -23,7 +23,7 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notifications: 0001_move_notifications_models
 
-preprod: 0011_add_preprod_artifact_app_name_and_app_id_fields
+preprod: 0012_installablepreprod
 
 replays: 0006_add_bulk_delete_job
 
@@ -35,4 +35,4 @@ tempest: 0001_squashed_0002_make_message_type_nullable
 
 uptime: 0001_squashed_0042_extra_uptime_indexes
 
-workflow_engine: 0076_add_detector_group_table
+workflow_engine: 0079_add_unique_constraint_to_detector_group

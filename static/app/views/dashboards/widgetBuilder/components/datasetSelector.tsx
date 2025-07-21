@@ -45,13 +45,12 @@ function WidgetBuilderDatasetSelector() {
               setSegmentSpanBuilderState();
             }}
           >
-            {t('Spans')}
+            {t('spans')}
           </Link>
         ),
       }),
     ]);
   }
-  datasetChoices.push([WidgetType.TRANSACTIONS, t('Transactions')]);
 
   if (organization.features.includes('visibility-explore-view')) {
     datasetChoices.push([WidgetType.SPANS, t('Spans')]);
@@ -74,6 +73,7 @@ function WidgetBuilderDatasetSelector() {
   }
   datasetChoices.push([WidgetType.ISSUE, t('Issues')]);
   datasetChoices.push([WidgetType.RELEASE, t('Releases')]);
+  datasetChoices.push([WidgetType.TRANSACTIONS, t('Transactions')]);
 
   return (
     <Fragment>
@@ -131,7 +131,6 @@ const DatasetChoices = styled(RadioGroup<WidgetType>)`
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  gap: ${space(2)};
 `;
 
 const StyledSectionHeader = styled(SectionHeader)`

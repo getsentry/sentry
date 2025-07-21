@@ -160,7 +160,15 @@ const serverless: Set<PlatformKey> = new Set([
   'python-serverless',
 ]);
 
-const games: Set<PlatformKey> = new Set(['unity', 'unreal', 'godot', 'native']);
+const gaming: Set<PlatformKey> = new Set([
+  'godot',
+  'native',
+  'nintendo-switch',
+  'playstation',
+  'unity',
+  'unreal',
+  'xbox',
+]);
 
 export const createablePlatforms: Set<PlatformKey> = new Set([
   ...popularPlatformCategories,
@@ -169,7 +177,6 @@ export const createablePlatforms: Set<PlatformKey> = new Set([
   ...mobile,
   ...desktop,
   ...serverless,
-  ...games,
 ]);
 
 /**
@@ -187,9 +194,9 @@ const categoryList = [
   {id: 'desktop', name: t('Desktop'), platforms: desktop},
   {id: 'serverless', name: t('Serverless'), platforms: serverless},
   {
-    id: 'games',
-    name: t('Games'),
-    platforms: games,
+    id: 'gaming',
+    name: t('Gaming'),
+    platforms: gaming,
     display: (organization?: Organization) =>
       organization?.features.includes('project-creation-games-tab') ?? false,
   },

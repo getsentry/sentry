@@ -98,7 +98,7 @@ describe('transactionsTable', () => {
             'avg(messaging.message.receive.latency)',
             'trace_status_rate(ok)',
           ],
-          dataset: 'spansMetrics',
+          dataset: 'spans',
         }),
       })
     );
@@ -146,7 +146,7 @@ describe('transactionsTable', () => {
             'avg(messaging.message.receive.latency)',
             'trace_status_rate(ok)',
           ],
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           sort: '-avg_if(span.duration,span.op,queue.process)',
         }),
       })

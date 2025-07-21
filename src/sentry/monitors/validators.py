@@ -21,7 +21,7 @@ from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.monitors.constants import MAX_MARGIN, MAX_THRESHOLD, MAX_TIMEOUT
 from sentry.monitors.models import CheckInStatus, Monitor, ScheduleType
 from sentry.monitors.schedule import get_next_schedule, get_prev_schedule
-from sentry.monitors.types import CrontabSchedule
+from sentry.monitors.types import CrontabSchedule, slugify_monitor_slug
 from sentry.utils.dates import AVAILABLE_TIMEZONES
 
 MONITOR_STATUSES = {
@@ -294,8 +294,12 @@ class MonitorValidator(CamelSnakeSerializer):
         return status
 
     def validate_slug(self, value):
+        if not value:
+            return value
+
+        value = slugify_monitor_slug(value)
         # Ignore if slug is equal to current value
-        if not value or (self.instance and value == self.instance.get("slug")):
+        if self.instance and value == self.instance.get("slug"):
             return value
 
         if Monitor.objects.filter(

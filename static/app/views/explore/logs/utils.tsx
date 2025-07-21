@@ -32,6 +32,7 @@ import {
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 import type {PickableDays} from 'sentry/views/explore/utils';
+import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 const {warn, fmt} = Sentry.logger;
 
@@ -266,4 +267,57 @@ export function getLogTimestampBucketIndex(
   const relativeRowTimestamp = rowTimestampMillis - periodStartMillis;
   const bucketIndex = Math.floor(relativeRowTimestamp / intervalMillis);
   return bucketIndex;
+}
+
+// Null indicates the data is not available yet.
+export function calculateAverageLogsPerSecond(
+  timeseriesResult: ReturnType<typeof useSortedTimeSeries>
+): number | null {
+  if (timeseriesResult.isLoading) {
+    return null;
+  }
+
+  if (!timeseriesResult?.data) {
+    return 0;
+  }
+
+  const allSeries = Object.values(timeseriesResult.data)[0];
+  if (!Array.isArray(allSeries) || allSeries.length === 0) {
+    return 0;
+  }
+
+  let totalLogs = 0;
+  let totalDurationSeconds = 0;
+
+  allSeries.forEach(series => {
+    if (!series?.values || !Array.isArray(series.values)) {
+      return;
+    }
+
+    const values = series.values;
+    if (values.length < 2) {
+      return;
+    }
+
+    const seriesTotal = values.reduce((sum, item) => {
+      return sum + (typeof item.value === 'number' ? item.value : 0);
+    }, 0);
+
+    totalLogs += seriesTotal;
+
+    const firstTimestamp = values[0]?.timestamp;
+    const lastTimestamp = values[values.length - 1]?.timestamp;
+
+    if (firstTimestamp && lastTimestamp && lastTimestamp > firstTimestamp) {
+      const durationMs = lastTimestamp - firstTimestamp;
+      const durationSeconds = durationMs / 1000;
+      totalDurationSeconds = Math.max(totalDurationSeconds, durationSeconds);
+    }
+  });
+
+  if (totalDurationSeconds === 0) {
+    return 0;
+  }
+
+  return totalLogs / totalDurationSeconds;
 }
