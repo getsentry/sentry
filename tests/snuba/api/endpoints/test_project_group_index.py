@@ -33,7 +33,7 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers import parse_link_header, with_feature
+from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -837,7 +837,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert activity.data["version"] == ""
 
-    @with_feature("organizations:resolve-in-upcoming-release")
     def test_set_resolved_in_upcoming_release(self):
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
@@ -896,7 +895,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             == "Your organization does not have access to this feature."
         )
 
-    @with_feature("organizations:resolve-in-upcoming-release")
     def test_upcoming_release_release_validation(self):
         group = self.create_group(status=GroupStatus.UNRESOLVED)
 
