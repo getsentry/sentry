@@ -136,6 +136,12 @@ export const Text = styled(
 
   text-box-edge: text text;
   text-box-trim: trim-both;
+
+  /**
+   * Reset any margin or padding that might be set by the global CSS styles.
+   */
+  margin: 0;
+  padding: 0;
 `;
 
 interface HeadingProps extends Omit<TextProps, 'as' | 'bold'> {
@@ -183,9 +189,10 @@ export const Heading = styled(
   text-box-trim: trim-both;
 
   /**
-   * Our global CSS styles set heading margins for each heading element
+   * Reset any margin or padding that might be set by the global CSS styles.
    */
   margin: 0;
+  padding: 0;
 `;
 
 function getDefaultHeadingFontSize(as: HeadingProps['as']): TextProps['size'] {
