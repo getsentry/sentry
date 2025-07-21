@@ -22,7 +22,7 @@ export default function ReplayBulkDeleteAuditLogTable({
   return (
     <SimpleTableWithColumns>
       <SimpleTable.Header>
-        <SimpleTable.HeaderCell>{t('id')}</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell>{t('ID')}</SimpleTable.HeaderCell>
         <SimpleTable.HeaderCell>{t('Date Created')}</SimpleTable.HeaderCell>
         <SimpleTable.HeaderCell>{t('Query')}</SimpleTable.HeaderCell>
         <SimpleTable.HeaderCell>{t('Count Deleted')}</SimpleTable.HeaderCell>
