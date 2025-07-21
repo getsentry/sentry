@@ -103,7 +103,11 @@ function ProjectRowWithUpdate({
 }: {
   isFetchingRepositories: boolean;
   onSuccess: (projectId: string) => void;
-  onUpdateProjectState: (projectId: string, preference: any) => void;
+  onUpdateProjectState: (
+    projectId: string,
+    preference: any,
+    codeMappingRepos?: SeerRepoDefinition[]
+  ) => void;
   project: Project;
   projectStates: ProjectStateMap;
   repositories: any[];
@@ -247,7 +251,7 @@ function ProjectsWithoutRepos({
   );
 
   const handleUpdateProjectState = useCallback(
-    (projectId: string, preference: any) => {
+    (projectId: string, preference: any, codeMappingRepos?: SeerRepoDefinition[]) => {
       setProjectStates(prev => {
         const existingState = prev[projectId];
         return {
@@ -261,7 +265,7 @@ function ProjectsWithoutRepos({
       });
       const project = projects.find(p => p.id === projectId);
       if (project) {
-        onProjectStateUpdate(project, preference, false);
+        onProjectStateUpdate(project, preference, false, codeMappingRepos);
       }
     },
     [projects, onProjectStateUpdate]
