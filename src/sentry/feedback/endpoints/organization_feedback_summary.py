@@ -138,7 +138,8 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
             feedbacks=group_feedbacks,
         )
 
-        summary = make_seer_request(request)
+        summary = json.loads(make_seer_request(request).decode("utf-8"))
+        summary = summary["data"]
 
         cache.set(
             summary_cache_key,
@@ -178,7 +179,5 @@ def make_seer_request(request: SeerRequest) -> bytes:
         )
 
     response.raise_for_status()
-
-    return response.content
 
     return response.content
