@@ -2,8 +2,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class UpdateMetricDetectorConfigFieldsTest(TestMigrations):
-    migrate_from = "0077_add_wfh_single_write_col"
-    migrate_to = "0078_update_metric_detector_config_fields"
+    migrate_from = "0079_add_unique_constraint_to_detector_group"
+    migrate_to = "0080_update_metric_detector_config_fields"
     app = "workflow_engine"
 
     def setup_initial_state(self):

@@ -41,7 +41,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("workflow_engine", "0077_add_wfh_single_write_col"),
+        ("workflow_engine", "0079_add_unique_constraint_to_detector_group"),
     ]
 
     operations = [
