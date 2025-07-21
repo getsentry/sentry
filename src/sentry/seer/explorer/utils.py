@@ -1,7 +1,7 @@
 import re
 
 from sentry.seer.autofix.autofix import _convert_profile_to_execution_tree
-from sentry.seer.explorer.models import ExecutionTreeNode
+from sentry.seer.sentry_data_models import ExecutionTreeNode
 
 
 def normalize_description(description: str) -> str:
