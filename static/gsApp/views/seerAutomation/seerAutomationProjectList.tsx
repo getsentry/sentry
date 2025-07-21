@@ -217,7 +217,7 @@ export function SeerAutomationProjectList() {
   };
 
   const handleRowClick = (project: Project) => {
-    navigate(`/settings/projects/${project.slug}/seer/`);
+    navigate(`/settings/${organization.slug}/projects/${project.slug}/seer/`);
   };
 
   const handleCheckboxChange = (projectId: string) => {
@@ -328,7 +328,7 @@ export function SeerAutomationProjectList() {
         <Button
           size="md"
           priority="primary"
-          onClick={() => navigate('/settings/seer/onboarding')}
+          onClick={() => navigate(`/settings/${organization.slug}/seer/onboarding`)}
         >
           {t('Open Setup Wizard')}
         </Button>
