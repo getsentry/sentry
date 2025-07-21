@@ -10,13 +10,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {buildEventViewQuery} from 'sentry/views/insights/common/utils/buildEventViewQuery';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 import {useWasSearchSpaceExhausted} from 'sentry/views/insights/common/utils/useWasSearchSpaceExhausted';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {EmptyContainer} from 'sentry/views/insights/common/views/spans/selectors/emptyOption';
-import {type ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {type ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 type Props = {
   domainAlias: string;
@@ -60,7 +60,7 @@ export function DomainSelector({
       spanCategory,
     }),
     ...(searchQuery && searchQuery.length > 0
-      ? [`${SpanMetricsField.SPAN_DOMAIN}:*${[searchQuery]}*`]
+      ? [`${SpanFields.SPAN_DOMAIN}:*${[searchQuery]}*`]
       : []),
     ...(additionalQuery || []),
   ].join(' ');
@@ -69,12 +69,12 @@ export function DomainSelector({
     data: domainData,
     isPending,
     pageLinks,
-  } = useSpanMetrics(
+  } = useSpans(
     {
       limit: LIMIT,
       search: query,
       sorts: [{field: 'count()', kind: 'desc'}],
-      fields: [SpanMetricsField.SPAN_DOMAIN, 'count()'],
+      fields: [SpanFields.SPAN_DOMAIN, 'count()'],
     },
     'api.starfish.get-span-domains'
   );
@@ -89,7 +89,7 @@ export function DomainSelector({
   const uniqueDomains = new Set<string>();
 
   domainData.forEach(row => {
-    const spanDomain: string | string[] = row[SpanMetricsField.SPAN_DOMAIN];
+    const spanDomain: string | string[] = row[SpanFields.SPAN_DOMAIN];
 
     const domains = typeof spanDomain === 'string' ? spanDomain.split(',') : spanDomain;
 
@@ -193,7 +193,7 @@ export function DomainSelector({
           ...location,
           query: {
             ...location.query,
-            [SpanMetricsField.SPAN_DOMAIN]: newValue.value,
+            [SpanFields.SPAN_DOMAIN]: newValue.value,
             [QueryParameterNames.SPANS_CURSOR]: undefined,
           },
         });

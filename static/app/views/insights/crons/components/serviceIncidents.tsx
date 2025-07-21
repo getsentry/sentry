@@ -102,7 +102,9 @@ function CronServiceIncidents({timeWindowConfig}: CronServiceIncidentsProps) {
           body={
             <Fragment>
               <Alert.Container>
-                <Alert type="warning">{alertMessage}</Alert>
+                <Alert type="warning" showIcon={false}>
+                  {alertMessage}
+                </Alert>
               </Alert.Container>
               <ServiceIncidentDetails incident={inc} />
             </Fragment>

@@ -25,6 +25,7 @@ from sentry.incidents.endpoints.serializers.incident import (
     DetailedIncidentSerializerResponse,
     IncidentSerializer,
 )
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
     AlertRuleThresholdType,
@@ -581,7 +582,7 @@ def generate_incident_trigger_email_context(
             ),
             query=urlencode(alert_link_params),
         )
-    elif should_fire_workflow_actions(organization):
+    elif should_fire_workflow_actions(organization, MetricIssue.type_id):
         # lookup the incident_id from the open_period_identifier
         try:
             incident_group_open_period = IncidentGroupOpenPeriod.objects.get(

@@ -59,7 +59,7 @@ class OpsgenieClient(ApiClient):
         rule_urls = []
         for rule in rules:
             rule_id = rule.id
-            if should_fire_workflow_actions(organization):
+            if should_fire_workflow_actions(organization, group.type):
                 rule_id = get_key_from_rule_data(rule, "legacy_rule_id")
 
             path = f"/organizations/{organization.slug}/alerts/rules/{group.project.slug}/{rule_id}/details/"

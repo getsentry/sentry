@@ -22,6 +22,7 @@ import {space} from 'sentry/styles/space';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -57,7 +58,8 @@ export default function ReplayPreviewPlayer({
   const routes = useRoutes();
   const organization = useOrganization();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const {replay, currentTime, isFetching, isFinished, isPlaying, isVideoReplay} =
+  const replay = useReplayReader();
+  const {currentTime, isFetching, isFinished, isPlaying, isVideoReplay} =
     useReplayContext();
 
   const fullscreenRef = useRef<HTMLDivElement | null>(null);
@@ -68,7 +70,7 @@ export default function ReplayPreviewPlayer({
   const startOffsetMs = replay?.getStartOffsetMs() ?? 0;
 
   const referrer = getRouteStringFromRoutes(routes);
-  const fromFeedback = referrer === '/feedback/';
+  const fromFeedback = referrer === '/issues/feedback/';
 
   const {groupId} = useParams<{groupId: string}>();
 
@@ -189,6 +191,7 @@ const PlayerPanel = styled('div')`
   gap: ${space(1)};
   flex-direction: column;
   flex-grow: 1;
+  overflow: hidden;
   height: 100%;
 `;
 
@@ -196,13 +199,7 @@ const PlayerBreadcrumbContainer = styled(FluidHeight)`
   position: relative;
 `;
 
-const PreviewPlayerContainer = styled('div')<{isSidebarOpen: boolean}>`
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  flex-grow: 1;
-  height: 100%;
-
+const PreviewPlayerContainer = styled(FluidHeight)<{isSidebarOpen: boolean}>`
   gap: ${space(2)};
   background: ${p => p.theme.background};
 

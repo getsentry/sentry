@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta, timezone
 
-import pytest
 from django.utils.timezone import now
 
 from sentry.models.group import GroupStatus
@@ -15,7 +14,6 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 class TeamIssueBreakdownTest(APITestCase):
     endpoint = "sentry-api-0-team-all-unresolved-issues"
 
-    @pytest.mark.xfail(reason="flakey")
     def test_status_format(self):
         project1 = self.create_project(teams=[self.team])
         group1_1 = self.create_group(project=project1, first_seen=before_now(days=40))

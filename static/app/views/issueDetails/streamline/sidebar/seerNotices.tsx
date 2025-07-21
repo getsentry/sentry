@@ -10,11 +10,11 @@ import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ExternalLink} from 'sentry/components/core/link';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import StarFixabilityViewButton from 'sentry/components/events/autofix/seerCreateViewButton';
 import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {IconChevron, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -184,6 +184,25 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                           }
                         )}
                       </span>
+                      <span>
+                        {tct(
+                          'Support for other source code providers are coming soon. You can keep up with progress on these GitHub issues: [githubEnterpriseLink:GitHub Enterprise], [bitbucketLink:BitBucket], [gitlabLink:GitLab], and [azureDevopsLink:Azure DevOps].',
+                          {
+                            githubEnterpriseLink: (
+                              <ExternalLink href="https://github.com/getsentry/sentry/issues/95790" />
+                            ),
+                            bitbucketLink: (
+                              <ExternalLink href="https://github.com/getsentry/sentry/issues/92317" />
+                            ),
+                            gitlabLink: (
+                              <ExternalLink href="https://github.com/getsentry/sentry/issues/93724" />
+                            ),
+                            azureDevopsLink: (
+                              <ExternalLink href="https://github.com/getsentry/sentry/issues/95796" />
+                            ),
+                          }
+                        )}
+                      </span>
                     </CardDescription>
                   </StepTextCol>
                   <StepImageCol>
@@ -337,7 +356,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
       )}
       {/* Banners for unreadable repos */}
       {hasMultipleUnreadableRepos && (
-        <StyledAlert type="warning" showIcon key="multiple-repos">
+        <StyledAlert type="warning" key="multiple-repos">
           {tct("Seer can't access these repositories: [repoList].", {
             repoList: <b>{unreadableRepos.map(repo => repo.name).join(', ')}</b>,
           })}
@@ -362,7 +381,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
         </StyledAlert>
       )}
       {hasSingleUnreadableRepo && (
-        <StyledAlert type="warning" showIcon key="single-repo">
+        <StyledAlert type="warning" key="single-repo">
           {unreadableRepos[0]?.provider.includes('github')
             ? tct(
                 "Seer can't access the [repo] repository, make sure the [integrationLink:GitHub integration] is correctly set up.",

@@ -696,6 +696,32 @@ describe('token', function () {
       expect(await screen.findByRole('row', {name: '10'})).toBeInTheDocument();
     });
 
+    it('completes literal with enter', async function () {
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const dispatch = jest.fn();
+      render(<Tokens expression="1" dispatch={dispatch} />);
+
+      expect(await screen.findByRole('row', {name: '1'})).toBeInTheDocument();
+
+      const input = screen.getByRole('textbox', {
+        name: 'Add a literal',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+      expect(input).toHaveFocus();
+      expect(input).toHaveValue('1');
+
+      await userEvent.type(input, '0');
+      await userEvent.type(input, '{Enter}');
+
+      await waitFor(() => expect(getLastInput()).toHaveFocus());
+
+      await userEvent.type(getLastInput(), '{Escape}');
+      expect(await screen.findByRole('row', {name: '10'})).toBeInTheDocument();
+      errorSpy.mockRestore();
+    });
+
     it('completes literal with escape', async function () {
       const dispatch = jest.fn();
       render(<Tokens expression="1" dispatch={dispatch} />);
