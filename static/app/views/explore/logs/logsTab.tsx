@@ -227,6 +227,7 @@ export function LogsTabContent({
 
   const saveAsItems = useSaveAsItems({
     aggregate,
+    groupBy,
     interval,
     mode,
     search: logsSearch,
@@ -355,6 +356,7 @@ export function LogsTabContent({
 
 interface UseSaveAsItemsOptions {
   aggregate: string;
+  groupBy: string | undefined;
   interval: string;
   mode: Mode;
   search: MutableSearch;
@@ -363,6 +365,7 @@ interface UseSaveAsItemsOptions {
 
 function useSaveAsItems({
   aggregate,
+  groupBy,
   interval,
   mode,
   search,
@@ -433,7 +436,12 @@ function useSaveAsItems({
             organization,
           });
 
-          const fields = mode === Mode.SAMPLES ? [] : [].filter(Boolean); // TODO
+          const fields =
+            mode === Mode.SAMPLES
+              ? []
+              : [...new Set([groupBy, yAxis, ...sortBys.map(sort => sort.field)])].filter(
+                  Boolean
+                );
 
           const discoverQuery: NewQuery = {
             name: DEFAULT_WIDGET_NAME,
@@ -481,7 +489,17 @@ function useSaveAsItems({
       disabled: !dashboardsUrls || dashboardsUrls.length === 0,
       isSubmenu: true,
     };
-  }, [aggregates, mode, organization, pageFilters, search, sortBys, location, router]);
+  }, [
+    aggregates,
+    groupBy,
+    mode,
+    organization,
+    pageFilters,
+    search,
+    sortBys,
+    location,
+    router,
+  ]);
 
   return useMemo(() => {
     const saveAs = [];
