@@ -306,7 +306,16 @@ class EventStorage(Service):
         data: Mapping[str, Any] | None = None,
     ) -> Event:
         """
-        Returns an Event from processed data
+        Returns an Event from processed data.
+        
+        Args:
+            project_id: The project ID for the event
+            event_id: The event ID. If None, will be converted to an empty string.
+            group_id: The group ID for the event
+            data: The event data
+            
+        Returns:
+            Event: An Event object with a string event_id (never None)
         """
         return Event(project_id=project_id, event_id=event_id or "", group_id=group_id, data=data)
 
