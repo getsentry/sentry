@@ -462,7 +462,7 @@ class SnubaEventStorage(EventStorage):
         start: datetime | None = None,
         end: datetime | None = None,
         conditions: Sequence[Condition] | None = None,
-    ) -> list[tuple[str, str]]:
+    ) -> list[tuple[str, str] | None]:
         """
         Utility function for grabbing an event's adjacent events,
         which are the ones with the closest timestamps before and after.
@@ -477,7 +477,7 @@ class SnubaEventStorage(EventStorage):
         if not conditions:
             conditions = []
 
-        def make_constant_conditions() -> list[Condition]:
+        def make_constant_conditions() -> list[Condition | Or]:
             environment_conditions = []
             if environments:
                 environment_conditions.append(Condition(Column("environment"), Op.IN, environments))
@@ -592,13 +592,16 @@ class SnubaEventStorage(EventStorage):
         return event_ids
 
     def get_adjacent_event_ids(
-        self, event: Event | GroupEvent, filter: Filter
+        self, event: Event | GroupEvent | None, filter: Filter
     ) -> tuple[tuple[str, str] | None, tuple[str, str] | None]:
         """
         Returns (project_id, event_id) of a previous event given a current event
         and a filter. Returns None if no previous event is found.
         """
         assert filter, "You must provide a filter"
+
+        if event is None:
+            return (None, None)
 
         prev_filter = deepcopy(filter)
         prev_filter.conditions = prev_filter.conditions or []
@@ -620,11 +623,12 @@ class SnubaEventStorage(EventStorage):
         next_filter.orderby = ASC_ORDERING
 
         dataset = self._get_dataset_for_event(event)
-        return self.__get_event_ids_from_filters(
+        result = self.__get_event_ids_from_filters(
             filters=(prev_filter, next_filter),
             dataset=dataset,
             tenant_ids={"organization_id": event.project.organization_id},
         )
+        return result[0], result[1]
 
     def __get_columns(self, dataset: Dataset) -> list[str]:
         return [
@@ -638,7 +642,7 @@ class SnubaEventStorage(EventStorage):
         filters: tuple[Filter, Filter],
         dataset: Dataset = Dataset.Discover,
         tenant_ids: Mapping[str, Any] | None = None,
-    ) -> list[tuple[str, str]]:
+    ) -> list[tuple[str, str] | None]:
         columns = [Columns.EVENT_ID.value.alias, Columns.PROJECT_ID.value.alias]
         try:
             # This query uses the discover dataset to enable
@@ -679,8 +683,14 @@ class SnubaEventStorage(EventStorage):
         return (str(row["project_id"]), str(row["event_id"]))
 
     def __make_event(self, snuba_data: Mapping[str, Any]) -> Event:
-        event_id = snuba_data[Columns.EVENT_ID.value.event_name]
-        project_id = snuba_data[Columns.PROJECT_ID.value.event_name]
+        event_id_column = Columns.EVENT_ID.value.event_name
+        project_id_column = Columns.PROJECT_ID.value.event_name
+
+        if event_id_column is None or project_id_column is None:
+            raise ValueError("Event ID or Project ID column name is None")
+
+        event_id = snuba_data[event_id_column]
+        project_id = snuba_data[project_id_column]
 
         return Event(event_id=event_id, project_id=project_id, snuba_data=snuba_data)
 
@@ -721,7 +731,13 @@ class SnubaEventStorage(EventStorage):
         return []
 
     def __make_transaction(self, snuba_data: Mapping[str, Any]) -> Event:
-        event_id = snuba_data[Columns.EVENT_ID.value.event_name]
-        project_id = snuba_data[Columns.PROJECT_ID.value.event_name]
+        event_id_column = Columns.EVENT_ID.value.event_name
+        project_id_column = Columns.PROJECT_ID.value.event_name
+
+        if event_id_column is None or project_id_column is None:
+            raise ValueError("Event ID or Project ID column name is None")
+
+        event_id = snuba_data[event_id_column]
+        project_id = snuba_data[project_id_column]
 
         return Event(event_id=event_id, project_id=project_id, snuba_data=snuba_data)

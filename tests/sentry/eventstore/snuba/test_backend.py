@@ -217,6 +217,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
 
     def test_get_adjacent_event_ids(self) -> None:
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
+        assert event is not None
 
         filter = Filter(project_ids=[self.project1.id, self.project2.id])
 
@@ -391,7 +392,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         )
         assert next_ids is None
 
-    def test_get_adjacent_event_ids_snql_order_of_event_ids(self):
+    def test_get_adjacent_event_ids_snql_order_of_event_ids(self) -> None:
         project = self.create_project()
         event1 = self.store_event(
             data={
@@ -434,7 +435,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert prev_ids == (str(event1.project_id), event1.event_id)
         assert next_ids == (str(event3.project_id), event3.event_id)
 
-    def test_adjacent_event_ids_same_timestamp_snql(self):
+    def test_adjacent_event_ids_same_timestamp_snql(self) -> None:
         project = self.create_project()
         event1 = self.store_event(
             data={
@@ -484,7 +485,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert prev_ids == (str(project.id), event1.event_id)
         assert next_ids is None
 
-    def test_adjacent_event_ids_with_query_conditions(self):
+    def test_adjacent_event_ids_with_query_conditions(self) -> None:
         project = self.create_project()
         event_a = self.store_event(
             data={
@@ -545,7 +546,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert prev_ids == (str(event_a.project_id), event_a.event_id)
         assert next_ids is None
 
-    def test_adjacent_event_ids_with_date_range_conditions(self):
+    def test_adjacent_event_ids_with_date_range_conditions(self) -> None:
         project = self.create_project()
         self.store_event(
             data={

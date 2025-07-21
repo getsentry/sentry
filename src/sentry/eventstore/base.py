@@ -43,7 +43,7 @@ class Filter:
         self,
         start: datetime | None = None,
         end: datetime | None = None,
-        conditions: Sequence[Condition] | None = None,
+        conditions: Sequence[Sequence[str, str, Any]] | None = None,
         having: Sequence[Condition] | None = None,
         user_id: int | None = None,
         organization_id: int | None = None,
@@ -281,7 +281,7 @@ class EventStorage(Service):
         start: datetime | None = None,
         end: datetime | None = None,
         conditions: Sequence[Condition] | None = None,
-    ) -> list[tuple[str, str]]:
+    ) -> list[tuple[str, str] | None]:
         raise NotImplementedError
 
     def get_adjacent_event_ids(
