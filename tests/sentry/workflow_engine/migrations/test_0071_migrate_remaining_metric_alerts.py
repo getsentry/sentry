@@ -49,7 +49,6 @@ class MigrateMetricAlertsTest(TestMigrations):
     app = "workflow_engine"
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )

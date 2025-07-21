@@ -127,6 +127,9 @@ function StoryUsage() {
         </Storybook.Section>
       )}
       {Object.entries(namedExports).map(([name, MaybeComponent]) => {
+        if (filename.endsWith('.mdx')) {
+          return null;
+        }
         if (EXPECTED_EXPORTS.has(name as keyof StoryExportValues)) {
           return null;
         }

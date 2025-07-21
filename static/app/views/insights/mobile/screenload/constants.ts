@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import type {MetricsProperty, SpanMetricsProperty} from 'sentry/views/insights/types';
+import type {EAPSpanProperty} from 'sentry/views/insights/types';
 
 export enum MobileCursors {
   SPANS_TABLE = 'spansCursor',
@@ -27,9 +27,7 @@ export enum YAxis {
   FRAMES_DELAY = 10,
 }
 
-export const YAXIS_COLUMNS: Readonly<
-  Record<YAxis, MetricsProperty | SpanMetricsProperty>
-> = {
+export const YAXIS_COLUMNS: Readonly<Record<YAxis, EAPSpanProperty | EAPSpanProperty>> = {
   [YAxis.WARM_START]: 'avg(measurements.app_start_warm)',
   [YAxis.COLD_START]: 'avg(measurements.app_start_cold)',
   [YAxis.TTID]: 'avg(measurements.time_to_initial_display)',

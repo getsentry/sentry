@@ -52,7 +52,7 @@ from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_
         ),
         pytest.param(
             "percentile(transaction.duration,0.5000):>100 AND percentile(transaction.duration, 0.25):>20",
-            "(p50(span.duration):>100 AND percentile(span.duration, 0.25):>20) AND is_transaction:1",
+            "(p50(span.duration):>100 AND p50(span.duration):>20) AND is_transaction:1",
         ),
         pytest.param(
             "user_misery():>0.5 OR apdex():>0.5",
@@ -102,12 +102,26 @@ def test_mep_to_eap_simple_query(input: str, expected: str):
             ["avgIf(span.duration,greater,300)"],
         ),
         pytest.param(
-            ["percentile(transaction.duration,0.5000)", "percentile(transaction.duration,0.94)"],
-            ["p50(span.duration)", "percentile(span.duration,0.94)"],
+            [
+                "percentile(transaction.duration,0.5000)",
+                "percentile(transaction.duration,0.94)",
+                "percentile(transaction.duration,0.9999)",
+                "percentile(transaction.duration, 0.625)",
+            ],
+            [
+                "p50(span.duration)",
+                "p95(span.duration)",
+                "p100(span.duration)",
+                "p75(span.duration)",
+            ],
         ),
         pytest.param(
             ["user_misery(300)", "apdex(300)"],
             ["user_misery(span.duration,300)", "apdex(span.duration,300)"],
+        ),
+        pytest.param(
+            ["any(transaction.duration)", "count_miserable(user,300)", "transaction", "count()"],
+            ["transaction", "count(span.duration)"],
         ),
     ],
 )
@@ -121,3 +135,24 @@ def test_mep_to_eap_simple_selected_columns(input: list[str], expected: list[str
     translated = translate_mep_to_eap(old)
 
     assert translated["selected_columns"] == expected
+
+
+@pytest.mark.parametrize(
+    "input,expected",
+    [
+        pytest.param(
+            ["count(span.duration) + 5", "count_web_vitals(user,300) * 3"],
+            ["count(span.duration) + 5"],
+        ),
+    ],
+)
+def test_mep_to_eap_simple_equations(input: list[str], expected: list[str]):
+    old = QueryParts(
+        selected_columns=["id"],
+        query="",
+        equations=input,
+        orderby=[],
+    )
+    translated = translate_mep_to_eap(old)
+
+    assert translated["equations"] == expected

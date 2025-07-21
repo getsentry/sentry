@@ -3,9 +3,12 @@ import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind} from 'sentry/utils/fields';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {DETECTOR_FILTER_KEYS} from 'sentry/views/detectors/constants';
+
+type DetectorSearchProps = {
+  initialQuery: string;
+  onSearch: (query: string) => void;
+};
 
 function getDetectorFilterKeyDefinition(filterKey: string): FieldDefinition | null {
   if (DETECTOR_FILTER_KEYS.hasOwnProperty(filterKey) && DETECTOR_FILTER_KEYS[filterKey]) {
@@ -39,24 +42,12 @@ const FILTER_KEYS: TagCollection = Object.fromEntries(
   })
 );
 
-export function DetectorSearch() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const query = typeof location.query.query === 'string' ? location.query.query : '';
-
+export function DetectorSearch({initialQuery, onSearch}: DetectorSearchProps) {
   return (
     <SearchQueryBuilder
-      initialQuery={query}
+      initialQuery={initialQuery}
       placeholder={t('Search for monitors')}
-      onSearch={searchQuery => {
-        navigate({
-          pathname: location.pathname,
-          query: {
-            ...location.query,
-            query: searchQuery,
-          },
-        });
-      }}
+      onSearch={onSearch}
       filterKeys={FILTER_KEYS}
       getTagValues={() => Promise.resolve([])}
       searchSource="detectors-list"

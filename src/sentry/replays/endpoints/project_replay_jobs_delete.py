@@ -35,7 +35,7 @@ class ReplayDeletionJobSerializer(Serializer):
         }
 
 
-class ReplayDeletionJobCreateSerializer(serializers.Serializer):
+class ReplayDeletionJobCreateDataSerializer(serializers.Serializer):
     rangeStart = serializers.DateTimeField(required=True)
     rangeEnd = serializers.DateTimeField(required=True)
     environments = serializers.ListField(
@@ -47,6 +47,10 @@ class ReplayDeletionJobCreateSerializer(serializers.Serializer):
         if data["rangeStart"] >= data["rangeEnd"]:
             raise serializers.ValidationError("rangeStart must be before rangeEnd")
         return data
+
+
+class ReplayDeletionJobCreateSerializer(serializers.Serializer):
+    data = ReplayDeletionJobCreateDataSerializer(required=True)  # type: ignore[assignment]
 
 
 @region_silo_endpoint
@@ -84,7 +88,7 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        data = serializer.validated_data
+        data = serializer.validated_data["data"]
 
         # Create the deletion job
         job = ReplayDeletionJobModel.objects.create(

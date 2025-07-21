@@ -92,12 +92,12 @@ export default function AddCodeOwnerModal({
     TCodeownersContext
   >({
     mutationFn: ([payload]: TCodeownersVariables) => {
-      return fetchMutation([
-        'POST',
-        `/projects/${organization.slug}/${project.slug}/codeowners/`,
-        {},
-        payload,
-      ]);
+      return fetchMutation({
+        method: 'POST',
+        url: `/projects/${organization.slug}/${project.slug}/codeowners/`,
+        options: {},
+        data: payload,
+      });
     },
     onSuccess: d => {
       const codeMapping = codeMappings?.find(

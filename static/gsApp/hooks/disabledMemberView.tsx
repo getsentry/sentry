@@ -170,7 +170,7 @@ function DisabledMemberView(props: Props) {
                     }
                   )}
                 </p>
-                <DisabledMemberButtonBar gap={2}>
+                <DisabledMemberButtonBar gap="xl">
                   {requestButton}
                   <Confirm
                     onConfirm={() => handleLeaveMutation.mutate()}

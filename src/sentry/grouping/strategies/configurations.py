@@ -1,7 +1,7 @@
 from sentry.grouping.strategies.base import (
     RISK_LEVEL_HIGH,
     StrategyConfiguration,
-    create_strategy_configuration,
+    create_strategy_configuration_class,
 )
 
 # The full mapping of all known configurations.
@@ -9,7 +9,7 @@ CONFIGURATIONS: dict[str, type[StrategyConfiguration]] = {}
 
 # The implied base strategy *every* strategy inherits from if no
 # base is defined.
-BASE_STRATEGY = create_strategy_configuration(
+BASE_STRATEGY = create_strategy_configuration_class(
     None,
     # Strategy priority is enforced programaticaly via the `score` argument to the `@strategy`
     # decorator (rather than by the order they're listed here), but they are nonetheless listed here
@@ -39,16 +39,16 @@ BASE_STRATEGY = create_strategy_configuration(
         # This turns on the automatic message trimming and parameter substitution
         # by the message strategy.
         "normalize_message": False,
-        # newstyle: turns on some javascript fuzzing features.
+        # Turns on some javascript fuzzing features.
         "javascript_fuzzing": False,
-        # newstyle: platforms for which context line should be taken into
+        # Platforms for which context line should be taken into
         # account when grouping.
         "contextline_platforms": (),
-        # newstyle: this detects anonymous classes in PHP code.
+        # This detects anonymous classes in PHP code.
         "php_detect_anonymous_classes": False,
-        # newstyle: turns on a bug that was present in some variants
+        # Turns on a bug that was present in some variants
         "with_context_line_file_origin_bug": False,
-        # newstyle: turns on falling back to exception values when there
+        # Turns on falling back to exception values when there
         # is no stacktrace.
         "with_exception_value_fallback": False,
         # Stacktrace is produced in the context of this exception
@@ -64,33 +64,10 @@ def register_strategy_config(id: str, **kwargs) -> type[StrategyConfiguration]:
         kwargs["base"] = CONFIGURATIONS[kwargs["base"]]
     else:
         kwargs["base"] = BASE_STRATEGY
-    rv = create_strategy_configuration(id, **kwargs)
-    CONFIGURATIONS[id] = rv
-    return rv
+    strategy_class = create_strategy_configuration_class(id, **kwargs)
+    CONFIGURATIONS[id] = strategy_class
+    return strategy_class
 
-
-# Legacy groupings
-#
-# These we do not plan on changing much, but bugfixes here might still go
-# into new grouping versions.
-
-register_strategy_config(
-    id="legacy:2019-03-12",
-    strategies=[
-        "threads:legacy",
-        "stacktrace:legacy",
-        "chained-exception:legacy",
-    ],
-    delegates=["frame:legacy", "stacktrace:legacy", "single-exception:legacy"],
-    changelog="""
-        * Traditional grouping algorithm
-        * Some known weaknesses with regards to grouping of native frames
-    """,
-    initial_context={
-        "normalize_message": False,
-    },
-    enhancements_base="legacy:2019-03-12",
-)
 
 # Simple newstyle grouping
 #
