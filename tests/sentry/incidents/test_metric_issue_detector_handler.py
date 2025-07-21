@@ -18,22 +18,18 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
         detector_trigger: DataCondition,
         extra_trigger: DataCondition | None = None,
     ):
-        evidence_data = {
-            "detector_id": self.detector.id,
-            "value": value,
-            "alert_id": self.alert_rule.id,
-            "data_packet_source_id": str(self.query_subscription.id),
-            "conditions": [
-                {
-                    "id": detector_trigger.id,
-                    "type": detector_trigger.type,
-                    "comparison": detector_trigger.comparison,
-                    "condition_result": detector_trigger.condition_result.value,
-                },
-            ],
-        }
+
+        conditions = [
+            {
+                "id": detector_trigger.id,
+                "type": detector_trigger.type,
+                "comparison": detector_trigger.comparison,
+                "condition_result": detector_trigger.condition_result.value,
+            },
+        ]
+
         if extra_trigger:
-            evidence_data["conditions"].append(
+            conditions.append(
                 {
                     "id": extra_trigger.id,
                     "type": extra_trigger.type,
@@ -41,6 +37,15 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
                     "condition_result": extra_trigger.condition_result.value,
                 }
             )
+
+        evidence_data = {
+            "detector_id": self.detector.id,
+            "value": value,
+            "alert_id": self.alert_rule.id,
+            "data_packet_source_id": str(self.query_subscription.id),
+            "conditions": conditions,
+        }
+
         return evidence_data
 
     def verify_issue_occurrence(
