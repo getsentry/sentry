@@ -252,6 +252,18 @@ def get_or_create_grouphashes(
         if grouphash.metadata:
             record_grouphash_metadata_metrics(grouphash.metadata, event.platform)
         else:
+            # Now that the sample rate for grouphash metadata creation is 100%, we should never land
+            # here, and yet we still do. Log some data for debugging purposes.
+            logger.warning(
+                "grouphash_metadata.hash_without_metadata",
+                extra={
+                    "event_id": event.event_id,
+                    "project_id": project.id,
+                    "hash": hash_value,
+                    "is_new": created,
+                    "has_group": bool(grouphash.group_id),
+                },
+            )
             metrics.incr("grouping.grouphashmetadata.backfill_needed", sample_rate=1.0)
 
         grouphashes.append(grouphash)

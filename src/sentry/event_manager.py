@@ -1323,6 +1323,14 @@ def assign_event_to_group(
     # of the metadata and our ability to pull it from the database immediately thereafter.
     for grouphash in [*primary.grouphashes, *secondary.grouphashes]:
         if not grouphash.metadata:
+            logger.warning(
+                "grouphash_metadata.hash_without_metadata",
+                extra={
+                    "event_id": event.event_id,
+                    "project_id": project.id,
+                    "hash": grouphash.hash,
+                },
+            )
             metrics.incr("grouping.grouphashmetadata.backfill_needed_2", sample_rate=1.0)
 
     # Background grouping is a way for us to get performance metrics for a new
