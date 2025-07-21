@@ -338,7 +338,6 @@ class Enhancements:
     def __init__(
         self,
         rules: list[EnhancementRule],
-        rust_enhancements: RustEnhancements,
         split_enhancement_configs: tuple[EnhancementsConfig, EnhancementsConfig] | None = None,
         version: int | None = None,
         bases: list[str] | None = None,
@@ -588,7 +587,6 @@ class Enhancements:
 
             return cls(
                 rules=unsplit_config.rules,
-                rust_enhancements=unsplit_config.rust_enhancements,
                 split_enhancement_configs=split_configs,
                 version=version,
                 bases=bases,
@@ -611,11 +609,8 @@ class Enhancements:
                 {"split": version == 3, "source": "rules_text", "referrer": referrer}
             )
 
-            rust_enhancements = _get_rust_enhancements("config_string", rules_text)
-            rules = parse_enhancements(rules_text)
             return Enhancements(
-                rules,
-                rust_enhancements=rust_enhancements,
+                rules=parse_enhancements(rules_text),
                 version=version,
                 bases=bases,
                 id=id,
