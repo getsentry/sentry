@@ -9,6 +9,7 @@ import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingMask from 'sentry/components/loadingMask';
 import SearchBar from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import {gaming} from 'sentry/data/platformCategories';
 import {
   createablePlatforms,
   filterAliases,
@@ -95,6 +96,21 @@ function PlatformPicker({
     setCategory(defaultCategory ?? categories[0]!.id);
   }, [defaultCategory, categories]);
 
+  const includeGamingPlatforms =
+    organization?.features.includes('project-creation-games-tab') ?? false;
+
+  const availablePlatforms = useMemo(() => {
+    if (!includeGamingPlatforms) {
+      return selectablePlatforms;
+    }
+
+    const gamingPlatforms = platforms.filter(
+      p => gaming.includes(p.id) && !createablePlatforms.has(p.id)
+    );
+
+    return [...selectablePlatforms, ...gamingPlatforms];
+  }, [includeGamingPlatforms]);
+
   const platformList = useMemo(() => {
     const currentCategory = categories.find(({id}) => id === category);
 
@@ -109,20 +125,8 @@ function PlatformPicker({
       return currentCategory?.platforms?.has(platformIntegration.id);
     };
 
-    // temporary replacement of selectablePlatforms while `nintendo-switch` is behind feature flag
-    const tempSelectablePlatforms = selectablePlatforms;
-
-    if (organization?.features.includes('selectable-nintendo-platform')) {
-      const nintendo = platforms.find(p => p.id === 'nintendo-switch');
-      if (nintendo) {
-        if (!tempSelectablePlatforms.includes(nintendo)) {
-          tempSelectablePlatforms.push(nintendo);
-        }
-      }
-    }
-
     // 'other' is not part of the createablePlatforms list, therefore it won't be included in the filtered list
-    const filtered = tempSelectablePlatforms.filter(filter ? subsetMatch : categoryMatch);
+    const filtered = availablePlatforms.filter(filter ? subsetMatch : categoryMatch);
 
     if (showOther && filter.toLowerCase() === 'other') {
       // We only show 'Other' if users click on the 'Other' suggestion rendered in the not found state or type this word in the search bar
@@ -147,7 +151,7 @@ function PlatformPicker({
       }
       return a.name.localeCompare(b.name);
     });
-  }, [filter, category, organization?.features, showOther, categories]);
+  }, [filter, category, availablePlatforms, showOther, categories]);
 
   const latestValuesRef = useRef({filter, platformList, source, organization});
 

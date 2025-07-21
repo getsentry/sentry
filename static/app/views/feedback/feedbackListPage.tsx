@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
 import FeedbackItemLoader from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
@@ -86,7 +87,10 @@ export default function FeedbackListPage() {
                   {hasSetupOneFeedback || hasSlug ? (
                     <Fragment>
                       <SummaryListContainer style={{gridArea: 'list'}}>
-                        <FeedbackSummary />
+                        {organization.features.includes('user-feedback-ai-summaries') &&
+                          organization.features.includes('gen-ai-features') && (
+                            <FeedbackSummary />
+                          )}
                         <Container>
                           <FeedbackList />
                         </Container>
@@ -95,7 +99,9 @@ export default function FeedbackListPage() {
                         <FeedbackSearch />
                       </SearchContainer>
                       <Container style={{gridArea: 'details'}}>
-                        <FeedbackItemLoader />
+                        <AnalyticsArea name="details">
+                          <FeedbackItemLoader />
+                        </AnalyticsArea>
                       </Container>
                     </Fragment>
                   ) : (

@@ -5,8 +5,7 @@ import {logout} from 'sentry/actionCreators/account';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -251,7 +250,7 @@ function AcceptOrganizationInvite() {
     return (
       <NarrowLayout>
         <Alert.Container>
-          <Alert type="warning">
+          <Alert type="warning" showIcon={false}>
             {tct(
               'This organization invite link is invalid. It may be expired, or you may need to [switchLink:sign in with a different account].',
               {
@@ -279,7 +278,7 @@ function AcceptOrganizationInvite() {
       <SettingsPageHeader title={t('Accept organization invite')} />
       {isAcceptError && (
         <Alert.Container>
-          <Alert type="error">
+          <Alert type="error" showIcon={false}>
             {t('Failed to join this organization. Please try again')}
           </Alert>
         </Alert.Container>

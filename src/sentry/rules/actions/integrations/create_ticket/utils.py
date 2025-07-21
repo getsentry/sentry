@@ -120,7 +120,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
 
         # If we invoked this handler from the notification action, we need to replace the rule_id with the legacy_rule_id, so we link notifications correctly
         action_id = None
-        if should_fire_workflow_actions(organization):
+        if should_fire_workflow_actions(organization, event.group.type):
             # In the Notification Action, we store the rule_id in the action_id field
             action_id = rule_id
             rule_id = data.get("legacy_rule_id")
