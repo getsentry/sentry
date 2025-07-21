@@ -1,4 +1,4 @@
-import {useContext, useMemo} from 'react';
+import {useContext, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
@@ -183,6 +183,71 @@ function PrioritizeSection() {
   );
 }
 
+function IntervalPicker() {
+  const formContext = useContext(FormContext);
+  const detectionType = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.detectionType
+  );
+  const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
+  const interval = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.interval);
+
+  const intervalChoices = useMemo((): Array<[seconds: number, label: string]> => {
+    if (!dataset) {
+      return [];
+    }
+
+    // Interval filtering rules:
+    // 1. Releases → No sub-hour intervals (crash-free alert behavior)
+    // 2. Spans/Logs/Dynamic → No 1-minute intervals
+    // 3. Everything else → All intervals allowed
+    const shouldExcludeSubHour = dataset === DetectorDataset.RELEASES;
+    const shouldExcludeOneMinute =
+      dataset === DetectorDataset.SPANS ||
+      dataset === DetectorDataset.LOGS ||
+      detectionType === 'dynamic';
+
+    const filteredIntervals = baseIntervals.filter(([timeWindow]) => {
+      if (shouldExcludeSubHour) {
+        return timeWindow >= TimeWindow.ONE_HOUR;
+      }
+      if (shouldExcludeOneMinute) {
+        return timeWindow !== TimeWindow.ONE_MINUTE;
+      }
+      return true;
+    });
+
+    return filteredIntervals.map(([timeWindow, label]) => [timeWindow * 60, label]);
+  }, [dataset, detectionType]);
+
+  // Reset form model if dataset changes and the option is no longer available
+  useEffect(() => {
+    if (!intervalChoices.some(choice => choice[0] === interval)) {
+      formContext.form?.setValue(
+        METRIC_DETECTOR_FORM_FIELDS.interval,
+        intervalChoices[0]![0]
+      );
+    }
+  }, [intervalChoices, formContext.form, interval, dataset]);
+
+  return (
+    <IntervalField
+      placeholder={t('Interval')}
+      flexibleControlStateSize
+      inline={false}
+      label={
+        <Tooltip
+          title={t('The time period over which to evaluate your metric.')}
+          showUnderline
+        >
+          <SectionLabel>{t('Interval')}</SectionLabel>
+        </Tooltip>
+      }
+      name={METRIC_DETECTOR_FORM_FIELDS.interval}
+      choices={intervalChoices}
+    />
+  );
+}
+
 function useDatasetChoices() {
   const organization = useOrganization();
 
@@ -236,35 +301,6 @@ function DetectSection() {
   const aggregate = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
   );
-  const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
-
-  const intervalChoices = useMemo((): Array<[seconds: number, label: string]> => {
-    if (!dataset) {
-      return [];
-    }
-
-    // Interval filtering rules:
-    // 1. Releases → No sub-hour intervals (crash-free alert behavior)
-    // 2. Spans/Logs/Dynamic → No 1-minute intervals
-    // 3. Everything else → All intervals allowed
-    const shouldExcludeSubHour = dataset === DetectorDataset.RELEASES;
-    const shouldExcludeOneMinute =
-      dataset === DetectorDataset.SPANS ||
-      dataset === DetectorDataset.LOGS ||
-      detectionType === 'dynamic';
-
-    const filteredIntervals = baseIntervals.filter(([timeWindow]) => {
-      if (shouldExcludeSubHour) {
-        return timeWindow >= TimeWindow.ONE_HOUR;
-      }
-      if (shouldExcludeOneMinute) {
-        return timeWindow !== TimeWindow.ONE_MINUTE;
-      }
-      return true;
-    });
-
-    return filteredIntervals.map(([timeWindow, label]) => [timeWindow * 60, label]);
-  }, [dataset, detectionType]);
 
   return (
     <Container>
@@ -297,21 +333,7 @@ function DetectSection() {
               );
             }}
           />
-          <IntervalField
-            placeholder={t('Interval')}
-            flexibleControlStateSize
-            inline={false}
-            label={
-              <Tooltip
-                title={t('The time period over which to evaluate your metric.')}
-                showUnderline
-              >
-                <SectionLabel>{t('Interval')}</SectionLabel>
-              </Tooltip>
-            }
-            name={METRIC_DETECTOR_FORM_FIELDS.interval}
-            choices={intervalChoices}
-          />
+          <IntervalPicker />
         </DatasetRow>
         <Visualize />
         <MonitorKind />
