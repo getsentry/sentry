@@ -9,6 +9,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ArchivedReplayAlert from 'sentry/components/replays/alerts/archivedReplayAlert';
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
 import {t} from 'sentry/locale';
+import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import useLogEventReplayStatus from 'sentry/utils/replays/hooks/useLogEventReplayStatus';
 import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
@@ -18,13 +19,17 @@ import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 interface Props {
   analyticsContext: string;
+  eventTimestampMs: number;
   fullReplayButtonProps: Partial<Omit<LinkButtonProps, 'external'>>;
   replayReaderResult: ReturnType<typeof useLoadReplayReader>;
+  focusTab?: TabKey;
   overlayContent?: React.ReactNode;
 }
 
 export default function ReplayClipPreviewPlayer({
   analyticsContext,
+  eventTimestampMs,
+  focusTab,
   fullReplayButtonProps,
   replayReaderResult,
   overlayContent,
@@ -47,14 +52,22 @@ export default function ReplayClipPreviewPlayer({
     >
       {({replay}) => {
         if (replay.getDurationMs() <= 0) {
+          // Calculate the relative timestamp for the event within the replay
+          const replayStartTimestampMs = replay.getReplay().started_at.getTime();
+          const relativeTimestampMs = Math.max(
+            0,
+            eventTimestampMs - replayStartTimestampMs
+          );
+
           return (
             <StaticReplayPreview
               analyticsContext={analyticsContext}
+              focusTab={focusTab}
               isFetching={false}
               replay={replay}
               replayId={replayReaderResult.replayId}
               fullReplayButtonProps={fullReplayButtonProps}
-              initialTimeOffsetMs={0}
+              initialTimeOffsetMs={relativeTimestampMs}
             />
           );
         }
@@ -66,6 +79,8 @@ export default function ReplayClipPreviewPlayer({
                 <ReplayPlayerStateContextProvider>
                   <ReplayPreviewPlayer
                     errorBeforeReplayStart={replay.getErrorBeforeReplayStart()}
+                    eventTimestampMs={eventTimestampMs}
+                    focusTab={focusTab}
                     fullReplayButtonProps={fullReplayButtonProps}
                     overlayContent={overlayContent}
                     replayId={replayReaderResult.replayId}

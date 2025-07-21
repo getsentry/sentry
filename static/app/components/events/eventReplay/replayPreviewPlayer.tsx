@@ -1,5 +1,5 @@
 import type {ComponentProps} from 'react';
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -43,10 +43,14 @@ export default function ReplayPreviewPlayer({
   overlayContent,
   showNextAndPrevious,
   playPausePriority,
+  focusTab,
+  eventTimestampMs,
 }: {
   errorBeforeReplayStart: boolean;
   replayId: string;
   replayRecord: ReplayRecord;
+  eventTimestampMs?: number;
+  focusTab?: TabKey;
   fullReplayButtonProps?: Partial<Omit<LinkButtonProps, 'external'>>;
   handleBackClick?: () => void;
   handleForwardClick?: () => void;
@@ -68,7 +72,7 @@ export default function ReplayPreviewPlayer({
   const startOffsetMs = replay?.getStartOffsetMs() ?? 0;
 
   const referrer = getRouteStringFromRoutes(routes);
-  const fromFeedback = referrer === '/feedback/';
+  const fromFeedback = referrer === '/feedback/' || referrer.includes('/feedback');
 
   const {groupId} = useParams<{groupId: string}>();
 
@@ -83,6 +87,21 @@ export default function ReplayPreviewPlayer({
       markAsViewed({projectSlug: replayRecord.project_id, replayId: replayRecord.id});
     }
   }, [isFetching, isPlaying, markAsViewed, organization, replayRecord]);
+
+  // Determine the tab to use - prioritize explicit focusTab, then referrer logic
+  const defaultTab = focusTab ?? (fromFeedback ? TabKey.BREADCRUMBS : TabKey.ERRORS);
+
+  // Calculate the timestamp for scrubbing: use eventTimestampMs if provided, otherwise use current player time
+  const scrubTimestamp = useMemo(() => {
+    if (eventTimestampMs && replay) {
+      // Convert absolute eventTimestampMs to relative replay time
+      const replayStartTimestampMs = replay.getReplay().started_at.getTime();
+      const relativeMs = eventTimestampMs - replayStartTimestampMs;
+      return Math.max(0, relativeMs) / 1000; // Convert to seconds and ensure non-negative
+    }
+    // Fallback to current player time
+    return (currentTime + startOffsetMs) / 1000;
+  }, [eventTimestampMs, replay, currentTime, startOffsetMs]);
 
   return (
     <PlayerPanel>
@@ -109,8 +128,8 @@ export default function ReplayPreviewPlayer({
             }),
             query: {
               referrer: getRouteStringFromRoutes(routes),
-              t_main: fromFeedback ? TabKey.BREADCRUMBS : TabKey.ERRORS,
-              t: (currentTime + startOffsetMs) / 1000,
+              t_main: defaultTab,
+              t: scrubTimestamp,
               groupId,
             },
           }}

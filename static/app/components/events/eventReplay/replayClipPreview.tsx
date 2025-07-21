@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import ReplayClipPreviewPlayer from 'sentry/components/events/eventReplay/replayClipPreviewPlayer';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
+import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 
 interface ReplayClipPreviewProps
@@ -16,6 +17,7 @@ interface ReplayClipPreviewProps
   eventTimestampMs: number;
   orgSlug: string;
   replaySlug: string;
+  focusTab?: TabKey;
   overlayContent?: React.ReactNode;
 }
 
@@ -23,6 +25,7 @@ export default function ReplayClipPreview({
   analyticsContext,
   clipOffsets,
   eventTimestampMs,
+  focusTab,
   fullReplayButtonProps,
   orgSlug,
   replaySlug,
@@ -54,6 +57,8 @@ export default function ReplayClipPreview({
       <ReplayClipPreviewPlayer
         replayReaderResult={readerResult}
         analyticsContext={analyticsContext}
+        eventTimestampMs={eventTimestampMs}
+        focusTab={focusTab}
         overlayContent={overlayContent}
         fullReplayButtonProps={fullReplayButtonProps}
       />
