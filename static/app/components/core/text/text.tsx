@@ -62,11 +62,6 @@ interface TextProps {
   tabular?: boolean;
 
   /**
-   * trim text to the edge of the container.
-   */
-  trim?: 'none' | 'both' | 'start' | 'end';
-
-  /**
    * Determines if the text should be underlined.
    * @default false
    */
@@ -134,8 +129,7 @@ export const Text = styled(
   text-transform: ${p => (p.uppercase ? 'uppercase' : undefined)};
 
   text-box-edge: text text;
-  text-box-trim: ${p =>
-    p.trim === 'none' ? undefined : p.trim ? `trim-${p.trim}` : 'trim-both'};
+  text-box-trim: trim-both;
 `;
 
 interface HeadingProps extends Omit<TextProps, 'as'> {
@@ -187,8 +181,7 @@ export const Heading = styled(
   text-transform: ${p => (p.uppercase ? 'uppercase' : undefined)};
 
   text-box-edge: text text;
-  text-box-trim: ${p =>
-    p.trim === 'none' ? undefined : p.trim ? `trim-${p.trim}` : 'trim-both'};
+  text-box-trim: trim-both;
 `;
 
 function getDefaultHeadingFontSize(as: HeadingProps['as']): TextProps['size'] {
