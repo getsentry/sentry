@@ -15,7 +15,7 @@ type Opts<T extends Element> = {
  * calculations on a zoomed timeline, accounting for the zoom level, current
  * playback position, and timeline boundaries.
  */
-export function useTimelineMouseTracking<T extends Element>({
+export default function useTimelineMouseTracking<T extends Element>({
   elem,
   scale,
 }: Opts<T> & {scale: number}) {

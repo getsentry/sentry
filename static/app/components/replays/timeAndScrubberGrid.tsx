@@ -9,7 +9,7 @@ import Duration from 'sentry/components/duration/duration';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
 import ReplayCurrentTime from 'sentry/components/replays/player/replayCurrentTime';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
-import {useTimelineMouseTracking} from 'sentry/components/replays/player/useReplayControllerMouseTracking';
+import useTimelineMouseTracking from 'sentry/components/replays/player/useTimelineMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
