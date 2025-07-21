@@ -22,7 +22,7 @@ def mark_ok(checkin: MonitorCheckIn, succeeded_at: datetime) -> None:
 
     monitor_environment = checkin.monitor_environment
 
-    incident_status = None
+    incident_status: int | None = None
     if try_incident_resolution(checkin):
         incident_status = MonitorStatus.OK
 

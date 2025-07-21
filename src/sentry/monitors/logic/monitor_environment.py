@@ -15,9 +15,9 @@ def monitor_has_newer_status_affecting_checkins(
 
 def update_monitor_environment(
     monitor_env: MonitorEnvironment,
-    last_checkin: datetime,
+    last_checkin: datetime | None,
     expected_ts: datetime,
-    monitor_status: CheckInStatus | None = None,
+    monitor_status: int | None = None,
 ):
     # Compute the next check-in time from our reference time
     next_checkin = monitor_env.monitor.get_next_expected_checkin(expected_ts)

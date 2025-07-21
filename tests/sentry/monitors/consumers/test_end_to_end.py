@@ -10,18 +10,15 @@ from arroyo.backends.local.backend import LocalBroker
 from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing.processor import StreamProcessor
-from arroyo.types import Partition, Topic
+from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.test.utils import override_settings
 from django.utils import timezone
+from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import CheckIn
 
 from sentry.monitors.clock_dispatch import try_monitor_clock_tick
 from sentry.monitors.consumers.clock_tasks_consumer import MonitorClockTasksStrategyFactory
 from sentry.monitors.consumers.clock_tick_consumer import MonitorClockTickStrategyFactory
-from sentry.monitors.consumers.monitor_consumer import (
-    BrokerValue,
-    Message,
-    StoreMonitorCheckInStrategyFactory,
-)
+from sentry.monitors.consumers.monitor_consumer import StoreMonitorCheckInStrategyFactory
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -31,7 +28,7 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.monitors.processing_errors.errors import ProcessingErrorsException
-from sentry.monitors.types import CheckIn, CheckinItem
+from sentry.monitors.types import CheckinItem
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
