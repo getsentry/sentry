@@ -1,3 +1,8 @@
+"""
+A collection of human- and LLM-friendly models to represent Sentry data like issues, traces, and profiles.
+These should be kept in sync with the models in Seer.
+"""
+
 from __future__ import annotations
 
 from typing import Any
@@ -58,7 +63,7 @@ class IssueDetails(BaseModel):
     title: str
     culprit: str | None
     transaction: str | None
-    events: list[dict[str, Any]]  # The recommended event data
+    events: list[dict[str, Any]]
 
 
 class TransactionIssues(BaseModel):

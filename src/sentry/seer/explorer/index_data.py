@@ -15,8 +15,9 @@ from sentry.models.project import Project
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.seer.explorer.models import (
-    IssueData,
+from sentry.seer.explorer.utils import convert_profile_to_execution_tree, normalize_description
+from sentry.seer.sentry_data_models import (
+    IssueDetails,
     ProfileData,
     Span,
     TraceData,
@@ -24,7 +25,6 @@ from sentry.seer.explorer.models import (
     Transaction,
     TransactionIssues,
 )
-from sentry.seer.explorer.utils import convert_profile_to_execution_tree, normalize_description
 from sentry.snuba import spans_rpc
 from sentry.snuba.referrer import Referrer
 
@@ -450,13 +450,12 @@ def get_issues_for_transaction(transaction_name: str, project_id: int) -> Transa
         serialized_event = serialize(full_event, user=None, serializer=EventSerializer())
 
         issue_data_list.append(
-            IssueData(
+            IssueDetails(
                 issue_id=group.id,
                 title=group.title,
                 culprit=group.culprit,
                 transaction=full_event.transaction,
-                event_count=group.times_seen,
-                event_data=serialized_event,
+                events=[serialized_event],
             )
         )
 

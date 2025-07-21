@@ -11,7 +11,7 @@ from sentry.seer.explorer.index_data import (
     get_trace_for_transaction,
     get_transactions_for_project,
 )
-from sentry.seer.explorer.models import ExecutionTreeNode
+from sentry.seer.sentry_data_models import ExecutionTreeNode
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.search.test_backend import SharedSnubaMixin
@@ -362,11 +362,10 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
                 assert issue.culprit == group.culprit
                 # transaction field in issue should come from the event tags
                 assert issue.transaction == transaction_name
-                assert issue.event_count == group.times_seen
-                assert "id" in issue.event_data
-                assert "message" in issue.event_data
+                assert "id" in issue.events[0]
+                assert "message" in issue.events[0]
                 # Check that the event has the transaction in its tags or serialized data
                 assert (
-                    "tags" in issue.event_data
-                    or issue.event_data.get("transaction") == transaction_name
+                    "tags" in issue.events[0]
+                    or issue.events[0].get("transaction") == transaction_name
                 )
