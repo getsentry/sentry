@@ -107,6 +107,8 @@ class Topic(Enum):
     TASKWORKER_SYMBOLICATION_DLQ = "taskworker-symbolication-dlq"
     TASKWORKER_USAGE = "taskworker-usage"
     TASKWORKER_USAGE_DLQ = "taskworker-usage-dlq"
+    TASKWORKER_WORKFLOWS_ENGINE = "taskworker-workflows-engine"
+    TASKWORKER_WORKFLOWS_ENGINE_DLQ = "taskworker-workflows-engine-dlq"
 
 
 class ConsumerDefinition(TypedDict, total=False):
