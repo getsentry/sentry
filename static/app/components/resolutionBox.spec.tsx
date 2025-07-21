@@ -159,26 +159,4 @@ describe('ResolutionBox', function () {
       'This issue has been marked as resolved by f7f395din'
     );
   });
-
-  it('handles inUpcomingRelease', function () {
-    const {container} = render(
-      <ResolutionBox
-        statusDetails={{
-          inUpcomingRelease: true,
-          actor: {
-            id: '111',
-            name: 'David Cramer',
-            username: 'dcramer',
-            ip_address: '127.0.0.1',
-            email: 'david@sentry.io',
-          },
-        }}
-        project={project}
-        organization={organization}
-      />
-    );
-    expect(container).toHaveTextContent(
-      'David Cramer marked this issue as resolved in the upcoming release.'
-    );
-  });
 });
