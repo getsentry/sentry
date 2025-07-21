@@ -837,12 +837,14 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             self.group2: self.event2.for_group(self.group2),
         }
 
-    def test_bulk_fetch_events(self):
+    def test_bulk_fetch_events(self) -> None:
         event_ids = [self.event1.event_id, self.event2.event_id]
-        events = bulk_fetch_events(event_ids, self.project.id)
+        events = bulk_fetch_events(event_ids, self.project)
 
         for event in list(events.values()):
             assert event.event_id in event_ids
+            # For perf reasons, we want to be sure the events have the project cached.
+            assert event._project_cache == self.project
 
     def test_get_group_to_groupevent(self):
         self._push_base_events()
@@ -851,12 +853,11 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         group_to_groupevent = get_group_to_groupevent(
             event_data,
             self.groups_to_dcgs,
-            self.project.id,
+            self.project,
         )
         assert group_to_groupevent == self.group_to_groupevent
 
     @patch("sentry.workflow_engine.tasks.actions.trigger_action.delay")
-    @with_feature("organizations:workflow-engine-action-trigger-async")
     @with_feature("organizations:workflow-engine-trigger-actions")
     def test_fire_actions_for_groups__fire_actions(self, mock_trigger):
         self._push_base_events()

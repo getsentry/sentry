@@ -6,13 +6,7 @@ import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
-import type {
-  EAPSpanProperty,
-  EAPSpanResponse,
-  SpanMetricsProperty,
-  SpanMetricsResponse,
-} from 'sentry/views/insights/types';
+import type {EAPSpanProperty, EAPSpanResponse} from 'sentry/views/insights/types';
 
 interface UseDiscoverQueryOptions {
   additonalQueryKey?: string[];
@@ -47,18 +41,6 @@ export const useSpans = <Fields extends EAPSpanProperty[]>(
   return useDiscover<Fields, EAPSpanResponse>(
     options,
     DiscoverDatasets.SPANS_EAP_RPC,
-    referrer
-  );
-};
-
-export const useSpanMetrics = <Fields extends SpanMetricsProperty[]>(
-  options: UseDiscoverOptions<Fields> = {},
-  referrer: string
-) => {
-  const useEap = useInsightsEap();
-  return useDiscover<Fields, SpanMetricsResponse>(
-    options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_METRICS,
     referrer
   );
 };

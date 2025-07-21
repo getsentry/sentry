@@ -14,21 +14,21 @@ import {InsightsTimeSeriesWidget} from 'sentry/views/insights/common/components/
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {
   type DiscoverSeries,
-  useMetricsSeries,
+  useSpanSeries,
 } from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 export default function PerformanceScoreBreakdownChartWidget(
   props: LoadableChartWidgetProps
 ) {
   const {
     transaction,
-    [SpanIndexedField.BROWSER_NAME]: browserTypes,
-    [SpanIndexedField.USER_GEO_SUBREGION]: subregions,
+    [SpanFields.BROWSER_NAME]: browserTypes,
+    [SpanFields.USER_GEO_SUBREGION]: subregions,
   } = useLocationQuery({
     fields: {
-      [SpanIndexedField.BROWSER_NAME]: decodeBrowserTypes,
-      [SpanIndexedField.USER_GEO_SUBREGION]: decodeList,
+      [SpanFields.BROWSER_NAME]: decodeBrowserTypes,
+      [SpanFields.USER_GEO_SUBREGION]: decodeList,
       transaction: decodeList,
     },
   });
@@ -43,18 +43,18 @@ export default function PerformanceScoreBreakdownChartWidget(
   }
 
   if (subregions) {
-    search.addDisjunctionFilterValues(SpanMetricsField.USER_GEO_SUBREGION, subregions);
+    search.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
   }
 
   if (browserTypes) {
-    search.addDisjunctionFilterValues(SpanMetricsField.BROWSER_NAME, browserTypes);
+    search.addDisjunctionFilterValues(SpanFields.BROWSER_NAME, browserTypes);
   }
 
   const {
     data: vitalScoresData,
     isLoading: areVitalScoresLoading,
     error: vitalScoresError,
-  } = useMetricsSeries(
+  } = useSpanSeries(
     {
       search,
       yAxis: [

@@ -29,36 +29,37 @@ export default function useDeleteReplays({projectSlug}: Props) {
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
   const hasAdminAccess = hasEveryAccess(['project:admin'], {organization, project});
 
-  const canDelete = Boolean(projectSlug) && (hasWriteAccess || hasAdminAccess);
+  const hasAccess = Boolean(projectSlug) && (hasWriteAccess || hasAdminAccess);
 
   const {mutate} = useMutation({
     mutationFn: ([data]: Vars) => {
       if (!projectSlug) {
         throw new Error('Project ID or slug is required');
       }
-      if (!canDelete) {
+      if (!hasAccess) {
         throw new Error('User does not have permission to delete replays');
       }
 
       const options = {};
       const payload = {data};
-      return fetchMutation([
-        'POST',
-        `/projects/${organization.slug}/${projectSlug}/replays/jobs/delete/`,
+      return fetchMutation({
+        method: 'POST',
+        url: `/projects/${organization.slug}/${projectSlug}/replays/jobs/delete/`,
         options,
-        payload,
-      ]);
+        data: payload,
+      });
     },
   });
 
   const queryOptionsToPayload = useCallback(
     (selectedIds: 'all' | string[], queryOptions: QueryKeyEndpointOptions) => {
+      const environments = queryOptions?.query?.environment ?? [];
       const {start, end} = queryOptions?.query?.statsPeriod
         ? parseStatsPeriod(queryOptions?.query?.statsPeriod)
         : (queryOptions?.query ?? {start: undefined, end: undefined});
 
       return {
-        environments: queryOptions?.query?.environment,
+        environments: environments.length === 0 ? project?.environments : environments,
         query:
           selectedIds === 'all'
             ? queryOptions?.query?.query
@@ -67,12 +68,12 @@ export default function useDeleteReplays({projectSlug}: Props) {
         rangeStart: start,
       };
     },
-    []
+    [project?.environments]
   );
 
   return {
     bulkDelete: mutate,
-    canDelete,
+    hasAccess,
     queryOptionsToPayload,
   };
 }

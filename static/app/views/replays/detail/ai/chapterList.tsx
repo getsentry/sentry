@@ -8,9 +8,11 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconChevron, IconFire, IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
+import useOrganization from 'sentry/utils/useOrganization';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
@@ -101,14 +103,19 @@ function ChapterRow({
   const {onClickTimestamp} = useCrumbHandlers();
   const [currentHoverTime] = useCurrentHoverTime();
   const [isHovered, setIsHovered] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   const startOffset = Math.max(start - (replay?.getStartTimestampMs() ?? 0), 0);
   const endOffset = Math.max(end - (replay?.getStartTimestampMs() ?? 0), 0);
   const hasOccurred = currentTime >= startOffset;
   const isBeforeHover = currentHoverTime === undefined || currentHoverTime >= startOffset;
 
+  const organization = useOrganization();
+
   return (
     <ChapterWrapper
+      data-has-error={Boolean(error)}
+      data-has-feedback={Boolean(feedback)}
       className={classNames(className, {
         beforeCurrentTime: hasOccurred,
         afterCurrentTime: !hasOccurred,
@@ -118,17 +125,25 @@ function ChapterRow({
       })}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onToggle={e => setIsOpen(e.currentTarget.open)}
     >
-      <Chapter error={error} feedback={feedback}>
+      <Chapter
+        onClick={() =>
+          trackAnalytics('replay.ai-summary.chapter-clicked', {
+            chapter_type: error ? 'error' : feedback ? 'feedback' : undefined,
+            organization,
+          })
+        }
+      >
         <ChapterIconWrapper>
           {error ? (
-            isHovered ? (
-              <ChapterIconArrow direction="right" size="xs" color="errorText" />
+            isOpen || isHovered ? (
+              <ChapterIconArrow direction="right" size="xs" color="red300" />
             ) : (
-              <IconFire size="xs" color="errorText" />
+              <IconFire size="xs" color="red300" />
             )
           ) : feedback ? (
-            isHovered ? (
+            isOpen || isHovered ? (
               <ChapterIconArrow direction="right" size="xs" color="pink300" />
             ) : (
               <IconMegaphone size="xs" color="pink300" />
@@ -224,6 +239,24 @@ const ChapterWrapper = styled('details')`
   &.activeChapter .beforeCurrentTime:last-child {
     border-bottom-color: ${p => p.theme.purple300};
   }
+
+  /* the border-top is used to eliminate some of the top gap */
+
+  &:hover {
+    border-top: 1px solid ${p => p.theme.backgroundSecondary};
+  }
+
+  [data-has-feedback='true'] {
+    &:hover {
+      border-top: 1px solid ${p => p.theme.pink100};
+    }
+  }
+
+  [data-has-error='true'] {
+    &:hover {
+      border-top: 1px solid ${p => p.theme.red100};
+    }
+  }
 `;
 
 const ChapterBreadcrumbRow = styled(BreadcrumbRow)`
@@ -232,29 +265,22 @@ const ChapterBreadcrumbRow = styled(BreadcrumbRow)`
   &::before {
     display: none;
   }
-  &:last-child {
-    background-color: transparent;
-  }
-  details[open]:last-child &:last-child {
-    background-color: ${p => p.theme.background};
+
+  &:hover {
+    background-color: ${p => p.theme.backgroundSecondary};
   }
 `;
 
-const Chapter = styled('summary')<{error?: boolean; feedback?: boolean}>`
+const Chapter = styled('summary')`
   cursor: pointer;
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.fontSize.lg};
   padding: 0 ${space(0.75)};
-  color: ${p =>
-    p.error ? p.theme.errorText : p.feedback ? p.theme.pink300 : p.theme.textColor};
+  color: ${p => p.theme.textColor};
+
   &:hover {
-    background-color: ${p =>
-      p.error
-        ? p.theme.red100
-        : p.feedback
-          ? p.theme.pink100
-          : p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.backgroundSecondary};
   }
 
   /* sorry */
@@ -265,6 +291,22 @@ const Chapter = styled('summary')<{error?: boolean; feedback?: boolean}>`
   list-style-type: none;
   &::-webkit-details-marker {
     display: none;
+  }
+
+  [data-has-feedback='true'] & {
+    color: ${p => p.theme.pink300};
+
+    &:hover {
+      background-color: ${p => p.theme.pink100};
+    }
+  }
+
+  [data-has-error='true'] & {
+    color: ${p => p.theme.red300};
+
+    &:hover {
+      background-color: ${p => p.theme.red100};
+    }
   }
 `;
 
@@ -282,6 +324,7 @@ const ChapterTitle = styled('div')`
   }
 
   border-bottom: 1px solid ${p => p.theme.innerBorder};
+  margin-bottom: -1px; /* Compensate for border to fully eliminate gap */
 
   details:last-child:not([open]) & {
     border-bottom: none;

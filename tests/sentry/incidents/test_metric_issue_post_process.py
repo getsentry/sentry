@@ -19,7 +19,7 @@ from tests.sentry.incidents.utils.test_metric_issue_base import BaseMetricIssueT
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
-@patch("sentry.workflow_engine.processors.workflow.Action.trigger")
+@patch("sentry.workflow_engine.tasks.actions.trigger_action.delay")
 class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
     def setUp(self):
         super().setUp()
@@ -163,7 +163,7 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
         self.call_post_process_group(occurrence)
         assert mock_trigger.call_count == 2  # both actions
 
-    @with_feature("organizations:workflow-engine-process-activity")
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_resolution_from_critical(self, mock_trigger):
         value = self.critical_detector_trigger.comparison + 1
         data_packet = self.create_subscription_packet(value)
@@ -186,11 +186,11 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
             with self.tasks():
                 update_status(group, message)
             mock_incr.assert_any_call(
-                "workflow_engine.process_workflow.activity_update.executed",
+                "workflow_engine.tasks.process_workflows.activity_update.executed",
                 tags={"activity_type": ActivityType.SET_RESOLVED.value},
             )
 
-    @with_feature("organizations:workflow-engine-process-activity")
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_resolution_from_warning(self, mock_trigger):
         value = self.warning_detector_trigger.comparison + 1
         data_packet = self.create_subscription_packet(value)
@@ -214,6 +214,6 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
             with self.tasks():
                 update_status(group, message)
             mock_incr.assert_any_call(
-                "workflow_engine.process_workflow.activity_update.executed",
+                "workflow_engine.tasks.process_workflows.activity_update.executed",
                 tags={"activity_type": ActivityType.SET_RESOLVED.value},
             )
