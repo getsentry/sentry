@@ -92,7 +92,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
             filter=Filter(
                 project_ids=[self.project1.id, self.project2.id],
                 conditions=[
-                    ("type", "!=", "transaction")
+                    ["type", "!=", "transaction"]
                 ],  # TODO: Remove once errors storage rolled out
             ),
             tenant_ids={"organization_id": 123, "referrer": "r"},
@@ -292,7 +292,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
 
         _filter = Filter(
             project_ids=[project.id],
-            conditions=[("event.type", "!=", "transaction")],
+            conditions=[["event.type", "!=", "transaction"]],
             group_ids=[event1.group_id],
         )
 
