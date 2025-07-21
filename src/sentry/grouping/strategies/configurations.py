@@ -39,16 +39,16 @@ BASE_STRATEGY = create_strategy_configuration_class(
         # This turns on the automatic message trimming and parameter substitution
         # by the message strategy.
         "normalize_message": False,
-        # newstyle: turns on some javascript fuzzing features.
+        # Turns on some javascript fuzzing features.
         "javascript_fuzzing": False,
-        # newstyle: platforms for which context line should be taken into
+        # Platforms for which context line should be taken into
         # account when grouping.
         "contextline_platforms": (),
-        # newstyle: this detects anonymous classes in PHP code.
+        # This detects anonymous classes in PHP code.
         "php_detect_anonymous_classes": False,
-        # newstyle: turns on a bug that was present in some variants
+        # Turns on a bug that was present in some variants
         "with_context_line_file_origin_bug": False,
-        # newstyle: turns on falling back to exception values when there
+        # Turns on falling back to exception values when there
         # is no stacktrace.
         "with_exception_value_fallback": False,
         # Stacktrace is produced in the context of this exception
@@ -68,29 +68,6 @@ def register_strategy_config(id: str, **kwargs) -> type[StrategyConfiguration]:
     CONFIGURATIONS[id] = strategy_class
     return strategy_class
 
-
-# Legacy groupings
-#
-# These we do not plan on changing much, but bugfixes here might still go
-# into new grouping versions.
-
-register_strategy_config(
-    id="legacy:2019-03-12",
-    strategies=[
-        "threads:legacy",
-        "stacktrace:legacy",
-        "chained-exception:legacy",
-    ],
-    delegates=["frame:legacy", "stacktrace:legacy", "single-exception:legacy"],
-    changelog="""
-        * Traditional grouping algorithm
-        * Some known weaknesses with regards to grouping of native frames
-    """,
-    initial_context={
-        "normalize_message": False,
-    },
-    enhancements_base="legacy:2019-03-12",
-)
 
 # Simple newstyle grouping
 #
