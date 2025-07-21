@@ -4,9 +4,9 @@ from sentry.incidents.grouptype import (
     get_alert_type_from_aggregate_dataset,
 )
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.utils.snuba import Dataset
 from sentry.workflow_engine.models import DataCondition
 from sentry.workflow_engine.models.data_condition import Condition
 from tests.sentry.incidents.utils.test_metric_issue_base import BaseMetricIssueTest

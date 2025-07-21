@@ -15,11 +15,11 @@ from sentry.integrations.metric_alerts import TEXT_COMPARISON_DELTA
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.models.organization import Organization
 from sentry.ratelimits.sliding_windows import Quota
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics import format_mri_field, is_mri_field
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.actor import parse_and_validate_actor
 from sentry.types.group import PriorityLevel
-from sentry.utils.snuba import Dataset
 from sentry.workflow_engine.handlers.detector import DetectorOccurrence, StatefulDetectorHandler
 from sentry.workflow_engine.handlers.detector.base import EventData, EvidenceData
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
