@@ -16,7 +16,6 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Input} from 'sentry/components/core/input';
 import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -24,7 +23,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconBookmark, IconDelete, IconEllipsis, IconStar} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
@@ -52,6 +51,7 @@ import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/has
 import {
   getDatasetFromLocationOrSavedQueryDataset,
   getSavedQueryDataset,
+  getTransactionDeprecationMessage,
   handleCreateQuery,
   handleDeleteQuery,
   handleResetHomepageQuery,
@@ -374,12 +374,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           !organization.features.includes('discover-saved-queries-deprecation')
         }
         isHoverable
-        title={tct(
-          'Discover\u2192Transactions is going to be merged into Explore\u2192Traces soon. Please save any transaction related queries from [traces:Explore\u2192Traces]',
-          {
-            traces: <Link to={tracesUrl} />,
-          }
-        )}
+        title={getTransactionDeprecationMessage(tracesUrl)}
       >
         <SaveAsDropdown
           queryName={queryName}
@@ -426,12 +421,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             }}
             title={
               deprecatingTransactionsDataset &&
-              tct(
-                'Discover\u2192Transactions is going to be merged into Explore\u2192Traces soon. Please save any transaction related queries from [traces:Explore\u2192Traces]',
-                {
-                  traces: <Link to={tracesUrl} />,
-                }
-              )
+              getTransactionDeprecationMessage(tracesUrl)
             }
           >
             <IconUpdate />
@@ -667,13 +657,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         disabled: deprecatingTransactionsDataset,
         tooltipOptions: {isHoverable: true},
         tooltip:
-          deprecatingTransactionsDataset &&
-          tct(
-            'Discover\u2192Transactions is going to be merged into Explore\u2192Traces soon. Please save any transaction related queries from [traces:Explore\u2192Traces]',
-            {
-              traces: <Link to={tracesUrl} />,
-            }
-          ),
+          deprecatingTransactionsDataset && getTransactionDeprecationMessage(tracesUrl),
         onAction: () => {
           handleAddQueryToDashboard({
             organization,

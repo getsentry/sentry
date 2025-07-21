@@ -1,7 +1,6 @@
-import {Link} from 'sentry/components/core/link';
 import {TabList} from 'sentry/components/core/tabs';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {SavedQuery} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import {
@@ -20,6 +19,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {
   getDatasetFromLocationOrSavedQueryDataset,
   getSavedQueryDataset,
+  getTransactionDeprecationMessage,
 } from 'sentry/views/discover/savedQuery/utils';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 
@@ -129,12 +129,7 @@ export function DatasetSelectorTabs(props: Props) {
       disabled: deprecatingTransactionsDataset,
       tooltip: deprecatingTransactionsDataset
         ? {
-            title: tct(
-              'Discover\u2192Transactions is going to be merged into Explore\u2192Traces soon. Please browse and save any transaction related queries from [traces:Explore\u2192Traces]',
-              {
-                traces: <Link to={tracesUrl} />,
-              }
-            ),
+            title: getTransactionDeprecationMessage(tracesUrl),
             isHoverable: true,
           }
         : undefined,

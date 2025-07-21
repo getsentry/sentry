@@ -11,7 +11,6 @@ import type {Node, Orientation} from '@react-types/shared';
 
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -237,30 +236,21 @@ function BaseTabList({
         ref={tabListRef}
         variant={variant}
       >
-        {[...state.collection].map(item => {
-          const rendered = item.props.tooltip ? (
-            <Tooltip {...item.props.tooltip}>{item.rendered}</Tooltip>
-          ) : (
-            item.rendered
-          );
-
-          return (
-            <Tab
-              key={item.key}
-              item={{...item, rendered}}
-              state={state}
-              orientation={orientation}
-              size={size}
-              overflowing={
-                orientation === 'horizontal' && overflowTabs.includes(item.key)
-              }
-              ref={element => {
-                tabItemsRef.current[item.key] = element;
-              }}
-              variant={variant}
-            />
-          );
-        })}
+        {[...state.collection].map(item => (
+          <Tab
+            key={item.key}
+            item={item}
+            state={state}
+            orientation={orientation}
+            size={size}
+            overflowing={orientation === 'horizontal' && overflowTabs.includes(item.key)}
+            tooltipProps={item.props.tooltip}
+            ref={element => {
+              tabItemsRef.current[item.key] = element;
+            }}
+            variant={variant}
+          />
+        ))}
       </TabListWrap>
 
       {orientation === 'horizontal' && overflowMenuItems.length > 0 && (
