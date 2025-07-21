@@ -25,14 +25,10 @@ function ReplayCurrentTimeNew() {
   useReplayCurrentTime({callback: setCurrentTime});
 
   switch (prefs.timestampType) {
-    case 'absolute':
-      return (
-        <DateTime
-          date={currentTime.timeMs + replay.getStartTimestampMs()}
-          seconds
-          timeOnly
-        />
-      );
+    case 'absolute': {
+      const startTimestamp = replay?.getStartTimestampMs() ?? 0;
+      return <DateTime date={currentTime.timeMs + startTimestamp} seconds timeOnly />;
+    }
     case 'relative':
     default:
       return <Duration duration={[currentTime.timeMs, 'ms']} precision="sec" />;
