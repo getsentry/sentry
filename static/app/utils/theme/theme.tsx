@@ -1104,7 +1104,11 @@ const space = {
     * Equivalent to deprecated `space(0.5)`
     */
   xs: '4px',
-  /** prev. space(0.75) */
+  /**
+    * `6px`
+    *
+    * Equivalent to deprecated `space(0.75)`
+    */
   sm: '6px',
   /** prev. space(1) */
   md: '8px',
