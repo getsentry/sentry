@@ -19,7 +19,6 @@ from sentry.grouping.utils import hash_from_values
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
-from sentry.replays.endpoints.project_replay_summarize_breadcrumbs import SeerRequest
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.utils import json
 from sentry.utils.cache import cache
@@ -160,7 +159,7 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         )
 
 
-def make_seer_request(request: SeerRequest) -> bytes:
+def make_seer_request(request: SummaryRequest) -> bytes:
     serialized_request = json.dumps(request)
 
     response = requests.post(
