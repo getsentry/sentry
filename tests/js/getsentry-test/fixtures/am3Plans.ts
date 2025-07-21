@@ -953,6 +953,26 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.0004,
         },
       ],
+      logBytes: [
+        {
+          events: 1000000000, // 1GB
+          unitPrice: 0.01,
+          price: 0,
+          onDemandPrice: 0.0125,
+        },
+        {
+          events: 10000000000, // 10GB
+          unitPrice: 0.01,
+          price: 90000,
+          onDemandPrice: 0.0125,
+        },
+        {
+          events: 100000000000, // 100GB
+          unitPrice: 0.01,
+          price: 990000,
+          onDemandPrice: 0.0125,
+        },
+      ],
       ...SEER_TIERS,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
@@ -1449,6 +1469,26 @@ const AM3_PLANS: Record<string, Plan> = {
           unitPrice: 25.0,
           price: 268900,
           onDemandPrice: 31.25,
+        },
+      ],
+      logBytes: [
+        {
+          events: 1000000000, // 1GB
+          unitPrice: 0.01,
+          price: 0,
+          onDemandPrice: 0.0125,
+        },
+        {
+          events: 10000000000, // 10GB
+          unitPrice: 0.01,
+          price: 972000,
+          onDemandPrice: 0.0125,
+        },
+        {
+          events: 100000000000, // 100GB
+          unitPrice: 0.01,
+          price: 10692000,
+          onDemandPrice: 0.0125,
         },
       ],
       ...SEER_TIERS_ANNUAL,

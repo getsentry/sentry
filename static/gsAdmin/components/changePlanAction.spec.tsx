@@ -225,6 +225,10 @@ describe('ChangePlanAction', () => {
       screen.getByRole('textbox', {name: 'Attachments (GB)'}),
       '1'
     );
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Log bytes (GB)'}),
+      '1,000,000,000'
+    );
 
     expect(screen.queryByText('Available Products')).not.toBeInTheDocument();
 
@@ -261,6 +265,10 @@ describe('ChangePlanAction', () => {
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Attachments (GB)'}),
       '1'
+    );
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Log bytes (GB)'}),
+      '1,000,000,000'
     );
 
     expect(screen.getByText('Available Products')).toBeInTheDocument();
@@ -539,6 +547,10 @@ describe('ChangePlanAction', () => {
         screen.getByRole('textbox', {name: 'Attachments (GB)'}),
         '1'
       );
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Log bytes (GB)'}),
+        '1,000,000,000'
+      );
 
       // Submit the form
       expect(screen.getByRole('button', {name: 'Change Plan'})).toBeEnabled();
@@ -589,6 +601,10 @@ describe('ChangePlanAction', () => {
       await selectEvent.select(
         screen.getByRole('textbox', {name: 'Attachments (GB)'}),
         '1'
+      );
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Log bytes (GB)'}),
+        '1,000,000,000'
       );
 
       // Submit the form

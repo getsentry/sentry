@@ -385,7 +385,9 @@ describe('listDisplayNames', function () {
         categories: plan!.checkoutCategories,
         hadCustomDynamicSampling: false,
       })
-    ).toBe('errors, replays, attachments, cron monitors, spans, and uptime monitors');
+    ).toBe(
+      'errors, replays, attachments, cron monitors, spans, uptime monitors, and log bytes'
+    );
   });
 
   it('should include stored spans and use accepted spans for DS', function () {
@@ -396,7 +398,7 @@ describe('listDisplayNames', function () {
         hadCustomDynamicSampling: true,
       })
     ).toBe(
-      'errors, replays, attachments, cron monitors, accepted spans, uptime monitors, and stored spans'
+      'errors, replays, attachments, cron monitors, accepted spans, uptime monitors, log bytes, and stored spans'
     );
   });
 });

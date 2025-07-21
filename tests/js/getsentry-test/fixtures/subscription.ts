@@ -37,6 +37,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
     DataCategory.PROFILE_DURATION_UI
   );
   const hasAttachments = planDetails?.categories?.includes(DataCategory.ATTACHMENTS);
+  const hasLogBytes = planDetails?.categories?.includes(DataCategory.LOG_BYTE);
   const hasSeer = !!planDetails?.availableReservedBudgetTypes?.seer;
 
   // Create a safe default for planCategories if it doesn't exist
@@ -201,6 +202,14 @@ export function SubscriptionFixture(props: Props): TSubscription {
           reserved: safeCategories.attachments?.[0]?.events || 1,
           prepaid: safeCategories.attachments?.[0]?.events || 1,
           order: 9,
+        }),
+      }),
+      ...(hasLogBytes && {
+        logBytes: MetricHistoryFixture({
+          category: DataCategory.LOG_BYTE,
+          reserved: safeCategories.logBytes?.[0]?.events || 1000000000, // 1GB default
+          prepaid: safeCategories.logBytes?.[0]?.events || 1000000000,
+          order: 12,
         }),
       }),
       ...(hasProfileDuration && {
