@@ -3,11 +3,13 @@ from unittest.mock import patch
 
 from django.db import router
 
+from sentry.analytics.events.first_transaction_sent import FirstTransactionSentEvent
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.signals import event_processed, transaction_processed
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 
@@ -81,12 +83,14 @@ class RecordFirstTransactionTest(TestCase):
         project = Project.objects.get(id=self.project.id)
         assert project.flags.has_transactions
 
-        mock_record.assert_called_with(
-            "first_transaction.sent",
-            default_user_id=self.user.id,
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            platform=self.project.platform,
+        assert_last_analytics_event(
+            mock_record,
+            FirstTransactionSentEvent(
+                default_user_id=self.user.id,
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                platform=self.project.platform,
+            ),
         )
 
     def test_analytics_event_no_owner(self):

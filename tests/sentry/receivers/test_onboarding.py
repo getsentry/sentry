@@ -6,6 +6,9 @@ from django.utils import timezone
 
 from sentry import onboarding_tasks
 from sentry.analytics import record
+from sentry.analytics.events.first_transaction_sent import FirstTransactionSentEvent
+from sentry.analytics.events.member_invited import MemberInvitedEvent
+from sentry.analytics.events.project_transferred import ProjectTransferredEvent
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationonboardingtask import (
     OnboardingTask,
@@ -30,6 +33,7 @@ from sentry.signals import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
@@ -877,12 +881,14 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
-        record_analytics.assert_called_with(
-            "first_transaction.sent",
-            default_user_id=self.organization.default_owner_id,
-            organization_id=self.organization.id,
-            project_id=project.id,
-            platform=project.platform,
+        assert_last_analytics_event(
+            record_analytics,
+            FirstTransactionSentEvent(
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                project_id=project.id,
+                platform=project.platform,
+            ),
         )
 
         #  Capture first error
@@ -1008,12 +1014,14 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
-        record_analytics.assert_called_with(
-            "member.invited",
-            invited_member_id=member.id,
-            inviter_user_id=user.id,
-            organization_id=self.organization.id,
-            referrer=None,
+        assert_last_analytics_event(
+            record_analytics,
+            MemberInvitedEvent(
+                invited_member_id=member.id,
+                inviter_user_id=user.id,
+                organization_id=self.organization.id,
+                referrer=None,
+            ),
         )
 
         # Manually update the completionSeen column of existing tasks
@@ -1337,12 +1345,14 @@ class OrganizationOnboardingTaskTest(TestCase):
             sender=None,
         )
 
-        record_analytics.assert_called_with(
-            "project.transferred",
-            old_organization_id=self.organization.id,
-            new_organization_id=new_organization.id,
-            project_id=project.id,
-            platform=project.platform,
+        assert_last_analytics_event(
+            record_analytics,
+            ProjectTransferredEvent(
+                old_organization_id=self.organization.id,
+                new_organization_id=new_organization.id,
+                project_id=project.id,
+                platform=project.platform,
+            ),
         )
 
         project2 = self.create_project(platform="javascript-react")
@@ -1354,12 +1364,14 @@ class OrganizationOnboardingTaskTest(TestCase):
             sender=None,
         )
 
-        record_analytics.assert_called_with(
-            "project.transferred",
-            old_organization_id=self.organization.id,
-            new_organization_id=new_organization.id,
-            project_id=project2.id,
-            platform=project2.platform,
+        assert_last_analytics_event(
+            record_analytics,
+            ProjectTransferredEvent(
+                old_organization_id=self.organization.id,
+                new_organization_id=new_organization.id,
+                project_id=project2.id,
+                platform=project2.platform,
+            ),
         )
 
         transferred_tasks = OrganizationOnboardingTask.objects.filter(
