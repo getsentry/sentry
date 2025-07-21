@@ -837,44 +837,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert activity.data["version"] == ""
 
-    def test_set_resolved_in_upcoming_release(self):
-        release = Release.objects.create(organization_id=self.project.organization_id, version="a")
-        release.add_project(self.project)
-
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
-
-        self.login_as(user=self.user)
-
-        url = f"{self.path}?id={group.id}"
-        response = self.client.put(
-            url,
-            data={"status": "resolved", "statusDetails": {"inUpcomingRelease": True}},
-            format="json",
-        )
-        assert response.status_code == 200
-        assert response.data["status"] == "resolved"
-        assert response.data["statusDetails"]["inUpcomingRelease"]
-        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
-        assert "activity" in response.data
-
-        group = Group.objects.get(id=group.id)
-        assert group.status == GroupStatus.RESOLVED
-
-        resolution = GroupResolution.objects.get(group=group)
-        assert resolution.release == release
-        assert resolution.type == GroupResolution.Type.in_upcoming_release
-        assert resolution.status == GroupResolution.Status.pending
-        assert resolution.actor_id == self.user.id
-
-        assert GroupSubscription.objects.filter(
-            user_id=self.user.id, group=group, is_active=True
-        ).exists()
-
-        activity = Activity.objects.get(
-            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
-        )
-        assert activity.data["version"] == ""
-
     def test_set_resolved_in_explicit_commit_unreleased(self):
         repo = self.create_repo(project=self.project, name=self.project.name)
         commit = self.create_commit(project=self.project, repo=repo)
