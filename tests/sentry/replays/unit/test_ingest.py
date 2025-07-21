@@ -1,7 +1,10 @@
 import zlib
 
+import pytest
+
 from sentry.replays.usecases.ingest import (
     Event,
+    extract_trace_id,
     pack_replay_video,
     parse_replay_events,
     process_recording_event,
@@ -83,7 +86,7 @@ def test_process_recording_event_with_video():
 
 
 def test_parse_replay_events_empty():
-    result = parse_replay_events(
+    (result, trace_items) = parse_replay_events(
         {
             "context": {
                 "key_id": 1,
@@ -101,6 +104,7 @@ def test_parse_replay_events_empty():
         }
     )
     assert result == ParsedEventMeta([], [], [], [], [], [])
+    assert trace_items == []
 
 
 def test_parse_replay_events_invalid_json():
@@ -129,3 +133,18 @@ def test_pack_replay_video():
     video, rrweb = unpack(zlib.decompress(result))
     assert rrweb == b"hello"
     assert video == b"world"
+
+
+@pytest.mark.parametrize(
+    "replay_event,expected",
+    [
+        ({"trace_ids": ["a"]}, "a"),
+        ({"trace_ids": ["a", "a"]}, None),
+        ({"trace_ids": []}, None),
+        ({}, None),
+        (None, None),
+    ],
+)
+def test_extract_trace_id(replay_event, expected):
+    """Test "extract_trace_id" function."""
+    assert extract_trace_id(replay_event) == expected
