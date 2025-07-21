@@ -653,3 +653,20 @@ default_manager.add(
         template="created project {slug} via {origin}",
     )
 )
+# NOTE: 1155 is defined in the private repo but not here in the public repo so we skip it.
+default_manager.add(
+    AuditLogEvent(
+        event_id=1156,
+        name="REPLAYDELETIONJOBMODEL_START",
+        api_name="replay-deletion-jobs.start",
+        template="started replay deletion job",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=1157,
+        name="REPLAYDELETIONJOBMODEL_CANCELED",
+        api_name="replay-deletion-jobs.stop",
+        template="canceled replay deletion job",
+    )
+)
