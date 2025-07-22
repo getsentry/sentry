@@ -304,7 +304,7 @@ function ProjectPerformance() {
     const fields = [
       {
         name: 'boostLatestRelease',
-        type: 'boolean',
+        type: 'boolean' as const,
         label: retentionPrioritiesLabels.boostLatestRelease,
         help: t(
           'Captures more transactions for your new releases as they are being adopted'
@@ -313,7 +313,7 @@ function ProjectPerformance() {
       },
       {
         name: 'boostEnvironments',
-        type: 'boolean',
+        type: 'boolean' as const,
         label: retentionPrioritiesLabels.boostEnvironments,
         help: t(
           'Captures more traces from environments that contain "debug", "dev", "local", "qa", and "test"'
@@ -322,14 +322,14 @@ function ProjectPerformance() {
       },
       {
         name: 'boostLowVolumeTransactions',
-        type: 'boolean',
+        type: 'boolean' as const,
         label: retentionPrioritiesLabels.boostLowVolumeTransactions,
         help: t("Balance high-volume endpoints so they don't drown out low-volume ones"),
         getData: getRetentionPrioritiesData,
       },
       {
         name: 'ignoreHealthChecks',
-        type: 'boolean',
+        type: 'boolean' as const,
         label: retentionPrioritiesLabels.ignoreHealthChecks,
         help: t('Captures fewer of your health checks transactions'),
         getData: getRetentionPrioritiesData,
@@ -341,7 +341,7 @@ function ProjectPerformance() {
     ) {
       fields.push({
         name: 'minimumSampleRate',
-        type: 'boolean',
+        type: 'boolean' as const,
         label: retentionPrioritiesLabels.minimumSampleRate,
         help: t(
           'If higher than the trace sample rate, use the project sample rate for spans instead of the trace sample rate.'
