@@ -1,15 +1,14 @@
 import datetime
 
+from snuba_sdk import Column, Condition, Function, Op
+
 from sentry.eventstore.snuba.backend import SnubaEventStorage
-from sentry.feedback.lib.utils import FeedbackCreationSource
-from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
-from tests.sentry.feedback import mock_feedback_event
 
 
 @region_silo_test
@@ -26,14 +25,34 @@ class TestQuery(APITestCase, SnubaTestCase):
         self.eventstore = SnubaEventStorage()
 
     def test_store_and_query_feedback(self):
-        event = self.store_event(
+        self.store_event(
             data={
                 "event_id": "d" * 32,
                 "type": "feedback",  # This makes it a feedback event
                 "platform": "python",
                 "fingerprint": ["group2"],
                 "timestamp": before_now(days=14).isoformat(),
-                "tags": {"foo": "1"},
+                "tags": {"foo.foo": "1"},
+                # Required feedback context
+                "contexts": {
+                    "feedback": {
+                        "contact_email": "test@example.com",
+                        "name": "Test User",
+                        "message": "This is a test feedback message",
+                        "url": "https://example.com/feedback",
+                    },
+                },
+            },
+            project_id=self.project.id,  # Use the created project's ID
+        )
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "type": "feedback",  # This makes it a feedback event
+                "platform": "python",
+                "fingerprint": ["group1"],
+                "timestamp": before_now(days=14).isoformat(),
+                "tags": {"foo.foo": "5"},
                 # Required feedback context
                 "contexts": {
                     "feedback": {
@@ -47,11 +66,6 @@ class TestQuery(APITestCase, SnubaTestCase):
             project_id=self.project.id,  # Use the created project's ID
         )
 
-        event = self.eventstore.get_event_by_id(self.project.id, "d" * 32)
-
-        # print(event)
-        event
-
         start_date = datetime.datetime.now() - datetime.timedelta(days=90)
         end_date = datetime.datetime.now()
 
@@ -62,39 +76,97 @@ class TestQuery(APITestCase, SnubaTestCase):
             end=end_date,
         )
 
-        event = mock_feedback_event(self.project.id)
-        create_feedback_issue(event, self.project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+        # builder = DiscoverQueryBuilder(
+        #     dataset=Dataset.Events,
+        #     params={},
+        #     snuba_params=snuba_params,
+        #     query="event.type:feedback",
+        #     selected_columns=["count()"],
+        #     config=QueryBuilderConfig(
+        #         auto_fields=False,
+        #         auto_aggregations=True,
+        #         use_aggregate_conditions=True,
+        #     ),
+        # )
+
+        # result = builder.run_query(referrer="test.debug_feedback")
+
+        # print(result["data"])
 
         builder = DiscoverQueryBuilder(
             dataset=Dataset.Events,
             params={},
             snuba_params=snuba_params,
-            query="event.type:feedback",
-            # query="",
-            selected_columns=["count()"],
-            # selected_columns=[
-            #     "event_id",
-            #     "project_id",
-            #     "timestamp",
-            #     "message",
-            #     "platform",
-            #     "tags.key",
-            #     "tags.value",
-            #     "contexts.feedback.message",
-            #     "contexts.feedback.contact_email",
-            #     "contexts.feedback.name",
-            # ],
+            query="event.type:feedback",  # Use startsWith function
+            selected_columns=[
+                "array_join(tags.key) as tag_key",  # Flatten the array
+                "array_join(tags.value) as tag_value",  # Flatten the array
+                "count()",
+            ],
+            orderby=["-count()"],
+            # array_join="tags.key",
+            limit=100,  # Get more results
             config=QueryBuilderConfig(
                 auto_fields=False,
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
+                functions_acl=["array_join"],  # Allow both functions
             ),
+        )
+
+        builder.add_conditions(
+            [
+                Condition(
+                    Function("startsWith", [Function("arrayJoin", [Column("tags.key")]), "foo"]),
+                    Op.EQ,
+                    1,
+                )
+            ]
         )
 
         result = builder.run_query(referrer="test.debug_feedback")
 
-        # print(result["data"])
         result
+
+        # print(result["data"])
+
+        # request = Request(
+        #     dataset="discover",
+        #     app_id="your_app_id",
+        #     # Define which organization and referrer this query is for
+        #     tenant_ids={"organization_id": self.org.id},
+        #     query=Query(
+        #         # Use array_join to "un-nest" the tags so we can filter by key and group by value
+        #         array_join="tags.key",  # Use string, not Column object
+        #         match=Entity("discover"),
+        #         select=[
+        #             Column("tags.key"),
+        #             Column("tags.value"),
+        #             Function("count", [], "count"),
+        #         ],
+        #         # Filter the data before grouping
+        #         where=[
+        #             # Condition 1: Timestamp between two dates
+        #             Condition(Column("timestamp"), Op.GTE, start_date),
+        #             Condition(Column("timestamp"), Op.LT, end_date),
+        #             # Condition 2: Belongs to a specific project
+        #             Condition(Column("project_id"), Op.IN, [self.project.id]),
+        #             # Condition 3: Event type is feedback
+        #             # Condition(Column("type"), Op.EQ, "feedback"),
+        #             # Condition 4: The tag's key must start with "foo"
+        #             Condition(Function("startsWith", [Column("tags.key"), "foo"]), Op.EQ, 1),
+        #         ],
+        #         # Group by the tag value to count occurrences
+        #         groupby=[Column("tags.key"), Column("tags.value")],
+        #         # Order by the count descending to find the most frequent
+        #         orderby=[OrderBy(Column("count"), Direction.DESC)],
+        #         limit=Limit(10),
+        #     ),
+        # )
+
+        # results = raw_snql_query(request, "api.organization-issue-replay-count")
+
+        # print(results)
 
         assert False
 
@@ -328,6 +400,17 @@ class TestQuery(APITestCase, SnubaTestCase):
 #     assert len(ordering) == 2
 
 #     # Assert empty ordering keys returns empty results.
+#     ordering = _make_ordered([], [{"replay_id": "a"}])
+#     assert len(ordering) == 0
+
+#     ordering = _make_ordered(["a", "a", "b"], [{"replay_id": "a"}, {"replay_id": "b"}])
+#     assert len(ordering) == 2
+#     assert len(ordering) == 2
+#     assert len(ordering) == 2
+#     assert len(ordering) == 2
+#     assert len(ordering) == 2
+#     assert len(ordering) == 2
+#     assert len(ordering) == 2
 #     ordering = _make_ordered([], [{"replay_id": "a"}])
 #     assert len(ordering) == 0
 
