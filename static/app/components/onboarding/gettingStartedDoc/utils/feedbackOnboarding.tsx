@@ -1,8 +1,10 @@
 import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
+  ContentBlock,
   DocsParams,
   OnboardingConfig,
+  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
@@ -125,11 +127,13 @@ export const getCrashReportModalIntroduction = () =>
     'Collect feedback on your errors by installing our crash-report modal. This allows users to submit feedback after they experience an error via an automatic modal that pops up after an error occurs. The default modal will prompt the user for their name, email address, and description of what occurred.'
   );
 
-export const getCrashReportModalInstallDescriptionJavaScript = () =>
-  tct(
+export const getCrashReportModalInstallDescriptionJavaScript = (): ContentBlock => ({
+  type: 'text',
+  text: tct(
     'You can collect feedback at the time the event is sent, using [code:beforeSend].',
     {code: <code />}
-  );
+  ),
+});
 
 export const getCrashReportModalConfigDescription = ({link}: {link: string}) =>
   tct(
@@ -137,14 +141,13 @@ export const getCrashReportModalConfigDescription = ({link}: {link: string}) =>
     {code: <code />, link: <ExternalLink href={link} />}
   );
 
-const getCrashReportModalSnippetJavaScript = (params: any) => [
-  {
-    code: [
-      {
-        label: 'HTML',
-        value: 'html',
-        language: 'html',
-        code: `<script>
+const getCrashReportModalSnippetJavaScript = (params: DocsParams): ContentBlock => ({
+  type: 'code',
+  tabs: [
+    {
+      label: 'HTML',
+      language: 'html',
+      code: `<script>
   Sentry.init({
     dsn: "${params.dsn.public}",
     beforeSend(event, hint) {
@@ -156,16 +159,19 @@ const getCrashReportModalSnippetJavaScript = (params: any) => [
     },
   });
 </script>`,
-      },
-    ],
-  },
-];
+    },
+  ],
+});
 
-export const getCrashReportJavaScriptInstallStep = (params: any) => [
+export const getCrashReportJavaScriptInstallStep = (
+  params: DocsParams
+): OnboardingStep[] => [
   {
     type: StepType.INSTALL,
-    description: getCrashReportModalInstallDescriptionJavaScript(),
-    configurations: getCrashReportModalSnippetJavaScript(params),
+    content: [
+      getCrashReportModalInstallDescriptionJavaScript(),
+      getCrashReportModalSnippetJavaScript(params),
+    ],
   },
 ];
 

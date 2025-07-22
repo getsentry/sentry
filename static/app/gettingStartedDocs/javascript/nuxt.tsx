@@ -4,6 +4,7 @@ import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/f
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import type {
+  ContentBlock,
   Docs,
   DocsParams,
   OnboardingConfig,
@@ -27,35 +28,22 @@ import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/
 
 type Params = DocsParams;
 
-const getConfigStep = ({isSelfHosted, organization, projectSlug}: Params) => {
-  const urlParam = isSelfHosted ? '' : '--saas';
-
-  return [
-    {
-      type: StepType.INSTALL,
-      description: tct(
-        'Configure your app automatically by running the [wizardLink:Sentry wizard] in the root of your project.',
-        {
-          wizardLink: (
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nuxt/#install" />
-          ),
-        }
-      ),
-      configurations: [
-        {
-          language: 'bash',
-          code: `npx @sentry/wizard@latest -i nuxt ${urlParam}  --org ${organization.slug} --project ${projectSlug}`,
-        },
-      ],
-    },
-  ];
-};
-
-// TODO: Refactor once the other product areas support content blocks
-const getInstallConfig = (params: Params) => [
+const getInstallContent = (params: Params): ContentBlock[] => [
   {
-    type: StepType.INSTALL,
-    configurations: getConfigStep(params),
+    type: 'text',
+    text: tct(
+      'Configure your app automatically by running the [wizardLink:Sentry wizard] in the root of your project.',
+      {
+        wizardLink: (
+          <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nuxt/#install" />
+        ),
+      }
+    ),
+  },
+  {
+    type: 'code',
+    language: 'bash',
+    code: `npx @sentry/wizard@latest -i nuxt ${params.isSelfHosted ? '' : '--saas'}  --org ${params.organization.slug} --project ${params.projectSlug}`,
   },
 ];
 
@@ -74,29 +62,7 @@ const onboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       title: t('Automatic Configuration (Recommended)'),
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'Configure your app automatically by running the [wizardLink:Sentry wizard] in the root of your project.',
-            {
-              wizardLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nuxt/#install" />
-              ),
-            }
-          ),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'bash',
-              language: 'bash',
-              code: `npx @sentry/wizard@latest -i nuxt ${params.isSelfHosted ? '' : '--saas'}  --org ${params.organization.slug} --project ${params.projectSlug}`,
-            },
-          ],
-        },
-      ],
+      content: getInstallContent(params),
     },
   ],
   configure: params => [
@@ -163,16 +129,25 @@ const onboarding: OnboardingConfig = {
 };
 
 const replayOnboarding: OnboardingConfig = {
-  install: (params: Params) => getInstallConfig(params),
-  configure: (params: Params) => [
+  install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      description: getReplayConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/nuxt/session-replay/',
-      }),
-      configurations: [
+      content: getInstallContent(params),
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      content: [
         {
-          code: [
+          type: 'text',
+          text: getReplayConfigureDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/nuxt/session-replay/',
+          }),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
               value: 'javascript',
@@ -186,8 +161,11 @@ const replayOnboarding: OnboardingConfig = {
             },
           ],
         },
+        {
+          type: 'text',
+          text: <TracePropagationMessage />,
+        },
       ],
-      additionalInfo: <TracePropagationMessage />,
     },
   ],
   verify: getReplayVerifyStep(),
@@ -198,13 +176,18 @@ const feedbackOnboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/nuxt]) installed, minimum version 7.85.0.',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(params),
+          type: 'text',
+          text: tct(
+            'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/nuxt]) installed, minimum version 7.85.0.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        ...getInstallContent(params),
+      ],
     },
   ],
   configure: (params: Params) => [
@@ -242,17 +225,25 @@ const feedbackOnboarding: OnboardingConfig = {
 };
 
 const crashReportOnboarding: OnboardingConfig = {
-  introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  introduction: getCrashReportModalIntroduction,
+  install: getCrashReportJavaScriptInstallStep,
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/nuxt/user-feedback/configuration/#crash-report-modal',
-      }),
-      additionalInfo: widgetCallout({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/nuxt/user-feedback/#user-feedback-widget',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/nuxt/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+        {
+          type: 'text',
+          text: widgetCallout({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/nuxt/user-feedback/#user-feedback-widget',
+          }),
+        },
+      ],
     },
   ],
   verify: () => [],

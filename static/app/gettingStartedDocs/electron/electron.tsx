@@ -215,10 +215,11 @@ const crashReportOnboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      description: getCrashReportModalInstallDescriptionJavaScript(),
-      configurations: [
+      content: [
+        getCrashReportModalInstallDescriptionJavaScript(),
         {
-          code: [
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
               value: 'javascript',
