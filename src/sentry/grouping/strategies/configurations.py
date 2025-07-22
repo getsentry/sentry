@@ -54,7 +54,7 @@ BASE_STRATEGY = create_strategy_configuration_class(
         # Stacktrace is produced in the context of this exception
         "exception_data": None,
         # replaces generated IDs in Java stack frames related to CGLIB and hibernate
-        "java_cglib_hibernate_logic": False,
+        "java_cglib_hibernate_logic": True,
     },
 )
 
@@ -83,9 +83,7 @@ register_strategy_config(
           This includes JavaScript, Python, PHP, Go, Java and Kotlin.
         * Added ChukloadErrors via new built-in fingerprinting support.
     """,
-    initial_context={
-        "java_cglib_hibernate_logic": True,
-    },
+    initial_context={},
     enhancements_base="newstyle:2023-01-11",
     fingerprinting_bases=["javascript@2024-02-02"],
 )
