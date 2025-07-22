@@ -23,6 +23,15 @@ describe('Text', () => {
     render(<Text data-test-id="test-id">Hello World</Text>);
     expect(screen.getByText('Hello World')).toHaveAttribute('data-test-id', 'test-id');
   });
+
+  it('allows passing native HTML attributes', () => {
+    render(
+      <Text as="p" style={{color: 'red'}}>
+        Paragraph text
+      </Text>
+    );
+    expect(screen.getByText('Paragraph text')).toHaveStyle({color: 'red'});
+  });
 });
 
 describe('Heading', () => {

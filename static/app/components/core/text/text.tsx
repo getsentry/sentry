@@ -2,17 +2,13 @@ import isPropValid from '@emotion/is-prop-valid';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-interface TextProps {
+interface BaseTextProps {
   children: React.ReactNode;
   /**
    * Horizontal alignment of the text.
    *
    */
   align?: 'left' | 'center' | 'right' | 'justify';
-  /**
-   * The HTML element to render the text as.
-   */
-  as?: 'span' | 'p' | 'div';
   bold?: boolean;
   /**
    * Density determines the line height of the text.
@@ -84,12 +80,21 @@ interface TextProps {
   wrap?: 'nowrap' | 'normal' | 'pre' | 'pre-line' | 'pre-wrap';
 }
 
+type TextProps<T extends 'span' | 'p' | 'div' = 'span'> = BaseTextProps & {
+  /**
+   * The HTML element to render the text as.
+   */
+  as?: T;
+} & React.HTMLAttributes<HTMLElementTagNameMap[T]>;
+
 type ExclusiveEllipsisProps =
   | {ellipsis?: true; wrap?: never}
-  | {ellipsis?: never; wrap?: TextProps['wrap']};
+  | {ellipsis?: never; wrap?: BaseTextProps['wrap']};
 
 export const Text = styled(
-  (props: TextProps & ExclusiveEllipsisProps) => {
+  <T extends 'span' | 'p' | 'div' = 'span'>(
+    props: TextProps<T> & ExclusiveEllipsisProps
+  ) => {
     const {children, ...rest} = props;
     const Component = props.as || 'span';
     return <Component {...rest}>{children}</Component>;
@@ -144,15 +149,20 @@ export const Text = styled(
   padding: 0;
 `;
 
-interface HeadingProps extends Omit<TextProps, 'as' | 'bold'> {
-  /**
-   * The HTML element to render the title as.
-   */
-  as: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
-}
+type BaseHeadingProps = Omit<BaseTextProps, 'as' | 'bold'>;
+
+type HeadingProps<T extends 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'> =
+  BaseHeadingProps & {
+    /**
+     * The HTML element to render the title as.
+     */
+    as: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+  } & React.HTMLAttributes<HTMLElementTagNameMap[T]>;
 
 export const Heading = styled(
-  (props: HeadingProps & ExclusiveEllipsisProps) => {
+  <T extends 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'>(
+    props: HeadingProps<T> & ExclusiveEllipsisProps
+  ) => {
     const {children, as, ...rest} = props;
     const HeadingComponent = as;
     return <HeadingComponent {...rest}>{children}</HeadingComponent>;
@@ -195,7 +205,7 @@ export const Heading = styled(
   padding: 0;
 `;
 
-function getDefaultHeadingFontSize(as: HeadingProps['as']): TextProps['size'] {
+function getDefaultHeadingFontSize(as: HeadingProps<any>['as']): TextProps<any>['size'] {
   switch (as) {
     case 'h1':
       return '2xl';
@@ -214,7 +224,7 @@ function getDefaultHeadingFontSize(as: HeadingProps['as']): TextProps['size'] {
   }
 }
 
-function getTextDecoration(p: TextProps | HeadingProps) {
+function getTextDecoration(p: TextProps<any> | HeadingProps<any>) {
   const decorations: string[] = [];
   if (p.strikethrough) {
     decorations.push('line-through');
@@ -225,7 +235,7 @@ function getTextDecoration(p: TextProps | HeadingProps) {
   return decorations.join(' ');
 }
 
-function getLineHeight(density: TextProps['density']) {
+function getLineHeight(density: BaseTextProps['density']) {
   switch (density) {
     case 'compressed':
       return '1';
@@ -238,6 +248,6 @@ function getLineHeight(density: TextProps['density']) {
   }
 }
 
-function getFontSize(size: TextProps['size'], theme: Theme) {
+function getFontSize(size: BaseTextProps['size'], theme: Theme) {
   return theme.fontSize[size ?? 'md'];
 }
