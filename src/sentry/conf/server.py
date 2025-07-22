@@ -1505,6 +1505,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.release_registry",
     "sentry.tasks.repository",
     "sentry.tasks.reprocessing2",
+    "sentry.tasks.seer",
     "sentry.tasks.statistical_detectors",
     "sentry.tasks.store",
     "sentry.tasks.summaries.daily_summary",
@@ -1700,10 +1701,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "fetch-ai-model-costs": {
         "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
         "schedule": task_crontab("*/30", "*", "*", "*", "*"),
-    },
-    "sync_options_trial": {
-        "schedule": timedelta(minutes=5),
-        "task": "options:sentry.tasks.options.sync_options",
     },
 }
 
@@ -3433,6 +3430,8 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-symbolication-dlq": "default",
     "taskworker-usage": "default",
     "taskworker-usage-dlq": "default",
+    "taskworker-workflows-engine": "default",
+    "taskworker-workflows-engine-dlq": "default",
 }
 
 
@@ -3503,7 +3502,6 @@ SENTRY_SYNTHETIC_MONITORING_PROJECT_ID: int | None = None
 # Similarity-v1: uses hardcoded set of event properties for diffing
 SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
 
-LEGACY_GROUPING_CONFIG = "legacy:2019-03-12"
 DEFAULT_GROUPING_CONFIG = "newstyle:2023-01-11"
 BETA_GROUPING_CONFIG = ""
 

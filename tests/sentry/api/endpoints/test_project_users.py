@@ -3,7 +3,9 @@ from unittest import mock
 
 from django.utils import timezone
 
+from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.utils.eventuser import EventUser
 
 
@@ -55,10 +57,13 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
             assert sorted(map(lambda x: x["id"], response.data)) == sorted(
                 [str(self.euser1.id), str(self.euser2.id)]
             )
-        mock_record.assert_any_call(
-            "eventuser_endpoint.request",
-            project_id=self.project.id,
-            endpoint="sentry.api.endpoints.project_users.get",
+
+        assert_any_analytics_event(
+            mock_record,
+            EventUserEndpointRequest(
+                project_id=self.project.id,
+                endpoint="sentry.api.endpoints.project_users.get",
+            ),
         )
 
     @mock.patch("sentry.analytics.record")

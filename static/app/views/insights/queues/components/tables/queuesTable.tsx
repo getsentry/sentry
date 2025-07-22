@@ -27,14 +27,10 @@ import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {useQueuesByDestinationQuery} from 'sentry/views/insights/queues/queries/useQueuesByDestinationQuery';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
-import {
-  ModuleName,
-  SpanFields,
-  type SpanMetricsResponse,
-} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, type SpanResponse} from 'sentry/views/insights/types';
 
 type Row = Pick<
-  SpanMetricsResponse,
+  SpanResponse,
   | 'sum(span.duration)'
   | 'messaging.destination.name'
   | 'avg(messaging.message.receive.latency)'

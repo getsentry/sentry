@@ -107,6 +107,8 @@ class Topic(Enum):
     TASKWORKER_SYMBOLICATION_DLQ = "taskworker-symbolication-dlq"
     TASKWORKER_USAGE = "taskworker-usage"
     TASKWORKER_USAGE_DLQ = "taskworker-usage-dlq"
+    TASKWORKER_WORKFLOWS_ENGINE = "taskworker-workflows-engine"
+    TASKWORKER_WORKFLOWS_ENGINE_DLQ = "taskworker-workflows-engine-dlq"
 
 
 class ConsumerDefinition(TypedDict, total=False):
@@ -125,6 +127,9 @@ class ConsumerDefinition(TypedDict, total=False):
 
     # Hardcoded additional kwargs for strategy_factory
     static_args: Mapping[str, Any]
+
+    # Pass the consumer group ID to the strategy factory as 'consumer_group' kwarg
+    pass_consumer_group: bool
 
     require_synchronization: bool
     synchronize_commit_group_default: str

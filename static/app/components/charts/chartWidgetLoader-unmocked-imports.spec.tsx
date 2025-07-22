@@ -159,20 +159,6 @@ jest.mock('sentry/views/insights/common/queries/useDiscover', () => ({
     isPending: false,
     error: null,
   })),
-  useSpanMetrics: jest.fn(() => ({
-    data: [
-      {
-        'avg(span.duration)': 123,
-        'sum(span.duration)': 456,
-        'span.group': 'abc123',
-        'span.description': 'span1',
-        'sentry.normalized_description': 'span1',
-        transaction: 'transaction_a',
-      },
-    ],
-    isPending: false,
-    error: null,
-  })),
   useSpans: jest.fn(() => ({
     data: [
       {
@@ -189,12 +175,7 @@ jest.mock('sentry/views/insights/common/queries/useDiscover', () => ({
   })),
 }));
 jest.mock('sentry/views/insights/common/queries/useTopNDiscoverSeries', () => ({
-  useTopNSpanEAPSeries: jest.fn(() => ({
-    data: [mockDiscoverSeries('transaction_a,abc123')],
-    isPending: false,
-    error: null,
-  })),
-  useTopNSpanMetricsSeries: jest.fn(() => ({
+  useTopNSpanSeries: jest.fn(() => ({
     data: [mockDiscoverSeries('transaction_a,abc123')],
     isPending: false,
     error: null,
@@ -209,6 +190,16 @@ jest.mock('sentry/views/insights/common/queries/useDiscoverSeries', () => ({
       'trace_status_rate(internal_error)': mockDiscoverSeries(
         'trace_status_rate(internal_error)'
       ),
+      'cache_miss_rate()': {},
+      'http_response_rate(3)': {},
+      'http_response_rate(4)': {},
+      'http_response_rate(5)': {},
+      'epm()': {},
+      'avg(span.self_time)': {},
+      'avg(http.response_content_length)': {},
+      'avg(http.response_transfer_size)': {},
+      'avg(http.decoded_response_content_length)': {},
+      'avg(messaging.message.receive.latency)': {},
       'performance_score(measurements.score.lcp)': {
         data: [],
       },
@@ -227,22 +218,6 @@ jest.mock('sentry/views/insights/common/queries/useDiscoverSeries', () => ({
       'count()': {
         data: [],
       },
-    },
-    isPending: false,
-    error: null,
-  })),
-  useSpanMetricsSeries: jest.fn(() => ({
-    data: {
-      'cache_miss_rate()': {},
-      'http_response_rate(3)': {},
-      'http_response_rate(4)': {},
-      'http_response_rate(5)': {},
-      'epm()': {},
-      'avg(span.self_time)': {},
-      'avg(http.response_content_length)': {},
-      'avg(http.response_transfer_size)': {},
-      'avg(http.decoded_response_content_length)': {},
-      'avg(messaging.message.receive.latency)': {},
     },
     isPending: false,
     error: null,

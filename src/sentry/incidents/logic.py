@@ -562,9 +562,7 @@ def create_alert_rule(
 
     :return: The created `AlertRule`
     """
-    has_anomaly_detection = features.has(
-        "organizations:anomaly-detection-alerts", organization
-    ) and features.has("organizations:anomaly-detection-rollout", organization)
+    has_anomaly_detection = features.has("organizations:anomaly-detection-alerts", organization)
 
     if detection_type == AlertRuleDetectionType.DYNAMIC.value and not has_anomaly_detection:
         raise ResourceDoesNotExist("Your organization does not have access to this feature.")
@@ -900,9 +898,7 @@ def update_alert_rule(
             updated_fields["team_id"] = alert_rule.team_id
 
         if detection_type == AlertRuleDetectionType.DYNAMIC:
-            if not features.has(
-                "organizations:anomaly-detection-alerts", organization
-            ) and not features.has("organizations:anomaly-detection-rollout", organization):
+            if not features.has("organizations:anomaly-detection-alerts", organization):
                 raise ResourceDoesNotExist(
                     "Your organization does not have access to this feature."
                 )

@@ -3,7 +3,7 @@ import {useEffect, useMemo} from 'react';
 import emptyTraceImg from 'sentry-images/spot/performance-empty-trace.svg';
 
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {withPerformanceOnboarding} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
@@ -82,7 +82,7 @@ function PerformanceSetupBanner({
   if (projectsWithOnboardingChecklist.length === 0) {
     return (
       <Alert.Container>
-        <Alert type="info" showIcon>
+        <Alert type="info">
           {tct(
             "Some of the projects associated with this trace aren't sending spans, so you're only getting a partial trace view. To learn how to enable tracing for all your projects, visit our [documentationLink].",
             {

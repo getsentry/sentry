@@ -13,6 +13,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {EventTags} from 'sentry/components/events/eventTags';
+import ModalStore from 'sentry/stores/modalStore';
 
 describe('EventTagsTree', function () {
   const {organization, project} = initializeOrg();
@@ -66,6 +67,7 @@ describe('EventTagsTree', function () {
   let mockDetailedProject: jest.Mock;
 
   beforeEach(function () {
+    ModalStore.reset();
     MockApiClient.clearMockResponses();
     mockDetailedProject = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
@@ -127,19 +129,6 @@ describe('EventTagsTree', function () {
   it('renders release tag differently', async function () {
     const releaseVersion = 'v1.0';
 
-    const reposRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/repos/`,
-      body: [],
-    });
-    const releasesRequest = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/releases/${releaseVersion}/`,
-      body: [],
-    });
-    const deploysRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/releases/${releaseVersion}/deploys/`,
-      body: [],
-    });
-
     const releaseEvent = EventFixture({
       tags: [{key: 'release', value: releaseVersion}],
     });
@@ -158,9 +147,6 @@ describe('EventTagsTree', function () {
     expect(anchorLink.href).toContain(
       `/mock-pathname/?rd=show&rdRelease=${releaseVersion}&rdSource=release-version-link`
     );
-    expect(reposRequest).toHaveBeenCalled();
-    expect(releasesRequest).toHaveBeenCalled();
-    expect(deploysRequest).toHaveBeenCalled();
     const dropdown = screen.getByLabelText('Tag Actions Menu');
     await userEvent.click(dropdown);
     expect(screen.getByLabelText('View this release')).toBeInTheDocument();
@@ -195,7 +181,7 @@ describe('EventTagsTree', function () {
       labelText: 'Visit this external link',
       validateLink: async () => {
         renderGlobalModal();
-        const linkElement = screen.getByText('https://example.com');
+        const linkElement = await screen.findByText('https://example.com');
         await userEvent.click(linkElement);
         expect(await screen.findByTestId('external-link-warning')).toBeInTheDocument();
       },
@@ -214,7 +200,7 @@ describe('EventTagsTree', function () {
       const dropdown = screen.getByLabelText('Tag Actions Menu');
       await userEvent.click(dropdown);
       expect(screen.getByLabelText(labelText)).toBeInTheDocument();
-      validateLink();
+      await (validateLink as () => Promise<void>)();
     }
   );
 

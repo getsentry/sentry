@@ -9,7 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.endpoints.organization_events_trace import count_performance_issues
-from sentry.api.utils import update_snuba_params_with_timestamp
+from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
@@ -138,33 +138,34 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
         except NoProjects:
             return Response(status=404)
 
-        update_snuba_params_with_timestamp(request, snuba_params)
+        with handle_query_errors():
+            update_snuba_params_with_timestamp(request, snuba_params)
 
-        # This is a hack, long term EAP will store both errors and performance_issues eventually but is not ready
-        # currently. But we want to move performance data off the old tables immediately. To keep the code simpler I'm
-        # parallelizing the queries here, but ideally this parallelization happens by calling run_bulk_table_queries
-        errors_query = DiscoverQueryBuilder(
-            dataset=Dataset.Events,
-            selected_columns=[
-                "count_if(event.type, notEquals, transaction) as errors",
-            ],
-            params={},
-            snuba_params=snuba_params,
-            query=f"trace:{trace_id}",
-            limit=1,
-        )
-        spans_future = _query_thread_pool.submit(self.query_span_data, trace_id, snuba_params)
-        perf_issues_future = _query_thread_pool.submit(
-            count_performance_issues, trace_id, snuba_params
-        )
-        errors_future = _query_thread_pool.submit(
-            errors_query.run_query, Referrer.API_TRACE_VIEW_GET_EVENTS.value
-        )
+            # This is a hack, long term EAP will store both errors and performance_issues eventually but is not ready
+            # currently. But we want to move performance data off the old tables immediately. To keep the code simpler I'm
+            # parallelizing the queries here, but ideally this parallelization happens by calling run_bulk_table_queries
+            errors_query = DiscoverQueryBuilder(
+                dataset=Dataset.Events,
+                selected_columns=[
+                    "count_if(event.type, notEquals, transaction) as errors",
+                ],
+                params={},
+                snuba_params=snuba_params,
+                query=f"trace:{trace_id}",
+                limit=1,
+            )
+            spans_future = _query_thread_pool.submit(self.query_span_data, trace_id, snuba_params)
+            perf_issues_future = _query_thread_pool.submit(
+                count_performance_issues, trace_id, snuba_params
+            )
+            errors_future = _query_thread_pool.submit(
+                errors_query.run_query, Referrer.API_TRACE_VIEW_GET_EVENTS.value
+            )
 
-        results = spans_future.result()
-        perf_issues = perf_issues_future.result()
-        errors = errors_future.result()
-        results["errors"] = errors
+            results = spans_future.result()
+            perf_issues = perf_issues_future.result()
+            errors = errors_future.result()
+            results["errors"] = errors
 
         return Response(self.serialize(results, perf_issues))
 

@@ -93,9 +93,6 @@ def assert_alert_rule_migrated(alert_rule, project_id):
     assert detector.owner_team == alert_rule.team
     assert detector.type == MetricIssue.slug
     assert detector.config == {
-        "threshold_period": alert_rule.threshold_period,
-        "sensitivity": alert_rule.sensitivity,
-        "seasonality": alert_rule.seasonality,
         "comparison_delta": alert_rule.comparison_delta,
         "detection_type": alert_rule.detection_type,
     }
@@ -475,7 +472,6 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
         return action, data_condition_group_action, action_alert_rule_trigger_action
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @mock.patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -728,9 +724,6 @@ class DualUpdateAlertRuleTest(BaseMetricAlertMigrationTest):
         updated_fields: dict[str, Any] = {}
         updated_fields = {
             "detection_type": "percent",
-            "threshold_period": 1,
-            "sensitivity": None,
-            "seasonality": None,
             "comparison_delta": 3600,
         }
 
@@ -1529,8 +1522,6 @@ class SinglePointOfEntryTest(BaseMetricAlertMigrationTest):
 
         # check detector
         detector = AlertRuleDetector.objects.get(alert_rule_id=self.dual_written_alert.id).detector
-        assert detector.config["sensitivity"] == self.dual_written_alert.sensitivity
-        assert detector.config["seasonality"] == self.dual_written_alert.seasonality
         assert detector.config["detection_type"] == AlertRuleDetectionType.DYNAMIC
 
         # check detector trigger
@@ -1566,8 +1557,6 @@ class SinglePointOfEntryTest(BaseMetricAlertMigrationTest):
         detector = AlertRuleDetector.objects.get(
             alert_rule_id=self.anomaly_detection_alert.id
         ).detector
-        assert detector.config["sensitivity"] is None
-        assert detector.config["seasonality"] is None
         assert detector.config["detection_type"] == AlertRuleDetectionType.STATIC
 
         # check detector trigger
@@ -1591,8 +1580,6 @@ class SinglePointOfEntryTest(BaseMetricAlertMigrationTest):
         self.anomaly_detection_alert.update(
             detection_type=AlertRuleDetectionType.PERCENT,
             comparison_delta=90,
-            sensitivity=None,
-            seasonality=None,
         )
         self.anomaly_detection_alert_trigger.update(alert_threshold=150)
         self.anomaly_detection_alert.refresh_from_db()
@@ -1604,8 +1591,6 @@ class SinglePointOfEntryTest(BaseMetricAlertMigrationTest):
         detector = AlertRuleDetector.objects.get(
             alert_rule_id=self.anomaly_detection_alert.id
         ).detector
-        assert detector.config["sensitivity"] is None
-        assert detector.config["seasonality"] is None
         assert detector.config["detection_type"] == AlertRuleDetectionType.PERCENT
         assert detector.config["comparison_delta"] == 90
 
@@ -1634,7 +1619,6 @@ class SinglePointOfEntryTest(BaseMetricAlertMigrationTest):
         detector = AlertRuleDetector.objects.get(
             alert_rule_id=self.anomaly_detection_alert.id
         ).detector
-        assert detector.config["sensitivity"] == AlertRuleSensitivity.LOW
 
         detector_trigger = DataCondition.objects.get(
             condition_group=detector.workflow_condition_group,

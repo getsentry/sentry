@@ -826,6 +826,56 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         visited_at = [row.get("lastVisited") for row in response.data]
         assert visited_at == [None, now, None]
 
+    def test_get_recently_viewed_sort_with_favorites_from_other_user(self):
+        other_user = self.create_user(username="other_user")
+        self.create_member(organization=self.organization, user=other_user)
+
+        Dashboard.objects.all().delete()
+        dashboard_1 = Dashboard.objects.create(
+            title="Dashboard 1",
+            created_by_id=other_user.id,
+            organization=self.organization,
+        )
+
+        # Both users have the same dashboard in their favorites
+        DashboardFavoriteUser.objects.insert_favorite_dashboard(
+            organization=self.organization,
+            user_id=self.user.id,
+            dashboard=dashboard_1,
+        )
+        DashboardFavoriteUser.objects.insert_favorite_dashboard(
+            organization=self.organization,
+            user_id=other_user.id,
+            dashboard=dashboard_1,
+        )
+
+        # Both users have recently visited the dashboard
+        DashboardLastVisited.objects.create(
+            dashboard=dashboard_1,
+            member=OrganizationMember.objects.get(
+                organization=self.organization, user_id=self.user.id
+            ),
+            last_visited=before_now(minutes=0),
+        )
+        DashboardLastVisited.objects.create(
+            dashboard=dashboard_1,
+            member=OrganizationMember.objects.get(
+                organization=self.organization, user_id=other_user.id
+            ),
+            last_visited=before_now(minutes=2),
+        )
+
+        with self.feature("organizations:dashboards-starred-reordering"):
+            response = self.client.get(
+                self.url, data={"sort": "recentlyViewed", "pin": "favorites"}
+            )
+        assert response.status_code == 200, response.content
+
+        # Assert that the dashboard did not receive a duplicate entry due to being
+        # favorited by another user
+        assert len(response.data) == 1
+        self.assert_equal_dashboards(dashboard_1, response.data[0])
+
     def test_post(self):
         response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})
         assert response.status_code == 201
