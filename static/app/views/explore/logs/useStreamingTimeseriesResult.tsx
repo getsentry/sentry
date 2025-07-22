@@ -342,7 +342,9 @@ function createMergedDataFromBuffer(
   let minBucketIndex = timeseriesLastBucketIndex;
 
   if (hasBufferData) {
+    // Always consider the original timeseries last bucket to include 0-count buckets
     maxBucketIndex = Math.max(
+      timeseriesLastBucketIndex,
       ...Object.values(groupBuffers).flatMap(buffer =>
         buffer.values.map(entry => entry.bucketIndex)
       )
