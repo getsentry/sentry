@@ -9,7 +9,7 @@ export interface NewAutomation {
   environment: string | null;
   name: string;
   triggers: DataConditionGroup | null;
-  disabled?: boolean;
+  enabled?: boolean;
 }
 
 export interface Automation extends Readonly<NewAutomation> {
