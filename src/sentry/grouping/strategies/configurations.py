@@ -69,34 +69,10 @@ def register_strategy_config(id: str, **kwargs) -> type[StrategyConfiguration]:
     return strategy_class
 
 
-# Simple newstyle grouping
-#
-# This is a grouping strategy that applies very simple rules and will
-# become the new default at one point.  Optimized for native and
-# javascript but works for all platforms.
-register_strategy_config(
-    id="newstyle:2019-05-08",
-    risk=RISK_LEVEL_HIGH,
-    changelog="""
-        * Uses source code information all platforms with reliable sources
-          for grouping (JavaScript, Python, PHP and Ruby) and function
-          names and filenames otherwise.
-        * Fallback grouping applies clean-up logic on exception messages
-          (numbers, uuids, email addresses and others are removed)
-        * JavaScript stacktraces are better deduplicated across browser
-          versions yielding a higher chance of these grouping together.
-        * JavaScript stacktraces involving source maps are likely to group
-          better.
-        * C/C++ and other native stacktraces are more reliably grouped.
-    """,
-    initial_context={},
-    enhancements_base="common:2019-03-23",
-)
-
-# This is the grouping strategy used for new projects.
 register_strategy_config(
     id="newstyle:2023-01-11",
-    base="newstyle:2019-05-08",
+    # There's no `base` argument here because this config is based on `BASE_STRATEGY`. To base a
+    # config on a previous config, include its `id` value as the value for `base` here.
     risk=RISK_LEVEL_HIGH,
     changelog="""
         * Better rules for when to take context lines into account for
