@@ -3,6 +3,7 @@ from time import sleep
 from typing import Any
 
 import orjson
+import pytest
 from arroyo.processing.strategies.noop import Noop
 from django.test import override_settings
 
@@ -162,8 +163,6 @@ def test_multi_producer_sliced_integration_with_arroyo_local_producer():
 
 def test_flusher_waits_for_processes_to_start(monkeypatch):
     """Test that the flusher waits for all processes to become healthy during initialization."""
-    import pytest
-
     messages = []
 
     buffer = SpansBuffer(assigned_shards=[0])
