@@ -100,7 +100,7 @@ function DetectorResolve({detector}: {detector: MetricDetector}) {
   return <div>{description}</div>;
 }
 
-function GoToMetircAlert({detector}: {detector: MetricDetector}) {
+function GoToMetricAlert({detector}: {detector: MetricDetector}) {
   const organization = useOrganization();
   const user = useUser();
   if (!user.isSuperuser || !detector.alertRuleId) {
