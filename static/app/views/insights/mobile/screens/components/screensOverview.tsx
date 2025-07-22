@@ -20,7 +20,7 @@ import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries
 import ScreensOverviewTable from 'sentry/views/insights/mobile/screens/components/screensOverviewTable';
 import {Referrer} from 'sentry/views/insights/mobile/screens/referrers';
 import {DEFAULT_SORT} from 'sentry/views/insights/mobile/screens/settings';
-import {type EAPSpanProperty, SpanFields} from 'sentry/views/insights/types';
+import {SpanFields, type SpanProperty} from 'sentry/views/insights/types';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 
 const getQueryString = (
@@ -57,7 +57,7 @@ const transactionMetricsFields = [
   'avg(measurements.app_start_warm)',
   `avg(measurements.time_to_initial_display)`,
   `avg(measurements.time_to_full_display)`,
-] as const satisfies EAPSpanProperty[];
+] as const satisfies SpanProperty[];
 
 const spanMetricsFields = [
   SpanFields.PROJECT_ID,
@@ -65,7 +65,7 @@ const spanMetricsFields = [
   `division(mobile.slow_frames,mobile.total_frames)`,
   `division(mobile.frozen_frames,mobile.total_frames)`,
   `avg(mobile.frames_delay)`,
-] as const satisfies EAPSpanProperty[];
+] as const satisfies SpanProperty[];
 
 export function ScreensOverview() {
   const navigate = useNavigate();

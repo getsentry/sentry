@@ -45,8 +45,8 @@ import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/Numb
 
 interface TableData {
   avg: number;
+  errors: number;
   inputCachedTokens: number;
-  // errorRate: number;
   inputTokens: number;
   model: string;
   outputReasoningTokens: number;
@@ -62,6 +62,7 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'count()', name: t('Requests'), width: 120},
   {key: 'avg(span.duration)', name: t('Avg'), width: 100},
   {key: 'p95(span.duration)', name: t('P95'), width: 100},
+  {key: 'count_if(span.status,unknown)', name: t('Errors'), width: 120},
   {key: AI_INPUT_TOKENS_ATTRIBUTE_SUM, name: t('Input tokens'), width: 140},
   {key: AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM, name: t('Cached tokens'), width: 140},
   {key: AI_OUTPUT_TOKENS_ATTRIBUTE_SUM, name: t('Output tokens'), width: 140},
@@ -70,7 +71,6 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
     name: t('Reasoning tokens'),
     width: 140,
   },
-  // {key: 'failure_rate()', name: t('Error Rate'), width: 120},
 ];
 
 const rightAlignColumns = new Set([
@@ -79,7 +79,7 @@ const rightAlignColumns = new Set([
   AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
   AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM,
   AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM,
-  // 'failure_rate()',
+  'count_if(span.status,unknown)',
   'avg(span.duration)',
   'p95(span.duration)',
 ]);
@@ -119,7 +119,7 @@ export function ModelsTable() {
         'count()',
         'avg(span.duration)',
         'p95(span.duration)',
-        // 'failure_rate()',
+        'count_if(span.status,unknown)', // spans with status unknown are errors
       ],
       sorts: [{field: sortField, kind: sortOrder}],
       search: fullQuery,
@@ -143,7 +143,7 @@ export function ModelsTable() {
       requests: span['count()'] ?? 0,
       avg: span['avg(span.duration)'] ?? 0,
       p95: span['p95(span.duration)'] ?? 0,
-      // errorRate: span['failure_rate()'],
+      errors: span['count_if(span.status,unknown)'] ?? 0,
       inputTokens: Number(span[AI_INPUT_TOKENS_ATTRIBUTE_SUM]),
       inputCachedTokens: Number(span[AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM]),
       outputTokens: Number(span[AI_OUTPUT_TOKENS_ATTRIBUTE_SUM]),
@@ -257,8 +257,8 @@ const BodyCell = memo(function BodyCell({
       return <DurationCell milliseconds={dataRow.avg} />;
     case 'p95(span.duration)':
       return <DurationCell milliseconds={dataRow.p95} />;
-    // case 'failure_rate()':
-    //   return <ErrorRateCell errorRate={dataRow.errorRate} total={dataRow.requests} />;
+    case 'count_if(span.status,unknown)':
+      return <NumberCell value={dataRow.errors} />;
     default:
       return null;
   }

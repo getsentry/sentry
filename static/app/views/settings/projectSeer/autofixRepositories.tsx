@@ -220,7 +220,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
   return (
     <Panel>
       <PanelHeader hasButtons>
-        <Flex align="center" gap={space(0.5)}>
+        <Flex align="center" gap="xs">
           {t('Working Repositories')}
           <QuestionTooltip
             title={tct(

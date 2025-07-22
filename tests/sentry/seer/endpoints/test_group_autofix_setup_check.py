@@ -258,7 +258,8 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
         mock_response = mock_post.return_value
         mock_response.json.return_value = {"has_access": True}
 
-        result = get_repos_and_access(self.project)
+        group = self.create_group()
+        result = get_repos_and_access(self.project, group.id)
 
         # Verify the result
         assert result == [
@@ -295,7 +296,8 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
         mock_response = mock_post.return_value
         mock_response.json.return_value = {"has_access": False}
 
-        result = get_repos_and_access(self.project)
+        group = self.create_group()
+        result = get_repos_and_access(self.project, group.id)
 
         assert result == [
             {

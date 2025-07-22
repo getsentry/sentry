@@ -57,6 +57,7 @@ type ChartData = {
   cardStats: {
     accepted?: string;
     accepted_stored?: string;
+    clientDiscard?: string;
     filtered?: string;
     invalid?: string;
     rateLimited?: string;
@@ -149,6 +150,7 @@ export function getChartProps({
     | 'chartDateTimezoneDisplay'
     | 'chartDateEndDisplay'
     | 'chartStats'
+    | 'cardStats'
   >;
   dataCategory: DataCategory;
   error: RequestError | null;
@@ -226,8 +228,14 @@ export function getChartProps({
         </InlineContainer>
         <InlineContainer>
           {(chartData.chartStats.clientDiscard ?? []).length > 0 && (
-            <Flex align="center" gap={space(1)}>
-              <strong>{t('Show client-discarded data:')}</strong>
+            <Flex align="center" gap="md">
+              <strong>
+                {chartData.cardStats.clientDiscard
+                  ? tct('Show client-discarded data ([count]):', {
+                      count: chartData.cardStats.clientDiscard,
+                    })
+                  : t('Show client-discarded data:')}
+              </strong>
               <Switch
                 onChange={() => {
                   handleChangeState({clientDiscard: !clientDiscard});
@@ -482,6 +490,7 @@ function UsageStatsOrganization({
     cardStats: {
       accepted?: string;
       accepted_stored?: string;
+      clientDiscard?: string;
       filtered?: string;
       invalid?: string;
       rateLimited?: string;
