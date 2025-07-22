@@ -97,13 +97,9 @@ const Column = styled('div')`
   display: grid;
   grid-template-columns: fit-content(65%) 1fr;
   font-size: ${p => p.theme.fontSize.sm};
-  &:first-child {
-    margin-left: -${space(1)};
-  }
   &:not(:first-child) {
     border-left: 1px solid ${p => p.theme.innerBorder};
     padding-left: ${space(2)};
-    margin-left: -1px;
   }
   &:not(:last-child) {
     border-right: 1px solid ${p => p.theme.innerBorder};
