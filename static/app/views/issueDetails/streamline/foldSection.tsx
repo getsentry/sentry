@@ -185,6 +185,9 @@ export function FoldSection({
             hasSelectedBackground={false}
             hidden={preventCollapse ? preventCollapse : !isLayerEnabled}
           />
+          <IconWrapper preventCollapse={preventCollapse}>
+            <IconChevron direction={isCollapsed ? 'right' : 'down'} size="xs" />
+          </IconWrapper>
           <TitleWithActions preventCollapse={preventCollapse}>
             <TitleWrapper>{title}</TitleWrapper>
             {!isCollapsed && (
@@ -197,9 +200,6 @@ export function FoldSection({
               </div>
             )}
           </TitleWithActions>
-          <IconWrapper preventCollapse={preventCollapse}>
-            <IconChevron direction={isCollapsed ? 'down' : 'up'} size="xs" />
-          </IconWrapper>
         </SectionExpander>
         {isCollapsed ? null : (
           <ErrorBoundary mini>
@@ -235,7 +235,8 @@ const Content = styled('div')`
 
 const SectionExpander = styled('div')<{preventCollapse: boolean}>`
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: auto 1fr;
+  column-gap: ${p => p.theme.space.xs};
   align-items: center;
   padding: ${space(0.5)} ${space(1.5)};
   margin: 0 -${space(0.75)};
