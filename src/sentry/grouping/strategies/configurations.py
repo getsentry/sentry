@@ -42,9 +42,6 @@ BASE_STRATEGY = create_strategy_configuration_class(
         # Platforms for which context line should be taken into
         # account when grouping.
         "contextline_platforms": ("javascript", "node", "python", "php", "ruby"),
-        # Turns on falling back to exception values when there
-        # is no stacktrace.
-        "with_exception_value_fallback": True,
         # Stacktrace is produced in the context of this exception
         "exception_data": None,
     },
