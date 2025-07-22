@@ -35,4 +35,4 @@ tempest: 0001_squashed_0002_make_message_type_nullable
 
 uptime: 0001_squashed_0042_extra_uptime_indexes
 
-workflow_engine: 0080_update_metric_detector_config_fields
+workflow_engine: 0081_add_unique_constraint_to_detector_group

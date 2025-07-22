@@ -38,6 +38,7 @@ export function getDiscoverSeriesQueryOptions({
   projectId,
   query,
   dataset,
+  statsPeriod,
 }: DetectorSeriesQueryOptions): ApiQueryKey {
   return [
     `/organizations/${organization.slug}/events-stats/`,
@@ -50,8 +51,7 @@ export function getDiscoverSeriesQueryOptions({
         includePrevious: false,
         partial: true,
         includeAllArgs: true,
-        // TODO: Pass period
-        statsPeriod: '7d',
+        statsPeriod,
         ...(environment && {environment: [environment]}),
         ...(query && {query}),
       },

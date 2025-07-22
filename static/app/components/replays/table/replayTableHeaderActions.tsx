@@ -7,7 +7,6 @@ import DeleteReplays from 'sentry/components/replays/table/deleteReplays';
 import {ReplaySelectColumn} from 'sentry/components/replays/table/replayTableColumns';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {parseQueryKey} from 'sentry/utils/queryClient';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
@@ -47,7 +46,7 @@ export default function ReplayTableHeaderActions({
 
       {isAllSelected === 'indeterminate' ? (
         <FullGridAlert type="warning" system>
-          <Flex justify="center" wrap="wrap" gap={space(1)}>
+          <Flex justify="center" wrap="wrap" gap="md">
             {tn(
               'Selected %s visible replay.',
               'Selected %s visible replays.',

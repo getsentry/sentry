@@ -6692,6 +6692,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             assert "fields" in meta
             assert "eps()" in meta["fields"]
             assert meta["fields"]["eps()"] == "rate"
+            assert meta["units"]["eps()"] == "1/second"
 
     def test_error_upsampling_epm_with_allowlisted_project(self):
         """Test that epm() is upsampled for allowlisted projects when querying error events."""
@@ -6744,6 +6745,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             assert "fields" in meta
             assert "epm()" in meta["fields"]
             assert meta["fields"]["epm()"] == "rate"
+            assert meta["units"]["epm()"] == "1/minute"
 
     def test_error_upsampling_with_no_allowlist(self):
         """Test that count() is not upsampled when project is not allowlisted."""
@@ -6821,6 +6823,163 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             assert response.status_code == 200, response.content
             # Expect upsampling since any project is allowlisted (both events upsampled: 10 + 10 = 20)
             assert response.data["data"][0]["count()"] == 20
+
+    def test_sample_count_with_allowlisted_project(self):
+        """Test that sample_count() returns raw sample count (not upsampled) for allowlisted projects."""
+        # Set up allowlisted project
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Store error event with error_sampling context
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "message": "Error event for sample_count",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+
+            # Store error event without error_sampling context (sample_weight = null should count as 1)
+            self.store_event(
+                data={
+                    "event_id": "a1" * 16,
+                    "message": "Error event without sampling",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something else went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1_no_sampling"],
+                },
+                project_id=self.project.id,
+            )
+
+            # Test with errors dataset - sample_count() should return raw count, not upsampled
+            query = {
+                "field": ["sample_count()"],
+                "statsPeriod": "2h",
+                "query": "event.type:error",
+                "dataset": "errors",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            # Expect sample_count to return raw count: 2 events (not upsampled 11)
+            assert response.data["data"][0]["sample_count()"] == 2
+
+            # Check meta information
+            meta = response.data["meta"]
+            assert "fields" in meta
+            assert "sample_count()" in meta["fields"]
+            assert meta["fields"]["sample_count()"] == "integer"
+
+    def test_sample_eps_with_allowlisted_project(self):
+        """Test that sample_eps() returns raw sample rate (not upsampled) for allowlisted projects."""
+        # Set up allowlisted project
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Store error event with error_sampling context
+            self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "message": "Error event for sample_eps",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group2"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+
+            # Store error event without error_sampling context (sample_weight = null should count as 1)
+            self.store_event(
+                data={
+                    "event_id": "b1" * 16,
+                    "message": "Error event without sampling for sample_eps",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something else went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group2_no_sampling"],
+                },
+                project_id=self.project.id,
+            )
+
+            # Test with errors dataset - sample_eps() should return raw rate, not upsampled
+            query = {
+                "field": ["sample_eps()"],
+                "statsPeriod": "2h",
+                "query": "event.type:error",
+                "dataset": "errors",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            # Expect sample_eps to return raw rate: 2 events / 7200 seconds = 2/7200
+            expected_sample_eps = 2 / 7200
+            actual_sample_eps = response.data["data"][0]["sample_eps()"]
+            assert (
+                abs(actual_sample_eps - expected_sample_eps) < 0.0001
+            )  # Allow small rounding differences
+
+            # Check meta information
+            meta = response.data["meta"]
+            assert "fields" in meta
+            assert "sample_eps()" in meta["fields"]
+            assert meta["fields"]["sample_eps()"] == "rate"
+            assert meta["units"]["sample_eps()"] == "1/second"
+
+    def test_sample_epm_with_allowlisted_project(self):
+        """Test that sample_epm() returns raw sample rate (not upsampled) for allowlisted projects."""
+        # Set up allowlisted project
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Store error event with error_sampling context
+            self.store_event(
+                data={
+                    "event_id": "c" * 32,
+                    "message": "Error event for sample_epm",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group3"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+
+            # Store error event without error_sampling context (sample_weight = null should count as 1)
+            self.store_event(
+                data={
+                    "event_id": "c1" * 16,
+                    "message": "Error event without sampling for sample_epm",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something else went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group3_no_sampling"],
+                },
+                project_id=self.project.id,
+            )
+
+            # Test with errors dataset - sample_epm() should return raw rate, not upsampled
+            query = {
+                "field": ["sample_epm()"],
+                "statsPeriod": "2h",
+                "query": "event.type:error",
+                "dataset": "errors",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            # Expect sample_epm to return raw rate: 2 events / 120 minutes = 2/120
+            expected_sample_epm = 2 / 120
+            actual_sample_epm = response.data["data"][0]["sample_epm()"]
+            assert (
+                abs(actual_sample_epm - expected_sample_epm) < 0.001
+            )  # Allow small rounding differences
+
+            # Check meta information
+            meta = response.data["meta"]
+            assert "fields" in meta
+            assert "sample_epm()" in meta["fields"]
+            assert meta["fields"]["sample_epm()"] == "rate"
+            assert meta["units"]["sample_epm()"] == "1/minute"
 
     def test_is_status(self):
         self.store_event(

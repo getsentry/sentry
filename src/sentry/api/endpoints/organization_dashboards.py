@@ -1,17 +1,7 @@
 from __future__ import annotations
 
 from django.db import IntegrityError, router, transaction
-from django.db.models import (
-    Case,
-    DateTimeField,
-    Exists,
-    F,
-    IntegerField,
-    OrderBy,
-    OuterRef,
-    Value,
-    When,
-)
+from django.db.models import Case, Exists, F, IntegerField, OrderBy, OuterRef, Subquery, Value, When
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -40,7 +30,7 @@ from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, Visibility
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.fields.text import CharField
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardLastVisited
 from sentry.models.organization import Organization
 from sentry.users.services.user.service import user_service
 
@@ -164,13 +154,12 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 "organizations:dashboards-starred-reordering", organization, actor=request.user
             ):
                 dashboards = dashboards.annotate(
-                    user_last_visited=Case(
-                        When(
-                            dashboardlastvisited__member__user_id=request.user.id,
-                            then=F("dashboardlastvisited__last_visited"),
-                        ),
-                        default=None,
-                        output_field=DateTimeField(null=True),
+                    user_last_visited=Subquery(
+                        DashboardLastVisited.objects.filter(
+                            dashboard=OuterRef("pk"),
+                            member__user_id=request.user.id,
+                            member__organization=organization,
+                        ).values("last_visited")
                     )
                 )
                 order_by = [

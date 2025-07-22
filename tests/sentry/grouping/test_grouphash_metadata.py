@@ -3,9 +3,6 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import Mock, patch
 
-import pytest
-
-from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.eventstore.models import Event
 from sentry.grouping.component import DefaultGroupingComponent, MessageGroupingComponent
 from sentry.grouping.ingest.grouphash_metadata import (
@@ -23,12 +20,15 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from sentry.utils import json
 from tests.sentry.grouping import (
+    FULL_PIPELINE_CONFIGS,
     GROUPING_INPUTS_DIR,
+    MANUAL_SAVE_CONFIGS,
     NO_MSG_PARAM_CONFIG,
     GroupingInput,
     dump_variant,
     get_snapshot_path,
     to_json,
+    with_grouping_configs,
     with_grouping_inputs,
 )
 
@@ -37,13 +37,8 @@ dummy_project = Mock(id=11211231)
 
 @django_db_all
 @with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
-@pytest.mark.parametrize(
-    "config_name",
-    # The default config is tested below, and NO_MSG_PARAM_CONFIG is only meant for use in unit tests
-    set(CONFIGURATIONS.keys()) - {DEFAULT_GROUPING_CONFIG, NO_MSG_PARAM_CONFIG},
-    ids=lambda config_name: config_name.replace("-", "_"),
-)
-def test_hash_basis_with_older_configs(
+@with_grouping_configs(MANUAL_SAVE_CONFIGS)
+def test_variants_with_manual_save(
     config_name: str,
     grouping_input: GroupingInput,
     insta_snapshot: InstaSnapshotter,
@@ -66,15 +61,8 @@ def test_hash_basis_with_older_configs(
 
 @django_db_all
 @with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
-@pytest.mark.parametrize(
-    "config_name",
-    # Technically we don't need to parameterize this since there's only one option, but doing it
-    # this way makes snapshots from this test organize themselves neatly alongside snapshots from
-    # the test of the older configs above
-    {DEFAULT_GROUPING_CONFIG},
-    ids=lambda config_name: config_name.replace("-", "_"),
-)
-def test_hash_basis_with_current_default_config(
+@with_grouping_configs(FULL_PIPELINE_CONFIGS)
+def test_variants_with_full_pipeline(
     config_name: str,
     grouping_input: GroupingInput,
     insta_snapshot: InstaSnapshotter,
@@ -97,12 +85,8 @@ def test_hash_basis_with_current_default_config(
 
 
 @django_db_all
-@pytest.mark.parametrize(
-    "config_name",
-    # NO_MSG_PARAM_CONFIG is only meant for use in unit tests
-    set(CONFIGURATIONS.keys()) - {NO_MSG_PARAM_CONFIG},
-    ids=lambda config_name: config_name.replace("-", "_"),
-)
+# NO_MSG_PARAM_CONFIG is only meant for use in unit tests
+@with_grouping_configs(set(CONFIGURATIONS.keys()) - {NO_MSG_PARAM_CONFIG})
 def test_unknown_hash_basis(
     config_name: str,
     insta_snapshot: InstaSnapshotter,
