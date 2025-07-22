@@ -36,8 +36,20 @@ class PreprodArtifactApiGetBuildDetailsEvent(analytics.Event):
     artifact_id: str
 
 
+class PreprodArtifactApiInstallDetailsEvent(analytics.Event):
+    type = "preprod_artifact.api.install_details"
+
+    attributes = (
+        analytics.Attribute("organization_id"),
+        analytics.Attribute("project_id"),
+        analytics.Attribute("user_id", required=False),
+        analytics.Attribute("artifact_id"),
+    )
+
+
 analytics.register(PreprodArtifactApiAssembleEvent)
 analytics.register(PreprodArtifactApiUpdateEvent)
 analytics.register(PreprodArtifactApiAssembleGenericEvent)
 analytics.register(PreprodArtifactApiSizeAnalysisDownloadEvent)
 analytics.register(PreprodArtifactApiGetBuildDetailsEvent)
+analytics.register(PreprodArtifactApiInstallDetailsEvent)
