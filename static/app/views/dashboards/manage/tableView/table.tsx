@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -8,8 +9,11 @@ import Pagination from 'sentry/components/pagination';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useQueryClient} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useResetDashboardLists} from 'sentry/views/dashboards/hooks/useResetDashboardLists';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 
 export interface DashboardTableProps {
@@ -27,8 +31,11 @@ export function DashboardTable({
   pageLinks,
   cursorKey,
 }: DashboardTableProps) {
+  const api = useApi();
+  const queryClient = useQueryClient();
   const organization = useOrganization();
   const navigate = useNavigate();
+  const resetDashboardLists = useResetDashboardLists();
 
   const handleCursor: CursorHandler = (_cursor, pathname, query) => {
     navigate({
@@ -86,8 +93,16 @@ export function DashboardTable({
             <SavedEntityTable.Cell hasButton data-column="star">
               <SavedEntityTable.CellStar
                 isStarred={dashboard.isFavorited ?? false}
-                // TODO: DAIN-718 Add star functionality
-                onClick={() => {}}
+                onClick={async () => {
+                  await updateDashboardFavorite(
+                    api,
+                    queryClient,
+                    organization.slug,
+                    dashboard.id,
+                    !dashboard.isFavorited
+                  );
+                  resetDashboardLists();
+                }}
               />
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell data-column="name">

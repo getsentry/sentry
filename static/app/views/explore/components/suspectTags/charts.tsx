@@ -1,4 +1,4 @@
-import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -7,7 +7,7 @@ import {useVirtualizer} from '@tanstack/react-virtual';
 import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
-import BaseChart from 'sentry/components/charts/baseChart';
+import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
 import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {SuspectAttributesResult} from 'sentry/views/explore/hooks/useSuspectAttributes';
@@ -31,7 +31,7 @@ export function Charts({rankedAttributes, searchQuery}: Props) {
     count: rankedAttributes.length,
     getScrollElement: () => scrollContainerRef.current,
     estimateSize: () => 200,
-    overscan: 10,
+    overscan: 5,
   });
 
   const virtualItems = virtualizer.getVirtualItems();
@@ -217,6 +217,10 @@ function Chart({
     [seriesTotals, theme.textColor]
   );
 
+  const [tooltipOptions, setTooltipOptions] = useState<TooltipOption | undefined>(
+    undefined
+  );
+
   useLayoutEffect(() => {
     const chartContainer = chartRef.current?.getEchartsInstance().getDom();
     if (!chartContainer) return;
@@ -236,6 +240,23 @@ function Chart({
     }
   }, [attribute]);
 
+  useEffect(() => {
+    // appendToBody:true is expensive, so we delay it by 100ms to avoid
+    // performance issues when the virtualized list of charts is scrolled.
+    // This prevents appendToBody to be triggered for charts that are quickly scrolled out of view
+    // i.e. unmounted.
+    const timeout = setTimeout(() => {
+      setTooltipOptions({
+        appendToBody: true,
+        trigger: 'axis',
+        renderMode: 'html',
+        valueFormatter,
+        formatAxisLabel,
+      });
+    }, 100);
+    return () => clearTimeout(timeout);
+  }, [formatAxisLabel, valueFormatter]);
+
   return (
     <div ref={virtualizer.measureElement} data-index={index}>
       <ChartWrapper>
@@ -244,13 +265,7 @@ function Chart({
           ref={chartRef}
           autoHeightResize
           isGroupedByDate={false}
-          tooltip={{
-            trigger: 'axis',
-            appendToBody: true,
-            renderMode: 'html',
-            valueFormatter,
-            formatAxisLabel,
-          }}
+          tooltip={tooltipOptions}
           grid={{
             left: 2,
             right: 8,

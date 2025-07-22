@@ -985,6 +985,8 @@ const iconDirectionToAngle: Record<IconDirection, number> = {
  */
 export type FormSize = 'xs' | 'sm' | 'md';
 
+export type Space = keyof Theme['space'];
+
 export type FormTheme = {
   form: Record<
     FormSize,
@@ -1092,13 +1094,37 @@ const iconSizes: Record<Size, string> = {
 
 const space = {
   none: '0px',
+  /**
+   * Equivalent to deprecated `space(0.25)`
+   */
   '2xs': '2px',
+  /**
+   * Equivalent to deprecated `space(0.5)`
+   */
   xs: '4px',
+  /**
+   * Equivalent to deprecated `space(0.75)`
+   */
   sm: '6px',
+  /**
+   * Equivalent to deprecated `space(1)`
+   */
   md: '8px',
+  /**
+   * Equivalent to deprecated `space(1.5)`
+   */
   lg: '12px',
+  /**
+   * Equivalent to deprecated `space(2)`
+   */
   xl: '16px',
+  /**
+   * Equivalent to deprecated `space(3)` (was `20px`)
+   */
   '2xl': '24px',
+  /**
+   * Equivalent to deprecated `space(4)` (was `30px`)
+   */
   '3xl': '32px',
 } as const;
 
