@@ -19,8 +19,8 @@ from sentry import options
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_storage
 from sentry.replays.models import ReplayRecordingSegment
+from sentry.storage.metrics import measure_storage_put
 from sentry.utils import metrics
-from sentry.utils.storage import measure_storage_put
 
 logger = logging.getLogger()
 

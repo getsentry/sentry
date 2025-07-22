@@ -10,9 +10,9 @@ from django.core.cache import BaseCache, InvalidCacheBackendError, caches
 from django.utils.functional import cached_property
 
 from sentry import options
+from sentry.storage.metrics import measure_storage_put
 from sentry.utils import json, metrics
 from sentry.utils.services import Service
-from sentry.utils.storage import measure_storage_put
 
 # Cache an instance of the encoder we want to use
 json_dumps = json.JSONEncoder(
