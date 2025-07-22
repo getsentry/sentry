@@ -1,7 +1,15 @@
+import datetime
+
 from sentry.eventstore.snuba.backend import SnubaEventStorage
+from sentry.feedback.lib.utils import FeedbackCreationSource
+from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
+from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
+from tests.sentry.feedback import mock_feedback_event
 
 
 @region_silo_test
@@ -39,11 +47,54 @@ class TestQuery(APITestCase, SnubaTestCase):
             project_id=self.project.id,  # Use the created project's ID
         )
 
-        event
-
-        # event = self.eventstore.get_event_by_id(self.project.id, "d" * 32)
+        event = self.eventstore.get_event_by_id(self.project.id, "d" * 32)
 
         # print(event)
+        event
+
+        start_date = datetime.datetime.now() - datetime.timedelta(days=90)
+        end_date = datetime.datetime.now()
+
+        snuba_params = SnubaParams(
+            organization=self.org,
+            projects=[self.project],
+            start=start_date,
+            end=end_date,
+        )
+
+        event = mock_feedback_event(self.project.id)
+        create_feedback_issue(event, self.project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+        builder = DiscoverQueryBuilder(
+            dataset=Dataset.Events,
+            params={},
+            snuba_params=snuba_params,
+            query="event.type:feedback",
+            # query="",
+            selected_columns=["count()"],
+            # selected_columns=[
+            #     "event_id",
+            #     "project_id",
+            #     "timestamp",
+            #     "message",
+            #     "platform",
+            #     "tags.key",
+            #     "tags.value",
+            #     "contexts.feedback.message",
+            #     "contexts.feedback.contact_email",
+            #     "contexts.feedback.name",
+            # ],
+            config=QueryBuilderConfig(
+                auto_fields=False,
+                auto_aggregations=True,
+                use_aggregate_conditions=True,
+            ),
+        )
+
+        result = builder.run_query(referrer="test.debug_feedback")
+
+        # print(result["data"])
+        result
 
         assert False
 
@@ -281,6 +332,9 @@ class TestQuery(APITestCase, SnubaTestCase):
 #     assert len(ordering) == 0
 
 #     ordering = _make_ordered(["a", "a", "b"], [{"replay_id": "a"}, {"replay_id": "b"}])
+#     assert len(ordering) == 2
+#     assert len(ordering) == 2
+#     assert len(ordering) == 2
 #     assert len(ordering) == 2
 #     assert len(ordering) == 2
 #     assert len(ordering) == 2
