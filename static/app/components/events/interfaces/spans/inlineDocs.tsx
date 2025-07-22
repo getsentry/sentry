@@ -88,7 +88,7 @@ def eat_slice(slice):
     ...
 
 def eat_pizza(pizza):
-    with sentry_sdk.start_span(op="task", name="Eat Pizza"):
+    with sentry_sdk.start_transaction(op="task", name="Eat Pizza"):
         while pizza.slices > 0:
             eat_slice(pizza.slices.pop())
 `}
@@ -125,7 +125,7 @@ def eat_slice(slice):
 ...
 
 def eat_pizza(pizza):
-    with sentry_sdk.start_span(op="task", name="Eat Pizza"):
+    with sentry_sdk.start_transaction(op="task", name="Eat Pizza"):
         while pizza.slices > 0:
             with sentry_sdk.start_span(description="Eat Slice"):
                 eat_slice(pizza.slices.pop())
@@ -139,7 +139,7 @@ def eat_slice(slice):
     ...
 
 def eat_pizza(pizza):
-    with sentry_sdk.start_span(op="task", name="Eat Pizza"):
+    with sentry_sdk.start_transaction(op="task", name="Eat Pizza"):
         while pizza.slices > 0:
             eat_slice(pizza.slices.pop())
 `}

@@ -88,7 +88,7 @@ Sentry configuration for main.py process (same as above)
 ${getInitCallSnippet(params)}
 
 q = Queue(connection=Redis())
-with sentry_sdk.start_span(name="testing_sentry"):
+with sentry_sdk.start_transaction(name="testing_sentry"):
     result = q.enqueue(hello, "World")`;
 
 const onboarding: OnboardingConfig = {
