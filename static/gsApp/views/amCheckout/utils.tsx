@@ -176,17 +176,13 @@ export function getBucket({
   price?: number;
   shouldMinimize?: boolean; // the slot strategy when `events` does not exist in `buckets`
 }): EventBucket {
-  if (buckets && buckets.length > 0) {
+  if (buckets) {
     const slot = getSlot(events, price, buckets, shouldMinimize);
-    if (slot >= 0 && slot < buckets.length && buckets[slot]) {
-      return buckets[slot];
+    if (slot in buckets) {
+      return buckets[slot]!;
     }
   }
-  // Return a default bucket structure
-  return {
-    events: 0,
-    price: 0,
-  };
+  throw new Error('Invalid data category for plan');
 }
 
 type ReservedTotalProps = {
