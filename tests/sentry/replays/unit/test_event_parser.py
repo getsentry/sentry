@@ -863,7 +863,11 @@ def test_as_trace_item_context_rage_click_event():
 def test_as_trace_item_context_navigation_event():
     event = {
         "data": {
-            "payload": {"timestamp": 1674298825.0, "data": {"from": "/old-page", "to": "/new-page"}}
+            "payload": {
+                "timestamp": 1674298825.0,
+                "description": "https://sentry.io/",
+                "data": {"from": "/old-page", "to": "/new-page"},
+            }
         }
     }
 
@@ -877,7 +881,15 @@ def test_as_trace_item_context_navigation_event():
 
 
 def test_as_trace_item_context_navigation_event_missing_optional_fields():
-    event = {"data": {"payload": {"timestamp": 1674298825.0, "data": {}}}}
+    event = {
+        "data": {
+            "payload": {
+                "timestamp": 1674298825.0,
+                "description": "https://sentry.io/",
+                "data": {},
+            }
+        }
+    }
 
     result = as_trace_item_context(EventType.NAVIGATION, event)
     assert result is not None
@@ -891,8 +903,14 @@ def test_as_trace_item_context_resource_fetch_event():
     event = {
         "data": {
             "payload": {
-                "timestamp": 1674298825.0,
-                "data": {"requestBodySize": 1024, "responseBodySize": 2048},
+                "startTimestamp": 1674298825.0,
+                "description": "https://sentry.io/",
+                "data": {
+                    "requestBodySize": 1024,
+                    "responseBodySize": 2048,
+                    "method": "GET",
+                    "statusCode": 200,
+                },
             }
         }
     }
@@ -910,8 +928,14 @@ def test_as_trace_item_context_resource_xhr_event():
     event = {
         "data": {
             "payload": {
-                "timestamp": 1674298825.0,
-                "data": {"request": {"size": 512}, "response": {"size": 1024}},
+                "startTimestamp": 1674298825.0,
+                "description": "https://sentry.io/",
+                "data": {
+                    "method": "GET",
+                    "statusCode": 200,
+                    "request": {"size": 512},
+                    "response": {"size": 1024},
+                },
             }
         }
     }
@@ -925,13 +949,73 @@ def test_as_trace_item_context_resource_xhr_event():
 
 
 def test_as_trace_item_context_resource_no_sizes():
-    event = {"data": {"payload": {"timestamp": 1674298825.0, "data": {}}}}
+    event = {
+        "data": {
+            "payload": {
+                "startTimestamp": 1674298825.0,
+                "description": "https://sentry.io/",
+                "data": {"method": "GET", "statusCode": 200},
+            }
+        }
+    }
 
     result = as_trace_item_context(EventType.RESOURCE_FETCH, event)
     assert result is not None
     assert result["attributes"]["category"] == "resource.fetch"
     assert "request_size" not in result["attributes"]
     assert "response_size" not in result["attributes"]
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
+def test_as_trace_item_context_resource_script_event():
+    event = {
+        "data": {
+            "payload": {
+                "startTimestamp": 1674298825.0,
+                "description": "https://sentry.io/",
+                "data": {
+                    "size": 10,
+                    "statusCode": 200,
+                    "decodedBodySize": 45,
+                    "encodedBodySize": 55,
+                },
+            }
+        }
+    }
+
+    result = as_trace_item_context(EventType.RESOURCE_SCRIPT, event)
+    assert result is not None
+    assert result["attributes"]["category"] == "resource.script"
+    assert result["attributes"]["size"] == 10
+    assert result["attributes"]["statusCode"] == 200
+    assert result["attributes"]["decodedBodySize"] == 45
+    assert result["attributes"]["encodedBodySize"] == 55
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
+def test_as_trace_item_context_resource_image_event():
+    event = {
+        "data": {
+            "payload": {
+                "startTimestamp": 1674298825.0,
+                "description": "https://sentry.io/",
+                "data": {
+                    "size": 10,
+                    "statusCode": 200,
+                    "decodedBodySize": 45,
+                    "encodedBodySize": 55,
+                },
+            }
+        }
+    }
+
+    result = as_trace_item_context(EventType.RESOURCE_IMAGE, event)
+    assert result is not None
+    assert result["attributes"]["category"] == "resource.img"
+    assert result["attributes"]["size"] == 10
+    assert result["attributes"]["statusCode"] == 200
+    assert result["attributes"]["decodedBodySize"] == 45
+    assert result["attributes"]["encodedBodySize"] == 55
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
@@ -1091,6 +1175,7 @@ def test_as_trace_item():
         "data": {
             "payload": {
                 "timestamp": 1674298825.403,
+                "description": "https://sentry.io/",
                 "data": {"from": "/old-page", "to": "/new-page"},
             }
         }
@@ -1125,6 +1210,7 @@ def test_as_trace_item_with_no_trace_id():
         "data": {
             "payload": {
                 "timestamp": 1674298825.403,
+                "description": "https://sentry.io/",
                 "data": {"from": "/old-page", "to": "/new-page"},
             }
         }

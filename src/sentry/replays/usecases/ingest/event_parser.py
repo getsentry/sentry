@@ -13,9 +13,11 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 
+from sentry.logging.handlers import SamplingFilter
 from sentry.utils import json
 
 logger = logging.getLogger()
+logger.addFilter(SamplingFilter(0.001))
 
 
 @dataclass(frozen=True)
@@ -86,25 +88,27 @@ def parse_events(
 
 
 class EventType(Enum):
-    CLICK = 0
-    DEAD_CLICK = 1
-    RAGE_CLICK = 2
-    NAVIGATION = 3
-    CONSOLE = 4
-    UI_BLUR = 5
-    UI_FOCUS = 6
-    RESOURCE_FETCH = 7
-    RESOURCE_XHR = 8
-    LCP = 9
-    FCP = 10
-    HYDRATION_ERROR = 11
-    MUTATIONS = 12
-    UNKNOWN = 13
-    CANVAS = 14
-    OPTIONS = 15
-    FEEDBACK = 16
-    MEMORY = 17
-    SLOW_CLICK = 18
+    CANVAS = 0
+    CLICK = 1
+    CONSOLE = 2
+    DEAD_CLICK = 3
+    FCP = 4
+    FEEDBACK = 5
+    HYDRATION_ERROR = 6
+    LCP = 7
+    MEMORY = 8
+    MUTATIONS = 9
+    NAVIGATION = 10
+    OPTIONS = 11
+    RAGE_CLICK = 12
+    RESOURCE_FETCH = 13
+    RESOURCE_IMAGE = 14
+    RESOURCE_SCRIPT = 15
+    RESOURCE_XHR = 16
+    SLOW_CLICK = 17
+    UI_BLUR = 18
+    UI_FOCUS = 19
+    UNKNOWN = 20
 
 
 def which(event: dict[str, Any]) -> EventType:
@@ -175,6 +179,10 @@ def which(event: dict[str, Any]) -> EventType:
                     return EventType.RESOURCE_FETCH
                 elif op == "resource.xhr":
                     return EventType.RESOURCE_XHR
+                elif op == "resource.script":
+                    return EventType.RESOURCE_SCRIPT
+                elif op == "resource.img":
+                    return EventType.RESOURCE_IMAGE
                 elif op == "web-vital":
                     if payload["description"] == "largest-contentful-paint":
                         return EventType.LCP
@@ -231,7 +239,11 @@ def parse_trace_item(
     try:
         return as_trace_item(context, event_type, event)
     except (AttributeError, KeyError, TypeError, ValueError) as e:
-        logger.warning("Could not transform breadcrumb to trace-item", exc_info=e)
+        logger.warning(
+            "[EVENT PARSE FAIL] Could not transform breadcrumb to trace-item",
+            exc_info=e,
+            extra={"event": event},
+        )
         return None
 
 
@@ -334,7 +346,10 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             payload = event["data"]["payload"]
             payload_data = payload["data"]
 
-            navigation_attributes = {"category": "navigation"}
+            navigation_attributes = {
+                "category": "navigation",
+                "url": as_string_strict(event["data"]["payload"]["description"]),
+            }
             if "from" in payload_data:
                 navigation_attributes["from"] = as_string_strict(payload_data["from"])
             if "to" in payload_data:
@@ -356,7 +371,20 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                 "category": (
                     "resource.xhr" if event_type == EventType.RESOURCE_XHR else "resource.fetch"
                 ),
+                "url": as_string_strict(event["data"]["payload"]["description"]),
+                "method": str(event["data"]["payload"]["data"]["method"]),
+                "statusCode": int(event["data"]["payload"]["data"]["statusCode"]),
             }
+
+            for key, value in (
+                event["data"]["payload"]["data"].get("request", {}).get("headers", {}).items()
+            ):
+                resource_attributes[f"request.headers.{key}"] = str(value)
+
+            for key, value in (
+                event["data"]["payload"]["data"].get("response", {}).get("headers", {}).items()
+            ):
+                resource_attributes[f"response.headers.{key}"] = str(value)
 
             request_size, response_size = parse_network_content_lengths(event)
             if request_size:
@@ -367,7 +395,24 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             return {
                 "attributes": resource_attributes,  # type: ignore[typeddict-item]
                 "event_hash": uuid.uuid4().bytes,
-                "timestamp": float(event["data"]["payload"]["timestamp"]),
+                "timestamp": float(event["data"]["payload"]["startTimestamp"]),
+            }
+        case EventType.RESOURCE_SCRIPT | EventType.RESOURCE_IMAGE:
+            return {
+                "attributes": {
+                    "category": (
+                        "resource.script"
+                        if event_type == EventType.RESOURCE_SCRIPT
+                        else "resource.img"
+                    ),
+                    "size": int(event["data"]["payload"]["data"]["size"]),
+                    "statusCode": int(event["data"]["payload"]["data"]["statusCode"]),
+                    "decodedBodySize": int(event["data"]["payload"]["data"]["decodedBodySize"]),
+                    "encodedBodySize": int(event["data"]["payload"]["data"]["encodedBodySize"]),
+                    "url": as_string_strict(event["data"]["payload"]["description"]),
+                },
+                "event_hash": uuid.uuid4().bytes,
+                "timestamp": float(event["data"]["payload"]["startTimestamp"]),
             }
         case EventType.LCP | EventType.FCP:
             payload = event["data"]["payload"]
@@ -498,7 +543,11 @@ def parse_highlighted_event(
     try:
         return as_highlighted_event(event, event_type, sampled)
     except (AssertionError, AttributeError, KeyError, TypeError):
-        logger.warning("Could not parse identified event.", exc_info=True)
+        logger.warning(
+            "[EVENT PARSE FAIL] Could not parse identified event.",
+            exc_info=True,
+            extra={"event": event},
+        )
         return {}
 
 
