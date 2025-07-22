@@ -34,7 +34,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
       query: {
         // Toggle is disabled if sort is not a timestamp
         [LOGS_SORT_BYS_KEY]: '-timestamp',
-        [LOGS_REFRESH_INTERVAL_KEY]: '2', // Fast refresh for testing
+        [LOGS_REFRESH_INTERVAL_KEY]: '10', // Fast refresh for testing
       },
     },
     route: '/organizations/:orgId/explore/logs/',

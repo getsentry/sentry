@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 
 import {type ApiResult} from 'sentry/api';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -12,14 +12,12 @@ import {
   type QueryKeyEndpointOptions,
   useApiQuery,
   useInfiniteQuery,
+  useQueryClient,
 } from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  useLogsAutoRefreshEnabled,
-  useLogsAutoRefreshRefetchIntervalCallback,
-} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
   useLogsAggregate,
   useLogsAggregateCursor,
@@ -453,11 +451,12 @@ export function useInfiniteLogsQuery({
 } = {}) {
   const _referrer = referrer ?? 'api.explore.logs-table';
   const autoRefresh = useLogsAutoRefreshEnabled();
-  const refetchIntervalCallback = useLogsAutoRefreshRefetchIntervalCallback();
-  const {queryKey: queryKeyWithInfinite} = useLogsQueryKeyWithInfinite({
+  const {queryKey: queryKeyWithInfinite, other} = useLogsQueryKeyWithInfinite({
     referrer: _referrer,
     autoRefresh,
   });
+  const queryClient = useQueryClient();
+
   const sortBys = useLogsSortBys();
 
   const getPreviousPageParam = useCallback(
@@ -518,10 +517,8 @@ export function useInfiniteLogsQuery({
     getNextPageParam,
     initialPageParam,
     enabled: !disabled,
+    staleTime: autoRefresh ? Infinity : getStaleTimeForEventView(other.eventView),
     maxPages: 30, // This number * the refresh interval must be more seconds than 2 * the smallest time interval in the chart for streaming to work.
-    refetchInterval: autoRefresh
-      ? query => refetchIntervalCallback(query.state.data, query.state.error)
-      : false,
     refetchIntervalInBackground: true, // Don't refetch when tab is not visible
   });
 
@@ -538,6 +535,35 @@ export function useInfiniteLogsQuery({
     isFetchingPreviousPage,
     isPending,
   } = queryResult;
+
+  useEffect(() => {
+    // Remove empty pages from the query data. In the case of auto refresh it's possible that the most recent page in time is empty.
+    queryClient.setQueryData(
+      queryKeyWithInfinite,
+      (oldData: InfiniteData<ApiResult<EventsLogsResult>> | undefined) => {
+        if (!oldData) {
+          return oldData;
+        }
+        const pageIndexWithMostRecentTimestamp =
+          getTimeBasedSortBy(sortBys)?.kind === 'asc' ? 0 : oldData.pages.length - 1;
+
+        if (
+          (oldData.pages?.[pageIndexWithMostRecentTimestamp]?.[0]?.data?.length ?? 0) > 0
+        ) {
+          return oldData;
+        }
+
+        return {
+          pages: oldData.pages.filter(
+            (_, index) => index !== pageIndexWithMostRecentTimestamp
+          ),
+          pageParams: oldData.pageParams.filter(
+            (_, index) => index !== pageIndexWithMostRecentTimestamp
+          ),
+        };
+      }
+    );
+  }, [queryClient, queryKeyWithInfinite, sortBys]);
 
   const {virtualStreamedTimestamp} = useVirtualStreaming(data);
 

@@ -157,6 +157,92 @@ describe('useInfiniteLogsQuery', () => {
       expectedData
     );
   });
+
+  it('should remove empty pages but maintain hasNextPage', async () => {
+    const eventsEndpoint = `/organizations/${organization.slug}/events/`;
+
+    const initialResponse = createMockLogsData([
+      {id: '6', timestamp_precise: '600', timestamp: '600'},
+      {id: '5', timestamp_precise: '500', timestamp: '500'},
+      {id: '4', timestamp_precise: '400', timestamp: '400'},
+    ]);
+
+    const initialMock = MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      body: initialResponse,
+      match: [
+        (_, options) => {
+          const query = options?.query || {};
+          return query.query.length === 0;
+        },
+      ],
+      headers: linkHeaders,
+    });
+
+    const emptyNextPageResponse = createMockLogsData([]);
+
+    const nextPageMock = MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      match: [
+        (_, options) => {
+          const query = options?.query || {};
+          return (
+            query.query.startsWith(
+              'tags[sentry.timestamp_precise,number]:<=400 !sentry.item_id:4'
+            ) && query.sort === '-timestamp'
+          );
+        },
+      ],
+      body: emptyNextPageResponse,
+      headers: linkHeaders,
+    });
+
+    const {result, rerender} = renderHook(() => useInfiniteLogsQuery(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isPending).toBe(false);
+    });
+
+    expect(result.current.data).toHaveLength(3);
+    expect(initialMock).toHaveBeenCalled();
+    expect(nextPageMock).not.toHaveBeenCalled();
+    expect(result.current.hasNextPage).toBe(true);
+
+    await result.current.fetchNextPage();
+    expect(nextPageMock).toHaveBeenCalledTimes(1);
+
+    const queryCache = queryClient.getQueryCache();
+    const queryKeys = queryCache.getAll().map(query => query.queryKey);
+    const infiniteQueryKey = queryKeys.find(
+      key => Array.isArray(key) && key[key.length - 1] === 'infinite'
+    );
+
+    let cachedData = queryClient.getQueryData(infiniteQueryKey!) as CachedQueryData;
+    expect(cachedData.pages).toHaveLength(2);
+    expect(cachedData.pageParams).toHaveLength(2);
+
+    rerender();
+
+    cachedData = queryClient.getQueryData(infiniteQueryKey!) as CachedQueryData;
+    expect(cachedData.pages).toHaveLength(1); // Only the initial page should remain
+    expect(cachedData.pageParams).toHaveLength(1);
+
+    expect(result.current.hasNextPage).toBe(true);
+
+    await result.current.fetchNextPage();
+
+    expect(nextPageMock).toHaveBeenCalledTimes(2);
+
+    rerender();
+
+    cachedData = queryClient.getQueryData(infiniteQueryKey!) as CachedQueryData;
+    expect(cachedData.pages).toHaveLength(1);
+    expect(cachedData.pageParams).toHaveLength(1);
+
+    expect(result.current.hasNextPage).toBe(true);
+  });
 });
 
 function createMockLogsData(

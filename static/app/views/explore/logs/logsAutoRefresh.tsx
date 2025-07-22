@@ -18,6 +18,7 @@ import {
   useLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {AutoRefreshLabel} from 'sentry/views/explore/logs/styles';
+import {useLogsAutoRefreshInterval} from 'sentry/views/explore/logs/useLogsAutoRefreshInterval';
 import {checkSortIsTimeBasedDescending} from 'sentry/views/explore/logs/utils';
 
 const MAX_LOGS_PER_SECOND = 100; // Rate limit for initial check
@@ -56,7 +57,12 @@ export function AutorefreshToggle({
   const mode = useLogsMode();
   const {selection} = usePageFilters();
   const {infiniteLogsQueryResult} = useLogsPageData();
-  const {isError} = infiniteLogsQueryResult;
+  const {isError, fetchPreviousPage} = infiniteLogsQueryResult;
+
+  useLogsAutoRefreshInterval({
+    fetchPreviousPage: () => fetchPreviousPage() as any,
+    isError,
+  });
 
   const hasAbsoluteDates = Boolean(selection.datetime.start && selection.datetime.end);
 
