@@ -749,12 +749,9 @@ class GroupSerializerBase(Serializer, ABC):
         )
 
     @staticmethod
-    def _get_permalink(attrs, obj: Group):
-        if attrs["authorized"]:
-            with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink.build"):
-                return obj.get_absolute_url()
-        else:
-            return None
+    def _get_permalink(attrs, obj: Group) -> str:
+        with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink.build"):
+            return obj.get_absolute_url()
 
     @staticmethod
     def _convert_seen_stats(attrs: SeenStats) -> SeenStatsResponse:

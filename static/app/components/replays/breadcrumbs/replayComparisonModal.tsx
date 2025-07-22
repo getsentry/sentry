@@ -5,11 +5,11 @@ import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {Hovercard} from 'sentry/components/hovercard';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {DiffCompareContextProvider} from 'sentry/components/replays/diff/diffCompareContext';
 import LearnMoreButton from 'sentry/components/replays/diff/learnMoreButton';
 import DiffTimestampPicker from 'sentry/components/replays/diff/picker/diffTimestampPicker';
@@ -73,7 +73,7 @@ export default function ReplayComparisonModal({
                 <IconInfo />
               </Tooltip>
             </Title>
-            <Flex gap={space(1)}>
+            <Flex gap="md">
               {isHydrateCrumb(frameOrEvent) ? (
                 <AutoWideHovercard
                   body={<DiffTimestampPicker />}
@@ -105,7 +105,7 @@ export default function ReplayComparisonModal({
         <Body>
           {isSameTimestamp ? (
             <Alert.Container>
-              <Alert type="warning" showIcon>
+              <Alert type="warning">
                 {t(
                   "Cannot display diff for this hydration error. Sentry wasn't able to identify the correct event."
                 )}

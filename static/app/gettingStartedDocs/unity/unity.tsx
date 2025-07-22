@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStartedDoc/storeCrashReportsConfig';
 import type {
   Docs,
@@ -39,7 +39,7 @@ const onboarding: OnboardingConfig = {
         },
       ],
       additionalInfo: (
-        <Alert type="info">
+        <Alert type="info" showIcon={false}>
           {tct(
             'The Unity SDK now supports line numbers for IL2CPP. The feature is currently in beta, but you can enable it at [code:Tools -> Sentry -> Advanced -> IL2CPP] line numbers. To learn more check out our [link:docs].',
             {

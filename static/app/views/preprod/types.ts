@@ -12,8 +12,9 @@ export interface BuildDetailsAppInfo {
   build_number: string;
   date_added: string;
   date_built: string;
-  installable_app_file_id: string;
+  is_installable: boolean;
   name: string;
+  platform: Platform;
   version: string;
   // build_configuration?: string; // Uncomment when available
   // icon?: string | null; // Uncomment when available

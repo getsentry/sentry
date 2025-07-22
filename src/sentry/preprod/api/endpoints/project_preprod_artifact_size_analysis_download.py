@@ -9,6 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.files.file import File
+from sentry.preprod.analytics import PreprodArtifactApiSizeAnalysisDownloadEvent
 from sentry.preprod.models import PreprodArtifactSizeMetrics
 
 
@@ -35,11 +36,12 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(ProjectEndpoint):
         """
 
         analytics.record(
-            "preprod_artifact.api.size_analysis_download",
-            organization_id=project.organization_id,
-            project_id=project.id,
-            user_id=request.user.id,
-            artifact_id=artifact_id,
+            PreprodArtifactApiSizeAnalysisDownloadEvent(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                user_id=request.user.id,
+                artifact_id=artifact_id,
+            )
         )
 
         if not settings.IS_DEV and not features.has(

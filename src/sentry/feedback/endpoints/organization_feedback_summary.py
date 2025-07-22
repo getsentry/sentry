@@ -56,7 +56,7 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
 
         if not features.has(
             "organizations:user-feedback-ai-summaries", organization, actor=request.user
-        ):
+        ) or not features.has("organizations:gen-ai-features", organization, actor=request.user):
             return Response(status=403)
 
         try:

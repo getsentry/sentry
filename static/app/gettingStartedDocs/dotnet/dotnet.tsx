@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import altCrashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/altCrashReportCallout';
@@ -184,7 +184,7 @@ const onboarding: OnboardingConfig = {
               },
               {
                 description: (
-                  <Alert type="info">
+                  <Alert type="info" showIcon={false}>
                     {t(
                       'Profiling for .NET Framework and .NET on Android are not supported.'
                     )}
