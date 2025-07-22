@@ -3936,8 +3936,9 @@ class DSLatestReleaseBoostTest(TestCase):
 
 
 class TestSaveGroupHashAndGroup(TransactionTestCase):
-    def test(self) -> None:
+    def test_simple(self) -> None:
         perf_data = load_data("transaction-n-plus-one", timestamp=before_now(minutes=10))
+        perf_data["event_id"] = str(uuid.uuid4())
         event = _get_event_instance(perf_data, project_id=self.project.id)
         group_hash = "some_group"
         group, created, _ = save_grouphash_and_group(self.project, event, group_hash)
