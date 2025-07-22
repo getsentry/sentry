@@ -214,6 +214,7 @@ export const useAiAutofix = (
         }
         return false;
       },
+      refetchOnWindowFocus: 'always',
     } as UseApiQueryOptions<AutofixResponse, RequestError>
   );
 
