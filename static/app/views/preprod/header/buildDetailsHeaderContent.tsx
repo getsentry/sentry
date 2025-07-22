@@ -6,7 +6,6 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import Placeholder from 'sentry/components/placeholder';
 import {IconEllipsis, IconTelescope} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types';
 
@@ -56,14 +55,14 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   const breadcrumbs: Crumb[] = [
     {
       to: '#',
-      label: t('Releases'),
+      label: 'Releases',
     },
     {
       to: '#',
       label: buildDetails.app_info.version,
     },
     {
-      label: t('Build Details'),
+      label: 'Build Details',
     },
   ];
 
@@ -91,7 +90,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
             icon={<IconTelescope />}
             onClick={handleCompareBuild}
           >
-            {t('Compare Build')}
+            {'Compare Build'}
           </Button>
           {/* TODO: Actions dropdown */}
           <Button
@@ -99,7 +98,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
             priority="default"
             icon={<IconEllipsis />}
             onClick={handleMoreActions}
-            aria-label={t('More actions')}
+            aria-label={'More actions'}
           />
         </Actions>
       </HeaderContent>
