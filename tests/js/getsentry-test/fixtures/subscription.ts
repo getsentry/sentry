@@ -207,8 +207,8 @@ export function SubscriptionFixture(props: Props): TSubscription {
       ...(hasLogBytes && {
         logBytes: MetricHistoryFixture({
           category: DataCategory.LOG_BYTE,
-          reserved: safeCategories.logBytes?.[0]?.events || 1000000000, // 1GB default
-          prepaid: safeCategories.logBytes?.[0]?.events || 1000000000,
+          reserved: safeCategories.logBytes?.[0]?.events || 0,
+          prepaid: safeCategories.logBytes?.[0]?.events || 0,
           order: 12,
         }),
       }),

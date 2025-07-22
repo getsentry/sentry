@@ -955,28 +955,10 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 0.5, // 500MB
-          unitPrice: 0.01,
+          events: 0,
+          unitPrice: 50.0,
           price: 0,
-          onDemandPrice: 0.0125,
-        },
-        {
-          events: 1, // 1GB
-          unitPrice: 0.01,
-          price: 45000,
-          onDemandPrice: 0.0125,
-        },
-        {
-          events: 10, // 10GB
-          unitPrice: 0.01,
-          price: 90000,
-          onDemandPrice: 0.0125,
-        },
-        {
-          events: 100, // 100GB
-          unitPrice: 0.01,
-          price: 990000,
-          onDemandPrice: 0.0125,
+          onDemandPrice: 60.0,
         },
       ],
       ...SEER_TIERS,
@@ -1479,28 +1461,10 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 0.5, // 500MB
-          unitPrice: 0.01,
+          events: 0,
+          unitPrice: 50.0,
           price: 0,
-          onDemandPrice: 0.0125,
-        },
-        {
-          events: 1, // 1GB
-          unitPrice: 0.01,
-          price: 486000,
-          onDemandPrice: 0.0125,
-        },
-        {
-          events: 10, // 10GB
-          unitPrice: 0.01,
-          price: 972000,
-          onDemandPrice: 0.0125,
-        },
-        {
-          events: 100, // 100GB
-          unitPrice: 0.01,
-          price: 10692000,
-          onDemandPrice: 0.0125,
+          onDemandPrice: 60.0,
         },
       ],
       ...SEER_TIERS_ANNUAL,
@@ -2105,7 +2069,7 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 1000000000, // 1GB enterprise trial quota
+          events: 0,
           unitPrice: 0,
           price: 0,
           onDemandPrice: 0,
@@ -2217,7 +2181,7 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 1000000000, // 1GB enterprise trial quota
+          events: 0,
           unitPrice: 0,
           price: 0,
           onDemandPrice: 0,

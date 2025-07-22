@@ -537,13 +537,6 @@ describe('AddDataVolume for modern plans', function () {
         min: '10M',
         selectedTier: '10,000,000',
       },
-      {
-        billingInterval: MONTHLY,
-        category: 'logBytes',
-        max: '100GB',
-        min: '500MB',
-        selectedTier: '500 MB',
-      },
     ]);
   });
 
@@ -558,7 +551,6 @@ describe('AddDataVolume for modern plans', function () {
           attachments: 50,
           replays: 10_000,
           monitorSeats: 1,
-          logBytes: 0.5,
         },
       },
     };
@@ -599,13 +591,6 @@ describe('AddDataVolume for modern plans', function () {
         selectedTier: '20,000,000',
         tierPrice: 32,
         pricePerEvent: '$0.0000032 per unit',
-      },
-      {
-        billingInterval: MONTHLY,
-        category: 'logBytes',
-        max: '100GB',
-        min: '500MB',
-        selectedTier: '500 MB',
       },
     ]);
   });

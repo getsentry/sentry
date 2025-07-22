@@ -1736,7 +1736,7 @@ const AM2_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 500000000, // 500MB trial quota
+          events: 0,
           unitPrice: 0,
           price: 0,
         },

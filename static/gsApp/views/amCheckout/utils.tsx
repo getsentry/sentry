@@ -33,6 +33,7 @@ import type {
 } from 'getsentry/types';
 import {InvoiceItemType} from 'getsentry/types';
 import {getSlot, isTrialPlan} from 'getsentry/utils/billing';
+import {isByteCategory} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
 import {
@@ -350,12 +351,7 @@ export function getEventsWithUnit(
     return null;
   }
 
-  if (dataType === DataCategory.ATTACHMENTS || dataType === DataCategory.LOG_BYTE) {
-    // For logBytes, values < 1GB should be displayed as MB
-    if (dataType === DataCategory.LOG_BYTE && events < 1) {
-      const mb = events * 1000; // Convert GB to MB
-      return `${mb.toLocaleString()}MB`;
-    }
+  if (isByteCategory(dataType)) {
     return getWithBytes(events).replace(' ', '');
   }
 

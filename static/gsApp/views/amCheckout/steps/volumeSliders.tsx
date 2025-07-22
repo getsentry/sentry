@@ -186,19 +186,10 @@ function VolumeSliders({
                         )}
                   </Title>
                   <Events isLegacy={isLegacy}>
-                    {category === DataCategory.LOG_BYTE && formData.reserved[category]
-                      ? (() => {
-                          const gb = formData.reserved[category];
-                          if (gb >= 1) {
-                            return `${gb.toLocaleString()} GB`;
-                          }
-                          const mb = gb * 1000;
-                          return `${mb.toLocaleString()} MB`;
-                        })()
-                      : formatReservedWithUnits(
-                          formData.reserved[category] ?? null,
-                          category
-                        )}
+                    {formatReservedWithUnits(
+                      formData.reserved[category] ?? null,
+                      category
+                    )}
                   </Events>
                 </SectionHeader>
                 <Description>

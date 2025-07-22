@@ -75,7 +75,6 @@ export function BillingConfigFixture(tier: PlanTier): BillingConfig {
         monitorSeats: 1,
         spans: 10_000_000,
         uptime: 1,
-        logBytes: 0.5,
       },
       annualDiscount: 0.1,
       planList: Object.values(AM3_PLANS),
@@ -95,7 +94,6 @@ export function BillingConfigFixture(tier: PlanTier): BillingConfig {
         monitorSeats: 1,
         spans: 10_000_000,
         uptime: 1,
-        logBytes: 0.5,
       },
       annualDiscount: 0.1,
       planList: Object.values(MM1_PLANS).concat(
