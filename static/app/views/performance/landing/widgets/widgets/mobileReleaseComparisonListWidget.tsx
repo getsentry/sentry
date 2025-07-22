@@ -30,7 +30,6 @@ import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import type {TabKey} from 'sentry/views/insights/mobile/screens/views/screenDetailsPage';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -114,18 +113,10 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {InteractiveTitle} = props;
   const {setPageError} = usePageAlert();
+  const dataset = DiscoverDatasets.SPANS_EAP_RPC;
 
-  const useEap = useInsightsEap();
-
-  const dataset = useInsightsEap()
-    ? DiscoverDatasets.SPANS_EAP_RPC
-    : DiscoverDatasets.SPANS_METRICS;
-
-  const queryParams: Record<string, string> = useEap
-    ? {...EAP_QUERY_PARAMS}
-    : {dataset: DiscoverDatasets.SPANS_METRICS};
-
-  const segmentOp = useEap ? 'span.op' : 'transaction.op';
+  const queryParams: Record<string, string> = {...EAP_QUERY_PARAMS};
+  const segmentOp = 'span.op';
 
   const field = props.fields[0]!;
 
@@ -138,9 +129,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
         }
 
         const eventView = provided.eventView.clone();
-        let extraQueryParams = useEap
-          ? queryParams
-          : getMEPParamsIfApplicable(mepSetting, props.chartSetting);
+        let extraQueryParams = queryParams;
 
         // Set fields
         const sortField: string = (
@@ -169,9 +158,6 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
 
         // Update query
         const mutableSearch = new MutableSearch(eventView.query);
-        if (!useEap) {
-          mutableSearch.addFilterValue('event.type', 'transaction');
-        }
         mutableSearch.addFilterValue(segmentOp, 'ui.load');
         eventView.query = appendReleaseFilters(
           mutableSearch,
@@ -236,9 +222,6 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
 
           eventView.fields = [{field}, {field: 'release'}];
           const mutableSearch = new MutableSearch(eventView.query);
-          if (!useEap) {
-            mutableSearch.addFilterValue('event.type', 'transaction');
-          }
           mutableSearch.addFilterValue(segmentOp, 'ui.load');
           eventView.query = appendReleaseFilters(
             mutableSearch,

@@ -28,26 +28,6 @@ jest.mock(
   }
 );
 
-jest.mock(
-  'sentry/views/insights/common/components/widgets/hooks/useDatabaseLandingDurationQuery',
-  () => ({
-    useDatabaseLandingDurationQuery: jest.fn(() => ({
-      data: {},
-      isPending: false,
-      error: null,
-    })),
-  })
-);
-jest.mock(
-  'sentry/views/insights/common/components/widgets/hooks/useDatabaseLandingThroughputQuery',
-  () => ({
-    useDatabaseLandingThroughputQuery: jest.fn(() => ({
-      data: {},
-      isPending: false,
-      error: null,
-    })),
-  })
-);
 jest.mock('sentry/views/insights/sessions/queries/useReleaseNewIssues', () => ({
   __esModule: true,
   default: jest.fn(() => ({
@@ -80,88 +60,11 @@ jest.mock('sentry/views/insights/sessions/queries/useCrashFreeSessions', () => (
     isError: false,
   })),
 }));
-jest.mock(
-  'sentry/views/insights/common/components/widgets/hooks/useResourceLandingSeries',
-  () => ({
-    useResourceLandingSeries: jest.fn(() => ({
-      data: {
-        'epm()': {},
-        'avg(span.self_time)': {},
-        'avg(http.response_content_length)': {},
-        'avg(http.response_transfer_size)': {},
-        'avg(http.decoded_response_content_length)': {},
-      },
-      isPending: false,
-      error: null,
-    })),
-    useResourceLandingSeriesSearch: jest.fn(() => ({
-      search: jest.fn(),
-      enabled: true,
-    })),
-  })
-);
-jest.mock(
-  'sentry/views/insights/common/components/widgets/hooks/useResourceSummarySeries',
-  () => ({
-    useResourceSummarySeries: jest.fn(() => ({
-      data: {
-        'epm()': {},
-        'avg(span.self_time)': {},
-        'avg(http.response_content_length)': {},
-        'avg(http.response_transfer_size)': {},
-        'avg(http.decoded_response_content_length)': {},
-      },
-      isPending: false,
-      error: null,
-    })),
-    useResourceSummarySeriesSearch: jest.fn(() => ({
-      search: jest.fn(),
-      enabled: true,
-    })),
-  })
-);
-jest.mock(
-  'sentry/views/insights/common/components/widgets/hooks/useDatabaseLandingDurationQuery',
-  () => ({
-    useDatabaseLandingDurationQuery: jest.fn(() => ({
-      data: {
-        'avg(span.self_time)': {},
-      },
-      isPending: false,
-      error: null,
-    })),
-  })
-);
-jest.mock(
-  'sentry/views/insights/common/components/widgets/hooks/useDatabaseLandingThroughputQuery',
-  () => ({
-    useDatabaseLandingThroughputQuery: jest.fn(() => ({
-      data: {
-        'epm()': {},
-      },
-      isPending: false,
-      error: null,
-    })),
-  })
-);
 jest.mock('sentry/views/insights/common/queries/useDiscover', () => ({
-  useMetrics: jest.fn(() => ({
-    data: [
-      {
-        'avg(span.duration)': 123,
-        'sum(span.duration)': 456,
-        'span.group': 'abc123',
-        'span.description': 'span1',
-        'sentry.normalized_description': 'span1',
-        transaction: 'transaction_a',
-      },
-    ],
-    isPending: false,
-    error: null,
-  })),
   useSpans: jest.fn(() => ({
     data: [
       {
+        'epm()': {},
         'avg(span.duration)': 123,
         'sum(span.duration)': 456,
         'span.group': 'abc123',
@@ -184,6 +87,7 @@ jest.mock('sentry/views/insights/common/queries/useTopNDiscoverSeries', () => ({
 jest.mock('sentry/views/insights/common/queries/useDiscoverSeries', () => ({
   useSpanSeries: jest.fn(() => ({
     data: {
+      'epm()': {},
       'count(span.duration)': mockDiscoverSeries('count(span.duration)'),
       'avg(span.duration)': mockDiscoverSeries('avg(span.duration)'),
       'p95(span.duration)': mockDiscoverSeries('p95(span.duration)'),
@@ -194,7 +98,6 @@ jest.mock('sentry/views/insights/common/queries/useDiscoverSeries', () => ({
       'http_response_rate(3)': {},
       'http_response_rate(4)': {},
       'http_response_rate(5)': {},
-      'epm()': {},
       'avg(span.self_time)': {},
       'avg(http.response_content_length)': {},
       'avg(http.response_transfer_size)': {},
