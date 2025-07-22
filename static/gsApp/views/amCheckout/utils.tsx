@@ -351,6 +351,11 @@ export function getEventsWithUnit(
   }
 
   if (dataType === DataCategory.ATTACHMENTS || dataType === DataCategory.LOG_BYTE) {
+    // For logBytes, values < 1GB should be displayed as MB
+    if (dataType === DataCategory.LOG_BYTE && events < 1) {
+      const mb = events * 1000; // Convert GB to MB
+      return `${mb.toLocaleString()}MB`;
+    }
     return getWithBytes(events).replace(' ', '');
   }
 

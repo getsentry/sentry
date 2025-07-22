@@ -955,19 +955,25 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 1000000000, // 1GB
+          events: 0.5, // 500MB
           unitPrice: 0.01,
           price: 0,
           onDemandPrice: 0.0125,
         },
         {
-          events: 10000000000, // 10GB
+          events: 1, // 1GB
+          unitPrice: 0.01,
+          price: 45000,
+          onDemandPrice: 0.0125,
+        },
+        {
+          events: 10, // 10GB
           unitPrice: 0.01,
           price: 90000,
           onDemandPrice: 0.0125,
         },
         {
-          events: 100000000000, // 100GB
+          events: 100, // 100GB
           unitPrice: 0.01,
           price: 990000,
           onDemandPrice: 0.0125,
@@ -1473,19 +1479,25 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 1000000000, // 1GB
+          events: 0.5, // 500MB
           unitPrice: 0.01,
           price: 0,
           onDemandPrice: 0.0125,
         },
         {
-          events: 10000000000, // 10GB
+          events: 1, // 1GB
+          unitPrice: 0.01,
+          price: 486000,
+          onDemandPrice: 0.0125,
+        },
+        {
+          events: 10, // 10GB
           unitPrice: 0.01,
           price: 972000,
           onDemandPrice: 0.0125,
         },
         {
-          events: 100000000000, // 100GB
+          events: 100, // 100GB
           unitPrice: 0.01,
           price: 10692000,
           onDemandPrice: 0.0125,
