@@ -13,6 +13,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
@@ -24,6 +25,7 @@ import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/h
 
 function WidgetBuilderDatasetSelector() {
   const organization = useOrganization();
+  const location = useLocation();
   const {state} = useWidgetBuilderContext();
   const source = useDashboardWidgetSource();
   const isEditing = useIsEditingWidget();
@@ -39,7 +41,18 @@ function WidgetBuilderDatasetSelector() {
       tct('This dataset is is no longer supported. Please use the [spans] dataset.', {
         spans: (
           <Link
-            to=""
+            // We need to do this otherwise the dashboard filters will change
+            to={{
+              pathname: location.pathname,
+              query: {
+                project: location.query.project,
+                start: location.query.start,
+                end: location.query.end,
+                statsPeriod: location.query.statsPeriod,
+                environment: location.query.environment,
+                utc: location.query.utc,
+              },
+            }}
             onClick={() => {
               cacheBuilderState(state.dataset ?? WidgetType.ERRORS);
               setSegmentSpanBuilderState();
