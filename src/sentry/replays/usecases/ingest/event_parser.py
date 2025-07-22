@@ -17,7 +17,7 @@ from sentry import options
 from sentry.logging.handlers import SamplingFilter
 from sentry.utils import json
 
-logger = logging.getLogger()
+logger = logging.getLogger("sentry.replays.event_parser")
 logger.addFilter(SamplingFilter(0.001))
 
 
