@@ -1,0 +1,99 @@
+---
+title: Avatar List
+description: AvatarList displays a collection of user and/or team avatars in a responsive horizontal list.
+---
+
+import {useEffect} from 'react';
+
+import Placeholder from 'sentry/components/placeholder';
+import * as Storybook from 'sentry/stories';
+import {useMembers} from 'sentry/utils/useMembers';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
+
+import AvatarList from './avatarList';
+
+import types from '!!type-loader!sentry/components/core/avatar/avatarList';
+
+export {types};
+
+### Basic Usage with Users
+
+### Simple Usage
+
+Display a basic list of organization members with default settings.
+
+export function SimpleUsage() {
+  const {members, loadMore} = useMembers({limit: 50});
+  useEffect(() => {
+    loadMore();
+  }, []);
+  return <AvatarList users={members} />;
+}
+
+<Storybook.Demo>
+  <SimpleUsage />
+</Storybook.Demo>
+```jsx
+const {members} = useMembers({limit: 50});
+<AvatarList users={members} />
+```
+
+### Combine Users & teams
+
+Displaying both teams and users in the same avatar list.
+
+export function CombinedUsage() {
+    const {teams, isLoading} = useUserTeams();
+    const {members, fetching} = useMembers();
+
+    if (isLoading || fetching) {
+        return <Placeholder />
+    }
+
+    return <AvatarList teams={teams} users={members} maxVisibleAvatars={10} />
+
+}
+
+<Storybook.Demo>
+  <CombinedUsage />
+</Storybook.Demo>
+
+```jsx
+const {teams, isLoading} = useUserTeams();
+const {members, fetching} = useMembers();
+
+if (isLoading || fetching) {
+  return <Placeholder />;
+}
+
+return <AvatarList teams={teams} users={members} maxVisibleAvatars={10} />;
+```
+
+### Accessibility
+
+1. Keyboard Navigation: Each avatar is focusable and navigable using tab/shift+tab keyboard
+   commands. Tooltips appear on focus as well as hover.
+2. Screen Reader Support: Avatars include descriptive alt text based on user names or team
+   names. Collapsed avatar indicators announce the count and type (e.g., "10 other users").
+3. Color Contrast: Letter avatars automatically generate high contrast color combinations.
+   Custom avatars should meet WCAG AA contrast requirements of at least 3:1 for graphics.
+
+### Behavior Notes
+
+- Smart Overflow: When exactly one avatar would be collapsed, it's shown instead of the "+1"
+  indicator to maximize information display
+- Reverse Order: Avatars are rendered in reverse order using CSS flex-reverse to create the
+  desired visual stacking effect
+- Adaptive Sizing: The component intelligently balances team and user avatar counts based on
+  the maxVisibleAvatars limit
+- Tooltip Integration: Supports both default tooltips (showing user/team names) and custom
+  tooltip renderers
+
+### Limitations
+
+- The component assumes a horizontal layout and may not work well in constrained vertical
+  spaces
+- Team and user avatar rendering order is fixed (teams first, then users, unless
+  `renderUsersFirst` is true)
+- Custom `renderCollapsedAvatars` implementations must handle their own tooltip and
+  accessibility features
