@@ -254,6 +254,12 @@ class TestQuery(APITestCase, SnubaTestCase):
         # Query: want to get all feedbacks in projects / date range, then get all of the tags (prob just values are needed) where the key starts with "foo"
         # Can do the above with an arrayZip, arrayFilter, and arrayMap, so we should be good here
 
+        # Query: want to get a count of all feedbacks in projects / date range that have any of a given list of tags (with the key having prefix "foo")
+        # Actually, can we find the count of a set of 10 groups? Like ['User Interface', 'UI', 'UX'] would be one group and we'd pass in 10 groups and find the count of feedbacks in each group
+        # - if the above is too complicated, we can just find the count of feedbacks in each group individually (10 queries tho :/), not a big deal
+        # - possible in a countIf I think
+        # This would be used to figure out the top 3-4 groups to show. We can do this similarly to getting all feedbacks by tag, but we'll need to use hasAny instead of equals
+
         # Q: can "get feedbacks by tag" be paginated?
 
         assert False
