@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from django.contrib.auth import logout
 from django.contrib.auth.models import AnonymousUser
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -310,7 +311,6 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
         Deauthenticate all active sessions for this user.
         """
-
         # Allows demo user to log out from its current session but not others
         if is_demo_user(request.user) and request.data.get("all", None) is True:
             return Response(status=status.HTTP_403_FORBIDDEN)
@@ -323,6 +323,14 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         logout(request._request)
         request.user = AnonymousUser()
 
+        # Force cookies to be deleted
+        response = Response()
+        response.delete_cookie(settings.CSRF_COOKIE_NAME, domain=settings.CSRF_COOKIE_DOMAIN)
+        response.delete_cookie(settings.SESSION_COOKIE_NAME, domain=settings.SESSION_COOKIE_DOMAIN)
+
         if slo_url:
-            return Response(status=status.HTTP_200_OK, data={"sloUrl": slo_url})
-        return Response(status=status.HTTP_204_NO_CONTENT)
+            response.status = status.HTTP_200_OK
+            response.data = {"sloUrl": slo_url}
+        else:
+            response.status = status.HTTP_204_NO_CONTENT
+        return response

@@ -6,13 +6,22 @@
 
 {% block main %}
     <section class="body">
+        {% csrf_token %}
+
         <div class="page-header">
             <h2>{% trans "CSRF Verification Failed" %}</h2>
         </div>
 
         <p>{% trans "A required security token was not found or was invalid." %}</p>
 
-        <p>{% trans "If you're continually seeing this issue, try the following:" %}</p>
+        <div style="margin: 20px 0;">
+            <button id="csrf-rotate-btn" class="btn btn-primary" onclick="rotateCsrf()">
+                {% trans "Rotate the CSRF Token" %}
+            </button>
+            <span id="csrf-status" style="margin-left: 10px;"></span>
+        </div>
+
+        <p>{% trans "If you're continually seeing this issue, try the following steps:" %}</p>
 
         <ol>
           <li>{% trans "Clear cookies (at least for Sentry's domain)." %}</li>
@@ -33,5 +42,93 @@
         {% endif %}
 
         <p>Read more about <a href="http://en.wikipedia.org/wiki/Cross-site_request_forgery">CSRF on Wikipedia</a>.</p>
+
+        <script>
+          const status = document.getElementById('csrf-status');
+          const button = document.getElementById('csrf-rotate-btn');
+
+          /**
+           * Automatically refresh page to prevent form resubmission
+           */
+          function forceRefreshPage() {
+            setTimeout(() => {
+                window.location.replace(window.location.href)
+            }, 500);
+          }
+
+          /**
+           * API call to logout + delete cookies
+           */
+          async function fetchDeleteLogin() {
+            const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+            return await fetch('/api/0/auth/', {
+              method: 'DELETE',
+              headers: {'X-CSRFToken': csrfToken},
+              credentials: 'include'
+            })
+          }
+
+          /**
+           * API call to rotate CSRF token
+           */
+          async function fetchPutCsrf() {
+            return await fetch('/api/0/auth-v2/csrf/', {
+                method: 'PUT',
+                credentials: 'include'
+            });
+          }
+
+          /**
+           * Try to rotate CSRF token. If 403 error, there's an existing session,
+           * so try to logout to clear cookies
+           */
+          async function rotateCsrf() {
+              button.disabled = true;
+              button.textContent = '{% trans "Rotating..." %}';
+              status.textContent = '';
+
+              try {
+                  const csrfRes = await fetchPutCsrf()
+                  const logoutRes = csrfRes.status == 403 && await fetchDeleteLogin();
+
+                  if (csrfRes.ok || logoutRes.ok) {
+                      status.textContent = '{% trans "Token rotated successfully! Refreshing the page in 1 sec..." %}';
+                      status.style.color = 'green';
+                      forceRefreshPage()
+                  } else {
+                    throw new Error();
+                  }
+              } catch (error) {
+                  status.textContent = '{% trans "Failed to rotate token." %}';
+                  status.style.color = 'red';
+              } finally {
+                  button.disabled = false;
+                  button.textContent = '{% trans "Rotate CSRF Token" %}';
+              }
+          }
+
+          /**
+           * If user has not been on this page in the last 5min,
+           * invoke rotateCsrf() automatically.
+           */
+          (function(){
+              const storedCsrfError = localStorage.getItem('lastCsrfError');
+              const lastDate = new Date(storedCsrfError);
+              const diffMs = Date.now() - lastDate.getTime();
+
+              const FIVE_MINUTES = 5 * 60 * 1000; // 5 minutes in ms
+
+              if (!storedCsrfError || diffMs > FIVE_MINUTES) {
+                localStorage.setItem('lastCsrfError', new Date().toISOString());
+
+                button.disabled = true;
+                status.textContent = '{% trans "Automatically rotating tokens..." %}';
+                status.style.color = 'green';
+                setTimeout(() => {
+                    rotateCsrf()
+                }, 1500);
+              }
+          })()
+        </script>
     </section>
 {% endblock %}
