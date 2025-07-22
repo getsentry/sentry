@@ -3,10 +3,13 @@ Testsuite of backend-independent nodestore tests. Add your backend to the
 `ns` fixture to have it tested.
 """
 
+from collections.abc import Callable, Generator
 from contextlib import nullcontext
+from typing import ContextManager
 
 import pytest
 
+from sentry.nodestore.base import NodeStorage
 from sentry.nodestore.django.backend import DjangoNodeStorage
 from sentry.testutils.helpers import override_options
 from tests.sentry.nodestore.bigtable.test_backend import (
@@ -18,9 +21,9 @@ from tests.sentry.nodestore.bigtable.test_backend import (
 @pytest.fixture(
     params=["bigtable-mocked", "bigtable-real", pytest.param("django", marks=pytest.mark.django_db)]
 )
-def ns(request):
+def ns(request) -> Generator[NodeStorage]:
     # backends are returned from context managers to support teardown when required
-    backends = {
+    backends: dict[str, Callable[[], ContextManager[NodeStorage]]] = {
         "bigtable-mocked": lambda: nullcontext(MockedBigtableNodeStorage(project="test")),
         "bigtable-real": lambda: get_temporary_bigtable_nodestorage(),
         "django": lambda: nullcontext(DjangoNodeStorage()),
