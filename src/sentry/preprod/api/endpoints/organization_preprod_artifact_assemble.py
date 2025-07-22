@@ -78,10 +78,6 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
     enforce_rate_limit = True
     rate_limits = {
         "POST": {
-            RateLimitCategory.IP: RateLimit(limit=20, window=60),  # 20 requests per minute per IP
-            RateLimitCategory.USER: RateLimit(
-                limit=20, window=60
-            ),  # 20 requests per minute per user
             RateLimitCategory.ORGANIZATION: RateLimit(
                 limit=100, window=60
             ),  # 100 requests per minute per org
