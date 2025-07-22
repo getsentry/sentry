@@ -341,7 +341,7 @@ export function handleCellActionFallback(
 ): boolean {
   switch (action) {
     case Actions.COPY_TO_CLIPBOARD: {
-      function stringifyValue(val: any): string {
+      function stringifyValue(val: string | number | string[]): string {
         if (!val) return '';
         if (typeof val !== 'object') {
           return val.toString();

@@ -500,7 +500,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
   },
   'span.description': {
     sortField: 'span.description',
-    renderFunc: data => {
+    renderFunc: (data, {organization}) => {
       const value = data[SpanFields.SPAN_DESCRIPTION];
       const op: string = data[SpanFields.SPAN_OP];
       const projectId =
@@ -527,7 +527,14 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
           showOnlyOnOverflow
           maxWidth={400}
         >
-          <Container>{nullableValue(value)}</Container>
+          <Container>
+            {!organization.features.includes('discover-cell-actions-v2') &&
+            isUrl(value) ? (
+              <ExternalLink href={value}>{value}</ExternalLink>
+            ) : (
+              nullableValue(value)
+            )}
+          </Container>
         </Tooltip>
       );
     },

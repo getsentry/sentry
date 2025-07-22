@@ -5,8 +5,10 @@ import styled from '@emotion/styled';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import ExternalLink from 'sentry/components/links/externalLink';
 import TimeSince from 'sentry/components/timeSince';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -17,6 +19,7 @@ import {Container} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {isUrl} from 'sentry/utils/string/isUrl';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -120,7 +123,7 @@ function BaseExploreFieldRenderer({
 
   const field = String(column.key);
 
-  const renderer = getExploreFieldRenderer(field, meta, projectsMap);
+  const renderer = getExploreFieldRenderer(field, meta, projectsMap, organization);
 
   let rendered = renderer(data, {
     location,
@@ -190,13 +193,14 @@ function BaseExploreFieldRenderer({
 function getExploreFieldRenderer(
   field: string,
   meta: MetaType,
-  projects: Record<string, Project>
+  projects: Record<string, Project>,
+  organization: Organization
 ): ReturnType<typeof getFieldRenderer> {
   if (field === 'id' || field === 'span_id') {
     return eventIdRenderFunc(field);
   }
   if (field === 'span.description') {
-    return spanDescriptionRenderFunc(projects);
+    return spanDescriptionRenderFunc(projects, organization);
   }
   return getFieldRenderer(field, meta, false);
 }
@@ -213,7 +217,10 @@ function eventIdRenderFunc(field: string) {
   return renderer;
 }
 
-function spanDescriptionRenderFunc(projects: Record<string, Project>) {
+function spanDescriptionRenderFunc(
+  projects: Record<string, Project>,
+  organization: Organization
+) {
   function renderer(data: EventData) {
     const project = projects[data.project];
 
@@ -236,7 +243,14 @@ function spanDescriptionRenderFunc(projects: Record<string, Project>) {
                 hideName
               />
             )}
-            <WrappingText>{nullableValue(value)}</WrappingText>
+            <WrappingText>
+              {!organization.features.includes('discover-cell-actions-v2') &&
+              isUrl(value) ? (
+                <ExternalLink href={value}>{value}</ExternalLink>
+              ) : (
+                nullableValue(value)
+              )}
+            </WrappingText>
           </Description>
         </Tooltip>
       </span>
