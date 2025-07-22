@@ -46,7 +46,7 @@ export function apiOptions<
   }
 
   return queryOptions({
-    queryKey: [url, options],
+    queryKey: Object.keys(options).length > 0 ? [url, options] : [url],
     queryFn: fetchDataQuery<TActualData>,
     staleTime,
   });

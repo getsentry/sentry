@@ -33,6 +33,24 @@ describe('apiOptions', () => {
     expect(options.queryKey[0]).toBe('/search/test%20query/');
   });
 
+  test('should not include empty options in queryKey', () => {
+    const options = apiOptions('/projects/$id/', {
+      staleTime: 0,
+      pathParams: {id: '123'},
+    });
+
+    expect(options.queryKey).toEqual(['/projects/123/']);
+  });
+
+  test('should stringify number path params', () => {
+    const options = apiOptions('/items/$id/', {
+      staleTime: 0,
+      pathParams: {id: 123},
+    });
+
+    expect(options.queryKey[0]).toBe('/items/123/');
+  });
+
   describe('types', () => {
     test('should infer types of known API paths', () => {
       const options = apiOptions(
