@@ -61,6 +61,15 @@ import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';
 import type {Anomaly} from 'sentry/views/alerts/types';
 import {isSessionAggregate, SESSION_AGGREGATE_TO_FIELD} from 'sentry/views/alerts/utils';
 import {getComparisonMarkLines} from 'sentry/views/alerts/utils/getComparisonMarkLines';
+import {
+  AVAILABLE_TIME_PERIODS,
+  EAP_AVAILABLE_TIME_PERIODS,
+  EAP_HISTORICAL_TIME_PERIOD_MAP,
+  HISTORICAL_TIME_PERIOD_MAP,
+  HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS,
+  TIME_PERIOD_MAP,
+  TIME_WINDOW_TO_INTERVAL,
+} from 'sentry/views/alerts/utils/timePeriods';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -100,103 +109,9 @@ type Props = {
   traceItemType?: TraceItemDataset;
 };
 
-type TimePeriodMap = Omit<Record<TimePeriod, string>, TimePeriod.TWENTY_EIGHT_DAYS>;
-
-const TIME_PERIOD_MAP: TimePeriodMap = {
-  [TimePeriod.SIX_HOURS]: t('Last 6 hours'),
-  [TimePeriod.ONE_DAY]: t('Last 24 hours'),
-  [TimePeriod.THREE_DAYS]: t('Last 3 days'),
-  [TimePeriod.SEVEN_DAYS]: t('Last 7 days'),
-  [TimePeriod.FOURTEEN_DAYS]: t('Last 14 days'),
-};
-
-/**
- * Just to avoid repeating it
- */
-const MOST_TIME_PERIODS: readonly TimePeriod[] = [
-  TimePeriod.ONE_DAY,
-  TimePeriod.THREE_DAYS,
-  TimePeriod.SEVEN_DAYS,
-  TimePeriod.FOURTEEN_DAYS,
-];
-
-/**
- * TimeWindow determines data available in TimePeriod
- * If TimeWindow is small, lower TimePeriod to limit data points
- */
-const AVAILABLE_TIME_PERIODS: Record<TimeWindow, readonly TimePeriod[]> = {
-  [TimeWindow.ONE_MINUTE]: [
-    TimePeriod.SIX_HOURS,
-    TimePeriod.ONE_DAY,
-    TimePeriod.THREE_DAYS,
-    TimePeriod.SEVEN_DAYS,
-  ],
-  [TimeWindow.FIVE_MINUTES]: MOST_TIME_PERIODS,
-  [TimeWindow.TEN_MINUTES]: MOST_TIME_PERIODS,
-  [TimeWindow.FIFTEEN_MINUTES]: MOST_TIME_PERIODS,
-  [TimeWindow.THIRTY_MINUTES]: MOST_TIME_PERIODS,
-  [TimeWindow.ONE_HOUR]: MOST_TIME_PERIODS,
-  [TimeWindow.TWO_HOURS]: MOST_TIME_PERIODS,
-  [TimeWindow.FOUR_HOURS]: [
-    TimePeriod.THREE_DAYS,
-    TimePeriod.SEVEN_DAYS,
-    TimePeriod.FOURTEEN_DAYS,
-  ],
-  [TimeWindow.ONE_DAY]: [TimePeriod.FOURTEEN_DAYS],
-};
-
-const MOST_EAP_TIME_PERIOD = [
-  TimePeriod.ONE_DAY,
-  TimePeriod.THREE_DAYS,
-  TimePeriod.SEVEN_DAYS,
-];
-
-const EAP_AVAILABLE_TIME_PERIODS = {
-  [TimeWindow.ONE_MINUTE]: [], // One minute intervals are not allowed on EAP Alerts
-  [TimeWindow.FIVE_MINUTES]: MOST_EAP_TIME_PERIOD,
-  [TimeWindow.TEN_MINUTES]: MOST_EAP_TIME_PERIOD,
-  [TimeWindow.FIFTEEN_MINUTES]: MOST_EAP_TIME_PERIOD,
-  [TimeWindow.THIRTY_MINUTES]: MOST_EAP_TIME_PERIOD,
-  [TimeWindow.ONE_HOUR]: MOST_EAP_TIME_PERIOD,
-  [TimeWindow.TWO_HOURS]: MOST_EAP_TIME_PERIOD,
-  [TimeWindow.FOUR_HOURS]: [TimePeriod.SEVEN_DAYS],
-  [TimeWindow.ONE_DAY]: [TimePeriod.SEVEN_DAYS],
-};
-
-export const TIME_WINDOW_TO_INTERVAL = {
-  [TimeWindow.FIVE_MINUTES]: '5m',
-  [TimeWindow.TEN_MINUTES]: '10m',
-  [TimeWindow.FIFTEEN_MINUTES]: '15m',
-  [TimeWindow.THIRTY_MINUTES]: '30m',
-  [TimeWindow.ONE_HOUR]: '1h',
-  [TimeWindow.TWO_HOURS]: '2h',
-  [TimeWindow.FOUR_HOURS]: '4h',
-  [TimeWindow.ONE_DAY]: '1d',
-};
-
 const SESSION_AGGREGATE_TO_HEADING = {
   [SessionsAggregate.CRASH_FREE_SESSIONS]: t('Total Sessions'),
   [SessionsAggregate.CRASH_FREE_USERS]: t('Total Users'),
-};
-
-const HISTORICAL_TIME_PERIOD_MAP: TimePeriodMap = {
-  [TimePeriod.SIX_HOURS]: '678h',
-  [TimePeriod.ONE_DAY]: '29d',
-  [TimePeriod.THREE_DAYS]: '31d',
-  [TimePeriod.SEVEN_DAYS]: '35d',
-  [TimePeriod.FOURTEEN_DAYS]: '42d',
-};
-
-const HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS: TimePeriodMap = {
-  ...HISTORICAL_TIME_PERIOD_MAP,
-  [TimePeriod.SEVEN_DAYS]: '28d', // fetching 28 + 7 days of historical data at 5 minute increments exceeds the max number of data points that snuba can return
-  [TimePeriod.FOURTEEN_DAYS]: '28d', // fetching 28 + 14 days of historical data at 5 minute increments exceeds the max number of data points that snuba can return
-};
-const EAP_HISTORICAL_TIME_PERIOD_MAP: TimePeriodMap = {
-  // EAP allows max 2688 buckets
-  ...HISTORICAL_TIME_PERIOD_MAP,
-  [TimePeriod.SEVEN_DAYS]: '28d',
-  [TimePeriod.FOURTEEN_DAYS]: '28d',
 };
 
 const noop: any = () => {};
@@ -475,8 +390,7 @@ class TriggersChart extends PureComponent<Props, State> {
               size="sm"
               options={statsPeriodOptions.map(timePeriod => ({
                 value: timePeriod,
-                // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                label: TIME_PERIOD_MAP[timePeriod],
+                label: TIME_PERIOD_MAP[timePeriod as keyof typeof TIME_PERIOD_MAP],
               }))}
               value={period}
               onChange={opt => this.handleStatsPeriodChange(opt.value)}
@@ -560,10 +474,12 @@ class TriggersChart extends PureComponent<Props, State> {
               api={this.historicalAPI}
               period={
                 timeWindow === 5
-                  ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                    HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]!
-                  : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                    HISTORICAL_TIME_PERIOD_MAP[period]!
+                  ? HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[
+                      period as keyof typeof HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS
+                    ]
+                  : HISTORICAL_TIME_PERIOD_MAP[
+                      period as keyof typeof HISTORICAL_TIME_PERIOD_MAP
+                    ]
               }
               dataLoadedCallback={onHistoricalDataLoaded}
             />
@@ -639,8 +555,7 @@ class TriggersChart extends PureComponent<Props, State> {
                 data: getCrashFreeRateSeries(
                   groups,
                   intervals,
-                  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                  SESSION_AGGREGATE_TO_FIELD[aggregate]
+                  SESSION_AGGREGATE_TO_FIELD[aggregate]!
                 ),
               },
             ];
@@ -685,13 +600,16 @@ class TriggersChart extends PureComponent<Props, State> {
             api={this.historicalAPI}
             period={
               dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
-                ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                  EAP_HISTORICAL_TIME_PERIOD_MAP[period]!
+                ? EAP_HISTORICAL_TIME_PERIOD_MAP[
+                    period as keyof typeof EAP_HISTORICAL_TIME_PERIOD_MAP
+                  ]
                 : timeWindow === 5
-                  ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                    HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]!
-                  : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                    HISTORICAL_TIME_PERIOD_MAP[period]!
+                  ? HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[
+                      period as keyof typeof HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS
+                    ]
+                  : HISTORICAL_TIME_PERIOD_MAP[
+                      period as keyof typeof HISTORICAL_TIME_PERIOD_MAP
+                    ]
             }
             dataLoadedCallback={onHistoricalDataLoaded}
           >

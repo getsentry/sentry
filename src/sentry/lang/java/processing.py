@@ -78,6 +78,12 @@ def _merge_frame(new_frame: dict[str, Any], symbolicated: dict[str, Any]) -> Non
     if symbolicated.get("post_context"):
         new_frame["post_context"] = symbolicated["post_context"]
 
+    # Frames with synthesized methods were made up by the compiler,
+    # so we mark them as not in app.
+    if symbolicated.get("method_synthesized"):
+        new_frame["method_synthesized"] = True
+        new_frame["in_app"] = False
+
 
 def _handles_frame(frame: dict[str, Any], platform: str) -> bool:
     "Returns whether the frame should be symbolicated by JVM symbolication."

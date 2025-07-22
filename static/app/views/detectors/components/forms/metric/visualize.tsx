@@ -296,7 +296,7 @@ export function Visualize() {
 
   return (
     <AggregateContainer hasParameters={hasVisibleParameters}>
-      <Flex gap={space(1)} align="flex-end">
+      <Flex gap="md" align="flex-end">
         <FieldContainer>
           <div>
             <Tooltip
@@ -364,14 +364,14 @@ export function Visualize() {
 
       {/* Only show filter inline when no additional parameters */}
       {!hasVisibleParameters && (
-        <Flex flex={1} gap={space(1)}>
+        <Flex flex={1} gap="md">
           <DetectorQueryFilterBuilder />
         </Flex>
       )}
 
       {/* Show filter on separate row when parameters are visible */}
       {hasVisibleParameters && (
-        <Flex flex={1} gap={space(1)}>
+        <Flex flex={1} gap="md">
           <DetectorQueryFilterBuilder />
         </Flex>
       )}
