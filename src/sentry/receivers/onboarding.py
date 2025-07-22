@@ -13,6 +13,7 @@ from sentry.analytics.events.first_event_sent import (
     FirstEventSentForProjectEvent,
 )
 from sentry.analytics.events.first_insight_span_sent import FirstInsightSpanSentEvent
+from sentry.analytics.events.first_profile_sent import FirstProfileSentEvent
 from sentry.analytics.events.first_replay_sent import FirstReplaySentEvent
 from sentry.analytics.events.first_transaction_sent import FirstTransactionSentEvent
 from sentry.analytics.events.member_invited import MemberInvitedEvent
@@ -197,11 +198,12 @@ def record_first_transaction(project, event, **kwargs):
 @first_profile_received.connect(weak=False, dispatch_uid="onboarding.record_first_profile")
 def record_first_profile(project, **kwargs):
     analytics.record(
-        "first_profile.sent",
-        user_id=get_owner_id(project),
-        organization_id=project.organization_id,
-        project_id=project.id,
-        platform=project.platform,
+        FirstProfileSentEvent(
+            user_id=get_owner_id(project),
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=project.platform,
+        )
     )
 
 
