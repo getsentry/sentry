@@ -319,9 +319,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         elif field_type in DURATION_UNITS:
             return field_type, "duration"
         elif field_type == "rate":
-            if field in ["eps()", "sps()", "tps()"]:
+            if field in ["eps()", "sps()", "tps()", "sample_eps()"]:
                 return "1/second", field_type
-            elif field in ["epm()", "spm()", "tpm()"]:
+            elif field in ["epm()", "spm()", "tpm()", "sample_epm()"]:
                 return "1/minute", field_type
             else:
                 return None, field_type
