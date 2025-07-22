@@ -472,6 +472,8 @@ const appConfig: Configuration = {
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
 
+      ui: path.join(staticPrefix, 'app', 'components', 'core'),
+
       getsentry: path.join(staticPrefix, 'gsApp'),
       'getsentry-images': path.join(staticPrefix, 'images'),
       'getsentry-test': path.join(import.meta.dirname, 'tests', 'js', 'getsentry-test'),
