@@ -3,12 +3,14 @@ import datetime
 from snuba_sdk import (
     Column,
     Condition,
+    Direction,
     Entity,
     Function,
     Identifier,
     Lambda,
     Limit,
     Op,
+    OrderBy,
     Query,
     Request,
 )
@@ -206,9 +208,7 @@ class TestQuery(APITestCase, SnubaTestCase):
             query=Query(
                 match=Entity("discover"),
                 select=[
-                    # Column("tags.key"),
-                    # Column("tags.value"),
-                    # Function("count", [], "count"),
+                    Function("count", [], "count"),
                     Function(
                         "arrayJoin",
                         parameters=[
@@ -216,26 +216,48 @@ class TestQuery(APITestCase, SnubaTestCase):
                                 "arrayMap",
                                 parameters=[
                                     Lambda(
-                                        ["x"],
+                                        ["tup"],
                                         Function(
                                             "tupleElement",
                                             parameters=[
-                                                Identifier(
-                                                    "x"
-                                                ),  # Why do we need a lambda inside a function?
+                                                Identifier("tup"),
                                                 2,
-                                            ],  # I think this gets the second tuple element, which is the value
+                                            ],  # I think this gets the second tuple element, which is the tag's value
                                         ),
                                     ),
                                     Function(
-                                        "arrayZip",
-                                        parameters=[Column("tags.key"), Column("tags.value")],
+                                        "arrayFilter",
+                                        parameters=[
+                                            Lambda(
+                                                ["tup"],
+                                                Function(
+                                                    "startsWith",  # Checks if the tag's key starts with "foo"
+                                                    parameters=[
+                                                        Function(
+                                                            "tupleElement",
+                                                            parameters=[
+                                                                Identifier("tup"),
+                                                                1,
+                                                            ],  # Returns the first tuple element (tag's key)
+                                                        ),
+                                                        "foo",
+                                                    ],
+                                                ),
+                                            ),
+                                            Function(
+                                                "arrayZip",
+                                                parameters=[
+                                                    Column("tags.key"),
+                                                    Column("tags.value"),
+                                                ],
+                                            ),
+                                        ],
                                     ),
                                 ],
                             )
                         ],
-                        alias="tag_value",  # Add a short alias here
-                    )
+                        alias="tag_value",
+                    ),
                 ],
                 # Filter the data before grouping
                 where=[
@@ -244,13 +266,12 @@ class TestQuery(APITestCase, SnubaTestCase):
                     Condition(Column("timestamp"), Op.LT, end_date),
                     # Condition 2: Belongs to a specific project
                     Condition(Column("project_id"), Op.IN, [self.project.id]),
-                    # Condition 3: The tag's key must start with "os"
-                    # Condition(Function("startsWith", [Column("tags.key"), "os"]), Op.EQ, 1),
                 ],
-                # Group by the tag value to count occurrences
-                # groupby=[Column("tags.key"), Column("tags.value")],
+                groupby=[
+                    Column("tag_value"),  # is this ok? can I group by an alias that was in select
+                ],
                 # Order by the count descending to find the most frequent
-                # orderby=[OrderBy(Column("count"), Direction.DESC)],
+                orderby=[OrderBy(Column("count"), Direction.DESC)],
                 limit=Limit(10),
             ),
         )
