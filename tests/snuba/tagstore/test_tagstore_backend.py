@@ -1109,6 +1109,90 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         # top key should be "quux" as it's the most recent than "bar"
         assert top_key.value == "quux"
 
+    def test_error_upsampling_tag_value_counts(self):
+        """Test that tag value counts are properly weighted when projects use error upsampling."""
+
+        # Set up allowlisted project for error upsampling
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.proj1.id]}):
+            # Create first event with sample_weight=10 and tag value "alpha"
+            event1 = self.store_event(
+                data={
+                    "event_id": "a1" * 16,
+                    "message": "Error event with high sample weight",
+                    "type": "error",
+                    "exception": exception,
+                    "timestamp": (self.now - timedelta(seconds=1)).isoformat(),
+                    "fingerprint": ["error-upsampling-group"],
+                    "tags": {
+                        "custom_tag": "alpha",
+                        "environment": "test",
+                    },
+                    # This creates a sample_weight of 10 (1/0.1)
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.proj1.id,
+            )
+
+            # Create second event with sample_weight=5 and tag value "beta"
+            self.store_event(
+                data={
+                    "event_id": "b2" * 16,
+                    "message": "Error event with medium sample weight",
+                    "type": "error",
+                    "exception": exception,
+                    "timestamp": (self.now - timedelta(seconds=2)).isoformat(),
+                    "fingerprint": ["error-upsampling-group"],
+                    "tags": {
+                        "custom_tag": "beta",
+                        "environment": "test",
+                    },
+                    # This creates a sample_weight of 5 (1/0.2)
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.2}},
+                },
+                project_id=self.proj1.id,
+            )
+
+            # Get the group from one of the events
+            error_upsampling_group = event1.group
+
+            # Test get_top_group_tag_values with error upsampling
+            resp = self.ts.get_top_group_tag_values(
+                error_upsampling_group,
+                self.proj1env1.id,
+                "custom_tag",
+                10,  # limit
+                tenant_ids={"referrer": "r", "organization_id": 1234},
+            )
+
+            # Verify we get both tag values
+            assert len(resp) == 2
+
+            # Sort by times_seen descending to get consistent order
+            resp = sorted(resp, key=lambda x: x.times_seen, reverse=True)
+
+            # First tag value should be "alpha" with times_seen=10 (sample_weight)
+            assert resp[0].key == "custom_tag"
+            assert resp[0].value == "alpha"
+            assert resp[0].times_seen == 10
+            assert resp[0].group_id == error_upsampling_group.id
+
+            # Second tag value should be "beta" with times_seen=5 (sample_weight)
+            assert resp[1].key == "custom_tag"
+            assert resp[1].value == "beta"
+            assert resp[1].times_seen == 5
+            assert resp[1].group_id == error_upsampling_group.id
+
+            # Also test get_group_tag_value_count for total count
+            total_count = self.ts.get_group_tag_value_count(
+                error_upsampling_group,
+                self.proj1env1.id,
+                "custom_tag",
+                tenant_ids={"referrer": "r", "organization_id": 1234},
+            )
+
+            # Total should be 10 + 5 = 15 (weighted sum, not 2 raw events)
+            assert total_count == 15
+
 
 class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
     def setUp(self):
