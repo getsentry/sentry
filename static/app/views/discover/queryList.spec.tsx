@@ -487,6 +487,78 @@ describe('Discover > QueryList', function () {
     );
   });
 
+  it('disabled duplicate for transaction queries with deprecation flag', async function () {
+    const featuredOrganization = OrganizationFixture({
+      features: ['dashboards-edit', 'discover-saved-queries-deprecation'],
+    });
+
+    render(
+      <QueryList
+        savedQuerySearchQuery=""
+        router={RouterFixture()}
+        organization={featuredOrganization}
+        savedQueries={[
+          DiscoverSavedQueryFixture({
+            display: DisplayModes.DEFAULT,
+            orderby: 'count()',
+            fields: ['test', 'count()'],
+            yAxis: ['count()'],
+            queryDataset: SavedQueryDatasets.TRANSACTIONS,
+          }),
+        ]}
+        pageLinks=""
+        renderPrebuilt={false}
+        location={location}
+      />
+    );
+
+    const card = screen.getAllByTestId(/card-*/).at(0)!;
+    const withinCard = within(card);
+
+    await userEvent.click(withinCard.getByTestId('menu-trigger'));
+    const duplicateMenuItem = await screen.findByRole('menuitemradio', {
+      name: 'Duplicate Query',
+    });
+
+    expect(duplicateMenuItem).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('does not disable duplicate for error queries with deprecation flag', async function () {
+    const featuredOrganization = OrganizationFixture({
+      features: ['dashboards-edit', 'discover-saved-queries-deprecation'],
+    });
+
+    render(
+      <QueryList
+        savedQuerySearchQuery=""
+        router={RouterFixture()}
+        organization={featuredOrganization}
+        savedQueries={[
+          DiscoverSavedQueryFixture({
+            display: DisplayModes.DEFAULT,
+            orderby: 'count()',
+            fields: ['test', 'count()'],
+            yAxis: ['count()'],
+            queryDataset: SavedQueryDatasets.ERRORS,
+          }),
+        ]}
+        pageLinks=""
+        renderPrebuilt={false}
+        location={location}
+      />
+    );
+
+    const card = screen.getAllByTestId(/card-*/).at(0)!;
+    const withinCard = within(card);
+
+    await userEvent.click(withinCard.getByTestId('menu-trigger'));
+    const duplicateMenuItem = await screen.findByRole('menuitemradio', {
+      name: 'Duplicate Query',
+    });
+
+    expect(duplicateMenuItem).not.toHaveAttribute('aria-disabled');
+  });
+
   describe('Add to Dashboard modal', () => {
     it('opens a modal with the correct params for Top 5 chart', async function () {
       const featuredOrganization = OrganizationFixture({
@@ -619,6 +691,78 @@ describe('Discover > QueryList', function () {
           })
         );
       });
+    });
+
+    it('disables Add to Dashboard for transaction queries with deprecation flag', async function () {
+      const featuredOrganization = OrganizationFixture({
+        features: ['dashboards-edit', 'discover-saved-queries-deprecation'],
+      });
+      render(
+        <QueryList
+          savedQuerySearchQuery=""
+          router={RouterFixture()}
+          organization={featuredOrganization}
+          renderPrebuilt={false}
+          savedQueries={[
+            DiscoverSavedQueryFixture({
+              display: DisplayModes.DEFAULT,
+              orderby: 'count()',
+              fields: ['test', 'count()'],
+              yAxis: ['count()'],
+              queryDataset: SavedQueryDatasets.TRANSACTIONS,
+            }),
+          ]}
+          pageLinks=""
+          location={location}
+        />
+      );
+
+      const contextMenu = await screen.findByTestId('menu-trigger');
+      expect(contextMenu).toBeInTheDocument();
+
+      await userEvent.click(contextMenu);
+
+      const addToDashboardMenuItem = await screen.findByRole('menuitemradio', {
+        name: 'Add to Dashboard',
+      });
+
+      expect(addToDashboardMenuItem).toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('does not disable Add to Dashboard for error queries with deprecation flag', async function () {
+      const featuredOrganization = OrganizationFixture({
+        features: ['dashboards-edit', 'discover-saved-queries-deprecation'],
+      });
+      render(
+        <QueryList
+          savedQuerySearchQuery=""
+          router={RouterFixture()}
+          organization={featuredOrganization}
+          renderPrebuilt={false}
+          savedQueries={[
+            DiscoverSavedQueryFixture({
+              display: DisplayModes.DEFAULT,
+              orderby: 'count()',
+              fields: ['test', 'count()'],
+              yAxis: ['count()'],
+              queryDataset: SavedQueryDatasets.ERRORS,
+            }),
+          ]}
+          pageLinks=""
+          location={location}
+        />
+      );
+
+      const contextMenu = await screen.findByTestId('menu-trigger');
+      expect(contextMenu).toBeInTheDocument();
+
+      await userEvent.click(contextMenu);
+
+      const addToDashboardMenuItem = await screen.findByRole('menuitemradio', {
+        name: 'Add to Dashboard',
+      });
+
+      expect(addToDashboardMenuItem).not.toHaveAttribute('aria-disabled');
     });
   });
 
