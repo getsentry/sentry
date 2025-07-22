@@ -183,7 +183,7 @@ def serialize_link(link: dict) -> dict:
         "traceId": link["trace_id"],
     }
 
-    if sampled := link.get("sampled"):
+    if (sampled := link.get("sampled")) is not None:
         clean_link["sampled"] = sampled
 
     if attributes := link.get("attributes"):
