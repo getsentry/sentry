@@ -9,7 +9,6 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 
 from sentry.spans.consumers.process_segments.enrichment import Span
-from sentry.utils import json
 
 I64_MAX = 2**63 - 1
 
@@ -75,7 +74,6 @@ def convert_span_to_item(span: Span) -> TraceItem:
     if links := span.get("links"):
         try:
             sanitized_links = [_sanitize_span_link(link) for link in links]
-            v = json.dumps(sanitized_links)
             attributes["sentry.links"] = _anyvalue(sanitized_links)
         except Exception:
             sentry_sdk.capture_exception()
