@@ -11,9 +11,12 @@ from django.utils import timezone
 
 
 class BulkDeleteQuery:
-    def __init__(self, model, project_id=None, dtfield=None, days=None, order_by=None):
+    def __init__(
+        self, model, project_id=None, organization_id=None, dtfield=None, days=None, order_by=None
+    ):
         self.model = model
         self.project_id = int(project_id) if project_id else None
+        self.organization_id = int(organization_id) if organization_id else None
         self.dtfield = dtfield
         self.days = int(days) if days is not None else None
         self.order_by = order_by
@@ -32,6 +35,8 @@ class BulkDeleteQuery:
             )
         if self.project_id:
             where.append(f"project_id = {self.project_id}")
+        if self.organization_id:
+            where.append(f"organization_id = {self.organization_id}")
 
         if where:
             where_clause = "where {}".format(" and ".join(where))
@@ -101,6 +106,8 @@ class BulkDeleteQuery:
 
                     if self.project_id:
                         where.append(("project_id = %s", [self.project_id]))
+                    if self.organization_id:
+                        where.append(("organization_id = %s", [self.organization_id]))
 
                     if self.order_by[0] == "-":
                         direction = "desc"
