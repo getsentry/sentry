@@ -138,13 +138,6 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
       onDemandBudgets: {
         enabled: true,
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        errorsBudget: 100,
-        transactionsBudget: 200,
-        attachmentsBudget: 300,
-        monitorSeatsBudget: 400,
-        replaysBudget: 0,
-        profileDurationBudget: 0,
-        profileDurationUIBudget: 0,
         budgets: {
           errors: 100,
           transactions: 200,
@@ -178,15 +171,6 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
     const ondemandBudgets = parseOnDemandBudgetsFromSubscription(subscription);
     expect(ondemandBudgets).toEqual({
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-      errorsBudget: 100,
-      transactionsBudget: 200,
-      attachmentsBudget: 300,
-      monitorSeatsBudget: 400,
-      uptimeBudget: 500,
-      replaysBudget: 0,
-      profileDurationBudget: 0,
-      profileDurationUIBudget: 0,
-      logBytesBudget: 0,
       budgets: {
         errors: 100,
         transactions: 200,
@@ -196,6 +180,7 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
         uptime: 500,
         profileDuration: 0,
         profileDurationUI: 0,
+        logBytes: 0,
       },
     });
   });
@@ -334,10 +319,6 @@ describe('getTotalBudget', function () {
       onDemandBudgets: {
         enabled: true,
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        errorsBudget: 100,
-        transactionsBudget: 200,
-        attachmentsBudget: 300,
-        replaysBudget: 0,
         budgets: {errors: 100, transactions: 200, attachments: 300, uptime: 400},
         attachmentSpendUsed: 0,
         errorSpendUsed: 0,
