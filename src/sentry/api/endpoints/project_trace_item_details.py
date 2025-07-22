@@ -1,7 +1,8 @@
 import time
 import uuid
-from typing import Literal
+from typing import Any, Literal
 
+import sentry_sdk
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.timestamp_pb2 import Timestamp as ProtoTimestamp
 from rest_framework import serializers
@@ -153,7 +154,7 @@ def serialize_meta(
     return meta_result
 
 
-def serialize_links(attributes: list[dict]) -> dict | None:
+def serialize_links(attributes: list[dict]) -> list[dict] | None:
     """Links are temporarily stored in `sentry.links` so lets parse that back out and return separately"""
     link_attribute = None
     for attribute in attributes:
@@ -167,10 +168,50 @@ def serialize_links(attributes: list[dict]) -> dict | None:
     try:
         value = link_attribute.get("value", {}).get("valStr", None)
         if value is not None:
-            return json.loads(value)
+            links = json.loads(value)
+            return [serialize_link(link) for link in links]
         else:
             return None
-    except json.JSONDecodeError:
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        return None
+
+
+def serialize_link(link: dict) -> dict:
+    clean_link = {
+        "itemId": link["span_id"],
+        "traceId": link["trace_id"],
+    }
+
+    if (sampled := link.get("sampled")) is not None:
+        clean_link["sampled"] = sampled
+
+    if attributes := link.get("attributes"):
+        clean_link["attributes"] = [
+            {"name": k, "value": v, "type": infer_type(v)}
+            for k, v in attributes.items()
+            if infer_type(v) is not None
+        ]
+
+    return clean_link
+
+
+def infer_type(value: Any) -> str | None:
+    """
+    Attempt to infer the type of a link attribute value. Only supports a subset
+    of types, since realistically we only store known keys. This becomes moot
+    once we start storing span links as trace items, and they follow the same
+    attribute parsing logic as spans.
+    """
+    if isinstance(value, str):
+        return "str"
+    elif isinstance(value, bool):
+        return "bool"
+    elif isinstance(value, int):
+        return "int"
+    elif isinstance(value, float):
+        return "float"
+    else:
         return None
 
 

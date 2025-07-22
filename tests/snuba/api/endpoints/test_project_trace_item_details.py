@@ -458,9 +458,12 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
         )
         assert trace_details_response.data["links"] == [
             {
-                "trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b",
-                "span_id": "8873a98879faf06d",
+                "traceId": "d099bf9ad5a143cf8f83a98081d0ed3b",
+                "itemId": "8873a98879faf06d",
                 "sampled": True,
-                "attributes": {"sentry.link.type": "parent", "sentry.dropped_attributes_count": 1},
+                "attributes": [
+                    {"name": "sentry.link.type", "value": "parent", "type": "str"},
+                    {"name": "sentry.dropped_attributes_count", "value": 1, "type": "int"},
+                ],
             }
         ]
