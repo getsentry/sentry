@@ -369,7 +369,7 @@ function createMergedDataFromBuffer(
 
     if (!hasBufferData && originalSeries) {
       if (mergedData[aggregateKey]) {
-        mergedData[aggregateKey].push(originalSeries);
+        mergedData[aggregateKey].push({...originalSeries});
       }
       return;
     }
