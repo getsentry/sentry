@@ -80,7 +80,7 @@ interface BaseTextProps {
   wrap?: 'nowrap' | 'normal' | 'pre' | 'pre-line' | 'pre-wrap';
 }
 
-type TextProps<T extends 'span' | 'p' | 'div' = 'span'> = BaseTextProps & {
+type TextProps<T extends 'span' | 'p' | 'div'> = BaseTextProps & {
   /**
    * The HTML element to render the text as - defaults to span.
    * @default span
@@ -94,9 +94,7 @@ type ExclusiveEllipsisProps =
   | {ellipsis?: never; wrap?: BaseTextProps['wrap']};
 
 export const Text = styled(
-  <T extends 'span' | 'p' | 'div' = 'span'>(
-    props: TextProps<T> & ExclusiveEllipsisProps
-  ) => {
+  <T extends 'span' | 'p' | 'div' = 'span'>(props: TextProps<T>) => {
     const {children, ...rest} = props;
     const Component = props.as || 'span';
     return <Component {...(rest as any)}>{children}</Component>;
@@ -149,7 +147,15 @@ export const Text = styled(
    */
   margin: 0;
   padding: 0;
-`;
+
+  /**
+   * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
+   * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.
+   * https://github.com/styled-components/styled-components/issues/1803
+   */
+` as unknown as <T extends 'span' | 'p' | 'div'>(
+  props: TextProps<T>
+) => React.ReactElement;
 
 type BaseHeadingProps = Omit<BaseTextProps, 'bold'>;
 
