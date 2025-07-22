@@ -482,7 +482,7 @@ def call_with_variants(
         )
         return f(*args, **kwargs)
 
-    rv = {}
+    components_by_variant = {}
 
     for variant_name in variants_to_produce:
         with context:
@@ -491,6 +491,6 @@ def call_with_variants(
             assert len(components_by_stripped_variant) == 1
             component = components_by_stripped_variant[variant_name.lstrip("!")]
 
-        rv[variant_name] = component
+        components_by_variant[variant_name] = component
 
-    return rv
+    return components_by_variant
