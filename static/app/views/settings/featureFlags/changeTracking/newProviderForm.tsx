@@ -93,10 +93,9 @@ export default function NewProviderForm({
     },
   });
 
-  const canRead = hasEveryAccess(['org:read'], {organization});
   const canWrite = hasEveryAccess(['org:write'], {organization});
   const canAdmin = hasEveryAccess(['org:admin'], {organization});
-  const hasAccess = canRead || canWrite || canAdmin;
+  const hasAccess = canWrite || canAdmin;
 
   return (
     <Form

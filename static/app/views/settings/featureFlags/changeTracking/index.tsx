@@ -126,7 +126,7 @@ function OrganizationFeatureFlagsChangeTracking() {
 
   const addNewProvider = (hasAccess: any) => (
     <Tooltip
-      title={t('You must be an organization member to add a provider.')}
+      title={t('You must be an organization owner or manager to add a provider.')}
       disabled={hasAccess}
     >
       <LinkButton
@@ -141,10 +141,9 @@ function OrganizationFeatureFlagsChangeTracking() {
     </Tooltip>
   );
 
-  const canRead = hasEveryAccess(['org:read'], {organization});
   const canWrite = hasEveryAccess(['org:write'], {organization});
   const canAdmin = hasEveryAccess(['org:admin'], {organization});
-  const hasAccess = canRead || canWrite || canAdmin;
+  const hasAccess = canWrite || canAdmin;
   const hasDeleteAccess = canWrite || canAdmin;
 
   return (

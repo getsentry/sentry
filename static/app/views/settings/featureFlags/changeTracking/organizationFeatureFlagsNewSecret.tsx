@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useState} from 'react';
 
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
@@ -28,6 +29,11 @@ function OrganizationFeatureFlagsNewSecet() {
     );
   }, [organization.slug, navigate]);
 
+  // Check if user has permission to create feature flag signing secrets
+  const canWrite = hasEveryAccess(['org:write'], {organization});
+  const canAdmin = hasEveryAccess(['org:admin'], {organization});
+  const hasPermission = canWrite || canAdmin;
+
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Add New Provider')} />
@@ -49,17 +55,36 @@ function OrganizationFeatureFlagsNewSecet() {
         </Alert>
       </Alert.Container>
 
+      {!hasPermission && (
+        <Alert.Container>
+          <Alert type="error">
+            {t(
+              'You must be an organization owner or manager to add feature flag providers. Please contact your organization administrator.'
+            )}
+          </Alert>
+        </Alert.Container>
+      )}
+
       <Panel>
         <PanelHeader>{t('Add New Provider')}</PanelHeader>
         <PanelBody>
-          {newSecret ? (
-            <NewSecretHandler
-              onGoBack={handleGoBack}
-              secret={newSecret}
-              provider={provider}
-            />
+          {hasPermission ? (
+            newSecret ? (
+              <NewSecretHandler
+                onGoBack={handleGoBack}
+                secret={newSecret}
+                provider={provider}
+              />
+            ) : (
+              <NewProviderForm
+                onCreatedSecret={setNewSecret}
+                onSetProvider={setProvider}
+              />
+            )
           ) : (
-            <NewProviderForm onCreatedSecret={setNewSecret} onSetProvider={setProvider} />
+            <div style={{textAlign: 'center', padding: '20px'}}>
+              {t('You do not have permission to add feature flag providers.')}
+            </div>
           )}
         </PanelBody>
       </Panel>
