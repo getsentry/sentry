@@ -452,7 +452,7 @@ def build_top_event_conditions(
         for key in groupby_columns:
             if key == "project.id":
                 value = resolver.params.project_slug_map[
-                    event.get("project", event.get("project.slug"))
+                    event.get("project") or event["project.slug"]
                 ]
             else:
                 value = event[key]
