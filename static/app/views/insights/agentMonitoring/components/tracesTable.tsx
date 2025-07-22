@@ -26,6 +26,7 @@ import {
   AI_COST_ATTRIBUTE_SUM,
   AI_GENERATION_OPS,
   AI_TOKEN_USAGE_ATTRIBUTE_SUM,
+  AI_TOOL_CALL_OPS,
   getAgentRunsFilter,
   getAITracesFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
@@ -77,6 +78,10 @@ const rightAlignColumns = new Set([
 
 const GENERATION_COUNTS = AI_GENERATION_OPS.map(op => `count_if(span.op,${op})` as const);
 
+const AI_AGENT_SUB_OPS = [...AI_GENERATION_OPS, ...AI_TOOL_CALL_OPS].map(
+  op => `count_if(span.op,${op})` as const
+);
+
 export function TracesTable() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -113,10 +118,34 @@ export function TracesTable() {
     Referrer.TRACES_TABLE
   );
 
+  const traceErrorRequest = useSpans(
+    {
+      // Get all generations and tool calls with status unknown
+      search: `span.status:unknown trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
+      fields: ['trace', ...AI_AGENT_SUB_OPS],
+      limit: tracesRequest.data?.data.length ?? 0,
+      enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
+    },
+    Referrer.TRACES_TABLE
+  );
+
   const spanDataMap = useMemo(() => {
-    if (!spansRequest.data) {
+    if (!spansRequest.data || !traceErrorRequest.data) {
       return {};
     }
+    // sum up the error spans for a trace
+    const errors = traceErrorRequest.data?.reduce(
+      (acc, span) => {
+        const sum = AI_AGENT_SUB_OPS.reduce(
+          (errorSum, key) => errorSum + (span[key] ?? 0),
+          0
+        );
+
+        acc[span.trace] = sum;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     return spansRequest.data.reduce(
       (acc, span) => {
@@ -128,15 +157,22 @@ export function TracesTable() {
           toolCalls: span['count_if(span.op,gen_ai.execute_tool)'] ?? 0,
           totalTokens: Number(span[AI_TOKEN_USAGE_ATTRIBUTE_SUM] ?? 0),
           totalCost: Number(span[AI_COST_ATTRIBUTE_SUM] ?? 0),
+          totalErrors: errors[span.trace] ?? 0,
         };
         return acc;
       },
       {} as Record<
         string,
-        {llmCalls: number; toolCalls: number; totalCost: number; totalTokens: number}
+        {
+          llmCalls: number;
+          toolCalls: number;
+          totalCost: number;
+          totalErrors: number;
+          totalTokens: number;
+        }
       >
     );
-  }, [spansRequest.data]);
+  }, [spansRequest.data, traceErrorRequest.data]);
 
   const handleCursor: CursorHandler = (cursor, pathname, previousQuery) => {
     navigate(
@@ -160,7 +196,7 @@ export function TracesTable() {
       traceId: span.trace,
       transaction: span.name ?? '',
       duration: span.duration,
-      errors: span.numErrors,
+      errors: spanDataMap[span.trace]?.totalErrors ?? 0,
       llmCalls: spanDataMap[span.trace]?.llmCalls ?? 0,
       toolCalls: spanDataMap[span.trace]?.toolCalls ?? 0,
       totalTokens: spanDataMap[span.trace]?.totalTokens ?? 0,
@@ -241,8 +277,8 @@ const BodyCell = memo(function BodyCell({
       );
     case 'duration':
       return <DurationCell milliseconds={dataRow.duration} />;
+    // return <NumberCell value={dataRow.errors} />;
     case 'errors':
-      return <NumberCell value={dataRow.errors} />;
     case 'llmCalls':
     case 'toolCalls':
     case 'totalTokens':
