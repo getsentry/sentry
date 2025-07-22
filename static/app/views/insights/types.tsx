@@ -22,7 +22,8 @@ export enum ModuleName {
   OTHER = 'other',
 }
 
-// TODO: This will be the final field type for EAP spans
+// All fields here, should end up in `SpanResponse`
+// typically via SpanStringFields, SpanNumberFields, etc
 export enum SpanFields {
   // Common fields
   ID = 'id',
@@ -75,6 +76,7 @@ export enum SpanFields {
   OS_NAME = 'os.name',
   THREAD_ID = 'thread.id',
   COMMAND = 'command',
+  REQUEST_METHOD = 'request.method',
 
   // Cache fields
   CACHE_HIT = 'cache.hit',
@@ -139,6 +141,7 @@ export enum SpanFields {
   USER_EMAIL = 'user.email',
   USER_USERNAME = 'user.username',
   USER_GEO_SUBREGION = 'user.geo.subregion',
+  USER_DISPLAY = 'user.display', // Note: this is not implemented yet, waiting for EAP-123
 
   // Web vital fields
   LCP_ELEMENT = 'lcp.element',
@@ -234,7 +237,7 @@ type SpanNumberFields =
 // TODO: Enforce that these fields all come from SpanFields
 export type SpanStringFields =
   | SpanFields.COMMAND
-  | SpanFields.HTTP_REQUEST_METHOD
+  | SpanFields.REQUEST_METHOD
   | SpanFields.RESOURCE_RENDER_BLOCKING_STATUS
   | SpanFields.RAW_DOMAIN
   | SpanFields.ID
@@ -305,7 +308,8 @@ export type SpanStringFields =
   | SpanFields.REPLAYID
   | SpanFields.PROFILEID
   | SpanFields.PROFILER_ID
-  | SpanFields.SPAN_DOMAIN; // TODO: With `useInsightsEap` we get a string, without it we get an array
+  | SpanFields.SPAN_DOMAIN
+  | SpanFields.USER_DISPLAY;
 
 type WebVitalsMeasurements =
   | SpanFields.CLS_SCORE
