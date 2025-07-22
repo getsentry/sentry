@@ -1,4 +1,4 @@
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
@@ -496,12 +496,16 @@ const performanceOnboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      configurations: [
+      content: [
         {
-          language: 'javascript',
-          description: t(
+          type: 'text',
+          text: t(
             "Configuration should happen as early as possible in your application's lifecycle."
           ),
+        },
+        {
+          type: 'code',
+          language: 'javascript',
           code: `
 import React from "react";
 import ReactDOM from "react-dom";
@@ -525,7 +529,10 @@ ReactDOM.render(<App />, document.getElementById("root"));
 // Can also use with React Concurrent Mode
 // ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 `,
-          additionalInfo: tct(
+        },
+        {
+          type: 'text',
+          text: tct(
             'We recommend adjusting the value of [code:tracesSampleRate] in production. Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to do [linkSampleTransactions:sampling].',
             {
               code: <code />,
@@ -541,9 +548,14 @@ ReactDOM.render(<App />, document.getElementById("root"));
             }
           ),
         },
+      ],
+    },
+    {
+      title: t('Add Distributed Tracing (Optional)'),
+      content: [
         {
-          language: 'javascript',
-          description: tct(
+          type: 'text',
+          text: tct(
             "If you're using the current version of our JavaScript SDK and have enabled the [code: BrowserTracing] integration, distributed tracing will work out of the box. To get around possible [link:Browser CORS] issues, define your [code:tracePropagationTargets].",
             {
               code: <code />,
@@ -552,6 +564,10 @@ ReactDOM.render(<App />, document.getElementById("root"));
               ),
             }
           ),
+        },
+        {
+          type: 'code',
+          language: 'javascript',
           code: `
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -566,14 +582,19 @@ Sentry.init({
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: tct(
-        'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your React application.',
+      content: [
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/tracing/instrumentation/automatic-instrumentation/" />
+          type: 'text',
+          text: tct(
+            'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your React application.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/tracing/instrumentation/automatic-instrumentation/" />
+              ),
+            }
           ),
-        }
-      ),
+        },
+      ],
     },
   ],
   nextSteps: () => [],

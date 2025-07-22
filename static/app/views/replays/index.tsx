@@ -1,3 +1,4 @@
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import Redirect from 'sentry/components/redirect';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
@@ -20,5 +21,9 @@ export default function ReplaysContainer({children}: Props) {
     return <Redirect to={redirectPath} />;
   }
 
-  return <NoProjectMessage organization={organization}>{children}</NoProjectMessage>;
+  return (
+    <AnalyticsArea name="replays">
+      <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
+    </AnalyticsArea>
+  );
 }

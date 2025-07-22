@@ -160,7 +160,15 @@ const serverless: Set<PlatformKey> = new Set([
   'python-serverless',
 ]);
 
-const gaming: Set<PlatformKey> = new Set(['unity', 'unreal', 'godot', 'native']);
+const gaming: Set<PlatformKey> = new Set([
+  'godot',
+  'native',
+  'nintendo-switch',
+  'playstation',
+  'unity',
+  'unreal',
+  'xbox',
+]);
 
 export const createablePlatforms: Set<PlatformKey> = new Set([
   ...popularPlatformCategories,
@@ -169,7 +177,6 @@ export const createablePlatforms: Set<PlatformKey> = new Set([
   ...mobile,
   ...desktop,
   ...serverless,
-  ...gaming,
 ]);
 
 /**

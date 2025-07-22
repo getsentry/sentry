@@ -1,10 +1,11 @@
 import copy
 import datetime
+from collections import defaultdict
 from datetime import timedelta
 from itertools import chain
 
-from django.db.models import Count, OuterRef, Q, QuerySet, Subquery
-from django.db.models.functions import Coalesce, TruncDay
+from django.db.models import Case, Count, F, Q, QuerySet, Value, When
+from django.db.models.functions import TruncDay
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -53,45 +54,78 @@ def calculate_unresolved_counts(
     group_history_environment_filter = (
         Q(group__groupenvironment__environment_id=environment_id) if environment_id else Q()
     )
-    prev_status_sub_qs = Coalesce(
-        Subquery(
-            GroupHistory.objects.filter(
-                group_id=OuterRef("group_id"),
-                date_added__lt=OuterRef("date_added"),
-                status__in=OPEN_STATUSES + CLOSED_STATUSES,
-            )
-            .order_by("-id")
-            .values("status")[:1]
-        ),
-        -1,
-    )
-    dedupe_status_filter = Q(
-        (~Q(prev_status__in=OPEN_STATUSES) & Q(status__in=OPEN_STATUSES))
-        | (~Q(prev_status__in=CLOSED_STATUSES) & Q(status__in=CLOSED_STATUSES))
-    )
 
     # Grab the historical data bucketed by day
     new_issues = (
         Group.objects.filter_to_team(team)
         .filter(group_environment_filter, first_seen__gte=start, first_seen__lt=end)
-        .annotate(bucket=TruncDay("first_seen"))
-        .order_by("bucket")
-        .values("project", "bucket")
-        .annotate(open=Count("id"))
+        .annotate(bucket=TruncDay("first_seen"), state=Value("open"), group_id=F("id"))
+        .order_by("bucket", "group_id")
+        .values("project", "group_id", "bucket", "state")[:200_000]
     )
 
+    # Pull extra data to do deduplication in Python. (Inefficient to do in SQL via subqueries
+    # (see ISWF-549); cannot do via DISTINCT ON state because of Django limitations.)
     bucketed_issues = (
         GroupHistory.objects.filter_to_team(team)
-        .filter(group_history_environment_filter, date_added__gte=start, date_added__lte=end)
-        .annotate(bucket=TruncDay("date_added"), prev_status=prev_status_sub_qs)
-        .filter(dedupe_status_filter)
-        .order_by("bucket")
-        .values("project", "bucket")
-        .annotate(
-            open=Count("id", filter=Q(status__in=OPEN_STATUSES)),
-            closed=Count("id", filter=Q(status__in=CLOSED_STATUSES)),
+        .filter(
+            group_history_environment_filter,
+            date_added__gte=start,
+            date_added__lte=end,
+            status__in=OPEN_STATUSES + CLOSED_STATUSES,
         )
+        .annotate(
+            bucket=TruncDay("date_added"),
+            state=Case(
+                When(status__in=OPEN_STATUSES, then=Value("open")),
+                When(status__in=CLOSED_STATUSES, then=Value("closed")),
+                default=Value("other"),
+            ),
+        )
+        .order_by(
+            "group_id",
+            "bucket",
+            "id",
+        )
+        .values("project", "group_id", "bucket", "state")[:200_000]
     )
+
+    # sorted() is a stable sort, so this will sort by bucket, and within each bucket
+    # new issues are first, followed by bucketed issues (still sorted by id)
+    historical_issue_status_changes = sorted(
+        chain(new_issues, bucketed_issues), key=lambda i: i["bucket"]
+    )
+
+    most_recent_group_state: defaultdict[str, str] = defaultdict(lambda: "other")
+    # Project => Bucket => State => Count
+    deduping_map: defaultdict[str, defaultdict[str, defaultdict[str, int]]] = defaultdict(
+        lambda: defaultdict(lambda: defaultdict(int))
+    )
+
+    for r in historical_issue_status_changes:
+        # Don't process the row if it doesn't set the group to open or closed.
+        if r["state"] == "other":
+            continue
+
+        # Don't process the row if it doesn't change the state.
+        if r["state"] == most_recent_group_state[r["group_id"]]:
+            continue
+
+        deduping_map[r["project"]][r["bucket"]][r["state"]] += 1
+        most_recent_group_state[r["group_id"]] = r["state"]
+
+    deduped_historical_issue_status_changes = []
+    for p in deduping_map.keys():
+        bucket_counts = deduping_map[p]
+        for b in bucket_counts.keys():
+            deduped_historical_issue_status_changes.append(
+                {
+                    "project": p,
+                    "bucket": b,
+                    "open": bucket_counts[b]["open"],
+                    "closed": bucket_counts[b]["closed"],
+                }
+            )
 
     current_day, date_series_dict = start, {}
     while current_day < end:
@@ -101,7 +135,7 @@ def calculate_unresolved_counts(
     agg_project_precounts = {
         project.id: copy.deepcopy(date_series_dict) for project in project_list
     }
-    for r in chain(bucketed_issues, new_issues):
+    for r in deduped_historical_issue_status_changes:
         bucket = agg_project_precounts[r["project"]][r["bucket"].isoformat()]
         bucket["open"] += r.get("open", 0)
         bucket["closed"] += r.get("closed", 0)
