@@ -22,7 +22,7 @@ from sentry.grouping.api import (
 from sentry.grouping.component import BaseGroupingComponent
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.fingerprinting import FingerprintingRules
-from sentry.grouping.strategies.configurations import CONFIGURATIONS
+from sentry.grouping.strategies.configurations import CONFIGURATIONS, register_strategy_config
 from sentry.grouping.variants import BaseVariant
 from sentry.models.project import Project
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
@@ -31,6 +31,16 @@ from sentry.utils import json
 
 GROUPING_INPUTS_DIR = path.join(path.dirname(__file__), "grouping_inputs")
 FINGERPRINT_INPUTS_DIR = path.join(path.dirname(__file__), "fingerprint_inputs")
+
+# Create a grouping config to be used only in tests, in which message parameterization is turned
+# off. This lets us easily force an event to have different hashes for different configs. (We use a
+# purposefully old date so that it can be used as a secondary config.)
+NO_MSG_PARAM_CONFIG = "no-msg-param-tests-only:2012-12-31"
+register_strategy_config(
+    id=NO_MSG_PARAM_CONFIG,
+    base=DEFAULT_GROUPING_CONFIG,
+    initial_context={"normalize_message": False},
+)
 
 
 class GroupingInput:
@@ -91,8 +101,6 @@ class GroupingInput:
         grouping_config["enhancements"] = Enhancements.from_rules_text(
             self.data.get("_grouping", {}).get("enhancements", ""),
             bases=Enhancements.from_base64_string(grouping_config["enhancements"]).bases,
-            # Version 3 to run split enhancements on newstyle configs
-            version=3 if not config_name.startswith("legacy") else 2,
         ).base64_string
         fingerprinting_config = FingerprintingRules.from_json(
             {"rules": self.data.get("_fingerprinting_rules", [])},

@@ -22,55 +22,6 @@ export enum ModuleName {
   OTHER = 'other',
 }
 
-export enum SpanMetricsField {
-  SPAN_OP = 'span.op',
-  NORMALIZED_DESCRIPTION = 'sentry.normalized_description',
-  SPAN_DESCRIPTION = 'span.description',
-  SPAN_CATEGORY = 'span.category',
-  SPAN_ACTION = 'span.action',
-  SPAN_DOMAIN = 'span.domain',
-  SPAN_GROUP = 'span.group',
-  SPAN_DURATION = 'span.duration',
-  SPAN_SELF_TIME = 'span.self_time',
-  SPAN_SYSTEM = 'span.system',
-  PROJECT = 'project',
-  PROJECT_ID = 'project.id',
-  TRANSACTION = 'transaction',
-  RESOURCE_RENDER_BLOCKING_STATUS = 'resource.render_blocking_status',
-  HTTP_RESPONSE_CONTENT_LENGTH = 'http.response_content_length',
-  HTTP_DECODED_RESPONSE_CONTENT_LENGTH = 'http.decoded_response_content_length',
-  HTTP_RESPONSE_TRANSFER_SIZE = 'http.response_transfer_size',
-  FILE_EXTENSION = 'file_extension',
-  AI_TOTAL_TOKENS_USED = 'ai.total_tokens.used',
-  AI_PROMPT_TOKENS_USED = 'ai.prompt_tokens.used',
-  AI_COMPLETION_TOKENS_USED = 'ai.completion_tokens.used',
-  AI_INPUT_MESSAGES = 'ai.input_messages',
-  AI_TOTAL_COST = 'ai.total_cost',
-  OS_NAME = 'os.name',
-  APP_START_TYPE = 'app_start_type',
-  DEVICE_CLASS = 'device.class',
-  CACHE_HIT = 'cache.hit',
-  CACHE_KEY = 'cache.key',
-  CACHE_ITEM_SIZE = 'cache.item_size',
-  MESSAGING_MESSAGE_RECEIVE_LATENCY = 'messaging.message.receive.latency',
-  THREAD_ID = 'thread.id',
-  SENTRY_FRAMES_SLOW = 'sentry.frames.slow',
-  SENTRY_FRAMES_FROZEN = 'sentry.frames.frozen',
-  SENTRY_FRAMES_TOTAL = 'sentry.frames.total',
-  FRAMES_DELAY = 'frames.delay',
-  URL_FULL = 'url.full',
-  USER_AGENT_ORIGINAL = 'user_agent.original',
-  CLIENT_ADDRESS = 'client.address',
-  BROWSER_NAME = 'browser.name',
-  USER_GEO_SUBREGION = 'user.geo.subregion',
-  PRECISE_START_TS = 'precise.start_ts',
-  PRECISE_FINISH_TS = 'precise.finish_ts',
-  MOBILE_FRAMES_DELAY = 'mobile.frames_delay',
-  MOBILE_FROZEN_FRAMES = 'mobile.frozen_frames',
-  MOBILE_TOTAL_FRAMES = 'mobile.total_frames',
-  MOBILE_SLOW_FRAMES = 'mobile.slow_frames',
-}
-
 // TODO: This will be the final field type for EAP spans
 export enum SpanFields {
   TRANSACTION = 'transaction',
@@ -109,9 +60,12 @@ export enum SpanFields {
   GEN_AI_RESPONSE_MODEL = 'gen_ai.response.model',
   GEN_AI_TOOL_NAME = 'gen_ai.tool.name',
   GEN_AI_USAGE_INPUT_TOKENS = 'gen_ai.usage.input_tokens',
+  GEN_AI_USAGE_INPUT_TOKENS_CACHED = 'gen_ai.usage.input_tokens.cached',
   GEN_AI_USAGE_OUTPUT_TOKENS = 'gen_ai.usage.output_tokens',
+  GEN_AI_USAGE_OUTPUT_TOKENS_REASONING = 'gen_ai.usage.output_tokens.reasoning',
   GEN_AI_USAGE_TOTAL_COST = 'gen_ai.usage.total_cost',
   GEN_AI_USAGE_TOTAL_TOKENS = 'gen_ai.usage.total_tokens',
+  MCP_CLIENT_NAME = 'mcp.client.name',
   MCP_TRANSPORT = 'mcp.transport',
   MCP_TOOL_NAME = 'mcp.tool.name',
   MCP_RESOURCE_URI = 'mcp.resource.uri',
@@ -125,7 +79,7 @@ export enum SpanFields {
   REPLAY_ID = 'replay.id',
   LCP_ELEMENT = 'lcp.element',
   CLS_SOURCE = 'cls.source.1',
-  CACHE_ITEM_SIZE = 'measurements.cache.item_size',
+  CACHE_ITEM_SIZE = 'cache.item_size',
   SPAN_ID = 'span_id',
   DB_SYSTEM = 'db.system',
   CODE_FILEPATH = 'code.filepath',
@@ -149,11 +103,20 @@ export enum SpanFields {
   PROFILER_ID = 'profiler.id',
   TRACE_STATUS = 'trace.status',
   SPAN_AI_PIPELINE_GROUP = 'span.ai.pipeline.group',
+  AI_TOTAL_COST = 'ai.total_cost',
+  AI_TOTAL_TOKENS_USED = 'ai.total_tokens.used',
+  HTTP_DECODED_RESPONSE_CONTENT_LENGTH = 'http.decoded_response_content_length',
+  HTTP_RESPONSE_TRANSFER_SIZE = 'http.response_transfer_size',
+  MOBILE_FRAMES_DELAY = 'mobile.frames_delay',
+  PRECISE_START_TS = 'precise.start_ts',
+  PRECISE_FINISH_TS = 'precise.finish_ts',
+  APP_START_TYPE = 'app_start_type',
+  FILE_EXTENSION = 'file_extension',
 
   // Messaging fields
   MESSAGING_MESSAGE_ID = 'messaging.message.id',
   MESSAGING_MESSAGE_BODY_SIZE = 'measurements.messaging.message.body.size',
-  MESSAGING_MESSAGE_RECEIVE_LATENCY = 'measurements.messaging.message.receive.latency',
+  MESSAGING_MESSAGE_RECEIVE_LATENCY = 'messaging.message.receive.latency',
   MESSAGING_MESSAGE_RETRY_COUNT = 'measurements.messaging.message.retry.count',
   MESSAGING_MESSAGE_DESTINATION_NAME = 'messaging.destination.name',
 
@@ -202,22 +165,20 @@ type SpanBooleanFields =
   | SpanFields.IS_STARRED_TRANSACTION;
 
 type SpanNumberFields =
-  | SpanMetricsField.AI_TOTAL_COST
-  | SpanMetricsField.AI_TOTAL_TOKENS_USED
-  | SpanMetricsField.SPAN_SELF_TIME
-  | SpanMetricsField.SPAN_DURATION
-  | SpanMetricsField.HTTP_DECODED_RESPONSE_CONTENT_LENGTH
-  | SpanMetricsField.HTTP_RESPONSE_CONTENT_LENGTH
-  | SpanMetricsField.HTTP_RESPONSE_TRANSFER_SIZE
-  | SpanMetricsField.MESSAGING_MESSAGE_RECEIVE_LATENCY
-  | SpanMetricsField.CACHE_ITEM_SIZE
-  | SpanMetricsField.PRECISE_START_TS
-  | SpanMetricsField.PRECISE_FINISH_TS
-  | SpanMetricsField.MOBILE_FRAMES_DELAY
-  | SpanMetricsField.MOBILE_FROZEN_FRAMES
-  | SpanMetricsField.MOBILE_TOTAL_FRAMES
-  | SpanMetricsField.MOBILE_SLOW_FRAMES
-  | SpanMetricsField.SPAN_DURATION
+  | SpanFields.AI_TOTAL_COST
+  | SpanFields.AI_TOTAL_TOKENS_USED
+  | SpanFields.SPAN_SELF_TIME
+  | SpanFields.SPAN_DURATION
+  | SpanFields.HTTP_DECODED_RESPONSE_CONTENT_LENGTH
+  | SpanFields.HTTP_RESPONSE_CONTENT_LENGTH
+  | SpanFields.HTTP_RESPONSE_TRANSFER_SIZE
+  | SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY
+  | SpanFields.CACHE_ITEM_SIZE
+  | SpanFields.MOBILE_FRAMES_DELAY
+  | SpanFields.MOBILE_FROZEN_FRAMES
+  | SpanFields.MOBILE_TOTAL_FRAMES
+  | SpanFields.MOBILE_SLOW_FRAMES
+  | SpanFields.SPAN_DURATION
   | SpanFields.MOBILE_FROZEN_FRAMES
   | SpanFields.MOBILE_TOTAL_FRAMES
   | SpanFields.MOBILE_SLOW_FRAMES
@@ -256,10 +217,13 @@ type SpanNumberFields =
   | SpanFields.CODE_LINENO
   | SpanFields.APP_START_COLD
   | SpanFields.APP_START_WARM
-  | SpanFields.CODE_LINENO;
+  | SpanFields.CODE_LINENO
+  | SpanFields.PRECISE_START_TS
+  | SpanFields.PRECISE_FINISH_TS
+  | SpanFields.CACHE_ITEM_SIZE;
 
 export type SpanStringFields =
-  | SpanMetricsField.RESOURCE_RENDER_BLOCKING_STATUS
+  | SpanFields.RESOURCE_RENDER_BLOCKING_STATUS
   | SpanFields.RAW_DOMAIN
   | SpanFields.ID
   | SpanFields.NAME
@@ -269,6 +233,7 @@ export type SpanStringFields =
   | SpanFields.GEN_AI_REQUEST_MODEL
   | SpanFields.GEN_AI_RESPONSE_MODEL
   | SpanFields.GEN_AI_TOOL_NAME
+  | SpanFields.MCP_CLIENT_NAME
   | SpanFields.MCP_TRANSPORT
   | SpanFields.MCP_TOOL_NAME
   | SpanFields.MCP_RESOURCE_URI
@@ -300,6 +265,8 @@ export type SpanStringFields =
   | SpanFields.MESSAGING_MESSAGE_RETRY_COUNT
   | SpanFields.MESSAGING_MESSAGE_ID
   | SpanFields.TRACE_STATUS
+  | SpanFields.APP_START_TYPE
+  | SpanFields.FILE_EXTENSION
   | 'span_id'
   | 'span.op'
   | 'span.description'
@@ -334,10 +301,7 @@ export type SpanStringFields =
   | 'thread.id'
   | 'span.domain';
 
-export type SpanMetricsQueryFilters = Partial<Record<SpanStringFields, string>> & {
-  [SpanMetricsField.PROJECT_ID]?: string;
-  [SpanMetricsField.SPAN_DOMAIN]?: string;
-};
+type SpanStringArrayFields = 'span.domain';
 
 export const COUNTER_AGGREGATES = ['sum', 'avg', 'min', 'max', 'p100'] as const;
 export const DISTRIBUTION_AGGREGATES = ['p50', 'p75', 'p90', 'p95', 'p99'] as const;
@@ -393,45 +357,6 @@ export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
 
 type WebVitalsFunctions = 'performance_score' | 'count_scores' | 'opportunity_score';
 
-type SpanMetricsResponseRaw = {
-  [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
-} & {
-  [Property in SpanFunctions as `${Property}()`]: number;
-} & {
-  [Property in SpanStringFields as `${Property}`]: string;
-} &
-  // TODO: We should allow a nicer way to define functions with multiple arguments and different arg types
-  Record<`division(${SpanNumberFields},${SpanNumberFields})`, number> & {
-    // TODO: This should include all valid HTTP codes or just all integers
-    'http_response_count(2)': number;
-    'http_response_count(3)': number;
-    'http_response_count(4)': number;
-    'http_response_count(5)': number;
-    'http_response_rate(2)': number;
-    'http_response_rate(3)': number;
-    'http_response_rate(4)': number;
-    'http_response_rate(5)': number;
-    'ttfd_contribution_rate()': number;
-    'ttid_contribution_rate()': number;
-  } & {
-    ['project']: string;
-    ['project.id']: number;
-  } & Record<RegressionFunctions, number> &
-  Record<SpanAnyFunction, string> & {
-    [Property in ConditionalAggregate as
-      | `${Property}(${string})`
-      | `${Property}(${string},${string})`
-      | `${Property}(${string},${string},${string})`]: number;
-  } & {
-    [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
-  } & {
-    [Property in SpanNumberFields as `avg_compare(${Property},${string},${string},${string})`]: number;
-  };
-
-export type SpanMetricsResponse = Flatten<SpanMetricsResponseRaw>;
-
-export type SpanMetricsProperty = keyof SpanMetricsResponse;
-
 type EAPSpanResponseRaw = {
   [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
 } & {
@@ -468,7 +393,7 @@ type EAPSpanResponseRaw = {
     'ttfd_contribution_rate()': number;
     'ttid_contribution_rate()': number;
   } & {
-    [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
+    [SpanFields.USER_GEO_SUBREGION]: SubregionCode;
   } & {
     [SpanFields.PLATFORM]: PlatformKey;
   } & {

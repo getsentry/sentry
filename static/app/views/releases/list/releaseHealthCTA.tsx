@@ -57,7 +57,7 @@ export default function ReleaseHealthCTA({
 
   return (
     <Alert.Container>
-      <Alert type="info" showIcon>
+      <Alert type="info">
         <AlertText>
           <div>
             {t(

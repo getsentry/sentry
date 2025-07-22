@@ -106,7 +106,11 @@ class DigestNotification(ProjectNotification):
         return self.project
 
     def get_context(self) -> MutableMapping[str, Any]:
-        rule_details = get_rules(list(self.digest.digest), self.project.organization, self.project)
+        rule_details = get_rules(
+            list(self.digest.digest),
+            self.project.organization,
+            self.project,
+        )
         context = DigestNotification.build_context(
             self.digest,
             self.project,

@@ -1011,7 +1011,11 @@ def process_rules(job: PostProcessJob) -> None:
 
     org = job["event"].project.organization
 
-    if features.has("organizations:workflow-engine-single-process-workflows", org):
+    if (
+        features.has("organizations:workflow-engine-single-process-workflows", org)
+        and job["event"].group.type
+        in options.get("workflow_engine.issue_alert.group.type_id.rollout")
+    ) or job["event"].group.type in options.get("workflow_engine.issue_alert.group.type_id.ga"):
         # we are only processing through the workflow engine
         return
 
@@ -1413,7 +1417,7 @@ def check_has_high_priority_alerts(job: PostProcessJob) -> None:
 
 def link_event_to_user_report(job: PostProcessJob) -> None:
     from sentry.feedback.lib.utils import FeedbackCreationSource
-    from sentry.feedback.usecases.shim_to_feedback import shim_to_feedback
+    from sentry.feedback.usecases.ingest.shim_to_feedback import shim_to_feedback
     from sentry.models.userreport import UserReport
 
     event = job["event"]

@@ -79,7 +79,7 @@ function VitalsContent(props: Props) {
                 <Fragment>
                   {shouldDisplayMissingVitalsAlert && (
                     <Alert.Container>
-                      <Alert type="info" showIcon>
+                      <Alert type="info">
                         {tct(
                           'If this page is looking a little bare, keep in mind not all browsers support these vitals. [link]',
                           {

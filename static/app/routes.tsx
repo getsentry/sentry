@@ -42,7 +42,9 @@ import {makeLazyloadComponent as make} from './makeLazyloadComponent';
 
 const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
 
-function buildRoutes() {
+function buildRoutes(
+  SentryHooksProvider: React.ComponentType<React.PropsWithChildren> = Fragment
+) {
   // Read this to understand where to add new routes, how / why the routing
   // tree is structured the way it is, and how the lazy-loading /
   // code-splitting works for pages.
@@ -1704,6 +1706,13 @@ function buildRoutes() {
           component={make(() => import('sentry/views/insights/sessions/views/overview'))}
         />
       </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.AGENTS]}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/insights/agentMonitoring/views/agentsOverviewPage')
+          )}
+        />
+      </Route>
       <Route path={`${MODULE_BASE_URLS[ModuleName.MCP]}/`}>
         <IndexRoute
           component={make(() => import('sentry/views/insights/mcp/views/overview'))}
@@ -1752,9 +1761,7 @@ function buildRoutes() {
       </Route>
       <Route path={`${AGENTS_LANDING_SUB_PATH}/`}>
         <IndexRoute
-          component={make(
-            () => import('sentry/views/insights/agentMonitoring/views/agentsOverviewPage')
-          )}
+          component={make(() => import('sentry/views/insights/pages/agents/redirect'))}
         />
         {transactionSummaryRoutes}
         {traceViewRoute}
@@ -2018,11 +2025,11 @@ function buildRoutes() {
 
   const preprodRoutes = (
     <Route
-      path="/preprod/"
+      path="/preprod/:projectId/:artifactId/"
       component={make(() => import('sentry/views/preprod/index'))}
       withOrgPath
     >
-      <IndexRoute component={make(() => import('sentry/views/preprod/sizeAnalysis'))} />
+      <IndexRoute component={make(() => import('sentry/views/preprod/buildDetails'))} />
     </Route>
   );
 
@@ -2577,18 +2584,24 @@ function buildRoutes() {
   );
 
   const appRoutes = (
-    <ProvideAriaRouter>
-      <Route>
-        {experimentalSpaRoutes}
-        <Route path="/" component={errorHandler(App)}>
-          {rootRoutes}
-          {authV2Routes}
-          {organizationRoutes}
-          {legacyRedirectRoutes}
-          <Route path="*" component={errorHandler(RouteNotFound)} />
-        </Route>
+    <Route
+      component={({children}: {children: React.ReactNode}) => {
+        return (
+          <ProvideAriaRouter>
+            <SentryHooksProvider>{children}</SentryHooksProvider>
+          </ProvideAriaRouter>
+        );
+      }}
+    >
+      {experimentalSpaRoutes}
+      <Route path="/" component={errorHandler(App)}>
+        {rootRoutes}
+        {authV2Routes}
+        {organizationRoutes}
+        {legacyRedirectRoutes}
+        <Route path="*" component={errorHandler(RouteNotFound)} />
       </Route>
-    </ProvideAriaRouter>
+    </Route>
   );
 
   return appRoutes;

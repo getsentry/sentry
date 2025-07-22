@@ -581,7 +581,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               )}
               {confidenceEnabled && isLowConfidenceChartData && (
                 <Alert.Container>
-                  <Alert showIcon type="warning">
+                  <Alert type="warning">
                     {t(
                       'Your low sample count may impact the accuracy of this alert. Edit your query or increase your sampling rate.'
                     )}

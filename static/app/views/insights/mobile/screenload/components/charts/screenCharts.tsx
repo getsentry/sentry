@@ -17,7 +17,7 @@ import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {type DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
-import {useTopNMetricsMultiSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverMultiSeries';
+import {useTopNSpanMultiSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverMultiSeries';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {ScreensBarChart} from 'sentry/views/insights/mobile/screenload/components/charts/screenBarChart';
@@ -86,7 +86,7 @@ export function ScreenCharts({additionalFilters}: Props) {
     data: releaseSeriesArray,
     isPending: isSeriesLoading,
     error: seriesError,
-  } = useTopNMetricsMultiSeries(
+  } = useTopNSpanMultiSeries(
     {
       fields: [groupBy],
       topN: 2,
@@ -176,7 +176,7 @@ export function ScreenCharts({additionalFilters}: Props) {
   if (!defined(primaryRelease) && !isReleasesLoading) {
     return (
       <Alert.Container>
-        <Alert type="warning" showIcon>
+        <Alert type="warning">
           {t('Invalid selection. Try a different release or date range.')}
         </Alert>
       </Alert.Container>

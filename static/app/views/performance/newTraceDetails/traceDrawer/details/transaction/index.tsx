@@ -18,10 +18,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import type {
-  SpanMetricsQueryFilters,
-  SpanMetricsResponse,
-} from 'sentry/views/insights/types';
+import type {EAPSpanResponse, SpanQueryFilters} from 'sentry/views/insights/types';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {Referrer} from 'sentry/views/performance/newTraceDetails/referrers';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
@@ -113,7 +110,7 @@ export function TransactionNodeDetails({
     {
       search: MutableSearch.fromQueryObject({
         transaction: node.value.transaction,
-      } satisfies SpanMetricsQueryFilters),
+      } satisfies SpanQueryFilters),
       fields: ['avg(cache.item_size)', 'cache_miss_rate()'],
     },
     Referrer.TRACE_DRAWER_TRANSACTION_CACHE_METRICS
@@ -141,7 +138,7 @@ export function TransactionNodeDetails({
       <TraceDrawerComponents.BodyContainer>
         {node.canFetch ? null : (
           <Alert.Container>
-            <StyledAlert type="info" showIcon>
+            <StyledAlert type="info">
               {tct(
                 'This transaction does not have any child spans. You can add more child spans via [customInstrumentationLink:custom instrumentation].',
                 {
@@ -233,7 +230,7 @@ export function TransactionNodeDetails({
 
 type TransactionSpecificSectionsProps = {
   cacheMetrics: Array<
-    Pick<SpanMetricsResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>
+    Pick<EAPSpanResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>
   >;
   event: EventTransaction;
   node: TraceTreeNode<TraceTree.Transaction>;
