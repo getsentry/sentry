@@ -9,7 +9,12 @@ import {
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import {type Aggregate, ModuleName, type SpanProperty} from 'sentry/views/insights/types';
+import {
+  type Aggregate,
+  ModuleName,
+  SpanFunction,
+  type SpanProperty,
+} from 'sentry/views/insights/types';
 
 export const MODULE_TITLE = t('Queries');
 export const DATA_TYPE = t('Query');
@@ -36,7 +41,7 @@ export const MIN_SDK_VERSION_BY_PLATFORM: Record<string, string> = {
   'sentry.android': '6.30.0',
 };
 
-export const DEFAULT_DURATION_AGGREGATE: Aggregate = 'avg';
+export const DEFAULT_DURATION_AGGREGATE: Aggregate = SpanFunction.AVG;
 
 export const CHART_HEIGHT = 160;
 

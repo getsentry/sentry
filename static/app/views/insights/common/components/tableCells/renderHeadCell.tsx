@@ -27,7 +27,6 @@ const {SPAN_SELF_TIME, SPAN_DURATION, HTTP_RESPONSE_CONTENT_LENGTH, CACHE_ITEM_S
   SpanFields;
 const {
   TIME_SPENT_PERCENTAGE,
-  SPS,
   EPM,
   TPM,
   HTTP_RESPONSE_COUNT,
@@ -46,7 +45,6 @@ const SORTABLE_FIELDS = new Set([
   `transaction.duration`,
   'transaction',
   `count()`,
-  `${SPS}()`,
   `${EPM}()`,
   `${TPM}()`,
   `${TIME_SPENT_PERCENTAGE}()`,
