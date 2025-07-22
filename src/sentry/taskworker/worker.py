@@ -302,6 +302,7 @@ class TaskWorker:
             )
             return None
         except HostTemporarilyUnavailable as e:
+            self._setstatus_backoff_seconds = min(self._setstatus_backoff_seconds + 4, 20)
             logger.info(
                 "taskworker.send_update_task.temporarily_unavailable",
                 extra={"task_id": result.task_id, "error": str(e)},
@@ -353,7 +354,7 @@ class TaskWorker:
                 extra={"error": e, "processing_pool": self._processing_pool_name},
             )
 
-            self._gettask_backoff_seconds = min(self._gettask_backoff_seconds + 1, 5)
+            self._gettask_backoff_seconds = min(self._gettask_backoff_seconds + 4, 20)
             return None
 
         if not activation:
