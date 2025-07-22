@@ -394,9 +394,9 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
 
             request_size, response_size = parse_network_content_lengths(event)
             if request_size:
-                resource_attributes["request_size"] = request_size  # type: ignore[assignment]
+                resource_attributes["request_size"] = request_size
             if response_size:
-                resource_attributes["response_size"] = response_size  # type: ignore[assignment]
+                resource_attributes["response_size"] = response_size
 
             return {
                 "attributes": resource_attributes,  # type: ignore[typeddict-item]
