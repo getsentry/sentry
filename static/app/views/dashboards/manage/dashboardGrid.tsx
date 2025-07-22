@@ -3,13 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {
-  createDashboard,
-  deleteDashboard,
-  fetchDashboard,
-  updateDashboardFavorite,
-} from 'sentry/actionCreators/dashboards';
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import type {Client} from 'sentry/api';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
@@ -25,12 +19,13 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import withApi from 'sentry/utils/withApi';
+import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
+import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import {
   DASHBOARD_CARD_GRID_PADDING,
   MINIMUM_DASHBOARD_CARD_WIDTH,
 } from 'sentry/views/dashboards/manage/settings';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
-import {cloneDashboard} from 'sentry/views/dashboards/utils';
 
 import DashboardCard from './dashboardCard';
 import GridPreview from './gridPreview';
@@ -57,6 +52,12 @@ function DashboardGrid({
   isLoading,
 }: Props) {
   const queryClient = useQueryClient();
+  const handleDuplicateDashboard = useDuplicateDashboard({
+    onSuccess: onDashboardsChange,
+  });
+  const handleDeleteDashboard = useDeleteDashboard({
+    onSuccess: onDashboardsChange,
+  });
   // this acts as a cache for the dashboards being passed in. It preserves the previously populated dashboard list
   // to be able to show the 'previous' dashboards on resize
   const [currentDashboards, setCurrentDashboards] = useState<
@@ -68,40 +69,6 @@ function DashboardGrid({
       setCurrentDashboards(dashboards);
     }
   }, [dashboards]);
-
-  function handleDelete(dashboard: DashboardListItem) {
-    deleteDashboard(api, organization.slug, dashboard.id)
-      .then(() => {
-        trackAnalytics('dashboards_manage.delete', {
-          organization,
-          dashboard_id: parseInt(dashboard.id, 10),
-          view_type: 'grid',
-        });
-        onDashboardsChange();
-        addSuccessMessage(t('Dashboard deleted'));
-      })
-      .catch(() => {
-        addErrorMessage(t('Error deleting Dashboard'));
-      });
-  }
-
-  async function handleDuplicate(dashboard: DashboardListItem) {
-    try {
-      const dashboardDetail = await fetchDashboard(api, organization.slug, dashboard.id);
-      const newDashboard = cloneDashboard(dashboardDetail);
-      newDashboard.widgets.map(widget => (widget.id = undefined));
-      await createDashboard(api, organization.slug, newDashboard, true);
-      trackAnalytics('dashboards_manage.duplicate', {
-        organization,
-        dashboard_id: parseInt(dashboard.id, 10),
-        view_type: 'grid',
-      });
-      onDashboardsChange();
-      addSuccessMessage(t('Dashboard duplicated'));
-    } catch (e) {
-      addErrorMessage(t('Error duplicating Dashboard'));
-    }
-  }
 
   async function handleFavorite(dashboard: DashboardListItem, isFavorited: boolean) {
     await updateDashboardFavorite(
@@ -128,7 +95,7 @@ function DashboardGrid({
           openConfirmModal({
             message: t('Are you sure you want to duplicate this dashboard?'),
             priority: 'primary',
-            onConfirm: () => handleDuplicate(dashboard),
+            onConfirm: () => handleDuplicateDashboard(dashboard, 'grid'),
           });
         },
       },
@@ -140,7 +107,7 @@ function DashboardGrid({
           openConfirmModal({
             message: t('Are you sure you want to delete this dashboard?'),
             priority: 'danger',
-            onConfirm: () => handleDelete(dashboard),
+            onConfirm: () => handleDeleteDashboard(dashboard, 'grid'),
           });
         },
       },
