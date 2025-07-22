@@ -254,6 +254,8 @@ class TestQuery(APITestCase, SnubaTestCase):
         # Query: want to get all feedbacks in projects / date range, then get all of the tags (prob just values are needed) where the key starts with "foo"
         # Can do the above with an arrayZip, arrayFilter, and arrayMap, so we should be good here
 
+        # Q: can "get feedbacks by tag" be paginated?
+
         assert False
 
 
