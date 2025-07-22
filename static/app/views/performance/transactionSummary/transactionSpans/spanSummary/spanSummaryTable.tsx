@@ -34,10 +34,10 @@ import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spa
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
-  type EAPSpanResponse,
   ModuleName,
   SpanFields,
   type SpanQueryFilters,
+  type SpanResponse,
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
@@ -55,7 +55,7 @@ type DataRowKeys =
 
 type ColumnKeys = SpanFields.SPAN_ID | SpanFields.TIMESTAMP | SpanFields.SPAN_DURATION;
 
-type DataRow = Pick<EAPSpanResponse, DataRowKeys> & {'transaction.duration': number};
+type DataRow = Pick<SpanResponse, DataRowKeys> & {'transaction.duration': number};
 
 type Column = GridColumnHeader<ColumnKeys>;
 
@@ -186,7 +186,7 @@ export default function SpanSummaryTable(props: Props) {
   });
 
   const mergedData: DataRow[] =
-    rowData?.map((row: Pick<EAPSpanResponse, DataRowKeys>) => {
+    rowData?.map((row: Pick<SpanResponse, DataRowKeys>) => {
       const transactionId = row[SpanFields.TRANSACTION_SPAN_ID];
       const newRow = {
         ...row,

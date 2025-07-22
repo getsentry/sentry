@@ -226,6 +226,7 @@ export type SpanStringFields =
   | SpanFields.RESOURCE_RENDER_BLOCKING_STATUS
   | SpanFields.RAW_DOMAIN
   | SpanFields.ID
+  | SpanFields.SPAN_ID
   | SpanFields.NAME
   | SpanFields.KIND
   | SpanFields.STATUS_MESSAGE
@@ -267,6 +268,7 @@ export type SpanStringFields =
   | SpanFields.TRACE_STATUS
   | SpanFields.APP_START_TYPE
   | SpanFields.FILE_EXTENSION
+  | SpanFields.TIMESTAMP
   | 'span_id'
   | 'span.op'
   | 'span.description'
@@ -303,7 +305,7 @@ export type SpanStringFields =
 
 type SpanStringArrayFields = 'span.domain';
 
-export const COUNTER_AGGREGATES = ['sum', 'avg', 'min', 'max', 'p100'] as const;
+export const COUNTER_AGGREGATES = ['sum', 'avg', 'min', 'max', 'p100', 'count'] as const;
 export const DISTRIBUTION_AGGREGATES = ['p50', 'p75', 'p90', 'p95', 'p99'] as const;
 
 export type Aggregate =
@@ -357,7 +359,7 @@ export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
 
 type WebVitalsFunctions = 'performance_score' | 'count_scores' | 'opportunity_score';
 
-type EAPSpanResponseRaw = {
+type SpanResponseRaw = {
   [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
 } & {
   [Property in SpanFunctions as `${Property}()`]: number;
@@ -433,8 +435,8 @@ type EAPSpanResponseRaw = {
     [Property in SpanFields as `count_if(${Property},${string})`]: number;
   };
 
-export type EAPSpanResponse = Flatten<EAPSpanResponseRaw>;
-export type EAPSpanProperty = keyof EAPSpanResponse; // TODO: rename this to `SpanProperty` when we remove `useInsightsEap`
+export type SpanResponse = Flatten<SpanResponseRaw>;
+export type SpanProperty = keyof SpanResponse;
 
 export enum SpanFunction {
   SPS = 'sps',
