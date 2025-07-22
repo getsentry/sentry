@@ -100,46 +100,6 @@ class TestQuery(APITestCase, SnubaTestCase):
         start_date = datetime.datetime.now() - datetime.timedelta(days=90)
         end_date = datetime.datetime.now()
 
-        # # This query finds all feedbacks that have any tag starting with "foo" equal to 1
-        # # Q: how does it know that only foo-prefixed tags are being considered when checking equality to 1?
-        # builder2 = DiscoverQueryBuilder(
-        #     dataset=Dataset.Events,
-        #     params={},
-        #     snuba_params=snuba_params,
-        #     query="event.type:feedback",  # Filter for feedback events
-        #     selected_columns=["event_id", "project_id", "timestamp", "tags.key", "tags.value"],
-        #     orderby=["-timestamp"],  # Most recent first
-        #     limit=100,  # Get up to 100 events
-        #     config=QueryBuilderConfig(
-        #         auto_fields=False,
-        #         auto_aggregations=True,
-        #         use_aggregate_conditions=True,
-        #         functions_acl=["array_join"],  # Allow array_join function
-        #     ),
-        # )
-
-        # builder2.add_conditions(
-        #     [
-        #         Condition(
-        #             Function("startsWith", [Function("arrayJoin", [Column("tags.key")]), "foo"]),
-        #             Op.EQ,
-        #             1,
-        #         ),
-        #         Condition(
-        #             Function("arrayJoin", [Column("tags.value")]),
-        #             Op.EQ,
-        #             "1",
-        #         ),
-        #     ]
-        # )
-
-        # print(builder2.get_snql_query())
-
-        # result = builder2.run_query(referrer="test.debug_feedback")
-
-        # print("Feedbacks with any tag starting with 'foo' equal to '1':")
-        # print(result["data"])
-
         # First, we want to find the top 10 values for the tag prefix "foo" for feedbacks filtered by some date range and project
         request = Request(
             dataset="discover",
@@ -225,6 +185,7 @@ class TestQuery(APITestCase, SnubaTestCase):
         # print(results["data"])
 
         # Now, we want all of the feedbacks that have a tag starting with "foo" equal to 1. We want the actual feedback data itself.
+        # In prod, we'll want a list of potential tag values, not just one like we have here, so we'll probably have to use hasAny instead of equals
         feedbacksreq = Request(
             dataset="discover",
             app_id="your_app_id",
@@ -287,144 +248,13 @@ class TestQuery(APITestCase, SnubaTestCase):
         feedbacksres
         # print(feedbacksres["data"])
 
+        # Now, we want to find just a list of all of the tags where the key starts with "foo"
+        # This query should be similar to the one that finds the top 10 values for the tag prefix "foo" for feedbacks filtered by some date range and project, so it is ommitted for now
+
+        # Query: want to get all feedbacks in projects / date range, then get all of the tags (prob just values are needed) where the key starts with "foo"
+        # Can do the above with an arrayZip, arrayFilter, and arrayMap, so we should be good
+
         assert False
-
-
-# def test_vishnu_query():
-#     organization = Organization.objects.get()
-#     projects = [
-#         Project.objects.get(id=1),
-#         Project.objects.get(id=2),
-#         Project.objects.get(id=3),
-#         Project.objects.get(id=4),
-#     ]  # Your projects
-#     start_date = datetime.datetime.now() - datetime.timedelta(days=90)
-#     end_date = datetime.datetime.now()
-
-# Create SnubaParams
-#     snuba_params = SnubaParams(
-#         organization=organization,
-#         projects=projects,
-#         start=start_date,
-#         end=end_date,
-#     )
-
-# # Build the query
-#     builder = DiscoverQueryBuilder(
-#         dataset=Dataset.Discover,
-#         params={},
-#         snuba_params=snuba_params,
-#         query="issue.category:feedback arrayJoin(tags.value):os*",  # Filter tags starting with "os"
-#         selected_columns=["tags.value", "count()"],  # Flatten the array here
-#         # orderby=["-count()"],  # Sort by count descending
-#         limit=10,  # Limit to top 10
-#         config=QueryBuilderConfig(
-#             auto_fields=False,
-#             auto_aggregations=True,
-#             use_aggregate_conditions=True,
-#         ),
-#     )
-
-#     builder = DiscoverQueryBuilder(
-#         dataset=Dataset.IssuePlatform,  # Use Issue Platform dataset for feedback
-#         params={},
-#         snuba_params=snuba_params,
-#         query="issue.category:feedback",  # Only feedback events
-#         selected_columns=[
-#             "array_join(tags.key) as tag_key",  # Flatten the array
-#             "array_join(tags.value) as tag_value",  # Flatten the array
-#             "count()",
-#         ],
-#         orderby=["-count()"],
-#         limit=100,  # Get more results
-#         config=QueryBuilderConfig(
-#             auto_fields=False,
-#             auto_aggregations=True,
-#             use_aggregate_conditions=True,
-#             functions_acl=["array_join"],  # Allow array_join function
-#         ),
-#     )
-
-#     builder = DiscoverQueryBuilder(
-#         dataset=Dataset.IssuePlatform,
-#         params={},
-#         snuba_params=snuba_params,
-#         query="issue.category:feedback",
-#         selected_columns=["count()"],
-#         config=QueryBuilderConfig(
-#             auto_fields=False,
-#             auto_aggregations=True,
-#             use_aggregate_conditions=True,
-#         ),
-#     )
-
-#     result = builder.run_query(referrer="test.debug_feedback")
-
-#     snql_query = builder.get_snql_query()
-#     results = raw_snql_query(snql_query, "api.organization-issue-replay-count")
-
-#     print(results)
-
-#     request = Request(
-#         dataset="discover",
-#         app_id="your_app_id",
-#         # Define which organization and referrer this query is for
-#         tenant_ids={"organization_id": 1},
-#         query=Query(
-#             # Use array_join to "un-nest" the tags so we can filter by key and group by value
-#             array_join=Column("tags.key"),
-#             match=Entity("discover"),
-#             select=[
-#                 Column("tags.key"),
-#                 Column("tags.value"),
-#                 Function("count", [], "count"),
-#             ],
-#             # Filter the data before grouping
-#             where=[
-#                 # Condition 1: Timestamp between two dates
-#                 Condition(Column("timestamp"), Op.GTE, datetime.datetime(2025, 6, 1, 0, 0, 0)),
-#                 Condition(Column("timestamp"), Op.LT, datetime.datetime(2025, 7, 21, 0, 0, 0)),
-#                 # Condition 2: Belongs to a specific project
-#                 Condition(Column("project_id"), Op.IN, [1, 2, 3, 4]),
-#                 # Condition 3: The tag's key must start with "os"
-#                 # Condition(Function("startsWith", [Column("tags.key"), "os"]), Op.EQ, 1),
-#             ],
-#             # Group by the tag value to count occurrences
-#             groupby=[Column("tags.key"), Column("tags.value")],
-#             # Order by the count descending to find the most frequent
-#             orderby=[OrderBy(Column("count"), Direction.DESC)],
-#             limit=Limit(10),
-#         ),
-#     )
-
-# request = Request(
-#     dataset="search_issues",  # Use Issue Platform dataset for feedback events
-#     app_id="test_app",
-#     tenant_ids={"organization_id": organization.id},
-#     query=Query(
-#         match=Entity("search_issues"),  # Use search_issues entity
-#         select=[
-#             Function("count", [], "count"),
-#         ],
-#         # Filter the data before grouping
-#         where=[
-#             # # Condition 1: Timestamp between two dates
-#             Condition(Column("timestamp"), Op.GTE, start_date),
-#             Condition(Column("timestamp"), Op.LT, end_date),
-#             # # Condition 2: Belongs to a specific project
-#             Condition(Column("project_id"), Op.IN, [p.id for p in projects]),
-#             # # Condition 3: Only feedback events
-#             Condition(Column("issue.category"), Op.EQ, "feedback"),
-#         ],
-#         limit=Limit(1),
-#     ),
-# )
-
-# results = raw_snql_query(request, "api.organization-issue-replay-count")
-
-# print(results)
-
-# assert True
 
 
 # def test_make_ordered():
