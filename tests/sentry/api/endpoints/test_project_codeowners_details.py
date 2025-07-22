@@ -43,6 +43,17 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
             },
         )
 
+        # Mock the external HTTP request to prevent real network calls
+        self.codeowner_mock = patch(
+            "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
+            return_value={
+                "html_url": "https://github.com/test/CODEOWNERS",
+                "filepath": "CODEOWNERS",
+                "raw": "test content",
+            },
+        ).start()
+        self.addCleanup(patch.stopall)
+
     def test_basic_delete(self):
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.delete(self.url)
@@ -59,8 +70,18 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         data = {
             "raw": raw,
         }
+
+        # Reset call count to verify this specific test's calls
+        self.codeowner_mock.reset_mock()
+
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.put(self.url, data)
+
+        # Verify our mock was called instead of making real HTTP requests
+        assert (
+            self.codeowner_mock.called
+        ), "Mock should have been called - no external HTTP requests made"
+
         assert response.status_code == 200
         assert response.data["id"] == str(self.codeowners.id)
         assert response.data["raw"] == raw.strip()
