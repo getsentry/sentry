@@ -13,6 +13,7 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 
+from sentry import options
 from sentry.logging.handlers import SamplingFilter
 from sentry.utils import json
 
@@ -224,6 +225,11 @@ class EAPEventsBuilder:
         self.events: list[TraceItem] = []
 
     def add(self, event_type: EventType, event: dict[str, Any]) -> None:
+        if self.context["project_id"] not in options.get(
+            "replay.recording.ingest-trace-items.allow-list"
+        ):
+            return None
+
         trace_item = parse_trace_item(self.context, event_type, event)
         if trace_item:
             self.events.append(trace_item)

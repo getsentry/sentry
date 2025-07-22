@@ -1,4 +1,5 @@
 from typing import Any
+from unittest import mock
 
 import pytest
 
@@ -1236,8 +1237,11 @@ def test_as_trace_item_returns_none_for_unsupported_event():
     assert as_trace_item(context, EventType.CONSOLE, event) is None
 
 
-def test_parse_events():
+@mock.patch("sentry.options.get")
+def test_parse_events(options_get):
     """Test "parse_events" function."""
+    options_get.return_value = [1]
+
     parsed, trace_items = parse_events(
         {
             "organization_id": 1,
@@ -1288,4 +1292,62 @@ def test_parse_events():
     )
 
     assert len(trace_items) == 1
+    assert len(parsed.click_events) == 1
+
+
+@mock.patch("sentry.options.get")
+def test_parse_events_disabled(options_get):
+    """Test "parse_events" function."""
+    options_get.return_value = []
+
+    parsed, trace_items = parse_events(
+        {
+            "organization_id": 1,
+            "project_id": 1,
+            "received": 1,
+            "replay_id": "1",
+            "retention_days": 1,
+            "segment_id": 1,
+            "trace_id": None,
+        },
+        [
+            {
+                "type": 5,
+                "timestamp": 1674291701348,
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {
+                        "timestamp": 1.1,
+                        "type": "default",
+                        "category": "ui.slowClickDetected",
+                        "message": "div.container > div#root > div > ul > div",
+                        "data": {
+                            "clickcount": 5,
+                            "endReason": "timeout",
+                            "timeafterclickms": 0,
+                            "nodeId": 59,
+                            "url": "https://www.sentry.io",
+                            "node": {
+                                "id": 59,
+                                "tagName": "a",
+                                "attributes": {
+                                    "id": "id",
+                                    "class": "class1 class2",
+                                    "role": "button",
+                                    "aria-label": "test",
+                                    "alt": "1",
+                                    "data-testid": "2",
+                                    "title": "3",
+                                    "data-sentry-component": "SignUpForm",
+                                },
+                                "textContent": "text",
+                            },
+                        },
+                    },
+                },
+            }
+        ],
+    )
+
+    assert len(trace_items) == 0
     assert len(parsed.click_events) == 1

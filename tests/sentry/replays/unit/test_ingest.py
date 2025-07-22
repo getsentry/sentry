@@ -11,8 +11,10 @@ from sentry.replays.usecases.ingest import (
 )
 from sentry.replays.usecases.ingest.event_parser import ParsedEventMeta
 from sentry.replays.usecases.pack import unpack
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
+@django_db_all
 def test_process_recording_event_without_video():
     """Test process_recording_event without replay video data"""
     payload = b'[{"type": "test"}]'
@@ -46,6 +48,7 @@ def test_process_recording_event_without_video():
     assert result.video_size is None
 
 
+@django_db_all
 def test_process_recording_event_with_video():
     """Test process_recording_event with replay video data"""
     payload = b'[{"type": "test"}]'

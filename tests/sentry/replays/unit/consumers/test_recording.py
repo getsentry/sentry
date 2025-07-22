@@ -16,6 +16,7 @@ from sentry.replays.consumers.recording import (
 from sentry.replays.usecases.ingest import ProcessedEvent
 from sentry.replays.usecases.ingest.event_parser import ParsedEventMeta
 from sentry.replays.usecases.pack import pack
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 
 
@@ -259,6 +260,7 @@ def test_parse_recording_event_invalid_headers():
         parse_recording_event(msgpack.packb(message))
 
 
+@django_db_all
 def test_process_message_compressed():
     """Test "process_message" function with compressed payload."""
     # Create real compressed data
@@ -309,6 +311,7 @@ def test_process_message_compressed():
     assert expected == processed_result
 
 
+@django_db_all
 def test_process_message_uncompressed():
     """Test "process_message" function with uncompressed payload."""
     # Create real compressed data
@@ -359,6 +362,7 @@ def test_process_message_uncompressed():
     assert expected == processed_result
 
 
+@django_db_all
 def test_process_message_compressed_with_video():
     """Test "process_message" function with compressed payload and a video."""
     # Create real compressed data
