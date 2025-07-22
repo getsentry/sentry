@@ -871,8 +871,8 @@ def split_datetime_range_exponential(
     """
     Splits a datetime range into exponentially increasing chunks, yielded by a generator.
 
-    The duration of each chunk doubles from the previous one until it reaches the
-    max_delta, at which point the chunk size remains constant.
+    The duration of each chunk increase `multiplier` times from the previous one until
+    it reaches the max_delta, at which point the chunk size remains constant.
 
     Args:
         start_datetime (datetime): The start of the datetime range.
@@ -903,6 +903,9 @@ def split_datetime_range_exponential(
 
     if initial_chunk_delta > max_delta:
         raise ValueError("initial_chunk_delta cannot be greater than max_delta.")
+
+    if multiplier <= 0:
+        raise ValueError("multiplier must be a positive integer.")
 
     current_datetime = start_datetime
     current_delta = initial_chunk_delta
