@@ -439,7 +439,7 @@ const DistributionsDrawerLink = styled(Link)`
 const VerticalDistributionsDrawerButton = styled(LinkButton)`
   display: block;
   flex: 0;
-  margin: ${space(1)} ${space(2)} ${space(1)} ${space(1)};
+  margin: ${space(1)};
   padding: ${space(1)} ${space(1.5)};
   text-align: center;
   height: unset;

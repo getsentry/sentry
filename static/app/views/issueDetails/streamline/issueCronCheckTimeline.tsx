@@ -204,6 +204,7 @@ const ChartContainer = styled('div')<{envCount: number}>`
   position: relative;
   width: 100%;
   min-height: ${p => Math.max(p.envCount - 1, 0) * totalHeight + 104}px;
+  padding-left: ${space(1)};
 `;
 
 const TimelineLegend = styled('div')`

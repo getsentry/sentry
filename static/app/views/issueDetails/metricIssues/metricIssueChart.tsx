@@ -158,7 +158,8 @@ function MetricIssuePlaceholder({type}: {type: 'loading' | 'error'}) {
 
 const MetricChartSection = styled('div')`
   display: block;
-  padding-right: ${space(1.5)};
+  padding-right: ${space(1)};
+  padding-left: ${space(1)};
   width: 100%;
 `;
 
