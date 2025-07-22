@@ -384,13 +384,16 @@ function getInitialPageParam(autoRefresh: boolean, sortBys: Sort[]): LogPagePara
   return pageParamResult;
 }
 
-function getMaxIngestDelayTimestamp() {
+export function getMaxIngestDelayTimestamp() {
   return BigInt(Date.now() - MAX_LOG_INGEST_DELAY) * 1_000_000n;
 }
 
+export function getIngestDelayFilterValue(timestamp: bigint) {
+  return `<=${timestamp}`;
+}
+
 function getIngestDelayFilter() {
-  const maxIngestDelayTimestamp = getMaxIngestDelayTimestamp();
-  return ` ${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=${maxIngestDelayTimestamp}`;
+  return ` ${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:${getIngestDelayFilterValue(getMaxIngestDelayTimestamp())}`;
 }
 
 function getParamBasedQuery(

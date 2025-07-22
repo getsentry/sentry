@@ -220,7 +220,7 @@ describe('useStreamingTimeseriesResult', () => {
     const mockTimeseriesData = getMockSingleAxisTimeseries();
 
     const {result} = renderHook(
-      () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData),
+      () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
       {
         wrapper: createWrapper({autoRefresh: 'enabled', organization: orgWithFeature}),
       }
@@ -234,7 +234,7 @@ describe('useStreamingTimeseriesResult', () => {
     const mockTimeseriesData = getMockSingleAxisTimeseries();
 
     const {result} = renderHook(
-      () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData),
+      () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
       {
         wrapper: createWrapper({autoRefresh: 'idle'}),
       }
@@ -244,12 +244,12 @@ describe('useStreamingTimeseriesResult', () => {
   });
 
   describe('single axis', () => {
-    it('debug: should create buckets from table data and merge with timeseries', async () => {
+    it('should create buckets from table data and merge with timeseries', async () => {
       const mockTimeseriesData = getMockSingleAxisTimeseries();
 
       const {result, rerender} = renderHook(
         (tableData: UseInfiniteLogsQueryResult | UseLogsQueryResult) =>
-          useStreamingTimeseriesResult(tableData, mockTimeseriesData),
+          useStreamingTimeseriesResult(tableData, mockTimeseriesData, 0n),
         {
           initialProps: createMockTableData([]),
           wrapper: createWrapper({autoRefresh: 'enabled'}),
@@ -299,7 +299,7 @@ describe('useStreamingTimeseriesResult', () => {
         {timestamp: 5000, value: 0},
         {timestamp: 6000, value: 60},
         {timestamp: 7000, value: 70},
-        {timestamp: 8000, value: 3},
+        {timestamp: 8000, value: 83},
         {timestamp: 9000, value: 1, incomplete: true},
       ]);
     });
@@ -311,7 +311,7 @@ describe('useStreamingTimeseriesResult', () => {
 
       const {result, rerender} = renderHook(
         (tableData: UseInfiniteLogsQueryResult | UseLogsQueryResult) =>
-          useStreamingTimeseriesResult(tableData, mockTimeseriesData),
+          useStreamingTimeseriesResult(tableData, mockTimeseriesData, 0n),
         {
           initialProps: createMockTableData([]),
           wrapper: createWrapper({
@@ -403,8 +403,8 @@ describe('useStreamingTimeseriesResult', () => {
           {timestamp: 4000, value: 0},
           {timestamp: 5000, value: 0},
           {timestamp: 6000, value: 6},
-          {timestamp: 7000, value: 0},
-          {timestamp: 8000, value: 1},
+          {timestamp: 7000, value: 7},
+          {timestamp: 8000, value: 9},
           {timestamp: 9000, value: 0, incomplete: true},
         ],
         'warn',
@@ -414,8 +414,8 @@ describe('useStreamingTimeseriesResult', () => {
           {timestamp: 4000, value: 0},
           {timestamp: 5000, value: 0},
           {timestamp: 6000, value: 60},
-          {timestamp: 7000, value: 1},
-          {timestamp: 8000, value: 2},
+          {timestamp: 7000, value: 71},
+          {timestamp: 8000, value: 82},
           {timestamp: 9000, value: 0, incomplete: true},
         ],
         'info',
@@ -425,8 +425,8 @@ describe('useStreamingTimeseriesResult', () => {
           {timestamp: 4000, value: 0},
           {timestamp: 5000, value: 0},
           {timestamp: 6000, value: 600},
-          {timestamp: 7000, value: 0},
-          {timestamp: 8000, value: 0},
+          {timestamp: 7000, value: 700},
+          {timestamp: 8000, value: 800},
           {timestamp: 9000, value: 0, incomplete: true},
         ],
         'brand_new_severity',
@@ -471,8 +471,8 @@ describe('useStreamingTimeseriesResult', () => {
         [
           {timestamp: 5000, value: 0},
           {timestamp: 6000, value: 6},
-          {timestamp: 7000, value: 0},
-          {timestamp: 8000, value: 1},
+          {timestamp: 7000, value: 7},
+          {timestamp: 8000, value: 9},
           {timestamp: 9000, value: 0},
           {timestamp: 10000, value: 0},
           {timestamp: 11000, value: 0},
@@ -482,8 +482,8 @@ describe('useStreamingTimeseriesResult', () => {
         [
           {timestamp: 5000, value: 0},
           {timestamp: 6000, value: 60},
-          {timestamp: 7000, value: 1},
-          {timestamp: 8000, value: 2},
+          {timestamp: 7000, value: 71},
+          {timestamp: 8000, value: 82},
           {timestamp: 9000, value: 0},
           {timestamp: 10000, value: 0},
           {timestamp: 11000, value: 0},
@@ -493,8 +493,8 @@ describe('useStreamingTimeseriesResult', () => {
         [
           {timestamp: 5000, value: 0},
           {timestamp: 6000, value: 600},
-          {timestamp: 7000, value: 0},
-          {timestamp: 8000, value: 0},
+          {timestamp: 7000, value: 700},
+          {timestamp: 8000, value: 800},
           {timestamp: 9000, value: 0},
           {timestamp: 10000, value: 0},
           {timestamp: 11000, value: 0},
@@ -521,6 +521,97 @@ describe('useStreamingTimeseriesResult', () => {
           {timestamp: 10000, value: 0},
           {timestamp: 11000, value: 0},
           {timestamp: 12000, value: 1, incomplete: true},
+        ],
+      ]);
+    });
+
+    it('should only update last bucket when ingest delay is at end of timeseries data', async () => {
+      const mockTimeseriesData = getMockMultiAxisTimeseries();
+      const ingestDelayMs = 8500n * 1_000_000n; // Set delay to match last bucket timestamp
+
+      const {result, rerender} = renderHook(
+        (tableData: UseInfiniteLogsQueryResult | UseLogsQueryResult) =>
+          useStreamingTimeseriesResult(tableData, mockTimeseriesData, ingestDelayMs),
+        {
+          initialProps: createMockTableData([]),
+          wrapper: createWrapper({
+            autoRefresh: 'enabled',
+            groupBy: OurLogKnownFieldKey.SEVERITY,
+          }),
+        }
+      );
+
+      const initialValues = result.current.data['count(message)'];
+      expect(initialValues).toHaveLength(3);
+
+      const mockTableData = createMockTableData([
+        LogFixture({
+          [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(9000),
+          [OurLogKnownFieldKey.SEVERITY]: 'error',
+        }),
+        LogFixture({
+          [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8600),
+          [OurLogKnownFieldKey.SEVERITY]: 'warn',
+        }),
+        LogFixture({
+          [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8000),
+          [OurLogKnownFieldKey.SEVERITY]: 'warn',
+        }),
+        LogFixture({
+          [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(6500),
+          [OurLogKnownFieldKey.SEVERITY]: 'info',
+        }),
+        LogFixture({
+          [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8500),
+          [OurLogKnownFieldKey.SEVERITY]: 'error',
+        }),
+      ]);
+
+      rerender(mockTableData);
+
+      await waitFor(() => {
+        const mergedData = result.current.data['count(message)']?.[0]?.values;
+        expect(mergedData).toBeDefined();
+      });
+
+      const flatMappedData = result.current.data['count(message)']?.flatMap(d => [
+        d.yAxis,
+        d.values,
+      ]);
+
+      expect(flatMappedData).toEqual([
+        'error',
+        [
+          {timestamp: 2000, value: 2},
+          {timestamp: 3000, value: 3},
+          {timestamp: 4000, value: 0},
+          {timestamp: 5000, value: 0},
+          {timestamp: 6000, value: 6},
+          {timestamp: 7000, value: 7},
+          {timestamp: 8000, value: 8},
+          {timestamp: 9000, value: 1, incomplete: true},
+        ],
+        'warn',
+        [
+          {timestamp: 2000, value: 20},
+          {timestamp: 3000, value: 30},
+          {timestamp: 4000, value: 0},
+          {timestamp: 5000, value: 0},
+          {timestamp: 6000, value: 60},
+          {timestamp: 7000, value: 70},
+          {timestamp: 8000, value: 81},
+          {timestamp: 9000, value: 0, incomplete: true},
+        ],
+        'info',
+        [
+          {timestamp: 2000, value: 200},
+          {timestamp: 3000, value: 300},
+          {timestamp: 4000, value: 0},
+          {timestamp: 5000, value: 0},
+          {timestamp: 6000, value: 600},
+          {timestamp: 7000, value: 700},
+          {timestamp: 8000, value: 800},
+          {timestamp: 9000, value: 0, incomplete: true},
         ],
       ]);
     });

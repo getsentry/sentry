@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
@@ -25,6 +25,7 @@ import {
   useSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
+import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   useLogsAggregate,
@@ -65,6 +66,11 @@ import {
 import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregateTable';
 import {LogsInfiniteTable as LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {
+  getIngestDelayFilterValue,
+  getMaxIngestDelayTimestamp,
+} from 'sentry/views/explore/logs/useLogsQuery';
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
 import {useStreamingTimeseriesResult} from 'sentry/views/explore/logs/useStreamingTimeseriesResult';
 import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
@@ -91,6 +97,8 @@ export function LogsTabContent({
   const setFields = useSetLogsFields();
   const setLogsPageParams = useSetLogsPageParams();
   const tableData = useLogsPageDataQueryResult();
+  const autorefreshEnabled = useLogsAutoRefreshEnabled();
+  const timeseriesIngestDelayRef = useRef<bigint>(getMaxIngestDelayTimestamp());
   usePersistentLogsPageParameters(); // persist the columns you chose last time
 
   const oldLogsSearch = usePrevious(logsSearch);
@@ -115,9 +123,25 @@ export function LogsTabContent({
     !!((aggregateFunction && aggregateFunction !== 'count') || groupBy)
   );
 
+  useEffect(() => {
+    timeseriesIngestDelayRef.current = getMaxIngestDelayTimestamp();
+  }, [autorefreshEnabled]);
+
+  const search = useMemo(() => {
+    const newSearch = logsSearch.copy();
+    if (autorefreshEnabled) {
+      // We need to add the delay filter to ensure the table data and the graph data are as close as possible when merging buckets.
+      newSearch.addFilterValue(
+        OurLogKnownFieldKey.TIMESTAMP_PRECISE,
+        getIngestDelayFilterValue(timeseriesIngestDelayRef.current)
+      );
+    }
+    return newSearch;
+  }, [autorefreshEnabled, logsSearch]);
+
   const _timeseriesResult = useSortedTimeSeries(
     {
-      search: logsSearch,
+      search,
       yAxis: [aggregate],
       interval,
       fields: [...(groupBy ? [groupBy] : []), aggregate],
@@ -127,7 +151,11 @@ export function LogsTabContent({
     'explore.ourlogs.main-chart',
     DiscoverDatasets.OURLOGS
   );
-  const timeseriesResult = useStreamingTimeseriesResult(tableData, _timeseriesResult);
+  const timeseriesResult = useStreamingTimeseriesResult(
+    tableData,
+    _timeseriesResult,
+    timeseriesIngestDelayRef.current
+  );
 
   const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
     useTraceItemAttributes('string');
