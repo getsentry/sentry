@@ -12,12 +12,7 @@ import type {
   DataConditionHandlerGroupType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -196,11 +191,9 @@ export function useUpdateAutomation() {
       queryClient.invalidateQueries({
         queryKey: [`/organizations/${org.slug}/workflows/`],
       });
-      setApiQueryData(
-        queryClient,
-        [`/organizations/${org.slug}/workflows/${data.automationId}/`],
-        data
-      );
+      queryClient.invalidateQueries({
+        queryKey: [`/organizations/${org.slug}/workflows/${data.automationId}/`],
+      });
     },
     onError: _ => {
       AlertStore.addAlert({type: 'error', message: t('Unable to update automation')});
