@@ -319,11 +319,10 @@ const GraphSection = styled('div')`
 
 const OccurrenceSummarySection = styled(OccurrenceSummary)`
   white-space: unset;
-  padding: ${space(1)};
-  padding-left: 0;
-  &:not(:first-child) {
-    border-top: 1px solid ${p => p.theme.translucentBorder};
-  }
+  background: ${p => p.theme.background};
+  padding: ${space(1.5)};
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.translucentBorder};
 `;
 
 const PageErrorBoundary = styled(ErrorBoundary)`

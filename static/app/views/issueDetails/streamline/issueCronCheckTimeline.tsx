@@ -204,12 +204,12 @@ const ChartContainer = styled('div')<{envCount: number}>`
   position: relative;
   width: 100%;
   min-height: ${p => Math.max(p.envCount - 1, 0) * totalHeight + 104}px;
-  padding-left: ${space(1)};
+  padding-left: ${space(1.5)};
+  padding-right: ${space(1.5)};
 `;
 
 const TimelineLegend = styled('div')`
   position: absolute;
-  width: 100%;
   user-select: none;
   display: flex;
   gap: ${space(1)};
@@ -224,7 +224,8 @@ const TimelineLegendText = styled('div')`
 const TimelineContainer = styled('div')`
   position: absolute;
   top: 36px;
-  width: 100%;
+  left: ${space(1.5)};
+  right: ${space(1.5)};
 `;
 
 const EnvironmentLabel = styled(Tooltip)`

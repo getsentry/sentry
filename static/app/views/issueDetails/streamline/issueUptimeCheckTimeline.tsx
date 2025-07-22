@@ -135,7 +135,7 @@ const ChartContainer = styled('div')`
   position: relative;
   min-height: 100px;
   width: 100%;
-  padding-left: ${space(1)};
+  padding-left: ${space(1.5)};
 `;
 
 const TimelineLegend = styled('div')`
