@@ -173,7 +173,11 @@ function ChapterRow({
       </Chapter>
       <div>
         {!breadcrumbs.length && (
-          <EmptyMessage>{t('No breadcrumbs for this chapter')}</EmptyMessage>
+          <EmptyMessage>
+            {t(
+              'No breadcrumbs for this chapter, but there may be console logs or network requests that occurred during this window.'
+            )}
+          </EmptyMessage>
         )}
         {breadcrumbs.map((breadcrumb, j) => (
           <ChapterBreadcrumbRow
