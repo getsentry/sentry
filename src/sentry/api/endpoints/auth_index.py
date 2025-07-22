@@ -329,8 +329,9 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         response.delete_cookie(settings.SESSION_COOKIE_NAME, domain=settings.SESSION_COOKIE_DOMAIN)
 
         if slo_url:
-            response.status = status.HTTP_200_OK
+            response.status_code = status.HTTP_200_OK
             response.data = {"sloUrl": slo_url}
         else:
-            response.status = status.HTTP_204_NO_CONTENT
+            response.status_code = status.HTTP_204_NO_CONTENT
+
         return response
