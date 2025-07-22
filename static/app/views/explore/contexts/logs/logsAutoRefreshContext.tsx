@@ -91,7 +91,7 @@ export function useSetLogsAutoRefresh() {
   const navigate = useNavigate();
   const {queryKey} = useLogsQueryKeyWithInfinite({
     referrer: 'api.explore.logs-table',
-    autoRefresh: false,
+    autoRefresh: true,
   });
   const queryClient = useQueryClient();
 
