@@ -5,6 +5,7 @@ import difference from 'lodash/difference';
 import {openProjectCreationModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FormField from 'sentry/components/forms/formField';
@@ -12,7 +13,6 @@ import FormFieldControlState from 'sentry/components/forms/formField/controlStat
 import type FormModel from 'sentry/components/forms/model';
 import type {ProjectMapperType} from 'sentry/components/forms/types';
 import IdBadge from 'sentry/components/idBadge';
-import ExternalLink from 'sentry/components/links/externalLink';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {
   IconAdd,

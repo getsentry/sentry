@@ -34,11 +34,7 @@ export default function AutomationBuilderRow({
           className={'delete-row'}
         />
       </RowContainer>
-      {hasError && errorMessage && (
-        <Alert type={'error'} showIcon>
-          {errorMessage}
-        </Alert>
-      )}
+      {hasError && errorMessage && <Alert type={'error'}>{errorMessage}</Alert>}
     </Flex>
   );
 }

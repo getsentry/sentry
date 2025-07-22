@@ -64,7 +64,6 @@ export function AddUploadToken({step}: AddUploadTokenProps) {
                   <Alert
                     type="warning"
                     data-test-id="page-error-alert"
-                    showIcon
                     trailingItems={<IconClose size="sm" onClick={handleDismiss} />}
                   >
                     {t(

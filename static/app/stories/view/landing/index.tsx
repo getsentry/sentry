@@ -1,6 +1,6 @@
 import type {PropsWithChildren} from 'react';
-import {Fragment, useMemo} from 'react';
-import {ThemeProvider, useTheme} from '@emotion/react';
+import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import performanceWaitingForSpan from 'sentry-images/spot/performance-waiting-for-span.svg';
@@ -11,12 +11,8 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {IconOpen} from 'sentry/icons';
+import {StoryDarkModeProvider} from 'sentry/stories/view/useStoriesDarkMode';
 import {space} from 'sentry/styles/space';
-import type {Theme} from 'sentry/utils/theme';
-// we need the hero to always use values from the dark theme
-// eslint-disable-next-line no-restricted-imports
-import {darkTheme} from 'sentry/utils/theme';
-import {DO_NOT_USE_darkChonkTheme} from 'sentry/utils/theme/theme.chonk';
 
 import {Colors, Icons, Typography} from './figures';
 
@@ -49,7 +45,7 @@ const frontmatter = {
 export function StoryLanding() {
   return (
     <Fragment>
-      <AlwaysDarkThemeProvider>
+      <StoryDarkModeProvider>
         <Hero>
           <Container>
             <Flex direction="column" gap="2xl">
@@ -74,7 +70,7 @@ export function StoryLanding() {
             />
           </Container>
         </Hero>
-      </AlwaysDarkThemeProvider>
+      </StoryDarkModeProvider>
 
       <Container>
         <Flex as="section" direction="column" gap="3xl" flex={1}>
@@ -132,17 +128,6 @@ function Border() {
   );
 }
 
-function AlwaysDarkThemeProvider(props: PropsWithChildren) {
-  const theme = useTheme();
-
-  const localThemeValue = useMemo(
-    () => (theme.isChonk ? DO_NOT_USE_darkChonkTheme : darkTheme),
-    [theme]
-  );
-
-  return <ThemeProvider theme={localThemeValue as Theme}>{props.children}</ThemeProvider>;
-}
-
 const TitleEmphasis = styled('em')`
   font-style: normal;
   display: inline-block;
@@ -151,13 +136,13 @@ const TitleEmphasis = styled('em')`
 `;
 
 const Hero = styled('div')`
-  width: 100vw;
-  padding: 48px 16px;
+  padding: 48px 0;
   gap: ${space(4)};
   display: flex;
   align-items: center;
-  background: ${p => p.theme.tokens.background.tertiary};
+  background: ${p => p.theme.tokens.background.secondary};
   color: ${p => p.theme.tokens.content.primary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 
   h1 {
     font-size: 36px;
@@ -174,15 +159,13 @@ const Hero = styled('div')`
     min-width: 320px;
     height: auto;
   }
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: 48px 92px;
-  }
 `;
 
 const Container = styled('div')`
-  max-width: 1134px;
-  width: calc(100vw - 32px);
+  max-width: 1080px;
+  width: 100%;
+  flex-grow: 1;
+  flex-shrink: 1;
   margin-inline: auto;
   display: flex;
   flex-direction: column;
@@ -198,13 +181,9 @@ const Container = styled('div')`
 `;
 
 const CardGrid = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  display: flex;
+  flex-flow: row wrap;
   gap: ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 `;
 
 interface CardProps {
@@ -224,12 +203,13 @@ const CardLink = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
   display: flex;
   flex-direction: column;
-  width: 100%;
-  height: 256px;
+  flex-grow: 1;
+  width: calc(100% * 3 / 5);
+  aspect-ratio: 2/1;
   padding: ${space(2)};
   border: 1px solid ${p => p.theme.tokens.border.muted};
   border-radius: ${p => p.theme.borderRadius};
-  transition: initial 80ms ease-out;
+  transition: all 80ms ease-out;
   transition-property: background-color, color, border-color;
 
   &:hover,
@@ -245,15 +225,20 @@ const CardLink = styled(Link)`
     max-width: 509px;
     max-height: 170px;
   }
+
+  @media screen and (min-width: ${p => p.theme.breakpoints.md}) {
+    max-width: calc(50% - 32px);
+  }
 `;
 
 const CardTitle = styled('span')`
   margin: 0;
-  margin-top: ${space(1)};
+  margin-top: auto;
+  margin-bottom: ${space(2)};
+  padding: ${space(1)} ${space(2)};
   width: 100%;
   height: 24px;
   font-size: 24px;
-  padding: ${space(1)} ${space(2)};
   font-weight: ${p => p.theme.fontWeight.bold};
   color: currentColor;
 `;
