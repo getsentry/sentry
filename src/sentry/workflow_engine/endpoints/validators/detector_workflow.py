@@ -105,41 +105,56 @@ class BulkDetectorWorkflowsValidator(CamelSnakeSerializer):
                 f"Some workflows do not exist: {missing_workflow_ids}"
             )
 
-        existing_detector_workflows_ids = DetectorWorkflow.objects.filter(
-            detector_id=validated_data["detector_id"],
-        ).values_list("workflow_id", flat=True)
-
-        workflows_to_add = set(validated_data["workflow_ids"]) - set(
-            existing_detector_workflows_ids
+        existing_detector_workflows = list(
+            DetectorWorkflow.objects.filter(
+                detector_id=validated_data["detector_id"],
+            )
         )
-        workflows_to_remove = set(existing_detector_workflows_ids) - set(
+
+        workflow_ids_to_add = set(validated_data["workflow_ids"]) - {
+            dw.workflow_id for dw in existing_detector_workflows
+        }
+        workflow_ids_to_remove = {dw.workflow_id for dw in existing_detector_workflows} - set(
             validated_data["workflow_ids"]
         )
 
+        detector_workflows_to_remove = [
+            dw for dw in existing_detector_workflows if dw.workflow_id in workflow_ids_to_remove
+        ]
+        created_detector_workflows: list[DetectorWorkflow] = []
+
         with transaction.atomic(router.db_for_write(DetectorWorkflow)):
-            if workflows_to_remove:
+            if workflow_ids_to_remove:
                 DetectorWorkflow.objects.filter(
-                    detector_id=validated_data["detector_id"],
-                    workflow_id__in=workflows_to_remove,
+                    id__in=[dw.id for dw in detector_workflows_to_remove],
                 ).delete()
 
-            if workflows_to_add:
+            if workflow_ids_to_add:
                 created_detector_workflows = DetectorWorkflow.objects.bulk_create(
                     [
                         DetectorWorkflow(
                             detector_id=validated_data["detector_id"], workflow_id=workflow_id
                         )
-                        for workflow_id in workflows_to_add
+                        for workflow_id in workflow_ids_to_add
                     ]
                 )
 
-                for detector_workflow in created_detector_workflows:
-                    create_audit_entry(
-                        request=self.context["request"],
-                        organization=self.context["organization"],
-                        target_object=detector_workflow.id,
-                        event=audit_log.get_event_id("DETECTOR_WORKFLOW_ADD"),
-                        data=detector_workflow.get_audit_log_data(),
-                    )
+        for detector_workflow in created_detector_workflows:
+            create_audit_entry(
+                request=self.context["request"],
+                organization=self.context["organization"],
+                target_object=detector_workflow.id,
+                event=audit_log.get_event_id("DETECTOR_WORKFLOW_ADD"),
+                data=detector_workflow.get_audit_log_data(),
+            )
+
+        for deleted_detector_workflow in detector_workflows_to_remove:
+            create_audit_entry(
+                request=self.context["request"],
+                organization=self.context["organization"],
+                target_object=deleted_detector_workflow.id,
+                event=audit_log.get_event_id("DETECTOR_WORKFLOW_REMOVE"),
+                data=deleted_detector_workflow.get_audit_log_data(),
+            )
 
         return list(DetectorWorkflow.objects.filter(detector_id=validated_data["detector_id"]))
