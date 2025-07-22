@@ -87,6 +87,8 @@ class Topic(Enum):
     TASKWORKER_INGEST_DLQ = "taskworker-ingest-dlq"
     TASKWORKER_INGEST_ERRORS = "taskworker-ingest-errors"
     TASKWORKER_INGEST_ERRORS_DLQ = "taskworker-ingest-errors-dlq"
+    TASKWORKER_INGEST_ERRORS_POSTPROCESS = "taskworker-ingest-errors-postprocess"
+    TASKWORKER_INGEST_ERRORS_POSTPROCESS_DLQ = "taskworker-ingest-errors-postprocess-dlq"
     TASKWORKER_INGEST_TRANSACTIONS = "taskworker-ingest-transactions"
     TASKWORKER_INGEST_TRANSACTIONS_DLQ = "taskworker-ingest-transactions-dlq"
     TASKWORKER_INGEST_ATTACHMENTS = "taskworker-ingest-attachments"
