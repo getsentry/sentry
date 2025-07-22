@@ -1,27 +1,32 @@
 import {useMemo} from 'react';
 
 import type {TraceContextType} from 'sentry/components/events/interfaces/spans/types';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {EventTransaction} from 'sentry/types/event';
-import {useApiQueries} from 'sentry/utils/queryClient';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useApiQueries, useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {SpanFields} from 'sentry/views/insights/types';
+import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
 import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 
 import type {ConnectedTraceConnection} from './traceLinkNavigationButton';
 
+interface TraceResults {
+  data: TraceResult[];
+  meta: any;
+}
+
 /**
- *  A temporary solution for getting "next trace" data.
- *  As traces currently only include information about the previous trace, the next trace is obtained by
- *  getting all root spans in a certain timespan (e.g. 1h) and searching the root span which has the
- *  current trace as it's "previous trace".
+ * Updated solution for getting "next trace" data using the same endpoint and query mechanism
+ * as the explore view. This uses the /traces/ endpoint with EAP dataset for better performance
+ * and consistency.
  */
 export function useFindNextTrace({
   direction,
   currentTraceID,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  currentSpanId,
+
+  // currentSpanId,
   linkedTraceStartTimestamp,
   linkedTraceEndTimestamp,
   projectID,
@@ -33,77 +38,136 @@ export function useFindNextTrace({
   linkedTraceStartTimestamp?: number;
   projectID?: string;
 }): TraceContextType | undefined {
-  // const previousTraceAttributeValueOnNextTraceRootSpan = `${currentTraceID}-${currentSpanId}-1`;
+  const organization = useOrganization();
+  const isEAP = useIsEAPTraceEnabled();
 
-  const {data: indexedSpans} = useSpans(
-    {
-      limit: direction === 'next' && projectID ? 100 : 1,
-      noPagination: true,
-      pageFilters: {
-        projects: projectID ? [Number(projectID)] : [],
-        environments: [],
-        datetime: {
-          period: null,
-          utc: null,
-          start: linkedTraceStartTimestamp
-            ? new Date(linkedTraceStartTimestamp * 1000).toISOString()
-            : null,
-          end: linkedTraceEndTimestamp
-            ? new Date(linkedTraceEndTimestamp * 1000).toISOString()
-            : null,
+  // Build query using MutableSearch like explore view does
+  const query = useMemo(() => {
+    const search = new MutableSearch('');
+
+    // Only search in the specific project if provided
+    if (projectID) {
+      search.addFilterValue('project', projectID);
+    }
+    // search.addFilterValue('previous_trace', `${currentTraceID}-${currentSpanId}-1`);
+
+    return search.formatString();
+  }, [projectID]);
+
+  // Use the same traces endpoint and patterns as explore view
+  const tracesQuery = useApiQuery<TraceResults>(
+    [
+      `/organizations/${organization.slug}/traces/`,
+      {
+        query: {
+          project: projectID ? [Number(projectID)] : [],
+          environment: [],
+          ...normalizeDateTimeParams({
+            period: null,
+            utc: null,
+            start: linkedTraceStartTimestamp
+              ? new Date(linkedTraceStartTimestamp * 1000).toISOString()
+              : null,
+            end: linkedTraceEndTimestamp
+              ? new Date(linkedTraceEndTimestamp * 1000).toISOString()
+              : null,
+          }),
+          dataset: DiscoverDatasets.SPANS_EAP,
+          query,
+          sort: '-timestamp',
+          per_page: direction === 'next' ? 100 : 1,
+          breakdownSlices: 40,
         },
       },
-      search: MutableSearch.fromQueryObject({is_transaction: 1}),
-      fields: [SpanFields.TRANSACTION_SPAN_ID, SpanFields.PROJECT_ID, SpanFields.PROJECT],
-    },
-    'api.trace-view.linked-traces'
+    ],
+    {
+      staleTime: 0,
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      retry: false,
+      enabled: Boolean(
+        isEAP &&
+          currentTraceID &&
+          linkedTraceStartTimestamp &&
+          linkedTraceEndTimestamp &&
+          direction === 'next'
+      ),
+    }
   );
 
-  const traceData = indexedSpans.map(span => ({
-    projectSlug: span.project,
-    eventId: span['transaction.span_id'],
-  }));
+  // Extract potential trace data for root event fetching
+  const traceData = useMemo(() => {
+    if (!tracesQuery.data?.data) {
+      return [];
+    }
 
+    return tracesQuery.data.data.map(trace => ({
+      projectSlug: trace.project ?? undefined,
+      eventId: undefined, // We'll need to find the root span event ID
+      traceId: trace.trace,
+    }));
+  }, [tracesQuery.data]);
+
+  // Fetch root events for traces to check for trace links
   const rootEvents = useTraceRootEvents(traceData);
 
-  const nextTrace = rootEvents.find(rootEvent => {
-    const traceContext = rootEvent.data?.contexts?.trace;
-    const hasMatchingLink = traceContext?.links?.some(
-      link =>
-        link.attributes?.['sentry.link.type'] === `previous_trace` &&
-        link.trace_id === currentTraceID
-    );
+  // Find the next trace based on trace links
+  const nextTrace = useMemo(() => {
+    const foundRootEvent = rootEvents.find(rootEvent => {
+      const traceContext = rootEvent.data?.contexts?.trace;
+      const hasMatchingLink = traceContext?.links?.some(
+        link =>
+          link.attributes?.['sentry.link.type'] === 'previous_trace' &&
+          link.trace_id === currentTraceID
+      );
 
-    return hasMatchingLink;
-  });
+      return hasMatchingLink;
+    });
 
-  return nextTrace?.data?.contexts.trace;
+    return foundRootEvent?.data?.contexts.trace;
+  }, [rootEvents, currentTraceID]);
+
+  return nextTrace;
 }
 
 // Similar to `useTraceRootEvent` but allows fetching data for "more than one" trace data
 function useTraceRootEvents(
-  traceData: Array<{eventId?: string; projectSlug?: string}> | null
+  traceData: Array<{eventId?: string; projectSlug?: string; traceId?: string}> | null
 ) {
   const organization = useOrganization();
   const isEAP = useIsEAPTraceEnabled();
 
   const queryKeys = useMemo(() => {
-    if (!traceData) {
+    if (!traceData || isEAP) {
       return [];
     }
 
-    return traceData.map(
-      trace =>
-        [
-          `/organizations/${organization.slug}/events/${trace?.projectSlug}:${trace.eventId}/`,
-          {query: {referrer: 'trace-details-summary'}},
-        ] as const
-    );
-  }, [traceData, organization.slug]);
+    // For now, we'll need to find root spans for each trace to get the event data
+    // This is a limitation until we have a better way to get trace link data directly
+    return traceData
+      .filter(trace => trace.projectSlug && trace.traceId)
+      .map(
+        trace =>
+          [
+            `/organizations/${organization.slug}/events/`,
+            {
+              query: {
+                field: ['contexts.trace', 'id', 'project'],
+                query: `trace:${trace.traceId} is_transaction:1`,
+                sort: '-timestamp',
+                per_page: 1,
+                referrer: 'trace-links-navigation',
+              },
+            },
+          ] as const
+      );
+  }, [traceData, organization.slug, isEAP]);
 
-  return useApiQueries<EventTransaction>(queryKeys, {
-    // 10 minutes
-    staleTime: 1000 * 60 * 10,
-    enabled: Array.isArray(traceData) && traceData.length > 0 && !isEAP,
-  });
+  return useApiQueries<{data: EventTransaction[]}>(queryKeys, {
+    staleTime: 1000 * 60 * 10, // 10 minutes
+    enabled: queryKeys.length > 0,
+  }).map(result => ({
+    ...result,
+    data: result.data?.data?.[0], // Get the first (root) transaction
+  }));
 }
