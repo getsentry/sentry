@@ -252,7 +252,7 @@ export const Flex = styled(
   }
 )<FlexProps<any>>`
   display: ${p => (p.as === 'span' || p.inline ? 'inline-flex' : 'flex')};
-  flex-direction: ${p => p.direction};
+  flex-direction: ${p => (isString(p.direction) ? p.direction : undefined)};
   justify-content: ${p => p.justify};
   align-items: ${p => p.align};
   gap: ${p => (isString(p.gap) ? getSpacing(p.gap, p.theme) : undefined)};

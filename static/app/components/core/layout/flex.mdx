@@ -1,0 +1,129 @@
+---
+title: Flex
+description: A flexible layout component that provides CSS flexbox functionality with responsive props and spacing controls.
+source: 'sentry/components/core/layout/flex'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/layout/flex.tsx
+---
+
+import {Flex} from 'sentry/components/core/layout/flex';
+import * as Storybook from 'sentry/stories';
+
+import APIReference from '!!type-loader!sentry/components/core/layout/flex';
+
+export function Card(props) {
+  return (
+    <div style={{padding: '8px', background: 'white', borderRadius: '4px'}}>
+      {props.children}
+    </div>
+  );
+}
+
+export const types = {Flex: APIReference.Flex};
+
+The `Flex` component is a layout component that extends the `Container` component with CSS flexbox properties. It combines the powerful spacing, sizing, and styling capabilities of `Container` with flexible positioning and alignment controls.
+
+## Basic Usage
+
+To create a basic flex container, wrap elements in `<Flex>` and they will be laid out horizontally using flexbox.
+
+```jsx
+<Flex>
+  <div>Item 1</div>
+  <div>Item 2</div>
+  <div>Item 3</div>
+</Flex>
+```
+
+### Flex Properties
+
+Flex extends the `Container` component by adding Flex specific properties like `direction`, `gap`, `justify`, `align`, `wrap`, `flex`, `inline` that influence the layout of its children.
+
+Simialarly to `Container`, `Flex` inherits all spacing props like `m`, `p`, `mt`, `mb`, `ml`, `mr`, `pt`, `pb`, `pl`, `pr` and implements responsive props so that the layout can be changed per breakpoint.
+
+#### Row Direction
+
+<Storybook.Demo>
+  <Flex direction="row" gap="md" justify="space-between" align="center">
+    <Card>Item 1</Card>
+    <Card>Item 2</Card>
+    <Card>Item 3</Card>
+  </Flex>
+
+</Storybook.Demo>
+```jsx
+<Flex direction="row" gap="md" justify="space-between" align="center">
+  <div>Item 1</div>
+  <div>Item 2</div>
+  <div>Item 3</div>
+</Flex>
+```
+
+#### Column direction
+
+<Storybook.Demo>
+  <Flex direction="column" gap="md" justify="space-between" align="center">
+    <Card>Item 1</Card>
+    <Card>Item 2</Card>
+    <Card>Item 3</Card>
+  </Flex>
+</Storybook.Demo>
+```jsx
+<Flex direction="column" gap="md" justify="space-between" align="center">
+  <div>Item 1</div>
+  <div>Item 2</div>
+  <div>Item 3</div>
+</Flex>
+``` ### Spacing
+
+Similarly to `Container`, the `Flex` properties like `gap` follow the same spacing system.
+
+<Storybook.Demo>
+  <Flex direction="column" gap="md">
+    {['xs', 'sm', 'md', 'lg', 'xl', '2xl'].map(size => (
+      <Flex direction="column" gap="sm" key={size}>
+        <strong>{size} gap</strong>
+        <Flex m="md" gap={size}>
+          <Card>Item 1</Card>
+          <Card>Item 2</Card>
+          <Card>Item 3</Card>
+        </Flex>
+      </Flex>
+    ))}
+  </Flex>
+</Storybook.Demo>
+```jsx
+<Flex m="md" gap="xs">
+  <div>Item 1</div>
+  <div>Item 2</div>
+  <div>Item 3</div>
+</Flex>
+```
+
+### Responsive Props
+
+All props support responsive values using breakpoint objects. Breakpoints are: `xs`, `sm`, `md`, `lg`, `xl`, `2xl`.
+
+Example of a responsive flex container that uses a static gap, but changes direction based on the breakpoint.
+
+<Storybook.Demo>
+  <Flex direction={{sm: 'column', md: 'row'}} gap="md" p="md">
+    <Card>Responsive</Card>
+    <Card>Layout</Card>
+    <Card>Items</Card>
+  </Flex>
+</Storybook.Demo>
+```jsx
+<Flex
+  // Direction = column on sm and row on md
+  direction={{sm: 'column', md: 'row'}}
+  // Gap = md on all sizes
+  gap="md"
+>
+  <div>Responsive</div>
+  <div>Layout</div>
+  <div>Items</div>
+</Flex>
+```
+
+If a prop is not specified for a breakpoint, the value will **not** be inherited from the previous breakpoint.
