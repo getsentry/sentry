@@ -337,7 +337,7 @@ function ProjectPerformance() {
     ];
     if (
       hasDynamicSamplingCustomFeature(organization) &&
-      organization.features.includes('organizations:dynamic-sampling-minimum-sample-rate')
+      organization.features.includes('dynamic-sampling-minimum-sample-rate')
     ) {
       fields.push({
         name: 'minimumSampleRate',
