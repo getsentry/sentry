@@ -14,14 +14,14 @@ from sentry.integrations.github.webhook import (
 )
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.silo.base import control_silo_function
 
 logger = logging.getLogger(__name__)
 
 
 class GithubRequestParser(BaseRequestParser):
-    provider = EXTERNAL_PROVIDERS[ExternalProviders.GITHUB]
+    provider = IntegrationProviderSlug.GITHUB.value
     webhook_identifier = WebhookProviderIdentifier.GITHUB
     webhook_endpoint: Any = GitHubIntegrationsWebhookEndpoint
     """Overridden in GithubEnterpriseRequestParser"""

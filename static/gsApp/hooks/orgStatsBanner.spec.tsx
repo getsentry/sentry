@@ -63,7 +63,7 @@ describe('OrgStatsBanner', function () {
   });
 
   it('renders request increase event limit CTA for non-billing user', function () {
-    const organization = OrganizationFixture({});
+    const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am1_team',
@@ -128,7 +128,7 @@ describe('OrgStatsBanner', function () {
   });
 
   it('renders request upgrade for non-billing user', function () {
-    const organization = OrganizationFixture({});
+    const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am1_f',

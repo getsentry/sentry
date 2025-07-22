@@ -32,6 +32,8 @@ describe('add to dashboard modal', () => {
     widgetDisplay: [DisplayType.AREA],
     widgetPreview: [],
     projects: [],
+    environment: [],
+    filters: {},
   };
   const testDashboard: DashboardDetails = {
     id: '1',

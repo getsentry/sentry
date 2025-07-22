@@ -241,7 +241,7 @@ def drain_mailbox(payload_id: int) -> None:
     silo_mode=SiloMode.CONTROL,
     taskworker_config=TaskworkerConfig(
         namespace=hybridcloud_control_tasks,
-        processing_deadline_duration=120,
+        processing_deadline_duration=180,
     ),
 )
 def drain_mailbox_parallel(payload_id: int) -> None:

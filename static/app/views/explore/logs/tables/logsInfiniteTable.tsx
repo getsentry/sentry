@@ -4,9 +4,9 @@ import type {Virtualizer} from '@tanstack/react-virtual';
 import {useVirtualizer, useWindowVirtualizer} from '@tanstack/react-virtual';
 
 import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
 import {IconArrow, IconWarning} from 'sentry/icons';
@@ -96,17 +96,13 @@ export function LogsInfiniteTable({
   const [isFunctionScrolling, setIsFunctionScrolling] = useState(false);
 
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
-    fields.length,
-    tableRef,
-    {
-      minimumColumnWidth: 50,
-      prefixColumnWidth: 'min-content',
-      staticColumnWidths: {
-        [OurLogKnownFieldKey.MESSAGE]: '1fr',
-      },
-    }
-  );
+  const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
+    minimumColumnWidth: 50,
+    prefixColumnWidth: 'min-content',
+    staticColumnWidths: {
+      [OurLogKnownFieldKey.MESSAGE]: '1fr',
+    },
+  });
 
   const estimateSize = useCallback(
     (index: number) => {

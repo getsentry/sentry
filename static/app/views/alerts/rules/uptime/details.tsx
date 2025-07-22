@@ -139,7 +139,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <ButtonBar gap={1}>
+          <ButtonBar>
             <StatusToggleButton
               uptimeRule={uptimeRule}
               onToggleStatus={status => handleUpdate({status})}
@@ -171,7 +171,6 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
             <Alert.Container>
               <Alert
                 type="muted"
-                showIcon
                 trailingItems={
                   <StatusToggleButton
                     uptimeRule={uptimeRule}

@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
@@ -157,7 +157,6 @@ export default function ExternalIssueForm({
           setIsDynamicallyRefetching(false);
         },
         error: (err: any) => {
-          // This behavior comes from the DeprecatedAsyncComponent
           if (err?.responseText) {
             Sentry.addBreadcrumb({
               message: err.responseText,
@@ -311,7 +310,16 @@ export default function ExternalIssueForm({
   }, [formFields]);
 
   if (isPending) {
-    return <LoadingIndicator />;
+    return (
+      <Fragment>
+        <Header closeButton>
+          <h4>{title}</h4>
+        </Header>
+        <Body>
+          <LoadingIndicator />
+        </Body>
+      </Fragment>
+    );
   }
 
   if (isError) {
@@ -320,7 +328,16 @@ export default function ExternalIssueForm({
       typeof errorDetail === 'string'
         ? errorDetail
         : t('An error occurred loading the issue form');
-    return <LoadingError message={errorMessage} />;
+    return (
+      <Fragment>
+        <Header closeButton>
+          <h4>{title}</h4>
+        </Header>
+        <Body>
+          <LoadingError message={errorMessage} />
+        </Body>
+      </Fragment>
+    );
   }
 
   return (

@@ -359,7 +359,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
             "enabled": True,
             "config": {},
             "triggers": {"logicType": "any", "conditions": []},
-            "action_filters": [],
+            "actionFilters": [],
         }
 
     def test_create_workflow__basic(self):
@@ -390,7 +390,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
                 {
                     "type": "eq",
                     "comparison": 1,
-                    "condition_result": True,
+                    "conditionResult": True,
                 }
             ],
         }
@@ -408,23 +408,23 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
         )
 
     def test_create_workflow__with_actions(self):
-        self.valid_workflow["action_filters"] = [
+        self.valid_workflow["actionFilters"] = [
             {
                 "logicType": "any",
                 "conditions": [
                     {
                         "type": "eq",
                         "comparison": 1,
-                        "condition_result": True,
+                        "conditionResult": True,
                     }
                 ],
                 "actions": [
                     {
                         "type": Action.Type.SLACK,
                         "config": {
-                            "target_identifier": "test",
-                            "target_display": "Test",
-                            "target_type": 0,
+                            "targetIdentifier": "test",
+                            "targetDisplay": "Test",
+                            "targetType": 0,
                         },
                         "data": {},
                         "integrationId": 1,
@@ -461,7 +461,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
             "conditions": [
                 {
                     "comparison": 1,
-                    "condition_result": True,
+                    "conditionResult": True,
                 }
             ],
         }
@@ -480,7 +480,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
                 "conditions": [
                     {
                         "comparison": 1,
-                        "condition_result": True,
+                        "conditionResult": True,
                     }
                 ],
                 "actions": [

@@ -25,14 +25,10 @@ import {
 } from 'sentry/views/insights/common/components/textAlign';
 import type {SpanSample} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {
-  type ModuleName,
-  SpanIndexedField,
-  SpanMetricsField,
-} from 'sentry/views/insights/types';
+import {type ModuleName, SpanFields} from 'sentry/views/insights/types';
 import type {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
-const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
+const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanFields;
 
 type Keys =
   | 'transaction_id'
@@ -74,8 +70,8 @@ type SpanTableRow = {
   };
   'transaction.span_id': string;
 } & SpanSample & {
-    [SpanIndexedField.PROFILER_ID]?: string;
-    [SpanIndexedField.PROFILE_ID]?: string;
+    [SpanFields.PROFILER_ID]?: string;
+    [SpanFields.PROFILE_ID]?: string;
   };
 
 type Props = {
@@ -136,7 +132,6 @@ export function SpanSamplesTable({
               targetId: row['transaction.span_id'],
               timestamp: row.timestamp,
               traceSlug: row.trace,
-              projectSlug: row.project,
               organization,
               location: {
                 ...location,
@@ -170,7 +165,6 @@ export function SpanSamplesTable({
               targetId: row['transaction.span_id'],
               timestamp: row.timestamp,
               traceSlug: row.trace,
-              projectSlug: row.project,
               organization,
               location: {
                 ...location,
@@ -191,7 +185,7 @@ export function SpanSamplesTable({
     }
 
     if (column.key === HTTP_RESPONSE_CONTENT_LENGTH) {
-      const size = parseInt(row[HTTP_RESPONSE_CONTENT_LENGTH], 10);
+      const size = row[HTTP_RESPONSE_CONTENT_LENGTH];
       return <ResourceSizeCell bytes={size} />;
     }
 
@@ -201,9 +195,8 @@ export function SpanSamplesTable({
     }
 
     if (column.key === 'profile_id') {
-      const profileId =
-        row[SpanIndexedField.PROFILEID] || row[SpanIndexedField.PROFILE_ID];
-      const continuousProfilerId = row[SpanIndexedField.PROFILER_ID];
+      const profileId = row[SpanFields.PROFILEID] || row[SpanFields.PROFILE_ID];
+      const continuousProfilerId = row[SpanFields.PROFILER_ID];
       const link =
         continuousProfilerId && row?.transaction
           ? generateContinuousProfileFlamechartRouteWithQuery({

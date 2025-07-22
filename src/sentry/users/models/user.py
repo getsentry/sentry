@@ -182,7 +182,6 @@ class User(Model, AbstractBaseUser):
         newsletter_consent_prompt: bool
 
         bitfield_default = 0
-        bitfield_null = True
 
     session_nonce = models.CharField(max_length=12, null=True)
 

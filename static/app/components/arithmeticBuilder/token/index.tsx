@@ -1,4 +1,4 @@
-import type {LocationRange} from 'peggy';
+import type {Location, LocationRange} from 'peggy';
 
 import {defined} from 'sentry/utils';
 
@@ -10,6 +10,7 @@ export enum TokenKind {
   FREE_TEXT = 'str',
   ATTRIBUTE = 'attr',
   FUNCTION = 'func',
+  LITERAL = 'lit',
 }
 
 export abstract class Token {
@@ -114,6 +115,53 @@ export class TokenFreeText extends Token {
   }
 }
 
+export class TokenLiteral extends Token {
+  kind: TokenKind = TokenKind.LITERAL;
+
+  value: number;
+
+  constructor(location: LocationRange, text: string) {
+    super(location, text);
+    const value = +text;
+    if (isNaN(value)) {
+      throw new Error(`Unable to initialize TokenLiteral with ${text}`);
+    }
+    this.value = value;
+  }
+
+  get sign(): '+' | '-' | null {
+    if (this.text.startsWith('-')) {
+      return '-';
+    }
+    if (this.text.startsWith('+')) {
+      return '+';
+    }
+    return null;
+  }
+
+  split(): [TokenOperator, TokenLiteral] {
+    const sign = this.sign;
+    if (!defined(sign)) {
+      throw new Error('Literal does not contain a sign to be split.');
+    }
+
+    const pos: Location = {
+      offset: this.location.start.offset + 1,
+      line: this.location.start.line,
+      column: this.location.start.column + 1,
+    };
+    const op = new TokenOperator(
+      {source: undefined, start: this.location.start, end: pos},
+      sign === '-' ? Operator.MINUS : Operator.PLUS
+    );
+    const lit = new TokenLiteral(
+      {source: undefined, start: pos, end: this.location.end},
+      this.text.substring(1)
+    );
+    return [op, lit];
+  }
+}
+
 export function isTokenParenthesis(
   token: Token | null | undefined
 ): token is TokenParenthesis {
@@ -133,4 +181,8 @@ export function isTokenFreeText(token: Token | null | undefined): token is Token
 
 export function isTokenFunction(token: Token | null | undefined): token is TokenFunction {
   return token?.kind === TokenKind.FUNCTION;
+}
+
+export function isTokenLiteral(token: Token | null | undefined): token is TokenLiteral {
+  return token?.kind === TokenKind.LITERAL;
 }

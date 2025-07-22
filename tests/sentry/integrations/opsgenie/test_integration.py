@@ -306,17 +306,20 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             )
         id1 = str(self.organization_integration.id) + "-thonk"
         id2 = str(self.organization_integration.id) + "-thinkies"
-        assert org_integration.config == {
-            "team_table": [
-                {"id": id1, "team": "thonk [MIGRATED]", "integration_key": "123-key"},
-                {"id": id2, "team": "thinkies [MIGRATED]", "integration_key": "456-key"},
-            ]
-        }
+        # Don't assert order to prevent test flakiness
+        assert len(org_integration.config["team_table"]) == 2
+        assert {
+            "id": id1,
+            "team": "thonk [MIGRATED]",
+            "integration_key": "123-key",
+        } in org_integration.config["team_table"]
+        assert {
+            "id": id2,
+            "team": "thinkies [MIGRATED]",
+            "integration_key": "456-key",
+        } in org_integration.config["team_table"]
 
-        rule_updated = Rule.objects.get(
-            label="rule",
-            project=self.project,
-        )
+        rule_updated = Rule.objects.get(label="rule", project=self.project)
 
         assert rule_updated.data["actions"] == [
             ALERT_LEGACY_INTEGRATIONS,
@@ -327,10 +330,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             },
         ]
 
-        rule2_updated = Rule.objects.get(
-            label="rule2",
-            project=project2,
-        )
+        rule2_updated = Rule.objects.get(label="rule2", project=project2)
         assert rule2_updated.data["actions"] == [
             ALERT_LEGACY_INTEGRATIONS,
             {

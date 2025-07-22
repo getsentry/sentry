@@ -3,8 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
+import {ExternalLink} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
@@ -20,8 +20,8 @@ import {
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useTopNSpanEAPSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
@@ -43,7 +43,7 @@ export default function TokenUsageWidget() {
 
   const fullQuery = useCombinedQuery(getAIGenerationsFilter());
 
-  const tokensRequest = useEAPSpans(
+  const tokensRequest = useSpans(
     {
       fields: [AI_MODEL_ID_ATTRIBUTE, AI_TOKEN_USAGE_ATTRIBUTE_SUM],
       sorts: [{field: AI_TOKEN_USAGE_ATTRIBUTE_SUM, kind: 'desc'}],
@@ -53,7 +53,7 @@ export default function TokenUsageWidget() {
     Referrer.TOKEN_USAGE_WIDGET
   );
 
-  const timeSeriesRequest = useTopNSpanEAPSeries(
+  const timeSeriesRequest = useTopNSpanSeries(
     {
       ...pageFilterChartParams,
       search: fullQuery,
@@ -102,7 +102,9 @@ export default function TokenUsageWidget() {
         plottables: timeSeries.map(
           (ts, index) =>
             new Bars(convertSeriesToTimeseries(ts), {
-              color: ts.seriesName === 'Other' ? theme.gray200 : colorPalette[index],
+              color:
+                ts.seriesName === 'Other' ? theme.chart.neutral : colorPalette[index],
+              alias: ts.seriesName, // Ensures that the tooltip shows the full series name
               stack: 'stack',
             })
         ),

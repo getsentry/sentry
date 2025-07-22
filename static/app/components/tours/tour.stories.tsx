@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import compassImage from 'sentry-images/spot/onboarding-compass.svg';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -14,6 +15,7 @@ import {
   type TourContextProviderProps,
   TourElement,
 } from 'sentry/components/tours/components';
+import {StartTourModal, startTourModalCss} from 'sentry/components/tours/startTour';
 import type {TourContextType} from 'sentry/components/tours/tourContext';
 import {IconStar} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
@@ -166,7 +168,7 @@ export const MY_TOUR_KEY = 'tour.my_tour';
         Then, whenever you'd like to start your tour, just import your context and call
         `startTour()`.
       </p>
-      <Alert type="warning">
+      <Alert type="warning" showIcon={false}>
         <strong>Note:</strong> The tour will not start until all of the steps are present
         in the DOM! The <Storybook.JSXNode name="TourContextProvider" /> component you
         created earlier will be keeping track of this internally. You can check this with
@@ -305,6 +307,45 @@ export const MY_TOUR_KEY = 'tour.my_tour';
           <Input placeholder="Step 3: Password" type="password" />
         </TourElement>
       </TourProvider>
+    </Fragment>
+  ));
+
+  story('Start Tour Modal', () => (
+    <Fragment>
+      <p>
+        To show a modal to start the tour, you can use the{' '}
+        <Storybook.JSXNode name="StartTourModal" /> component.
+      </p>
+      <Button
+        onClick={() => {
+          openModal(
+            props => (
+              <StartTourModal
+                closeModal={props.closeModal}
+                onDismissTour={() => {
+                  // eslint-disable-next-line no-alert
+                  window.alert('Tour dismissed');
+                }}
+                onStartTour={() => {
+                  // eslint-disable-next-line no-alert
+                  window.alert('Start Tour Clicked');
+                }}
+                header="Start Tour Modal"
+                description="Take the tour to learn more about this page (if you dare)."
+                img={{
+                  src: compassImage,
+                  alt: 'Onboarding Compass',
+                }}
+              />
+            ),
+            {
+              modalCss: startTourModalCss,
+            }
+          );
+        }}
+      >
+        Open Start Tour Modal
+      </Button>
     </Fragment>
   ));
 });

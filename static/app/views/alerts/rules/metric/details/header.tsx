@@ -67,6 +67,7 @@ function DetailsHeader({
       aggregate: rule.aggregate,
       dataset: rule.dataset,
       eventTypes: rule.eventTypes,
+      organization,
     });
 
   return (
@@ -101,7 +102,7 @@ function DetailsHeader({
         </RuleTitle>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <ButtonBar gap={1}>
+        <ButtonBar>
           {rule && project && (
             <Access access={['alerts:write']}>
               {({hasAccess}) => (

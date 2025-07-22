@@ -28,16 +28,15 @@ import {
   ChartContainer,
   ModalChartContainer,
 } from 'sentry/views/insights/common/components/insightsChartContainer';
-import {useMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import {Referrer} from 'sentry/views/insights/mobile/appStarts/referrers';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {YAxis, YAXIS_COLUMNS} from 'sentry/views/insights/mobile/screenload/constants';
 import {transformDeviceClassEvents} from 'sentry/views/insights/mobile/screenload/utils';
-import {SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 
 const YAXES = [YAxis.COLD_START, YAxis.WARM_START];
@@ -54,7 +53,6 @@ function DeviceClassBreakdownBarChart({
 }: DeviceClassBreakdownBarChartProps) {
   const theme = useTheme();
   const location = useLocation();
-  const useEap = useInsightsEap();
   const {query: locationQuery} = location;
   const {
     primaryRelease,
@@ -64,7 +62,7 @@ function DeviceClassBreakdownBarChart({
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
   const startType =
-    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
+    decodeScalar(location.query[SpanFields.APP_START_TYPE]) ?? COLD_START_TYPE;
   const yAxis =
     YAXIS_COLUMNS[startType === COLD_START_TYPE ? YAxis.COLD_START : YAxis.WARM_START];
   const query = new MutableSearch([...(additionalFilters ?? [])]);
@@ -77,9 +75,7 @@ function DeviceClassBreakdownBarChart({
   if (searchQuery) {
     query.addStringFilter(prepareQueryForLandingPage(searchQuery, false));
   }
-  if (useEap) {
-    query.addFilterValue('is_transaction', 'true');
-  }
+  query.addFilterValue('is_transaction', 'true');
 
   const search = new MutableSearch(
     appendReleaseFilters(query, primaryRelease, secondaryRelease)
@@ -96,7 +92,7 @@ function DeviceClassBreakdownBarChart({
     data: startupDataByDeviceClass,
     isPending,
     error,
-  } = useMetrics(
+  } = useSpans(
     {
       enabled: !isReleasesLoading,
       search,

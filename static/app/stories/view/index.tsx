@@ -1,255 +1,173 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {Fragment, type PropsWithChildren} from 'react';
+import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconSettings} from 'sentry/icons';
-import {IconSearch} from 'sentry/icons/iconSearch';
+import {StorySidebar} from 'sentry/stories/view/storySidebar';
+import {useStoryRedirect} from 'sentry/stories/view/useStoryRedirect';
 import {space} from 'sentry/styles/space';
-import {useHotkeys} from 'sentry/utils/useHotkeys';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
+import {StoryLanding} from './landing';
 import {StoryExports} from './storyExports';
 import {StoryHeader} from './storyHeader';
-import {StoryTableOfContents} from './storyTableOfContents';
-import {StoryTree, useStoryTree} from './storyTree';
-import {useStoriesLoader, useStoryBookFiles} from './useStoriesLoader';
-
-function isCoreFile(file: string) {
-  return (
-    file.includes('components/core') ||
-    file.includes('app/styles') ||
-    file.includes('app/icons')
-  );
-}
+import {useStoryDarkModeTheme} from './useStoriesDarkMode';
+import {useStoriesLoader} from './useStoriesLoader';
 
 export default function Stories() {
-  const searchInput = useRef<HTMLInputElement>(null);
-  const location = useLocation<{name: string; query?: string}>();
-  const files = useStoryBookFiles();
+  const location = useLocation();
+  return isLandingPage(location) ? <StoriesLanding /> : <StoryDetail />;
+}
 
-  // If no story is selected, show the landing page stories
-  const storyFiles = useMemo(() => {
-    if (!location.query.name) {
-      return files.filter(
-        file =>
-          file.endsWith('styles/colors.mdx') ||
-          file.endsWith('styles/typography.stories.tsx')
-      );
-    }
-    return [location.query.name];
-  }, [files, location.query.name]);
+function isLandingPage(location: ReturnType<typeof useLocation>) {
+  return /\/stories\/?$/.test(location.pathname) && !location.query.name;
+}
 
-  const story = useStoriesLoader({files: storyFiles});
-  const [storyRepresentation, setStoryRepresentation] = useLocalStorageState<
-    'category' | 'filesystem'
-  >('story-representation', 'category');
-
-  const query = location.query.query ?? '';
-  const filesByOwner = useMemo(() => {
-    const map: Record<'core' | 'shared', string[]> = {
-      core: [],
-      shared: [],
-    };
-    for (const file of files) {
-      if (isCoreFile(file)) {
-        map.core.push(file);
-      } else {
-        map.shared.push(file);
-      }
-    }
-    return map;
-  }, [files]);
-
-  const coreTree = useStoryTree(filesByOwner.core, {
-    query,
-    representation: storyRepresentation,
-  });
-  const sharedTree = useStoryTree(filesByOwner.shared, {
-    query,
-    representation: storyRepresentation,
-  });
-
-  const navigate = useNavigate();
-  const onSearchInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      navigate(
-        {
-          query: {...location.query, query: e.target.value, name: location.query.name},
-        },
-        {replace: true}
-      );
-    },
-    [location.query, navigate]
-  );
-
-  const storiesSearchHotkeys = useMemo(() => {
-    return [{match: '/', callback: () => searchInput.current?.focus()}];
-  }, []);
-  useHotkeys(storiesSearchHotkeys);
-
+function StoriesLanding() {
   return (
-    <RouteAnalyticsContextProvider>
-      <OrganizationContainer>
-        <Layout>
-          <HeaderContainer>
-            <StoryHeader />
-          </HeaderContainer>
-
-          <SidebarContainer>
-            <InputGroup>
-              <InputGroup.LeadingItems disablePointerEvents>
-                <IconSearch />
-              </InputGroup.LeadingItems>
-              <InputGroup.Input
-                ref={searchInput}
-                placeholder="Search stories"
-                defaultValue={location.query.query ?? ''}
-                onChange={onSearchInputChange}
-              />
-              <InputGroup.TrailingItems>
-                <StoryRepresentationToggle
-                  storyRepresentation={storyRepresentation}
-                  setStoryRepresentation={setStoryRepresentation}
-                />
-              </InputGroup.TrailingItems>
-              {/* @TODO (JonasBadalic): Implement clear button when there is an active query */}
-            </InputGroup>
-            <StoryTreeContainer>
-              <StoryTreeTitle>Design System</StoryTreeTitle>
-              <StoryTree nodes={coreTree} />
-              <StoryTreeTitle>Shared</StoryTreeTitle>
-              <StoryTree nodes={sharedTree} />
-            </StoryTreeContainer>
-          </SidebarContainer>
-
-          {story.isLoading ? (
-            <VerticalScroll style={{gridArea: 'body'}}>
-              <LoadingIndicator />
-            </VerticalScroll>
-          ) : story.isError ? (
-            <VerticalScroll style={{gridArea: 'body'}}>
-              <Alert.Container>
-                <Alert type="error" showIcon>
-                  <strong>{story.error.name}:</strong> {story.error.message}
-                </Alert>
-              </Alert.Container>
-            </VerticalScroll>
-          ) : story.isSuccess ? (
-            <StoryMainContainer>
-              {story.data.map(s => {
-                return <StoryExports key={s.filename} story={s} />;
-              })}
-            </StoryMainContainer>
-          ) : (
-            <VerticalScroll style={{gridArea: 'body'}}>
-              <strong>The file you selected does not export a story.</strong>
-            </VerticalScroll>
-          )}
-          <StoryIndexContainer>
-            <StoryTableOfContents />
-          </StoryIndexContainer>
-        </Layout>
-      </OrganizationContainer>
-    </RouteAnalyticsContextProvider>
+    <StoriesLayout>
+      <StoryMainContainer>
+        <StoryLanding />
+      </StoryMainContainer>
+    </StoriesLayout>
   );
 }
 
-function StoryRepresentationToggle(props: {
-  setStoryRepresentation: (value: 'category' | 'filesystem') => void;
-  storyRepresentation: 'category' | 'filesystem';
-}) {
+function StoryDetail() {
+  useStoryRedirect();
+  const location = useLocation<{name: string; query?: string}>();
+  const files = [location.state?.storyPath ?? location.query.name];
+  const story = useStoriesLoader({files});
+
   return (
-    <CompactSelect
-      trigger={triggerProps => (
-        <Button
-          borderless
-          icon={<IconSettings />}
-          size="xs"
-          aria-label="Toggle story representation"
-          {...triggerProps}
-          tabIndex={-1}
-        />
+    <StoriesLayout>
+      {story.isLoading ? (
+        <VerticalScroll>
+          <LoadingIndicator />
+        </VerticalScroll>
+      ) : story.isError ? (
+        <VerticalScroll>
+          <Alert.Container>
+            <Alert type="error">
+              <strong>{story.error.name}:</strong> {story.error.message}
+            </Alert>
+          </Alert.Container>
+        </VerticalScroll>
+      ) : story.isSuccess ? (
+        <StoryMainContainer>
+          {story.data.map(s => {
+            return <StoryExports key={s.filename} story={s} />;
+          })}
+        </StoryMainContainer>
+      ) : (
+        <VerticalScroll>
+          <strong>The file you selected does not export a story.</strong>
+        </VerticalScroll>
       )}
-      defaultValue={props.storyRepresentation}
-      options={[
-        {label: 'Category', value: 'category'},
-        {label: 'Filesystem', value: 'filesystem'},
-      ]}
-      onChange={option => props.setStoryRepresentation(option.value)}
-    />
+    </StoriesLayout>
   );
+}
+
+function StoriesLayout(props: PropsWithChildren) {
+  return (
+    <Fragment>
+      <GlobalStoryStyles />
+      <RouteAnalyticsContextProvider>
+        <OrganizationContainer>
+          <Layout>
+            <HeaderContainer>
+              <StoryHeader />
+            </HeaderContainer>
+
+            <StorySidebar />
+
+            {props.children}
+          </Layout>
+        </OrganizationContainer>
+      </RouteAnalyticsContextProvider>
+    </Fragment>
+  );
+}
+
+function GlobalStoryStyles() {
+  const theme = useTheme();
+  const darkTheme = useStoryDarkModeTheme();
+  const location = useLocation();
+  const isIndex = isLandingPage(location);
+  const styles = css`
+    /* match body background with header story styles */
+    body {
+      background-color: ${isIndex
+        ? darkTheme.tokens.background.secondary
+        : theme.tokens.background.secondary};
+    }
+    /* fixed position color block to match overscroll color to story background */
+    body::after {
+      content: '';
+      display: block;
+      position: fixed;
+      inset: 0;
+      top: unset;
+      background-color: ${theme.tokens.background.primary};
+      height: 50vh;
+      z-index: -1;
+      pointer-events: none;
+    }
+    /* adjust position of global .messages-container element */
+    .messages-container {
+      margin-top: 52px;
+      margin-left: 256px;
+      z-index: ${theme.zIndex.header};
+      background: ${theme.tokens.background.primary};
+    }
+  `;
+  return <Global key="stories" styles={styles} />;
 }
 
 const Layout = styled('div')`
-  --stories-grid-space: ${space(2)};
+  background: ${p => p.theme.tokens.background.primary};
+  --stories-grid-space: 0;
 
   display: grid;
-  grid-template:
-    'head head head' max-content
-    'aside body index' auto / 200px 1fr;
-  gap: var(--stories-grid-space);
+  grid-template-rows: 1fr;
+  grid-template-columns: 256px minmax(auto, 1fr);
   place-items: stretch;
-
-  height: 100vh;
-  padding: var(--stories-grid-space);
+  min-height: calc(100dvh - 52px);
+  padding-bottom: ${space(4)};
+  position: absolute;
+  top: 52px;
+  left: 0;
+  right: 0;
 `;
 
-const HeaderContainer = styled('div')`
-  grid-area: head;
-`;
-
-const SidebarContainer = styled('div')`
-  grid-area: aside;
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-  min-height: 0;
-  position: relative;
-  z-index: 10;
-`;
-
-const StoryTreeContainer = styled('div')`
-  overflow-y: scroll;
-  flex-grow: 1;
-`;
-
-const StoryTreeTitle = styled('p')`
-  margin-bottom: ${space(1)};
-`;
-
-const StoryIndexContainer = styled('div')`
-  grid-area: index;
+const HeaderContainer = styled('header')`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: ${p => p.theme.zIndex.header};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const VerticalScroll = styled('main')`
-  overflow-x: hidden;
-  overflow-y: scroll;
-  grid-area: body;
+  overflow-x: visible;
+  overflow-y: auto;
+
+  grid-row: 1;
+  grid-column: 2;
+  padding: ${space(2)};
 `;
 
-/**
- * Avoid <Panel> here because nested panels will have a modified theme.
- * Therefore stories will look different in prod.
- */
-const StoryMainContainer = styled(VerticalScroll)`
-  background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
-
-  grid-area: body;
-
-  padding: var(--stories-grid-space);
-  padding-top: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
+const StoryMainContainer = styled('div')`
+  grid-row: 1;
+  grid-column: 2;
+  color: ${p => p.theme.tokens.content.primary};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
 
   h1,
   h2,
@@ -257,6 +175,91 @@ const StoryMainContainer = styled(VerticalScroll)`
   h4,
   h5,
   h6 {
-    scroll-margin-top: ${space(3)};
+    scroll-margin-top: 64px;
+    margin: 0;
+  }
+
+  p,
+  pre {
+    margin: 0;
+  }
+
+  code:not(pre > code) {
+    background: ${p => p.theme.tokens.background.secondary};
+    color: ${p => p.theme.tokens.content.primary};
+  }
+
+  table:not([class]) {
+    margin: 1px;
+    padding: 0;
+    width: calc(100% - 2px);
+    table-layout: auto;
+    border: 0;
+    border-collapse: collapse;
+    border-radius: ${p => p.theme.borderRadius};
+    box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.primary};
+    margin-bottom: 32px;
+
+    & thead {
+      height: 36px;
+      border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+      background: ${p => p.theme.tokens.background.tertiary};
+      border-bottom: 4px solid ${p => p.theme.tokens.border.primary};
+    }
+
+    & th {
+      padding-inline: ${space(2)};
+      padding-block: ${space(0.75)};
+
+      &:first-of-type {
+        border-radius: ${p => p.theme.borderRadius} 0 0 0;
+      }
+      &:last-of-type {
+        border-radius: 0 ${p => p.theme.borderRadius} 0 0;
+      }
+    }
+
+    tr:last-child td:first-of-type {
+      border-radius: 0 0 0 ${p => p.theme.borderRadius};
+    }
+    tr:last-child td:last-of-type {
+      border-radius: 0 0 ${p => p.theme.borderRadius} 0;
+    }
+
+    tbody {
+      background: ${p => p.theme.tokens.background.primary};
+      border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+    }
+
+    tr {
+      border-bottom: 1px solid ${p => p.theme.tokens.border.muted};
+      vertical-align: baseline;
+
+      &:last-child {
+        border-bottom: 0;
+      }
+    }
+
+    td {
+      padding-inline: ${space(2)};
+      padding-block: ${space(1.5)};
+    }
+  }
+
+  div + .expressive-code .frame {
+    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+    pre {
+      border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+    }
+  }
+
+  .expressive-code .frame {
+    margin-bottom: 32px;
+    box-shadow: none;
+    border: 1px solid #000000;
+    pre {
+      background: hsla(254, 18%, 15%, 1);
+      border: 0;
+    }
   }
 `;

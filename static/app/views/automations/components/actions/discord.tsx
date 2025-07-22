@@ -1,5 +1,5 @@
 import {Flex} from 'sentry/components/core/layout';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {
   OptionalRowLine,
   RowLine,
@@ -65,4 +65,14 @@ export function DiscordNode() {
       </DismissableInfoAlert>
     </Flex>
   );
+}
+
+export function validateDiscordAction(action: Action): string | undefined {
+  if (!action.integrationId) {
+    return t('You must specify a Discord server.');
+  }
+  if (!action.config.target_display) {
+    return t('You must specify a channel ID or URL.');
+  }
+  return undefined;
 }

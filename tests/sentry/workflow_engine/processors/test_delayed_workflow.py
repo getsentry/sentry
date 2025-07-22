@@ -65,7 +65,7 @@ from sentry.workflow_engine.processors.workflow import (
     DelayedWorkflowItem,
     WorkflowDataConditionGroupType,
 )
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
+from sentry.workflow_engine.types import DataConditionHandler
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
@@ -697,6 +697,29 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             self.group2.id: {self.workflow2_dcgs[0]},  # WHEN dcg (ANY-short)
         }
 
+    def test_missing_query_result_excludes_group(self):
+        existing_query = UniqueConditionQuery(
+            handler=EventFrequencyQueryHandler, interval="1h", environment_id=None
+        )
+        existing_result = self.condition_group_results[existing_query]
+        assert self.group2.id in existing_result
+        self.condition_group_results[existing_query] = {
+            self.group1.id: existing_result[self.group1.id]
+        }
+
+        result = get_groups_to_fire(
+            self.data_condition_groups,
+            self.workflows_to_envs,
+            self.event_data,
+            self.condition_group_results,
+            self.dcg_to_slow_conditions,
+        )
+
+        # group2 should be excluded because it's missing from the query result
+        assert result == {
+            self.group1.id: set(self.workflow1_dcgs),
+        }
+
     def test_dcg_all_fails(self):
         self.condition_group_results.update(
             {
@@ -814,12 +837,14 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             self.group2: self.event2.for_group(self.group2),
         }
 
-    def test_bulk_fetch_events(self):
+    def test_bulk_fetch_events(self) -> None:
         event_ids = [self.event1.event_id, self.event2.event_id]
-        events = bulk_fetch_events(event_ids, self.project.id)
+        events = bulk_fetch_events(event_ids, self.project)
 
         for event in list(events.values()):
             assert event.event_id in event_ids
+            # For perf reasons, we want to be sure the events have the project cached.
+            assert event._project_cache == self.project
 
     def test_get_group_to_groupevent(self):
         self._push_base_events()
@@ -828,11 +853,11 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         group_to_groupevent = get_group_to_groupevent(
             event_data,
             self.groups_to_dcgs,
-            self.project.id,
+            self.project,
         )
         assert group_to_groupevent == self.group_to_groupevent
 
-    @patch("sentry.workflow_engine.models.action.Action.trigger")
+    @patch("sentry.workflow_engine.tasks.actions.trigger_action.delay")
     @with_feature("organizations:workflow-engine-trigger-actions")
     def test_fire_actions_for_groups__fire_actions(self, mock_trigger):
         self._push_base_events()
@@ -846,14 +871,18 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         )
 
         assert mock_trigger.call_count == 2
-        assert mock_trigger.call_args_list[0][0] == (
-            WorkflowEventData(event=self.event1.for_group(self.group1), group=self.group1),
-            self.detector,
-        )
-        assert mock_trigger.call_args_list[1][0] == (
-            WorkflowEventData(event=self.event2.for_group(self.group2), group=self.group2),
-            self.detector,
-        )
+
+        # First call should be for workflow1/group1
+        first_call_kwargs = mock_trigger.call_args_list[0].kwargs
+        assert first_call_kwargs["detector_id"] == self.detector.id
+        assert first_call_kwargs["event_id"] == self.event1.event_id
+        assert first_call_kwargs["group_id"] == self.group1.id
+
+        # Second call should be for workflow2/group2
+        second_call_kwargs = mock_trigger.call_args_list[1].kwargs
+        assert second_call_kwargs["detector_id"] == self.detector.id
+        assert second_call_kwargs["event_id"] == self.event2.event_id
+        assert second_call_kwargs["group_id"] == self.group2.id
 
     @freeze_time()
     @patch("sentry.workflow_engine.processors.workflow.enqueue_workflows")

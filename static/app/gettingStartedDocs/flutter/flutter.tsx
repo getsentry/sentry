@@ -1,16 +1,16 @@
 import {Fragment} from 'react';
 
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getReplayMobileConfigureDescription,
   getReplayVerifyStep,
@@ -307,7 +307,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                 additionalInfo: params.isPerformanceSelected ? (
                   <Fragment>
                     <p>{configureAdditionalInfo}</p>
-                    <Alert type="info">
+                    <Alert type="info" showIcon={false}>
                       {t(
                         'To monitor performance, you need to add extra instrumentation as described in the Tracing section below.'
                       )}

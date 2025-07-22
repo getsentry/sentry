@@ -2,7 +2,7 @@ import abc
 import dataclasses
 import logging
 from datetime import UTC, datetime, timedelta
-from typing import Generic, cast
+from typing import Any, Generic, cast
 from uuid import uuid4
 
 from django.conf import settings
@@ -380,11 +380,23 @@ class StatefulDetectorHandler(
         self.state_manager.commit_state_updates()
         return results
 
-    def _create_resolve_message(self, group_key: DetectorGroupKey = None) -> StatusChangeMessage:
+    def _create_resolve_message(
+        self,
+        condition_results: ProcessedDataConditionGroup,
+        data_packet: DataPacket[DataPacketType],
+        group_key: DetectorGroupKey = None,
+    ) -> StatusChangeMessage:
         fingerprint = [
             *self.build_issue_fingerprint(),
             self.state_manager.build_key(group_key),
         ]
+
+        evidence_data = self._build_evidence_data(
+            detector_occurrence=None,
+            evaluation_result=condition_results,
+            new_priority=DetectorPriorityLevel.OK,
+            data_packet=data_packet,
+        )
 
         return StatusChangeMessage(
             fingerprint=fingerprint,
@@ -392,6 +404,7 @@ class StatefulDetectorHandler(
             new_status=GroupStatus.RESOLVED,
             new_substatus=None,
             detector_id=self.detector.id,
+            activity_data=evidence_data,
         )
 
     def _extract_value_from_packet(
@@ -430,7 +443,11 @@ class StatefulDetectorHandler(
 
         if new_priority == DetectorPriorityLevel.OK:
             # Call the `create_resolve_message` method to create the status change.
-            detector_result = self._create_resolve_message(group_key)
+            detector_result = self._create_resolve_message(
+                condition_results,
+                data_packet,
+                group_key,
+            )
         else:
             # Call the `create_occurrence` method to create the detector occurrence.
             detector_occurrence, event_data = self.create_occurrence(
@@ -484,6 +501,33 @@ class StatefulDetectorHandler(
 
         return list(DetectorPriorityLevel(level) for level in condition_result_levels)
 
+    def _build_evidence_data(
+        self,
+        detector_occurrence: DetectorOccurrence | None,
+        evaluation_result: ProcessedDataConditionGroup,
+        new_priority: DetectorPriorityLevel,
+        data_packet: DataPacket[DataPacketType],
+    ) -> dict[str, Any]:
+
+        evidence_data: dict[str, Any] = {}
+
+        if detector_occurrence:
+            evidence_data.update(detector_occurrence.evidence_data)
+
+        evidence_data.update(
+            {
+                "detector_id": self.detector.id,
+                "value": new_priority,
+                "data_packet_source_id": str(data_packet.source_id),
+                "conditions": [
+                    result.condition.get_snapshot()
+                    for result in evaluation_result.condition_results
+                ],
+            }
+        )
+
+        return evidence_data
+
     def _create_decorated_issue_occurrence(
         self,
         data_packet: DataPacket[DataPacketType],
@@ -495,15 +539,9 @@ class StatefulDetectorHandler(
         """
         Decorate the issue occurrence with the data from the detector's evaluation result.
         """
-        evidence_data = {
-            **detector_occurrence.evidence_data,
-            "detector_id": self.detector.id,
-            "value": new_priority,
-            "data_packet_source_id": str(data_packet.source_id),
-            "conditions": [
-                result.condition.get_snapshot() for result in evaluation_result.condition_results
-            ],
-        }
+        evidence_data = self._build_evidence_data(
+            detector_occurrence, evaluation_result, new_priority, data_packet
+        )
 
         fingerprint = [
             *self.build_issue_fingerprint(group_key),

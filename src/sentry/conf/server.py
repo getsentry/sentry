@@ -853,6 +853,8 @@ CELERY_IMPORTS = (
     "sentry.integrations.vsts.tasks.kickoff_subscription_check",
     "sentry.integrations.tasks",
     "sentry.demo_mode.tasks",
+    "sentry.workflow_engine.tasks.workflows",
+    "sentry.workflow_engine.tasks.actions",
 )
 
 # Enable split queue routing
@@ -1023,6 +1025,7 @@ CELERY_QUEUES_REGION = [
     Queue("release_registry", routing_key="release_registry"),
     Queue("seer.seer_automation", routing_key="seer.seer_automation"),
     Queue("workflow_engine.process_workflows", routing_key="workflow_engine.process_workflows"),
+    Queue("workflow_engine.trigger_action", routing_key="workflow_engine.trigger_action"),
 ]
 
 from celery.schedules import crontab
@@ -1502,6 +1505,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.release_registry",
     "sentry.tasks.repository",
     "sentry.tasks.reprocessing2",
+    "sentry.tasks.seer",
     "sentry.tasks.statistical_detectors",
     "sentry.tasks.store",
     "sentry.tasks.summaries.daily_summary",
@@ -1516,6 +1520,8 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.uptime.rdap.tasks",
     "sentry.uptime.subscriptions.tasks",
     "sentry.workflow_engine.processors.delayed_workflow",
+    "sentry.workflow_engine.tasks.workflows",
+    "sentry.workflow_engine.tasks.actions",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
@@ -2931,7 +2937,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.6.2"
+SELF_HOSTED_STABLE_VERSION = "25.7.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3391,11 +3397,14 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
     "snuba-ourlogs": "default",
+    "preprod-artifact-events": "default",
     # Taskworker topics
     "taskworker": "default",
     "taskworker-dlq": "default",
     "taskworker-billing": "default",
     "taskworker-billing-dlq": "default",
+    "taskworker-buffer": "default",
+    "taskworker-buffer-dlq": "default",
     "taskworker-control": "default",
     "taskworker-control-dlq": "default",
     "taskworker-cutover": "default",
@@ -3438,25 +3447,6 @@ KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = False
 # We use the email with Jira 2-way sync in order to match the user
 JIRA_USE_EMAIL_SCOPE = False
 
-# Specifies the list of django apps to include in the lockfile. If Falsey then include
-# all apps with migrations
-MIGRATIONS_LOCKFILE_APP_WHITELIST = (
-    "explore",
-    "feedback",
-    "flags",
-    "hybridcloud",
-    "insights",
-    "monitors",
-    "nodestore",
-    "notifications",
-    "preprod",
-    "replays",
-    "sentry",
-    "social_auth",
-    "tempest",
-    "uptime",
-    "workflow_engine",
-)
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
 
@@ -3514,8 +3504,11 @@ SENTRY_SYNTHETIC_MONITORING_PROJECT_ID: int | None = None
 # Similarity-v1: uses hardcoded set of event properties for diffing
 SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
 
+DEFAULT_GROUPING_CONFIG = "newstyle:2023-01-11"
+BETA_GROUPING_CONFIG = ""
+
 # How long the migration phase for grouping lasts
-SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 30 * 24 * 3600  # 30 days
+SENTRY_GROUPING_CONFIG_TRANSITION_DURATION = 30 * 24 * 3600  # 30 days
 
 SENTRY_USE_UWSGI = True
 
@@ -3622,6 +3615,8 @@ SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994
 
 SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
 
+SEER_GHE_ENCRYPT_KEY: str | None = None  # For encrypting the access token for the GHE integration
+
 
 # This is the URL to the profiling service
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
@@ -3712,6 +3707,9 @@ SENTRY_GROUP_ATTRIBUTES_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROCESSED_PROFILES_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_FUNCTIONS_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_CHUNKS_FUTURES_MAX_LIMIT = 10000
+SENTRY_PROFILE_OCCURRENCES_FUTURES_MAX_LIMIT = 10000
+
+SENTRY_PREPROD_ARTIFACT_EVENTS_FUTURES_MAX_LIMIT = 10000
 
 # How long we should wait for a gateway proxy request to return before giving up
 GATEWAY_PROXY_TIMEOUT: int | None = None
@@ -3873,8 +3871,6 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-group-integration-details",
     "sentry-api-0-group-current-release",
     "sentry-api-0-shared-group-details",
-    # Unscoped profiling URLs
-    "sentry-api-0-profiling-project-profile",
     # These paths are used by relay which is implicitly region scoped
     "sentry-api-0-relays-index",
     "sentry-api-0-relay-register-challenge",

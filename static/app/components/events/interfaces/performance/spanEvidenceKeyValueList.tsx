@@ -369,7 +369,7 @@ const PREVIEW_COMPONENTS: Partial<
   [IssueType.PROFILE_REGEX_MAIN_THREAD]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_FRAME_DROP]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_FUNCTION_REGRESSION]: RegressionEvidence,
-  [IssueType.DB_QUERY_INJECTION_VULNERABILITY]: DBQueryInjectionVulnerabilityEvidence,
+  [IssueType.QUERY_INJECTION_VULNERABILITY]: DBQueryInjectionVulnerabilityEvidence,
 };
 
 export function SpanEvidenceKeyValueList({
@@ -545,7 +545,6 @@ const makeTransactionNameRow = (
 
   const eventDetailsLocation = generateLinkToEventInTraceView({
     traceSlug,
-    projectSlug: projectSlug ?? '',
     eventId: event.eventID,
     timestamp: event.endTimestamp ?? '',
     location,

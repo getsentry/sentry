@@ -24,7 +24,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import type {SpanIndexedField, SpanIndexedResponse} from 'sentry/views/insights/types';
+import type {EAPSpanResponse, SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
@@ -320,7 +320,6 @@ const BreakdownSlice = styled('div')<{
 `;
 
 interface SpanIdRendererProps {
-  projectSlug: string;
   spanId: string;
   timestamp: string;
   traceId: string;
@@ -329,7 +328,6 @@ interface SpanIdRendererProps {
 }
 
 export function SpanIdRenderer({
-  projectSlug,
   spanId,
   timestamp,
   traceId,
@@ -340,7 +338,6 @@ export function SpanIdRenderer({
   const organization = useOrganization();
 
   const target = generateLinkToEventInTraceView({
-    projectSlug,
     traceSlug: traceId,
     timestamp,
     eventId: transactionId,
@@ -471,7 +468,7 @@ export function SpanTimeRenderer({
   );
 }
 
-type SpanStatus = SpanIndexedResponse[SpanIndexedField.SPAN_STATUS];
+type SpanStatus = EAPSpanResponse[SpanFields.SPAN_STATUS];
 
 const STATUS_TO_TAG_TYPE: Record<SpanStatus, keyof Theme['tag']> = {
   ok: 'success',

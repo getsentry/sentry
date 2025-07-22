@@ -1,19 +1,17 @@
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {
+  type BasePlatformOptions,
   type Configuration,
+  type DocsParams,
+  type OnboardingConfig,
   StepType,
-} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {
-  BasePlatformOptions,
-  DocsParams,
-  OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
 function BrowserProfilingBetaWarning() {
   return (
-    <Alert type="info">
+    <Alert type="info" showIcon={false}>
       {tct(
         `Browser profiling is currently in Beta as we wait for the JS Self Profiling spec to gain wider support. You can read the detailed explanation [explainer].`,
         {

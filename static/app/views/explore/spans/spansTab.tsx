@@ -188,6 +188,10 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
   const query = useExploreQuery();
   const setExplorePageParams = useSetExplorePageParams();
 
+  const organization = useOrganization();
+  const areAiFeaturesAllowed =
+    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
+
   const {tags: numberTags, isLoading: numberTagsLoading} = useTraceItemTags('number');
   const {tags: stringTags, isLoading: stringTagsLoading} = useTraceItemTags('string');
 
@@ -239,7 +243,10 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
 
   return (
     <Layout.Main fullWidth>
-      <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
+      <SearchQueryBuilderProvider
+        enableAISearch={areAiFeaturesAllowed}
+        {...eapSpanSearchQueryProviderProps}
+      >
         <TourElement<ExploreSpansTour>
           tourContext={ExploreSpansTourContext}
           id={ExploreSpansTour.SEARCH_BAR}
@@ -436,9 +443,7 @@ function SpanTabContentSection({
       {!resultsLoading && !hasResults && <QuotaExceededAlert referrer="explore" />}
       {defined(error) && (
         <Alert.Container>
-          <Alert type="error" showIcon>
-            {error.message}
-          </Alert>
+          <Alert type="error">{error.message}</Alert>
         </Alert.Container>
       )}
       <TourElement<ExploreSpansTour>

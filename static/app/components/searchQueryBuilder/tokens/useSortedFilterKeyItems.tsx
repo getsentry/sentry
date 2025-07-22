@@ -7,6 +7,7 @@ import type {
   SearchKeyItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {
+  createAskSeerConsentItem,
   createAskSeerItem,
   createFilterValueItem,
   createItem,
@@ -19,7 +20,6 @@ import {defined} from 'sentry/utils';
 import {FieldKey} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useTraceExploreAiQueryContext} from 'sentry/views/explore/contexts/traceExploreAiQueryContext';
 
 type FilterKeySearchItem = {
   description: string;
@@ -137,16 +137,14 @@ export function useSortedFilterKeyItems({
     filterKeySections,
     disallowFreeText,
     replaceRawSearchKeys,
+    enableAISearch,
+    gaveSeerConsent,
   } = useSearchQueryBuilder();
   const organization = useOrganization();
-  const traceExploreAiQueryContext = useTraceExploreAiQueryContext();
 
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
   );
-  const areAiFeaturesAllowed =
-    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
-  const showAskSeerOption = !!(traceExploreAiQueryContext && areAiFeaturesAllowed);
 
   const flatKeys = useMemo(() => Object.values(filterKeys), [filterKeys]);
 
@@ -249,6 +247,13 @@ export function useSortedFilterKeyItems({
         type: 'section',
       };
 
+      const askSeerItem = [];
+      if (enableAISearch) {
+        askSeerItem.push(
+          gaveSeerConsent ? createAskSeerItem() : createAskSeerConsentItem()
+        );
+      }
+
       const {shouldShowAtTop, suggestedFiltersSection} =
         getValueSuggestionsFromSearchResult(searched);
 
@@ -258,23 +263,24 @@ export function useSortedFilterKeyItems({
         ...(shouldIncludeRawSearch ? [rawSearchSection] : []),
         keyItemsSection,
         ...(!shouldShowAtTop && suggestedFiltersSection ? [suggestedFiltersSection] : []),
-        ...(showAskSeerOption ? [createAskSeerItem()] : []),
+        ...askSeerItem,
       ];
     }
 
     return keyItems;
   }, [
-    filterValue,
-    search,
-    includeSuggestions,
-    filterKeySections,
-    flatKeys,
-    getFieldDefinition,
-    filterKeys,
-    inputValue,
     disallowFreeText,
-    replaceRawSearchKeys,
+    enableAISearch,
+    filterKeySections,
+    filterKeys,
+    filterValue,
+    flatKeys,
+    gaveSeerConsent,
+    getFieldDefinition,
     hasRawSearchReplacement,
-    showAskSeerOption,
+    includeSuggestions,
+    inputValue,
+    replaceRawSearchKeys,
+    search,
   ]);
 }

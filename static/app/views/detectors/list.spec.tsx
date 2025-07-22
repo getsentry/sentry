@@ -1,5 +1,5 @@
 import {AutomationFixture} from 'sentry-fixture/automations';
-import {DetectorFixture} from 'sentry-fixture/detectors';
+import {ErrorDetectorFixture, MetricDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {UserFixture} from 'sentry-fixture/user';
@@ -32,7 +32,7 @@ describe('DetectorsList', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
-      body: [DetectorFixture({name: 'Detector 1'})],
+      body: [MetricDetectorFixture({name: 'Detector 1'})],
     });
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}), new Set());
   });
@@ -41,14 +41,14 @@ describe('DetectorsList', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
       body: [
-        DetectorFixture({
+        MetricDetectorFixture({
           name: 'Detector 1',
           owner: null,
           type: 'metric_issue',
           config: {
-            detection_type: 'percent',
-            comparison_delta: 10,
-            threshold_period: 10,
+            detectionType: 'percent',
+            comparisonDelta: 10,
+            thresholdPeriod: 10,
           },
           conditionGroup: {
             id: '1',
@@ -108,7 +108,7 @@ describe('DetectorsList', function () {
   it('displays connected automations', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
-      body: [DetectorFixture({id: '1', name: 'Detector 1', workflowIds: ['100']})],
+      body: [MetricDetectorFixture({id: '1', name: 'Detector 1', workflowIds: ['100']})],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
@@ -128,7 +128,7 @@ describe('DetectorsList', function () {
   it('can filter by project', async function () {
     const mockDetectorsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
-      body: [DetectorFixture({name: 'Detector 1'})],
+      body: [MetricDetectorFixture({name: 'Detector 1'})],
     });
 
     render(<DetectorsList />, {organization});
@@ -149,7 +149,7 @@ describe('DetectorsList', function () {
     it('can filter by type', async function () {
       const mockDetectorsRequestErrorType = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/detectors/',
-        body: [DetectorFixture({type: 'error', name: 'Error Detector'})],
+        body: [ErrorDetectorFixture({name: 'Error Detector'})],
         match: [MockApiClient.matchQuery({query: 'type:error'})],
       });
 
@@ -171,10 +171,35 @@ describe('DetectorsList', function () {
       expect(mockDetectorsRequestErrorType).toHaveBeenCalled();
     });
 
+    it('can filter by assignee', async function () {
+      const testUser = UserFixture({id: '2', email: 'test@example.com'});
+      const mockDetectorsRequestAssignee = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/detectors/',
+        body: [MetricDetectorFixture({name: 'Assigned Detector', owner: testUser.id})],
+        match: [MockApiClient.matchQuery({query: 'assignee:test@example.com'})],
+      });
+
+      render(<DetectorsList />, {organization});
+      await screen.findByText('Detector 1');
+
+      // Click through menus to select assignee
+      const searchInput = await screen.findByRole('combobox', {
+        name: 'Add a search term',
+      });
+      await userEvent.type(searchInput, 'assignee:test@example.com');
+
+      // It takes two enters. One to enter the search term, and one to submit the search.
+      await userEvent.keyboard('{enter}');
+      await userEvent.keyboard('{enter}');
+
+      await screen.findByText('Assigned Detector');
+      expect(mockDetectorsRequestAssignee).toHaveBeenCalled();
+    });
+
     it('can sort the table', async function () {
       const mockDetectorsRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/detectors/',
-        body: [DetectorFixture({name: 'Detector 1'})],
+        body: [MetricDetectorFixture({name: 'Detector 1'})],
       });
       const {router} = render(<DetectorsList />, {organization});
       await screen.findByText('Detector 1');

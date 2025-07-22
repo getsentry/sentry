@@ -54,7 +54,6 @@ function renderSpanSamples(
       to={generateLinkToEventInTraceView({
         organization,
         traceSlug: trace,
-        projectSlug: project.slug,
         eventId: transaction,
         timestamp,
         location: {

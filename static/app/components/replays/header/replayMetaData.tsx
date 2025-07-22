@@ -26,7 +26,7 @@ export default function ReplayMetaData({
   replayRecord,
   showDeadRageClicks = true,
 }: Props) {
-  const nonFeedbackErrors = replayErrors.filter(e => e.title !== 'User Feedback');
+  const nonFeedbackErrors = replayErrors.filter(e => !e.title.includes('User Feedback'));
 
   const location = useLocation();
   const routes = useRoutes();

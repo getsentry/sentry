@@ -16,41 +16,41 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {CacheHitMissCell} from 'sentry/views/insights/cache/components/tables/cacheHitMissCell';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
-import type {SpanIndexedResponse} from 'sentry/views/insights/types';
-import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
+import type {EAPSpanResponse} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 type DataRowKeys =
-  | SpanIndexedField.PROJECT
-  | SpanIndexedField.TRANSACTION_SPAN_ID
-  | SpanIndexedField.TRACE
-  | SpanIndexedField.TIMESTAMP
-  | SpanIndexedField.SPAN_ID
-  | SpanIndexedField.SPAN_DESCRIPTION
-  | SpanIndexedField.CACHE_HIT
-  | SpanIndexedField.CACHE_ITEM_SIZE;
+  | SpanFields.PROJECT
+  | SpanFields.TRANSACTION_SPAN_ID
+  | SpanFields.TRACE
+  | SpanFields.TIMESTAMP
+  | SpanFields.SPAN_ID
+  | SpanFields.SPAN_DESCRIPTION
+  | SpanFields.CACHE_ITEM_SIZE;
 
 type ColumnKeys =
-  | SpanIndexedField.SPAN_ID
-  | SpanIndexedField.SPAN_DESCRIPTION
-  | SpanIndexedField.CACHE_HIT
-  | SpanIndexedField.CACHE_ITEM_SIZE
+  | SpanFields.SPAN_ID
+  | SpanFields.SPAN_DESCRIPTION
+  | SpanFields.CACHE_HIT
+  | SpanFields.CACHE_ITEM_SIZE
   | 'transaction.duration';
 
-type DataRow = Pick<SpanIndexedResponse, DataRowKeys> & {
-  'transaction.duration': number;
+type DataRow = Pick<EAPSpanResponse, DataRowKeys> & {
+  'cache.hit': '' | 'true' | 'false';
+  'transaction.duration': number; // TODO: this should be a boolean
 };
 
 type Column = GridColumnHeader<ColumnKeys>;
 
 const COLUMN_ORDER: Column[] = [
   {
-    key: SpanIndexedField.SPAN_ID,
+    key: SpanFields.SPAN_ID,
     name: t('Span ID'),
     width: 150,
   },
   {
-    key: SpanIndexedField.SPAN_DESCRIPTION,
+    key: SpanFields.SPAN_DESCRIPTION,
     name: t('Span Description'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -60,12 +60,12 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: SpanIndexedField.CACHE_ITEM_SIZE,
+    key: SpanFields.CACHE_ITEM_SIZE,
     name: t('Value Size'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: SpanIndexedField.CACHE_HIT,
+    key: SpanFields.CACHE_HIT,
     name: t('Status'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -125,28 +125,25 @@ function renderBodyCell(
   organization: Organization,
   theme: Theme
 ) {
-  if (column.key === SpanIndexedField.SPAN_ID) {
+  if (column.key === SpanFields.SPAN_ID) {
     return (
       <SpanIdCell
         moduleName={ModuleName.CACHE}
-        projectSlug={row.project}
         traceId={row.trace}
         timestamp={row.timestamp}
-        transactionSpanId={row[SpanIndexedField.TRANSACTION_SPAN_ID]}
-        spanId={row[SpanIndexedField.SPAN_ID]}
+        transactionSpanId={row[SpanFields.TRANSACTION_SPAN_ID]}
+        spanId={row[SpanFields.SPAN_ID]}
         source={TraceViewSources.CACHES_MODULE}
         location={location}
       />
     );
   }
 
-  if (column.key === SpanIndexedField.SPAN_DESCRIPTION) {
-    return (
-      <SpanDescriptionCell>{row[SpanIndexedField.SPAN_DESCRIPTION]}</SpanDescriptionCell>
-    );
+  if (column.key === SpanFields.SPAN_DESCRIPTION) {
+    return <SpanDescriptionCell>{row[SpanFields.SPAN_DESCRIPTION]}</SpanDescriptionCell>;
   }
 
-  if (column.key === SpanIndexedField.CACHE_HIT) {
+  if (column.key === SpanFields.CACHE_HIT) {
     return <CacheHitMissCell hit={row[column.key]} />;
   }
 

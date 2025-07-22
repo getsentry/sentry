@@ -68,6 +68,8 @@ class SentryAppWebhookHaltReason(StrEnum):
     GOT_CLIENT_ERROR = "got_client_error"
     INTEGRATOR_ERROR = "integrator_error"
     MISSING_INSTALLATION = "missing_installation"
+    RESTRICTED_IP = "restricted_ip"
+    CONNECTION_RESET = "connection_reset"
 
 
 class SentryAppExternalRequestFailureReason(StrEnum):
@@ -131,5 +133,5 @@ class SentryAppEventType(StrEnum):
     APP_CREATE = "app_create"
     APP_UPDATE = "app_update"
     REQUESTS = "requests"
-    PUBLISH = "publish"
     WEBHOOK_UPDATE = "webhook_update"
+    INSTALLATION_CREATE = "install_create"

@@ -1,10 +1,25 @@
+from datetime import datetime
+from typing import TypedDict
+
 from sentry.api.serializers import Serializer, register
 from sentry.models.repository import Repository
 
 
+class RepositorySerializerResponse(TypedDict):
+    id: str
+    name: str
+    url: str | None
+    provider: dict[str, str]
+    status: str
+    dateCreated: datetime
+    integrationId: str | None
+    externalSlug: str | None
+    externalId: str | None
+
+
 @register(Repository)
 class RepositorySerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(self, obj: Repository, attrs, user, **kwargs) -> RepositorySerializerResponse:
         external_slug = None
         integration_id = None
         if obj.integration_id:

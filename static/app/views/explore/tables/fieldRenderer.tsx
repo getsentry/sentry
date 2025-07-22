@@ -2,10 +2,9 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import ExternalLink from 'sentry/components/links/externalLink';
 import TimeSince from 'sentry/components/timeSince';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
@@ -152,7 +151,6 @@ function BaseExploreFieldRenderer({
   if (['id', 'span_id', 'transaction.id'].includes(field)) {
     const spanId = field === 'transaction.id' ? undefined : (data.span_id ?? data.id);
     const target = generateLinkToEventInTraceView({
-      projectSlug: data.project,
       traceSlug: data.trace,
       timestamp: data.timestamp,
       targetId: data['transaction.span_id'],

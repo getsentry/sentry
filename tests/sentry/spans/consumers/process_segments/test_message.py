@@ -199,3 +199,20 @@ class TestSpansTask(TestCase):
             ).hexdigest()
         ]
         assert performance_problem.type == PerformanceStreamedSpansGroupTypeExperimental
+
+    @mock.patch("sentry.spans.consumers.process_segments.message.track_outcome")
+    def test_skip_produce_does_not_track_outcomes(self, mock_track_outcome):
+        """Test that outcomes are not tracked when skip_produce=True"""
+        spans = self.generate_basic_spans()
+
+        # Process with skip_produce=True
+        process_segment(spans, skip_produce=True)
+
+        # Verify track_outcome was not called
+        mock_track_outcome.assert_not_called()
+
+        # Process with skip_produce=False (default)
+        process_segment(spans, skip_produce=False)
+
+        # Verify track_outcome was called once
+        mock_track_outcome.assert_called_once()

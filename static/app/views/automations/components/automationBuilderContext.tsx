@@ -110,8 +110,8 @@ export function useAutomationBuilderReducer(initialState?: AutomationBuilderStat
       [dispatch]
     ),
     addIfAction: useCallback(
-      (groupId: string, actionId: string, actionHandler: ActionHandler) =>
-        dispatch({type: 'ADD_IF_ACTION', groupId, actionId, actionHandler}),
+      (groupId: string, actionHandler: ActionHandler) =>
+        dispatch({type: 'ADD_IF_ACTION', groupId, actionHandler}),
       [dispatch]
     ),
     removeIfAction: useCallback(
@@ -145,7 +145,7 @@ export interface AutomationBuilderState {
 // 2. The AutomationActions interface
 interface AutomationActions {
   addIf: () => void;
-  addIfAction: (groupId: string, actionId: string, actionHandler: ActionHandler) => void;
+  addIfAction: (groupId: string, actionHandler: ActionHandler) => void;
   addIfCondition: (groupId: string, conditionType: DataConditionType) => void;
   addWhenCondition: (conditionType: DataConditionType) => void;
   removeIf: (groupId: string) => void;
@@ -193,6 +193,7 @@ export const initialAutomationBuilderState: AutomationBuilderState = {
       id: '0',
       logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
       conditions: [],
+      actions: [],
     },
   ],
 };
@@ -254,7 +255,6 @@ type UpdateIfConditionAction = {
 
 type AddIfActionAction = {
   actionHandler: ActionHandler;
-  actionId: string;
   groupId: string;
   type: 'ADD_IF_ACTION';
 };
@@ -370,6 +370,7 @@ function addIf(
       {
         id: uuid4(),
         conditions: [],
+        actions: [],
         logicType: DataConditionGroupLogicType.ALL,
       },
     ],
@@ -405,7 +406,6 @@ function addIfCondition(
           {
             id: uuid4(),
             type: conditionType,
-            // comparison: true,
             comparison:
               dataConditionNodesMap.get(conditionType)?.defaultComparison || true,
             conditionResult: true,
@@ -493,7 +493,7 @@ function addIfAction(
   state: AutomationBuilderState,
   action: AddIfActionAction
 ): AutomationBuilderState {
-  const {groupId, actionId, actionHandler} = action;
+  const {groupId, actionHandler} = action;
 
   const defaultIntegration = actionHandler.integrations?.[0];
 
@@ -508,7 +508,7 @@ function addIfAction(
         actions: [
           ...(group.actions ?? []),
           {
-            id: actionId,
+            id: uuid4(),
             type: actionHandler.type,
             config: getDefaultConfig(actionHandler),
             ...(defaultIntegration && {

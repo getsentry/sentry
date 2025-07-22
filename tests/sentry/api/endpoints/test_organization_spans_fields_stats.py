@@ -21,11 +21,16 @@ class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
         if query and "type" not in query.keys():
             query["type"] = "string"
 
+        if query and "sampling" not in query.keys():
+            query["sampling"] = "HIGHEST_ACCURACY"
+
         with self.feature(features):
             response = self.client.get(
                 reverse(
                     self.view,
-                    kwargs={"organization_id_or_slug": self.organization.slug},
+                    kwargs={
+                        "organization_id_or_slug": self.organization.slug,
+                    },
                 ),
                 query,
                 format="json",
@@ -147,8 +152,8 @@ class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
 
     def test_filter_query(self):
         tags = [
-            {"broswer": "chrome", "device": "desktop"},
-            {"broswer": "chrome", "device": "mobile"},
+            {"browser": "chrome", "device": "desktop"},
+            {"browser": "chrome", "device": "mobile"},
         ]
 
         for tag in tags:
@@ -157,8 +162,9 @@ class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
         response = self.do_request(query={"query": "device:desktop"})
         assert response.status_code == 200, response.data
         distributions = response.data["results"][0]["attributeDistributions"]["attributes"]
-        assert distributions[0]["attributeName"] == "broswer"
+        attribute = next(a for a in distributions if a["attributeName"] == "browser")
+        assert attribute
         # the second span has a different device value, so it should not be included in the results
-        assert distributions[0]["buckets"] == [
+        assert attribute["buckets"] == [
             {"label": "chrome", "value": 1.0},
         ]

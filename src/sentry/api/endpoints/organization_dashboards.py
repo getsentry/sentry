@@ -1,7 +1,17 @@
 from __future__ import annotations
 
 from django.db import IntegrityError, router, transaction
-from django.db.models import Case, Exists, IntegerField, OuterRef, Value, When
+from django.db.models import (
+    Case,
+    DateTimeField,
+    Exists,
+    F,
+    IntegerField,
+    OrderBy,
+    OuterRef,
+    Value,
+    When,
+)
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -111,6 +121,14 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             dashboards = Dashboard.objects.exclude(
                 organization_id=organization.id, dashboardfavoriteuser__user_id=request.user.id
             )
+        elif filter_by == "owned":
+            dashboards = Dashboard.objects.filter(
+                created_by_id=request.user.id, organization_id=organization.id
+            )
+        elif filter_by == "shared":
+            dashboards = Dashboard.objects.filter(organization_id=organization.id).exclude(
+                created_by_id=request.user.id
+            )
         else:
             dashboards = Dashboard.objects.filter(organization_id=organization.id)
 
@@ -125,7 +143,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         else:
             desc = False
 
-        order_by: list[Case | str]
+        order_by: list[Case | str | OrderBy]
         if sort_by == "title":
             order_by = [
                 "-title" if desc else "title",
@@ -142,46 +160,56 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             ]
 
         elif sort_by == "recentlyViewed":
-            order_by = ["last_visited" if desc else "-last_visited"]
-
-        elif sort_by == "mydashboards":
             if features.has(
-                "organizations:dashboards-table-view", organization, actor=request.user
+                "organizations:dashboards-starred-reordering", organization, actor=request.user
             ):
-                user_name_dict = {
-                    user.id: user.name
-                    for user in user_service.get_many_by_id(
-                        ids=list(dashboards.values_list("created_by_id", flat=True))
-                    )
-                }
                 dashboards = dashboards.annotate(
-                    user_name=Case(
-                        *[
-                            When(created_by_id=user_id, then=Value(user_name))
-                            for user_id, user_name in user_name_dict.items()
-                        ],
-                        default=Value(""),
-                        output_field=CharField(),
+                    user_last_visited=Case(
+                        When(
+                            dashboardlastvisited__member__user_id=request.user.id,
+                            then=F("dashboardlastvisited__last_visited"),
+                        ),
+                        default=None,
+                        output_field=DateTimeField(null=True),
                     )
                 )
                 order_by = [
-                    Case(
-                        When(created_by_id=request.user.id, then=-1),
-                        default=1,
-                        output_field=IntegerField(),
+                    (
+                        F("user_last_visited").asc(nulls_last=True)
+                        if desc
+                        else F("user_last_visited").desc(nulls_last=True)
                     ),
-                    "-user_name" if desc else "user_name",
                     "-date_added",
                 ]
             else:
-                order_by = [
-                    Case(
-                        When(created_by_id=request.user.id, then=-1),
-                        default="created_by_id",
-                        output_field=IntegerField(),
-                    ),
-                    "-date_added",
-                ]
+                order_by = ["last_visited" if desc else "-last_visited"]
+
+        elif sort_by == "mydashboards":
+            user_name_dict = {
+                user.id: user.name
+                for user in user_service.get_many_by_id(
+                    ids=list(dashboards.values_list("created_by_id", flat=True))
+                )
+            }
+            dashboards = dashboards.annotate(
+                user_name=Case(
+                    *[
+                        When(created_by_id=user_id, then=Value(user_name))
+                        for user_id, user_name in user_name_dict.items()
+                    ],
+                    default=Value(""),
+                    output_field=CharField(),
+                )
+            )
+            order_by = [
+                Case(
+                    When(created_by_id=request.user.id, then=-1),
+                    default=1,
+                    output_field=IntegerField(),
+                ),
+                "-user_name" if desc else "user_name",
+                "-date_added",
+            ]
 
         elif sort_by == "myDashboardsAndRecentlyViewed":
             order_by = [
@@ -226,11 +254,23 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 else:
                     dashboards.append(item)
 
-            serialized.extend(serialize(dashboards, request.user, serializer=list_serializer))
+            serialized.extend(
+                serialize(
+                    dashboards,
+                    request.user,
+                    serializer=list_serializer,
+                    context={"organization": organization},
+                )
+            )
             return serialized
 
         render_pre_built_dashboard = True
-        if filter_by and filter_by == "onlyFavorites" or pin_by and pin_by == "favorites":
+        if (
+            filter_by
+            and filter_by in {"onlyFavorites", "owned"}
+            or pin_by
+            and pin_by == "favorites"
+        ):
             render_pre_built_dashboard = False
 
         return self.paginate(

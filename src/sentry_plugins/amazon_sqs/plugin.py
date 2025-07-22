@@ -2,6 +2,7 @@ import logging
 
 import boto3
 from botocore.client import ClientError, Config
+from botocore.exceptions import ParamValidationError
 
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.data_forwarding import DataForwardingPlugin
@@ -180,18 +181,29 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 return False
 
             sqs_send_message(message)
+
         except ClientError as e:
-            if str(e).startswith("An error occurred (InvalidClientTokenId)") or str(e).startswith(
-                "An error occurred (AccessDenied)"
+            if (
+                str(e).startswith("An error occurred (InvalidClientTokenId)")
+                or str(e).startswith("An error occurred (AccessDenied)")
+                or str(e).startswith("An error occurred (InvalidAccessKeyId)")
             ):
                 # If there's an issue with the user's token then we can't do
                 # anything to recover. Just continue.
                 return False
             elif str(e).endswith("must contain the parameter MessageGroupId."):
                 return False
-            elif str(e).startswith("An error occurred (NoSuchBucket)"):
+            elif str(e).startswith("An error occurred (NoSuchBucket)") or str(e).startswith(
+                "An error occurred (IllegalLocationConstraintException)"
+            ):
                 # If there's an issue with the user's s3 bucket then we can't do
                 # anything to recover. Just continue.
                 return False
+            elif "AWS.SimpleQueueService.NonExistentQueue" in str(e):
+                # If the specified queue doesn't exist, we can't do anything to recover
+                return False
             raise
+        except ParamValidationError:
+            # The bucket name is invalid
+            return False
         return True
