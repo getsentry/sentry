@@ -459,10 +459,13 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                         list_conditions.append(
                             Condition(resolved_field, Op.IN if not other else Op.NOT_IN, value)
                         )
-                    if not other:
-                        conditions.append(Or(conditions=list_conditions))
+                    if len(list_conditions) > 1:
+                        if not other:
+                            conditions.append(Or(conditions=list_conditions))
+                        else:
+                            conditions.append(And(conditions=list_conditions))
                     else:
-                        conditions.append(And(conditions=list_conditions))
+                        conditions.extend(list_conditions)
                 else:
                     conditions.append(
                         Condition(resolved_field, Op.IN if not other else Op.NOT_IN, values_list)
