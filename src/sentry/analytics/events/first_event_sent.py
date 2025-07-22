@@ -16,7 +16,7 @@ class FirstEventSentEvent(analytics.Event):
 # first error for a project
 @analytics.eventclass("first_event_for_project.sent")
 class FirstEventSentForProjectEvent(FirstEventSentEvent):
-    pass
+    sdk_name: str | None = None
 
 
 # first error with minified stack trace for a project
