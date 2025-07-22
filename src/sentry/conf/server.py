@@ -3430,6 +3430,8 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-symbolication-dlq": "default",
     "taskworker-usage": "default",
     "taskworker-usage-dlq": "default",
+    "taskworker-workflows-engine": "default",
+    "taskworker-workflows-engine-dlq": "default",
 }
 
 
