@@ -487,9 +487,9 @@ def call_with_variants(
     for variant_name in variants_to_produce:
         with context:
             context["variant"] = variant_name.lstrip("!")
-            rv_variants = f(*args, **kwargs)
-            assert len(rv_variants) == 1
-            component = rv_variants[variant_name.lstrip("!")]
+            components_by_stripped_variant = f(*args, **kwargs)
+            assert len(components_by_stripped_variant) == 1
+            component = components_by_stripped_variant[variant_name.lstrip("!")]
 
         rv[variant_name] = component
 
