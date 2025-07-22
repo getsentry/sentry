@@ -18,7 +18,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import NewProviderForm from 'sentry/views/settings/featureFlags/changeTracking/newProviderForm';
 import NewSecretHandler from 'sentry/views/settings/featureFlags/changeTracking/newSecretHandler';
 
-function OrganizationFeatureFlagsNewSecet() {
+function OrganizationFeatureFlagsNewSecret() {
   const [newSecret, setNewSecret] = useState<string | null>(null);
   const [provider, setProvider] = useState<string>('');
   const organization = useOrganization();
@@ -95,7 +95,7 @@ function OrganizationFeatureFlagsNewSecet() {
 export default function OrganizationFeatureFlagsNewSecretRoute() {
   return (
     <AnalyticsArea name="feature_flag_org_settings">
-      <OrganizationFeatureFlagsNewSecet />
+      <OrganizationFeatureFlagsNewSecret />
     </AnalyticsArea>
   );
 }
