@@ -14,7 +14,6 @@ import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer'
 import {getImageAttachmentRenderer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -115,7 +114,7 @@ export default function ScreenshotModal({
         <h5>{t('Screenshot')}</h5>
       </Header>
       <Body>
-        <Flex direction="column" gap={space(1.5)}>
+        <Flex direction="column" gap="lg">
           {defined(paginationProps) && <ScreenshotPagination {...paginationProps} />}
           <AttachmentComponentWrapper>
             <AttachmentComponent

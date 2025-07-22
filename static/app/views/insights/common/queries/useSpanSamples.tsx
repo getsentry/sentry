@@ -11,9 +11,9 @@ import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSer
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
-  EAPSpanProperty,
-  EAPSpanResponse,
+  SpanProperty,
   SpanQueryFilters,
+  SpanResponse,
   SubregionCode,
 } from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -32,7 +32,7 @@ type Options<Fields extends NonDefaultSpanSampleFields[]> = {
 };
 
 export type SpanSample = Pick<
-  EAPSpanResponse,
+  SpanResponse,
   | SpanFields.SPAN_SELF_TIME
   | SpanFields.TRANSACTION_SPAN_ID
   | SpanFields.PROJECT
@@ -51,10 +51,7 @@ export type DefaultSpanSampleFields =
   | SpanFields.PROFILEID
   | SpanFields.SPAN_SELF_TIME;
 
-export type NonDefaultSpanSampleFields = Exclude<
-  EAPSpanProperty,
-  DefaultSpanSampleFields
->;
+export type NonDefaultSpanSampleFields = Exclude<SpanProperty, DefaultSpanSampleFields>;
 
 export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
   options: Options<Fields>
@@ -118,7 +115,7 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
   );
 
   type DataRow = Pick<
-    EAPSpanResponse,
+    SpanResponse,
     Fields[number] | DefaultSpanSampleFields // These fields are returned by default
   >;
 

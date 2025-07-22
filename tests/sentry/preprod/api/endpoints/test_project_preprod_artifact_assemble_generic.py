@@ -4,10 +4,12 @@ import orjson
 from django.test import override_settings
 
 from sentry.models.files.fileblob import FileBlob
+from sentry.preprod import PreprodArtifactApiAssembleGenericEvent
 from sentry.preprod.models import PreprodArtifact
 from sentry.tasks.assemble import AssembleTask, ChunkFileState, set_assemble_status
 from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_analytics_events_recorded
 
 
 @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
@@ -77,10 +79,14 @@ class ProjectPreprodArtifactAssembleGenericEndpointTest(TestCase):
         assert resp_data["state"] == ChunkFileState.CREATED
         assert resp_data["missingChunks"] == []
 
-        mock_analytics.assert_called_once_with(
-            "preprod_artifact.api.assemble_generic",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
+        assert_analytics_events_recorded(
+            mock_analytics,
+            [
+                PreprodArtifactApiAssembleGenericEvent(
+                    organization_id=self.organization.id,
+                    project_id=self.project.id,
+                )
+            ],
         )
         self._assert_task_called_with(mock_task, checksum, [b.checksum for b in blobs])
 
@@ -104,10 +110,14 @@ class ProjectPreprodArtifactAssembleGenericEndpointTest(TestCase):
         assert resp_data["state"] == ChunkFileState.CREATED
         assert resp_data["missingChunks"] == []
 
-        mock_analytics.assert_called_once_with(
-            "preprod_artifact.api.assemble_generic",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
+        assert_analytics_events_recorded(
+            mock_analytics,
+            [
+                PreprodArtifactApiAssembleGenericEvent(
+                    organization_id=self.organization.id,
+                    project_id=self.project.id,
+                )
+            ],
         )
         self._assert_task_called_with(mock_task, checksum, [b.checksum for b in blobs])
 

@@ -97,7 +97,7 @@ type Truncateable = {
   truncate?: number | boolean;
 };
 
-interface TooltipOption
+export interface TooltipOption
   extends Omit<TooltipComponentOption, 'valueFormatter'>,
     Truncateable {
   filter?: (value: number, seriesParam: TooltipComponentOption['formatter']) => boolean;
@@ -500,7 +500,7 @@ function BaseChart({
 
     const bucketSize = seriesData ? seriesData[1][0] - seriesData[0][0] : undefined;
     const tooltipOrNone =
-      tooltip === null
+      tooltip === undefined
         ? undefined
         : computeChartTooltip(
             {

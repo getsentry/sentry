@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
+import {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import type {DetectorDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
@@ -45,6 +46,10 @@ interface MetricDetectorChartProps {
    * The query filter string
    */
   query: string;
+  /**
+   * The time period for the chart data (optional, defaults to 7d)
+   */
+  statsPeriod: TimePeriod;
 }
 
 export function MetricDetectorChart({
@@ -56,6 +61,7 @@ export function MetricDetectorChart({
   projectId,
   conditions,
   detectionType,
+  statsPeriod,
 }: MetricDetectorChartProps) {
   const {series, isPending, isError} = useMetricDetectorSeries({
     dataset,
@@ -64,6 +70,7 @@ export function MetricDetectorChart({
     query,
     environment,
     projectId,
+    statsPeriod,
   });
 
   const {series: thresholdSeries, maxValue: thresholdMaxValue} =
