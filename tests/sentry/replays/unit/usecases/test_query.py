@@ -248,11 +248,11 @@ class TestQuery(APITestCase, SnubaTestCase):
         feedbacksres
         # print(feedbacksres["data"])
 
-        # Now, we want to find just a list of all of the tags where the key starts with "foo"
+        # Query: want to find just a list of all of the tags where the key starts with "foo"
         # This query should be similar to the one that finds the top 10 values for the tag prefix "foo" for feedbacks filtered by some date range and project, so it is ommitted for now
 
         # Query: want to get all feedbacks in projects / date range, then get all of the tags (prob just values are needed) where the key starts with "foo"
-        # Can do the above with an arrayZip, arrayFilter, and arrayMap, so we should be good
+        # Can do the above with an arrayZip, arrayFilter, and arrayMap, so we should be good here
 
         assert False
 
