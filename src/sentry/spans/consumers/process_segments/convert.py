@@ -1,16 +1,11 @@
 from collections.abc import MutableMapping
 from typing import Any
 
+import orjson
 import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_pb2 import (
-    AnyValue,
-    ArrayValue,
-    KeyValue,
-    KeyValueList,
-    TraceItem,
-)
+from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 
 from sentry.spans.consumers.process_segments.enrichment import Span
 
@@ -101,12 +96,8 @@ def _anyvalue(value: Any) -> AnyValue:
         return AnyValue(int_value=value)
     elif isinstance(value, float):
         return AnyValue(double_value=value)
-    elif isinstance(value, list):
-        array_values = [_anyvalue(v) for v in value if v is not None]
-        return AnyValue(array_value=ArrayValue(values=array_values))
-    elif isinstance(value, dict):
-        kv_values = [KeyValue(key=k, value=_anyvalue(v)) for k, v in value.items() if v is not None]
-        return AnyValue(kvlist_value=KeyValueList(values=kv_values))
+    elif isinstance(value, (list, dict)):
+        return AnyValue(string_value=orjson.dumps(value).decode())
 
     raise ValueError(f"Unknown value type: {type(value)}")
 
