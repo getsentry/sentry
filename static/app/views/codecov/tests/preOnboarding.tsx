@@ -64,13 +64,13 @@ export default function TestPreOnboardingPage() {
       <IntroSection>
         <img src={isDarkMode ? testsAnalyticsSummaryDark : testsAnalyticsSummary} />
         <div>
-          <h2>{t('Keep test problems from slowing you down')}</h2>
+          <h2>{t('Prevent testing issues from slowing you down')}</h2>
           <p
             css={css`
               margin-bottom: ${space(1)};
             `}
           >
-            {t('Get testing data that helps keep your CI running smoothly.')}
+            {t('Get testing data that keeps your CI running smoothly.')}
           </p>
           <ul>
             <li>{t('See which lines of code failed which tests.')}</li>
