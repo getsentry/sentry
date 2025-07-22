@@ -200,6 +200,7 @@ class BitbucketServerWebhookEndpoint(Endpoint):
 
         event_handler = handler()
 
+        known_processing_error = None
         with IntegrationWebhookEvent(
             interaction_type=event_handler.event_type,
             domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
@@ -208,6 +209,12 @@ class BitbucketServerWebhookEndpoint(Endpoint):
             try:
                 event_handler(event, organization=organization, integration_id=integration_id)
             except (Http404, BadRequest) as e:
-                lifecycle.record_halt(halt_reason=e)
+                # For known processing errors, record the halt and raise outside the lifecycle.
+                # We cannot action on these failures.
+                known_processing_error = e
+                lifecycle.record_halt(halt_reason=known_processing_error)
+
+        if known_processing_error:
+            raise known_processing_error
 
         return HttpResponse(status=204)
