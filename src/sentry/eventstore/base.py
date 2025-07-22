@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from datetime import datetime
@@ -308,8 +309,12 @@ class EventStorage(Service):
         """
         Returns an Event from processed data
         """
-        assert event_id is not None
-        return Event(project_id=project_id, event_id=event_id, group_id=group_id, data=data)
+        return Event(
+            project_id=project_id,
+            event_id=event_id or str(uuid.uuid4()),
+            group_id=group_id,
+            data=data,
+        )
 
     def bind_nodes(self, object_list: Sequence[Event]) -> None:
         """
