@@ -2,7 +2,7 @@ from typing import cast
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue, KeyValue, KeyValueList
+from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue
 
 from sentry.spans.consumers.process_segments.convert import convert_span_to_item
 from sentry.spans.consumers.process_segments.enrichment import Span
@@ -151,28 +151,9 @@ def test_convert_span_to_item():
         "relay_use_post_or_schedule_rejected": AnyValue(string_value="version"),
         "sentry.normalized_description": AnyValue(string_value="normalized_description"),
         "thread.name": AnyValue(string_value="uWSGIWorker1Core0"),
-        "my.dict.field": AnyValue(
-            kvlist_value=KeyValueList(
-                values=[
-                    KeyValue(key="id", value=AnyValue(int_value=42)),
-                    KeyValue(key="name", value=AnyValue(string_value="test")),
-                ]
-            )
-        ),
+        "my.dict.field": AnyValue(string_value=r"""{"id":42,"name":"test"}"""),
         "my.u64.field": AnyValue(double_value=9447000002305251000.0),
-        "my.array.field": AnyValue(
-            array_value=ArrayValue(
-                values=[
-                    AnyValue(int_value=1),
-                    AnyValue(int_value=2),
-                    AnyValue(
-                        array_value=ArrayValue(
-                            values=[AnyValue(string_value="nested"), AnyValue(string_value="array")]
-                        )
-                    ),
-                ]
-            )
-        ),
+        "my.array.field": AnyValue(string_value=r"""[1,2,["nested","array"]]"""),
     }
 
 
