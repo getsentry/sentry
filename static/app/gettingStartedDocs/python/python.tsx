@@ -1,6 +1,6 @@
 import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink} from 'sentry/components/core/link';
 import {SdkProviderEnum as FeatureFlagProviderEnum} from 'sentry/components/events/featureFlags/utils';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   type Docs,
@@ -417,7 +417,7 @@ export const featureFlagOnboarding: OnboardingConfig = {
 
 export const agentMonitoringOnboarding: OnboardingConfig = {
   introduction: () => (
-    <Alert type="info">
+    <Alert type="info" showIcon={false}>
       {tct(
         'Agent Monitoring is currently in beta with support for [openai:OpenAI Agents SDK] and [vercelai:Vercel AI SDK]. If you are using something else, you can use [manual:manual instrumentation].',
         {

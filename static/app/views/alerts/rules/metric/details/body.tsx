@@ -134,7 +134,7 @@ export default function MetricDetailsBody({
     <Fragment>
       {selectedIncident?.alertRule.status === AlertRuleStatus.SNAPSHOT && (
         <StyledLayoutBody>
-          <Alert type="warning" showIcon>
+          <Alert type="warning">
             {t('Alert Rule settings have been updated since this alert was triggered.')}
           </Alert>
         </StyledLayoutBody>
@@ -143,7 +143,7 @@ export default function MetricDetailsBody({
         <Layout.Main>
           {isSnoozed && (
             <Alert.Container>
-              <Alert type="warning" showIcon>
+              <Alert type="warning">
                 {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
                   ? tct(
                       "[creator] muted this alert so these notifications won't be sent in the future.",

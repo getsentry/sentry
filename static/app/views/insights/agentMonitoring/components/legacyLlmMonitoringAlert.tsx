@@ -31,7 +31,6 @@ export function LegacyLLMMonitoringInfoAlert() {
   return (
     <StyledAlert
       type="info"
-      showIcon
       trailingItems={
         <Button
           priority="link"
