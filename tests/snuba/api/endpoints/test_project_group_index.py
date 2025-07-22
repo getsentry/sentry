@@ -4,7 +4,7 @@ import time
 from collections.abc import Sequence
 from datetime import timedelta
 from functools import cached_property
-from unittest.mock import Mock, call, patch
+from unittest.mock import Mock, patch
 from urllib.parse import quote
 from uuid import uuid4
 
@@ -1529,12 +1529,8 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             assert calls[i].kwargs["event"].actor_user_id == self.user.id
             assert calls[i].kwargs["event"].data["issue_id"] == group.id
 
-    @patch("sentry.eventstream.backend")
     @patch("sentry.utils.audit.log_service.record_audit_log")
-    def test_delete_by_id(self, mock_record_audit_log, mock_eventstream):
-        eventstream_state = {"event_stream_state": uuid4().hex}
-        mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
-
+    def test_delete_by_id(self, mock_record_audit_log):
         groups = self.create_groups(
             [
                 (GroupStatus.RESOLVED, self.project, None),
@@ -1551,10 +1547,6 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
 
         response = self.client.delete(url, format="json")
 
-        mock_eventstream.start_delete_groups.assert_called_once_with(
-            group1.project_id, [group1.id, group2.id]
-        )
-
         assert response.status_code == 204
 
         self.assert_groups_being_deleted([group1, group2])
@@ -1564,14 +1556,6 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         with self.tasks():
             response = self.client.delete(url, format="json")
 
-        # XXX(markus): Something is sending duplicated replacements to snuba --
-        # once from within tasks.deletions.groups and another time from
-        # sentry.deletions.defaults.groups
-        assert mock_eventstream.end_delete_groups.call_args_list == [
-            call(eventstream_state),
-            call(eventstream_state),
-        ]
-
         self.assert_audit_log_entry([group1, group2], mock_record_audit_log)
 
         assert response.status_code == 204
@@ -1579,11 +1563,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         self.assert_groups_are_gone([group1, group2])
         self.assert_groups_not_deleted([group3, group4])
 
-    @patch("sentry.eventstream.backend")
-    def test_delete_performance_issue_by_id(self, mock_eventstream):
-        eventstream_state = {"event_stream_state": uuid4().hex}
-        mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
-
+    def test_delete_performance_issue_by_id(self):
         group1, group2 = self.create_groups(
             [
                 (GroupStatus.RESOLVED, self.project, PerformanceSlowDBQueryGroupType.type_id),

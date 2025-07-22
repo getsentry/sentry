@@ -4,7 +4,7 @@ import functools
 from collections.abc import Sequence
 from datetime import datetime, timedelta
 from time import sleep
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import MagicMock, Mock, patch
 from uuid import uuid4
 
 from django.db.utils import OperationalError
@@ -4319,11 +4319,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             assert not Group.objects.filter(id=group.id).exists()
             assert not GroupHash.objects.filter(group_id=group.id).exists()
 
-    @patch("sentry.eventstream.backend")
-    def test_delete_by_id(self, mock_eventstream: MagicMock) -> None:
-        eventstream_state = {"event_stream_state": str(uuid4())}
-        mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
-
+    def test_delete_by_id(self) -> None:
         group1 = self.create_group(status=GroupStatus.RESOLVED)
         group2 = self.create_group(status=GroupStatus.UNRESOLVED)
         group3 = self.create_group(status=GroupStatus.IGNORED)
@@ -4343,10 +4339,6 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             response = self.get_response(
                 qs_params={"id": [group1.id, group2.id], "group4": group4.id}
             )
-
-        mock_eventstream.start_delete_groups.assert_called_once_with(
-            group1.project_id, [group1.id, group2.id]
-        )
 
         assert response.status_code == 204
 
@@ -4370,14 +4362,6 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
                     qs_params={"id": [group1.id, group2.id], "group4": group4.id}
                 )
 
-        # XXX(markus): Something is sending duplicated replacements to snuba --
-        # once from within tasks.deletions.groups and another time from
-        # sentry.deletions.defaults.groups
-        assert mock_eventstream.end_delete_groups.call_args_list == [
-            call(eventstream_state),
-            call(eventstream_state),
-        ]
-
         assert response.status_code == 204
 
         assert not Group.objects.filter(id=group1.id).exists()
@@ -4392,11 +4376,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         assert Group.objects.filter(id=group4.id).exists()
         assert GroupHash.objects.filter(group_id=group4.id).exists()
 
-    @patch("sentry.eventstream.backend")
-    def test_delete_performance_issue_by_id(self, mock_eventstream: MagicMock) -> None:
-        eventstream_state = {"event_stream_state": str(uuid4())}
-        mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
-
+    def test_delete_performance_issue_by_id(self) -> None:
         group1 = self.create_group(
             status=GroupStatus.RESOLVED, type=PerformanceSlowDBQueryGroupType.type_id
         )

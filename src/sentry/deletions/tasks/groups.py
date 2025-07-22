@@ -34,10 +34,11 @@ from sentry.taskworker.retry import Retry
 def delete_groups(
     object_ids: Sequence[int],
     transaction_id: str | None = None,
+    # TODO: Remove after this PR merges
     eventstream_state: Mapping[str, Any] | None = None,
     **kwargs: Any,
 ) -> None:
-    from sentry import deletions, eventstream
+    from sentry import deletions
     from sentry.models.group import Group
 
     current_batch, rest = object_ids[:GROUP_CHUNK_SIZE], object_ids[GROUP_CHUNK_SIZE:]
@@ -79,10 +80,5 @@ def delete_groups(
             kwargs={
                 "object_ids": object_ids if has_more else rest,
                 "transaction_id": transaction_id,
-                "eventstream_state": eventstream_state,
             },
         )
-    else:
-        # all groups have been deleted
-        if eventstream_state:
-            eventstream.backend.end_delete_groups(eventstream_state)
