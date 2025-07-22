@@ -46,6 +46,7 @@ from sentry.profiles.utils import (
 from sentry.search.utils import DEVICE_CLASS
 from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
+from sentry.storage.metrics import measure_storage_put
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.constants import CompressionType
@@ -58,7 +59,6 @@ from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.sdk import set_span_attribute
-from sentry.utils.storage import measure_storage_put
 
 REVERSE_DEVICE_CLASS = {next(iter(tags)): label for label, tags in DEVICE_CLASS.items()}
 
