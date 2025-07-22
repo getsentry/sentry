@@ -1868,6 +1868,124 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
                 "Error: Only 'id' and 'active' fields are allowed for bias."
             ]
 
+    def test_dynamic_sampling_bias_enable_audit_log(self):
+        """Test that enabling a dynamic sampling bias creates the correct audit log entry."""
+        with self.feature("organizations:dynamic-sampling"):
+            # Start with default biases
+            with outbox_runner():
+                self.get_success_response(
+                    self.org_slug, self.proj_slug, dynamicSamplingBiases=DEFAULT_BIASES
+                )
+
+                # Enable a specific bias
+                updated_biases = [
+                    {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": True},
+                ]
+                self.get_success_response(
+                    self.org_slug, self.proj_slug, dynamicSamplingBiases=updated_biases
+                )
+
+            # Check audit log entry was created
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                audit_entry = AuditLogEntry.objects.get(
+                    organization_id=self.organization.id,
+                    event=audit_log.get_event_id("SAMPLING_BIAS_ENABLED"),
+                    target_object=self.project.id,
+                )
+                assert audit_entry is not None
+                assert audit_entry.data["name"] == RuleType.MINIMUM_SAMPLE_RATE_RULE.value
+
+    def test_dynamic_sampling_bias_disable_audit_log(self):
+        """Test that disabling a dynamic sampling bias creates the correct audit log entry."""
+        with self.feature("organizations:dynamic-sampling"):
+            # Start with a bias enabled
+            with outbox_runner():
+                initial_biases = [{"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": True}]
+                self.get_success_response(
+                    self.org_slug, self.proj_slug, dynamicSamplingBiases=initial_biases
+                )
+
+                # Disable the bias
+                disabled_biases = [{"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False}]
+                self.get_success_response(
+                    self.org_slug, self.proj_slug, dynamicSamplingBiases=disabled_biases
+                )
+
+            # Check audit log entry was created
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                audit_entry = AuditLogEntry.objects.get(
+                    organization_id=self.organization.id,
+                    event=audit_log.get_event_id("SAMPLING_BIAS_DISABLED"),
+                    target_object=self.project.id,
+                )
+                assert audit_entry is not None
+                assert audit_entry.data["name"] == RuleType.BOOST_ENVIRONMENTS_RULE.value
+
+    def test_dynamic_sampling_bias_add_new_bias_audit_log(self):
+        """Test that adding a new bias to existing biases creates the correct audit log entry."""
+        with self.feature("organizations:dynamic-sampling"):
+            # Start with some initial biases
+            initial_biases = [
+                {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+                {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+            ]
+            with outbox_runner():
+                self.get_success_response(
+                    self.org_slug, self.proj_slug, dynamicSamplingBiases=initial_biases
+                )
+
+                # Add a new bias that's enabled
+                expanded_biases = [
+                    {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+                    {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+                    {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": True},
+                ]
+                self.get_success_response(
+                    self.org_slug, self.proj_slug, dynamicSamplingBiases=expanded_biases
+                )
+
+            # Check audit log entry was created for the newly enabled bias
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                audit_entry = AuditLogEntry.objects.get(
+                    organization_id=self.organization.id,
+                    event=audit_log.get_event_id("SAMPLING_BIAS_ENABLED"),
+                    target_object=self.project.id,
+                )
+                assert audit_entry is not None
+                assert audit_entry.data["name"] == RuleType.MINIMUM_SAMPLE_RATE_RULE.value
+
+    def test_dynamic_sampling_bias_add_new_inactive_bias_no_audit_log(self):
+        """Test that adding a new bias as inactive does not create an audit log entry."""
+        with self.feature("organizations:dynamic-sampling"):
+            # Start with some initial biases
+            initial_biases = [
+                {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+                {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+            ]
+            with outbox_runner():
+                self.get_success_response(
+                    self.org_slug, self.proj_slug, dynamicSamplingBiases=initial_biases
+                )
+
+                # Add a new bias that's inactive
+                expanded_biases = [
+                    {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+                    {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+                    {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": False},
+                ]
+                self.get_success_response(
+                    self.org_slug, self.proj_slug, dynamicSamplingBiases=expanded_biases
+                )
+
+            # Check that no audit log entry was created for the inactive bias
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                audit_entries = AuditLogEntry.objects.filter(
+                    organization_id=self.organization.id,
+                    event=audit_log.get_event_id("SAMPLING_BIAS_ENABLED"),
+                    target_object=self.project.id,
+                )
+                assert audit_entries.count() == 0
+
 
 class TestTempestProjectDetails(TestProjectDetailsBase):
     endpoint = "sentry-api-0-project-details"
