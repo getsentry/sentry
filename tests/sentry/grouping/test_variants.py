@@ -32,7 +32,7 @@ from tests.sentry.grouping import (
     ids=lambda config_name: config_name.replace("-", "_"),
 )
 @patch("sentry.grouping.strategies.newstyle.logging.exception")
-def test_variants_with_older_configs(
+def test_variants_with_manual_save(
     mock_exception_logger: MagicMock,
     config_name: str,
     grouping_input: GroupingInput,

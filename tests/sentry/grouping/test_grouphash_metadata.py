@@ -43,7 +43,7 @@ dummy_project = Mock(id=11211231)
     set(CONFIGURATIONS.keys()) - {DEFAULT_GROUPING_CONFIG, NO_MSG_PARAM_CONFIG},
     ids=lambda config_name: config_name.replace("-", "_"),
 )
-def test_hash_basis_with_older_configs(
+def test_variants_with_manual_save(
     config_name: str,
     grouping_input: GroupingInput,
     insta_snapshot: InstaSnapshotter,
