@@ -32,6 +32,7 @@ export function MetricDetectorFixture(
     conditionGroup: params.conditionGroup ?? DataConditionGroupFixture(),
     dataSources: params.dataSources ?? [SnubaQueryDataSourceFixture()],
     owner: null,
+    alertRuleId: null,
     ...params,
   };
 }
