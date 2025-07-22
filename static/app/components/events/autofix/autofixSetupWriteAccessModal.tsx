@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -111,14 +111,13 @@ export function AutofixSetupWriteAccessModal({
   const orgSlug = useOrganization().slug;
   const {canCreatePullRequests} = useAutofixSetup({groupId, checkWriteAccess: true});
 
-  const handleCloseModal = () => {
-    // Make sure we reload on modal close
-    queryClient.invalidateQueries({
-      queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
-    });
-
-    closeModal();
-  };
+  useEffect(() => {
+    return () => {
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+      });
+    };
+  }, [queryClient, orgSlug, groupId]);
 
   return (
     <div id="autofix-write-access-modal">
@@ -126,7 +125,7 @@ export function AutofixSetupWriteAccessModal({
         <h3>{t('Allow Seer to Make Pull Requests')}</h3>
       </Header>
       <Body>
-        <Content groupId={groupId} closeModal={handleCloseModal} />
+        <Content groupId={groupId} closeModal={closeModal} />
       </Body>
       {!canCreatePullRequests && (
         <Footer>
