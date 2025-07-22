@@ -204,7 +204,10 @@ class BitbucketServerWebhookEndpoint(Endpoint):
             interaction_type=event_handler.event_type,
             domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
             provider_key=event_handler.provider,
-        ).capture():
-            event_handler(event, organization=organization, integration_id=integration_id)
+        ).capture() as lifecycle:
+            try:
+                event_handler(event, organization=organization, integration_id=integration_id)
+            except (Http404, BadRequest) as e:
+                lifecycle.record_halt(halt_reason=e)
 
         return HttpResponse(status=204)
