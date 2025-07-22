@@ -133,7 +133,6 @@ def get_filename_component(
     abs_path: str,
     filename: str | None,
     platform: str | None,
-    allow_file_origin: bool = False,
 ) -> FilenameGroupingComponent:
     """Attempt to normalize filenames by detecting special filenames and by
     using the basename only.
@@ -146,7 +145,7 @@ def get_filename_component(
     filename = _basename_re.split(filename)[-1].lower()
     filename_component = FilenameGroupingComponent(values=[filename])
 
-    if has_url_origin(abs_path, allow_file_origin=allow_file_origin):
+    if has_url_origin(abs_path, allow_file_origin=True):
         filename_component.update(contributes=False, hint="ignored because frame points to a URL")
     elif filename == "<anonymous>":
         filename_component.update(contributes=False, hint="anonymous filename discarded")
@@ -304,9 +303,7 @@ def frame(
     # Safari throws [native code] frames in for calls like ``forEach``
     # whereas Chrome ignores these. Let's remove it from the hashing algo
     # so that they're more likely to group together
-    filename_component = get_filename_component(
-        frame.abs_path, frame.filename, platform, allow_file_origin=True
-    )
+    filename_component = get_filename_component(frame.abs_path, frame.filename, platform)
 
     # if we have a module we use that for grouping.  This will always
     # take precedence over the filename if it contributes
