@@ -1,7 +1,13 @@
-import {DashboardListItemFixture} from 'sentry-fixture/dashboard';
+import {DashboardFixture, DashboardListItemFixture} from 'sentry-fixture/dashboard';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {DashboardTable} from './table';
 
@@ -139,6 +145,77 @@ describe('DashboardTable', () => {
       expect.objectContaining({
         method: 'PUT',
         data: {isFavorited: true},
+      })
+    );
+  });
+
+  it('can duplicate a dashboard', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/1/',
+      method: 'GET',
+      body: DashboardFixture([], {
+        id: '1',
+      }),
+    });
+    const mockDuplicateRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      method: 'POST',
+      body: DashboardListItemFixture({id: '2'}),
+    });
+
+    render(
+      <DashboardTable
+        dashboards={[DashboardListItemFixture({id: '1'})]}
+        cursorKey="test"
+        isLoading={false}
+        title="My custom dashboards"
+      />
+    );
+
+    await userEvent.click(screen.getByLabelText('More options'));
+    await userEvent.click(screen.getByText('Duplicate'));
+
+    expect(mockDuplicateRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/dashboards/',
+      expect.objectContaining({
+        method: 'POST',
+        data: expect.objectContaining({
+          title: 'Dashboard',
+          widgets: [],
+          duplicate: true,
+        }),
+      })
+    );
+  });
+
+  it('can delete a dashboard', async () => {
+    const mockDeleteRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/1/',
+      method: 'DELETE',
+    });
+
+    render(
+      <DashboardTable
+        dashboards={[DashboardListItemFixture({id: '1'})]}
+        cursorKey="test"
+        isLoading={false}
+        title="My custom dashboards"
+      />
+    );
+    renderGlobalModal();
+
+    await userEvent.click(screen.getByLabelText('More options'));
+    await userEvent.click(screen.getByText('Delete'));
+
+    expect(
+      await screen.findByText('Are you sure you want to delete this dashboard?')
+    ).toBeInTheDocument();
+    await userEvent.click(await screen.findByText('Confirm'));
+
+    expect(mockDeleteRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/dashboards/1/',
+      expect.objectContaining({
+        method: 'DELETE',
       })
     );
   });
