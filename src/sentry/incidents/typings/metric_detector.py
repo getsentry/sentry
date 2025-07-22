@@ -215,7 +215,7 @@ class MetricIssueContext:
     snuba_query: SnubaQuery
     new_status: IncidentStatus
     subscription: QuerySubscription | None
-    metric_value: float | None
+    metric_value: float | dict | None
     group: Group | None
 
     @classmethod

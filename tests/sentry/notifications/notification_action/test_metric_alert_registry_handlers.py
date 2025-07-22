@@ -225,7 +225,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         snuba_query: SnubaQuery,
         new_status: IncidentStatus,
         title: str,
-        metric_value: float | None = None,
+        metric_value: float | dict | None = None,
         subscription: QuerySubscription | None = None,
         group: Group | None = None,
     ):
