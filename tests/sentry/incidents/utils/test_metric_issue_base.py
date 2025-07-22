@@ -14,7 +14,7 @@ from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscrip
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.processors.data_packet import process_data_packets
+from sentry.workflow_engine.processors.data_packet import process_data_packet
 from sentry.workflow_engine.types import DetectorEvaluationResult, DetectorPriorityLevel
 
 
@@ -91,7 +91,7 @@ class BaseMetricIssueTest(TestCase):
     def process_packet_and_return_result(
         self, data_packet: DataPacket
     ) -> IssueOccurrence | StatusChangeMessage | None:
-        results = process_data_packets([data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
+        results = process_data_packet(data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
         if not results:
             # alert did not trigger
             return None
