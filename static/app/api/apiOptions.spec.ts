@@ -51,6 +51,15 @@ describe('apiOptions', () => {
     expect(options.queryKey[0]).toBe('/items/123/');
   });
 
+  test('should not do accidental replacements', () => {
+    const options = apiOptions('/projects/$id1/$id', {
+      staleTime: 0,
+      path: {id: '123', id1: '456'},
+    });
+
+    expect(options.queryKey).toEqual(['/projects/456/123']);
+  });
+
   describe('types', () => {
     test('should infer types of known API paths', () => {
       const options = apiOptions(
@@ -89,13 +98,15 @@ describe('apiOptions', () => {
     });
 
     test('should require path params for paths with parameters', () => {
-      const options = apiOptions('/projects/$orgSlug/', {
-        staleTime: 0,
-        // @ts-expect-error Missing required path parameter
-        path: {},
-      });
+      expect(() => {
+        const options = apiOptions('/projects/$orgSlug/', {
+          staleTime: 0,
+          // @ts-expect-error Missing required path parameter
+          path: {},
+        });
 
-      expectTypeOf(options.queryFn).returns.toEqualTypeOf<QueryFunctionResult<never>>();
+        expectTypeOf(options.queryFn).returns.toEqualTypeOf<QueryFunctionResult<never>>();
+      }).toThrow('Missing path param: orgSlug');
     });
 
     test('should not allow empty path parameters for paths without parameters', () => {

@@ -32,6 +32,8 @@ type PathParamOptions<TApiPath extends string> =
 type Options<TApiPath extends string> = PathParamOptions<TApiPath> &
   QueryKeyEndpointOptions & {staleTime: number};
 
+const paramRegex = /\$([a-zA-Z0-9_-]+)/g;
+
 export function apiOptions<
   TManualData = never,
   TApiPath extends MaybeApiPath = MaybeApiPath,
@@ -40,9 +42,12 @@ export function apiOptions<
   let url: string = path;
   if (pathParams) {
     // Replace path parameters in the URL with their corresponding values
-    for (const [key, value] of Object.entries(pathParams)) {
-      url = url.replace(`$${key}`, safeEncodeURIComponent(String(value)));
-    }
+    url = url.replace(paramRegex, (_, key: string) => {
+      if (!(key in pathParams)) {
+        throw new Error(`Missing path param: ${key}`);
+      }
+      return safeEncodeURIComponent(String(pathParams[key as keyof typeof pathParams]));
+    });
   }
 
   return queryOptions({
