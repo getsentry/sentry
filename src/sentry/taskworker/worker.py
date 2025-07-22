@@ -19,7 +19,11 @@ from sentry import options
 from sentry.taskworker.client.client import HostTemporarilyUnavailable, TaskworkerClient
 from sentry.taskworker.client.inflight_task_activation import InflightTaskActivation
 from sentry.taskworker.client.processing_result import ProcessingResult
-from sentry.taskworker.constants import DEFAULT_REBALANCE_AFTER, DEFAULT_WORKER_QUEUE_SIZE
+from sentry.taskworker.constants import (
+    DEFAULT_REBALANCE_AFTER,
+    DEFAULT_WORKER_QUEUE_SIZE,
+    MAX_BACKOFF_SECONDS_WHEN_HOST_UNAVAILABLE,
+)
 from sentry.taskworker.workerchild import child_process
 from sentry.utils import metrics
 
@@ -302,7 +306,9 @@ class TaskWorker:
             )
             return None
         except HostTemporarilyUnavailable as e:
-            self._setstatus_backoff_seconds = min(self._setstatus_backoff_seconds + 4, 20)
+            self._setstatus_backoff_seconds = min(
+                self._setstatus_backoff_seconds + 4, MAX_BACKOFF_SECONDS_WHEN_HOST_UNAVAILABLE
+            )
             logger.info(
                 "taskworker.send_update_task.temporarily_unavailable",
                 extra={"task_id": result.task_id, "error": str(e)},
@@ -354,7 +360,9 @@ class TaskWorker:
                 extra={"error": e, "processing_pool": self._processing_pool_name},
             )
 
-            self._gettask_backoff_seconds = min(self._gettask_backoff_seconds + 4, 20)
+            self._gettask_backoff_seconds = min(
+                self._gettask_backoff_seconds + 4, MAX_BACKOFF_SECONDS_WHEN_HOST_UNAVAILABLE
+            )
             return None
 
         if not activation:
