@@ -510,7 +510,7 @@ function BaseChart({
               utc,
               bucketSize,
               chartId: isTooltipPortalled ? chartId : undefined,
-              ...(tooltip ?? {}),
+              ...tooltip,
               className: isTooltipPortalled
                 ? `${tooltip?.className ?? ''} chart-tooltip-portal`
                 : tooltip?.className,
