@@ -42,7 +42,7 @@ class ReplayDeletionJobCreateDataSerializer(serializers.Serializer):
     environments = serializers.ListField(
         child=serializers.CharField(allow_null=False, allow_blank=False), required=True
     )
-    query = serializers.CharField(required=True, allow_blank=True)
+    query = serializers.CharField(required=True, allow_blank=True, allow_null=True)
 
     def validate(self, data):
         if data["rangeStart"] >= data["rangeEnd"]:
@@ -98,7 +98,7 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
             environments=data["environments"],
             organization_id=project.organization_id,
             project_id=project.id,
-            query=data["query"],
+            query=data["query"] or "",
             status="pending",
         )
 

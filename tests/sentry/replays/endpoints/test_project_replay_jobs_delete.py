@@ -163,7 +163,7 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
                 "rangeStart": "2023-01-01T00:00:00Z",
                 "rangeEnd": "2023-01-02T00:00:00Z",
                 "environments": ["production"],
-                "query": "test query",
+                "query": None,
             }
         }
 
@@ -176,7 +176,7 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
         job_data = response.data["data"]
         assert job_data["status"] == "pending"
         assert job_data["environments"] == ["production"]
-        assert job_data["query"] == "test query"
+        assert job_data["query"] == ""
         assert job_data["countDeleted"] == 0  # Default offset value
 
         # Verify job was created in database
