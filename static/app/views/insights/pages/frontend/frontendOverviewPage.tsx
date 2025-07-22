@@ -58,7 +58,7 @@ import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {categorizeProjects} from 'sentry/views/insights/pages/utils';
-import type {EAPSpanProperty} from 'sentry/views/insights/types';
+import type {SpanProperty} from 'sentry/views/insights/types';
 import {generateFrontendOtherPerformanceEventView} from 'sentry/views/performance/data';
 import {
   DoubleChartRow,
@@ -204,7 +204,7 @@ function EAPOverviewPage() {
 
   const sorts: [ValidSort, ValidSort] = [
     {
-      field: 'is_starred_transaction' satisfies EAPSpanProperty,
+      field: 'is_starred_transaction' satisfies SpanProperty,
       kind: 'desc',
     },
     decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,

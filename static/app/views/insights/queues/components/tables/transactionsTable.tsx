@@ -26,10 +26,10 @@ import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {useQueuesByTransactionQuery} from 'sentry/views/insights/queues/queries/useQueuesByTransactionQuery';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
-import {type EAPSpanResponse} from 'sentry/views/insights/types';
+import {type SpanResponse} from 'sentry/views/insights/types';
 
 type Row = Pick<
-  EAPSpanResponse,
+  SpanResponse,
   | 'sum(span.duration)'
   | 'transaction'
   | `avg_if(${string},${string},${string})`
