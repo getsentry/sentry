@@ -1277,21 +1277,28 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     def test_ingest_through_trusted_relays_only_option(self):
         # by default option is not set
-        assert not self.organization.get_option("sentry:ingest_through_trusted_relays_only")
+        assert self.organization.get_option("sentry:ingest-through-trusted-relays-only") is None
 
         with self.feature("organizations:ingest-through-trusted-relays-only"):
-            data = {"ingestThroughTrustedRelaysOnly": True}
+            data = {"ingestThroughTrustedRelaysOnly": "enabled"}
             self.get_success_response(self.organization.slug, **data)
-            assert self.organization.get_option("sentry:ingest-through-trusted-relays-only")
+            assert (
+                self.organization.get_option("sentry:ingest-through-trusted-relays-only")
+                == "enabled"
+            )
+
+        with self.feature("organizations:ingest-through-trusted-relays-only"):
+            data = {"ingestThroughTrustedRelaysOnly": "invalid"}
+            self.get_error_response(self.organization.slug, status_code=400, **data)
 
         with self.feature({"organizations:ingest-through-trusted-relays-only": False}):
-            data = {"ingestThroughTrustedRelaysOnly": True}
+            data = {"ingestThroughTrustedRelaysOnly": "enabled"}
             self.get_error_response(self.organization.slug, status_code=400, **data)
 
     @with_feature("organizations:ingest-through-trusted-relays-only")
     def test_get_ingest_through_trusted_relays_only_option(self):
         response = self.get_success_response(self.organization.slug)
-        assert response.data["ingestThroughTrustedRelaysOnly"] is False
+        assert response.data["ingestThroughTrustedRelaysOnly"] == "disabled"
 
     def test_get_ingest_through_trusted_relays_only_option_without_feature(self):
         response = self.get_success_response(self.organization.slug)
