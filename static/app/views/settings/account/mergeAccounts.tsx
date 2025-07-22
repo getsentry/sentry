@@ -31,7 +31,12 @@ const ENDPOINT = '/auth-v2/merge-accounts/';
 const VERIFICATION_CODE_ENDPOINT = '/auth-v2/user-merge-verification-codes/';
 
 function MergeAccounts() {
-  const {refetch} = useApiQuery<UserWithOrganizations[]>(makeMergeAccountsEndpointKey(), {
+  const {
+    data: users = [],
+    isPending,
+    isError,
+    refetch,
+  } = useApiQuery<UserWithOrganizations[]>(makeMergeAccountsEndpointKey(), {
     staleTime: 0,
     gcTime: 0,
   });
@@ -40,6 +45,7 @@ function MergeAccounts() {
   const user = useUser();
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [tokenValue, setTokenValue] = useState('');
+  const [verificationCodeSent, setVerificationCodeSent] = useState(false);
 
   const selectUser = (newUserId: string) =>
     setSelectedUserIds(prevSelectedUserIds =>
@@ -79,17 +85,21 @@ function MergeAccounts() {
       method: 'POST',
       data: {},
     });
+    setVerificationCodeSent(true);
   };
 
-  if (isUpdating) {
+  if (isPending || isUpdating) {
     return (
-      <Panel>
-        <PanelHeader>{t('Merge Accounts')}</PanelHeader>
-        <PanelBody>
-          <LoadingIndicator />
-        </PanelBody>
-      </Panel>
+      <Fragment>
+        <SentryDocumentTitle title={t('Merge Accounts')} />
+        <SettingsPageHeader title={t('Merge Accounts')} />
+        <LoadingIndicator />
+      </Fragment>
     );
+  }
+
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
   }
 
   return (
@@ -100,11 +110,15 @@ function MergeAccounts() {
         <StyledListItem>{t('Generate Verification Code')}</StyledListItem>
         <div>{t(`Check your email for your code. You'll need it in Step 3.`)}</div>
         <ButtonSection>
-          <Button priority="primary" onClick={() => handlePostVerificationCode()}>
+          <Button
+            priority="primary"
+            disabled={verificationCodeSent}
+            onClick={() => handlePostVerificationCode()}
+          >
             Generate verification code
           </Button>
         </ButtonSection>
-        <RenderSelectAccounts onSelect={selectUser} />
+        <RenderSelectAccounts users={users} onSelect={selectUser} />
         <StyledListItem>{t('Enter Your Verification Code')}</StyledListItem>
         <StyledInput
           type="text"
@@ -117,10 +131,14 @@ function MergeAccounts() {
             priority="danger"
             onClick={() => handleSubmit(selectedUserIds, [], tokenValue)}
           >
-            {tct('Merge [numAccounts] accounts into [name]', {
-              numAccounts: selectedUserIds.length,
-              name: user.name,
-            })}
+            {tct(
+              'Merge [numMergeAccounts] accounts into [name] and delete [numDeleteAccounts] accounts',
+              {
+                numMergeAccounts: selectedUserIds.length,
+                name: user.name,
+                numDeleteAccounts: 67,
+              }
+            )}
           </Button>
         </ButtonSection>
       </List>
@@ -134,32 +152,8 @@ function makeMergeAccountsEndpointKey(): ApiQueryKey {
   return [ENDPOINT];
 }
 
-function RenderSelectAccounts({onSelect}: RenderSelectAccountsProps) {
+function RenderSelectAccounts({users, onSelect}: RenderSelectAccountsProps) {
   const signedInUser = useUser();
-  const {
-    data: users = [],
-    isPending,
-    isError,
-    refetch,
-  } = useApiQuery<UserWithOrganizations[]>(makeMergeAccountsEndpointKey(), {
-    staleTime: 0,
-    gcTime: 0,
-  });
-
-  if (isPending) {
-    return (
-      <Panel>
-        <PanelHeader>{t('Placeholder')}</PanelHeader>
-        <PanelBody>
-          <LoadingIndicator />
-        </PanelBody>
-      </Panel>
-    );
-  }
-
-  if (isError) {
-    return <LoadingError onRetry={refetch} />;
-  }
 
   const currentAccount = users.filter(({id}) => id === signedInUser.id);
   const otherAccounts = users.filter(({id}) => id !== signedInUser.id);
@@ -185,6 +179,7 @@ function RenderSelectAccounts({onSelect}: RenderSelectAccountsProps) {
 
 type RenderSelectAccountsProps = {
   onSelect: (newUserId: string) => void;
+  users: UserWithOrganizations[];
 };
 
 type UserRowProps = {
