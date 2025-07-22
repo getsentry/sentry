@@ -4,11 +4,10 @@ import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {
-  deleteDashboard,
   updateDashboardFavorite,
   updateDashboardPermissions,
 } from 'sentry/actionCreators/dashboards';
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -31,6 +30,7 @@ import {useQueryClient} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
+import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import type {
   DashboardDetails,
@@ -126,9 +126,10 @@ function DashboardTable({
   isLoading,
 }: Props) {
   const handleDuplicateDashboard = useDuplicateDashboard({
-    onSuccess: () => {
-      onDashboardsChange();
-    },
+    onSuccess: onDashboardsChange,
+  });
+  const handleDeleteDashboard = useDeleteDashboard({
+    onSuccess: onDashboardsChange,
   });
   const columnOrder: Array<GridColumnOrder<ResponseKeys>> = [
     {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
@@ -137,22 +138,6 @@ function DashboardTable({
     {key: ResponseKeys.ACCESS, name: t('Access'), width: COL_WIDTH_UNDEFINED},
     {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
   ];
-
-  function handleDelete(dashboard: DashboardListItem) {
-    deleteDashboard(api, organization.slug, dashboard.id)
-      .then(() => {
-        trackAnalytics('dashboards_manage.delete', {
-          organization,
-          dashboard_id: parseInt(dashboard.id, 10),
-          view_type: 'table',
-        });
-        onDashboardsChange();
-        addSuccessMessage(t('Dashboard deleted'));
-      })
-      .catch(() => {
-        addErrorMessage(t('Error deleting Dashboard'));
-      });
-  }
 
   // TODO(__SENTRY_USING_REACT_ROUTER_SIX): We can remove this later, react
   // router 6 handles empty query objects without appending a trailing ?
@@ -302,7 +287,7 @@ function DashboardTable({
                 openConfirmModal({
                   message: t('Are you sure you want to delete this dashboard?'),
                   priority: 'danger',
-                  onConfirm: () => handleDelete(dataRow),
+                  onConfirm: () => handleDeleteDashboard(dataRow, 'table'),
                 });
               }}
               aria-label={t('Delete Dashboard')}
