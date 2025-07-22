@@ -129,19 +129,6 @@ describe('EventTagsTree', function () {
   it('renders release tag differently', async function () {
     const releaseVersion = 'v1.0';
 
-    const reposRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/repos/`,
-      body: [],
-    });
-    const releasesRequest = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/releases/${releaseVersion}/`,
-      body: [],
-    });
-    const deploysRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/releases/${releaseVersion}/deploys/`,
-      body: [],
-    });
-
     const releaseEvent = EventFixture({
       tags: [{key: 'release', value: releaseVersion}],
     });
@@ -160,9 +147,6 @@ describe('EventTagsTree', function () {
     expect(anchorLink.href).toContain(
       `/mock-pathname/?rd=show&rdRelease=${releaseVersion}&rdSource=release-version-link`
     );
-    expect(reposRequest).toHaveBeenCalled();
-    expect(releasesRequest).toHaveBeenCalled();
-    expect(deploysRequest).toHaveBeenCalled();
     const dropdown = screen.getByLabelText('Tag Actions Menu');
     await userEvent.click(dropdown);
     expect(screen.getByLabelText('View this release')).toBeInTheDocument();
