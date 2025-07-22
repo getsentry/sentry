@@ -33,7 +33,6 @@ export const useDomainViewFilters = () => {
   const indexOfInsights = pathSegments.indexOf(DOMAIN_VIEW_BASE_URL);
   const isInDomainView = indexOfInsights !== -1;
   const view = pathSegments[indexOfInsights + 1] as DomainViewFilters['view'];
-  const isInOverviewPage = pathSegments.length === indexOfInsights + 2; // TODO: remove this with `useInsightsEap`, only needed to seperately control eap on overview page
 
   if (!view || !domainViews.includes(view)) {
     return {isInDomainView: false};
@@ -43,7 +42,6 @@ export const useDomainViewFilters = () => {
     return {
       view,
       isInDomainView,
-      isInOverviewPage,
     };
   }
 
