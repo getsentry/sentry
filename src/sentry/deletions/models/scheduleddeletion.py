@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import Any, Self
 from uuid import uuid4
 
 from django.apps import apps
-from django.db import models
+from django.db import models, router, transaction
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -31,6 +32,16 @@ def default_guid() -> str:
 
 def default_date_schedule() -> datetime:
     return timezone.now() + timedelta(days=30)
+
+
+def assert_model_silo_valid(cls: type[BaseScheduledDeletion], model: type[Model]) -> None:
+    silo_mode = SiloMode.get_current_mode()
+    model_silo = getattr(model._meta, "silo_limit", None)
+    assert model_silo, "model._meta.silo_limit undefined. This model cannot be used with deletions"
+    if silo_mode not in model_silo.modes and silo_mode != SiloMode.MONOLITH:
+        raise SiloLimit.AvailabilityError(
+            f"{model!r} was scheduled for deletion by {cls!r}, but is unavailable in {silo_mode!r}"
+        )
 
 
 class BaseScheduledDeletion(Model):
@@ -65,16 +76,7 @@ class BaseScheduledDeletion(Model):
         cls, instance: Model, days: int = 30, hours: int = 0, data: Any = None, actor: Any = None
     ) -> Self:
         model = type(instance)
-        silo_mode = SiloMode.get_current_mode()
-        model_silo = getattr(model._meta, "silo_limit", None)
-        assert (
-            model_silo
-        ), "model._meta.silo_limit undefined. This model cannot be used with deletions"
-        if silo_mode not in model_silo.modes and silo_mode != SiloMode.MONOLITH:
-            # Pre-empt the fact that our silo protections wouldn't fire for mismatched model <-> silo deletion objects.
-            raise SiloLimit.AvailabilityError(
-                f"{model!r} was scheduled for deletion by {cls!r}, but is unavailable in {silo_mode!r}"
-            )
+        assert_model_silo_valid(cls, model)
 
         model_name = model.__name__
         record, created = cls.objects.create_or_update(
@@ -103,6 +105,56 @@ class BaseScheduledDeletion(Model):
             },
         )
         return record
+
+    @classmethod
+    def schedule_bulk(
+        cls,
+        instances: Sequence[Model],
+        days: int = 30,
+        hours: int = 0,
+        data: Any = None,
+        actor: Any = None,
+    ) -> list[Self]:
+        if not instances:
+            return []
+
+        model = type(instances[0])
+        assert all(
+            isinstance(instance, model) for instance in instances
+        ), "All instances must be of the same model"
+        assert_model_silo_valid(cls, model)
+
+        model_name = model.__name__
+
+        with transaction.atomic(router.db_for_write(cls)):
+            records = cls.objects.bulk_create(
+                [
+                    cls(
+                        app_label=instance._meta.app_label,
+                        model_name=model_name,
+                        object_id=instance.pk,
+                        date_scheduled=timezone.now() + timedelta(days=days, hours=hours),
+                        data=data or {},
+                        actor_id=actor.id if actor else None,
+                    )
+                    for instance in instances
+                ],
+                update_conflicts=True,
+                unique_fields=["app_label", "model_name", "object_id"],
+                update_fields=["date_scheduled", "data", "actor_id"],
+            )
+
+            delete_logger.info(
+                "object.delete.queued_bulk",
+                extra={
+                    "object_ids": [instance.id for instance in instances],
+                    "transaction_ids": [record.guid for record in records],
+                    "model": model_name,
+                    "count": len(instances),
+                },
+            )
+
+            return records
 
     @classmethod
     def cancel(cls, instance: Model) -> None:

@@ -207,6 +207,52 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
         assert not qs.exists()
         assert not self.ScheduledDeletion.objects.filter(id=schedule.id).exists()
 
+    def test_schedule_bulk_empty_list(self):
+        result = self.ScheduledDeletion.schedule_bulk([])
+        assert result == []
+
+    def test_schedule_bulk_multiple_items(self):
+        qs1 = self.create_simple_deletion()
+        inst1 = qs1.get()
+
+        qs2 = self.create_simple_deletion()
+        inst2 = qs2.get()
+
+        qs3 = self.create_simple_deletion()
+        inst3 = qs3.get()
+
+        instances = [inst1, inst2, inst3]
+        schedules = self.ScheduledDeletion.schedule_bulk(instances, days=0)
+
+        assert len(schedules) == 3
+
+        scheduled_ids = {s.object_id for s in schedules}
+        expected_ids = {t.id for t in instances}
+        assert scheduled_ids == expected_ids
+
+        for schedule in schedules:
+            assert self.ScheduledDeletion.objects.filter(id=schedule.id).exists()
+
+    def test_schedule_bulk_duplicate_handling(self):
+        """Test that bulk scheduling handles duplicates correctly by updating existing records"""
+        qs = self.create_simple_deletion()
+        inst = qs.get()
+
+        first = self.ScheduledDeletion.schedule(inst, days=0)
+        first_date_scheduled = first.date_scheduled
+
+        schedules = self.ScheduledDeletion.schedule_bulk([inst], days=2, data={"updated": True})
+
+        assert len(schedules) == 1
+        updated_schedule = schedules[0]
+
+        updated_schedule.refresh_from_db()
+
+        assert updated_schedule.guid == first.guid
+        assert updated_schedule.data == {"updated": True}
+
+        assert updated_schedule.date_scheduled - first_date_scheduled >= timedelta(days=2)
+
 
 class RunRegionScheduledDeletionTest(RegionalRunScheduleDeletionTest):
     @property
