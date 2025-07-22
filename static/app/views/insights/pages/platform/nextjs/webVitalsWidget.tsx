@@ -19,9 +19,9 @@ import {getPreviousPeriod} from 'sentry/views/insights/pages/platform/nextjs/uti
 import {ModalChartContainer} from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
-import type {EAPSpanProperty} from 'sentry/views/insights/types';
+import type {SpanProperty} from 'sentry/views/insights/types';
 
-const FIELDS: EAPSpanProperty[] = [
+const FIELDS: SpanProperty[] = [
   'avg(measurements.score.total)',
   'performance_score(measurements.score.lcp)',
   'performance_score(measurements.score.fcp)',

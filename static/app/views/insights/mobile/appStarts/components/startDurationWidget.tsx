@@ -18,7 +18,7 @@ import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseCo
 import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import {Referrer} from 'sentry/views/insights/mobile/appStarts/referrers';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
-import type {EAPSpanProperty} from 'sentry/views/insights/types';
+import type {SpanProperty} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
 const COLD_START_CONDITIONS = [
@@ -85,7 +85,7 @@ function StartDurationWidget({additionalFilters}: Props) {
   const search = new MutableSearch(queryString);
   const referrer = Referrer.MOBILE_APP_STARTS_DURATION_CHART;
   const groupBy = SpanFields.RELEASE;
-  const yAxis: EAPSpanProperty = 'avg(span.duration)';
+  const yAxis: SpanProperty = 'avg(span.duration)';
 
   const {
     data,

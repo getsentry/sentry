@@ -11,7 +11,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import type {EAPSpanProperty} from 'sentry/views/insights/types';
+import type {SpanProperty} from 'sentry/views/insights/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/useLocation');
@@ -114,7 +114,7 @@ describe('useSpanSeries', () => {
             'resource.render_blocking_status': 'blocking' as const,
             environment: undefined,
           },
-          yAxis: ['epm()'] as EAPSpanProperty[],
+          yAxis: ['epm()'] as SpanProperty[],
         },
       }
     );
@@ -152,7 +152,7 @@ describe('useSpanSeries', () => {
       {
         wrapper: Wrapper,
         initialProps: {
-          yAxis: ['avg(span.self_time)', 'epm()'] as EAPSpanProperty[],
+          yAxis: ['avg(span.self_time)', 'epm()'] as SpanProperty[],
         },
       }
     );
@@ -163,13 +163,13 @@ describe('useSpanSeries', () => {
         method: 'GET',
         query: expect.objectContaining({
           interval: '30m',
-          yAxis: ['avg(span.self_time)', 'epm()'] as EAPSpanProperty[],
+          yAxis: ['avg(span.self_time)', 'epm()'] as SpanProperty[],
         }),
       })
     );
 
     rerender({
-      yAxis: ['p95(span.self_time)', 'epm()'] as EAPSpanProperty[],
+      yAxis: ['p95(span.self_time)', 'epm()'] as SpanProperty[],
     });
 
     await waitFor(() =>
@@ -179,7 +179,7 @@ describe('useSpanSeries', () => {
           method: 'GET',
           query: expect.objectContaining({
             interval: '1h',
-            yAxis: ['p95(span.self_time)', 'epm()'] as EAPSpanProperty[],
+            yAxis: ['p95(span.self_time)', 'epm()'] as SpanProperty[],
           }),
         })
       )
@@ -211,7 +211,7 @@ describe('useSpanSeries', () => {
       {
         wrapper: Wrapper,
         initialProps: {
-          yAxis: ['epm()'] as EAPSpanProperty[],
+          yAxis: ['epm()'] as SpanProperty[],
         },
       }
     );
@@ -278,7 +278,7 @@ describe('useSpanSeries', () => {
       {
         wrapper: Wrapper,
         initialProps: {
-          yAxis: ['http_response_rate(3)', 'http_response_rate(4)'] as EAPSpanProperty[],
+          yAxis: ['http_response_rate(3)', 'http_response_rate(4)'] as SpanProperty[],
         },
       }
     );
@@ -331,7 +331,7 @@ describe('useSpanSeries', () => {
       {
         wrapper: Wrapper,
         initialProps: {
-          yAxis: ['http_response_rate(3)', 'http_response_rate(4)'] as EAPSpanProperty[],
+          yAxis: ['http_response_rate(3)', 'http_response_rate(4)'] as SpanProperty[],
         },
       }
     );

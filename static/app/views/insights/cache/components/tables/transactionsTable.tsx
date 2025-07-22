@@ -22,17 +22,17 @@ import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {
-  type EAPSpanResponse,
   ModuleName,
   SpanFields,
   SpanFunction,
+  type SpanResponse,
 } from 'sentry/views/insights/types';
 
 const {CACHE_MISS_RATE, EPM} = SpanFunction;
 const {CACHE_ITEM_SIZE} = SpanFields;
 
 type Row = Pick<
-  EAPSpanResponse,
+  SpanResponse,
   | 'project'
   | 'project.id'
   | 'transaction'
@@ -41,7 +41,7 @@ type Row = Pick<
   | 'sum(span.self_time)'
   | 'avg(cache.item_size)'
 > &
-  Pick<EAPSpanResponse, 'avg(span.duration)'>;
+  Pick<SpanResponse, 'avg(span.duration)'>;
 
 type Column = GridColumnHeader<
   | 'transaction'

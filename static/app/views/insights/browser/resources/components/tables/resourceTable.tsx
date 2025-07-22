@@ -39,7 +39,7 @@ import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import type {EAPSpanResponse} from 'sentry/views/insights/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
 import {ModuleName, SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
 const {
@@ -58,7 +58,7 @@ const RESOURCE_SIZE_ALERT = t(
 );
 
 type Row = Pick<
-  EAPSpanResponse,
+  SpanResponse,
   | 'avg(http.response_content_length)'
   | 'avg(span.self_time)'
   | 'epm()'

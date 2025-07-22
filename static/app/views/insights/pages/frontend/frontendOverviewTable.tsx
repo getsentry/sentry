@@ -23,10 +23,10 @@ import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {StyledIconStar} from 'sentry/views/insights/pages/backend/backendTable';
 import {SPAN_OP_QUERY_PARAM} from 'sentry/views/insights/pages/frontend/settings';
 import {TransactionCell} from 'sentry/views/insights/pages/transactionCell';
-import type {EAPSpanResponse} from 'sentry/views/insights/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
 
 type Row = Pick<
-  EAPSpanResponse,
+  SpanResponse,
   | 'is_starred_transaction'
   | 'transaction'
   | 'project'

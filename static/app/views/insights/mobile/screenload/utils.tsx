@@ -5,7 +5,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type {YAxis} from 'sentry/views/insights/mobile/screenload/constants';
 import {YAXIS_COLUMNS} from 'sentry/views/insights/mobile/screenload/constants';
-import type {EAPSpanResponse} from 'sentry/views/insights/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
 
 export function isCrossPlatform(project: Project) {
   return project.platform && ['react-native', 'flutter'].includes(project.platform);
@@ -20,7 +20,7 @@ export function transformDeviceClassEvents({
 }: {
   theme: Theme;
   yAxes: YAxis[];
-  data?: Array<Partial<EAPSpanResponse> & Pick<EAPSpanResponse, 'device.class'>>;
+  data?: Array<Partial<SpanResponse> & Pick<SpanResponse, 'device.class'>>;
   primaryRelease?: string;
   secondaryRelease?: string;
 }): Record<string, Record<string, Series>> {

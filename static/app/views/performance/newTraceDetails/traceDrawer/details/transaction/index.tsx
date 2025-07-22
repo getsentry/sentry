@@ -18,7 +18,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import type {EAPSpanResponse, SpanQueryFilters} from 'sentry/views/insights/types';
+import type {SpanQueryFilters, SpanResponse} from 'sentry/views/insights/types';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {Referrer} from 'sentry/views/performance/newTraceDetails/referrers';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
@@ -229,9 +229,7 @@ export function TransactionNodeDetails({
 }
 
 type TransactionSpecificSectionsProps = {
-  cacheMetrics: Array<
-    Pick<EAPSpanResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>
-  >;
+  cacheMetrics: Array<Pick<SpanResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>>;
   event: EventTransaction;
   node: TraceTreeNode<TraceTree.Transaction>;
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
