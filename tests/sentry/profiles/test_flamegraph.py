@@ -8,8 +8,11 @@ def test_split_datetime_range_exponential_with_days():
     end = datetime(2023, 1, 31)
     initial_delta = timedelta(days=1)
     max_chunk_delta = timedelta(days=8)
+    multiplier = 2
 
-    result = list(split_datetime_range_exponential(start, end, initial_delta, max_chunk_delta))
+    result = list(
+        split_datetime_range_exponential(start, end, initial_delta, max_chunk_delta, multiplier)
+    )
 
     expected_chunks = [
         (datetime(2023, 1, 1), datetime(2023, 1, 2)),  # Delta: 1 day
@@ -28,9 +31,12 @@ def test_split_datetime_range_exponential_with_hours():
     end_time = datetime(2024, 5, 2, 12, 0, 0)
     initial_h_delta = timedelta(hours=2)
     max_h_delta = timedelta(hours=8)
+    multiplier = 2
 
     result = list(
-        split_datetime_range_exponential(start_time, end_time, initial_h_delta, max_h_delta)
+        split_datetime_range_exponential(
+            start_time, end_time, initial_h_delta, max_h_delta, multiplier
+        )
     )
 
     expected_chunks = [
