@@ -1,7 +1,9 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {PlatformIcon} from 'platformicons';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Link} from 'sentry/components/core/link';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -32,7 +34,6 @@ import LLMGenerationsWidget from 'sentry/views/insights/agentMonitoring/componen
 import {ModelsTable} from 'sentry/views/insights/agentMonitoring/components/modelsTable';
 import TokenCostWidget from 'sentry/views/insights/agentMonitoring/components/tokenCostWidget';
 import TokenDistributionWidget from 'sentry/views/insights/agentMonitoring/components/tokenDistributionWidget';
-import TokenThroughputWidget from 'sentry/views/insights/agentMonitoring/components/tokenThroughputWidget';
 import TokenUsageWidget from 'sentry/views/insights/agentMonitoring/components/tokenUsageWidget';
 import {ToolsTable} from 'sentry/views/insights/agentMonitoring/components/toolsTable';
 import ToolUsageWidget from 'sentry/views/insights/agentMonitoring/components/toolUsageWidget';
@@ -176,7 +177,7 @@ function AgentsMonitoringPage() {
                   <Onboarding />
                 ) : (
                   <Fragment>
-                    <WidgetGrid>
+                    <WidgetGrid rowHeight={190}>
                       <WidgetGrid.Position1>
                         <OverviewAgentsRunsChartWidget />
                       </WidgetGrid.Position1>
@@ -184,26 +185,8 @@ function AgentsMonitoringPage() {
                         <OverviewAgentsDurationChartWidget />
                       </WidgetGrid.Position2>
                       <WidgetGrid.Position3>
-                        <TokenThroughputWidget />
+                        <IssueWidget />
                       </WidgetGrid.Position3>
-                      <WidgetGrid.Position4>
-                        <TokenUsageWidget />
-                      </WidgetGrid.Position4>
-                      <WidgetGrid.Position5>
-                        <TokenDistributionWidget />
-                      </WidgetGrid.Position5>
-                      <WidgetGrid.Position6>
-                        <TokenCostWidget />
-                      </WidgetGrid.Position6>
-                      <WidgetGrid.Position7>
-                        <LLMGenerationsWidget />
-                      </WidgetGrid.Position7>
-                      <WidgetGrid.Position8>
-                        <ToolUsageWidget />
-                      </WidgetGrid.Position8>
-                      <WidgetGrid.Position9>
-                        <ToolErrorsWidget />
-                      </WidgetGrid.Position9>
                     </WidgetGrid>
                     <ControlsWrapper>
                       <TableControl
@@ -222,9 +205,10 @@ function AgentsMonitoringPage() {
                         </TableControlItem>
                       </TableControl>
                     </ControlsWrapper>
-                    {activeTable === TableType.TRACES && <TracesTable />}
-                    {activeTable === TableType.MODELS && <ModelsTable />}
-                    {activeTable === TableType.TOOLS && <ToolsTable />}
+
+                    {activeTable === TableType.TRACES && <TracesView />}
+                    {activeTable === TableType.MODELS && <ModelsView />}
+                    {activeTable === TableType.TOOLS && <ToolsView />}
                   </Fragment>
                 )}
               </ModuleLayout.Full>
@@ -233,6 +217,63 @@ function AgentsMonitoringPage() {
         </Layout.Body>
       </ModuleBodyUpsellHook>
     </SearchQueryBuilderProvider>
+  );
+}
+
+function TracesView() {
+  return (
+    <Fragment>
+      <WidgetGrid rowHeight={260}>
+        <WidgetGrid.Position1>
+          <LLMGenerationsWidget />
+        </WidgetGrid.Position1>
+        <WidgetGrid.Position2>
+          <TokenUsageWidget />
+        </WidgetGrid.Position2>
+        <WidgetGrid.Position3>
+          <ToolUsageWidget />
+        </WidgetGrid.Position3>
+      </WidgetGrid>
+      <TracesTable />
+    </Fragment>
+  );
+}
+
+function ModelsView() {
+  return (
+    <Fragment>
+      <WidgetGrid rowHeight={260}>
+        <WidgetGrid.Position1>
+          <TokenCostWidget />
+        </WidgetGrid.Position1>
+        <WidgetGrid.Position2>
+          <TokenUsageWidget />
+        </WidgetGrid.Position2>
+        <WidgetGrid.Position3>
+          <TokenDistributionWidget />
+        </WidgetGrid.Position3>
+      </WidgetGrid>
+      <ModelsTable />
+    </Fragment>
+  );
+}
+
+function ToolsView() {
+  return (
+    <Fragment>
+      <WidgetGrid rowHeight={260}>
+        <WidgetGrid.Position1>
+          <ToolUsageWidget />
+        </WidgetGrid.Position1>
+        <WidgetGrid.Position2>
+          <ToolErrorsWidget />
+        </WidgetGrid.Position2>
+        {/* <WidgetGrid.Position3>
+          <ToolTokensUsedWidget />
+        </WidgetGrid.Position3> */}
+      </WidgetGrid>
+      <ToolsTable />
+    </Fragment>
   );
 }
 
@@ -265,12 +306,62 @@ function PlaceholderText() {
   return <PlaceholderContent>{t('Placeholder')}</PlaceholderContent>;
 }
 
+export function IssueWidget() {
+  return (
+    <Widget
+      Title={<Widget.WidgetTitle title={t('Issues')} />}
+      Visualization={<IssuesVisualization />}
+    />
+  );
+}
+
 export function ToolErrorsWidget() {
   return (
     <Widget
       Title={<Widget.WidgetTitle title={t('Tool errors')} />}
       Visualization={<PlaceholderText />}
     />
+  );
+}
+
+export function ToolTokensUsedWidget() {
+  return (
+    <Widget
+      Title={<Widget.WidgetTitle title={t('Tool tokens used')} />}
+      Visualization={<PlaceholderText />}
+    />
+  );
+}
+
+function IssuesVisualization() {
+  const issueData = [
+    {platform: 'nextjs', title: 'Connection timeout errors', count: 12},
+    {platform: 'javascript', title: 'Rate limit exceeded', count: 8},
+    {platform: 'python', title: 'Invalid API response format', count: 5},
+    {platform: 'node', title: 'Authentication failed', count: 3},
+    {platform: 'nextjs', title: 'Model response parsing error', count: 2},
+  ];
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: space(1),
+        justifyContent: 'center',
+        height: '100%',
+      }}
+    >
+      {issueData.map((issue, index) => (
+        <IssueRow key={index}>
+          <PlatformIcon platform={issue.platform} size={16} />
+          <IssueTitle>
+            <Link to={`/issues/${issue.title}`}>{issue.title}</Link>
+          </IssueTitle>
+          <IssueCount>{issue.count}</IssueCount>
+        </IssueRow>
+      ))}
+    </div>
   );
 }
 
@@ -285,6 +376,24 @@ const PlaceholderContent = styled('div')`
 
 const QueryBuilderWrapper = styled('div')`
   flex: 2;
+`;
+
+const IssueRow = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  padding: 0;
+`;
+
+const IssueTitle = styled('div')`
+  flex: 1;
+  font-size: ${p => p.theme.fontSize.md};
+`;
+
+const IssueCount = styled('div')`
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: bold;
+  color: ${p => p.theme.subText};
 `;
 
 const ControlsWrapper = styled('div')`

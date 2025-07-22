@@ -186,7 +186,7 @@ export default function TokenDistributionWidget() {
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={t('Token Distribution')} />}
+      Title={<Widget.WidgetTitle title={t('Token Types')} />}
       Visualization={visualization}
       Actions={
         organization.features.includes('visibility-explore-view') &&

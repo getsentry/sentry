@@ -137,7 +137,7 @@ export default function TokenCostWidget() {
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={t('Token Cost')} />}
+      Title={<Widget.WidgetTitle title={t('Model Cost')} />}
       Visualization={visualization}
       Actions={
         organization.features.includes('visibility-explore-view') &&

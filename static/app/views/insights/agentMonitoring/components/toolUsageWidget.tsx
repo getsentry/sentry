@@ -134,7 +134,7 @@ export default function ToolUsageWidget() {
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={t('Tool Usage')} />}
+      Title={<Widget.WidgetTitle title={t('Tool Calls')} />}
       Visualization={visualization}
       Actions={
         organization.features.includes('visibility-explore-view') &&

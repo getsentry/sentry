@@ -139,7 +139,7 @@ export default function LLMGenerationsWidget() {
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={t('LLM Generations')} />}
+      Title={<Widget.WidgetTitle title={t('LLM Calls')} />}
       Visualization={visualization}
       Actions={
         organization.features.includes('visibility-explore-view') &&

@@ -10,42 +10,30 @@ export const SeriesColorIndicator = styled('div')`
   border-radius: 0 3px 3px 0;
 `;
 
-const StyledGrid = styled('div')`
+const StyledGrid = styled('div')<{rowHeight: number}>`
   display: grid;
   gap: ${space(2)};
   padding-bottom: ${space(2)};
 
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: 190px 190px 190px 280px 280px 280px 280px 280px 280px;
+  grid-template-rows: ${p => p.rowHeight}px ${p => p.rowHeight}px ${p => p.rowHeight}px;
   grid-template-areas:
     'pos1'
     'pos2'
-    'pos3'
-    'pos4'
-    'pos5'
-    'pos6'
-    'pos7'
-    'pos8'
-    'pos9';
+    'pos3';
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: 190px 280px 280px 280px 280px;
+    grid-template-rows: ${p => p.rowHeight}px ${p => p.rowHeight}px;
     grid-template-areas:
       'pos1 pos2'
-      'pos3 pos4'
-      'pos5 pos6'
-      'pos7 pos8'
-      'pos9 pos9';
+      'pos3 pos3';
   }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: 190px 280px 280px;
-    grid-template-areas:
-      'pos1 pos2 pos3'
-      'pos4 pos5 pos6'
-      'pos7 pos8 pos9';
+    grid-template-rows: ${p => p.rowHeight}px;
+    grid-template-areas: 'pos1 pos2 pos3';
   }
 `;
 
@@ -58,23 +46,5 @@ export const WidgetGrid = Object.assign(StyledGrid, {
   `,
   Position3: styled('div')`
     grid-area: pos3;
-  `,
-  Position4: styled('div')`
-    grid-area: pos4;
-  `,
-  Position5: styled('div')`
-    grid-area: pos5;
-  `,
-  Position6: styled('div')`
-    grid-area: pos6;
-  `,
-  Position7: styled('div')`
-    grid-area: pos7;
-  `,
-  Position8: styled('div')`
-    grid-area: pos8;
-  `,
-  Position9: styled('div')`
-    grid-area: pos9;
   `,
 });
