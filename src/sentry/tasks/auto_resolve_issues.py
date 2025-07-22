@@ -60,7 +60,10 @@ def schedule_auto_resolution():
         if int(options.get("sentry:_last_auto_resolve", 0)) > cutoff:
             continue
 
-        auto_resolve_project_issues.delay(project_id=project_id, expires=ONE_HOUR)
+        auto_resolve_project_issues.apply_async(
+            kwargs={"project_id": project_id, "expires": ONE_HOUR},
+            headers={"sentry-propagate-traces": False},
+        )
 
 
 @instrumented_task(
