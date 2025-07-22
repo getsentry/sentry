@@ -238,6 +238,7 @@ type SpanNumberFields =
 export type SpanStringFields =
   | SpanFields.COMMAND
   | SpanFields.REQUEST_METHOD
+  | SpanFields.HTTP_REQUEST_METHOD
   | SpanFields.RESOURCE_RENDER_BLOCKING_STATUS
   | SpanFields.RAW_DOMAIN
   | SpanFields.ID
