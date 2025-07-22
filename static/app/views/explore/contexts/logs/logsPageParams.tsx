@@ -7,8 +7,7 @@ import type {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalytics
 import type {Sort} from 'sentry/utils/discover/fields';
 import localStorage from 'sentry/utils/localStorage';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
-import {useQueryClient} from 'sentry/utils/queryClient';
-import {decodeBoolean, decodeInteger, decodeScalar} from 'sentry/utils/queryString';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -18,6 +17,11 @@ import {
   defaultLogFields,
   getLogFieldsFromLocation,
 } from 'sentry/views/explore/contexts/logs/fields';
+import {
+  type AutoRefreshState,
+  LOGS_AUTO_REFRESH_KEY,
+  LogsAutoRefreshProvider,
+} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
   getLogAggregateSortBysFromLocation,
   getLogSortBysFromLocation,
@@ -31,7 +35,6 @@ import {
   updateLocationWithMode,
 } from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {useLogsQueryKeyWithInfinite} from 'sentry/views/explore/logs/useLogsQuery';
 
 const LOGS_PARAMS_VERSION = 2;
 export const LOGS_QUERY_KEY = 'logsQuery'; // Logs may exist on other pages.
@@ -42,23 +45,17 @@ export const LOGS_AGGREGATE_FN_KEY = 'logsAggregate'; // e.g., p99
 export const LOGS_AGGREGATE_PARAM_KEY = 'logsAggregateParam'; // e.g., message.parameters.0
 export const LOGS_GROUP_BY_KEY = 'logsGroupBy'; // e.g., message.template
 
-const LOGS_AUTO_REFRESH_KEY = 'live';
-const LOGS_REFRESH_INTERVAL_KEY = 'refreshEvery';
-const LOGS_REFRESH_INTERVAL_DEFAULT = 5000;
-
 interface LogsPageParams {
   /** In the 'aggregates' table, if you GROUP BY, there can be many rows. This is the cursor for pagination there. */
   readonly aggregateCursor: string;
   /** In the 'aggregates' table, if you GROUP BY, there can be many rows. This is the 'sort by' for that table. */
   readonly aggregateSortBys: Sort[];
   readonly analyticsPageSource: LogsAnalyticsPageSource;
-  readonly autoRefresh: boolean;
   readonly blockRowExpanding: boolean | undefined;
   readonly cursor: string;
   readonly fields: string[];
   readonly isTableFrozen: boolean | undefined;
   readonly mode: Mode;
-  readonly refreshInterval: number;
   readonly search: MutableSearch;
   /**
    * See setSearchForFrozenPages
@@ -119,7 +116,10 @@ const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
 interface LogsPageParamsProviderProps {
   analyticsPageSource: LogsAnalyticsPageSource;
   children: React.ReactNode;
-  _testContext?: Partial<LogsPageParams>;
+  _testContext?: Partial<LogsPageParams> & {
+    autoRefresh?: AutoRefreshState;
+    refreshInterval?: number;
+  };
   blockRowExpanding?: boolean;
   isTableFrozen?: boolean;
   limitToProjectIds?: number[];
@@ -139,12 +139,6 @@ export function LogsPageParamsProvider({
 }: LogsPageParamsProviderProps) {
   const location = useLocation();
   const logsQuery = decodeLogsQuery(location);
-
-  const autoRefresh = decodeBoolean(location.query[LOGS_AUTO_REFRESH_KEY]) ?? false;
-  const refreshInterval = decodeInteger(
-    location.query[LOGS_REFRESH_INTERVAL_KEY],
-    LOGS_REFRESH_INTERVAL_DEFAULT
-  );
 
   // on embedded pages with search bars, use a useState instead of a URL parameter
   const [searchForFrozenPages, setSearchForFrozenPages] = useState(new MutableSearch(''));
@@ -206,8 +200,6 @@ export function LogsPageParamsProvider({
         cursor,
         setCursorForFrozenPages,
         isTableFrozen,
-        autoRefresh,
-        refreshInterval,
         blockRowExpanding,
         baseSearch,
         projectIds,
@@ -220,7 +212,9 @@ export function LogsPageParamsProvider({
         ..._testContext,
       }}
     >
-      {children}
+      <LogsAutoRefreshProvider isTableFrozen={isTableFrozen} _testContext={_testContext}>
+        {children}
+      </LogsAutoRefreshProvider>
     </LogsPageParamsContext>
   );
 }
@@ -250,14 +244,27 @@ function setLogsPageParams(location: Location, pageParams: LogPageParamsUpdate) 
   if (!pageParams.isTableFrozen) {
     updateLocationWithLogSortBys(target, pageParams.sortBys);
     updateLocationWithAggregateSortBys(target, pageParams.aggregateSortBys);
-    if (pageParams.sortBys || pageParams.aggregateSortBys || pageParams.search) {
+
+    // Only update cursors if table isn't frozen, frozen is for embedded views where cursor is managed by state instead of url.
+    if (shouldResetCursor(pageParams)) {
       // make sure to clear the cursor every time the query is updated
       delete target.query[LOGS_CURSOR_KEY];
       delete target.query[LOGS_AUTO_REFRESH_KEY];
     }
   }
-  updateNullableLocation(target, LOGS_AUTO_REFRESH_KEY, pageParams.autoRefresh);
   return target;
+}
+
+function shouldResetCursor(pageParams: LogPageParamsUpdate) {
+  return (
+    pageParams.hasOwnProperty('sortBys') ||
+    pageParams.hasOwnProperty('aggregateSortBys') ||
+    pageParams.hasOwnProperty('search') ||
+    pageParams.hasOwnProperty('groupBy') ||
+    pageParams.hasOwnProperty('fields') ||
+    pageParams.hasOwnProperty('aggregateFn') ||
+    pageParams.hasOwnProperty('aggregateParam')
+  );
 }
 
 /**
@@ -529,34 +536,4 @@ function getLogsParamsStorageKey(version: number) {
 
 function getPastLogsParamsStorageKey(version: number) {
   return `logs-params-v${version - 1}`;
-}
-
-export function useLogsAutoRefresh() {
-  const {autoRefresh, isTableFrozen} = useLogsPageParams();
-  return isTableFrozen ? false : autoRefresh;
-}
-
-export function useSetLogsAutoRefresh() {
-  const setPageParams = useSetLogsPageParams();
-  const {queryKey} = useLogsQueryKeyWithInfinite({
-    referrer: 'api.explore.logs-table',
-    autoRefresh: false,
-  });
-  const queryClient = useQueryClient();
-  return useCallback(
-    (autoRefresh: boolean) => {
-      if (autoRefresh) {
-        queryClient.removeQueries({queryKey});
-        // Until we change our timeseries hooks to be build their query keys separately, we need to remove the query via the route.
-        queryClient.removeQueries({queryKey: ['events-stats']});
-      }
-      setPageParams({autoRefresh});
-    },
-    [setPageParams, queryClient, queryKey]
-  );
-}
-
-export function useLogsRefreshInterval() {
-  const {refreshInterval} = useLogsPageParams();
-  return refreshInterval;
 }
