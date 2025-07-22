@@ -163,8 +163,6 @@ def test_multi_producer_sliced_integration_with_arroyo_local_producer():
 
 def test_flusher_waits_for_processes_to_start(monkeypatch):
     """Test that the flusher waits for all processes to become healthy during initialization."""
-    messages = []
-
     buffer = SpansBuffer(assigned_shards=[0])
 
     # Patch SpanFlusher.main to never set healthy_since, simulating a process that fails to start
@@ -182,5 +180,5 @@ def test_flusher_waits_for_processes_to_start(monkeypatch):
             SpanFlusher(
                 buffer,
                 next_step=Noop(),
-                produce_to_pipe=messages.append,
+                produce_to_pipe=lambda _: None,
             )
