@@ -184,8 +184,8 @@ def serialize_links(attributes: list[dict]) -> list[dict] | None:
             ]
         else:
             return None
-    except json.JSONDecodeError as err:
-        sentry_sdk.capture_exception(err)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
         return None
 
 
