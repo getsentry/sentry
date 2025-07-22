@@ -529,15 +529,17 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             sdk_name="sentry.python",
         )
 
-        mock_record.assert_any_call(
-            "integrations.failed_to_fetch_commit_context_all_frames",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            group_id=self.event.group_id,
-            event_id=self.event.event_id,
-            num_frames=1,
-            num_successfully_mapped_frames=1,
-            reason="no_commit_found",
+        assert_any_analytics_event(
+            mock_record,
+            IntegrationsFailedToFetchCommitContextAllFrames(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                group_id=self.event.group_id,
+                event_id=self.event.event_id,
+                num_frames=1,
+                num_successfully_mapped_frames=1,
+                reason="no_commit_found",
+            ),
         )
 
         mock_logger_info.assert_any_call(
@@ -588,15 +590,17 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             sdk_name="sentry.python",
         )
 
-        mock_record.assert_any_call(
-            "integrations.failed_to_fetch_commit_context_all_frames",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            group_id=self.event.group_id,
-            event_id=self.event.event_id,
-            num_frames=1,
-            num_successfully_mapped_frames=1,
-            reason="commit_too_old",
+        assert_any_analytics_event(
+            mock_record,
+            IntegrationsFailedToFetchCommitContextAllFrames(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                group_id=self.event.group_id,
+                event_id=self.event.event_id,
+                num_frames=1,
+                num_successfully_mapped_frames=1,
+                reason="commit_too_old",
+            ),
         )
 
         mock_logger_info.assert_any_call(
