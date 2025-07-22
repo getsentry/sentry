@@ -139,7 +139,7 @@ export function MetricDetectorDetailsSidebar({detector}: DetectorDetailsSidebarP
         <DetectorExtraDetails.LastModified detector={detector} />
         <DetectorExtraDetails.Environment detector={detector} />
       </DetectorExtraDetails>
-      <GoToMetircAlert detector={detector} />
+      <GoToMetricAlert detector={detector} />
     </Fragment>
   );
 }
