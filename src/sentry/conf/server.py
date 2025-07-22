@@ -3613,7 +3613,8 @@ SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994
 
 SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
 
-SEER_GHE_ENCRYPT_KEY: str | None = None  # For encrypting the access token for the GHE integration
+# For encrypting the access token for the GHE integration
+SEER_GHE_ENCRYPT_KEY: str | None = os.getenv("SEER_GHE_ENCRYPT_KEY")
 
 
 # This is the URL to the profiling service
