@@ -87,12 +87,17 @@ export function updateQuery(
     }
     // these actions do not modify the query in any way,
     // instead they have side effects
+    case Actions.COPY_TO_CLIPBOARD:
+      copyToClipboard(value);
+      break;
+    case Actions.OPEN_EXTERNAL_LINK:
+      openExternalLink(value);
+      break;
     case Actions.RELEASE:
     case Actions.DRILLDOWN:
       break;
     default:
-      if (!handleCellActionFallback(action, value))
-        throw new Error(`Unknown action type. ${action}`);
+      throw new Error(`Unknown action type. ${action}`);
   }
 }
 
@@ -137,6 +142,35 @@ export function excludeFromFilter(
 
   // Escapes the new condition if necessary
   oldFilter.addFilterValues(negation, value);
+}
+
+/**
+ * Copies the provided value to a user's clipboard.
+ * @param value
+ */
+export function copyToClipboard(value: string | number | string[]) {
+  function stringifyValue(val: string | number | string[]): string {
+    if (!val) return '';
+    if (typeof val !== 'object') {
+      return val.toString();
+    }
+    return JSON.stringify(val) ?? val.toString();
+  }
+  navigator.clipboard.writeText(stringifyValue(value)).catch(_ => {
+    addErrorMessage('Error copying to clipboard');
+  });
+}
+
+/**
+ * If provided value is a valid url, opens the url in a new tab
+ * @param value
+ */
+export function openExternalLink(value: string | number | string[]) {
+  if (typeof value === 'string' && isUrl(value)) {
+    window.open(value, '_blank', 'noopener,noreferrer');
+  } else {
+    addErrorMessage('Could not open link');
+  }
 }
 
 type CellActionsOpts = {
@@ -327,42 +361,6 @@ function CellAction(props: Props) {
       )}
     </Container>
   );
-}
-
-/**
- * A fallback that has default operations for some actions. E.g., copying to clipboard by default copies raw text, opening external link opens a new tab
- * @param action
- * @param value
- * @returns true if a default action was executed, false otherwise
- */
-export function handleCellActionFallback(
-  action: Actions,
-  value: string | number | string[]
-): boolean {
-  switch (action) {
-    case Actions.COPY_TO_CLIPBOARD: {
-      function stringifyValue(val: string | number | string[]): string {
-        if (!val) return '';
-        if (typeof val !== 'object') {
-          return val.toString();
-        }
-        return JSON.stringify(val) ?? val.toString();
-      }
-      navigator.clipboard.writeText(stringifyValue(value)).catch(_ => {
-        addErrorMessage('Error copying to clipboard');
-      });
-      return true;
-    }
-    case Actions.OPEN_EXTERNAL_LINK:
-      if (typeof value === 'string' && isUrl(value)) {
-        window.open(value, '_blank', 'noopener,noreferrer');
-      } else {
-        addErrorMessage('Could not open link');
-      }
-      return true;
-    default:
-      return false;
-  }
 }
 
 export default CellAction;
