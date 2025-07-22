@@ -61,7 +61,8 @@ def schedule_auto_resolution():
             continue
 
         auto_resolve_project_issues.apply_async(
-            kwargs={"project_id": project_id, "expires": ONE_HOUR},
+            args=[project_id],
+            expires=ONE_HOUR,
             headers={"sentry-propagate-traces": False},
         )
 
@@ -161,6 +162,9 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
             )
 
     if might_have_more:
-        auto_resolve_project_issues.delay(
-            project_id=project_id, cutoff=int(cutoff.strftime("%s")), chunk_size=chunk_size
+        auto_resolve_project_issues.apply_async(
+            args=[project_id],
+            kwargs={"cutoff": int(cutoff.strftime("%s")), "chunk_size": chunk_size},
+            expires=ONE_HOUR,
+            headers={"sentry-propagate-traces": False},
         )
