@@ -34,12 +34,11 @@ import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
-// import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 
 interface TableData {
   avg: number;
-  // errorRate: number;
+  errors: number;
   p95: number;
   requests: number;
   tool: string;
@@ -50,16 +49,16 @@ const EMPTY_ARRAY: never[] = [];
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'tool', name: t('Tool Name'), width: COL_WIDTH_UNDEFINED},
   {key: 'count()', name: t('Requests'), width: 120},
+  {key: 'count_if(span.status,unknown)', name: t('Errors'), width: 120},
   {key: 'avg(span.duration)', name: t('Avg'), width: 100},
   {key: 'p95(span.duration)', name: t('P95'), width: 100},
-  // {key: 'failure_rate()', name: t('Error Rate'), width: 120},
 ];
 
 const rightAlignColumns = new Set([
   'count()',
-  'failure_rate()',
+  'count_if(span.status,unknown)',
   'avg(span.duration)',
-  // 'p95(span.duration)',
+  'p95(span.duration)',
 ]);
 
 export function ToolsTable() {
@@ -94,6 +93,7 @@ export function ToolsTable() {
         'avg(span.duration)',
         'p95(span.duration)',
         'failure_rate()',
+        'count_if(span.status,unknown)', // spans with status unknown are errors
       ],
       sorts: [{field: sortField, kind: sortOrder}],
       search: fullQuery,
@@ -117,7 +117,7 @@ export function ToolsTable() {
       requests: span['count()'],
       avg: span['avg(span.duration)'],
       p95: span['p95(span.duration)'],
-      // errorRate: span['failure_rate()'],
+      errors: span['count_if(span.status,unknown)'],
     }));
   }, [toolsRequest.data]);
 
@@ -215,8 +215,8 @@ const BodyCell = memo(function BodyCell({
       return <DurationCell milliseconds={dataRow.avg} />;
     case 'p95(span.duration)':
       return <DurationCell milliseconds={dataRow.p95} />;
-    // case 'failure_rate()':
-    //   return <ErrorRateCell errorRate={dataRow.errorRate} total={dataRow.requests} />;
+    case 'count_if(span.status,unknown)':
+      return <NumberCell value={dataRow.errors} />;
     default:
       return null;
   }
