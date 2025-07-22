@@ -81,7 +81,7 @@ def convert_span_to_item(span: Span) -> TraceItem:
         try:
             sanitized_links = [_sanitize_span_link(link) for link in links]
             v = json.dumps(sanitized_links)
-            attributes["sentry.links"] = AnyValue(string_value=v)
+            attributes["sentry.links"] = _anyvalue(sanitized_links)
         except Exception:
             sentry_sdk.capture_exception()
             attributes["sentry.dropped_links_count"] = AnyValue(int_value=len(links))
