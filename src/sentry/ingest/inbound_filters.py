@@ -361,7 +361,7 @@ def _hydration_error_filter() -> RuleCondition:
     418 - Hydration failed because the initial UI does not match what was rendered on the server.
     419 - The server could not finish this Suspense boundary, likely due to an error during server rendering.
         Switched to client rendering.
-    421 - This Suspense boundary received an update before it finished hydrating. This caused the boundary to switch to client rendering. 
+    421 - This Suspense boundary received an update before it finished hydrating. This caused the boundary to switch to client rendering.
         The usual way to fix this is to wrap the original update in startTransition.
     422 - There was an error while hydrating this Suspense boundary. Switched to client rendering.
     423 - There was an error while hydrating. Because the error happened outside of a Suspense boundary, the entire
