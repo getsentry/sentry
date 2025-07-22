@@ -122,6 +122,12 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             project_ids=[self.project.id],
             stats_period="7d",
             sampled=False,
+            attributes_ignored=[
+                "sentry.segment_id",
+                "sentry.event_id",
+                "sentry.raw_description",
+                "sentry.transaction",
+            ],
         )
 
         assert result == {
@@ -149,7 +155,9 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         expected: dict = {"values": {}}
         assert result == expected
 
-    def test_get_attribute_values_with_substring_async_success_and_partial_failures(self):
+    def test_get_attribute_values_with_substring_async_success_and_partial_failures(
+        self,
+    ):
         """Test concurrent execution with successful results, timeouts, and exceptions"""
         for transaction in ["foo", "bar"]:
             self.store_segment(
@@ -193,7 +201,11 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             with patch("sentry.seer.endpoints.seer_rpc.as_completed") as mock_as_completed:
 
                 def as_completed_side_effect(future_to_field_dict, timeout):
-                    return [mock_future_success, mock_future_timeout, mock_future_exception]
+                    return [
+                        mock_future_success,
+                        mock_future_timeout,
+                        mock_future_exception,
+                    ]
 
                 mock_as_completed.side_effect = as_completed_side_effect
 
