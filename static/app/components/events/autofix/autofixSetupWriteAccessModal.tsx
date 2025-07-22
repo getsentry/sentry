@@ -6,10 +6,13 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {ExternalLink} from 'sentry/components/core/link';
+import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useQueryClient} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 
 function GitRepoLink({repo}: {repo: {name: string; owner: string; ok?: boolean}}) {
   return (
@@ -104,7 +107,18 @@ export function AutofixSetupWriteAccessModal({
   groupId,
   closeModal,
 }: AutofixSetupWriteAccessModalProps) {
+  const queryClient = useQueryClient();
+  const orgSlug = useOrganization().slug;
   const {canCreatePullRequests} = useAutofixSetup({groupId, checkWriteAccess: true});
+
+  const handleCloseModal = () => {
+    // Make sure we reload on modal close
+    queryClient.invalidateQueries({
+      queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+    });
+
+    closeModal();
+  };
 
   return (
     <div id="autofix-write-access-modal">
@@ -112,7 +126,7 @@ export function AutofixSetupWriteAccessModal({
         <h3>{t('Allow Seer to Make Pull Requests')}</h3>
       </Header>
       <Body>
-        <Content groupId={groupId} closeModal={closeModal} />
+        <Content groupId={groupId} closeModal={handleCloseModal} />
       </Body>
       {!canCreatePullRequests && (
         <Footer>
