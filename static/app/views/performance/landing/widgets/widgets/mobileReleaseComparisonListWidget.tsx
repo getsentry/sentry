@@ -118,7 +118,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
   const useEap = useInsightsEap();
 
   const dataset = useInsightsEap()
-    ? DiscoverDatasets.SPANS_EAP_RPC
+    ? DiscoverDatasets.SPANS
     : DiscoverDatasets.SPANS_METRICS;
 
   const queryParams: Record<string, string> = useEap

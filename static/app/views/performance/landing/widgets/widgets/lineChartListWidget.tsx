@@ -112,11 +112,9 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
     props.chartSetting
   );
   const useEap = useInsightsEap();
-  const spanDataset = useEap
-    ? DiscoverDatasets.SPANS_EAP_RPC
-    : DiscoverDatasets.SPANS_METRICS;
+  const spanDataset = useEap ? DiscoverDatasets.SPANS : DiscoverDatasets.SPANS_METRICS;
 
-  const metricsDataset = useEap ? DiscoverDatasets.SPANS_EAP : DiscoverDatasets.METRICS;
+  const metricsDataset = useEap ? DiscoverDatasets.SPANS : DiscoverDatasets.METRICS;
 
   const spanQueryParams: Record<string, string> = {...EAP_QUERY_PARAMS};
 
@@ -489,7 +487,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           }
 
           if (useEap) {
-            eventView.dataset = DiscoverDatasets.SPANS_EAP_RPC;
+            eventView.dataset = DiscoverDatasets.SPANS;
             extraQueryParams = {
               ...extraQueryParams,
               ...spanQueryParams,

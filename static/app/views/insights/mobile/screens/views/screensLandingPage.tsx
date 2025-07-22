@@ -102,7 +102,7 @@ function ScreensLandingPage() {
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#app-start-tracing',
       },
       field: 'avg(measurements.app_start_warm)' as const,
-      dataset: DiscoverDatasets.METRICS,
+      dataset: 'metrics',
       getStatus: getWarmAppStartPerformance,
     },
     {
@@ -119,7 +119,7 @@ function ScreensLandingPage() {
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
       },
       field: `division(mobile.slow_frames,mobile.total_frames)` as const,
-      dataset: DiscoverDatasets.SPANS_METRICS,
+      dataset: 'spansMetrics',
       getStatus: getDefaultMetricPerformance,
     },
     {
@@ -136,7 +136,7 @@ function ScreensLandingPage() {
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
       },
       field: `division(mobile.frozen_frames,mobile.total_frames)` as const,
-      dataset: DiscoverDatasets.SPANS_METRICS,
+      dataset: 'spansMetrics',
       getStatus: getDefaultMetricPerformance,
     },
     {
@@ -155,7 +155,7 @@ function ScreensLandingPage() {
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
       },
       field: `avg(mobile.frames_delay)` as const,
-      dataset: DiscoverDatasets.SPANS_METRICS,
+      dataset: 'spansMetrics',
       getStatus: getDefaultMetricPerformance,
     },
     {
@@ -173,7 +173,7 @@ function ScreensLandingPage() {
         iOS: 'https://docs.sentry.io/platforms/apple/features/experimental-features/',
       },
       field: `avg(measurements.time_to_initial_display)` as const,
-      dataset: DiscoverDatasets.METRICS,
+      dataset: 'metrics',
       getStatus: getDefaultMetricPerformance,
     },
     {
@@ -191,17 +191,17 @@ function ScreensLandingPage() {
         iOS: 'https://docs.sentry.io/platforms/apple/features/experimental-features/',
       },
       field: `avg(measurements.time_to_full_display)` as const,
-      dataset: DiscoverDatasets.METRICS,
+      dataset: 'metrics',
       getStatus: getDefaultMetricPerformance,
     },
   ] satisfies VitalItem[];
 
   const metricsFields = vitalItems
-    .filter(item => item.dataset === DiscoverDatasets.METRICS)
+    .filter(item => item.dataset === 'metrics')
     .map(item => item.field);
 
   const spanMetricsFields = vitalItems
-    .filter(item => item.dataset === DiscoverDatasets.SPANS_METRICS)
+    .filter(item => item.dataset === 'spansMetrics')
     .map(item => item.field);
 
   const [state, setState] = useState<{
@@ -214,6 +214,7 @@ function ScreensLandingPage() {
     query.addFilterValue('os.name', selectedPlatform);
   }
 
+  // TODO: combine these two queries into one, see DAIN-780
   const metricsResult = useSpans(
     {
       search: query,
