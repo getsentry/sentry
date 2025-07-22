@@ -238,6 +238,7 @@ class FlamegraphExecutor:
             "profiling.flamegraph.query.initial_chunk_delta.hours"
         )
         max_chunk_delta_hours = options.get("profiling.flamegraph.query.max_delta.hours")
+        multiplier = options.get("profiling.flamegraph.query.multiplier")
 
         initial_chunk_delta = timedelta(hours=initial_chunk_delta_hours)
         max_chunk_delta = timedelta(hours=max_chunk_delta_hours)
@@ -249,7 +250,7 @@ class FlamegraphExecutor:
         original_start, original_end = self.snuba_params.start, self.snuba_params.end
 
         for chunk_start, chunk_end in split_datetime_range_exponential(
-            original_start, original_end, initial_chunk_delta, max_chunk_delta
+            original_start, original_end, initial_chunk_delta, max_chunk_delta, multiplier
         ):
             self.snuba_params.start = chunk_start
             self.snuba_params.end = chunk_end
@@ -636,6 +637,7 @@ class FlamegraphExecutor:
             "profiling.flamegraph.query.initial_chunk_delta.hours"
         )
         max_chunk_delta_hours = options.get("profiling.flamegraph.query.max_delta.hours")
+        multiplier = options.get("profiling.flamegraph.query.multiplier")
 
         initial_chunk_delta = timedelta(hours=initial_chunk_delta_hours)
         max_chunk_delta = timedelta(hours=max_chunk_delta_hours)
@@ -648,7 +650,7 @@ class FlamegraphExecutor:
         original_start, original_end = self.snuba_params.start, self.snuba_params.end
 
         for chunk_start, chunk_end in split_datetime_range_exponential(
-            original_start, original_end, initial_chunk_delta, max_chunk_delta
+            original_start, original_end, initial_chunk_delta, max_chunk_delta, multiplier
         ):
             self.snuba_params.start = chunk_start
             self.snuba_params.end = chunk_end
@@ -864,18 +866,20 @@ def split_datetime_range_exponential(
     end_datetime: datetime,
     initial_chunk_delta: timedelta,
     max_delta: timedelta,
+    multiplier: int,
 ) -> Iterator[tuple[datetime, datetime]]:
     """
     Splits a datetime range into exponentially increasing chunks, yielded by a generator.
 
-    The duration of each chunk doubles from the previous one until it reaches the
-    max_delta, at which point the chunk size remains constant.
+    The duration of each chunk increase `multiplier` times from the previous one until
+    it reaches the max_delta, at which point the chunk size remains constant.
 
     Args:
         start_datetime (datetime): The start of the datetime range.
         end_datetime (datetime): The end of the datetime range.
         initial_chunk_delta (timedelta): The duration of the first chunk.
         max_delta (timedelta): The maximum duration for any chunk.
+        multiplier (int): The value by which the current delta is multiplied.
 
     Yields:
         tuple: A tuple representing a datetime chunk (start_of_chunk, end_of_chunk).
@@ -900,6 +904,9 @@ def split_datetime_range_exponential(
     if initial_chunk_delta > max_delta:
         raise ValueError("initial_chunk_delta cannot be greater than max_delta.")
 
+    if multiplier <= 0:
+        raise ValueError("multiplier must be a positive integer.")
+
     current_datetime = start_datetime
     current_delta = initial_chunk_delta
 
@@ -916,4 +923,4 @@ def split_datetime_range_exponential(
         current_datetime = chunk_end
 
         # Double the delta for the next chunk, but cap it at max_delta
-        current_delta = min(current_delta * 2, max_delta)
+        current_delta = min(current_delta * multiplier, max_delta)
