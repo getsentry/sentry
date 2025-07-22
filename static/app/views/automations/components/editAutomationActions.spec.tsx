@@ -11,12 +11,12 @@ import {
 
 import {EditAutomationActions} from './editAutomationActions';
 
-describe('EditDetectorActions', () => {
+describe('EditAutomationActions', () => {
   it('calls delete mutation when deletion is confirmed', async () => {
     const automation = AutomationFixture();
     const organization = OrganizationFixture();
 
-    const mockDeleteDetector = MockApiClient.addMockResponse({
+    const mockDeleteAutomation = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/workflows/${automation.id}/`,
       method: 'DELETE',
     });
@@ -30,7 +30,7 @@ describe('EditDetectorActions', () => {
     const dialog = await screen.findByRole('dialog');
     await userEvent.click(within(dialog).getByRole('button', {name: 'Delete'}));
 
-    expect(mockDeleteDetector).toHaveBeenCalledWith(
+    expect(mockDeleteAutomation).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/workflows/${automation.id}/`,
       expect.anything()
     );
@@ -45,7 +45,7 @@ describe('EditDetectorActions', () => {
     const automation = AutomationFixture();
     const organization = OrganizationFixture();
 
-    const mockUpdateDetector = MockApiClient.addMockResponse({
+    const mockUpdateAutomation = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/workflows/${automation.id}/`,
       method: 'PUT',
     });
@@ -54,7 +54,7 @@ describe('EditDetectorActions', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Disable'}));
 
-    expect(mockUpdateDetector).toHaveBeenCalledWith(
+    expect(mockUpdateAutomation).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/workflows/${automation.id}/`,
       expect.anything()
     );
