@@ -29,10 +29,12 @@ interface LogsAutoRefreshContextValue {
   refreshInterval: number;
 }
 
-const [_LogsAutoRefreshProvider, _useLogsAutoRefresh, LogsAutoRefreshContext] =
+const [_LogsAutoRefreshProvider, useLogsAutoRefresh, LogsAutoRefreshContext] =
   createDefinedContext<LogsAutoRefreshContextValue>({
     name: 'LogsAutoRefreshContext',
   });
+
+export {useLogsAutoRefresh};
 
 interface LogsAutoRefreshProviderProps {
   children: React.ReactNode;
@@ -73,10 +75,6 @@ export function LogsAutoRefreshProvider({
     </LogsAutoRefreshContext>
   );
 }
-
-const useLogsAutoRefresh = _useLogsAutoRefresh;
-
-export {useLogsAutoRefresh};
 
 /**
  * This only checks if the autoRefresh state is 'enabled'. It does NOT check
