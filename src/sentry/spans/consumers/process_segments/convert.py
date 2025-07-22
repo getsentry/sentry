@@ -129,7 +129,7 @@ def _timestamp(value: float) -> Timestamp:
     )
 
 
-ALLOWED_LINK_ATTRIBUTE_KEYS = ["sentry.link.type"]
+ALLOWED_LINK_ATTRIBUTE_KEYS = ["sentry.link.type", "sentry.dropped_attributes_count"]
 
 
 def _sanitize_span_link(link: SpanLink) -> SpanLink:
@@ -139,15 +139,20 @@ def _sanitize_span_link(link: SpanLink) -> SpanLink:
     prevent unbounded storage, we only support well-known attributes.
     """
     allowed_attributes = {}
-    dropped_attribute_count = 0
+
+    # In the future, we want Relay to drop unsupported attributes, so there
+    # might be an intermediary state where there is a pre-existing dropped
+    # attributes count. Respect that count, if it's present. It should always be
+    # an integer.
+    dropped_attributes_count = link.get("attributes", {}).get("sentry.dropped_attributes_count", 0)
 
     for key, value in link.get("attributes", {}).items():
         if key in ALLOWED_LINK_ATTRIBUTE_KEYS:
             allowed_attributes[key] = value
         else:
-            dropped_attribute_count += 1
+            dropped_attributes_count += 1
 
-    if dropped_attribute_count > 0:
-        allowed_attributes["sentry.dropped_attributes_count"] = dropped_attribute_count
+    if dropped_attributes_count > 0:
+        allowed_attributes["sentry.dropped_attributes_count"] = dropped_attributes_count
 
     return {**link, "attributes": allowed_attributes}

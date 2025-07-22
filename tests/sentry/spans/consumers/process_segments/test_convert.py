@@ -195,6 +195,7 @@ def test_convert_span_links_to_json():
                 "sampled": True,
                 "attributes": {
                     "sentry.link.type": "parent",
+                    "sentry.dropped_attributes_count": 2,
                     "parent_depth": 17,
                     "confidence": "high",
                 },
@@ -205,5 +206,5 @@ def test_convert_span_links_to_json():
     item = convert_span_to_item(cast(Span, message))
 
     assert item.attributes.get("sentry.links") == AnyValue(
-        string_value='[{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b","span_id":"8873a98879faf06d","sampled":true,"attributes":{"sentry.link.type":"parent","sentry.dropped_attributes_count":2}}]'
+        string_value='[{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b","span_id":"8873a98879faf06d","sampled":true,"attributes":{"sentry.link.type":"parent","sentry.dropped_attributes_count":4}}]'
     )
