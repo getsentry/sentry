@@ -56,6 +56,16 @@ export default function Ai() {
     );
   }
 
+  if (isPending || isRefetching) {
+    return (
+      <Wrapper data-test-id="replay-details-ai-summary-tab">
+        <LoadingContainer>
+          <LoadingIndicator />
+        </LoadingContainer>
+      </Wrapper>
+    );
+  }
+
   // If our `replay-ai-summaries` ff is enabled and the org has gen AI ff enabled,
   // but the org hasn't acknowledged the gen AI features, then show CTA.
   if (!setupAcknowledgement.orgHasAcknowledged) {
@@ -94,16 +104,6 @@ export default function Ai() {
     );
   }
 
-  if (isPending || isRefetching) {
-    return (
-      <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <LoadingContainer>
-          <LoadingIndicator />
-        </LoadingContainer>
-      </Wrapper>
-    );
-  }
-
   if (isError) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
@@ -131,7 +131,7 @@ export default function Ai() {
       <Summary>
         <SummaryLeft>
           <SummaryLeftTitle>
-            <Flex align="center" gap={space(0.5)}>
+            <Flex align="center" gap="xs">
               {t('Replay Summary')}
               <IconSeer />
             </Flex>
@@ -140,7 +140,7 @@ export default function Ai() {
           <SummaryText>{summaryData.data.summary}</SummaryText>
         </SummaryLeft>
         <SummaryRight>
-          <Flex gap={space(0.5)}>
+          <Flex gap="xs">
             <FeedbackButton type="positive" />
             <FeedbackButton type="negative" />
           </Flex>
@@ -224,6 +224,7 @@ const Summary = styled('div')`
   padding: ${space(1)} ${space(1.5)};
   border-bottom: 1px solid ${p => p.theme.border};
   gap: ${space(4)};
+  justify-content: space-between;
 `;
 
 const SummaryLeft = styled('div')`

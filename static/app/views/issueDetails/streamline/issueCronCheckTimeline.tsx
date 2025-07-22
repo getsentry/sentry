@@ -139,7 +139,7 @@ export function IssueCronCheckTimeline({group}: {group: Group}) {
       <TimelineLegend ref={elementRef} role="caption">
         {!isPending &&
           legendStatuses.map(status => (
-            <Flex align="center" gap={space(0.5)} key={status}>
+            <Flex align="center" gap="xs" key={status}>
               <MonitorIndicator status={status} size={8} />
               <TimelineLegendText>{statusToText[status]}</TimelineLegendText>
             </Flex>

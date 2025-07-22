@@ -1702,10 +1702,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
         "schedule": task_crontab("*/30", "*", "*", "*", "*"),
     },
-    "sync_options_trial": {
-        "schedule": timedelta(minutes=5),
-        "task": "options:sentry.tasks.options.sync_options",
-    },
 }
 
 TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {
