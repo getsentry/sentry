@@ -100,65 +100,6 @@ class TestQuery(APITestCase, SnubaTestCase):
         start_date = datetime.datetime.now() - datetime.timedelta(days=90)
         end_date = datetime.datetime.now()
 
-        # snuba_params = SnubaParams(
-        #     organization=self.org,
-        #     projects=[self.project],
-        #     start=start_date,
-        #     end=end_date,
-        # )
-
-        # builder = DiscoverQueryBuilder(
-        #     dataset=Dataset.Events,
-        #     params={},
-        #     snuba_params=snuba_params,
-        #     query="event.type:feedback",
-        #     selected_columns=["count()"],
-        #     config=QueryBuilderConfig(
-        #         auto_fields=False,
-        #         auto_aggregations=True,
-        #         use_aggregate_conditions=True,
-        #     ),
-        # )
-
-        # result = builder.run_query(referrer="test.debug_feedback")
-
-        # print(result["data"])
-
-        # # This query finds the top 10 values for the tag prefix "foo", and gives the counts too. It seems to be working properly
-        # builder = DiscoverQueryBuilder(
-        #     dataset=Dataset.Events,
-        #     params={},
-        #     snuba_params=snuba_params,
-        #     query="event.type:feedback",
-        #     selected_columns=[
-        #         "array_join(tags.value) as tag_value",  # Only get the value, not the key
-        #         "count()",
-        #     ],
-        #     orderby=["-count()"],
-        #     limit=10,  # Get top 10 values
-        #     config=QueryBuilderConfig(
-        #         auto_fields=False,
-        #         auto_aggregations=True,
-        #         use_aggregate_conditions=True,
-        #         functions_acl=["array_join"],
-        #     ),
-        # )
-
-        # builder.add_conditions(
-        #     [
-        #         Condition(
-        #             Function("startsWith", [Function("arrayJoin", [Column("tags.key")]), "foo"]),
-        #             Op.EQ,
-        #             1,
-        #         )
-        #     ]
-        # )
-
-        # result = builder.run_query(referrer="test.debug_feedback")
-
-        # print(result["data"])
-        # result
-
         # # This query finds all feedbacks that have any tag starting with "foo" equal to 1
         # # Q: how does it know that only foo-prefixed tags are being considered when checking equality to 1?
         # builder2 = DiscoverQueryBuilder(
@@ -268,7 +209,9 @@ class TestQuery(APITestCase, SnubaTestCase):
                     Condition(Column("project_id"), Op.IN, [self.project.id]),
                 ],
                 groupby=[
-                    Column("tag_value"),  # is this ok? can I group by an alias that was in select
+                    Column(
+                        "tag_value"
+                    ),  # is this ok? can I group by an alias that was in select, or would I have to repeat the entire expression? This seems to be done in other places...
                 ],
                 # Order by the count descending to find the most frequent
                 orderby=[OrderBy(Column("count"), Direction.DESC)],
@@ -280,6 +223,69 @@ class TestQuery(APITestCase, SnubaTestCase):
 
         results
         # print(results["data"])
+
+        # Now, we want all of the feedbacks that have a tag starting with "foo" equal to 1. We want the actual feedback data itself.
+        feedbacksreq = Request(
+            dataset="discover",
+            app_id="your_app_id",
+            tenant_ids={"organization_id": self.org.id},
+            query=Query(
+                match=Entity("discover"),
+                select=[Column("event_id"), Column("tags.value"), Column("tags.key")],
+                where=[
+                    # Condition 1: Timestamp between two dates
+                    Condition(Column("timestamp"), Op.GTE, start_date),
+                    Condition(Column("timestamp"), Op.LT, end_date),
+                    # Condition 2: Belongs to a specific project
+                    Condition(Column("project_id"), Op.IN, [self.project.id]),
+                    # Want to find all feedbacks that have a tag starting with "foo" equal to 1, so do an arrayExists
+                    Condition(
+                        Function(
+                            "arrayExists",
+                            parameters=[
+                                Lambda(
+                                    ["tup"],
+                                    Function(
+                                        "and",
+                                        parameters=[
+                                            Function(
+                                                "startsWith",
+                                                parameters=[
+                                                    Function(
+                                                        "tupleElement", [Identifier("tup"), 1]
+                                                    ),
+                                                    "foo",
+                                                ],
+                                            ),
+                                            Function(
+                                                "equals",
+                                                parameters=[
+                                                    Function(
+                                                        "tupleElement", [Identifier("tup"), 2]
+                                                    ),
+                                                    "1",
+                                                ],
+                                            ),
+                                        ],
+                                    ),
+                                ),
+                                Function(
+                                    "arrayZip",
+                                    parameters=[Column("tags.key"), Column("tags.value")],
+                                ),
+                            ],
+                        ),
+                        Op.EQ,
+                        1,
+                    ),
+                ],
+            ),
+        )
+
+        feedbacksres = raw_snql_query(feedbacksreq, "api.organization-issue-replay-count")
+
+        feedbacksres
+        # print(feedbacksres["data"])
 
         assert False
 
@@ -419,40 +425,6 @@ class TestQuery(APITestCase, SnubaTestCase):
 # print(results)
 
 # assert True
-
-# request = Request(
-#     dataset="discover",
-#     app_id="your_app_id",
-#     # Define which organization and referrer this query is for
-#     tenant_ids={"organization_id": 1234},
-#     query=Query(
-#         # Use array_join to "un-nest" the tags so we can filter by key and group by value
-#         array_join=Column("tags"),
-#         match=Entity("discover"),
-#         select=[
-#             Column("tags.value"),
-#             Function("count", [], "count"),
-#         ],
-#         # Filter the data before grouping
-#         where=[
-#             # Condition 1: Timestamp between two dates
-#             Condition(Column("timestamp"), Op.GTE, datetime.datetime(2025, 7, 20, 0, 0, 0)),
-#             Condition(Column("timestamp"), Op.LT, datetime.datetime(2025, 7, 21, 0, 0, 0)),
-#             # Condition 2: Belongs to a specific project
-#             Condition(Column("project_id"), Op.IN, [1]),
-#             # Condition 3: The tag's key must start with "os"
-#             Condition(Function("startsWith", [Column("tags.key"), "os"]), Op.EQ, 1),
-#         ],
-#         # Group by the tag value to count occurrences
-#         groupby=[Column("tags.value")],
-#         # Order by the count descending to find the most frequent
-#         orderby=[OrderBy(Column("count"), Direction.DESC)],
-#         limit=Limit(10),
-#     ),
-# )
-
-# snql_query = builder.get_snql_query()
-# results = raw_snql_query(snql_query, "api.organization-events-spans-performance-suspects")
 
 
 # def test_make_ordered():
