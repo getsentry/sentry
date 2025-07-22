@@ -245,7 +245,7 @@ function Controls({
                 e.preventDefault();
                 onEdit();
               }}
-              icon={isSaving ? <LoadingIndicator size={16} /> : <IconEdit />}
+              icon={isSaving ? <LoadingIndicator size={14} /> : <IconEdit />}
               disabled={!hasFeature || hasUnsavedFilters || !hasEditAccess || isSaving}
               title={
                 isSaving
