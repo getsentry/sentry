@@ -202,9 +202,14 @@ export function TracesTable() {
       totalTokens: spanDataMap[span.trace]?.totalTokens ?? 0,
       totalCost: spanDataMap[span.trace]?.totalCost ?? null,
       timestamp: span.start,
-      isSpanDataLoading: spansRequest.isLoading,
+      isSpanDataLoading: spansRequest.isLoading || traceErrorRequest.isLoading,
     }));
-  }, [tracesRequest.data, spanDataMap, spansRequest.isLoading]);
+  }, [
+    tracesRequest.data,
+    spanDataMap,
+    spansRequest.isLoading,
+    traceErrorRequest.isLoading,
+  ]);
 
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return (
