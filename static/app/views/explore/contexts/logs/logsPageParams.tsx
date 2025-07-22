@@ -226,8 +226,6 @@ export function LogsPageParamsProvider({
 
 const useLogsPageParams = _useLogsPageParams;
 
-export {useLogsPageParams};
-
 const decodeLogsQuery = (location: Location): string => {
   if (!location.query?.[LOGS_QUERY_KEY]) {
     return '';
