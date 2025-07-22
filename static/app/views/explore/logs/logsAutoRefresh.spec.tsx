@@ -34,7 +34,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
       query: {
         // Toggle is disabled if sort is not a timestamp
         [LOGS_SORT_BYS_KEY]: '-timestamp',
-        [LOGS_REFRESH_INTERVAL_KEY]: '50', // Fast refresh for testing
+        [LOGS_REFRESH_INTERVAL_KEY]: '10', // Fast refresh for testing
       },
     },
     route: '/organizations/:orgId/explore/logs/',
@@ -291,11 +291,11 @@ describe('LogsAutoRefresh Integration Tests', () => {
     expect(toggleSwitch).toBeChecked();
 
     await waitFor(() => {
-      expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('rate_limit');
+      expect(mockApi).toHaveBeenCalledTimes(5);
     });
 
     await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledTimes(5);
+      expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('rate_limit');
     });
   });
 
