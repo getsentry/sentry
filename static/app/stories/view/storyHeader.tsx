@@ -38,7 +38,7 @@ export function StoryHeader() {
       </Link>
 
       <StorySearch />
-      <Flex gap={space(1)} style={{marginLeft: 'auto'}}>
+      <Flex gap="md" style={{marginLeft: 'auto'}}>
         <LinkButton
           size="xs"
           href="https://github.com/getsentry/sentry"

@@ -131,7 +131,7 @@ export default function Ai() {
       <Summary>
         <SummaryLeft>
           <SummaryLeftTitle>
-            <Flex align="center" gap={space(0.5)}>
+            <Flex align="center" gap="xs">
               {t('Replay Summary')}
               <IconSeer />
             </Flex>
@@ -140,7 +140,7 @@ export default function Ai() {
           <SummaryText>{summaryData.data.summary}</SummaryText>
         </SummaryLeft>
         <SummaryRight>
-          <Flex gap={space(0.5)}>
+          <Flex gap="xs">
             <FeedbackButton type="positive" />
             <FeedbackButton type="negative" />
           </Flex>

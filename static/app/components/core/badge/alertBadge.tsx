@@ -12,7 +12,6 @@ import {
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
@@ -51,7 +50,7 @@ export function AlertBadge(props: AlertBadgeProps) {
   );
 
   return (
-    <PaddedContainer data-test-id="alert-badge" align="center" gap={space(1.5)}>
+    <PaddedContainer data-test-id="alert-badge" align="center" gap="lg">
       <DiamondBackground
         {...props}
         role="presentation"

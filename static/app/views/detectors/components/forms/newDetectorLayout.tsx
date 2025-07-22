@@ -16,7 +16,6 @@ import {
   StickyFooterLabel,
 } from 'sentry/components/workflowEngine/ui/footer';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -123,7 +122,7 @@ export function NewDetectorLayout({
           </Layout.HeaderContent>
           {/* Header actions placeholder - currently unused */}
           <div />
-          <Flex direction="column" gap={space(2)}>
+          <Flex direction="column" gap="xl">
             <DetectorBaseFields />
             {previewChart}
           </Flex>
@@ -134,7 +133,7 @@ export function NewDetectorLayout({
       </Layout.Page>
       <StickyFooter>
         <StickyFooterLabel>{t('Step 2 of 2')}</StickyFooterLabel>
-        <Flex gap={space(1)}>
+        <Flex gap="md">
           <LinkButton
             priority="default"
             to={`${makeMonitorBasePathname(organization.slug)}new/`}

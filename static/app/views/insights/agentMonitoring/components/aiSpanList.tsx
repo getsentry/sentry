@@ -157,7 +157,7 @@ const TraceListItem = memo(function TraceListItem({
     >
       <ListItemIcon color={safeColor}>{icon} </ListItemIcon>
       <ListItemContent>
-        <ListItemHeader align="center" gap={space(0.5)}>
+        <ListItemHeader align="center" gap="xs">
           <ListItemTitle>{title}</ListItemTitle>
           {subtitle && <ListItemSubtitle>- {subtitle}</ListItemSubtitle>}
           <FlexSpacer />

@@ -189,7 +189,7 @@ export const ReplayCountDeadClicksColumn: ReplayTableColumn = {
       <DropdownContainer key="countDeadClicks">
         <TabularNumber>
           {replay.count_dead_clicks ? (
-            <Flex gap={space(0.5)}>
+            <Flex gap="xs">
               <IconCursorArrow size="sm" color="yellow300" />
               {replay.count_dead_clicks}
             </Flex>
@@ -242,7 +242,7 @@ export const ReplayCountErrorsColumn: ReplayTableColumn = {
       >
         <TabularNumber>
           {replay.count_errors ? (
-            <Flex gap={space(0.5)}>
+            <Flex gap="xs">
               <IconFire color="red300" />
               {replay.count_errors}
             </Flex>
@@ -282,7 +282,7 @@ export const ReplayCountRageClicksColumn: ReplayTableColumn = {
       <DropdownContainer key="countRageClicks">
         <TabularNumber>
           {replay.count_rage_clicks ? (
-            <Flex gap={space(0.5)}>
+            <Flex gap="xs">
               <IconCursorArrow size="sm" color="red300" />
               {replay.count_rage_clicks}
             </Flex>
@@ -501,14 +501,14 @@ export const ReplaySessionColumn: ReplayTableColumn = {
 
     if (replay.is_archived) {
       return (
-        <Flex gap={space(1)} align="center" justify="center">
+        <Flex gap="md" align="center" justify="center">
           <ArchivedWrapper>
             <IconDelete color="gray500" size="md" />
           </ArchivedWrapper>
 
-          <Flex direction="column" gap={space(0.25)}>
+          <Flex direction="column" gap="xs">
             <DisplayName>{t('Deleted Replay')}</DisplayName>
-            <Flex gap={space(0.5)} align="center">
+            <Flex gap="xs" align="center">
               {project ? <ProjectAvatar size={12} project={project} /> : null}
               <SmallFont>{getShortEventId(replay.id)}</SmallFont>
             </Flex>
@@ -548,7 +548,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
 
     return (
       <CellLink to={detailsTab()} onClick={trackNavigationEvent}>
-        <Flex key="session" align="center" gap={space(1)}>
+        <Flex key="session" align="center" gap="md">
           <UserAvatar
             user={{
               username: replay.user?.display_name || '',
@@ -560,17 +560,17 @@ export const ReplaySessionColumn: ReplayTableColumn = {
             size={24}
           />
           <SubText>
-            <Flex gap={space(0.5)} align="flex-start">
+            <Flex gap="xs" align="flex-start">
               <DisplayName data-underline-on-hover>
                 {replay.user.display_name || t('Anonymous User')}
               </DisplayName>
             </Flex>
-            <Flex gap={space(0.5)}>
+            <Flex gap="xs">
               {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
               {project ? <ProjectAvatar size={12} project={project} /> : null}
               {project ? <span>{project.slug}</span> : null}
               <span>{getShortEventId(replay.id)}</span>
-              <Flex gap={space(0.5)}>
+              <Flex gap="xs">
                 <IconCalendar color="gray300" size="xs" />
                 <TimeSince date={replay.started_at} />
               </Flex>

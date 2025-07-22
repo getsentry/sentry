@@ -24,11 +24,11 @@ export function GroupEventDetailsLoading() {
     <div>
       <LoadingGroupContent>
         <LoadingHeader>
-          <Flex align="center" gap={space(1)}>
+          <Flex align="center" gap="md">
             <Placeholder width="100px" height="22px" />
             <Placeholder width="100px" height="22px" />
           </Flex>
-          <Flex align="center" gap={space(1)}>
+          <Flex align="center" gap="md">
             <Placeholder width="80px" height="22px" />
             <Placeholder width="80px" height="22px" />
             <Placeholder width="80px" height="22px" />

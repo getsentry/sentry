@@ -9,7 +9,6 @@ import {EnvironmentSelector} from 'sentry/components/workflowEngine/form/environ
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Card} from 'sentry/components/workflowEngine/ui/card';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import AutomationBuilder from 'sentry/views/automations/components/automationBuilder';
 import EditConnectedMonitors from 'sentry/views/automations/components/editConnectedMonitors';
@@ -42,13 +41,13 @@ export default function AutomationForm({model}: {model: FormModel}) {
   };
 
   return (
-    <Flex direction="column" gap={space(1.5)}>
+    <Flex direction="column" gap="lg">
       <EditConnectedMonitors
         connectedIds={initialConnectedIds || []}
         setConnectedIds={setConnectedIds}
       />
       <Card>
-        <Flex direction="column" gap={space(0.5)}>
+        <Flex direction="column" gap="xs">
           <Heading>{t('Choose Environment')}</Heading>
           <Description>
             {t(

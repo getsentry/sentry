@@ -103,14 +103,14 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
 
   return (
     <ConsentItemsContainer>
-      <Flex align="center" gap={space(1)}>
+      <Flex align="center" gap="md">
         <SayHelloHeader>{t('Say Hello to a Smarter Sentry')}</SayHelloHeader>
       </Flex>
-      <Flex align="center" justify="center" gap={space(1)}>
+      <Flex align="center" justify="center" gap="md">
         <img src={autofixSetupImg} alt="Seer looking at a root cause for a solution" />
       </Flex>
       <SingleCard>
-        <Flex align="center" gap={space(1)}>
+        <Flex align="center" gap="md">
           <MeetSeerHeader>MEET SEER</MeetSeerHeader>
           <IconSeer variant="waiting" color="subText" size="lg" />
         </Flex>
@@ -166,7 +166,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                     {t('Try Seer for Free')}
                   </StartTrialButton>
                 ) : hasSeerButNeedsPayg ? (
-                  <Flex gap={space(2)} direction="column">
+                  <Flex gap="xl" direction="column">
                     <ErrorText>
                       {tct(
                         "You've run out of [budgetTerm] budget. Please add more to keep using Seer.",

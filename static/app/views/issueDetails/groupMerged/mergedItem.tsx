@@ -144,7 +144,7 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
       {!collapsed && (
         <MergedEventList>
           {issueLink ? (
-            <Flex align="center" gap={space(0.5)}>
+            <Flex align="center" gap="xs">
               <LinkButton
                 to={issueLink}
                 icon={<IconLink color={'linkColor'} />}

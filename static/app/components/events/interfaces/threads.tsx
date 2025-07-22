@@ -409,7 +409,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
         type={SectionKey.STACKTRACE}
         disableCollapsePersistence
       >
-        <Flex direction="column" gap={space(2)}>
+        <Flex direction="column" gap="xl">
           {threadComponent}
         </Flex>
       </InterimSection>

@@ -107,20 +107,20 @@ export function CodeOwnerFileTable({
     >
       {codeowners.map(codeowner => (
         <Fragment key={codeowner.id}>
-          <Flex align="center" gap={space(1)}>
+          <Flex align="center" gap="md">
             {getCodeOwnerIcon(codeowner.provider)}
             {codeowner.codeMapping?.repoName}
           </Flex>
-          <Flex align="center" gap={space(1)}>
+          <Flex align="center" gap="md">
             <code>{codeowner.codeMapping?.stackRoot}</code>
           </Flex>
-          <Flex align="center" gap={space(1)}>
+          <Flex align="center" gap="md">
             <code>{codeowner.codeMapping?.sourceRoot}</code>
           </Flex>
-          <Flex align="center" gap={space(1)}>
+          <Flex align="center" gap="md">
             <TimeSince date={codeowner.dateUpdated} />
           </Flex>
-          <Flex align="center" gap={space(1)}>
+          <Flex align="center" gap="md">
             {codeowner.codeOwnersUrl === 'unknown' ? null : (
               <StyledExternalLink href={codeowner.codeOwnersUrl}>
                 <IconOpen size="xs" />
@@ -131,7 +131,7 @@ export function CodeOwnerFileTable({
               </StyledExternalLink>
             )}
           </Flex>
-          <Flex align="center" gap={space(1)}>
+          <Flex align="center" gap="md">
             <DropdownMenu
               items={[
                 {

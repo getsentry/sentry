@@ -154,10 +154,10 @@ function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
     <Wrapper>
       {hasStreamlinedUI ? (
         <Flex justify="space-between">
-          <FilterMessage align="center" gap={space(1)}>
+          <Flex align="center" gap="md">
             <IconFilter size="xs" />
             {t('Results are filtered by the selections above.')}
-          </FilterMessage>
+          </Flex>
           <GroupEventAttachmentsFilter
             onChange={key => setPreviouslyUsedAttachmentsTab(key)}
           />
@@ -203,5 +203,3 @@ const Wrapper = styled('div')`
   flex-direction: column;
   gap: ${space(2)};
 `;
-
-const FilterMessage = styled(Flex)``;

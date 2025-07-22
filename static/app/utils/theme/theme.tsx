@@ -985,6 +985,8 @@ const iconDirectionToAngle: Record<IconDirection, number> = {
  */
 export type FormSize = 'xs' | 'sm' | 'md';
 
+export type Space = keyof Theme['space'];
+
 export type FormTheme = {
   form: Record<
     FormSize,

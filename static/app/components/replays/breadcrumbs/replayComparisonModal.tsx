@@ -73,7 +73,7 @@ export default function ReplayComparisonModal({
                 <IconInfo />
               </Tooltip>
             </Title>
-            <Flex gap={space(1)}>
+            <Flex gap="md">
               {isHydrateCrumb(frameOrEvent) ? (
                 <AutoWideHovercard
                   body={<DiffTimestampPicker />}
