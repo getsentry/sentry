@@ -73,6 +73,9 @@ def delete_group_list(
         },
     )
 
+    # Tell seer to delete grouping records for these groups
+    may_schedule_task_to_delete_hashes_from_seer(error_ids)
+
     Group.objects.filter(id__in=group_ids).exclude(
         status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
     ).update(status=GroupStatus.PENDING_DELETION, substatus=None)
@@ -83,9 +86,6 @@ def delete_group_list(
     # so that we can see who requested the deletion. Even if anything after this point
     # fails, we will still have a record of who requested the deletion.
     create_audit_entries(request, project, group_list, delete_type, transaction_id)
-
-    # Tell seer to delete grouping records for these groups
-    may_schedule_task_to_delete_hashes_from_seer(error_ids)
 
     # Removing GroupHash rows prevents new events from associating to the groups
     # we just deleted.

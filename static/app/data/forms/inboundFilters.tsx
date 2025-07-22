@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import type {Field, JsonFormObject} from 'sentry/components/forms/types';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 
 // Export route to make these forms searchable by label/help

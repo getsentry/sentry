@@ -32,9 +32,7 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
   if (status === 'error') {
     return (
       <SidebarContainer>
-        <Alert type="error" showIcon>
-          {props.error}
-        </Alert>
+        <Alert type="error">{props.error}</Alert>
       </SidebarContainer>
     );
   }

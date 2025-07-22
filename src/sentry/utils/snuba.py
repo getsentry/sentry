@@ -1691,7 +1691,7 @@ def aliased_query_params(
                     get_upsampled_count_snql_with_alias(
                         aggregation[2]
                         if len(aggregation) > 2 and aggregation[2] is not None
-                        else "upsampled_count"
+                        else UPSAMPLED_ERROR_AGGREGATION
                     )
                 )
             else:

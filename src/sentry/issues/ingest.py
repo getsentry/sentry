@@ -276,11 +276,11 @@ def save_issue_from_occurrence(
         return None
     else:
         group = primary_grouphash.group
-        if group.issue_category.value != occurrence.type.category:
+        if group.issue_type.type_id != occurrence.type.type_id:
             logger.error(
-                "save_issue_from_occurrence.category_mismatch",
+                "save_issue_from_occurrence.type_mismatch",
                 extra={
-                    "issue_category": group.issue_category,
+                    "issue_type": group.issue_type.slug,
                     "occurrence_type": occurrence.type.slug,
                     "event_type": "platform",
                     "group_id": group.id,
