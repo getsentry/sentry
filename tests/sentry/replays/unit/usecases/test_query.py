@@ -1,14 +1,23 @@
 import datetime
 
-from snuba_sdk import Column, Condition, Function, Op
+from snuba_sdk import (
+    Column,
+    Condition,
+    Entity,
+    Function,
+    Identifier,
+    Lambda,
+    Limit,
+    Op,
+    Query,
+    Request,
+)
 
 from sentry.eventstore.snuba.backend import SnubaEventStorage
-from sentry.search.events.builder.discover import DiscoverQueryBuilder
-from sentry.search.events.types import QueryBuilderConfig, SnubaParams
-from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.snuba import raw_snql_query
 
 
 @region_silo_test
@@ -72,7 +81,7 @@ class TestQuery(APITestCase, SnubaTestCase):
                 "platform": "python",
                 "fingerprint": ["group5"],
                 "timestamp": before_now(days=14).isoformat(),
-                "tags": {"foo.1": "3"},
+                "tags": {"feedback.1": "1", "foo.2": "2"},
                 # Required feedback context
                 "contexts": {
                     "feedback": {
@@ -89,12 +98,12 @@ class TestQuery(APITestCase, SnubaTestCase):
         start_date = datetime.datetime.now() - datetime.timedelta(days=90)
         end_date = datetime.datetime.now()
 
-        snuba_params = SnubaParams(
-            organization=self.org,
-            projects=[self.project],
-            start=start_date,
-            end=end_date,
-        )
+        # snuba_params = SnubaParams(
+        #     organization=self.org,
+        #     projects=[self.project],
+        #     start=start_date,
+        #     end=end_date,
+        # )
 
         # builder = DiscoverQueryBuilder(
         #     dataset=Dataset.Events,
@@ -113,78 +122,143 @@ class TestQuery(APITestCase, SnubaTestCase):
 
         # print(result["data"])
 
-        # This query finds the top 10 values for the tag prefix "foo", and gives the counts too. It seems to be working properly
-        builder = DiscoverQueryBuilder(
-            dataset=Dataset.Events,
-            params={},
-            snuba_params=snuba_params,
-            query="event.type:feedback",  # Use startsWith function
-            selected_columns=[
-                "array_join(tags.value) as tag_value",  # Only get the value, not the key
-                "count()",
-            ],
-            orderby=["-count()"],
-            limit=10,  # Get top 10 values
-            config=QueryBuilderConfig(
-                auto_fields=False,
-                auto_aggregations=True,
-                use_aggregate_conditions=True,
-                functions_acl=["array_join"],  # Allow both functions
-            ),
-        )
-
-        builder.add_conditions(
-            [
-                Condition(
-                    Function("startsWith", [Function("arrayJoin", [Column("tags.key")]), "foo"]),
-                    Op.EQ,
-                    1,
-                )
-            ]
-        )
-
-        result = builder.run_query(referrer="test.debug_feedback")
-
-        # print(result["data"])
-        result
-
-        # request = Request(
-        #     dataset="discover",
-        #     app_id="your_app_id",
-        #     # Define which organization and referrer this query is for
-        #     tenant_ids={"organization_id": self.org.id},
-        #     query=Query(
-        #         # Use array_join to "un-nest" the tags so we can filter by key and group by value
-        #         array_join="tags.key",  # Use string, not Column object
-        #         match=Entity("discover"),
-        #         select=[
-        #             Column("tags.key"),
-        #             Column("tags.value"),
-        #             Function("count", [], "count"),
-        #         ],
-        #         # Filter the data before grouping
-        #         where=[
-        #             # Condition 1: Timestamp between two dates
-        #             Condition(Column("timestamp"), Op.GTE, start_date),
-        #             Condition(Column("timestamp"), Op.LT, end_date),
-        #             # Condition 2: Belongs to a specific project
-        #             Condition(Column("project_id"), Op.IN, [self.project.id]),
-        #             # Condition 3: Event type is feedback
-        #             # Condition(Column("type"), Op.EQ, "feedback"),
-        #             # Condition 4: The tag's key must start with "foo"
-        #             Condition(Function("startsWith", [Column("tags.key"), "foo"]), Op.EQ, 1),
-        #         ],
-        #         # Group by the tag value to count occurrences
-        #         groupby=[Column("tags.key"), Column("tags.value")],
-        #         # Order by the count descending to find the most frequent
-        #         orderby=[OrderBy(Column("count"), Direction.DESC)],
-        #         limit=Limit(10),
+        # # This query finds the top 10 values for the tag prefix "foo", and gives the counts too. It seems to be working properly
+        # builder = DiscoverQueryBuilder(
+        #     dataset=Dataset.Events,
+        #     params={},
+        #     snuba_params=snuba_params,
+        #     query="event.type:feedback",
+        #     selected_columns=[
+        #         "array_join(tags.value) as tag_value",  # Only get the value, not the key
+        #         "count()",
+        #     ],
+        #     orderby=["-count()"],
+        #     limit=10,  # Get top 10 values
+        #     config=QueryBuilderConfig(
+        #         auto_fields=False,
+        #         auto_aggregations=True,
+        #         use_aggregate_conditions=True,
+        #         functions_acl=["array_join"],
         #     ),
         # )
 
-        # results = raw_snql_query(request, "api.organization-issue-replay-count")
+        # builder.add_conditions(
+        #     [
+        #         Condition(
+        #             Function("startsWith", [Function("arrayJoin", [Column("tags.key")]), "foo"]),
+        #             Op.EQ,
+        #             1,
+        #         )
+        #     ]
+        # )
 
-        # print(results)
+        # result = builder.run_query(referrer="test.debug_feedback")
+
+        # print(result["data"])
+        # result
+
+        # # This query finds all feedbacks that have any tag starting with "foo" equal to 1
+        # # Q: how does it know that only foo-prefixed tags are being considered when checking equality to 1?
+        # builder2 = DiscoverQueryBuilder(
+        #     dataset=Dataset.Events,
+        #     params={},
+        #     snuba_params=snuba_params,
+        #     query="event.type:feedback",  # Filter for feedback events
+        #     selected_columns=["event_id", "project_id", "timestamp", "tags.key", "tags.value"],
+        #     orderby=["-timestamp"],  # Most recent first
+        #     limit=100,  # Get up to 100 events
+        #     config=QueryBuilderConfig(
+        #         auto_fields=False,
+        #         auto_aggregations=True,
+        #         use_aggregate_conditions=True,
+        #         functions_acl=["array_join"],  # Allow array_join function
+        #     ),
+        # )
+
+        # builder2.add_conditions(
+        #     [
+        #         Condition(
+        #             Function("startsWith", [Function("arrayJoin", [Column("tags.key")]), "foo"]),
+        #             Op.EQ,
+        #             1,
+        #         ),
+        #         Condition(
+        #             Function("arrayJoin", [Column("tags.value")]),
+        #             Op.EQ,
+        #             "1",
+        #         ),
+        #     ]
+        # )
+
+        # print(builder2.get_snql_query())
+
+        # result = builder2.run_query(referrer="test.debug_feedback")
+
+        # print("Feedbacks with any tag starting with 'foo' equal to '1':")
+        # print(result["data"])
+
+        # First, we want to find the top 10 values for the tag prefix "foo" for feedbacks filtered by some date range and project
+        request = Request(
+            dataset="discover",
+            app_id="your_app_id",
+            # Define which organization and referrer this query is for
+            tenant_ids={"organization_id": self.org.id},
+            query=Query(
+                match=Entity("discover"),
+                select=[
+                    # Column("tags.key"),
+                    # Column("tags.value"),
+                    # Function("count", [], "count"),
+                    Function(
+                        "arrayJoin",
+                        parameters=[
+                            Function(
+                                "arrayMap",
+                                parameters=[
+                                    Lambda(
+                                        ["x"],
+                                        Function(
+                                            "tupleElement",
+                                            parameters=[
+                                                Identifier(
+                                                    "x"
+                                                ),  # Why do we need a lambda inside a function?
+                                                2,
+                                            ],  # I think this gets the second tuple element, which is the value
+                                        ),
+                                    ),
+                                    Function(
+                                        "arrayZip",
+                                        parameters=[Column("tags.key"), Column("tags.value")],
+                                    ),
+                                ],
+                            )
+                        ],
+                        alias="tag_value",  # Add a short alias here
+                    )
+                ],
+                # Filter the data before grouping
+                where=[
+                    # Condition 1: Timestamp between two dates
+                    Condition(Column("timestamp"), Op.GTE, start_date),
+                    Condition(Column("timestamp"), Op.LT, end_date),
+                    # Condition 2: Belongs to a specific project
+                    Condition(Column("project_id"), Op.IN, [self.project.id]),
+                    # Condition 3: The tag's key must start with "os"
+                    # Condition(Function("startsWith", [Column("tags.key"), "os"]), Op.EQ, 1),
+                ],
+                # Group by the tag value to count occurrences
+                # groupby=[Column("tags.key"), Column("tags.value")],
+                # Order by the count descending to find the most frequent
+                # orderby=[OrderBy(Column("count"), Direction.DESC)],
+                limit=Limit(10),
+            ),
+        )
+
+        results = raw_snql_query(request, "api.organization-issue-replay-count")
+
+        results
+        # print(results["data"])
 
         assert False
 
@@ -418,6 +492,17 @@ class TestQuery(APITestCase, SnubaTestCase):
 #     assert len(ordering) == 2
 
 #     # Assert empty ordering keys returns empty results.
+#     ordering = _make_ordered([], [{"replay_id": "a"}])
+#     assert len(ordering) == 0
+
+#     ordering = _make_ordered(["a", "a", "b"], [{"replay_id": "a"}, {"replay_id": "b"}])
+#     assert len(ordering) == 2
+#     assert len(ordering) == 2
+#     assert len(ordering) == 2
+#     assert len(ordering) == 2
+#     assert len(ordering) == 2
+#     assert len(ordering) == 2
+#     assert len(ordering) == 2
 #     ordering = _make_ordered([], [{"replay_id": "a"}])
 #     assert len(ordering) == 0
 
