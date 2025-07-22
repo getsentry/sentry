@@ -306,10 +306,10 @@ export const LogRowContent = memo(function LogRowContent({
                         });
                         break;
                       case Actions.COPY_TO_CLIPBOARD:
-                        copyToClipboard(value);
+                        copyToClipboard(cellValue);
                         break;
                       case Actions.OPEN_EXTERNAL_LINK:
-                        openExternalLink(value);
+                        openExternalLink(cellValue);
                         break;
                       default:
                         break;
