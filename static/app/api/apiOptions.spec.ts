@@ -13,7 +13,7 @@ describe('apiOptions', () => {
       '/projects/$orgSlug/$projectSlug/releases/$releaseVersion/',
       {
         staleTime: 0,
-        pathParams: {
+        path: {
           orgSlug: 'my-org',
           projectSlug: 'my-project',
           releaseVersion: 'v 1.0.0',
@@ -27,7 +27,7 @@ describe('apiOptions', () => {
   test('should not modify already encoded parameters', () => {
     const options = apiOptions('/search/$query/', {
       staleTime: 0,
-      pathParams: {query: 'test%20query'},
+      path: {query: 'test%20query'},
     });
 
     expect(options.queryKey[0]).toBe('/search/test%20query/');
@@ -36,7 +36,7 @@ describe('apiOptions', () => {
   test('should not include empty options in queryKey', () => {
     const options = apiOptions('/projects/$id/', {
       staleTime: 0,
-      pathParams: {id: '123'},
+      path: {id: '123'},
     });
 
     expect(options.queryKey).toEqual(['/projects/123/']);
@@ -45,7 +45,7 @@ describe('apiOptions', () => {
   test('should stringify number path params', () => {
     const options = apiOptions('/items/$id/', {
       staleTime: 0,
-      pathParams: {id: 123},
+      path: {id: 123},
     });
 
     expect(options.queryKey[0]).toBe('/items/123/');
@@ -57,7 +57,7 @@ describe('apiOptions', () => {
         '/projects/$orgSlug/$projectSlug/releases/$releaseVersion/',
         {
           staleTime: 0,
-          pathParams: {
+          path: {
             orgSlug: 'my-org',
             projectSlug: 'my-project',
             releaseVersion: 'v1.0.0',
@@ -72,7 +72,7 @@ describe('apiOptions', () => {
       const options = apiOptions('/projects/$orgSlug/', {
         staleTime: 0,
         // @ts-expect-error Invalid path parameter
-        pathParams: {orgSlug: 'my-org', invalidParam: 'invalid'},
+        path: {orgSlug: 'my-org', invalidParam: 'invalid'},
       });
 
       expectTypeOf(options.queryFn).returns.toEqualTypeOf<QueryFunctionResult<never>>();
@@ -82,7 +82,7 @@ describe('apiOptions', () => {
       const options = apiOptions('/projects/$orgSlug/', {
         staleTime: 0,
         // @ts-expect-error Excess path parameter
-        pathParams: {orgSlug: 'my-org', extraParam: 'extra'},
+        path: {orgSlug: 'my-org', extraParam: 'extra'},
       });
 
       expectTypeOf(options.queryFn).returns.toEqualTypeOf<QueryFunctionResult<never>>();
@@ -92,7 +92,7 @@ describe('apiOptions', () => {
       const options = apiOptions('/projects/$orgSlug/', {
         staleTime: 0,
         // @ts-expect-error Missing required path parameter
-        pathParams: {},
+        path: {},
       });
 
       expectTypeOf(options.queryFn).returns.toEqualTypeOf<QueryFunctionResult<never>>();
@@ -102,13 +102,13 @@ describe('apiOptions', () => {
       const options = apiOptions('/projects/', {
         staleTime: 0,
         // @ts-expect-error Empty path parameters not allowed
-        pathParams: {},
+        path: {},
       });
 
       expectTypeOf(options.queryFn).returns.toEqualTypeOf<QueryFunctionResult<never>>();
     });
 
-    test('should not need pathParams for paths without parameters', () => {
+    test('should not need path params for paths without parameters', () => {
       const options = apiOptions('/projects/', {
         staleTime: 0,
       });
@@ -119,14 +119,14 @@ describe('apiOptions', () => {
     test('should allow string or number path parameters', () => {
       const options = apiOptions('/items/$id/', {
         staleTime: 0,
-        pathParams: {id: 123}, // number
+        path: {id: 123}, // number
       });
 
       expectTypeOf(options.queryFn).returns.toEqualTypeOf<QueryFunctionResult<never>>();
 
       const options2 = apiOptions('/items/$id/', {
         staleTime: 0,
-        pathParams: {id: 'abc'}, // string
+        path: {id: 'abc'}, // string
       });
 
       expectTypeOf(options2.queryFn).returns.toEqualTypeOf<QueryFunctionResult<never>>();
@@ -135,7 +135,7 @@ describe('apiOptions', () => {
     test('should default to never for unknown API paths', () => {
       const options = apiOptions('/unknown/$param/', {
         staleTime: 0,
-        pathParams: {param: 'value'},
+        path: {param: 'value'},
       });
 
       expectTypeOf(options.queryFn).returns.toEqualTypeOf<QueryFunctionResult<never>>();
@@ -144,7 +144,7 @@ describe('apiOptions', () => {
     test('should allow providing manual data type', () => {
       const options = apiOptions.ReturnType<number>()('/foo/$bar', {
         staleTime: 0,
-        pathParams: {bar: 'baz'},
+        path: {bar: 'baz'},
       });
 
       expectTypeOf(options.queryFn).returns.toEqualTypeOf<QueryFunctionResult<number>>();

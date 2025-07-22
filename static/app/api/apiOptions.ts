@@ -26,8 +26,8 @@ type ExtractPathParams<TApiPath extends string> =
 
 type PathParamOptions<TApiPath extends string> =
   ExtractPathParams<TApiPath> extends never
-    ? {pathParams?: never}
-    : {pathParams: Record<ExtractPathParams<TApiPath>, string | number>};
+    ? {path?: never}
+    : {path: Record<ExtractPathParams<TApiPath>, string | number>};
 
 type Options<TApiPath extends string> = PathParamOptions<TApiPath> &
   QueryKeyEndpointOptions & {staleTime: number};
@@ -36,7 +36,7 @@ export function apiOptions<
   TManualData = never,
   TApiPath extends MaybeApiPath = MaybeApiPath,
   TActualData = [TApiPath] extends [ApiPath] ? ApiMapping[TApiPath] : TManualData,
->(path: TApiPath, {staleTime, pathParams, ...options}: Options<TApiPath>) {
+>(path: TApiPath, {staleTime, path: pathParams, ...options}: Options<TApiPath>) {
   let url: string = path;
   if (pathParams) {
     // Replace path parameters in the URL with their corresponding values

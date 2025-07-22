@@ -16,7 +16,7 @@ export function useRelease({
   return useQuery({
     ...apiOptions('/projects/$orgSlug/$projectSlug/releases/$releaseVersion/', {
       staleTime: Infinity,
-      pathParams: {
+      path: {
         orgSlug,
         projectSlug,
         releaseVersion,
