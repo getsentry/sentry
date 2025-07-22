@@ -72,8 +72,8 @@ import {
 } from 'sentry/views/alerts/utils/timePeriods';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
-import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 import ThresholdsChart from './thresholdsChart';
