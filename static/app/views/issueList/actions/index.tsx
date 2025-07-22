@@ -373,8 +373,8 @@ function IssueListActions({
         onSelectStatsPeriod={onSelectStatsPeriod}
       />
       {!allResultsVisible && pageSelected && (
-        <Alert system type="warning">
-          <Flex justify="center" wrap="wrap" gap={space(1)}>
+        <Alert system type="warning" showIcon={false}>
+          <Flex justify="center" wrap="wrap" gap="md">
             {allInQuerySelected ? (
               queryCount >= BULK_LIMIT ? (
                 tct(

@@ -209,7 +209,9 @@ function AutofixRootCauseDisplay({
   if (!cause) {
     return (
       <Alert.Container>
-        <Alert type="error">{t('No root cause available.')}</Alert>
+        <Alert type="error" showIcon={false}>
+          {t('No root cause available.')}
+        </Alert>
       </Alert.Container>
     );
   }
@@ -253,7 +255,7 @@ function AutofixRootCauseDisplay({
               <IconChat size="xs" />
             </ChatButton>
           </HeaderText>
-          <ButtonBar>
+          <ButtonBar gap="none">
             <CopyRootCauseButton cause={cause} />
           </ButtonBar>
         </HeaderWrapper>
@@ -299,7 +301,7 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
         <AnimationWrapper key="card" {...cardAnimationProps}>
           <NoCausesPadding>
             <Alert.Container>
-              <Alert type="warning">
+              <Alert type="warning" showIcon={false}>
                 {t('No root cause found.\n\n%s', props.terminationReason ?? '')}
               </Alert>
             </Alert.Container>

@@ -8,14 +8,13 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventMessage from 'sentry/components/events/eventMessage';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {TourElement} from 'sentry/components/tours/components';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {IconInfo, IconMegaphone} from 'sentry/icons';
@@ -85,7 +84,7 @@ export default function StreamlinedGroupHeader({
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
   ].includes(groupReprocessingStatus);
 
-  const isQueryInjection = group.issueType === IssueType.DB_QUERY_INJECTION_VULNERABILITY;
+  const isQueryInjection = group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY;
   const openForm = useFeedbackForm();
   const feedbackButton = openForm ? (
     <Button
@@ -134,7 +133,7 @@ export default function StreamlinedGroupHeader({
               ]}
             />
           </Flex>
-          <ButtonBar gap={0.5}>
+          <ButtonBar gap="xs">
             {!hasOnlyOneUIOption && !isQueryInjection && (
               <LinkButton
                 size="xs"
@@ -152,7 +151,7 @@ export default function StreamlinedGroupHeader({
               </LinkButton>
             )}
             {isQueryInjection ? (
-              <ButtonBar gap={0.5}>
+              <ButtonBar gap="xs">
                 <LinkButton
                   size="xs"
                   external
@@ -220,7 +219,7 @@ export default function StreamlinedGroupHeader({
               <StatCount value={userCount} aria-label={t('User count')} />
             </Fragment>
           )}
-          <Flex gap={space(1)} align="center">
+          <Flex gap="md" align="center">
             {group.isUnhandled && (
               <Fragment>
                 <UnhandledTag />

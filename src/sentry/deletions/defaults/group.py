@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
@@ -20,6 +21,13 @@ from sentry.utils.snuba import bulk_snuba_queries
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 from ..manager import DeletionTaskManager
+
+logger = logging.getLogger(__name__)
+
+GROUP_CHUNK_SIZE = 100
+EVENT_CHUNK_SIZE = 10000
+# https://github.com/getsentry/snuba/blob/54feb15b7575142d4b3af7f50d2c2c865329f2db/snuba/datasets/configuration/issues/storages/search_issues.yaml#L139
+ISSUE_PLATFORM_MAX_ROWS_TO_DELETE = 2000000
 
 # Group models that relate only to groups and not to events. We assume those to
 # be safe to delete/mutate within a single transaction for user-triggered
@@ -63,7 +71,7 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
     """
 
     # Number of events fetched from eventstore per chunk() call.
-    DEFAULT_CHUNK_SIZE = 10000
+    DEFAULT_CHUNK_SIZE = EVENT_CHUNK_SIZE
     referrer = "deletions.group"
     dataset: Dataset
 
@@ -98,6 +106,7 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
                 ]
             )
 
+        logger.info("Fetching %s events for deletion.", self.DEFAULT_CHUNK_SIZE)
         events = eventstore.backend.get_unfetched_events(
             filter=eventstore.Filter(
                 conditions=conditions, project_ids=self.project_ids, group_ids=self.group_ids
@@ -132,10 +141,12 @@ class ErrorEventsDeletionTask(EventsBaseDeletionTask):
         if the deletion has completed and if it needs to be called again."""
         events = self.get_unfetched_events()
         if events:
+            # Adding this variable to see the values in stack traces
+            last_event = events[-1]
             self.delete_events_from_nodestore(events)
             self.delete_dangling_attachments_and_user_reports(events)
             # This value will be used in the next call to chunk
-            self.last_event = events[-1]
+            self.last_event = last_event
             # As long as it returns True the task will keep iterating
             return True
         else:
@@ -146,6 +157,7 @@ class ErrorEventsDeletionTask(EventsBaseDeletionTask):
     def delete_events_from_nodestore(self, events: Sequence[Event]) -> None:
         # Remove from nodestore
         node_ids = [Event.generate_node_id(event.project_id, event.event_id) for event in events]
+        logger.info("Deleting %s events from nodestore.", len(node_ids))
         nodestore.backend.delete_multi(node_ids)
 
     def delete_dangling_attachments_and_user_reports(self, events: Sequence[Event]) -> None:
@@ -174,21 +186,22 @@ class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):
     """
 
     dataset = Dataset.IssuePlatform
-    # https://github.com/getsentry/snuba/blob/54feb15b7575142d4b3af7f50d2c2c865329f2db/snuba/datasets/configuration/issues/storages/search_issues.yaml#L139
-    max_rows_to_delete = 2000000
+    max_rows_to_delete = ISSUE_PLATFORM_MAX_ROWS_TO_DELETE
 
     def chunk(self) -> bool:
         """This method is called to delete chunks of data. It returns a boolean to say
         if the deletion has completed and if it needs to be called again."""
         events = self.get_unfetched_events()
         if events:
+            # Adding this variable to see the values in stack traces
+            last_event = events[-1]
             # Ideally, in some cases, we should also delete the associated event from the Nodestore.
             # In the occurrence_consumer [1] we sometimes create a new event but it's hard in post-ingestion to distinguish between
             # a created event and an existing one.
             # https://github.com/getsentry/sentry/blob/a86b9b672709bc9c4558cffb2c825965b8cee0d1/src/sentry/issues/occurrence_consumer.py#L324-L339
             self.delete_events_from_nodestore(events)
             # This value will be used in the next call to chunk
-            self.last_event = events[-1]
+            self.last_event = last_event
             # As long as it returns True the task will keep iterating
             return True
         else:
@@ -248,9 +261,9 @@ class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):
 
 
 class GroupDeletionTask(ModelDeletionTask[Group]):
-    # Delete groups in blocks of 1000. Using 1000 aims to
+    # Delete groups in blocks of GROUP_CHUNK_SIZE. Using GROUP_CHUNK_SIZE aims to
     # balance the number of snuba replacements with memory limits.
-    DEFAULT_CHUNK_SIZE = 1000
+    DEFAULT_CHUNK_SIZE = GROUP_CHUNK_SIZE
 
     def delete_bulk(self, instance_list: Sequence[Group]) -> bool:
         """

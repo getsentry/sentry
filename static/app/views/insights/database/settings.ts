@@ -9,11 +9,7 @@ import {
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import {
-  type Aggregate,
-  ModuleName,
-  type SpanMetricsProperty,
-} from 'sentry/views/insights/types';
+import {type Aggregate, ModuleName, type SpanProperty} from 'sentry/views/insights/types';
 
 export const MODULE_TITLE = t('Queries');
 export const DATA_TYPE = t('Query');
@@ -69,4 +65,4 @@ export const MODULE_FEATURES = ['insights-initial-modules'];
 
 export const FIELD_ALIASES = {
   'epm()': t('Queries Per Minute'),
-} satisfies Partial<Record<SpanMetricsProperty, string>>;
+} satisfies Partial<Record<SpanProperty, string>>;

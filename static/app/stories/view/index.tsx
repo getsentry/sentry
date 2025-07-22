@@ -1,73 +1,130 @@
-import {useMemo} from 'react';
+import {Fragment, type PropsWithChildren} from 'react';
+import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {StorySidebar} from 'sentry/stories/view/storySidebar';
+import {useStoryRedirect} from 'sentry/stories/view/useStoryRedirect';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
+import {StoryLanding} from './landing';
 import {StoryExports} from './storyExports';
 import {StoryHeader} from './storyHeader';
-import {useStoriesLoader, useStoryBookFiles} from './useStoriesLoader';
+import {useStoryDarkModeTheme} from './useStoriesDarkMode';
+import {useStoriesLoader} from './useStoriesLoader';
 
 export default function Stories() {
+  const location = useLocation();
+  return isLandingPage(location) ? <StoriesLanding /> : <StoryDetail />;
+}
+
+function isLandingPage(location: ReturnType<typeof useLocation>) {
+  return /\/stories\/?$/.test(location.pathname) && !location.query.name;
+}
+
+function StoriesLanding() {
+  return (
+    <StoriesLayout>
+      <StoryMainContainer>
+        <StoryLanding />
+      </StoryMainContainer>
+    </StoriesLayout>
+  );
+}
+
+function StoryDetail() {
+  useStoryRedirect();
   const location = useLocation<{name: string; query?: string}>();
-  const files = useStoryBookFiles();
-
-  // If no story is selected, show the landing page stories
-  const storyFiles = useMemo(() => {
-    if (!location.query.name) {
-      return files.filter(
-        file =>
-          file.endsWith('styles/colors.mdx') ||
-          file.endsWith('styles/typography.stories.tsx')
-      );
-    }
-    return [location.query.name];
-  }, [files, location.query.name]);
-
-  const story = useStoriesLoader({files: storyFiles});
+  const files = [location.state?.storyPath ?? location.query.name];
+  const story = useStoriesLoader({files});
 
   return (
-    <RouteAnalyticsContextProvider>
-      <OrganizationContainer>
-        <Layout>
-          <HeaderContainer>
-            <StoryHeader />
-          </HeaderContainer>
-
-          <StorySidebar />
-
-          {story.isLoading ? (
-            <VerticalScroll>
-              <LoadingIndicator />
-            </VerticalScroll>
-          ) : story.isError ? (
-            <VerticalScroll>
-              <Alert.Container>
-                <Alert type="error" showIcon>
-                  <strong>{story.error.name}:</strong> {story.error.message}
-                </Alert>
-              </Alert.Container>
-            </VerticalScroll>
-          ) : story.isSuccess ? (
-            <StoryMainContainer>
-              {story.data.map(s => {
-                return <StoryExports key={s.filename} story={s} />;
-              })}
-            </StoryMainContainer>
-          ) : (
-            <VerticalScroll>
-              <strong>The file you selected does not export a story.</strong>
-            </VerticalScroll>
-          )}
-        </Layout>
-      </OrganizationContainer>
-    </RouteAnalyticsContextProvider>
+    <StoriesLayout>
+      {story.isLoading ? (
+        <VerticalScroll>
+          <LoadingIndicator />
+        </VerticalScroll>
+      ) : story.isError ? (
+        <VerticalScroll>
+          <Alert.Container>
+            <Alert type="error">
+              <strong>{story.error.name}:</strong> {story.error.message}
+            </Alert>
+          </Alert.Container>
+        </VerticalScroll>
+      ) : story.isSuccess ? (
+        <StoryMainContainer>
+          {story.data.map(s => {
+            return <StoryExports key={s.filename} story={s} />;
+          })}
+        </StoryMainContainer>
+      ) : (
+        <VerticalScroll>
+          <strong>The file you selected does not export a story.</strong>
+        </VerticalScroll>
+      )}
+    </StoriesLayout>
   );
+}
+
+function StoriesLayout(props: PropsWithChildren) {
+  return (
+    <Fragment>
+      <GlobalStoryStyles />
+      <RouteAnalyticsContextProvider>
+        <OrganizationContainer>
+          <Layout>
+            <HeaderContainer>
+              <StoryHeader />
+            </HeaderContainer>
+
+            <StorySidebar />
+
+            {props.children}
+          </Layout>
+        </OrganizationContainer>
+      </RouteAnalyticsContextProvider>
+    </Fragment>
+  );
+}
+
+function GlobalStoryStyles() {
+  const theme = useTheme();
+  const darkTheme = useStoryDarkModeTheme();
+  const location = useLocation();
+  const isIndex = isLandingPage(location);
+  const styles = css`
+    /* match body background with header story styles */
+    body {
+      background-color: ${isIndex
+        ? darkTheme.tokens.background.secondary
+        : theme.tokens.background.secondary};
+    }
+    /* fixed position color block to match overscroll color to story background */
+    body::after {
+      content: '';
+      display: block;
+      position: fixed;
+      inset: 0;
+      top: unset;
+      background-color: ${theme.tokens.background.primary};
+      height: 50vh;
+      z-index: -1;
+      pointer-events: none;
+    }
+    /* adjust position of global .messages-container element */
+    .messages-container {
+      margin-top: 52px;
+      margin-left: 256px;
+      z-index: ${theme.zIndex.header};
+      background: ${theme.tokens.background.primary};
+    }
+  `;
+  return <Global key="stories" styles={styles} />;
 }
 
 const Layout = styled('div')`

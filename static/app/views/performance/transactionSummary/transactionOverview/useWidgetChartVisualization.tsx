@@ -7,9 +7,9 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useEAPSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {SpanFields} from 'sentry/views/insights/types';
 import {
   filterToColor,
   type SpanOperationBreakdownFilter,
@@ -74,9 +74,7 @@ function useDurationBreakdownVisualization({
   query,
 }: DurationBreakdownVisualizationOptions) {
   const location = useLocation();
-  const spanCategoryUrlParam = decodeScalar(
-    location.query?.[SpanIndexedField.SPAN_CATEGORY]
-  );
+  const spanCategoryUrlParam = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
   const {selection} = usePageFilters();
 
   const {releases: releasesWithDate} = useReleaseStats(selection);
@@ -100,7 +98,7 @@ function useDurationBreakdownVisualization({
     data: spanSeriesData,
     isPending: isSpanSeriesPending,
     isError: isSpanSeriesError,
-  } = useEAPSeries(
+  } = useSpanSeries(
     {
       yAxis: [
         'avg(span.duration)',
@@ -153,9 +151,7 @@ function useDurationPercentilesVisualization({
   const {selection} = usePageFilters();
   const theme = useTheme();
 
-  const spanCategoryUrlParam = decodeScalar(
-    location.query?.[SpanIndexedField.SPAN_CATEGORY]
-  );
+  const spanCategoryUrlParam = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
 
   const newQuery = new MutableSearch(query);
   newQuery.addFilterValue('transaction', transactionName);
@@ -165,7 +161,7 @@ function useDurationPercentilesVisualization({
     data: durationPercentilesData,
     isPending: isDurationPercentilesPending,
     isError: isDurationPercentilesError,
-  } = useEAPSpans(
+  } = useSpans(
     {
       fields: [
         'p50(span.duration)',

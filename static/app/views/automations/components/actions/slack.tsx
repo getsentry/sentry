@@ -1,5 +1,5 @@
 import {Flex} from 'sentry/components/core/layout';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {AutomationBuilderInput} from 'sentry/components/workflowEngine/form/automationBuilderInput';
 import {
   OptionalRowLine,
@@ -8,7 +8,6 @@ import {
 import {ActionMetadata} from 'sentry/components/workflowEngine/ui/actionMetadata';
 import {DismissableInfoAlert} from 'sentry/components/workflowEngine/ui/dismissableInfoAlert';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
 import {useActionNodeContext} from 'sentry/views/automations/components/actionNodes';
@@ -58,7 +57,7 @@ function SlackTagsAndNotes(action: Action) {
 
 export function SlackNode() {
   return (
-    <Flex direction="column" gap={space(1)} flex="1">
+    <Flex direction="column" gap="md" flex="1">
       <RowLine>
         {tct('Send a [logo] Slack message to [workspace] workspace, to [channel]', {
           logo: ActionMetadata[ActionType.SLACK]?.icon,

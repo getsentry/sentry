@@ -20,14 +20,14 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 const {
@@ -38,7 +38,7 @@ const {
   HTTP_RESPONSE_TRANSFER_SIZE,
   RESOURCE_RENDER_BLOCKING_STATUS,
   SPAN_OP,
-} = SpanMetricsField;
+} = SpanFields;
 
 function ResourceSummary() {
   const moduleTitle = useModuleTitle(ModuleName.RESOURCE);
@@ -61,13 +61,13 @@ function ResourceSummary() {
     requiredParams: ['transaction'],
   });
 
-  const {data, isPending} = useSpanMetrics(
+  const {data, isPending} = useSpans(
     {
       search: MutableSearch.fromQueryObject({
         'span.group': groupId,
-        ...(filters[SpanMetricsField.USER_GEO_SUBREGION]
+        ...(filters[SpanFields.USER_GEO_SUBREGION]
           ? {
-              [SpanMetricsField.USER_GEO_SUBREGION]: `[${filters[SpanMetricsField.USER_GEO_SUBREGION].join(',')}]`,
+              [SpanFields.USER_GEO_SUBREGION]: `[${filters[SpanFields.USER_GEO_SUBREGION].join(',')}]`,
             }
           : {}),
       }),
@@ -94,7 +94,7 @@ function ResourceSummary() {
   const isImage =
     filters[SPAN_OP] === ResourceSpanOps.IMAGE ||
     IMAGE_FILE_EXTENSIONS.includes(
-      spanMetrics?.[0]?.[SpanMetricsField.SPAN_DESCRIPTION]?.split('.').pop() || ''
+      spanMetrics?.[0]?.[SpanFields.SPAN_DESCRIPTION]?.split('.').pop() || ''
     ) ||
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     (uniqueSpanOps.size === 1 && spanMetrics[SPAN_OP] === ResourceSpanOps.IMAGE);
@@ -103,7 +103,7 @@ function ResourceSummary() {
     <React.Fragment>
       <FrontendHeader
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        headerTitle={spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}
+        headerTitle={spanMetrics[SpanFields.SPAN_DESCRIPTION]}
         breadcrumbs={[
           {
             label: moduleTitle,

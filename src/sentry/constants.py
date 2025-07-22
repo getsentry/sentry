@@ -16,7 +16,7 @@ import sentry_relay.processing
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
-from sentry.seer.seer_utils import AutofixAutomationTuningSettings
+from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.utils.geo import rust_geoip
 from sentry.utils.integrationdocs import load_doc
 
@@ -331,7 +331,7 @@ SENTRY_APP_ACTIONS = frozenset(
 # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
 HTTP_METHODS = ("GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH")
 
-# See https://github.com/getsentry/relay/blob/master/relay-general/src/protocol/constants.rs
+# See https://github.com/getsentry/relay/blob/master/relay-event-schema/src/protocol/constants.rs
 VALID_PLATFORMS = sentry_relay.processing.VALID_PLATFORMS
 
 OK_PLUGIN_ENABLED = _("The {name} integration has been enabled.")
@@ -730,7 +730,9 @@ SAMPLING_MODE_DEFAULT = "organization"
 ROLLBACK_ENABLED_DEFAULT = True
 DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT = AutofixAutomationTuningSettings.OFF
 DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT = True
-INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT = False
+ENABLED_CONSOLE_PLATFORMS_DEFAULT: list[str] = []
+ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT = True
+INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT = "disabled"
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True

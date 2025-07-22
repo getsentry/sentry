@@ -19,6 +19,7 @@ class SummarizeIssueResponse(BaseModel):
 
 
 class SeerRepoDefinition(BaseModel):
+    integration_id: str | None = None  # TODO(jianyuan): Make this required
     provider: str
     owner: str
     name: str

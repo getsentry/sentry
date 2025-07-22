@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from django.db import IntegrityError, router, transaction
-from django.db.models import Case, Exists, IntegerField, OuterRef, Value, When
+from django.db.models import Case, Exists, F, IntegerField, OrderBy, OuterRef, Subquery, Value, When
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -30,7 +30,7 @@ from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, Visibility
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.fields.text import CharField
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardLastVisited
 from sentry.models.organization import Organization
 from sentry.users.services.user.service import user_service
 
@@ -133,7 +133,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         else:
             desc = False
 
-        order_by: list[Case | str]
+        order_by: list[Case | str | OrderBy]
         if sort_by == "title":
             order_by = [
                 "-title" if desc else "title",
@@ -150,7 +150,28 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             ]
 
         elif sort_by == "recentlyViewed":
-            order_by = ["last_visited" if desc else "-last_visited"]
+            if features.has(
+                "organizations:dashboards-starred-reordering", organization, actor=request.user
+            ):
+                dashboards = dashboards.annotate(
+                    user_last_visited=Subquery(
+                        DashboardLastVisited.objects.filter(
+                            dashboard=OuterRef("pk"),
+                            member__user_id=request.user.id,
+                            member__organization=organization,
+                        ).values("last_visited")
+                    )
+                )
+                order_by = [
+                    (
+                        F("user_last_visited").asc(nulls_last=True)
+                        if desc
+                        else F("user_last_visited").desc(nulls_last=True)
+                    ),
+                    "-date_added",
+                ]
+            else:
+                order_by = ["last_visited" if desc else "-last_visited"]
 
         elif sort_by == "mydashboards":
             user_name_dict = {
@@ -222,7 +243,14 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 else:
                     dashboards.append(item)
 
-            serialized.extend(serialize(dashboards, request.user, serializer=list_serializer))
+            serialized.extend(
+                serialize(
+                    dashboards,
+                    request.user,
+                    serializer=list_serializer,
+                    context={"organization": organization},
+                )
+            )
             return serialized
 
         render_pre_built_dashboard = True

@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {IconBusiness} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -51,7 +51,7 @@ function TargetedOnboardingHeader({source, subscription}: Props) {
   );
 
   return (
-    <HeaderActionBar gap={2}>
+    <HeaderActionBar gap="xl">
       <SecondaryCTAWrapper>{cta}</SecondaryCTAWrapper>
       <LinkButton
         onClick={trackClickUpgrade}

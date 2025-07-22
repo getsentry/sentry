@@ -9,18 +9,12 @@ import {IconSeer} from 'sentry/icons/iconSeer';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
-import useOrganization from 'sentry/utils/useOrganization';
 
 export default function FeedbackSummary() {
-  const {isError, isPending, summary, tooFewFeedbacks} = useFeedbackSummary();
-
-  const organization = useOrganization();
+  const {isError, isPending, summary, tooFewFeedbacks, numFeedbacksUsed} =
+    useFeedbackSummary();
 
   const openForm = useFeedbackForm();
-
-  if (!organization.features.includes('user-feedback-ai-summaries')) {
-    return null;
-  }
 
   const feedbackButton = ({type}: {type: 'positive' | 'negative'}) => {
     return openForm ? (
@@ -39,6 +33,7 @@ export default function FeedbackSummary() {
               ['feedback.source']: 'feedback_ai_summary',
               ['feedback.owner']: 'replay',
               ['feedback.type']: type,
+              ['feedback.num_feedbacks_used']: numFeedbacksUsed,
             },
           })
         }
@@ -52,7 +47,7 @@ export default function FeedbackSummary() {
       <SummaryContainer>
         <Flex justify="space-between" align="center">
           <SummaryHeader>{t('Summary')}</SummaryHeader>
-          <Flex gap={space(0.5)}>
+          <Flex gap="xs">
             {feedbackButton({type: 'positive'})}
             {feedbackButton({type: 'negative'})}
           </Flex>

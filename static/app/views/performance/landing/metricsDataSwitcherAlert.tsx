@@ -3,8 +3,7 @@ import type {Location} from 'history';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import {Alert} from 'sentry/components/core/alert';
-import {Link} from 'sentry/components/core/link';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {t, tct} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
@@ -113,7 +112,6 @@ export function MetricsDataSwitcherAlert(
           <Alert.Container>
             <Alert
               type="warning"
-              showIcon
               data-test-id="landing-mep-alert-multi-project-all-incompatible"
             >
               {tct(
@@ -130,7 +128,6 @@ export function MetricsDataSwitcherAlert(
         <Alert.Container>
           <Alert
             type="warning"
-            showIcon
             data-test-id="landing-mep-alert-multi-project-incompatible"
           >
             {tct(
@@ -153,7 +150,6 @@ export function MetricsDataSwitcherAlert(
       <Alert.Container>
         <Alert
           type="warning"
-          showIcon
           data-test-id="landing-mep-alert-single-project-incompatible"
         >
           {tct(
@@ -172,11 +168,7 @@ export function MetricsDataSwitcherAlert(
     if (!docsLink) {
       return (
         <Alert.Container>
-          <Alert
-            type="warning"
-            showIcon
-            data-test-id="landing-mep-alert-unnamed-discover"
-          >
+          <Alert type="warning" data-test-id="landing-mep-alert-unnamed-discover">
             {tct(
               `You have some unparameterized transactions which are incompatible with dynamic sampling. You can [discover]`,
               {
@@ -190,11 +182,7 @@ export function MetricsDataSwitcherAlert(
 
     return (
       <Alert.Container>
-        <Alert
-          type="warning"
-          showIcon
-          data-test-id="landing-mep-alert-unnamed-discover-or-set"
-        >
+        <Alert type="warning" data-test-id="landing-mep-alert-unnamed-discover-or-set">
           {tct(
             `You have some unparameterized transactions which are incompatible with dynamic sampling. You can either [setNames] or [discover]`,
             {

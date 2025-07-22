@@ -3,16 +3,13 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
-import ErrorBoundary from 'sentry/components/errorBoundary';
 import {KeyValueTable} from 'sentry/components/keyValueTable';
 import Placeholder from 'sentry/components/placeholder';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayTagsTableRow from 'sentry/components/replays/replayTagsTableRow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useOrganization from 'sentry/utils/useOrganization';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import {FluidPanel} from 'sentry/views/replays/detail/layout/fluidPanel';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import TagFilters from 'sentry/views/replays/detail/tagPanel/tagFilters';
 import useTagFilters from 'sentry/views/replays/detail/tagPanel/useTagFilters';
@@ -20,7 +17,7 @@ import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 export default function TagPanel() {
   const organization = useOrganization();
-  const {replay} = useReplayContext();
+  const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
   const tags = replayRecord?.tags;
   const sdkOptions = replay?.getSDKOptions();
@@ -73,31 +70,27 @@ export default function TagPanel() {
   const filteredTags = Object.entries(items);
 
   return (
-    <ErrorBoundary mini>
-      <PaddedFluidHeight>
-        <TagFilters tags={tags} {...filterProps} />
-        <TabItemContainer>
-          <StyledPanel>
-            <FluidPanel>
-              {filteredTags.length ? (
-                <KeyValueTable noMargin>
-                  {filteredTags.map(([key, values]) => (
-                    <ReplayTagsTableRow
-                      key={key}
-                      name={key}
-                      values={values}
-                      generateUrl={key.includes('sdk.replay.') ? undefined : generateUrl}
-                    />
-                  ))}
-                </KeyValueTable>
-              ) : (
-                <EmptyMessage>{t('No tags for this replay were found.')}</EmptyMessage>
-              )}
-            </FluidPanel>
-          </StyledPanel>
-        </TabItemContainer>
-      </PaddedFluidHeight>
-    </ErrorBoundary>
+    <Wrapper>
+      <TagFilters tags={tags} {...filterProps} />
+      <TabItemContainer>
+        <OverflowBody>
+          {filteredTags.length ? (
+            <KeyValueTable noMargin>
+              {filteredTags.map(([key, values]) => (
+                <ReplayTagsTableRow
+                  key={key}
+                  name={key}
+                  values={values}
+                  generateUrl={key.includes('sdk.replay.') ? undefined : generateUrl}
+                />
+              ))}
+            </KeyValueTable>
+          ) : (
+            <EmptyMessage>{t('No tags for this replay were found.')}</EmptyMessage>
+          )}
+        </OverflowBody>
+      </TabItemContainer>
+    </Wrapper>
   );
 }
 
@@ -105,13 +98,14 @@ const PaddedPlaceholder = styled(Placeholder)`
   padding-top: ${space(1)};
 `;
 
-const PaddedFluidHeight = styled(FluidHeight)`
-  padding-top: ${space(1)};
+const Wrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  min-height: 0;
 `;
 
-const StyledPanel = styled('div')`
-  position: relative;
-  height: 100%;
+const OverflowBody = styled('section')`
+  flex: 1 1 auto;
   overflow: auto;
-  display: grid;
 `;

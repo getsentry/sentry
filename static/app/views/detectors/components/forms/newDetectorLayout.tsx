@@ -16,7 +16,6 @@ import {
   StickyFooterLabel,
 } from 'sentry/components/workflowEngine/ui/footer';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -91,6 +90,7 @@ export function NewDetectorLayout({
       environment: (location.query.environment as string | undefined) || '',
       name: (location.query.name as string | undefined) || '',
       owner: (location.query.owner as string | undefined) || '',
+      workflowIds: [],
       ...config.getInitialFormData(),
     };
   }, [
@@ -109,7 +109,7 @@ export function NewDetectorLayout({
         title={t('New %s Monitor', DETECTOR_TYPE_LABELS[detectorType])}
       />
       <Layout.Page>
-        <StyledLayoutHeader>
+        <StyledLayoutHeader noActionWrap>
           <Layout.HeaderContent>
             <Breadcrumbs
               crumbs={[
@@ -119,11 +119,13 @@ export function NewDetectorLayout({
                 },
               ]}
             />
-            <Flex direction="column" gap={space(2)}>
-              <DetectorBaseFields />
-              {previewChart}
-            </Flex>
           </Layout.HeaderContent>
+          {/* Header actions placeholder - currently unused */}
+          <div />
+          <Flex direction="column" gap="xl">
+            <DetectorBaseFields />
+            {previewChart}
+          </Flex>
         </StyledLayoutHeader>
         <Layout.Body>
           <Layout.Main fullWidth>{children}</Layout.Main>
@@ -131,7 +133,7 @@ export function NewDetectorLayout({
       </Layout.Page>
       <StickyFooter>
         <StickyFooterLabel>{t('Step 2 of 2')}</StickyFooterLabel>
-        <Flex gap={space(1)}>
+        <Flex gap="md">
           <LinkButton
             priority="default"
             to={`${makeMonitorBasePathname(organization.slug)}new/`}

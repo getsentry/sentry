@@ -6,6 +6,7 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 
 export interface DetectorSearchBarProps {
@@ -28,11 +29,15 @@ export interface DetectorSeriesQueryOptions {
    */
   interval: number;
   organization: Organization;
-  projectId: number;
+  projectId: string;
   /**
    * The filter query. eg: `span.op:http`
    */
   query: string;
+  /**
+   * The time period for the query. eg: `7d`
+   */
+  statsPeriod: TimePeriod;
 }
 
 /**

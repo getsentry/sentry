@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/core/alert';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Select} from 'sentry/components/core/select';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {
@@ -11,20 +13,19 @@ import {
   DataConditionHandlerSubgroupType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
+import {useAutomationBuilderConflictContext} from 'sentry/views/automations/components/automationBuilderConflictContext';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import AutomationBuilderRow from 'sentry/views/automations/components/automationBuilderRow';
 import {
   DataConditionNodeContext,
   dataConditionNodesMap,
-  frequencyTypeMapping,
   useDataConditionNodeContext,
 } from 'sentry/views/automations/components/dataConditionNodes';
 import {useDataConditionsQuery} from 'sentry/views/automations/hooks';
 
 interface DataConditionNodeListProps {
   conditions: DataCondition[];
-  conflictingConditionIds: string[];
-  group: string;
+  groupId: string;
   handlerGroup: DataConditionHandlerGroupType;
   onAddRow: (type: DataConditionType) => void;
   onDeleteRow: (id: string) => void;
@@ -39,15 +40,17 @@ interface Option {
 
 export default function DataConditionNodeList({
   handlerGroup,
-  group,
+  groupId,
   placeholder,
   conditions,
   onAddRow,
   onDeleteRow,
   updateCondition,
-  conflictingConditionIds,
 }: DataConditionNodeListProps) {
   const {data: dataConditionHandlers = []} = useDataConditionsQuery(handlerGroup);
+  const {conflictingConditionGroups, conflictReason} =
+    useAutomationBuilderConflictContext();
+  const conflictingConditions = conflictingConditionGroups[groupId];
   const {errors} = useAutomationBuilderErrorContext();
 
   const options = useMemo(() => {
@@ -78,10 +81,19 @@ export default function DataConditionNodeList({
       }
 
       const conditionType = frequencyTypeMapping[handler.type] || handler.type;
+      const conditionLabel = dataConditionNodesMap.get(conditionType)?.label;
+      const WarningMessage = dataConditionNodesMap.get(conditionType)?.warningMessage;
 
       const newDataCondition: Option = {
         value: conditionType,
-        label: dataConditionNodesMap.get(handler.type)?.label || handler.type,
+        label: conditionLabel || handler.type,
+        ...(WarningMessage && {
+          trailingItems: (
+            <Tooltip title={<WarningMessage />}>
+              <IconWarning />
+            </Tooltip>
+          ),
+        }),
       };
 
       if (handler.handlerSubgroup === DataConditionHandlerSubgroupType.EVENT_ATTRIBUTES) {
@@ -163,15 +175,15 @@ export default function DataConditionNodeList({
 
         return (
           <AutomationBuilderRow
-            key={`${group}.conditions.${condition.id}`}
+            key={condition.id}
             onDelete={() => onDeleteRowHandler(condition)}
-            hasError={conflictingConditionIds.includes(condition.id) || !!error}
+            hasError={conflictingConditions?.has(condition.id) || !!error}
             errorMessage={error}
           >
             <DataConditionNodeContext.Provider
               value={{
                 condition,
-                condition_id: `${group}.conditions.${condition.id}`,
+                condition_id: condition.id,
                 onUpdate: params => updateCondition(condition.id, params),
               }}
             >
@@ -191,15 +203,10 @@ export default function DataConditionNodeList({
         );
       })}
       {/* Always show alert for conflicting action filters, but only show alert for triggers when the trigger conditions conflict with each other */}
-      {((handlerGroup === DataConditionHandlerGroupType.ACTION_FILTER &&
-        conflictingConditionIds.length > 0) ||
-        conflictingConditionIds.length > 1) && (
-        <Alert type="error" showIcon>
-          {t(
-            'The conditions highlighted in red are in conflict.  They may prevent the alert from ever being triggered.'
-          )}
-        </Alert>
-      )}
+      {conflictingConditions &&
+        ((handlerGroup === DataConditionHandlerGroupType.ACTION_FILTER &&
+          conflictingConditions.size > 0) ||
+          conflictingConditions.size > 1) && <Alert type="error">{conflictReason}</Alert>}
       <StyledSelectControl
         options={options}
         onChange={(obj: any) => {
@@ -220,6 +227,21 @@ function Node() {
   const Component = node?.dataCondition;
   return Component ? <Component /> : node?.label;
 }
+
+/**
+ * Maps COUNT and PERCENT frequency conditions to their base frequency type.
+ * This is used in the UI to show both conditions as a single branching condition.
+ */
+const frequencyTypeMapping: Partial<Record<DataConditionType, DataConditionType>> = {
+  [DataConditionType.PERCENT_SESSIONS_COUNT]: DataConditionType.PERCENT_SESSIONS,
+  [DataConditionType.PERCENT_SESSIONS_PERCENT]: DataConditionType.PERCENT_SESSIONS,
+  [DataConditionType.EVENT_FREQUENCY_COUNT]: DataConditionType.EVENT_FREQUENCY,
+  [DataConditionType.EVENT_FREQUENCY_PERCENT]: DataConditionType.EVENT_FREQUENCY,
+  [DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_COUNT]:
+    DataConditionType.EVENT_UNIQUE_USER_FREQUENCY,
+  [DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT]:
+    DataConditionType.EVENT_UNIQUE_USER_FREQUENCY,
+};
 
 const StyledSelectControl = styled(Select)`
   width: 100%;

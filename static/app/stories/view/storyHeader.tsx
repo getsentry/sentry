@@ -38,7 +38,7 @@ export function StoryHeader() {
       </Link>
 
       <StorySearch />
-      <Flex gap={space(1)} style={{marginLeft: 'auto'}}>
+      <Flex gap="md" style={{marginLeft: 'auto'}}>
         <LinkButton
           size="xs"
           href="https://github.com/getsentry/sentry"
@@ -58,7 +58,7 @@ export function StoryHeader() {
 
 const HeaderGrid = styled('header')`
   display: grid;
-  grid-template-columns: 256px minmax(auto, 820px) auto;
+  grid-template-columns: 92px minmax(auto, 820px) auto;
   gap: ${space(1)};
   align-items: center;
   padding: 0 ${space(1)};

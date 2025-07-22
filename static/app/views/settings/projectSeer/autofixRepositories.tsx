@@ -112,8 +112,14 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
       );
       const reposData = selectedRepos.map(repo => {
         const [owner, name] = (repo.name || '/').split('/');
+        let provider = repo.provider?.id || '';
+        if (provider?.startsWith('integrations:')) {
+          provider = provider.split(':')[1]!;
+        }
+
         return {
-          provider: repo.provider?.name?.toLowerCase() || '',
+          integration_id: repo.integrationId,
+          provider,
           owner: owner || '',
           name: name || repo.name || '',
           external_id: repo.externalId,
@@ -187,7 +193,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
     );
 
     const filteredSelected = selected.filter(
-      repo => repo.provider?.id && repo.provider.id !== 'unknown'
+      repo => repo.provider?.id && repo.provider.id !== 'unknown' && repo.integrationId
     );
 
     return {
@@ -214,7 +220,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
   return (
     <Panel>
       <PanelHeader hasButtons>
-        <Flex align="center" gap={space(0.5)}>
+        <Flex align="center" gap="xs">
           {t('Working Repositories')}
           <QuestionTooltip
             title={tct(
@@ -258,6 +264,13 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
               icon={<IconAdd />}
               disabled={isRepoLimitReached || unselectedRepositories?.length === 0}
               onClick={openAddRepoModal}
+              priority={
+                !isFetchingRepositories &&
+                !isLoadingPreferences &&
+                filteredSelectedRepositories.length === 0
+                  ? 'primary'
+                  : 'default'
+              }
             >
               {t('Add Repos')}
             </Button>
@@ -266,7 +279,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
       </PanelHeader>
 
       {showSaveNotice && (
-        <Alert type="info" showIcon system>
+        <Alert type="info" system>
           {t(
             'Changes will apply on future Seer runs. Hit "Start Over" in the Seer panel to start a new run and use your new selected repositories.'
           )}
@@ -279,7 +292,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
         </LoadingContainer>
       ) : filteredSelectedRepositories.length === 0 ? (
         <EmptyMessage>
-          {t('No repositories selected. Click "Add Repos" to get started.')}
+          {t("Seer can't see your code. Click 'Add Repos' to give Seer access.")}
         </EmptyMessage>
       ) : (
         <ReposContainer>
@@ -313,7 +326,7 @@ const ReposContainer = styled('div')`
 
 const EmptyMessage = styled('div')`
   padding: ${space(2)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.errorText};
   text-align: center;
   font-size: ${p => p.theme.fontSize.md};
 `;
