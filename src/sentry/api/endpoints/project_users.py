@@ -2,6 +2,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
+from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAndStaffPermission, ProjectEndpoint
@@ -41,9 +42,10 @@ class ProjectUsersEndpoint(ProjectEndpoint):
                               For example, ``query=email:foo@example.com``
         """
         analytics.record(
-            "eventuser_endpoint.request",
-            project_id=project.id,
-            endpoint="sentry.api.endpoints.project_users.get",
+            EventUserEndpointRequest(
+                project_id=project.id,
+                endpoint="sentry.api.endpoints.project_users.get",
+            )
         )
         field, identifier = None, None
         if request.GET.get("query"):
