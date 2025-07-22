@@ -143,6 +143,7 @@ const TraceListItem = memo(function TraceListItem({
   onClick: () => void;
   traceBounds: TraceBounds;
 }) {
+  const hasErrors = hasError(node);
   const {icon, title, subtitle, color} = getNodeInfo(node, colors);
   const safeColor = color || colors[0] || '#9ca3af';
   const relativeTiming = calculateRelativeTiming(node, traceBounds);
@@ -150,7 +151,7 @@ const TraceListItem = memo(function TraceListItem({
 
   return (
     <ListItemContainer
-      hasErrors={node.errors.size > 0}
+      hasErrors={hasErrors}
       isSelected={isSelected}
       onClick={onClick}
       indent={indent}
@@ -303,12 +304,25 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
   }
 
   // Override the color and icon if the node has errors
-  if (node.errors.size > 0) {
+  if (hasError(node)) {
     nodeInfo.icon = <IconFire size="md" color="red300" />;
     nodeInfo.color = colors[6];
   }
 
   return nodeInfo;
+}
+
+function hasError(node: AITraceSpanNode) {
+  if (node.errors.size > 0) {
+    return true;
+  }
+
+  // spans with status unknown are errors
+  if (isEAPSpanNode(node)) {
+    return node.value.additional_attributes?.['span.status'] === 'unknown';
+  }
+
+  return false;
 }
 
 const TraceListContainer = styled('div')`

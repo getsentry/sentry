@@ -31,7 +31,7 @@ export const AI_GENERATION_OPS = [
 
 // AI Tool Calls - equivalent to OTEL Execute tool span
 // https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/gen-ai-spans.md#execute-tool-span
-const AI_TOOL_CALL_OPS = ['gen_ai.execute_tool'];
+export const AI_TOOL_CALL_OPS = ['gen_ai.execute_tool'];
 
 const AI_HANDOFF_OPS = ['gen_ai.handoff'];
 
