@@ -1563,6 +1563,14 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.0,
         },
       ],
+      logBytes: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
@@ -1657,6 +1665,14 @@ const AM3_PLANS: Record<string, Plan> = {
           unitPrice: 0,
           price: 0,
           onDemandPrice: 0.0,
+        },
+      ],
+      logBytes: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
         },
       ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
@@ -1763,6 +1779,14 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.0,
         },
       ],
+      logBytes: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
     categoryDisplayNames: AM3_DS_CATEGORY_DISPLAY_NAMES,
@@ -1865,6 +1889,14 @@ const AM3_PLANS: Record<string, Plan> = {
           unitPrice: 0,
           price: 0,
           onDemandPrice: 0.0,
+        },
+      ],
+      logBytes: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
         },
       ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
@@ -2685,6 +2717,14 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 31.25,
         },
       ],
+      logBytes: [
+        {
+          events: 0,
+          unitPrice: 50.0,
+          price: 0,
+          onDemandPrice: 60.0,
+        },
+      ],
       ...SEER_TIERS,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
@@ -3181,6 +3221,14 @@ const AM3_PLANS: Record<string, Plan> = {
           unitPrice: 25.0,
           price: 268900,
           onDemandPrice: 31.25,
+        },
+      ],
+      logBytes: [
+        {
+          events: 0,
+          unitPrice: 50.0,
+          price: 0,
+          onDemandPrice: 60.0,
         },
       ],
       ...SEER_TIERS_ANNUAL,
