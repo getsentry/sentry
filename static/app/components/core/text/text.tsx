@@ -82,9 +82,11 @@ interface BaseTextProps {
 
 type TextProps<T extends 'span' | 'p' | 'div' = 'span'> = BaseTextProps & {
   /**
-   * The HTML element to render the text as.
+   * The HTML element to render the text as - defaults to span.
+   * @default span
    */
   as?: T;
+  ref?: React.Ref<HTMLElementTagNameMap[T] | null> | undefined;
 } & React.HTMLAttributes<HTMLElementTagNameMap[T]>;
 
 type ExclusiveEllipsisProps =
@@ -97,7 +99,7 @@ export const Text = styled(
   ) => {
     const {children, ...rest} = props;
     const Component = props.as || 'span';
-    return <Component {...rest}>{children}</Component>;
+    return <Component {...(rest as any)}>{children}</Component>;
   },
   {
     shouldForwardProp: p => isPropValid(p),
@@ -149,20 +151,19 @@ export const Text = styled(
   padding: 0;
 `;
 
-type BaseHeadingProps = Omit<BaseTextProps, 'as' | 'bold'>;
+type BaseHeadingProps = Omit<BaseTextProps, 'bold'>;
 
-type HeadingProps<T extends 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'> =
-  BaseHeadingProps & {
-    /**
-     * The HTML element to render the title as.
-     */
-    as: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
-  } & React.HTMLAttributes<HTMLElementTagNameMap[T]>;
+type HeadingProps = BaseHeadingProps & {
+  /**
+   * The HTML element to render the title as.
+   * @required
+   */
+  as: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+  ref?: React.Ref<HTMLHeadingElement | null> | undefined;
+} & React.HTMLAttributes<HTMLHeadingElement>;
 
 export const Heading = styled(
-  <T extends 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'>(
-    props: HeadingProps<T> & ExclusiveEllipsisProps
-  ) => {
+  (props: HeadingProps & ExclusiveEllipsisProps) => {
     const {children, as, ...rest} = props;
     const HeadingComponent = as;
     return <HeadingComponent {...rest}>{children}</HeadingComponent>;
@@ -205,7 +206,7 @@ export const Heading = styled(
   padding: 0;
 `;
 
-function getDefaultHeadingFontSize(as: HeadingProps<any>['as']): TextProps<any>['size'] {
+function getDefaultHeadingFontSize(as: HeadingProps['as']): TextProps<any>['size'] {
   switch (as) {
     case 'h1':
       return '2xl';
@@ -224,7 +225,7 @@ function getDefaultHeadingFontSize(as: HeadingProps<any>['as']): TextProps<any>[
   }
 }
 
-function getTextDecoration(p: TextProps<any> | HeadingProps<any>) {
+function getTextDecoration(p: TextProps<any> | HeadingProps) {
   const decorations: string[] = [];
   if (p.strikethrough) {
     decorations.push('line-through');

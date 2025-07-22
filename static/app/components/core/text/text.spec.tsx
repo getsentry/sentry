@@ -1,3 +1,5 @@
+import {createRef} from 'react';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Heading, Text} from './text';
@@ -32,6 +34,16 @@ describe('Text', () => {
     );
     expect(screen.getByText('Paragraph text')).toHaveStyle({color: 'red'});
   });
+
+  it('assings ref', () => {
+    const ref = createRef<HTMLParagraphElement>();
+    render(
+      <Text as="p" ref={ref}>
+        Paragraph text
+      </Text>
+    );
+    expect(ref.current?.tagName).toBe('P');
+  });
 });
 
 describe('Heading', () => {
@@ -60,5 +72,22 @@ describe('Heading', () => {
       </Heading>
     );
     expect(screen.getByText('Heading 6')).toHaveAttribute('data-test-id', 'test-id');
+  });
+  it('allows passing native HTML attributes', () => {
+    render(
+      <Heading as="h6" style={{color: 'red'}}>
+        Heading 6
+      </Heading>
+    );
+    expect(screen.getByText('Heading 6')).toHaveStyle({color: 'red'});
+  });
+  it('assings ref', () => {
+    const ref = createRef<HTMLHeadingElement>();
+    render(
+      <Heading as="h6" ref={ref}>
+        Heading 6
+      </Heading>
+    );
+    expect(ref.current?.tagName).toBe('H6');
   });
 });
