@@ -452,9 +452,11 @@ def produces_variants(
         @produces_variants(["!system", "app"])
     """
 
-    def decorator(f: StrategyFunc[ConcreteInterface]) -> StrategyFunc[ConcreteInterface]:
+    def decorator(
+        strategy_func: StrategyFunc[ConcreteInterface],
+    ) -> StrategyFunc[ConcreteInterface]:
         def inner(*args: Any, **kwargs: Any) -> ReturnedVariants:
-            return call_with_variants(f, variants, *args, **kwargs)
+            return call_with_variants(strategy_func, variants, *args, **kwargs)
 
         return inner
 
@@ -462,7 +464,7 @@ def produces_variants(
 
 
 def call_with_variants(
-    f: Callable[..., ReturnedVariants],
+    strategy_func: Callable[..., ReturnedVariants],
     variants_to_produce: Sequence[str],
     *args: Any,
     **kwargs: Any,
@@ -480,7 +482,7 @@ def call_with_variants(
             incoming_variant_name in variants_to_produce
             or "!" + incoming_variant_name in variants_to_produce
         )
-        return f(*args, **kwargs)
+        return strategy_func(*args, **kwargs)
 
     components_by_variant = {}
 
@@ -489,7 +491,7 @@ def call_with_variants(
             stripped_variant_name = variant_name.lstrip("!")
             context["variant"] = stripped_variant_name
 
-            components_by_stripped_variant = f(*args, **kwargs)
+            components_by_stripped_variant = strategy_func(*args, **kwargs)
             assert len(components_by_stripped_variant) == 1
 
             component = components_by_stripped_variant[stripped_variant_name]
