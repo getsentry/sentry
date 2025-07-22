@@ -45,6 +45,7 @@ from sentry.models.groupshare import GroupShare
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import GroupTombstone
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.models.savedsearch import SavedSearch, Visibility
@@ -4294,15 +4295,18 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             org = args[0]
         return super().get_response(org, **kwargs)
 
-    def create_n_groups(self, n: int, type: int | None = None) -> list[Group]:
+    def create_n_groups(
+        self,
+        n: int,
+        project: Project,
+        type: int | None = None,
+    ) -> list[Group]:
         groups = []
         for _ in range(n):
             if type:
-                group = self.create_group(
-                    project=self.project, status=GroupStatus.RESOLVED, type=type
-                )
+                group = self.create_group(project=project, status=GroupStatus.RESOLVED, type=type)
             else:
-                group = self.create_group(project=self.project, status=GroupStatus.RESOLVED)
+                group = self.create_group(project=project, status=GroupStatus.RESOLVED)
             hash = uuid4().hex
             GroupHash.objects.create(project=group.project, hash=hash, group=group)
             groups.append(group)
@@ -4418,27 +4422,42 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
 
         self.assert_deleted_groups([group1, group2])
 
-    def test_bulk_delete(self) -> None:
-        groups = self.create_n_groups(20)
+    @patch("sentry.eventstream.backend")
+    def test_bulk_delete_for_many_projects(self, mock_eventstream: MagicMock) -> None:
+        eventstream_state = {"event_stream_state": str(uuid4())}
+        mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
 
-        self.login_as(user=self.user)
-        response = self.get_success_response(qs_params={"query": ""})
-        assert response.status_code == 204
-        self.assert_pending_deletion_groups(groups)
+        # organization = self.create_organization(slug="foo")
+        # project_1 = self.create_project(slug="bar", organization=self.organization)
+        with self.feature("organizations:global-views"):
+            project_2 = self.create_project(slug="baz", organization=self.organization)
+            groups_1 = self.create_n_groups(2, project=self.project)
+            groups_2 = self.create_n_groups(3, project=project_2)
 
-        # This is needed to put the groups in the unresolved state before also triggering the task
-        Group.objects.filter(id__in=[group.id for group in groups]).update(
-            status=GroupStatus.UNRESOLVED
-        )
-
-        with self.tasks():
+            self.login_as(user=self.user)
             response = self.get_success_response(qs_params={"query": ""})
             assert response.status_code == 204
+            self.assert_pending_deletion_groups(groups_1 + groups_2)
 
-        self.assert_deleted_groups(groups)
+            # This is needed to put the groups in the unresolved state before also triggering the task
+            Group.objects.filter(id__in=[group.id for group in groups_1 + groups_2]).update(
+                status=GroupStatus.UNRESOLVED
+            )
+
+            with self.tasks():
+                response = self.get_success_response(qs_params={"query": ""})
+                assert response.status_code == 204
+
+            self.assert_deleted_groups(groups_1 + groups_2)
+            mock_eventstream.start_delete_groups.assert_called_once_with(
+                self.project.id, [group.id for group in groups_1]
+            )
+            mock_eventstream.start_delete_groups.assert_called_once_with(
+                project_2.id, [group.id for group in groups_2]
+            )
 
     def test_bulk_delete_performance_issues(self) -> None:
-        groups = self.create_n_groups(20, PerformanceSlowDBQueryGroupType.type_id)
+        groups = self.create_n_groups(20, PerformanceSlowDBQueryGroupType.type_id, self.project)
 
         self.login_as(user=self.user)
         response = self.get_success_response(qs_params={"query": ""})
