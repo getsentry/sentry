@@ -14,6 +14,7 @@ def make_exception_snapshot(insta_snapshot):
         evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
 
         interface = evt.interfaces.get("exception")
+        assert interface is not None
 
         snapshot_values = {
             "errors": evt.data.get("errors"),
@@ -22,10 +23,9 @@ def make_exception_snapshot(insta_snapshot):
             "to_string": interface and interface.to_string(evt),
         }
 
-        if interface:
-            tags = sorted(interface.iter_tags())
-            if len(tags) > 0:
-                snapshot_values["tags"] = tags
+        tags = sorted(interface.iter_tags())
+        if len(tags) > 0:
+            snapshot_values["tags"] = tags
 
         insta_snapshot(snapshot_values)
 

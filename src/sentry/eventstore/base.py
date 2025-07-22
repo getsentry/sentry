@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Literal, overload
+from typing import Any, Literal, Self, overload
 
 import sentry_sdk
 from snuba_sdk import Condition
@@ -117,7 +117,7 @@ class Filter:
             if key in updates:
                 setattr(self, key, updates[key])
 
-    def clone(self) -> Filter:
+    def clone(self) -> Self:
         return deepcopy(self)
 
 
@@ -308,7 +308,8 @@ class EventStorage(Service):
         """
         Returns an Event from processed data
         """
-        return Event(project_id=project_id, event_id=event_id or "", group_id=group_id, data=data)
+        assert event_id is not None
+        return Event(project_id=project_id, event_id=event_id, group_id=group_id, data=data)
 
     def bind_nodes(self, object_list: Sequence[Event]) -> None:
         """
