@@ -5,7 +5,7 @@ from sentry import analytics
 class MemberInvitedEvent(analytics.Event):
     inviter_user_id: int | None
     invited_member_id: int
-    organization_id: str
+    organization_id: int
     referrer: str | None = None
 
 

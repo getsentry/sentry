@@ -3,9 +3,9 @@ from sentry import analytics
 
 @analytics.eventclass("second_platform.added")
 class SecondPlatformAddedEvent(analytics.Event):
-    user_id: str
-    organization_id: str
-    project_id: str
+    user_id: int
+    organization_id: int
+    project_id: int
     platform: str | None = None
 
 

@@ -3,9 +3,9 @@ from sentry import analytics
 
 @analytics.eventclass("first_insight_span.sent")
 class FirstInsightSpanSentEvent(analytics.Event):
-    organization_id: str
+    organization_id: int
     user_id: int | None
-    project_id: str
+    project_id: int
     module: str
     platform: str | None = None
 
