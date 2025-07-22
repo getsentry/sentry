@@ -780,6 +780,25 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         )
         assert "owner" in response.data
 
+    def test_owner_not_in_organization(self):
+        # Create a user in another organization
+        other_org = self.create_organization()
+        other_user = self.create_user()
+        self.create_member(organization=other_org, user=other_user)
+
+        # Test with owner not in current organization
+        data_with_invalid_owner = {
+            **self.valid_data,
+            "owner": other_user.get_actor_identifier(),
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            **data_with_invalid_owner,
+            status_code=400,
+        )
+        assert "owner" in response.data
+
 
 @region_silo_test
 class ConvertAssigneeValuesTest(APITestCase):
