@@ -17,6 +17,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, control_silo_test
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.snuba import RateLimitExceeded
 
 
 class DummyEndpoint(Endpoint):
@@ -31,6 +32,13 @@ class DummyFailEndpoint(Endpoint):
 
     def get(self, request):
         raise Exception("this is bad yo")
+
+
+class SnubaRateLimitedEndpoint(Endpoint):
+    permission_classes = (AllowAny,)
+
+    def get(self, request):
+        raise RateLimitExceeded("Rate limit exceeded from Snuba")
 
 
 class RateLimitedEndpoint(Endpoint):
@@ -83,6 +91,9 @@ urlpatterns = [
     re_path(r"^/dummy$", DummyEndpoint.as_view(), name="dummy-endpoint"),
     re_path(r"^api/0/internal/test$", DummyEndpoint.as_view(), name="internal-dummy-endpoint"),
     re_path(r"^/dummyfail$", DummyFailEndpoint.as_view(), name="dummy-fail-endpoint"),
+    re_path(
+        r"^snubaratelimit$", SnubaRateLimitedEndpoint.as_view(), name="snuba-ratelimit-endpoint"
+    ),
     re_path(r"^/dummyratelimit$", RateLimitedEndpoint.as_view(), name="ratelimit-endpoint"),
     re_path(
         r"^/dummyratelimitconcurrent$",
@@ -152,6 +163,28 @@ class LogCaptureAPITestCase(APITestCase):
     def get_tested_log(self, **kwargs):
         tested_log_path = unquote(reverse(self.endpoint, **kwargs))
         return next(log for log in self.captured_logs if log.path == tested_log_path)
+
+
+@all_silo_test
+class TestAccessLogSnubaRateLimited(LogCaptureAPITestCase):
+    endpoint = "snuba-ratelimit-endpoint"
+
+    def test_access_log_snuba_rate_limited(self):
+        """Test that Snuba rate limits are properly logged by access log middleware."""
+        self._caplog.set_level(logging.INFO, logger="sentry")
+        self.get_error_response(status_code=429)
+        self.assert_access_log_recorded()
+
+        assert self.captured_logs[0].rate_limit_type == "RateLimitType.SNUBA"
+        assert self.captured_logs[0].rate_limited == "True"
+        assert self.captured_logs[0].group == "snuba"
+
+        # We don't have enough info on a request to log the rate limit metadata, so we accept None
+        assert self.captured_logs[0].remaining == "None"
+        assert self.captured_logs[0].limit == "None"
+        assert self.captured_logs[0].reset_time == "None"
+        assert self.captured_logs[0].concurrent_limit == "None"
+        assert self.captured_logs[0].concurrent_requests == "None"
 
 
 @all_silo_test

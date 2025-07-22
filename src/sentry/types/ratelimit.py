@@ -33,6 +33,7 @@ class RateLimitType(Enum):
     NOT_LIMITED = "not_limited"
     CONCURRENT = "concurrent"
     FIXED_WINDOW = "fixed_window"
+    SNUBA = "snuba"
 
 
 @dataclass
@@ -50,12 +51,12 @@ class RateLimitMeta:
     """
 
     rate_limit_type: RateLimitType
-    current: int
-    remaining: int
-    limit: int
-    window: int
+    current: int | None
+    remaining: int | None
+    limit: int | None
+    window: int | None
     group: str
-    reset_time: int
+    reset_time: int | None
     concurrent_limit: int | None
     concurrent_requests: int | None
 

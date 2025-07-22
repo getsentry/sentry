@@ -143,15 +143,18 @@ class RatelimitMiddleware:
                     request, "rate_limit_metadata", None
                 )
                 if rate_limit_metadata:
-                    response["X-Sentry-Rate-Limit-Remaining"] = rate_limit_metadata.remaining
-                    response["X-Sentry-Rate-Limit-Limit"] = rate_limit_metadata.limit
-                    response["X-Sentry-Rate-Limit-Reset"] = rate_limit_metadata.reset_time
-                    response["X-Sentry-Rate-Limit-ConcurrentRemaining"] = (
-                        rate_limit_metadata.concurrent_remaining
-                    )
-                    response["X-Sentry-Rate-Limit-ConcurrentLimit"] = (
-                        rate_limit_metadata.concurrent_limit
-                    )
+                    # Don't apply any headers if they are None
+                    header_mappings = {
+                        "X-Sentry-Rate-Limit-Remaining": rate_limit_metadata.remaining,
+                        "X-Sentry-Rate-Limit-Limit": rate_limit_metadata.limit,
+                        "X-Sentry-Rate-Limit-Reset": rate_limit_metadata.reset_time,
+                        "X-Sentry-Rate-Limit-ConcurrentRemaining": rate_limit_metadata.concurrent_remaining,
+                        "X-Sentry-Rate-Limit-ConcurrentLimit": rate_limit_metadata.concurrent_limit,
+                    }
+                    for header_name, value in header_mappings.items():
+                        if value is not None:
+                            response[header_name] = value
+
                 if hasattr(request, "rate_limit_key") and hasattr(request, "rate_limit_uid"):
                     finish_request(request.rate_limit_key, request.rate_limit_uid)
             except Exception:
