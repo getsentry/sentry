@@ -3273,7 +3273,7 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 1000000000, // 1GB trial quota
+          events: 0,
           unitPrice: 0,
           price: 0,
           onDemandPrice: 0,
