@@ -351,7 +351,7 @@ def child_process(
                     origin="taskworker",
                 ) as root_span,
             ):
-                root_span.set_data(
+                root_span.set_attribute(
                     "taskworker-task", {"args": args, "kwargs": kwargs, "id": activation.id}
                 )
                 task_added_time = activation.received_at.ToDatetime().timestamp()
@@ -363,13 +363,13 @@ def child_process(
                     name=activation.taskname,
                     origin="taskworker",
                 ) as span:
-                    span.set_data(SPANDATA.MESSAGING_DESTINATION_NAME, activation.namespace)
-                    span.set_data(SPANDATA.MESSAGING_MESSAGE_ID, activation.id)
-                    span.set_data(SPANDATA.MESSAGING_MESSAGE_RECEIVE_LATENCY, latency)
-                    span.set_data(
+                    span.set_attribute(SPANDATA.MESSAGING_DESTINATION_NAME, activation.namespace)
+                    span.set_attribute(SPANDATA.MESSAGING_MESSAGE_ID, activation.id)
+                    span.set_attribute(SPANDATA.MESSAGING_MESSAGE_RECEIVE_LATENCY, latency)
+                    span.set_attribute(
                         SPANDATA.MESSAGING_MESSAGE_RETRY_COUNT, activation.retry_state.attempts
                     )
-                    span.set_data(SPANDATA.MESSAGING_SYSTEM, "taskworker")
+                    span.set_attribute(SPANDATA.MESSAGING_SYSTEM, "taskworker")
 
                     # TODO(taskworker) remove this when doing cleanup
                     # The `__start_time` parameter is spliced into task parameters by

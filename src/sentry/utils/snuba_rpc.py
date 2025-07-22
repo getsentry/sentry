@@ -264,7 +264,7 @@ def _make_rpc_request(
             with sentry_sdk.start_span(op="snuba_rpc.run", name=req.__class__.__name__) as span:
                 if referrer:
                     span.set_tag("snuba.referrer", referrer)
-                    span.set_data("snuba.query", req)
+                    span.set_attribute("snuba.query", req)
                 try:
                     http_resp = _snuba_pool.urlopen(
                         "POST",
