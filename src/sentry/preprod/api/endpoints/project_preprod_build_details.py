@@ -6,6 +6,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.preprod.analytics import PreprodArtifactApiGetBuildDetailsEvent
 from sentry.preprod.api.models.project_preprod_build_details_models import (
     BuildDetailsApiResponse,
     BuildDetailsAppInfo,
@@ -39,11 +40,12 @@ class ProjectPreprodBuildDetailsEndpoint(ProjectEndpoint):
         """
 
         analytics.record(
-            "preprod_artifact.api.get_build_details",
-            organization_id=project.organization_id,
-            project_id=project.id,
-            user_id=request.user.id,
-            artifact_id=artifact_id,
+            PreprodArtifactApiGetBuildDetailsEvent(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                user_id=request.user.id,
+                artifact_id=artifact_id,
+            )
         )
 
         if not features.has(
