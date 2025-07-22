@@ -69,7 +69,11 @@ function MergeAccounts() {
       });
   }
 
-  const handleSubmit = (idsToMerge: string[], idsToDelete: string[], token: string) => {
+  const handleSubmit = (idsToMerge: string[], token: string) => {
+    const userIds = users.map(item => item.id);
+    const idsToDelete = userIds.filter(
+      item => !idsToMerge.includes(item) && item !== user.id
+    );
     doApiCall(ENDPOINT, {
       method: 'POST',
       data: {
@@ -102,6 +106,20 @@ function MergeAccounts() {
     return <LoadingError onRetry={refetch} />;
   }
 
+  if (users.length === 1) {
+    return (
+      <Fragment>
+        <SentryDocumentTitle title={t('Merge Accounts')} />
+        <SettingsPageHeader title={t('Merge Accounts')} />
+        <div>
+          {t(
+            `Only one account was found with your primary email address. You're all set.`
+          )}
+        </div>
+      </Fragment>
+    );
+  }
+
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Merge Accounts')} />
@@ -119,28 +137,30 @@ function MergeAccounts() {
           </Button>
         </ButtonSection>
         <RenderSelectAccounts users={users} onSelect={selectUser} />
-        <StyledListItem>{t('Enter Your Verification Code')}</StyledListItem>
+        <StyledListItem>{t('Enter Your Verification Code and Submit')}</StyledListItem>
+        <div>
+          {tct(
+            'Merge [numMergeAccounts] account(s) into [name] and delete [numDeleteAccounts] account(s)',
+            {
+              numMergeAccounts: selectedUserIds.length,
+              name: user.name,
+              numDeleteAccounts: users.length - selectedUserIds.length - 1,
+            }
+          )}
+        </div>
         <StyledInput
           type="text"
           value={tokenValue}
           onChange={e => setTokenValue(e.target.value)}
         />
-        <StyledListItem>{t('Submit')}</StyledListItem>
-        <ButtonSection>
+        <div>
           <Button
             priority="danger"
-            onClick={() => handleSubmit(selectedUserIds, [], tokenValue)}
+            onClick={() => handleSubmit(selectedUserIds, tokenValue)}
           >
-            {tct(
-              'Merge [numMergeAccounts] accounts into [name] and delete [numDeleteAccounts] accounts',
-              {
-                numMergeAccounts: selectedUserIds.length,
-                name: user.name,
-                numDeleteAccounts: 67,
-              }
-            )}
+            Submit
           </Button>
-        </ButtonSection>
+        </div>
       </List>
     </Fragment>
   );
@@ -162,8 +182,13 @@ function RenderSelectAccounts({users, onSelect}: RenderSelectAccountsProps) {
     <Fragment>
       <StyledListItem>{t('Select Your Accounts')}</StyledListItem>
       <TextBlock>
-        {t(`Select the accounts that you want to merge into your currently active account,
-          then confirm and merge. The accounts that you do not select will be deleted.`)}
+        {tct(
+          `Select the accounts that you want to merge into your currently active account,
+          then confirm and merge. [strong:The accounts that you do not select will be deleted!]`,
+          {
+            strong: <strong />,
+          }
+        )}
       </TextBlock>
       <TextBlock>{t(`Your currently active account:`)}</TextBlock>
       <UserContext value>
