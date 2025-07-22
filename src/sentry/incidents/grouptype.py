@@ -36,13 +36,13 @@ QUERY_AGGREGATION_DISPLAY = {
 }
 
 
-@dataclass
-class MetricIssueEvidenceData(EvidenceData[float]):
-    alert_id: int
-
-
 MetricUpdate = ProcessedSubscriptionUpdate | AnomalyDetectionUpdate
-MetricResult = int | dict
+MetricResult = float | dict
+
+
+@dataclass
+class MetricIssueEvidenceData(EvidenceData[MetricResult]):
+    alert_id: int
 
 
 class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricResult]):
