@@ -338,28 +338,11 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: getReplayConfigureDescription({
-            link: 'https://docs.sentry.io/platforms/javascript/guides/vue/session-replay/',
-          }),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'JavaScript',
-              language: 'javascript',
-              code: getSetupConfiguration(params)[0]?.code || '',
-            },
-          ],
-        },
-        {
-          type: 'custom',
-          content: <TracePropagationMessage />,
-        },
-      ],
+      description: getReplayConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/vue/session-replay/',
+      }),
+      configurations: getSetupConfiguration(params),
+      additionalInfo: <TracePropagationMessage />,
     },
   ],
   verify: getReplayVerifyStep(),
