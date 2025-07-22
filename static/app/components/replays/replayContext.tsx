@@ -99,7 +99,7 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   restart: () => void;
 
   /**
-   * Jump the video to a specific time
+   * Jump the video to a specific time. Input is in ms.
    */
   setCurrentTime: (time: number) => void;
 
