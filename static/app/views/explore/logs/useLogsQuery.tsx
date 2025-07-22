@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import {type ApiResult} from 'sentry/api';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -12,7 +12,6 @@ import {
   type QueryKeyEndpointOptions,
   useApiQuery,
   useInfiniteQuery,
-  useQueryClient,
 } from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -376,7 +375,7 @@ function getInitialPageParam(autoRefresh: boolean, sortBys: Sort[]): LogPagePara
   const pageParamResult: LogPageParam = {
     // Use an empty logId since we don't have a specific log to exclude yet
     logId: '',
-    timestampPrecise: getMaxIngestDelayTimestamp(),
+    timestampPrecise: null,
     sortByDirection: sortBy.kind,
     indexFromInitialPage: 0,
     // No need to override query sort direction for initial page
@@ -406,7 +405,9 @@ function getParamBasedQuery(
   const comparison =
     (pageParam.querySortDirection ?? pageParam.sortByDirection === 'asc') ? '>=' : '<=';
 
-  const filter = `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:${comparison}${pageParam.timestampPrecise}`;
+  const filter = pageParam.timestampPrecise
+    ? `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:${comparison}${pageParam.timestampPrecise}`
+    : '';
 
   const ingestDelayFilter = pageParam.autoRefresh ? getIngestDelayFilter() : '';
   // Only add the logId exclusion filter if we have a valid logId from the previous page.
@@ -434,7 +435,7 @@ interface PageParam {
   logId: string;
   // The original sort direction of the query.
   sortByDirection: Sort['kind'];
-  timestampPrecise: bigint;
+  timestampPrecise: bigint | null;
   // When scrolling is happening towards current time, or during auto refresh, we flip the sort direction passed to the query to get X more rows in the future starting from the last seen row.
   querySortDirection?: Sort;
 }
@@ -453,11 +454,10 @@ export function useInfiniteLogsQuery({
   const _referrer = referrer ?? 'api.explore.logs-table';
   const autoRefresh = useLogsAutoRefreshEnabled();
   const refetchIntervalCallback = useLogsAutoRefreshRefetchIntervalCallback();
-  const {queryKey: queryKeyWithInfinite, other} = useLogsQueryKeyWithInfinite({
+  const {queryKey: queryKeyWithInfinite} = useLogsQueryKeyWithInfinite({
     referrer: _referrer,
     autoRefresh,
   });
-  const queryClient = useQueryClient();
   const sortBys = useLogsSortBys();
 
   const getPreviousPageParam = useCallback(
@@ -518,12 +518,11 @@ export function useInfiniteLogsQuery({
     getNextPageParam,
     initialPageParam,
     enabled: !disabled,
-    staleTime: getStaleTimeForEventView(other.eventView),
     maxPages: 30, // This number * the refresh interval must be more seconds than 2 * the smallest time interval in the chart for streaming to work.
     refetchInterval: autoRefresh
       ? query => refetchIntervalCallback(query.state.data, query.state.error)
       : false,
-    refetchIntervalInBackground: false, // Don't refetch when tab is not visible
+    refetchIntervalInBackground: true, // Don't refetch when tab is not visible
   });
 
   const {
@@ -539,35 +538,6 @@ export function useInfiniteLogsQuery({
     isFetchingPreviousPage,
     isPending,
   } = queryResult;
-
-  useEffect(() => {
-    // Remove empty pages from the query data. In the case of auto refresh it's possible that the most recent page in time is empty.
-    queryClient.setQueryData(
-      queryKeyWithInfinite,
-      (oldData: InfiniteData<ApiResult<EventsLogsResult>> | undefined) => {
-        if (!oldData) {
-          return oldData;
-        }
-        const pageIndexWithMostRecentTimestamp =
-          getTimeBasedSortBy(sortBys)?.kind === 'asc' ? 0 : oldData.pages.length - 1;
-
-        if (
-          (oldData.pages?.[pageIndexWithMostRecentTimestamp]?.[0]?.data?.length ?? 0) > 0
-        ) {
-          return oldData;
-        }
-
-        return {
-          pages: oldData.pages.filter(
-            (_, index) => index !== pageIndexWithMostRecentTimestamp
-          ),
-          pageParams: oldData.pageParams.filter(
-            (_, index) => index !== pageIndexWithMostRecentTimestamp
-          ),
-        };
-      }
-    );
-  }, [queryClient, queryKeyWithInfinite, sortBys]);
 
   const {virtualStreamedTimestamp} = useVirtualStreaming(data);
 

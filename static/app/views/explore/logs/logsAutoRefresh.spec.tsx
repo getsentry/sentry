@@ -272,13 +272,13 @@ describe('LogsAutoRefresh Integration Tests', () => {
     });
   });
 
-  it('disables auto-refresh after 3 consecutive requests with more data', async () => {
+  it('disables auto-refresh after 5 consecutive requests with more data', async () => {
     const mockApi = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
       body: {data: mockLogsData},
       headers: {
-        Link: '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:5000:0>; rel="next"; results="true"',
+        Link: '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:1000:0>; rel="next"; results="true"',
       },
     });
 
@@ -290,13 +290,12 @@ describe('LogsAutoRefresh Integration Tests', () => {
     const toggleSwitch = screen.getByRole('checkbox', {name: 'Auto-refresh'});
     expect(toggleSwitch).toBeChecked();
 
-    // After 3 consecutive requests with more data, auto-refresh should be disabled
     await waitFor(() => {
       expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('rate_limit');
     });
 
     await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledTimes(3);
+      expect(mockApi).toHaveBeenCalledTimes(5);
     });
   });
 
@@ -324,5 +323,41 @@ describe('LogsAutoRefresh Integration Tests', () => {
 
     // Auto-refresh should still be enabled
     expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('enabled');
+  });
+
+  it('does not rate limit on initial load even with more data', async () => {
+    // Mock API response with Link header indicating more data
+    const mockCall = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      headers: {
+        Link: '<http://localhost/api/0/organizations/test-org/events/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <http://localhost/api/0/organizations/test-org/events/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"',
+      },
+      body: {
+        data: mockLogsData,
+        meta: {fields: {}},
+      },
+    });
+
+    const {router} = renderWithProviders(<AutorefreshToggle />, {
+      initialRouterConfig: enabledRouterConfig,
+      organization,
+    });
+
+    // Wait for initial load
+    await waitFor(() => {
+      expect(mockCall).toHaveBeenCalledTimes(1);
+    });
+
+    // Verify auto-refresh is still enabled (not rate limited)
+    expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('enabled');
+
+    // Wait a bit to ensure no rate limiting occurs
+    await waitFor(() => {
+      expect(mockCall).toHaveBeenCalledTimes(5);
+    });
+
+    // Eventually rate limited
+    expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('rate_limit');
   });
 });
