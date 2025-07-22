@@ -428,6 +428,7 @@ def get_attributes_and_values(
     max_values: int = 100,
     max_attributes: int = 1000,
     sampled: bool = True,
+    attributes_ignored: list[str] | None = None,
 ) -> dict:
     """
     Fetches all string attributes and the corresponding values with counts for a given period.
@@ -460,25 +461,22 @@ def get_attributes_and_values(
         trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
         downsampled_storage_config=DownsampledStorageConfig(mode=sampling_mode),
     )
-    filter = TraceItemFilter(
-        comparison_filter=ComparisonFilter(
-            key=AttributeKey(
-                name="attr_key",
-                type=AttributeKey.TYPE_STRING,
-            ),
-            op=ComparisonFilter.OP_NOT_IN,
-            value=AttributeValue(
-                val_str_array=StrArray(
-                    values=[
-                        "sentry.segment_id",
-                        "sentry.event_id",
-                        "sentry.raw_description",
-                        "sentry.transaction",
-                    ],
+
+    if attributes_ignored:
+        filter = TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(
+                    name="attr_key",
+                    type=AttributeKey.TYPE_STRING,
+                ),
+                op=ComparisonFilter.OP_NOT_IN,
+                value=AttributeValue(
+                    val_str_array=StrArray(
+                        values=attributes_ignored,
+                    ),
                 ),
             ),
-        ),
-    )
+        )
     stats_type = StatsType(
         attribute_distributions=AttributeDistributionsRequest(
             max_buckets=max_values,
@@ -486,7 +484,7 @@ def get_attributes_and_values(
         )
     )
     rpc_request = TraceItemStatsRequest(
-        filter=filter,
+        filter=filter if filter else TraceItemFilter(),
         meta=meta,
         stats_types=[stats_type],
     )
