@@ -1096,7 +1096,7 @@ def _apply_cache_and_build_results(
 ) -> ResultSet:
     parent_api: str = "<missing>"
     scope = sentry_sdk.get_current_scope()
-    if scope.root_span:
+    if scope.root_span and scope.root_span.name:
         parent_api = scope.root_span.name
 
     # Store the original position of the query so that we can maintain the order
