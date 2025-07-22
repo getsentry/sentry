@@ -422,10 +422,10 @@ class UserSerializerWithOrgMemberships(UserSerializer):
         )
         active_organization_ids = active_org_id_to_name.keys()
 
-        user_org_memberships: DefaultDict[int, list[str]] = defaultdict(list)
+        user_org_memberships: DefaultDict[int, set[str]] = defaultdict(set)
         for membership in memberships:
             if membership.organization_id in active_organization_ids:
-                user_org_memberships[membership.user_id].append(
+                user_org_memberships[membership.user_id].add(
                     active_org_id_to_name[membership.organization_id]
                 )
         for item in item_list:
