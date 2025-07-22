@@ -1,8 +1,8 @@
 import {createContext, Fragment, useContext, useState} from 'react';
 import styled from '@emotion/styled';
 
-// import {addErrorMessage} from 'sentry/actionCreators/indicator';
-// import type {RequestOptions} from 'sentry/api';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import type {RequestOptions} from 'sentry/api';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import List from 'sentry/components/list';
@@ -20,19 +20,26 @@ import {space} from 'sentry/styles/space';
 import type {UserWithOrganizations} from 'sentry/types/user';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
-// import useApi from 'sentry/utils/useApi';
+import useApi from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const UserContext = createContext<boolean>(false);
 
-const ENDPOINT = '/auth/merge-accounts/';
+const ENDPOINT = '/auth-v2/merge-accounts/';
+const VERIFICATION_CODE_ENDPOINT = '/auth-v2/user-merge-verification-codes/';
 
 function MergeAccounts() {
-  // const queryClient = useQueryClient();
+  const {refetch} = useApiQuery<UserWithOrganizations[]>(makeMergeAccountsEndpointKey(), {
+    staleTime: 0,
+    gcTime: 0,
+  });
+  const api = useApi();
+  const [isUpdating, setIsUpdating] = useState(false);
   const user = useUser();
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [tokenValue, setTokenValue] = useState('');
 
   const selectUser = (newUserId: string) =>
     setSelectedUserIds(prevSelectedUserIds =>
@@ -40,6 +47,50 @@ function MergeAccounts() {
         ? prevSelectedUserIds.filter(i => i !== newUserId)
         : [...prevSelectedUserIds, newUserId]
     );
+
+  function doApiCall(endpoint: string, requestParams: RequestOptions) {
+    setIsUpdating(true);
+    api
+      .requestPromise(endpoint, requestParams)
+      .catch(err => {
+        if (err?.responseJSON?.data) {
+          addErrorMessage(err.responseJSON.data);
+        }
+      })
+      .finally(() => {
+        refetch();
+        setIsUpdating(false);
+      });
+  }
+
+  const handleSubmit = (idsToMerge: string[], idsToDelete: string[], token: string) => {
+    doApiCall(ENDPOINT, {
+      method: 'POST',
+      data: {
+        ids_to_merge: idsToMerge,
+        ids_to_delete: idsToDelete,
+        verification_code: token,
+      },
+    });
+  };
+
+  const handlePostVerificationCode = () => {
+    doApiCall(VERIFICATION_CODE_ENDPOINT, {
+      method: 'POST',
+      data: {},
+    });
+  };
+
+  if (isUpdating) {
+    return (
+      <Panel>
+        <PanelHeader>{t('Merge Accounts')}</PanelHeader>
+        <PanelBody>
+          <LoadingIndicator />
+        </PanelBody>
+      </Panel>
+    );
+  }
 
   return (
     <Fragment>
@@ -49,14 +100,23 @@ function MergeAccounts() {
         <StyledListItem>{t('Generate Verification Code')}</StyledListItem>
         <div>{t(`Check your email for your code. You'll need it in Step 3.`)}</div>
         <ButtonSection>
-          <Button priority="primary">Generate verification code</Button>
+          <Button priority="primary" onClick={() => handlePostVerificationCode()}>
+            Generate verification code
+          </Button>
         </ButtonSection>
         <RenderSelectAccounts onSelect={selectUser} />
         <StyledListItem>{t('Enter Your Verification Code')}</StyledListItem>
-        <StyledInput type="text" />
+        <StyledInput
+          type="text"
+          value={tokenValue}
+          onChange={e => setTokenValue(e.target.value)}
+        />
         <StyledListItem>{t('Submit')}</StyledListItem>
         <ButtonSection>
-          <Button priority="danger">
+          <Button
+            priority="danger"
+            onClick={() => handleSubmit(selectedUserIds, [], tokenValue)}
+          >
             {tct('Merge [numAccounts] accounts into [name]', {
               numAccounts: selectedUserIds.length,
               name: user.name,
@@ -76,8 +136,6 @@ function makeMergeAccountsEndpointKey(): ApiQueryKey {
 
 function RenderSelectAccounts({onSelect}: RenderSelectAccountsProps) {
   const signedInUser = useUser();
-  // const api = useApi();
-  // const [isUpdating, setIsUpdating] = useState(false);
   const {
     data: users = [],
     isPending,
@@ -102,21 +160,6 @@ function RenderSelectAccounts({onSelect}: RenderSelectAccountsProps) {
   if (isError) {
     return <LoadingError onRetry={refetch} />;
   }
-
-  // function doApiCall(endpoint: string, requestParams: RequestOptions) {
-  //   setIsUpdating(true);
-  //   api
-  //     .requestPromise(endpoint, requestParams)
-  //     .catch(err => {
-  //       if (err?.responseJSON?.data) {
-  //         addErrorMessage(err.responseJSON.data);
-  //       }
-  //     })
-  //     .finally(() => {
-  //       refetch();
-  //       setIsUpdating(false);
-  //     });
-  // }
 
   const currentAccount = users.filter(({id}) => id === signedInUser.id);
   const otherAccounts = users.filter(({id}) => id !== signedInUser.id);
