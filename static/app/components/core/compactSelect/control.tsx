@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import {createPortal} from 'react-dom';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -212,6 +213,13 @@ export interface ControlProps
    * Props to be passed to the default trigger button.
    */
   triggerProps?: DropdownButtonProps;
+  /**
+   * Whether to render the menu inside a React portal (false by default) in document body.
+   * Try passing `strategy` as `'fixed'` if the main issue is the menu being located in a small
+   * container. Use this only if necessary, e.g., overlay issues with multiple elements that
+   * a fixed strategy cannot resolve.
+   */
+  usePortal?: boolean;
 }
 
 /**
@@ -244,6 +252,7 @@ export function Control({
   menuBody,
   menuFooter,
   onOpenChange,
+  usePortal = false,
 
   // Select props
   size = 'md',
@@ -510,6 +519,67 @@ export function Control({
 
   const theme = useTheme();
 
+  const dropDownMenu = (
+    <StyledPositionWrapper
+      zIndex={theme.zIndex?.tooltip}
+      visible={overlayIsOpen}
+      {...overlayProps}
+    >
+      <StyledOverlay
+        width={menuWidth ?? menuFullWidth}
+        minWidth={overlayProps.style!.minWidth}
+        maxWidth={maxMenuWidth}
+        maxHeight={overlayProps.style!.maxHeight}
+        maxHeightProp={maxMenuHeight}
+        data-menu-has-header={!!menuTitle || clearable}
+        data-menu-has-search={searchable}
+        data-menu-has-footer={!!menuFooter}
+      >
+        <FocusScope contain={overlayIsOpen}>
+          {(menuTitle || menuHeaderTrailingItems || (clearable && showClearButton)) && (
+            <MenuHeader size={size}>
+              <MenuTitle>{menuTitle}</MenuTitle>
+              <MenuHeaderTrailingItems>
+                {loading && <StyledLoadingIndicator size={12} />}
+                {typeof menuHeaderTrailingItems === 'function'
+                  ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
+                  : menuHeaderTrailingItems}
+                {clearable && showClearButton && (
+                  <ClearButton onClick={clearSelection} size="zero" borderless>
+                    {t('Clear')}
+                  </ClearButton>
+                )}
+              </MenuHeaderTrailingItems>
+            </MenuHeader>
+          )}
+          {searchable && (
+            <SearchInput
+              ref={searchRef}
+              placeholder={searchPlaceholder}
+              value={searchInputValue}
+              onFocus={onSearchFocus}
+              onBlur={onSearchBlur}
+              onChange={e => updateSearch(e.target.value)}
+              size="xs"
+              {...searchKeyboardProps}
+            />
+          )}
+          {typeof menuBody === 'function'
+            ? menuBody({closeOverlay: overlayState.close})
+            : menuBody}
+          {!hideOptions && <OptionsWrap>{children}</OptionsWrap>}
+          {menuFooter && (
+            <MenuFooter>
+              {typeof menuFooter === 'function'
+                ? menuFooter({closeOverlay: overlayState.close})
+                : menuFooter}
+            </MenuFooter>
+          )}
+        </FocusScope>
+      </StyledOverlay>
+    </StyledPositionWrapper>
+  );
+
   return (
     <SelectContext value={contextValue}>
       <ControlWrap {...wrapperProps}>
@@ -525,66 +595,7 @@ export function Control({
             {triggerLabel}
           </DropdownButton>
         )}
-        <StyledPositionWrapper
-          zIndex={theme.zIndex?.tooltip}
-          visible={overlayIsOpen}
-          {...overlayProps}
-        >
-          <StyledOverlay
-            width={menuWidth ?? menuFullWidth}
-            minWidth={overlayProps.style!.minWidth}
-            maxWidth={maxMenuWidth}
-            maxHeight={overlayProps.style!.maxHeight}
-            maxHeightProp={maxMenuHeight}
-            data-menu-has-header={!!menuTitle || clearable}
-            data-menu-has-search={searchable}
-            data-menu-has-footer={!!menuFooter}
-          >
-            <FocusScope contain={overlayIsOpen}>
-              {(menuTitle ||
-                menuHeaderTrailingItems ||
-                (clearable && showClearButton)) && (
-                <MenuHeader size={size}>
-                  <MenuTitle>{menuTitle}</MenuTitle>
-                  <MenuHeaderTrailingItems>
-                    {loading && <StyledLoadingIndicator size={12} />}
-                    {typeof menuHeaderTrailingItems === 'function'
-                      ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
-                      : menuHeaderTrailingItems}
-                    {clearable && showClearButton && (
-                      <ClearButton onClick={clearSelection} size="zero" borderless>
-                        {t('Clear')}
-                      </ClearButton>
-                    )}
-                  </MenuHeaderTrailingItems>
-                </MenuHeader>
-              )}
-              {searchable && (
-                <SearchInput
-                  ref={searchRef}
-                  placeholder={searchPlaceholder}
-                  value={searchInputValue}
-                  onFocus={onSearchFocus}
-                  onBlur={onSearchBlur}
-                  onChange={e => updateSearch(e.target.value)}
-                  size="xs"
-                  {...searchKeyboardProps}
-                />
-              )}
-              {typeof menuBody === 'function'
-                ? menuBody({closeOverlay: overlayState.close})
-                : menuBody}
-              {!hideOptions && <OptionsWrap>{children}</OptionsWrap>}
-              {menuFooter && (
-                <MenuFooter>
-                  {typeof menuFooter === 'function'
-                    ? menuFooter({closeOverlay: overlayState.close})
-                    : menuFooter}
-                </MenuFooter>
-              )}
-            </FocusScope>
-          </StyledOverlay>
-        </StyledPositionWrapper>
+        {usePortal ? createPortal(dropDownMenu, document.body) : dropDownMenu}
       </ControlWrap>
     </SelectContext>
   );
