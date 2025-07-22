@@ -441,7 +441,7 @@ class SqlFormatEventSerializer(EventSerializer):
 
     def _format_breadcrumb_messages(
         self, event_data: EventSerializerResponse, event: Event | GroupEvent, user: User
-    ):
+    ) -> EventSerializerResponse:
         try:
             breadcrumbs = next(
                 filter(lambda entry: entry["type"] == "breadcrumbs", event_data.get("entries", ())),
@@ -485,7 +485,7 @@ class SqlFormatEventSerializer(EventSerializer):
 
     def _format_db_spans(
         self, event_data: EventSerializerResponse, event: Event | GroupEvent, user: User
-    ):
+    ) -> EventSerializerResponse:
         try:
             spans = next(
                 filter(lambda entry: entry["type"] == "spans", event_data.get("entries", ())),
