@@ -99,8 +99,8 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
       .slice(0, 3);
 
     return (
-      <Flex direction="column" gap={space(2)}>
-        <Flex gap={space(2)} justify="space-between">
+      <Flex direction="column" gap="xl">
+        <Flex gap="xl" justify="space-between">
           <div>
             <h6>{t('New Issues')}</h6>
             <CountSince>{release.newGroups}</CountSince>
@@ -111,7 +111,7 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
           </div>
         </Flex>
         {parsedVersion?.package && (
-          <Flex direction="column" gap={space(2)} justify="space-between">
+          <Flex direction="column" gap="xl" justify="space-between">
             {parsedVersion.package && (
               <div>
                 <h6>{t('Package')}</h6>
@@ -208,7 +208,7 @@ interface VersionHoverHeaderProps {
 
 function VersionHoverHeader({releaseVersion}: VersionHoverHeaderProps) {
   return (
-    <Flex align="center" gap={space(0.5)}>
+    <Flex align="center" gap="xs">
       {t('Release:')}
       <VersionWrapper>
         <StyledVersion version={releaseVersion} truncate anchor={false} />

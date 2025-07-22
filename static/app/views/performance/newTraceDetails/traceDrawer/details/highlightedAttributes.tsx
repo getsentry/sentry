@@ -1,7 +1,6 @@
 import Count from 'sentry/components/count';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -68,7 +67,7 @@ function getAISpanAttributes(attributes: Record<string, string | number | boolea
   if (model) {
     highlightedAttributes.push({
       name: t('Model'),
-      value: <ModelName modelId={model.toString()} gap={space(0.5)} />,
+      value: <ModelName modelId={model.toString()} gap="xs" />,
     });
   }
 

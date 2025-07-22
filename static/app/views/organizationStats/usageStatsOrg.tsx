@@ -226,7 +226,7 @@ export function getChartProps({
         </InlineContainer>
         <InlineContainer>
           {(chartData.chartStats.clientDiscard ?? []).length > 0 && (
-            <Flex align="center" gap={space(1)}>
+            <Flex align="center" gap="md">
               <strong>{t('Show client-discarded data:')}</strong>
               <Switch
                 onChange={() => {

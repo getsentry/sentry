@@ -170,7 +170,7 @@ function ReplayPreviewTable({
         return (
           <SimpleTable.Row key={id}>
             <SimpleTable.RowCell>
-              <Flex key="session" align="center" gap={space(1)}>
+              <Flex key="session" align="center" gap="md">
                 <UserAvatar
                   user={{
                     username: replay.user?.display_name || '',
@@ -182,14 +182,14 @@ function ReplayPreviewTable({
                   size={24}
                 />
                 <SubText>
-                  <Flex gap={space(0.5)} align="flex-start">
+                  <Flex gap="xs" align="flex-start">
                     <DisplayName>
                       {replay.user.display_name || t('Anonymous User')}
                     </DisplayName>
                   </Flex>
-                  <Flex gap={space(0.5)}>
+                  <Flex gap="xs">
                     {getShortEventId(replay.id)}
-                    <Flex gap={space(0.5)}>
+                    <Flex gap="xs">
                       <IconCalendar color="gray300" size="xs" />
                       <TimeSince date={replay.started_at} />
                     </Flex>

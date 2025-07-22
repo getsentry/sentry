@@ -29,9 +29,9 @@ export default function MessageSection({eventData, feedbackItem}: Props) {
 
   return (
     <Fragment>
-      <Flex wrap="wrap" flex="1 1 auto" gap={space(1)} justify="space-between">
+      <Flex wrap="wrap" flex="1 1 auto" gap="md" justify="space-between">
         <FeedbackItemUsername feedbackIssue={feedbackItem} />
-        <Flex gap={space(1)}>
+        <Flex gap="md">
           {isSpam ? (
             <Tag key="spam" type="error">
               <Tooltip

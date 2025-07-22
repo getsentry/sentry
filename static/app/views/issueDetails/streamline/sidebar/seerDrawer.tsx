@@ -211,12 +211,12 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
       </SeerDrawerHeader>
       {(!showWelcomeScreen || aiConfig.isAutofixSetupLoading) && (
         <SeerDrawerNavigator>
-          <Flex align="center" gap={space(1)}>
+          <Flex align="center" gap="md">
             <Header>{t('Seer')}</Header>
             <QuestionTooltip
               isHoverable
               title={
-                <Flex direction="column" gap={space(1)}>
+                <Flex direction="column" gap="md">
                   <div>
                     {tct(
                       'Seer models are powered by generative Al. Per our [dataDocs:data usage policies], Sentry does not use your data to train Seer models or share your data with other customers without your express consent.',

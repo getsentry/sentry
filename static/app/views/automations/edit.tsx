@@ -20,7 +20,6 @@ import {
 } from 'sentry/components/workflowEngine/ui/footer';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -182,7 +181,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       </Layout.Page>
       <StickyFooter>
         <StickyFooterLabel>{t('Step 2 of 2')}</StickyFooterLabel>
-        <Flex gap={space(1)}>
+        <Flex gap="md">
           <LinkButton
             priority="default"
             to={makeAutomationDetailsPathname(organization.slug, params.automationId)}

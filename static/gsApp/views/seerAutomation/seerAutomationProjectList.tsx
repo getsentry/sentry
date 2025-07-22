@@ -336,7 +336,7 @@ export function SeerAutomationProjectList() {
       <Panel>
         <PanelHeader hasButtons>
           <div>{t('Automation for Existing Projects')}</div>
-          <Flex gap={space(1)} align="center" style={{marginLeft: 'auto'}}>
+          <Flex gap="md" align="center" style={{marginLeft: 'auto'}}>
             <ActionDropdownMenu
               items={scanMenuItems}
               triggerLabel={t('Set Issue Scans to')}
@@ -362,8 +362,8 @@ export function SeerAutomationProjectList() {
           )}
           {paginatedProjects.map(project => (
             <ClickablePanelItem key={project.id} onClick={() => handleRowClick(project)}>
-              <Flex justify="space-between" align="center" gap={space(2)} flex={1}>
-                <Flex gap={space(1)} align="center">
+              <Flex justify="space-between" align="center" gap="xl" flex={1}>
+                <Flex gap="md" align="center">
                   <StyledCheckbox
                     checked={selected.has(project.id)}
                     onChange={() => handleCheckboxChange(project.id)}

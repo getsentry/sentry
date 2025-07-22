@@ -375,13 +375,8 @@ function TourProvider({
           TourContext={MyTourContext}
           {...tourProviderProps}
         >
-          <Flex gap={space(2)} align="center">
-            <Flex
-              gap={space(2)}
-              justify="space-between"
-              direction="column"
-              align="flex-start"
-            >
+          <Flex gap="xl" align="center">
+            <Flex gap="xl" justify="space-between" direction="column" align="flex-start">
               <StartTourButton />
               {children}
             </Flex>

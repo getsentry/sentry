@@ -219,7 +219,7 @@ export default function StreamlinedGroupHeader({
               <StatCount value={userCount} aria-label={t('User count')} />
             </Fragment>
           )}
-          <Flex gap={space(1)} align="center">
+          <Flex gap="md" align="center">
             {group.isUnhandled && (
               <Fragment>
                 <UnhandledTag />

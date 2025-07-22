@@ -83,7 +83,7 @@ function TimelineItem({
   return (
     <ActivityTimelineItem
       title={
-        <Flex gap={space(0.5)} align="center" justify="flex-start">
+        <Flex gap="xs" align="center" justify="flex-start">
           <TitleTooltip title={title} showOnlyOnOverflow>
             {title}
           </TitleTooltip>
