@@ -29,6 +29,7 @@ from sentry.workflow_engine.models import (
     Detector,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
@@ -398,6 +399,177 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         detector = Detector.objects.get(id=response.data["id"])
         assert detector.enabled is True
         assert detector.status == ObjectStatus.ACTIVE
+
+    def test_update_workflows_add_workflow(self):
+        workflow1 = self.create_workflow(organization_id=self.organization.id)
+        workflow2 = self.create_workflow(organization_id=self.organization.id)
+
+        assert DetectorWorkflow.objects.filter(detector=self.detector).count() == 0
+
+        data = {
+            **self.valid_data,
+            "workflowIds": [workflow1.id, workflow2.id],
+        }
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        assert response.data["workflowIds"] == [str(workflow1.id), str(workflow2.id)]
+
+        detector_workflows = DetectorWorkflow.objects.filter(detector=self.detector)
+        assert detector_workflows.count() == 2
+        workflow_ids = {dw.workflow_id for dw in detector_workflows}
+        assert workflow_ids == {workflow1.id, workflow2.id}
+
+    def test_update_workflows_replace_workflows(self):
+        """Test replacing existing workflows with new ones"""
+        # Create workflows and connect one initially
+        existing_workflow = self.create_workflow(organization_id=self.organization.id)
+        new_workflow = self.create_workflow(organization_id=self.organization.id)
+
+        DetectorWorkflow.objects.create(detector=self.detector, workflow=existing_workflow)
+        assert DetectorWorkflow.objects.filter(detector=self.detector).count() == 1
+
+        data = {
+            **self.valid_data,
+            "workflowIds": [new_workflow.id],
+        }
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        assert response.data["workflowIds"] == [str(new_workflow.id)]
+
+        # Verify old workflow was removed and new one added
+        detector_workflows = DetectorWorkflow.objects.filter(detector=self.detector)
+        assert detector_workflows.count() == 1
+        detector_workflow = detector_workflows.first()
+        assert detector_workflow is not None
+        assert detector_workflow.workflow_id == new_workflow.id
+
+    def test_update_workflows_remove_all_workflows(self):
+        """Test removing all workflows by passing empty list"""
+        # Create and connect a workflow initially
+        workflow = self.create_workflow(organization_id=self.organization.id)
+        DetectorWorkflow.objects.create(detector=self.detector, workflow=workflow)
+        assert DetectorWorkflow.objects.filter(detector=self.detector).count() == 1
+
+        data = {
+            **self.valid_data,
+            "workflowIds": [],
+        }
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        assert response.data["workflowIds"] == []
+
+        # Verify all workflows were removed
+        assert DetectorWorkflow.objects.filter(detector=self.detector).count() == 0
+
+    def test_update_workflows_invalid_workflow_ids(self):
+        """Test validation failure with non-existent workflow IDs"""
+        data = {
+            **self.valid_data,
+            "workflowIds": [999999],
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            **data,
+            status_code=400,
+        )
+
+        assert "Some workflows do not exist" in str(response.data)
+
+    def test_update_workflows_from_different_organization(self):
+        """Test validation failure when workflows belong to different organization"""
+        other_org = self.create_organization()
+        other_workflow = self.create_workflow(organization_id=other_org.id)
+
+        data = {
+            **self.valid_data,
+            "workflowIds": [other_workflow.id],
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            **data,
+            status_code=400,
+        )
+
+        assert "Some workflows do not exist" in str(response.data)
+
+    def test_update_workflows_transaction_rollback_on_validation_failure(self):
+        """Test that detector updates are rolled back when workflow validation fails"""
+        existing_workflow = self.create_workflow(organization_id=self.organization.id)
+        DetectorWorkflow.objects.create(detector=self.detector, workflow=existing_workflow)
+
+        initial_detector_name = self.detector.name
+        initial_workflow_count = DetectorWorkflow.objects.filter(detector=self.detector).count()
+
+        data = {
+            **self.valid_data,
+            "name": "Should Not Be Updated",
+            "workflowIds": [999999],
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            **data,
+            status_code=400,
+        )
+
+        self.detector.refresh_from_db()
+        assert self.detector.name == initial_detector_name
+        assert (
+            DetectorWorkflow.objects.filter(detector=self.detector).count()
+            == initial_workflow_count
+        )
+        assert "Some workflows do not exist" in str(response.data)
+
+    def test_update_without_workflow_ids(self):
+        """Test that omitting workflowIds doesn't affect existing workflow connections"""
+        workflow = self.create_workflow(organization_id=self.organization.id)
+        DetectorWorkflow.objects.create(detector=self.detector, workflow=workflow)
+        assert DetectorWorkflow.objects.filter(detector=self.detector).count() == 1
+
+        data = {
+            **self.valid_data,
+            "name": "Updated Without Workflows",
+        }
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        assert response.data["workflowIds"] == [str(workflow.id)]
+
+        self.detector.refresh_from_db()
+        assert self.detector.name == "Updated Without Workflows"
+        assert DetectorWorkflow.objects.filter(detector=self.detector).count() == 1
 
 
 @region_silo_test
