@@ -4,6 +4,7 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -29,7 +30,6 @@ function OrganizationFeatureFlagsNewSecet() {
     );
   }, [organization.slug, navigate]);
 
-  // Check if user has permission to create feature flag signing secrets
   const canWrite = hasEveryAccess(['org:write'], {organization});
   const canAdmin = hasEveryAccess(['org:admin'], {organization});
   const hasPermission = canWrite || canAdmin;
@@ -82,9 +82,9 @@ function OrganizationFeatureFlagsNewSecet() {
               />
             )
           ) : (
-            <div style={{textAlign: 'center', padding: '20px'}}>
-              {t('You do not have permission to add feature flag providers.')}
-            </div>
+            <EmptyMessage
+              description={t('You do not have permission to add feature flag providers.')}
+            />
           )}
         </PanelBody>
       </Panel>
