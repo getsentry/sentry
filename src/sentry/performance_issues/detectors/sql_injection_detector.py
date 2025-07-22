@@ -56,6 +56,7 @@ EXCLUDED_KEYWORDS = [
 ]
 
 EXCLUDED_PACKAGES = ["github.com/go-sql-driver/mysql", "sequelize"]
+PARAMETERIZED_KEYWORDS = ["?", "$1", "%s"]
 
 
 class SQLInjectionDetector(PerformanceDetector):
@@ -122,7 +123,9 @@ class SQLInjectionDetector(PerformanceDetector):
         spans_involved = [span["span_id"]]
         vulnerable_parameters = []
 
-        if "WHERE" not in description.upper():
+        if "WHERE" not in description.upper() or any(
+            keyword in description for keyword in PARAMETERIZED_KEYWORDS
+        ):
             return
 
         for key, value in self.request_parameters:
