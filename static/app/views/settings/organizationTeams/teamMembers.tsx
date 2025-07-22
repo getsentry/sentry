@@ -374,7 +374,7 @@ function TeamMembers({team}: TeamMembersProps) {
           <div>
             <TeamRoleColumnLabel />
           </div>
-          <Flex justify="end">
+          <Flex justify="flex-end">
             <AddMemberDropdown
               teamMembers={teamMembers}
               organization={organization}

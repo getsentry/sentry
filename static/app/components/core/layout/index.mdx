@@ -1,0 +1,49 @@
+---
+title: Flex & Container
+description: Layout utility components for creating flexible, responsive layouts with consistent spacing and styling.
+source: 'sentry/components/core/layout'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/layout/flex.tsx
+  a11y:
+    WCAG 1.3.1: https://www.w3.org/TR/WCAG22/#info-and-relationships
+---
+
+import {Container, Flex} from 'sentry/components/core/layout/flex';
+import * as Storybook from 'sentry/stories';
+
+import APIReference from '!!type-loader!sentry/components/core/layout/flex';
+
+export const types = {Flex: APIReference.Flex, Container: APIReference.Container};
+export const ContainerProps = {padding: 'sm md', background: 'primary'};
+
+## Flex
+
+### Direction & Alignment
+
+Control the flex direction and alignment of items within the container.
+
+<Storybook.Demo>
+  <Flex direction="column" gap="8px">
+    <span>Radius</span>
+    <Container {...ContainerProps} radius="sm">
+      static
+    </Container>
+    <Container {...ContainerProps} radius={{sm: '2xl'}}>
+      adaptive
+    </Container>
+    <span>Margin</span>
+    <Container margin="sm" background="primary">
+      static
+    </Container>
+    <Container {...ContainerProps} margin={{sm: 'lg'}}>
+      adaptive
+    </Container>
+    <span>Padding</span>
+    <Container padding="sm" background="primary">
+      static
+    </Container>
+    <Container {...ContainerProps} padding={{sm: 'lg'}}>
+      adaptive
+    </Container>
+  </Flex>
+</Storybook.Demo>
