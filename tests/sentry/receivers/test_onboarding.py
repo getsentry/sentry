@@ -10,6 +10,8 @@ from sentry.analytics.events.first_event_sent import (
     FirstEventSentEvent,
     FirstEventSentForProjectEvent,
 )
+from sentry.analytics.events.first_replay_sent import FirstReplaySentEvent
+from sentry.integrations.analytics import IntegrationAddedEvent
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationonboardingtask import (
     OnboardingTask,
@@ -757,13 +759,15 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-        record_analytics.assert_called_with(
-            "integration.added",
-            user_id=self.user.id,
-            default_user_id=self.organization.default_owner_id,
-            organization_id=self.organization.id,
-            id=integration_id,
-            provider="slack",
+        assert_last_analytics_event(
+            record_analytics,
+            IntegrationAddedEvent(
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                id=integration_id,
+                provider="slack",
+            ),
         )
 
     @patch("sentry.analytics.record", wraps=record)
@@ -782,13 +786,15 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-        record_analytics.assert_called_with(
-            "integration.added",
-            user_id=self.user.id,
-            default_user_id=self.organization.default_owner_id,
-            organization_id=self.organization.id,
-            id=integration_id,
-            provider="github",
+        assert_last_analytics_event(
+            record_analytics,
+            IntegrationAddedEvent(
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                id=integration_id,
+                provider="github",
+            ),
         )
 
     def test_second_platform_complete(self):
@@ -999,13 +1005,15 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
-        record_analytics.assert_called_with(
-            "integration.added",
-            user_id=self.user.id,
-            default_user_id=self.organization.default_owner_id,
-            organization_id=self.organization.id,
-            provider=github_integration.provider,
-            id=github_integration.id,
+        assert_last_analytics_event(
+            record_analytics,
+            IntegrationAddedEvent(
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                provider=github_integration.provider,
+                id=github_integration.id,
+            ),
         )
 
         # Invite your team
@@ -1054,15 +1062,15 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
-        record_analytics.assert_called_with(
-            "first_replay.sent",
-            user_id=self.user.id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=project.platform,
-        )
-
-        # Get real time notifications
+        assert_last_analytics_event(
+            record_analytics,
+            FirstReplaySentEvent(
+                user_id=self.user.id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=project.platform,
+            ),
+        )  # Get real time notifications
         slack_integration = self._create_integration("slack", 4321)
         integration_added.send(
             integration_id=slack_integration.id,
@@ -1078,15 +1086,16 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
-        record_analytics.assert_called_with(
-            "integration.added",
-            user_id=self.user.id,
-            default_user_id=self.organization.default_owner_id,
-            organization_id=self.organization.id,
-            provider=slack_integration.provider,
-            id=slack_integration.id,
+        assert_last_analytics_event(
+            record_analytics,
+            IntegrationAddedEvent(
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                provider=slack_integration.provider,
+                id=slack_integration.id,
+            ),
         )
-
         # Add Sentry to other parts app
         second_project = self.create_project(
             first_event=timezone.now(), organization=self.organization
