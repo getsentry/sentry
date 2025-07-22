@@ -277,7 +277,6 @@ const BodyCell = memo(function BodyCell({
       );
     case 'duration':
       return <DurationCell milliseconds={dataRow.duration} />;
-    // return <NumberCell value={dataRow.errors} />;
     case 'errors':
     case 'llmCalls':
     case 'toolCalls':
