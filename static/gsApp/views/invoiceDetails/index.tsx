@@ -141,7 +141,7 @@ function InvoiceAttributes({invoice, billingDetails}: AttributeProps) {
   const contactInfo = invoice?.displayAddress || billingDetails?.displayAddress;
   const companyName = billingDetails?.companyName;
   const billingEmail = billingDetails?.billingEmail;
-  const taxNumber = invoice?.taxNumber || billingDetails?.taxNumber;
+  const taxNumber = invoice?.taxNumber;
   const countryCode = invoice?.countryCode || billingDetails?.countryCode;
   const taxNumberName = `${getTaxFieldInfo(countryCode).label}:`;
 
