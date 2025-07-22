@@ -4,7 +4,6 @@ from collections.abc import Mapping
 from typing import cast
 
 import sentry_sdk
-import sentry_sdk.scope
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import RunTask, RunTaskInThreads
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
@@ -169,7 +168,7 @@ def parse_headers(recording: bytes, replay_id: str) -> tuple[int, bytes]:
 
 def commit_message(message: Message[ProcessedEvent]) -> None:
     isolation_scope = sentry_sdk.get_isolation_scope().fork()
-    with sentry_sdk.scope.use_isolation_scope(isolation_scope):
+    with sentry_sdk.use_isolation_scope(isolation_scope):
         with sentry_sdk.start_span(
             name="replays.consumer.recording_buffered.commit_message",
             op="replays.consumer.recording_buffered.commit_message",
