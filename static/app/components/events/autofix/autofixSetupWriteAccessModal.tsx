@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -6,10 +6,13 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {ExternalLink} from 'sentry/components/core/link';
+import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useQueryClient} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 
 function GitRepoLink({repo}: {repo: {name: string; owner: string; ok?: boolean}}) {
   return (
@@ -104,7 +107,17 @@ export function AutofixSetupWriteAccessModal({
   groupId,
   closeModal,
 }: AutofixSetupWriteAccessModalProps) {
+  const queryClient = useQueryClient();
+  const orgSlug = useOrganization().slug;
   const {canCreatePullRequests} = useAutofixSetup({groupId, checkWriteAccess: true});
+
+  useEffect(() => {
+    return () => {
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+      });
+    };
+  }, [queryClient, orgSlug, groupId]);
 
   return (
     <div id="autofix-write-access-modal">
