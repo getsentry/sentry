@@ -311,7 +311,7 @@ def frame(
     if module_component.contributes and filename_component.contributes:
         filename_component.update(contributes=False, hint="module takes precedence")
 
-    if platform in context["contextline_platforms"]:
+    if frame.context_line and platform in context["contextline_platforms"]:
         context_line_component = get_contextline_component(
             frame,
             platform,
