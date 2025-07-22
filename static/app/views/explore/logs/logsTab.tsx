@@ -250,24 +250,26 @@ export function LogsTabContent({
               />
             </StyledPageFilterBar>
             <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
-            <DropdownMenu
-              items={saveAsItems}
-              trigger={triggerProps => (
-                <Button
-                  {...triggerProps}
-                  priority="primary"
-                  aria-label={t('Save as')}
-                  onClick={e => {
-                    e.stopPropagation();
-                    e.preventDefault();
+            {saveAsItems.length > 0 && (
+              <DropdownMenu
+                items={saveAsItems}
+                trigger={triggerProps => (
+                  <Button
+                    {...triggerProps}
+                    priority="primary"
+                    aria-label={t('Save as')}
+                    onClick={e => {
+                      e.stopPropagation();
+                      e.preventDefault();
 
-                    triggerProps.onClick?.(e);
-                  }}
-                >
-                  {t('Save as')}
-                </Button>
-              )}
-            />
+                      triggerProps.onClick?.(e);
+                    }}
+                  >
+                    {t('Save as')}
+                  </Button>
+                )}
+              />
+            )}
           </FilterBarContainer>
           <SchemaHintsSection>
             <SchemaHintsList
