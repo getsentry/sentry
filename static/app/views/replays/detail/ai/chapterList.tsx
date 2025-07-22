@@ -3,16 +3,19 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import {Alert} from 'sentry/components/core/alert';
+import {Link} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconChevron, IconFire, IconMegaphone} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
@@ -104,7 +107,9 @@ function ChapterRow({
   className?: string;
 }) {
   const replay = useReplayReader();
-  const {currentTime} = useReplayContext();
+  const {currentTime, setCurrentTime} = useReplayContext();
+  const organization = useOrganization();
+  const location = useLocation();
   const {onClickTimestamp} = useCrumbHandlers();
   const [currentHoverTime] = useCurrentHoverTime();
   const [isHovered, setIsHovered] = useState(false);
@@ -114,8 +119,6 @@ function ChapterRow({
   const endOffset = Math.max(end - (replay?.getStartTimestampMs() ?? 0), 0);
   const hasOccurred = currentTime >= startOffset;
   const isBeforeHover = currentHoverTime === undefined || currentHoverTime >= startOffset;
-
-  const organization = useOrganization();
 
   return (
     <ChapterWrapper
@@ -174,8 +177,34 @@ function ChapterRow({
       <div>
         {!breadcrumbs.length && (
           <EmptyMessage>
-            {t(
-              'No breadcrumbs for this chapter, but there may be console logs or network requests that occurred during this window.'
+            {tct(
+              'No breadcrumbs for this chapter, but there may be [consoleLogs: console logs] or [networkRequests: network requests] that occurred during this window.',
+              {
+                consoleLogs: (
+                  <Link
+                    to={{
+                      pathname: location.pathname,
+                      query: {
+                        t_main: TabKey.CONSOLE,
+                        t: startOffset / 1000,
+                      },
+                    }}
+                    onClick={() => setCurrentTime(startOffset)}
+                  />
+                ),
+                networkRequests: (
+                  <Link
+                    to={{
+                      pathname: location.pathname,
+                      query: {
+                        t_main: TabKey.NETWORK,
+                        t: startOffset / 1000,
+                      },
+                    }}
+                    onClick={() => setCurrentTime(startOffset)}
+                  />
+                ),
+              }
             )}
           </EmptyMessage>
         )}
