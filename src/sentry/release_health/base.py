@@ -185,7 +185,7 @@ class ReleaseHealthOverview(TypedDict, total=False):
     duration_p90: float | None
     stats: Mapping[StatsPeriod, ReleaseHealthStats]
     sessions_unhandled: int
-    handled_sessions: float
+    handled_sessions: float | None
 
 
 class CrashFreeBreakdown(TypedDict):
