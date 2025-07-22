@@ -78,7 +78,7 @@ def process_message(
     from sentry.utils import metrics
 
     with (
-        sentry_sdk.start_transaction(
+        sentry_sdk.start_span(
             op="handle_message",
             name="query_subscription_consumer_process_message",
             custom_sampling_context={"sample_rate": options.get("subscriptions-query.sample-rate")},

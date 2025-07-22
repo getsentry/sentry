@@ -998,7 +998,7 @@ def process_checkin(item: CheckinItem) -> None:
     Process an individual check-in
     """
     try:
-        with sentry_sdk.start_transaction(
+        with sentry_sdk.start_span(
             op="_process_checkin",
             name="monitors.monitor_consumer",
         ) as txn:
@@ -1068,7 +1068,7 @@ def process_batch(
     metrics.gauge("monitors.checkin.parallel_batch_groups", len(checkin_mapping))
 
     # Submit check-in groups for processing
-    with sentry_sdk.start_transaction(op="process_batch", name="monitors.monitor_consumer"):
+    with sentry_sdk.start_span(op="process_batch", name="monitors.monitor_consumer"):
         futures = [
             executor.submit(process_checkin_group, group) for group in checkin_mapping.values()
         ]
