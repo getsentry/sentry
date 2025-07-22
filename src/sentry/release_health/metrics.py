@@ -1053,6 +1053,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
             users_crashed = rv_users.get((project_id, release, "crashed_users"), 0)
 
+            sum_unhandled = sessions_unhandled + sessions_crashed
+
             rv_row = rv[project_id, release] = {
                 "adoption": adoption_info.get("adoption"),
                 "sessions_adoption": adoption_info.get("sessions_adoption"),
@@ -1069,7 +1071,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     100 - users_crashed / total_users * 100 if total_users else None
                 ),
                 "handled_sessions": (
-                    100 - (sessions_unhandled + sessions_crashed) / total_sessions * 100
+                    100 - sum_unhandled / float(total_sessions) * 100 if total_sessions else None
                 ),
                 "crash_free_sessions": (
                     100 - sessions_crashed / float(total_sessions) * 100 if total_sessions else None
