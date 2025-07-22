@@ -9,10 +9,10 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {ChartInfo} from 'sentry/views/explore/charts';
 import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import type {BoxSelectOptions} from 'sentry/views/explore/hooks/useChartBoxSelect';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import type {ChartInfo} from 'sentry/views/explore/spans/charts';
 
 export type SuspectAttributesResult = {
   rankedAttributes: Array<{

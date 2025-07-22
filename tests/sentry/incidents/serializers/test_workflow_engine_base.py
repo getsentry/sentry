@@ -25,6 +25,10 @@ from sentry.workflow_engine.models.workflow_action_group_status import WorkflowA
 class TestWorkflowEngineSerializer(TestCase):
     @assume_test_silo_mode(SiloMode.REGION)
     def setUp(self) -> None:
+        # XXX: do this so that DCGA and Action IDs aren't one to one
+        other_action = self.create_action()
+        other_action.delete()
+
         self.now = timezone.now()
         self.alert_rule = self.create_alert_rule()
         self.critical_trigger = self.create_alert_rule_trigger(

@@ -1944,4 +1944,48 @@ describe('provisionSubscriptionAction', function () {
       })
     );
   }, 15_000);
+
+  it('confirms byte field has (in GB) suffix', async function () {
+    triggerProvisionSubscription({
+      subscription: mockSub,
+      orgId: mockSub.slug,
+      onSuccess,
+      billingConfig: mockBillingConfig,
+    });
+
+    await loadModal();
+
+    await selectEvent.select(
+      await screen.findByRole('textbox', {name: 'Plan'}),
+      'Enterprise (Business) (am1)'
+    );
+
+    // Verify ATTACHMENTS has (in GB) suffix as expected
+    expect(
+      screen.getByRole('spinbutton', {name: 'Reserved Attachments (in GB)'})
+    ).toBeInTheDocument();
+  });
+
+  it('confirms non-byte categories do not have (in GB) suffix', async function () {
+    triggerProvisionSubscription({
+      subscription: mockSub,
+      orgId: mockSub.slug,
+      onSuccess,
+      billingConfig: mockBillingConfig,
+    });
+
+    await loadModal();
+
+    await selectEvent.select(
+      await screen.findByRole('textbox', {name: 'Plan'}),
+      'Enterprise (Business) (am1)'
+    );
+
+    // Non-byte categories should not have (in GB) suffix
+    expect(screen.getByRole('spinbutton', {name: 'Reserved Errors'})).toBeInTheDocument();
+
+    expect(
+      screen.getByRole('spinbutton', {name: 'Reserved Transactions'})
+    ).toBeInTheDocument();
+  });
 });

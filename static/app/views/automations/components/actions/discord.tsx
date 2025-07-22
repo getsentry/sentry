@@ -7,7 +7,6 @@ import {
 import {ActionMetadata} from 'sentry/components/workflowEngine/ui/actionMetadata';
 import {DismissableInfoAlert} from 'sentry/components/workflowEngine/ui/dismissableInfoAlert';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {
   type Action,
   type ActionHandler,
@@ -42,7 +41,7 @@ export function DiscordDetails({
 
 export function DiscordNode() {
   return (
-    <Flex direction="column" gap={space(1)} flex="1">
+    <Flex direction="column" gap="md" flex="1">
       <RowLine>
         {tct('Send a [logo] Discord message to [server] server, to [channel]', {
           logo: ActionMetadata[ActionType.DISCORD]?.icon,
