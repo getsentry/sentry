@@ -28,9 +28,6 @@ filterwarnings = [
   # Consider all warnings to be errors other than the ignored ones.
   "error",
 
-  # this warning in protobuf causes a segfault in 3.12+ protocolbuffers/protobuf#15077
-  "ignore:Type google\\._upb.*",
-
   # TODO: we should fix these, but for now there's a lot
   "ignore:datetime.datetime.utcfromtimestamp\\(\\) is deprecated.*",
   "ignore:datetime.datetime.utcnow\\(\\) is deprecated.*",
