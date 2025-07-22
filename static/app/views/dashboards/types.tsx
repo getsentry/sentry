@@ -189,4 +189,5 @@ export enum DashboardWidgetSource {
   LIBRARY = 'library',
   ISSUE_DETAILS = 'issueDetail',
   TRACE_EXPLORER = 'traceExplorer',
+  LOGS = 'logs',
 }

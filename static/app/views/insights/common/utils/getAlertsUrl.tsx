@@ -15,12 +15,14 @@ export function getAlertsUrl({
   name,
   interval,
   dataset = Dataset.GENERIC_METRICS,
+  eventTypes = 'transaction',
   referrer,
 }: {
   aggregate: string;
   organization: Organization;
   pageFilters: PageFilters;
   dataset?: Dataset;
+  eventTypes?: string;
   interval?: string;
   name?: string;
   project?: Project;
@@ -34,7 +36,7 @@ export function getAlertsUrl({
     aggregate,
     dataset,
     project: project?.slug,
-    eventTypes: 'transaction',
+    eventTypes,
     query,
     statsPeriod,
     environment,
