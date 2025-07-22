@@ -3,7 +3,6 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
@@ -113,58 +112,58 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
             )}
             position="bottom-start"
           >
-            <FilterContainer>
-              <EnvironmentSelector group={group} event={event} project={project} />
-              <DateFilter
-                menuTitle={t('Filter Time Range')}
-                start={period?.start}
-                end={period?.end}
-                utc={location.query.utc === 'true'}
-                relative={period?.statsPeriod}
-                relativeOptions={props => {
-                  return {
-                    ...props.arbitraryOptions,
-                    // Always display arbitrary issue open period
-                    ...(defaultStatsPeriod?.statsPeriod
-                      ? {
-                          [defaultStatsPeriod.statsPeriod]: t(
-                            '%s (since first seen)',
-                            getRelativeSummary(defaultStatsPeriod.statsPeriod)
-                          ),
-                        }
-                      : {}),
-                    ...props.defaultOptions,
-                  };
-                }}
-                onChange={({relative, start, end, utc}) => {
-                  navigate({
-                    ...location,
-                    query: {
-                      ...location.query,
-                      // If selecting the issue open period, remove the stats period query param
-                      statsPeriod:
-                        relative === defaultStatsPeriod?.statsPeriod
-                          ? undefined
-                          : relative,
-                      start: start ? getUtcDateString(start) : undefined,
-                      end: end ? getUtcDateString(end) : undefined,
-                      utc: utc ? 'true' : undefined,
+            <FilterSection>
+              <FilterContainer>
+                <EnvironmentSelector group={group} event={event} project={project} />
+                <DateFilter
+                  menuTitle={t('Filter Time Range')}
+                  start={period?.start}
+                  end={period?.end}
+                  utc={location.query.utc === 'true'}
+                  relative={period?.statsPeriod}
+                  relativeOptions={props => {
+                    return {
+                      ...props.arbitraryOptions,
+                      // Always display arbitrary issue open period
+                      ...(defaultStatsPeriod?.statsPeriod
+                        ? {
+                            [defaultStatsPeriod.statsPeriod]: t(
+                              '%s (since first seen)',
+                              getRelativeSummary(defaultStatsPeriod.statsPeriod)
+                            ),
+                          }
+                        : {}),
+                      ...props.defaultOptions,
+                    };
+                  }}
+                  onChange={({relative, start, end, utc}) => {
+                    navigate({
+                      ...location,
+                      query: {
+                        ...location.query,
+                        // If selecting the issue open period, remove the stats period query param
+                        statsPeriod:
+                          relative === defaultStatsPeriod?.statsPeriod
+                            ? undefined
+                            : relative,
+                        start: start ? getUtcDateString(start) : undefined,
+                        end: end ? getUtcDateString(end) : undefined,
+                        utc: utc ? 'true' : undefined,
+                      },
+                    });
+                  }}
+                  triggerLabel={
+                    period === defaultStatsPeriod && !defaultStatsPeriod.isMaxRetention
+                      ? t('Since First Seen')
+                      : undefined
+                  }
+                  triggerProps={{
+                    borderless: true,
+                    style: {
+                      borderRadius: 0,
                     },
-                  });
-                }}
-                triggerLabel={
-                  period === defaultStatsPeriod && !defaultStatsPeriod.isMaxRetention
-                    ? t('Since First Seen')
-                    : undefined
-                }
-                triggerProps={{
-                  borderless: true,
-                  style: {
-                    borderRadius: 0,
-                  },
-                }}
-              />
-              <Flex gap={space(0.5)}>
+                  }}
+                />
                 <SearchFilter
                   group={group}
                   handleSearch={query => {
@@ -181,9 +180,9 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                     label: searchText,
                   }}
                 />
-                <ToggleSidebar />
-              </Flex>
-            </FilterContainer>
+              </FilterContainer>
+              <ToggleSidebar />
+            </FilterSection>
           </TourElement>
         )}
         {issueTypeConfig.header.graph.enabled && (
@@ -261,11 +260,22 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
 const DetailsContainer = styled('div')<{
   hasFilterBar: boolean;
 }>`
-  padding-left: 24px;
+  position: relative;
   display: flex;
   flex-direction: column;
-  border: 0px solid ${p => p.theme.translucentBorder};
-  border-width: 0 1px 1px 0;
+  gap: ${p => p.theme.space.md};
+  background: ${p => p.theme.backgroundSecondary};
+  padding-left: ${p => p.theme.space.lg};
+  padding-right: ${p => p.theme.space.lg};
+  padding-top: ${p => p.theme.space.md};
+
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+    border-right: 1px solid ${p => p.theme.translucentBorder};
+  }
+`;
+const FilterSection = styled('div')`
+  display: flex;
+  gap: ${p => p.theme.space.xs};
 `;
 
 const FilterContainer = styled('div')`
@@ -273,12 +283,14 @@ const FilterContainer = styled('div')`
   grid-template-columns: auto auto minmax(100px, 1fr) auto;
   grid-template-rows: minmax(38px, auto);
   width: 100%;
+  background: ${p => p.theme.background};
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.translucentBorder};
 `;
 
 const SearchFilter = styled(EventSearch)`
   display: block;
   border-color: transparent;
-  border-radius: 0;
   box-shadow: none;
 `;
 
@@ -297,8 +309,11 @@ const DateFilter = styled(TimeRangeSelector)`
 
 const GraphSection = styled('div')`
   display: flex;
-  &:not(:first-child) {
-    border-top: 1px solid ${p => p.theme.translucentBorder};
+  gap: ${p => p.theme.space.md};
+  & > div {
+    background: ${p => p.theme.background};
+    border-radius: ${p => p.theme.borderRadius};
+    border: 1px solid ${p => p.theme.translucentBorder};
   }
 `;
 

@@ -299,12 +299,9 @@ export default function IssueTagsPreview({
 
   if (isPending || isHighlightPending) {
     return (
-      <Fragment>
-        <SectionDivider />
-        <IssueTagPreviewSection>
-          <Placeholder width="340px" height="90px" />
-        </IssueTagPreviewSection>
-      </Fragment>
+      <IssueTagPreviewSection>
+        <Placeholder width="340px" height="90px" />
+      </IssueTagPreviewSection>
     );
   }
 
@@ -313,20 +310,17 @@ export default function IssueTagsPreview({
   }
 
   return (
-    <Fragment>
-      <SectionDivider />
-      <IssueTagPreviewSection>
-        <TagsPreview>
-          {tagsToPreview.map(tag => (
-            <TagPreviewProgressBar key={tag.key} tag={tag} groupId={groupId} />
-          ))}
-        </TagsPreview>
-        <DistributionsDrawerButton
-          tags={tagsToPreview}
-          includeFeatureFlags={includeFeatureFlags}
-        />
-      </IssueTagPreviewSection>
-    </Fragment>
+    <IssueTagPreviewSection>
+      <TagsPreview>
+        {tagsToPreview.map(tag => (
+          <TagPreviewProgressBar key={tag.key} tag={tag} groupId={groupId} />
+        ))}
+      </TagsPreview>
+      <DistributionsDrawerButton
+        tags={tagsToPreview}
+        includeFeatureFlags={includeFeatureFlags}
+      />
+    </IssueTagPreviewSection>
   );
 }
 
@@ -335,7 +329,7 @@ const IssueTagPreviewSection = styled('div')`
   flex-direction: column;
   justify-content: center;
   gap: ${space(0.5)};
-  padding: ${space(1)} ${space(1.5)} ${space(1)} ${space(0.5)};
+  padding: ${space(1)} ${space(1.5)};
 `;
 
 const TagsPreview = styled('div')`
@@ -453,13 +447,6 @@ const VerticalDistributionsDrawerButton = styled(LinkButton)`
   span {
     white-space: unset;
   }
-`;
-
-const SectionDivider = styled('div')`
-  border-left: 1px solid ${p => p.theme.translucentBorder};
-  display: flex;
-  align-items: center;
-  margin: ${space(1)};
 `;
 
 const TagKey = styled(TextOverflow)`
