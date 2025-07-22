@@ -46,6 +46,7 @@ export function getReleasesSeriesQueryOptions({
   organization,
   projectId,
   query,
+  statsPeriod,
 }: DetectorSeriesQueryOptions): ApiQueryKey {
   const field = fieldsToDerivedMetrics(aggregate);
   return [
@@ -59,7 +60,7 @@ export function getReleasesSeriesQueryOptions({
         orderBy: field,
         per_page: 1,
         project: [projectId],
-        statsPeriod: '7d',
+        statsPeriod,
         ...(environment && {environment: [environment]}),
         ...(query && {query}),
       },

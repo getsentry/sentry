@@ -220,7 +220,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
   return (
     <Panel>
       <PanelHeader hasButtons>
-        <Flex align="center" gap={space(0.5)}>
+        <Flex align="center" gap="xs">
           {t('Working Repositories')}
           <QuestionTooltip
             title={tct(
@@ -279,7 +279,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
       </PanelHeader>
 
       {showSaveNotice && (
-        <Alert type="info" showIcon system>
+        <Alert type="info" system>
           {t(
             'Changes will apply on future Seer runs. Hit "Start Over" in the Seer panel to start a new run and use your new selected repositories.'
           )}

@@ -6,11 +6,13 @@ import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import MemoryChart from 'sentry/views/replays/detail/memoryPanel/memoryChart';
 
 export default function MemoryPanel() {
-  const {currentTime, isFetching, replay, setCurrentTime} = useReplayContext();
+  const replay = useReplayReader();
+  const {currentTime, isFetching, setCurrentTime} = useReplayContext();
   const [currentHoverTime, setCurrentHoverTime] = useCurrentHoverTime();
 
   const memoryFrames = replay?.getMemoryFrames();

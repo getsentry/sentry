@@ -11,7 +11,6 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -100,7 +99,7 @@ function TableHeader() {
   };
 
   return (
-    <Flex gap={space(2)}>
+    <Flex gap="xl">
       <ProjectPageFilter />
       <div style={{flexGrow: 1}}>
         <DetectorSearch initialQuery={query} onSearch={onSearch} />
