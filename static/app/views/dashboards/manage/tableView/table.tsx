@@ -13,6 +13,7 @@ import {useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import {useResetDashboardLists} from 'sentry/views/dashboards/hooks/useResetDashboardLists';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 
@@ -36,6 +37,11 @@ export function DashboardTable({
   const organization = useOrganization();
   const navigate = useNavigate();
   const resetDashboardLists = useResetDashboardLists();
+  const handleDuplicateDashboard = useDuplicateDashboard({
+    onSuccess: () => {
+      resetDashboardLists();
+    },
+  });
 
   const handleCursor: CursorHandler = (_cursor, pathname, query) => {
     navigate({
@@ -141,21 +147,11 @@ export function DashboardTable({
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell data-column="actions" hasButton>
               <SavedEntityTable.CellActions
-                // TODO: DAIN-717 Add action handlers
                 items={[
-                  ...(dashboard.createdBy === null
-                    ? []
-                    : [
-                        {
-                          key: 'rename',
-                          label: t('Rename'),
-                          onAction: () => {},
-                        },
-                      ]),
                   {
                     key: 'duplicate',
                     label: t('Duplicate'),
-                    onAction: () => {},
+                    onAction: () => handleDuplicateDashboard(dashboard, 'table'),
                   },
                   ...(dashboard.createdBy === null
                     ? []

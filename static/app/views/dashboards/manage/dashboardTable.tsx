@@ -4,9 +4,7 @@ import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {
-  createDashboard,
   deleteDashboard,
-  fetchDashboard,
   updateDashboardFavorite,
   updateDashboardPermissions,
 } from 'sentry/actionCreators/dashboards';
@@ -33,12 +31,12 @@ import {useQueryClient} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
+import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import type {
   DashboardDetails,
   DashboardListItem,
   DashboardPermissions,
 } from 'sentry/views/dashboards/types';
-import {cloneDashboard} from 'sentry/views/dashboards/utils';
 
 type Props = {
   api: Client;
@@ -127,6 +125,11 @@ function DashboardTable({
   onDashboardsChange,
   isLoading,
 }: Props) {
+  const handleDuplicateDashboard = useDuplicateDashboard({
+    onSuccess: () => {
+      onDashboardsChange();
+    },
+  });
   const columnOrder: Array<GridColumnOrder<ResponseKeys>> = [
     {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
     {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
@@ -149,24 +152,6 @@ function DashboardTable({
       .catch(() => {
         addErrorMessage(t('Error deleting Dashboard'));
       });
-  }
-
-  async function handleDuplicate(dashboard: DashboardListItem) {
-    try {
-      const dashboardDetail = await fetchDashboard(api, organization.slug, dashboard.id);
-      const newDashboard = cloneDashboard(dashboardDetail);
-      newDashboard.widgets.map(widget => (widget.id = undefined));
-      await createDashboard(api, organization.slug, newDashboard, true);
-      trackAnalytics('dashboards_manage.duplicate', {
-        organization,
-        dashboard_id: parseInt(dashboard.id, 10),
-        view_type: 'table',
-      });
-      onDashboardsChange();
-      addSuccessMessage(t('Dashboard duplicated'));
-    } catch (e) {
-      addErrorMessage(t('Error duplicating Dashboard'));
-    }
   }
 
   // TODO(__SENTRY_USING_REACT_ROUTER_SIX): We can remove this later, react
@@ -303,7 +288,7 @@ function DashboardTable({
                 openConfirmModal({
                   message: t('Are you sure you want to duplicate this dashboard?'),
                   priority: 'primary',
-                  onConfirm: () => handleDuplicate(dataRow),
+                  onConfirm: () => handleDuplicateDashboard(dataRow, 'table'),
                 });
               }}
               aria-label={t('Duplicate Dashboard')}
