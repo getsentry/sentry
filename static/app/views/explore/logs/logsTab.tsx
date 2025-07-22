@@ -98,7 +98,9 @@ export function LogsTabContent({
   const setLogsPageParams = useSetLogsPageParams();
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
-  const timeseriesIngestDelayRef = useRef<bigint>(getMaxIngestDelayTimestamp());
+  const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState<bigint>(
+    getMaxIngestDelayTimestamp()
+  );
   usePersistentLogsPageParameters(); // persist the columns you chose last time
 
   const oldLogsSearch = usePrevious(logsSearch);
@@ -124,20 +126,20 @@ export function LogsTabContent({
   );
 
   useEffect(() => {
-    timeseriesIngestDelayRef.current = getMaxIngestDelayTimestamp();
+    if (autorefreshEnabled) {
+      setTimeseriesIngestDelay(getMaxIngestDelayTimestamp());
+    }
   }, [autorefreshEnabled]);
 
   const search = useMemo(() => {
     const newSearch = logsSearch.copy();
-    if (autorefreshEnabled) {
-      // We need to add the delay filter to ensure the table data and the graph data are as close as possible when merging buckets.
-      newSearch.addFilterValue(
-        OurLogKnownFieldKey.TIMESTAMP_PRECISE,
-        getIngestDelayFilterValue(timeseriesIngestDelayRef.current)
-      );
-    }
+    // We need to add the delay filter to ensure the table data and the graph data are as close as possible when merging buckets.
+    newSearch.addFilterValue(
+      OurLogKnownFieldKey.TIMESTAMP_PRECISE,
+      getIngestDelayFilterValue(timeseriesIngestDelay)
+    );
     return newSearch;
-  }, [autorefreshEnabled, logsSearch]);
+  }, [logsSearch, timeseriesIngestDelay]);
 
   const _timeseriesResult = useSortedTimeSeries(
     {
@@ -154,7 +156,7 @@ export function LogsTabContent({
   const timeseriesResult = useStreamingTimeseriesResult(
     tableData,
     _timeseriesResult,
-    timeseriesIngestDelayRef.current
+    timeseriesIngestDelay
   );
 
   const {attributes: stringAttributes, isLoading: stringAttributesLoading} =

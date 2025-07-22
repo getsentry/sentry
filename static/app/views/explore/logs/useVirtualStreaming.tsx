@@ -113,13 +113,6 @@ export function useVirtualStreaming(
     }
   }, [autoRefresh, initializeVirtualTimestamp, virtualTimestamp]);
 
-  // Reset when auto refresh is disabled
-  useEffect(() => {
-    if (!autoRefresh) {
-      setVirtualTimestamp(undefined);
-    }
-  }, [autoRefresh]);
-
   // Get the newest timestamp from the latest page to calculate how far behind we are
   const getMostRecentPageDataTimestamp = useCallback(() => {
     if (!data?.pages?.length) {

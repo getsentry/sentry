@@ -1,4 +1,4 @@
-import {Fragment, type ReactNode} from 'react';
+import {Fragment, type ReactNode, useEffect} from 'react';
 
 import {Switch} from 'sentry/components/core/switch';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -6,6 +6,7 @@ import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import usePrevious from 'sentry/utils/usePrevious';
 import {
   type AutoRefreshState,
   useLogsAutoRefresh,
@@ -58,6 +59,8 @@ export function AutorefreshToggle({
   const sortBys = useLogsSortBys();
   const mode = useLogsMode();
   const {selection} = usePageFilters();
+  const selectionString = JSON.stringify(selection);
+  const previousSelection = usePrevious(selectionString);
   const {infiniteLogsQueryResult} = useLogsPageData();
   const {isError, fetchPreviousPage} = infiniteLogsQueryResult;
 
@@ -65,6 +68,13 @@ export function AutorefreshToggle({
     fetchPreviousPage: () => fetchPreviousPage() as any,
     isError,
   });
+
+  // Changing selection should disable autorefresh
+  useEffect(() => {
+    if (previousSelection !== selectionString) {
+      setAutorefresh('idle');
+    }
+  }, [selectionString, previousSelection, setAutorefresh]);
 
   const hasAbsoluteDates = Boolean(selection.datetime.start && selection.datetime.end);
 

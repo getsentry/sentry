@@ -17,6 +17,7 @@ import {
   useLogsAggregate,
   useLogsGroupBy,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {
   getLogRowTimestampMillis,
@@ -111,11 +112,16 @@ export function useStreamingTimeseriesResult(
     : null;
 
   useEffect(() => {
-    if (autoRefresh || !isEqual(selection, previousSelection)) {
+    const groupByChangedToIncluded = AlwaysPresentLogFields.includes(groupByKey ?? ''); // Always present log fields don't cause a query key change so we have to manually reset the buffer.
+    if (
+      autoRefresh ||
+      !isEqual(selection, previousSelection) ||
+      groupByChangedToIncluded
+    ) {
       groupBuffersRef.current = {};
       lastProcessedBucketRef.current = null;
     }
-  }, [autoRefresh, selection, previousSelection]);
+  }, [autoRefresh, selection, previousSelection, groupByKey]);
 
   const groupBuffers = useMemo(() => {
     const buffers = createBufferFromTableData(
