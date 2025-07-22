@@ -11,7 +11,7 @@ from sentry.api.helpers.group_index.update import handle_priority
 from sentry.constants import LOG_LEVELS_MAP, MAX_CULPRIT_LENGTH
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssueDetectorHandler
-from sentry.incidents.utils.types import QuerySubscriptionUpdate
+from sentry.incidents.utils.types import ProcessedSubscriptionUpdate
 from sentry.issues.grouptype import (
     FeedbackGroup,
     GroupCategory,
@@ -265,12 +265,12 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         # Create event
         event = self.store_event(data={}, project_id=self.project.id)
 
-        query_subscription_update: QuerySubscriptionUpdate = {
-            "entity": "events",
-            "subscription_id": str(query_subscription.id),
-            "values": {"value": 15},
-            "timestamp": datetime.now(UTC),
-        }
+        query_subscription_update: ProcessedSubscriptionUpdate = ProcessedSubscriptionUpdate(
+            entity="events",
+            subscription_id=str(query_subscription.id),
+            values={"value": 15},
+            timestamp=datetime.now(UTC),
+        )
 
         handler = MetricIssueDetectorHandler(detector)
         data_packet = DataPacket(str(query_subscription.id), query_subscription_update)
