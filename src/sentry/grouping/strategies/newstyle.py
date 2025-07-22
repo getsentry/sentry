@@ -311,9 +311,6 @@ def frame(
     if module_component.contributes and filename_component.contributes:
         filename_component.update(contributes=False, hint="module takes precedence")
 
-    context_line_component = None
-
-    # If we are allowed to use the contextline we add it now.
     if platform in context["contextline_platforms"]:
         context_line_component = get_contextline_component(
             frame,
@@ -321,8 +318,8 @@ def frame(
             function=frame.function,
             context=context,
         )
-
-    context_line_available = bool(context_line_component and context_line_component.contributes)
+    else:
+        context_line_component = None
 
     function_component = get_function_component(
         context=context,
@@ -330,7 +327,7 @@ def frame(
         raw_function=frame.raw_function,
         platform=platform,
         sourcemap_used=frame.data and frame.data.get("sourcemap") is not None,
-        context_line_available=context_line_available,
+        context_line_available=bool(context_line_component and context_line_component.contributes),
     )
 
     values: list[
