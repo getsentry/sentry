@@ -81,15 +81,15 @@ def strategy(
         raise TypeError("no ids given")
 
     def decorator(f: StrategyFunc[ConcreteInterface]) -> Strategy[ConcreteInterface]:
-        rv: Strategy[ConcreteInterface] | None = None
+        strategy_class: Strategy[ConcreteInterface] | None = None
 
         for id in ids:
-            STRATEGIES[id] = rv = Strategy(
+            STRATEGIES[id] = strategy_class = Strategy(
                 id=id, name=name, interface=interface.path, score=score, func=f
             )
 
-        assert rv is not None
-        return rv
+        assert strategy_class is not None
+        return strategy_class
 
     return decorator
 
