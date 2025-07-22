@@ -63,8 +63,6 @@ version_handlers = {
     2: basic_protocol_handler(
         unsupported_operations=frozenset(
             [
-                "start_delete_groups",
-                "end_delete_groups",
                 "start_merge",
                 "end_merge",
                 "start_unmerge",
@@ -151,7 +149,7 @@ def decode_optional_list_str(value: str | None) -> Sequence[Any] | None:
 
 
 def get_task_kwargs_for_message_from_headers(
-    headers: Sequence[tuple[str, bytes | None]]
+    headers: Sequence[tuple[str, bytes | None]],
 ) -> dict[str, Any] | None:
     """
     Same as get_task_kwargs_for_message but gets the required information from

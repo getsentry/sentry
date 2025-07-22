@@ -9,7 +9,7 @@ from typing import Any
 from sentry_sdk import set_tag
 from snuba_sdk import DeleteQuery, Request
 
-from sentry import eventstore, eventstream, models, nodestore
+from sentry import eventstore, models, nodestore
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
 from sentry.models.group import Group, GroupStatus
@@ -173,11 +173,8 @@ class ErrorEventsDeletionTask(EventsBaseDeletionTask):
         ).delete()
 
     def delete_events_from_snuba(self) -> None:
-        # Remove all group events now that their node data has been removed.
-        for project_id, groups in self.project_groups.items():
-            group_ids = [group.id for group in groups]
-            eventstream_state = eventstream.backend.start_delete_groups(project_id, group_ids)
-            eventstream.backend.end_delete_groups(eventstream_state)
+        # TODO: File a ticket to delete events from snuba
+        pass
 
 
 class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):

@@ -43,12 +43,6 @@ if TYPE_CHECKING:
 #   }, {
 #       ...state for post-processing...
 #   })
-#   Delete Groups: (2, '(start_delete_groups|end_delete_groups)', {
-#       'transaction_id': uuid,
-#       'project_id': id,
-#       'group_ids': [id2, id2, id3],
-#       'datetime': timestamp,
-#   })
 #   Merge: (2, '(start_merge|end_merge)', {
 #       'transaction_id': uuid,
 #       'project_id': id,
@@ -201,31 +195,6 @@ class SnubaProtocolEventStream(EventStream):
             asynchronous=kwargs.get("asynchronous", True),
             skip_semantic_partitioning=skip_semantic_partitioning,
             event_type=event_type,
-        )
-
-    def start_delete_groups(self, project_id: int, group_ids: Sequence[int]) -> Mapping[str, Any]:
-        if not group_ids:
-            raise ValueError("expected groups to delete!")
-
-        state = {
-            "transaction_id": str(uuid4().hex),
-            "project_id": project_id,
-            "group_ids": list(group_ids),
-            "datetime": json.datetime_to_str(datetime.now(tz=timezone.utc)),
-        }
-
-        self._send(project_id, "start_delete_groups", extra_data=(state,), asynchronous=False)
-
-        return state
-
-    def end_delete_groups(self, state: Mapping[str, Any]) -> None:
-        state_copy: MutableMapping[str, Any] = {**state}
-        state_copy["datetime"] = json.datetime_to_str(datetime.now(tz=timezone.utc))
-        self._send(
-            state_copy["project_id"],
-            "end_delete_groups",
-            extra_data=(state_copy,),
-            asynchronous=False,
         )
 
     def start_merge(

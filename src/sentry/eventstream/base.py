@@ -40,8 +40,6 @@ GroupStates = Sequence[GroupState]
 class EventStream(Service):
     __all__ = (
         "insert",
-        "start_delete_groups",
-        "end_delete_groups",
         "start_merge",
         "end_merge",
         "start_unmerge",
@@ -140,12 +138,6 @@ class EventStream(Service):
             occurrence_id=event.occurrence_id if isinstance(event, GroupEvent) else None,
             eventstream_type=eventstream_type,
         )
-
-    def start_delete_groups(self, project_id: int, group_ids: Sequence[int]) -> Mapping[str, Any]:
-        raise NotImplementedError
-
-    def end_delete_groups(self, state: Mapping[str, Any]) -> None:
-        pass
 
     def start_merge(
         self, project_id: int, previous_group_ids: Sequence[int], new_group_id: int
