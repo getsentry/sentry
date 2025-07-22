@@ -62,10 +62,10 @@ class MockDetectorStateHandler(StatefulDetectorHandler[dict, int | None]):
         return data_packet.packet.get("dedupe", 0)
 
     def extract_value(self, data_packet: DataPacket[dict]) -> int:
-        if data_packet.packet.get("value"):
-            return data_packet.packet["value"]
+        if self.has_grouping:
+            return data_packet.packet.get("group_vals", 0)
 
-        return data_packet.packet.get("group_vals", 0)
+        return data_packet.packet["value"]
 
     def create_occurrence(
         self,
