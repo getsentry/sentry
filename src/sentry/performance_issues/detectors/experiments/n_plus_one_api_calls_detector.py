@@ -166,18 +166,19 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
                 [span.get("description", "") or "" for span in self.spans]
             )
 
+        parent_span_id = last_span.get("parent_span_id")
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint=fingerprint,
             op=last_span["op"],
             desc=problem_description,
             type=PerformanceNPlusOneAPICallsExperimentalGroupType,
             cause_span_ids=[],
-            parent_span_ids=[last_span.get("parent_span_id", None)],
+            parent_span_ids=[parent_span_id] if parent_span_id else [],
             offender_span_ids=offender_span_ids,
             evidence_data={
                 "op": last_span["op"],
                 "cause_span_ids": [],
-                "parent_span_ids": [last_span.get("parent_span_id", None)],
+                "parent_span_ids": [parent_span_id] if parent_span_id else [],
                 "offender_span_ids": offender_span_ids,
                 "transaction_name": self._event.get("transaction", ""),
                 "num_repeating_spans": str(len(offender_span_ids)) if offender_span_ids else "",
@@ -233,7 +234,7 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
     def _get_parameterized_url(self, span: Span) -> str:
         return parameterize_url(get_url_from_span(span))
 
-    def _get_path_prefix(self, repeating_span: Span) -> str:
+    def _get_path_prefix(self, repeating_span: Span | None) -> str:
         if not repeating_span:
             return ""
 
@@ -256,8 +257,8 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
         return f"1-{PerformanceNPlusOneAPICallsExperimentalGroupType.type_id}-{fingerprint}"
 
     def _spans_are_concurrent(self, span_a: Span, span_b: Span) -> bool:
-        span_a_start: int = span_a.get("start_timestamp", 0) or 0
-        span_b_start: int = span_b.get("start_timestamp", 0) or 0
+        span_a_start: float = span_a["start_timestamp"]
+        span_b_start: float = span_b["start_timestamp"]
 
         return timedelta(seconds=abs(span_a_start - span_b_start)) < timedelta(
             milliseconds=self.settings["concurrency_threshold"]
