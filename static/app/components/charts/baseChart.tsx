@@ -269,9 +269,9 @@ export interface BaseChartProps {
    */
   toolBox?: EChartsOption['toolbox'];
   /**
-   * Tooltip options
+   * Tooltip options. Pass `null` to disable tooltip.
    */
-  tooltip?: TooltipOption;
+  tooltip?: TooltipOption | null;
   /**
    * If true and there's only one datapoint in series.data, we show a bar chart to increase the visibility.
    * Especially useful with line / area charts, because you can't draw line with single data point and one alone point is hard to spot.
@@ -500,7 +500,7 @@ function BaseChart({
 
     const bucketSize = seriesData ? seriesData[1][0] - seriesData[0][0] : undefined;
     const tooltipOrNone =
-      tooltip === undefined
+      tooltip === null
         ? undefined
         : computeChartTooltip(
             {
