@@ -438,7 +438,6 @@ type HttpResponseFunctions =
 type CustomResponseFields = {
   [SpanFields.USER_GEO_SUBREGION]: SubregionCode;
   [SpanFields.PLATFORM]: PlatformKey;
-  [SpanFields.USER_GEO_SUBREGION]: SubregionCode;
   [SpanFields.DB_SYSTEM]: SupportedDatabaseSystem;
   [SpanFields.SPAN_STATUS]:
     | 'ok'
