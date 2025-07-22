@@ -369,6 +369,7 @@ export const COUNTER_AGGREGATES = [
   SpanFunction.MIN,
   SpanFunction.MAX,
   SpanFunction.P100,
+  SpanFunction.COUNT,
 ] as const;
 
 export const DISTRIBUTION_AGGREGATES = [
