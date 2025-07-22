@@ -123,6 +123,7 @@ type BaseDetector = Readonly<{
 }>;
 
 export interface MetricDetector extends BaseDetector {
+  readonly alertRuleId: number | null;
   readonly conditionGroup: DataConditionGroup | null;
   readonly config: MetricDetectorConfig;
   readonly dataSources: [SnubaQueryDataSource];
