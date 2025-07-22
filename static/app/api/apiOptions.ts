@@ -34,6 +34,8 @@ type Options<TApiPath extends string> = PathParamOptions<TApiPath> &
 
 const paramRegex = /\$([a-zA-Z0-9_-]+)/g;
 
+const selectContent = <TData>(data: {content: TData}) => data.content;
+
 export function apiOptions<
   TManualData = never,
   TApiPath extends MaybeApiPath = MaybeApiPath,
@@ -59,7 +61,7 @@ export function apiOptions<
       return {content: response[0], headers: response[2]?.headers} as const;
     },
     staleTime,
-    select: data => data.content,
+    select: selectContent,
   });
 }
 
