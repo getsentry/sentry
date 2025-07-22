@@ -20,6 +20,7 @@ from sentry.utils.sdk import (
     check_current_scope_transaction,
     check_tag_for_scope_bleed,
     merge_context_into_scope,
+    traces_sampler,
 )
 
 
@@ -64,6 +65,21 @@ class SDKUtilsTest(TestCase):
             "maisey": "silly",
             "charlie": "goofy",
         }
+
+
+def test_traces_sampler_custom_sample_rate_0_0(self):
+    sampling_context = {"sample_rate": 0.0}
+    assert traces_sampler(sampling_context) == 0.0
+
+
+def test_traces_sampler_custom_sample_rate_0_5(self):
+    sampling_context = {"sample_rate": 0.5}
+    assert traces_sampler(sampling_context) == 0.5
+
+
+def test_traces_sampler_custom_sample_rate_1_0(self):
+    sampling_context = {"sample_rate": 1.0}
+    assert traces_sampler(sampling_context) == 1.0
 
 
 @patch("sentry.utils.sdk.logger.warning")
