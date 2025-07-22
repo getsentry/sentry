@@ -225,7 +225,7 @@ describe('ChangePlanAction', () => {
       screen.getByRole('textbox', {name: 'Attachments (GB)'}),
       '1'
     );
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Log bytes (GB)'}), '1');
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Log bytes (GB)'}), '0');
 
     expect(screen.queryByText('Available Products')).not.toBeInTheDocument();
 
@@ -263,7 +263,7 @@ describe('ChangePlanAction', () => {
       screen.getByRole('textbox', {name: 'Attachments (GB)'}),
       '1'
     );
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Log bytes (GB)'}), '1');
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Log bytes (GB)'}), '0');
 
     expect(screen.getByText('Available Products')).toBeInTheDocument();
     await userEvent.click(screen.getByText('Seer'));
@@ -543,7 +543,7 @@ describe('ChangePlanAction', () => {
       );
       await selectEvent.select(
         screen.getByRole('textbox', {name: 'Log bytes (GB)'}),
-        '1'
+        '0'
       );
 
       // Submit the form
@@ -598,7 +598,7 @@ describe('ChangePlanAction', () => {
       );
       await selectEvent.select(
         screen.getByRole('textbox', {name: 'Log bytes (GB)'}),
-        '1'
+        '0'
       );
 
       // Submit the form
