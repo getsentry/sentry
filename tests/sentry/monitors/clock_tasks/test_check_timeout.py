@@ -204,11 +204,9 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
             id=checkin2.id, status=CheckInStatus.IN_PROGRESS
         ).exists()
 
-        # XXX(epurkhiser): We do NOT update the MonitorStatus, another check-in
-        # has already happened. It may be worth re-visiting this logic later.
         monitor_env = MonitorEnvironment.objects.filter(
             id=monitor_environment.id,
-            status=MonitorStatus.OK,
+            status=MonitorStatus.ERROR,
         )
         assert monitor_env.exists()
 
