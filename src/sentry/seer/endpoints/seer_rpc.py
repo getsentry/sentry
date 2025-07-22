@@ -32,8 +32,8 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     TraceItemStatsRequest,
 )
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, StrArray
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry import options
 from sentry.api.api_owners import ApiOwner
@@ -460,7 +460,25 @@ def get_attributes_and_values(
         trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
         downsampled_storage_config=DownsampledStorageConfig(mode=sampling_mode),
     )
-    filter = TraceItemFilter()
+    filter = TraceItemFilter(
+        comparison_filter=ComparisonFilter(
+            key=AttributeKey(
+                name="attr_key",
+                type=AttributeKey.TYPE_STRING,
+            ),
+            op=ComparisonFilter.OP_NOT_IN,
+            value=AttributeValue(
+                val_str_array=StrArray(
+                    values=[
+                        "sentry.segment_id",
+                        "sentry.event_id",
+                        "sentry.raw_description",
+                        "sentry.transaction",
+                    ],
+                ),
+            ),
+        ),
+    )
     stats_type = StatsType(
         attribute_distributions=AttributeDistributionsRequest(
             max_buckets=max_values,
@@ -544,7 +562,7 @@ def get_github_enterprise_integration_config(
 
     return {
         "success": True,
-        "base_url": f"https://{installation.model.metadata["domain_name"].split("/")[0]}/api/v3",
+        "base_url": f"https://{installation.model.metadata['domain_name'].split('/')[0]}/api/v3",
         "verify_ssl": installation.model.metadata["installation"]["verify_ssl"],
         "encrypted_access_token": encrypted_access_token,
     }
