@@ -18,6 +18,19 @@ def test_import_paths():
             raise AssertionError(f"Unable to import {path} from TASKWORKER_IMPORTS")
 
 
+def test_taskworker_schedule_unique() -> None:
+    visited: dict[str, str] = {}
+    for key, entry in settings.TASKWORKER_SCHEDULES.items():
+        if entry["task"] in visited:
+            msg = (
+                f"Schedule {key} references a task ({entry['task']}) "
+                f"that is already scheduled under key {visited[entry['task']]}."
+            )
+            raise AssertionError(msg)
+
+        visited[entry["task"]] = key
+
+
 @pytest.mark.parametrize("name,config", list(settings.TASKWORKER_SCHEDULES.items()))
 def test_taskworker_schedule_type(name: str, config: dict[str, Any]) -> None:
     assert config["task"], f"schedule {name} is missing a task name"
