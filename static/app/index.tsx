@@ -91,11 +91,11 @@ async function app() {
   // getsentry augments Sentry's application through a 'hook' mechanism. Sentry
   // provides various hooks into parts of its application. Thus all getsentry
   // functionality is initialized by registering its hook functions.
-  const {default: registerHooks} = await registerHooksImport;
+  const {default: registerHooks, SentryHooksProvider} = await registerHooksImport;
   registerHooks();
 
   const {initializeMain} = await initalizeMainImport;
-  initializeMain(config);
+  initializeMain(config, SentryHooksProvider);
 
   const {initializeBundleMetrics} = await initalizeBundleMetricsImport;
   initializeBundleMetrics();

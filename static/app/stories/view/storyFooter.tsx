@@ -16,7 +16,7 @@ export function StoryFooter() {
   const pagination = findPreviousAndNextStory(story, stories);
 
   return (
-    <Flex align="center" justify="space-between" gap={space(2)}>
+    <Flex align="center" justify="space-between" gap="xl">
       {pagination?.prev && (
         <Card to={pagination.prev.location} icon={<IconArrow direction="left" />}>
           <CardLabel>Previous</CardLabel>

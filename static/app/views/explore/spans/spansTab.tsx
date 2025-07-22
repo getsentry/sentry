@@ -40,7 +40,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
-import {ExploreCharts} from 'sentry/views/explore/charts';
 import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
@@ -65,6 +64,7 @@ import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeser
 import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
+import {ExploreCharts} from 'sentry/views/explore/spans/charts';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
@@ -443,9 +443,7 @@ function SpanTabContentSection({
       {!resultsLoading && !hasResults && <QuotaExceededAlert referrer="explore" />}
       {defined(error) && (
         <Alert.Container>
-          <Alert type="error" showIcon>
-            {error.message}
-          </Alert>
+          <Alert type="error">{error.message}</Alert>
         </Alert.Container>
       )}
       <TourElement<ExploreSpansTour>

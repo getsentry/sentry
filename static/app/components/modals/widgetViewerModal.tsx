@@ -304,6 +304,7 @@ function WidgetViewerModal(props: Props) {
   // include the orderby in the table widget aggregates and columns otherwise
   // eventsv2 will complain about sorting on an unselected field.
   if (
+    widget.displayType !== DisplayType.TABLE &&
     orderby &&
     !isEquationAlias(rawOrderby) &&
     // Normalize to the aggregate alias because we may still have widgets
@@ -953,7 +954,7 @@ function WidgetViewerModal(props: Props) {
         )}
         {widget.queries.length > 1 && (
           <Alert.Container>
-            <Alert type="info" showIcon>
+            <Alert type="info">
               {t(
                 'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
               )}

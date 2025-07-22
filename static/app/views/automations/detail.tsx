@@ -18,7 +18,6 @@ import Section from 'sentry/components/workflowEngine/ui/section';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -112,7 +111,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
           <DetailLayout.Sidebar>
             <Section title={t('Last Triggered')}>
               {automation.lastTriggered ? (
-                <Flex gap={space(1)}>
+                <Flex gap="md">
                   <TimeSince date={automation.lastTriggered} />
                   <Flex>
                     (<DateTime date={automation.lastTriggered} year timeZone />)

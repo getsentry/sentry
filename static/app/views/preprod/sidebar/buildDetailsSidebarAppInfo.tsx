@@ -1,13 +1,20 @@
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {IconCheckmark, IconClock, IconFile, IconJson, IconWarning} from 'sentry/icons';
+import {
+  IconCheckmark,
+  IconClock,
+  IconFile,
+  IconJson,
+  IconLink,
+  IconWarning,
+} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {type BuildDetailsAppInfo, BuildDetailsState} from 'sentry/views/preprod/types';
 import {
   formatBytes,
-  getPlatformFromArtifactType,
+  getPlatformIconFromPlatform,
   getReadableArtifactTypeLabel,
   getReadablePlatformLabel,
 } from 'sentry/views/preprod/utils';
@@ -21,7 +28,6 @@ interface BuildDetailsSidebarAppInfoProps {
 
 export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProps) {
   const {appInfo, state, installSizeBytes, downloadSizeBytes} = props;
-  const platform = getPlatformFromArtifactType(appInfo.artifact_type);
 
   return (
     <AppInfoContainer>
@@ -38,9 +44,9 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
       <InfoSection>
         <InfoRow>
           <InfoIcon>
-            <PlatformIcon platform={platform} />
+            <PlatformIcon platform={getPlatformIconFromPlatform(appInfo.platform)} />
           </InfoIcon>
-          <InfoValue>{getReadablePlatformLabel(platform)}</InfoValue>
+          <InfoValue>{getReadablePlatformLabel(appInfo.platform)}</InfoValue>
         </InfoRow>
         <InfoRow>
           <InfoIcon>
@@ -61,6 +67,14 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
             <IconFile />
           </InfoIcon>
           <InfoValue>{getReadableArtifactTypeLabel(appInfo.artifact_type)}</InfoValue>
+        </InfoRow>
+        <InfoRow>
+          <InfoIcon>
+            <IconLink />
+          </InfoIcon>
+          <InfoValue>
+            {appInfo.is_installable ? 'Installable' : 'Not Installable'}
+          </InfoValue>
         </InfoRow>
       </InfoSection>
 

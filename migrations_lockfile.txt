@@ -27,7 +27,7 @@ preprod: 0012_installablepreprod
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0952_fix_span_item_event_type_alerts
+sentry: 0953_make_releasefiles_tti
 
 social_auth: 0003_social_auth_json_field
 
@@ -35,4 +35,4 @@ tempest: 0001_squashed_0002_make_message_type_nullable
 
 uptime: 0001_squashed_0042_extra_uptime_indexes
 
-workflow_engine: 0079_add_unique_constraint_to_detector_group
+workflow_engine: 0081_add_unique_constraint_to_detector_group

@@ -1181,7 +1181,7 @@ def _track_outcome_accepted_many(jobs: Sequence[Job]) -> None:
 def _get_event_instance(data: MutableMapping[str, Any], project_id: int) -> Event:
     return eventstore.backend.create_event(
         project_id=project_id,
-        event_id=data.get("event_id"),
+        event_id=data["event_id"],
         group_id=None,
         data=EventDict(data, skip_renormalization=True),
     )
@@ -1316,6 +1316,22 @@ def assign_event_to_group(
             result = "no_match"
 
     # From here on out, we're just doing housekeeping
+
+    # TODO: Temporary metric to debug missing grouphash metadata. This metric *should* exactly match
+    # the `grouping.grouphashmetadata.backfill_needed` metric collected in
+    # `get_or_create_grouphashes`. If it doesn't, perhaps there's a race condition between creation
+    # of the metadata and our ability to pull it from the database immediately thereafter.
+    for grouphash in [*primary.grouphashes, *secondary.grouphashes]:
+        if not grouphash.metadata:
+            logger.warning(
+                "grouphash_metadata.hash_without_metadata",
+                extra={
+                    "event_id": event.event_id,
+                    "project_id": project.id,
+                    "hash": grouphash.hash,
+                },
+            )
+            metrics.incr("grouping.grouphashmetadata.backfill_needed_2", sample_rate=1.0)
 
     # Background grouping is a way for us to get performance metrics for a new
     # config without having it actually affect on how events are grouped. It runs

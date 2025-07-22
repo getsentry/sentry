@@ -5,10 +5,10 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption} from 'sentry/components/core/compactSelect/types';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import IdBadge from 'sentry/components/idBadge';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -273,7 +273,7 @@ export default function IntegrationOrganizationLink() {
       <Fragment>
         {selectedOrgSlug && organization && !hasAccess && (
           <Alert.Container>
-            <Alert type="error" showIcon>
+            <Alert type="error">
               <p>
                 {tct(
                   `You do not have permission to install integrations in
@@ -322,7 +322,7 @@ export default function IntegrationOrganizationLink() {
     if (!installationData) {
       return (
         <Alert.Container>
-          <Alert type="warning" showIcon>
+          <Alert type="warning">
             {t(
               'We could not verify the authenticity of the installation request. We recommend restarting the installation process.'
             )}
@@ -358,9 +358,7 @@ export default function IntegrationOrganizationLink() {
 
     return (
       <Alert.Container>
-        <Alert type="info" showIcon>
-          {alertText}
-        </Alert>
+        <Alert type="info">{alertText}</Alert>
       </Alert.Container>
     );
   }, [integrationSlug, installationData]);
