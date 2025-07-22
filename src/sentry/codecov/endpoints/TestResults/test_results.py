@@ -104,7 +104,7 @@ class TestResultsEndpoint(CodecovEndpoint):
                 ),
                 "flags": None,
                 "term": request.query_params.get("term"),
-                "test_suites": None,
+                "test_suites": request.GET.getlist("testSuites"),
             },
             "ordering": {
                 "direction": ordering_direction,

@@ -1142,3 +1142,10 @@ Available fields are:
         type=str,
         description="""Whether to get the previous or next page from paginated results. Use `next` for forward pagination after the cursor or `prev` for backward pagination before the cursor. If not specified, defaults to `next`. If no cursor is provided, the cursor is the beginning of the result set.""",
     )
+    TEST_SUITES = OpenApiParameter(
+        name="testSuites",
+        location="query",
+        required=False,
+        type=str,
+        description="""A list of test suites belonging to a repository's test results.""",
+    )
