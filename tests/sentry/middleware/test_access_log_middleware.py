@@ -38,7 +38,9 @@ class SnubaRateLimitedEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
     def get(self, request):
-        raise RateLimitExceeded("Rate limit exceeded from Snuba")
+        raise RateLimitExceeded(
+            "RateLimitExceeded: Query on could not be run due to allocation policies, ... 'rejection_threshold': 40, 'quota_used': 41, ..."
+        )
 
 
 class RateLimitedEndpoint(Endpoint):
@@ -179,12 +181,12 @@ class TestAccessLogSnubaRateLimited(LogCaptureAPITestCase):
         assert self.captured_logs[0].rate_limited == "True"
         assert self.captured_logs[0].group == "snuba"
 
-        # We don't have enough info on a request to log the rate limit metadata, so we accept None
-        assert self.captured_logs[0].remaining == "None"
+        assert self.captured_logs[0].remaining == "0"
+        assert self.captured_logs[0].concurrent_limit == "40"
+        assert self.captured_logs[0].concurrent_requests == "41"
+
         assert self.captured_logs[0].limit == "None"
         assert self.captured_logs[0].reset_time == "None"
-        assert self.captured_logs[0].concurrent_limit == "None"
-        assert self.captured_logs[0].concurrent_requests == "None"
 
 
 @all_silo_test
