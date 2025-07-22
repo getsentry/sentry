@@ -74,7 +74,7 @@ def test_variants_with_manual_save(
     {DEFAULT_GROUPING_CONFIG},
     ids=lambda config_name: config_name.replace("-", "_"),
 )
-def test_hash_basis_with_current_default_config(
+def test_variants_with_full_pipeline(
     config_name: str,
     grouping_input: GroupingInput,
     insta_snapshot: InstaSnapshotter,

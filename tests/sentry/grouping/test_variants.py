@@ -66,7 +66,7 @@ def test_variants_with_manual_save(
     ids=lambda config_name: config_name.replace("-", "_"),
 )
 @patch("sentry.grouping.strategies.newstyle.logging.exception")
-def test_variants_with_current_default_config(
+def test_variants_with_full_pipeline(
     mock_exception_logger: MagicMock,
     config_name: str,
     grouping_input: GroupingInput,
