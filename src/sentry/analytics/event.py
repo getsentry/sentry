@@ -109,19 +109,18 @@ class Event:
             self.data = get_data(cls.attributes, items)
             return self
 
-        return cls(
-            **{
-                f.name: kwargs.get(f.name, getattr(instance, f.name, None))
-                for f in fields(cls)
-                if f.name
-                not in (
-                    "type",
-                    "uuid_",
-                    "datetime_",
-                    "data",  # TODO: remove this data field once migrated
-                )
-            }
-        )
+        attrs: dict[str, Any] = {
+            f.name: kwargs.get(f.name, getattr(instance, f.name, None))
+            for f in fields(cls)
+            if f.name
+            not in (
+                "type",
+                "uuid_",
+                "datetime_",
+                "data",  # TODO: remove this data field once migrated
+            )
+        }
+        return cls(**attrs)
 
 
 def serialize_event(event: Event) -> dict[str, Any]:
