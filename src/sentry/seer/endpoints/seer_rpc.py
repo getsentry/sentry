@@ -477,6 +477,9 @@ def get_attributes_and_values(
                 ),
             ),
         )
+    else:
+        filter = TraceItemFilter()
+
     stats_type = StatsType(
         attribute_distributions=AttributeDistributionsRequest(
             max_buckets=max_values,
@@ -484,7 +487,7 @@ def get_attributes_and_values(
         )
     )
     rpc_request = TraceItemStatsRequest(
-        filter=filter if filter else TraceItemFilter(),
+        filter=filter,
         meta=meta,
         stats_types=[stats_type],
     )
