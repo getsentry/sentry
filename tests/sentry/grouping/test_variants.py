@@ -4,33 +4,26 @@ from typing import cast
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
-import pytest
-
-from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.eventstore.models import Event
 from sentry.grouping.fingerprinting import FingerprintRuleJSON
-from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.variants import CustomFingerprintVariant, expose_fingerprint_dict
 from sentry.models.project import Project
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from tests.sentry.grouping import (
+    FULL_PIPELINE_CONFIGS,
     GROUPING_INPUTS_DIR,
-    NO_MSG_PARAM_CONFIG,
+    MANUAL_SAVE_CONFIGS,
     GroupingInput,
     dump_variant,
     get_snapshot_path,
+    with_grouping_configs,
     with_grouping_inputs,
 )
 
 
 @django_db_all
 @with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
-@pytest.mark.parametrize(
-    "config_name",
-    # The default config is tested below, and NO_MSG_PARAM_CONFIG is only meant for use in unit tests
-    set(CONFIGURATIONS.keys()) - {DEFAULT_GROUPING_CONFIG, NO_MSG_PARAM_CONFIG},
-    ids=lambda config_name: config_name.replace("-", "_"),
-)
+@with_grouping_configs(MANUAL_SAVE_CONFIGS)
 @patch("sentry.grouping.strategies.newstyle.logging.exception")
 def test_variants_with_manual_save(
     mock_exception_logger: MagicMock,
@@ -57,14 +50,7 @@ def test_variants_with_manual_save(
 
 @django_db_all
 @with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
-@pytest.mark.parametrize(
-    "config_name",
-    # Technically we don't need to parameterize this since there's only one option, but doing it
-    # this way makes snapshots from this test organize themselves neatly alongside snapshots from
-    # the test of the older configs above
-    {DEFAULT_GROUPING_CONFIG},
-    ids=lambda config_name: config_name.replace("-", "_"),
-)
+@with_grouping_configs(FULL_PIPELINE_CONFIGS)
 @patch("sentry.grouping.strategies.newstyle.logging.exception")
 def test_variants_with_full_pipeline(
     mock_exception_logger: MagicMock,
@@ -87,11 +73,7 @@ def test_variants_with_full_pipeline(
     )
 
     _assert_and_snapshot_results(
-        event,
-        DEFAULT_GROUPING_CONFIG,
-        grouping_input.filename,
-        insta_snapshot,
-        mock_exception_logger,
+        event, config_name, grouping_input.filename, insta_snapshot, mock_exception_logger
     )
 
 
