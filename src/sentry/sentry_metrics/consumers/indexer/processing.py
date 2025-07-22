@@ -80,7 +80,7 @@ class MessageProcessor:
         )
         with sentry_sdk.start_span(
             name="sentry.sentry_metrics.consumers.indexer.processing.process_messages",
-            custom_sampling_context={"sample_rate": sample_rate},
+            attributes={"sample_rate": sample_rate},
         ):
             return self._process_messages_impl(outer_message)
 

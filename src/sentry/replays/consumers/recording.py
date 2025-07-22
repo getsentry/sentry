@@ -81,7 +81,7 @@ def process_message(message: Message[KafkaPayload]) -> ProcessedEvent | Filtered
     with sentry_sdk.start_span(
         name="replays.consumer.recording_buffered.process_message",
         op="replays.consumer.recording_buffered.process_message",
-        custom_sampling_context={
+        attributes={
             "sample_rate": getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0)
         },
     ):
@@ -172,7 +172,7 @@ def commit_message(message: Message[ProcessedEvent]) -> None:
         with sentry_sdk.start_span(
             name="replays.consumer.recording_buffered.commit_message",
             op="replays.consumer.recording_buffered.commit_message",
-            custom_sampling_context={
+            attributes={
                 "sample_rate": getattr(
                     settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0
                 )

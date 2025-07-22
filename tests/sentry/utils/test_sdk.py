@@ -294,7 +294,8 @@ class CaptureExceptionWithScopeCheckTest(TestCase):
         capture_exception_with_scope_check(Exception())
 
         passed_scope = mock_sdk_capture_exception.call_args.kwargs["scope"]
-        empty_scope = Scope(client=passed_scope.client)
+        empty_scope = Scope()
+        empty_scope.set_client(passed_scope.client)
 
         for entry in empty_scope.__slots__:
             # _propagation_context is generated on __init__ for tracing without performance
