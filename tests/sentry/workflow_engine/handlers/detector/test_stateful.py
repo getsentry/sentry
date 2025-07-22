@@ -193,6 +193,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
             "id": str(key),
             "dedupe": key,
             "group_vals": {self.group_key: result.name},
+            "value": result.name,
         }
         return DataPacket(source_id=str(key), packet=packet)
 
@@ -390,6 +391,24 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         state_data = test_handler.state_manager.get_state_data([self.group_key])[self.group_key]
         assert state_data.is_triggered is True
         assert state_data.status == Level.LOW
+
+    def test_evaluate__with_grouping(self):
+        self.handler.has_grouping = True
+        self.group_key = "test_group"
+
+        self.handler._thresholds[Level.HIGH] = 1
+        result = self.handler.evaluate(self.packet(2, Level.HIGH))
+
+        assert result
+        group_result = result[self.group_key]
+
+        assert group_result
+        assert group_result.result
+        assert group_result.result.evidence_data
+        evidence_data = group_result.result.evidence_data
+
+        assert evidence_data.get("detector_id") == self.detector.id
+        assert evidence_data.get("value") == Level.HIGH.name
 
 
 class TestDetectorStateManagerRedisOptimization(TestCase):
