@@ -11,11 +11,13 @@ import type {
   TimeSeries,
   TimeSeriesItem,
 } from 'sentry/views/dashboards/widgets/common/types';
+import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import type {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
-  useLogsAutoRefresh,
+  useLogsAggregate,
   useLogsGroupBy,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {
   getLogRowTimestampMillis,
@@ -41,7 +43,7 @@ type BufferedTimeseriesGroup = {
  *
  * The streaming approach is as follows:
  * 1. Start accumulating table data from the last timeseries bucket onwards
- * 2. Replace (don't merge) the last bucket with fresh counts since we can't be sure which log item was counted in the original timeseries bucket.
+ * 2. Merge (don't replace) the last bucket with fresh counts since the groupBuffer is now limited by timeseriesIngestDelay.
  * 3. Maintain fixed-length buffers that match the original timeseries intervals for visual consistency, shifting out old data as new data arrives
  * 4. Only recalculate buckets from the beginning of the bucket containing the current virtual time onwards to not recount logs
  *
@@ -66,20 +68,23 @@ type BufferedTimeseriesGroup = {
  *    ┌─────────────────────────────────────────────────────────────┐
  *    │ [01:00] [02:00] [03:00] [04:00] [05:00] [06:00] [07:00] ... │
  *    │  +0      +0      +0      +0       1       1       1         │ ← From table
- *    │   1       2       3       4    replaced  n/a     n/a        │ ← Original
+ *    │   1       2       3       4       5      n/a     n/a        │ ← Original
  *    │  ---     ---     ---     ---     ---     ---     ---        │
- *    │   1       2       3       4       1       1       1         │ ← Final result
+ *    │   1       2       3       4       6       1       1         │ ← Final result
  *    └─────────────────────────────────────────────────────────────┘
- *                                        ↑ Replace the last timeseries bucket with the table data
+ *                                        ↑ Merge the last timeseries bucket with the table data
  */
 
 export function useStreamingTimeseriesResult(
   tableData: ReturnType<typeof useLogsPageDataQueryResult>,
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>
+  timeseriesResult: ReturnType<typeof useSortedTimeSeries>,
+  timeseriesIngestDelay: bigint
 ): ReturnType<typeof useSortedTimeSeries> {
   const organization = useOrganization();
   const groupByKey = useLogsGroupBy();
-  const autoRefresh = useLogsAutoRefresh();
+  const aggregate = useLogsAggregate();
+
+  const autoRefresh = useLogsAutoRefreshEnabled();
   const {selection} = usePageFilters();
   const previousSelection = usePrevious(selection);
 
@@ -107,11 +112,16 @@ export function useStreamingTimeseriesResult(
     : null;
 
   useEffect(() => {
-    if (autoRefresh || !isEqual(selection, previousSelection)) {
+    const groupByChangedToIncluded = AlwaysPresentLogFields.includes(groupByKey ?? ''); // Always present log fields don't cause a query key change so we have to manually reset the buffer.
+    if (
+      autoRefresh ||
+      !isEqual(selection, previousSelection) ||
+      groupByChangedToIncluded
+    ) {
       groupBuffersRef.current = {};
       lastProcessedBucketRef.current = null;
     }
-  }, [autoRefresh, selection, previousSelection]);
+  }, [autoRefresh, selection, previousSelection, groupByKey]);
 
   const groupBuffers = useMemo(() => {
     const buffers = createBufferFromTableData(
@@ -122,10 +132,12 @@ export function useStreamingTimeseriesResult(
       timeseriesStartTimestamp,
       timeseriesLastTimestamp,
       timeseriesIntervalDuration,
+      timeseriesIngestDelay,
       groupByKey,
       groupBuffersRef.current,
       lastProcessedBucketRef,
       autoRefresh,
+      aggregate,
       timeseriesResult.data ? Object.values(timeseriesResult.data)[0] : undefined
     );
     groupBuffersRef.current = buffers;
@@ -138,9 +150,11 @@ export function useStreamingTimeseriesResult(
     timeseriesStartTimestamp,
     timeseriesLastTimestamp,
     timeseriesIntervalDuration,
+    timeseriesIngestDelay,
     groupByKey,
     autoRefresh,
     timeseriesResult.data,
+    aggregate,
   ]);
 
   return useMemo(() => {
@@ -175,10 +189,12 @@ function createBufferFromTableData(
   timeseriesStartTimestamp: number | undefined,
   timeseriesLastTimestamp: number | undefined,
   timeseriesIntervalDuration: number | null,
+  timeseriesIngestDelay: bigint,
   groupBy: string | undefined,
   groupBuffers: Record<string, BufferedTimeseriesGroup>,
   lastProcessedBucketRef: RefObject<number | null>,
   autoRefresh: boolean,
+  aggregateKey: string,
   originalTimeseries?: TimeSeries[]
 ) {
   if (
@@ -198,7 +214,7 @@ function createBufferFromTableData(
   }
 
   if (lastProcessedBucketRef.current === null) {
-    lastProcessedBucketRef.current = timeseriesLastBucketIndex - 2;
+    lastProcessedBucketRef.current = timeseriesLastBucketIndex - 1; // We always start with the last bucket since we are merging the timeseries bucket with table data.
   }
 
   const firstRowTimestamp = getLogRowTimestampMillis(tableRows[0]);
@@ -217,6 +233,12 @@ function createBufferFromTableData(
       continue;
     }
 
+    if (timestamp <= Number(timeseriesIngestDelay) / 1_000_000) {
+      // We don't want to count logs that are older than the ingest delay as they should already be in the timeseries.
+      // It's possible we undercount logs on the millisecond boundary.
+      continue;
+    }
+
     const rowBucketIndex = getLogTimestampBucketIndex(
       timestamp,
       timeseriesStartTimestamp,
@@ -227,7 +249,11 @@ function createBufferFromTableData(
       continue;
     }
 
-    const groupValue = groupBy ? String(row[groupBy] ?? '') : '';
+    const groupValue = groupBy ? String(row[groupBy] ?? '') : aggregateKey;
+    if (!groupValue) {
+      // In the case that group value is still missing, we shouldn't construct a buffer group for it as it's not in the row.
+      continue;
+    }
 
     if (!groupBuffers[groupValue]) {
       groupBuffers[groupValue] = {
@@ -313,12 +339,18 @@ function createMergedDataFromBuffer(
     return timeseriesResult.data;
   }
 
-  const hasBufferData = Object.keys(groupBuffers).length > 0;
+  const hasBufferData =
+    Object.keys(groupBuffers).length > 0 &&
+    Object.keys(groupBuffers).some(
+      groupValue => (groupBuffers[groupValue]?.values?.length ?? 0) > 0
+    );
   let maxBucketIndex = timeseriesLastBucketIndex;
   let minBucketIndex = timeseriesLastBucketIndex;
 
   if (hasBufferData) {
+    // Always consider the original timeseries last bucket to include 0-count buckets
     maxBucketIndex = Math.max(
+      timeseriesLastBucketIndex,
       ...Object.values(groupBuffers).flatMap(buffer =>
         buffer.values.map(entry => entry.bucketIndex)
       )
@@ -343,7 +375,7 @@ function createMergedDataFromBuffer(
 
     if (!hasBufferData && originalSeries) {
       if (mergedData[aggregateKey]) {
-        mergedData[aggregateKey].push(originalSeries);
+        mergedData[aggregateKey].push({...originalSeries});
       }
       return;
     }
@@ -356,12 +388,16 @@ function createMergedDataFromBuffer(
       i--
     ) {
       const entry = groupBuffer?.values.find(e => e.bucketIndex === i);
+      const originalValue = originalSeries?.values[i];
 
       const mergedValue: TimeSeriesItem = {
         timestamp: timeseriesStartTimestamp + i * timeseriesIntervalDuration,
         value: 0,
       };
+
       if (!entry) {
+        // Use original value if no buffer entry exists
+        mergedValue.value = originalValue?.value ?? 0;
         if (i === maxBucketIndex) {
           mergedValue.incomplete = true;
         }
@@ -369,7 +405,8 @@ function createMergedDataFromBuffer(
         continue;
       }
 
-      mergedValue.value = entry.count;
+      // Merge buffer count with original value
+      mergedValue.value = entry.count + (originalValue?.value ?? 0);
       if (i === maxBucketIndex) {
         mergedValue.incomplete = true;
       }

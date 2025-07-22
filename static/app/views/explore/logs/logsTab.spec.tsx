@@ -206,7 +206,8 @@ describe('LogsTabContent', function () {
           dataset: 'ourlogs',
           yAxis: 'count(message)',
           interval: '1h',
-          query: 'severity:error',
+          query:
+            'severity:error tags[sentry.timestamp_precise,number]:<=1508208040000000000',
         }),
       })
     );
