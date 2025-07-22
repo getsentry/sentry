@@ -193,10 +193,10 @@ def get_module_component(
             module = _java_cglib_enhancer_re.sub(r"\1<auto>", module)
             module = _java_assist_enhancer_re.sub(r"\1<auto>", module)
             module = _clojure_enhancer_re.sub(r"\1<auto>", module)
-            if context["java_cglib_hibernate_logic"]:
-                module = _java_enhancer_by_re.sub(r"\1<auto>", module)
-                module = _java_fast_class_by_re.sub(r"\1<auto>", module)
-                module = _java_hibernate_proxy_re.sub(r"\1<auto>", module)
+            module = _java_enhancer_by_re.sub(r"\1<auto>", module)
+            module = _java_fast_class_by_re.sub(r"\1<auto>", module)
+            module = _java_hibernate_proxy_re.sub(r"\1<auto>", module)
+
             if module != old_module:
                 module_component.update(values=[module], hint="removed codegen marker")
 

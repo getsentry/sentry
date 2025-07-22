@@ -49,8 +49,6 @@ BASE_STRATEGY = create_strategy_configuration_class(
         "with_exception_value_fallback": True,
         # Stacktrace is produced in the context of this exception
         "exception_data": None,
-        # replaces generated IDs in Java stack frames related to CGLIB and hibernate
-        "java_cglib_hibernate_logic": True,
     },
 )
 
