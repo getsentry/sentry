@@ -3,7 +3,7 @@ import {useEffect, useMemo} from 'react';
 import emptyTraceImg from 'sentry-images/spot/performance-empty-trace.svg';
 
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {withPerformanceOnboarding} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';

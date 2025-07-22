@@ -3,11 +3,11 @@ import {
   type GridColumnHeader,
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
-import type {EAPSpanResponse} from 'sentry/views/insights/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
 
 // TODO: When supported, also add span operation breakdown as a field
 export type ServiceEntrySpansRow = Pick<
-  EAPSpanResponse,
+  SpanResponse,
   | 'span_id'
   | 'user.id'
   | 'user.email'

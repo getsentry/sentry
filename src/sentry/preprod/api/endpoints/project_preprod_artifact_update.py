@@ -9,6 +9,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.preprod.analytics import PreprodArtifactApiUpdateEvent
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
 from sentry.preprod.models import PreprodArtifact
 
@@ -113,9 +114,10 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
             raise PermissionDenied
 
         analytics.record(
-            "preprod_artifact.api.update",
-            organization_id=project.organization_id,
-            project_id=project.id,
+            PreprodArtifactApiUpdateEvent(
+                organization_id=project.organization_id,
+                project_id=project.id,
+            )
         )
 
         # Validate request data

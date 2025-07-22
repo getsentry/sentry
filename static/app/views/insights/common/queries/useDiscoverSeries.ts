@@ -17,11 +17,7 @@ import {
   getRetryDelay,
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
-import type {
-  EAPSpanProperty,
-  SpanFields,
-  SpanFunctions,
-} from 'sentry/views/insights/types';
+import type {SpanProperty} from 'sentry/views/insights/types';
 
 import {convertDiscoverTimeseriesResponse} from './convertDiscoverTimeseriesResponse';
 
@@ -41,9 +37,7 @@ interface UseMetricsSeriesOptions<Fields> {
   yAxis?: Fields;
 }
 
-export const useSpanSeries = <
-  Fields extends EAPSpanProperty[] | SpanFields[] | SpanFunctions[] | string[],
->(
+export const useSpanSeries = <Fields extends SpanProperty[]>(
   options: UseMetricsSeriesOptions<Fields> = {},
   referrer: string,
   pageFilters?: PageFilters
@@ -72,9 +66,6 @@ const useDiscoverSeries = <T extends string[]>(
   const defaultPageFilters = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
-
-  // TODO: remove this check with eap
-  const shouldSetSamplingMode = dataset === DiscoverDatasets.SPANS_EAP_RPC;
 
   const eventView = getSeriesEventView(
     search,
@@ -109,7 +100,7 @@ const useDiscoverSeries = <T extends string[]>(
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
       transformAliasToInputFormat: options.transformAliasToInputFormat ? '1' : '0',
-      sampling: shouldSetSamplingMode ? samplingMode : undefined,
+      sampling: samplingMode,
     }),
     options: {
       enabled: options.enabled && defaultPageFilters.isReady,

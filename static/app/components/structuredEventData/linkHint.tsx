@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';

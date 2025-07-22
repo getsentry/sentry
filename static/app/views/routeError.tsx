@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/react';
 
 import {getLastEventId} from 'sentry/bootstrap/initializeSdk';
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';

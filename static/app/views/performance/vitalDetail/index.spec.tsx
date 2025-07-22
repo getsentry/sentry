@@ -347,7 +347,7 @@ describe('Performance > VitalDetail', function () {
     expect(await screen.findByText('Cumulative Layout Shift')).toBeInTheDocument();
 
     await userEvent.click(
-      screen.getByLabelText('See transaction summary of the transaction something')
+      await screen.findByLabelText('See transaction summary of the transaction something')
     );
 
     expect(newRouter.push).toHaveBeenCalledWith({

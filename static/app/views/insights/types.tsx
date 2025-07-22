@@ -241,6 +241,7 @@ export type SpanStringFields =
   | SpanFields.RESOURCE_RENDER_BLOCKING_STATUS
   | SpanFields.RAW_DOMAIN
   | SpanFields.ID
+  | SpanFields.SPAN_ID
   | SpanFields.NAME
   | SpanFields.KIND
   | SpanFields.STATUS_MESSAGE
@@ -460,7 +461,7 @@ type CustomResponseFields = {
   [SpanFields.RESOURCE_RENDER_BLOCKING_STATUS]: '' | 'non-blocking' | 'blocking';
 };
 
-type EAPSpanResponseRaw = {
+type SpanResponseRaw = {
   [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
 } & {
   [Property in SpanFunctions as `${Property}()`]: number;
@@ -496,8 +497,8 @@ type EAPSpanResponseRaw = {
     [Property in SpanFields as `count_if(${Property},${string})`]: number;
   };
 
-export type EAPSpanResponse = Flatten<EAPSpanResponseRaw>;
-export type EAPSpanProperty = keyof EAPSpanResponse; // TODO: rename this to `SpanProperty` when we remove `useInsightsEap`
+export type SpanResponse = Flatten<SpanResponseRaw>;
+export type SpanProperty = keyof SpanResponse;
 
 export type SpanQueryFilters = Partial<Record<SpanStringFields, string>> & {
   is_transaction?: 'true' | 'false';
