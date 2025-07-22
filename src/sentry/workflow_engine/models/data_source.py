@@ -13,7 +13,7 @@ from sentry.workflow_engine.models.data_source_detector import DataSourceDetecto
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DataSourceTypeHandler
 
-T = TypeVar("T", covariant=True)
+T = TypeVar("T")
 
 
 @dataclasses.dataclass
