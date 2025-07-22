@@ -8,6 +8,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   type AutoRefreshState,
+  useLogsAutoRefresh,
   useLogsAutoRefreshEnabled,
   useSetLogsAutoRefresh,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
@@ -51,6 +52,7 @@ export function AutorefreshToggle({
 }: AutorefreshToggleProps) {
   const organization = useOrganization();
   const analyticsPageSource = useLogsAnalyticsPageSource();
+  const {autoRefresh} = useLogsAutoRefresh();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const setAutorefresh = useSetLogsAutoRefresh();
   const sortBys = useLogsSortBys();
@@ -76,7 +78,8 @@ export function AutorefreshToggle({
 
   const isToggleDisabled = !!preFlightDisableReason || externallyDisabled;
   const tooltipReason =
-    preFlightDisableReason || (autorefreshEnabled ? null : preFlightDisableReason);
+    (autoRefresh !== 'idle' && autoRefresh !== 'enabled' ? autoRefresh : null) ||
+    preFlightDisableReason;
 
   return (
     <Fragment>

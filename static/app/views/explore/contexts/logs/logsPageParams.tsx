@@ -212,12 +212,7 @@ export function LogsPageParamsProvider({
         ..._testContext,
       }}
     >
-      <LogsAutoRefreshProvider
-        isTableFrozen={isTableFrozen}
-        _testContext={
-          _testContext?.autoRefresh ? {autoRefresh: _testContext.autoRefresh} : undefined
-        }
-      >
+      <LogsAutoRefreshProvider isTableFrozen={isTableFrozen} _testContext={_testContext}>
         {children}
       </LogsAutoRefreshProvider>
     </LogsPageParamsContext>
