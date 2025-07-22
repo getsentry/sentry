@@ -112,7 +112,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
     props.chartSetting
   );
   const useEap = useInsightsEap();
-  const spanDataset = useEap ? DiscoverDatasets.SPANS : DiscoverDatasets.SPANS_METRICS;
+  const spanDataset = DiscoverDatasets.SPANS;
 
   const metricsDataset = useEap ? DiscoverDatasets.SPANS : DiscoverDatasets.METRICS;
 

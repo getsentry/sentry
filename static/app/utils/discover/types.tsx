@@ -21,7 +21,6 @@ export enum DiscoverDatasets {
   ISSUE_PLATFORM = 'issuePlatform',
   OURLOGS = 'ourlogs',
   SPANS = 'spans',
-  SPANS_METRICS = 'spansMetrics',
   TRANSACTIONS = 'transactions',
 }
 

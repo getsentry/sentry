@@ -11,7 +11,6 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -82,7 +81,7 @@ function ScreensLandingPage() {
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#app-start-tracing',
       },
       field: 'avg(measurements.app_start_cold)' as const,
-      dataset: DiscoverDatasets.METRICS,
+      dataset: 'metrics',
       getStatus: getColdAppStartPerformance,
     },
     {
