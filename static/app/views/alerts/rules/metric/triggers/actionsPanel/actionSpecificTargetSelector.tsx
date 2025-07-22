@@ -28,6 +28,7 @@ function ActionSpecificTargetSelector({action, disabled, onChange}: Props) {
       value={action.inputChannelId || ''}
       onChange={handleChangeSpecificTargetIdentifier}
       placeholder={t('optional: channel ID or user ID')}
+      data-1p-ignore
     />
   );
 }
