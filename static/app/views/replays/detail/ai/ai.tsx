@@ -12,10 +12,12 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
+import {isSpanFrame} from 'sentry/utils/replays/types';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {ChapterList} from 'sentry/views/replays/detail/ai/chapterList';
+import {NO_REPLAY_SUMMARY_MESSAGES} from 'sentry/views/replays/detail/ai/utils';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 
 import {useFetchReplaySummary} from './useFetchReplaySummary';
@@ -52,6 +54,16 @@ export default function Ai() {
             {t('AI features are not available for this organization.')}
           </Alert>
         </EmptySummaryContainer>
+      </Wrapper>
+    );
+  }
+
+  if (isPending || isRefetching) {
+    return (
+      <Wrapper data-test-id="replay-details-ai-summary-tab">
+        <LoadingContainer>
+          <LoadingIndicator />
+        </LoadingContainer>
       </Wrapper>
     );
   }
@@ -94,21 +106,11 @@ export default function Ai() {
     );
   }
 
-  if (isPending || isRefetching) {
-    return (
-      <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <LoadingContainer>
-          <LoadingIndicator />
-        </LoadingContainer>
-      </Wrapper>
-    );
-  }
-
   if (isError) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <EmptySummaryContainer>
-          <Alert type="error">{t('Failed to load replay summary')}</Alert>
+          <Alert type="error">{t('Failed to load replay summary.')}</Alert>
         </EmptySummaryContainer>
       </Wrapper>
     );
@@ -126,12 +128,35 @@ export default function Ai() {
     );
   }
 
+  if (summaryData.data.time_ranges.length <= 1) {
+    if (
+      replay
+        ?.getChapterFrames()
+        ?.filter(frame => isSpanFrame(frame) || frame.category !== 'replay.init')
+        .length === 0
+    ) {
+      return (
+        <Wrapper data-test-id="replay-details-ai-summary-tab">
+          <EmptySummaryContainer>
+            <Alert type="info" showIcon={false}>
+              {
+                NO_REPLAY_SUMMARY_MESSAGES[
+                  Math.floor(Math.random() * NO_REPLAY_SUMMARY_MESSAGES.length)
+                ]
+              }
+            </Alert>
+          </EmptySummaryContainer>
+        </Wrapper>
+      );
+    }
+  }
+
   return (
     <Wrapper data-test-id="replay-details-ai-summary-tab">
       <Summary>
         <SummaryLeft>
           <SummaryLeftTitle>
-            <Flex align="center" gap={space(0.5)}>
+            <Flex align="center" gap="xs">
               {t('Replay Summary')}
               <IconSeer />
             </Flex>
@@ -140,7 +165,7 @@ export default function Ai() {
           <SummaryText>{summaryData.data.summary}</SummaryText>
         </SummaryLeft>
         <SummaryRight>
-          <Flex gap={space(0.5)}>
+          <Flex gap="xs">
             <FeedbackButton type="positive" />
             <FeedbackButton type="negative" />
           </Flex>
@@ -224,6 +249,7 @@ const Summary = styled('div')`
   padding: ${space(1)} ${space(1.5)};
   border-bottom: 1px solid ${p => p.theme.border};
   gap: ${space(4)};
+  justify-content: space-between;
 `;
 
 const SummaryLeft = styled('div')`

@@ -10,7 +10,6 @@ import ListLayout from 'sentry/components/workflowEngine/layout/list';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -103,7 +102,7 @@ function TableHeader() {
   );
 
   return (
-    <Flex gap={space(2)}>
+    <Flex gap="xl">
       <ProjectPageFilter size="md" />
       <div style={{flexGrow: 1}}>
         <AutomationSearch initialQuery={initialQuery} onSearch={onSearch} />
