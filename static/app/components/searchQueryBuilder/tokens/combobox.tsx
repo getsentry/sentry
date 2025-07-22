@@ -499,7 +499,10 @@ export function SearchQueryBuilderCombobox<
     isKeyboardDismissDisabled: true,
     shouldCloseOnBlur: true,
     shouldCloseOnInteractOutside: el => {
-      if (popoverRef.current?.contains(el)) {
+      if (
+        popoverRef.current?.contains(el) ||
+        el.closest('[data-test-id="search-query-builder"]')
+      ) {
         return false;
       }
 
