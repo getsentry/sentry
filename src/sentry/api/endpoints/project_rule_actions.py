@@ -13,6 +13,7 @@ from sentry.api.serializers.rest_framework import DummyRuleSerializer
 from sentry.eventstore.models import GroupEvent
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.rule import Rule
+from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.rules.processing.processor import activate_downstream_actions
 from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.utils.samples import create_sample_event
@@ -80,7 +81,10 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
             group=test_event.group,
         )
 
-        return self.execute_future_on_test_event(group_event, rule)
+        if should_fire_workflow_actions(project.organization, ErrorGroupType.type_id):
+            return self.execute_future_on_test_event_workflow_engine(group_event, rule)
+        else:
+            return self.execute_future_on_test_event(group_event, rule)
 
     def execute_future_on_test_event(
         self,

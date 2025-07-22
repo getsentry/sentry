@@ -50,6 +50,8 @@ class TestDetectorSerializer(TestCase):
             },
             "owner": None,
             "enabled": detector.enabled,
+            "alertRuleId": None,
+            "ruleId": None,
         }
 
     def test_serialize_full(self):
@@ -164,6 +166,8 @@ class TestDetectorSerializer(TestCase):
             },
             "owner": self.user.get_actor_identifier(),
             "enabled": detector.enabled,
+            "alertRuleId": None,
+            "ruleId": None,
         }
 
     def test_serialize_bulk(self):

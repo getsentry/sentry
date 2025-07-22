@@ -226,7 +226,7 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         )
         data_packet_list = mock_process_data_packets.call_args_list[0][0][0]
         assert data_packet_list[0].source_id == str(self.sub.id)
-        assert data_packet_list[0].packet["values"] == {"value": 10}
+        assert data_packet_list[0].packet.values == {"value": 10}
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
     @patch("sentry.incidents.subscription_processor.process_data_packets")
@@ -319,7 +319,6 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
     )
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_seer_call_dual_processing__warning(self, mock_seer_request: MagicMock):
         rule = self.dynamic_rule
@@ -349,7 +348,6 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
     )
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_seer_call_dual_processing__critical(self, mock_seer_request: MagicMock):
         rule = self.dynamic_rule
@@ -396,7 +394,6 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
     )
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_seer_call_dual_processing__resolution(self, mock_seer_request: MagicMock):
         rule = self.dynamic_rule

@@ -8,6 +8,7 @@ import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import formatDuration from 'sentry/utils/duration/formatDuration';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 const timestampOptions: Array<'relative' | 'absolute'> = ['relative', 'absolute'];
@@ -22,7 +23,8 @@ export default function ReplayPreferenceDropdown({
   isLoading?: boolean;
 }) {
   const [prefs, setPrefs] = useReplayPrefs();
-  const {isFetching, replay} = useReplayContext();
+  const replay = useReplayReader();
+  const {isFetching} = useReplayContext();
 
   const SKIP_OPTION_VALUE = 'skip';
 
