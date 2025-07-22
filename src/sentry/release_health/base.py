@@ -206,6 +206,7 @@ class UserCounts(TypedDict):
     users_healthy: int
     users_crashed: int
     users_abnormal: int
+    users_unhandled: int
     users_errored: int
 
 
@@ -218,6 +219,7 @@ class SessionCounts(TypedDict):
     sessions_healthy: int
     sessions_crashed: int
     sessions_abnormal: int
+    sessions_unhandled: int
     sessions_errored: int
 
 

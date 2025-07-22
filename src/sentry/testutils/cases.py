@@ -1455,7 +1455,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         elif not user_is_nil:
             push(SessionMRI.RAW_USER.value, {}, user)
 
-        if status in ("abnormal", "crashed"):  # fatal
+        if status in ("abnormal", "unhandled", "crashed"):  # fatal
             push(SessionMRI.RAW_SESSION.value, {"session.status": status}, +1)
             if not user_is_nil:
                 push(SessionMRI.RAW_USER.value, {"session.status": status}, user)

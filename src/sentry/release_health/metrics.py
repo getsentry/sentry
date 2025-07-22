@@ -720,7 +720,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         end: datetime,
     ) -> Mapping[tuple[int, str], int]:
         """
-        Count of errored sessions, incl fatal (abnormal, crashed) sessions,
+        Count of errored sessions, incl fatal (abnormal, unhandled, crashed) sessions,
         excl errored *preaggregated* sessions
         """
         project_ids = [p.id for p in projects]
@@ -774,17 +774,13 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         end: datetime,
     ) -> Mapping[tuple[int, str, str], int]:
         """
-        Counts of init, abnormal and crashed sessions, purpose-built for overview
+        Counts of init, abnormal, unhandled and crashed sessions, purpose-built for overview
         """
         project_ids = [p.id for p in projects]
 
         select = [
             MetricField(metric_mri=SessionMRI.ABNORMAL.value, alias="abnormal", op=None),
-            MetricField(
-                metric_mri=SessionMRI.UNHANDLED.value,
-                alias="unhandled",
-                op=None,
-            ),
+            MetricField(metric_mri=SessionMRI.UNHANDLED.value, alias="unhandled", op=None),
             MetricField(metric_mri=SessionMRI.CRASHED.value, alias="crashed", op=None),
             MetricField(metric_mri=SessionMRI.ALL.value, alias="init", op=None),
             MetricField(
