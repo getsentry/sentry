@@ -14,6 +14,7 @@ def make_exception_snapshot(insta_snapshot):
         evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
 
         interface = evt.interfaces.get("exception")
+        assert interface is not None
 
         snapshot_values = {
             "errors": evt.data.get("errors"),
