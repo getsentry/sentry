@@ -625,6 +625,8 @@ export default typescript.config([
             // Internal packages.
             ['^(sentry-locale|sentry-images)(/.*|$)'],
 
+            ['^ui(/.*|$)'],
+
             ['^(app|sentry)(/.*|$)'],
 
             // Getsentry packages.
