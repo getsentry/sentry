@@ -1,4 +1,4 @@
-import {useContext, useMemo} from 'react';
+import {useContext, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
@@ -24,6 +24,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
+  TimeWindow,
 } from 'sentry/views/alerts/rules/metric/types';
 import {hasLogAlerts} from 'sentry/views/alerts/wizard/utils';
 import {AssigneeField} from 'sentry/views/detectors/components/forms/assigneeField';
@@ -182,6 +183,71 @@ function PrioritizeSection() {
   );
 }
 
+function IntervalPicker() {
+  const formContext = useContext(FormContext);
+  const detectionType = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.detectionType
+  );
+  const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
+  const interval = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.interval);
+
+  const intervalChoices = useMemo((): Array<[seconds: number, label: string]> => {
+    if (!dataset) {
+      return [];
+    }
+
+    // Interval filtering rules:
+    // 1. Releases → No sub-hour intervals (crash-free alert behavior)
+    // 2. Spans/Logs/Dynamic → No 1-minute intervals
+    // 3. Everything else → All intervals allowed
+    const shouldExcludeSubHour = dataset === DetectorDataset.RELEASES;
+    const shouldExcludeOneMinute =
+      dataset === DetectorDataset.SPANS ||
+      dataset === DetectorDataset.LOGS ||
+      detectionType === 'dynamic';
+
+    const filteredIntervals = baseIntervals.filter(([timeWindow]) => {
+      if (shouldExcludeSubHour) {
+        return timeWindow >= TimeWindow.ONE_HOUR;
+      }
+      if (shouldExcludeOneMinute) {
+        return timeWindow !== TimeWindow.ONE_MINUTE;
+      }
+      return true;
+    });
+
+    return filteredIntervals.map(([timeWindow, label]) => [timeWindow * 60, label]);
+  }, [dataset, detectionType]);
+
+  // Reset form model if dataset changes and the option is no longer available
+  useEffect(() => {
+    if (!intervalChoices.some(choice => choice[0] === interval)) {
+      formContext.form?.setValue(
+        METRIC_DETECTOR_FORM_FIELDS.interval,
+        intervalChoices[0]![0]
+      );
+    }
+  }, [intervalChoices, formContext.form, interval, dataset]);
+
+  return (
+    <IntervalField
+      placeholder={t('Interval')}
+      flexibleControlStateSize
+      inline={false}
+      label={
+        <Tooltip
+          title={t('The time period over which to evaluate your metric.')}
+          showUnderline
+        >
+          <SectionLabel>{t('Interval')}</SectionLabel>
+        </Tooltip>
+      }
+      name={METRIC_DETECTOR_FORM_FIELDS.interval}
+      choices={intervalChoices}
+    />
+  );
+}
+
 function useDatasetChoices() {
   const organization = useOrganization();
 
@@ -213,6 +279,18 @@ function useDatasetChoices() {
     return datasetChoices;
   }, [organization]);
 }
+
+const baseIntervals: Array<[TimeWindow, string]> = [
+  [TimeWindow.ONE_MINUTE, t('1 minute')],
+  [TimeWindow.FIVE_MINUTES, t('5 minutes')],
+  [TimeWindow.TEN_MINUTES, t('10 minutes')],
+  [TimeWindow.FIFTEEN_MINUTES, t('15 minutes')],
+  [TimeWindow.THIRTY_MINUTES, t('30 minutes')],
+  [TimeWindow.ONE_HOUR, t('1 hour')],
+  [TimeWindow.TWO_HOURS, t('2 hours')],
+  [TimeWindow.FOUR_HOURS, t('4 hours')],
+  [TimeWindow.ONE_DAY, t('1 day')],
+];
 
 function DetectSection() {
   const detectionType = useMetricDetectorFormField(
@@ -255,31 +333,7 @@ function DetectSection() {
               );
             }}
           />
-          <IntervalField
-            placeholder={t('Interval')}
-            flexibleControlStateSize
-            inline={false}
-            label={
-              <Tooltip
-                title={t('The time period over which to evaluate your metric.')}
-                showUnderline
-              >
-                <SectionLabel>{t('Interval')}</SectionLabel>
-              </Tooltip>
-            }
-            name={METRIC_DETECTOR_FORM_FIELDS.interval}
-            choices={[
-              // TODO: We will probably need to change these options based on dataset
-              // Similar to metric alerts see static/app/views/alerts/rules/metric/constants.tsx
-              [60, t('1 minute')],
-              [5 * 60, t('5 minutes')],
-              [15 * 60, t('15 minutes')],
-              [30 * 60, t('30 minutes')],
-              [60 * 60, t('1 hour')],
-              [4 * 60 * 60, t('4 hours')],
-              [24 * 60 * 60, t('1 day')],
-            ]}
-          />
+          <IntervalPicker />
         </DatasetRow>
         <Visualize />
         <MonitorKind />
