@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {useOption} from '@react-aria/listbox';
 import type {ComboBoxState} from '@react-stately/combobox';
 
+import Feature from 'sentry/components/acl/feature';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {makeOrganizationSeerSetupQueryKey} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
@@ -112,12 +113,14 @@ export function AskSeer<T>({state}: {state: ComboBoxState<T>}) {
 
   if (isPendingSetupCheck || isMutating) {
     return (
-      <AskSeerPane>
-        <AskSeerListItem>
-          <AskSeerLabel width="auto">{t('Loading Seer')}</AskSeerLabel>
-          <LoadingIndicator size={16} style={{margin: 0}} />
-        </AskSeerListItem>
-      </AskSeerPane>
+      <Feature features="organizations:gen-ai-explore-traces-consent-ui">
+        <AskSeerPane>
+          <AskSeerListItem>
+            <AskSeerLabel width="auto">{t('Loading Seer')}</AskSeerLabel>
+            <LoadingIndicator size={16} style={{margin: 0}} />
+          </AskSeerListItem>
+        </AskSeerPane>
+      </Feature>
     );
   }
 
@@ -130,9 +133,11 @@ export function AskSeer<T>({state}: {state: ComboBoxState<T>}) {
   }
 
   return (
-    <AskSeerPane>
-      <AskSeerConsentOption state={state} />
-    </AskSeerPane>
+    <Feature features="organizations:gen-ai-explore-traces-consent-ui">
+      <AskSeerPane>
+        <AskSeerConsentOption state={state} />
+      </AskSeerPane>
+    </Feature>
   );
 }
 

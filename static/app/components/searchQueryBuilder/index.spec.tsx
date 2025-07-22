@@ -4446,7 +4446,13 @@ describe('SearchQueryBuilder', function () {
       });
 
       render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
-        organization: {features: ['gen-ai-features', 'gen-ai-explore-traces']},
+        organization: {
+          features: [
+            'gen-ai-features',
+            'gen-ai-explore-traces',
+            'gen-ai-explore-traces-consent-ui',
+          ],
+        },
       });
 
       await userEvent.click(getLastInput());
@@ -4467,7 +4473,13 @@ describe('SearchQueryBuilder', function () {
       });
 
       render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
-        organization: {features: ['gen-ai-features', 'gen-ai-explore-traces']},
+        organization: {
+          features: [
+            'gen-ai-features',
+            'gen-ai-explore-traces',
+            'gen-ai-explore-traces-consent-ui',
+          ],
+        },
       });
 
       await userEvent.click(getLastInput());
@@ -4480,7 +4492,11 @@ describe('SearchQueryBuilder', function () {
       it('calls promptsUpdate', async () => {
         const organization = OrganizationFixture({
           slug: 'org-slug',
-          features: ['gen-ai-features', 'gen-ai-explore-traces'],
+          features: [
+            'gen-ai-features',
+            'gen-ai-explore-traces',
+            'gen-ai-explore-traces-consent-ui',
+          ],
         });
         const promptsUpdateMock = MockApiClient.addMockResponse({
           url: `/organizations/${organization.slug}/prompts-activity/`,
@@ -4537,7 +4553,15 @@ describe('SearchQueryBuilder', function () {
 
         render(
           <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
-          {organization: {features: ['gen-ai-features', 'gen-ai-explore-traces']}}
+          {
+            organization: {
+              features: [
+                'gen-ai-features',
+                'gen-ai-explore-traces',
+                'gen-ai-explore-traces-consent-ui',
+              ],
+            },
+          }
         );
 
         await userEvent.click(getLastInput());
@@ -4561,7 +4585,15 @@ describe('SearchQueryBuilder', function () {
 
       render(
         <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
-        {organization: {features: ['gen-ai-features', 'gen-ai-explore-traces']}}
+        {
+          organization: {
+            features: [
+              'gen-ai-features',
+              'gen-ai-explore-traces',
+              'gen-ai-explore-traces-consent-ui',
+            ],
+          },
+        }
       );
 
       await userEvent.click(getLastInput());
