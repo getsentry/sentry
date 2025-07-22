@@ -3257,8 +3257,14 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
 
         for index, event in enumerate(self.events[:5]):
             message = event.message or event.transaction
+            exception = event.get_event_metadata()["type"]
             results = data[
-                ",".join([message, self.event_data[index]["data"]["user"].get("email", "None")])
+                ",".join(
+                    [
+                        f"{message} {exception}",
+                        self.event_data[index]["data"]["user"].get("email", "None"),
+                    ]
+                )
             ]
             assert results["order"] == index
             assert [{"count": self.event_data[index]["count"]}] in [
@@ -3295,10 +3301,14 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
                 format="json",
             )
 
-        data = response.data
-
         assert response.status_code == 200, response.content
+
+        data = response.data
         assert len(data) == 2
+        assert "NameError" in data
+        assert "ValueError" in data
+        assert [attrs[0]["count"] for _, attrs in data["NameError"]["data"]] == [2, 0]
+        assert [attrs[0]["count"] for _, attrs in data["ValueError"]["data"]] == [1, 0]
 
     def test_top_events_with_projects_other(self):
         with self.feature(self.enabled_features):
@@ -3356,13 +3366,14 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
 
         for index, event in enumerate(self.events[:4]):
             message = event.message
+            exception = event.get_event_metadata()["type"]
             # Because we deleted the group for event 0
             if index == 0 or event.group is None:
                 issue = "unknown"
             else:
                 issue = event.group.qualified_short_id
 
-            results = data[",".join([issue, message])]
+            results = data[",".join([issue, f"{message} {exception}"])]
             assert results["order"] == index
             assert [{"count": self.event_data[index]["count"]}] in [
                 attrs for time, attrs in results["data"]
