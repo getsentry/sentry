@@ -8,6 +8,7 @@ describe('handleXhrErrorResponse', function () {
     status: 400,
     responseText: 'Error message',
     statusText: 'Bad Request',
+    headers: {'Content-Type': 'application/json'},
     getResponseHeader: () => 'application/json',
     responseJSON: {detail: 'Error message'},
   });
@@ -16,6 +17,7 @@ describe('handleXhrErrorResponse', function () {
     status: 400,
     responseText: 'Error message',
     statusText: 'Bad Request',
+    headers: {'Content-Type': 'application/json'},
     getResponseHeader: () => 'application/json',
     responseJSON: {detail: {code: 'api-err-code', message: 'Error message'}},
   });
@@ -50,6 +52,7 @@ describe('handleXhrErrorResponse', function () {
         status: 401,
         responseText: 'Sudo required',
         statusText: 'Unauthorized',
+        headers: {'Content-Type': 'application/json'},
         getResponseHeader: () => 'application/json',
         responseJSON: {
           detail: {
@@ -72,6 +75,7 @@ describe('handleXhrErrorResponse', function () {
     };
     const err = new RequestError('GET', '/ball', new Error('API error'), {
       status,
+      headers: {'Content-Type': 'application/json'},
       getResponseHeader: () => 'application/json',
       statusText: 'Not Found',
       responseText: 'distraced-by-squirrel: Got distracted by a squirrel',

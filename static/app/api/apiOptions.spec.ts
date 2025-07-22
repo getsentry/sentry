@@ -1,11 +1,13 @@
 import {expectTypeOf} from 'expect-type';
 
-import type {ApiResult} from 'sentry/api';
 import type {Release} from 'sentry/types/release';
 
 import {apiOptions} from './apiOptions';
 
-type QueryFunctionResult<T> = Promise<ApiResult<T>> | ApiResult<T>;
+type Promisable<T> = T | Promise<T>;
+type QueryFunctionResult<T> = Promisable<
+  Readonly<{content: T; headers: Record<string, string | undefined> | undefined}>
+>;
 
 describe('apiOptions', () => {
   test('should encode path parameters correctly', () => {
@@ -130,14 +132,14 @@ describe('apiOptions', () => {
     test('should allow string or number path parameters', () => {
       const options = apiOptions('/items/$id/', {
         staleTime: 0,
-        path: {id: 123}, // number
+        path: {id: 123},
       });
 
       expectTypeOf(options.queryFn).returns.toEqualTypeOf<QueryFunctionResult<never>>();
 
       const options2 = apiOptions('/items/$id/', {
         staleTime: 0,
-        path: {id: 'abc'}, // string
+        path: {id: 'abc'},
       });
 
       expectTypeOf(options2.queryFn).returns.toEqualTypeOf<QueryFunctionResult<never>>();
@@ -159,6 +161,15 @@ describe('apiOptions', () => {
       });
 
       expectTypeOf(options.queryFn).returns.toEqualTypeOf<QueryFunctionResult<number>>();
+    });
+
+    test('should have a default select that extracts content', () => {
+      const options = apiOptions.ReturnType<number>()('/items/$id/', {
+        staleTime: 0,
+        path: {id: 123},
+      });
+
+      expectTypeOf(options.select).returns.toEqualTypeOf<number>();
     });
   });
 });

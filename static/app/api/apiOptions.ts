@@ -51,9 +51,15 @@ export function apiOptions<
   }
 
   return queryOptions({
-    queryKey: Object.keys(options).length > 0 ? [url, options] : [url],
-    queryFn: fetchDataQuery<TActualData>,
+    queryKey:
+      Object.keys(options).length > 0 ? ([url, options] as const) : ([url] as const),
+    queryFn: async ctx => {
+      const response = await fetchDataQuery<TActualData>(ctx);
+
+      return {content: response[0], headers: response[2]?.headers} as const;
+    },
     staleTime,
+    select: data => data.content,
   });
 }
 
