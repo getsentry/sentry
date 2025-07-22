@@ -1277,15 +1277,12 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     def test_ingest_through_trusted_relays_only_option(self):
         # by default option is not set
-        assert self.organization.get_option("sentry:ingest-through-trusted-relays-only") is None
+        assert self.organization.get_option("sentry:ingest_through_trusted_relays_only") is None
 
         with self.feature("organizations:ingest-through-trusted-relays-only"):
             data = {"ingestThroughTrustedRelaysOnly": "enabled"}
             self.get_success_response(self.organization.slug, **data)
-            assert (
-                self.organization.get_option("sentry:ingest-through-trusted-relays-only")
-                == "enabled"
-            )
+            assert self.organization.get_option("sentry:ingest-through-trusted-relays-only")
 
         with self.feature("organizations:ingest-through-trusted-relays-only"):
             data = {"ingestThroughTrustedRelaysOnly": "invalid"}

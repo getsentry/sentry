@@ -1058,7 +1058,7 @@ def _get_project_config(
 
     if features.has("organizations:ingest-through-trusted-relays-only", project.organization):
         config["trustedRelaySettings"] = {
-            "verifySignature": project.organization.get_option(
+            "verifySignature": project.get_option(
                 "sentry:ingest-through-trusted-relays-only",
                 INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
             )
