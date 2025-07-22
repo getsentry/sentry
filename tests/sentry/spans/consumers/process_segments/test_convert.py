@@ -164,3 +164,28 @@ def test_convert_falsy_fields():
 
     assert item.attributes.get("sentry.duration_ms") == AnyValue(int_value=0)
     assert item.attributes.get("sentry.is_segment") == AnyValue(bool_value=False)
+
+
+def test_convert_span_links_to_json():
+    message = {
+        **SPAN_KAFKA_MESSAGE,
+        "links": [
+            {
+                "trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b",
+                "span_id": "8873a98879faf06d",
+                "sampled": True,
+                "attributes": {
+                    "sentry.link.type": "parent",
+                    "sentry.dropped_attributes_count": 2,
+                    "parent_depth": 17,
+                    "confidence": "high",
+                },
+            }
+        ],
+    }
+
+    item = convert_span_to_item(cast(Span, message))
+
+    assert item.attributes.get("sentry.links") == AnyValue(
+        string_value='[{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b","span_id":"8873a98879faf06d","sampled":true,"attributes":{"sentry.link.type":"parent","sentry.dropped_attributes_count":4}}]'
+    )
