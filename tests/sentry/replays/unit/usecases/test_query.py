@@ -32,7 +32,7 @@ class TestQuery(APITestCase, SnubaTestCase):
                 "platform": "python",
                 "fingerprint": ["group2"],
                 "timestamp": before_now(days=14).isoformat(),
-                "tags": {"foo.foo": "1"},
+                "tags": {"foo.1": "1"},
                 # Required feedback context
                 "contexts": {
                     "feedback": {
@@ -52,7 +52,27 @@ class TestQuery(APITestCase, SnubaTestCase):
                 "platform": "python",
                 "fingerprint": ["group1"],
                 "timestamp": before_now(days=14).isoformat(),
-                "tags": {"foo.foo": "5"},
+                "tags": {"foo.2": "1"},
+                # Required feedback context
+                "contexts": {
+                    "feedback": {
+                        "contact_email": "test@example.com",
+                        "name": "Test User",
+                        "message": "This is a test feedback message",
+                        "url": "https://example.com/feedback",
+                    },
+                },
+            },
+            project_id=self.project.id,  # Use the created project's ID
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "type": "feedback",  # This makes it a feedback event
+                "platform": "python",
+                "fingerprint": ["group5"],
+                "timestamp": before_now(days=14).isoformat(),
+                "tags": {"foo.1": "3"},
                 # Required feedback context
                 "contexts": {
                     "feedback": {
@@ -93,19 +113,18 @@ class TestQuery(APITestCase, SnubaTestCase):
 
         # print(result["data"])
 
+        # This query finds the top 10 values for the tag prefix "foo", and gives the counts too. It seems to be working properly
         builder = DiscoverQueryBuilder(
             dataset=Dataset.Events,
             params={},
             snuba_params=snuba_params,
             query="event.type:feedback",  # Use startsWith function
             selected_columns=[
-                "array_join(tags.key) as tag_key",  # Flatten the array
-                "array_join(tags.value) as tag_value",  # Flatten the array
+                "array_join(tags.value) as tag_value",  # Only get the value, not the key
                 "count()",
             ],
             orderby=["-count()"],
-            # array_join="tags.key",
-            limit=100,  # Get more results
+            limit=10,  # Get top 10 values
             config=QueryBuilderConfig(
                 auto_fields=False,
                 auto_aggregations=True,
@@ -126,9 +145,8 @@ class TestQuery(APITestCase, SnubaTestCase):
 
         result = builder.run_query(referrer="test.debug_feedback")
 
-        result
-
         # print(result["data"])
+        result
 
         # request = Request(
         #     dataset="discover",
