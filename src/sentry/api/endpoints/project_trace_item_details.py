@@ -169,24 +169,31 @@ def serialize_links(attributes: list[dict]) -> list[dict] | None:
         value = link_attribute.get("value", {}).get("valStr", None)
         if value is not None:
             links = json.loads(value)
-            return [
-                {
-                    "itemId": link["span_id"],
-                    "traceId": link["trace_id"],
-                    "sampled": link["sampled"],
-                    "attributes": [
-                        {"name": k, "value": v, "type": infer_type(v)}
-                        for k, v in link.get("attributes", {}).items()
-                        if infer_type(v) is not None
-                    ],
-                }
-                for link in links
-            ]
+            return [serialize_link(link) for link in links]
         else:
             return None
     except Exception as e:
         sentry_sdk.capture_exception(e)
         return None
+
+
+def serialize_link(link: dict) -> dict:
+    clean_link = {
+        "itemId": link["span_id"],
+        "traceId": link["trace_id"],
+    }
+
+    if sampled := link.get("sampled"):
+        clean_link["sampled"] = sampled
+
+    if attributes := link.get("attributes"):
+        clean_link["attributes"] = [
+            {"name": k, "value": v, "type": infer_type(v)}
+            for k, v in attributes.items()
+            if infer_type(v) is not None
+        ]
+
+    return clean_link
 
 
 def infer_type(value: Any) -> str | None:
