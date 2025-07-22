@@ -507,6 +507,21 @@ def post_process_group(
     """
     from sentry.utils import snuba
 
+    # Validate that we don't have contradictory state
+    if is_new and is_regression:
+        logger.error(
+            "Invalid state: issue cannot be both new and a regression",
+            extra={
+                "group_id": group_id,
+                "project_id": project_id,
+                "occurrence_id": occurrence_id,
+                "is_new": is_new,
+                "is_regression": is_regression,
+            },
+        )
+        # Regressions take precedence over new state - treat as regression
+        is_new = False
+
     with snuba.options_override({"consistent": True}):
         from sentry import eventstore
         from sentry.eventstore.processing import event_processing_store
@@ -1220,7 +1235,11 @@ def process_resource_change_bounds(job: PostProcessJob) -> None:
 
     from sentry.sentry_apps.tasks.sentry_apps import process_resource_change_bound
 
-    event, is_new = job["event"], job["group_state"]["is_new"]
+    event, is_new, is_regression = (
+        job["event"],
+        job["group_state"]["is_new"],
+        job["group_state"]["is_regression"],
+    )
 
     if event.get_event_type() == "error" and _should_send_error_created_hooks(event.project):
         process_resource_change_bound.delay(
@@ -1230,9 +1249,15 @@ def process_resource_change_bounds(job: PostProcessJob) -> None:
             project_id=event.project_id,
             group_id=event.group_id,
         )
+
+    # With validation in post_process_group, is_new and is_regression should never both be True
     if is_new:
         process_resource_change_bound.delay(
             action="created", sender="Group", instance_id=event.group_id
+        )
+    elif is_regression:
+        process_resource_change_bound.delay(
+            action="unresolved", sender="Group", instance_id=event.group_id
         )
 
 

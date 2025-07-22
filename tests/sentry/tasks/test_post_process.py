@@ -746,19 +746,98 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
 
         assert not delay.called
 
+    @patch("sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound.delay")
+    def test_processes_resource_change_task_on_regression(self, delay):
+        """Test that regressions trigger issue.unresolved webhooks"""
+        event = self.create_event(
+            data={"message": "testing regression"}, project_id=self.project.id
+        )
+        group = event.group
+
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=True,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        # Should trigger unresolved for regressions
+        delay.assert_called_once_with(action="unresolved", sender="Group", instance_id=group.id)
+
+    @patch("sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound.delay")
+    def test_processes_resource_change_task_new_without_regression(self, delay):
+        """Test that new issues trigger issue.created webhooks"""
+        event = self.create_event(data={"message": "testing new issue"}, project_id=self.project.id)
+        group = event.group
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        # Should trigger created for new issues
+        delay.assert_called_once_with(action="created", sender="Group", instance_id=group.id)
+
+    @patch("sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound.delay")
+    def test_processes_resource_change_task_no_webhook_for_neither_new_nor_regression(self, delay):
+        """Test that existing non-regression events don't trigger webhooks"""
+        event = self.create_event(
+            data={"message": "testing existing event"}, project_id=self.project.id
+        )
+
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        # Should not trigger any webhook for Group
+        assert not delay.called
+
+    @patch("sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound.delay")
+    @patch("sentry.tasks.post_process.logger")
+    def test_validates_contradictory_state_regression_takes_precedence(self, mock_logger, delay):
+        """Test that contradictory state (is_new=True AND is_regression=True) is caught and fixed"""
+        event = self.create_event(
+            data={"message": "testing validation"}, project_id=self.project.id
+        )
+        group = event.group
+
+        # This should never happen in production, but if it does, we should log an error
+        # and treat it as a regression (not new)
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        # Should log an error about invalid state
+        mock_logger.error.assert_called_once()
+        error_call = mock_logger.error.call_args
+        assert "Invalid state: issue cannot be both new and a regression" in error_call[0][0]
+
+        # Should trigger unresolved (regression takes precedence)
+        delay.assert_called_once_with(action="unresolved", sender="Group", instance_id=group.id)
+
 
 class InboxTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.rules.processing.processor.RuleProcessor")
     def test_group_inbox_regression(self, mock_processor):
+        """Test that groups are properly added to inbox for both NEW and REGRESSION reasons"""
         new_event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
         group = new_event.group
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.NEW
 
+        # First, process as a new issue
         self.call_post_process_group(
             is_new=True,
-            is_regression=True,
+            is_regression=False,
             is_new_group_environment=False,
             event=new_event,
         )
@@ -770,7 +849,7 @@ class InboxTestMixin(BasePostProgressGroupMixin):
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.NEW
 
-        mock_processor.assert_called_with(EventMatcher(new_event), True, True, False, False, False)
+        mock_processor.assert_called_with(EventMatcher(new_event), True, False, False, False, False)
 
         # resolve the new issue so regression actually happens
         group.status = GroupStatus.RESOLVED
@@ -787,6 +866,8 @@ class InboxTestMixin(BasePostProgressGroupMixin):
         group.refresh_from_db()
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.REGRESSED
+
+        # Now process as a regression (not new)
         self.call_post_process_group(
             is_new=False,
             is_regression=True,
@@ -3134,13 +3215,13 @@ class PostProcessGroupGenericTest(
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
         self.call_post_process_group(
-            is_new=True,
+            is_new=False,
             is_regression=True,
             is_new_group_environment=False,
             event=event,
         )
         assert mock_processor.call_count == 1
-        mock_processor.assert_called_with(EventMatcher(event), True, True, False, False, False)
+        mock_processor.assert_called_with(EventMatcher(event), False, True, False, False, False)
 
         # Calling this again should do nothing, since we've already processed this occurrence.
         self.call_post_process_group(
