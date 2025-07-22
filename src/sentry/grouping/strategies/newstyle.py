@@ -392,16 +392,14 @@ def get_contextline_component(
     if line:
         if len(frame.context_line) > 120:
             context_line_component.update(hint="discarded because line too long", contributes=False)
-        elif get_behavior_family_for_platform(platform) == "javascript":
-            if context["with_context_line_file_origin_bug"]:
-                if has_url_origin(frame.abs_path, allow_file_origin=True):
-                    context_line_component.update(
-                        hint="discarded because from URL origin", contributes=False
-                    )
-            elif not function and has_url_origin(frame.abs_path):
-                context_line_component.update(
-                    hint="discarded because from URL origin and no function", contributes=False
-                )
+        elif (
+            get_behavior_family_for_platform(platform) == "javascript"
+            and not function
+            and has_url_origin(frame.abs_path)
+        ):
+            context_line_component.update(
+                hint="discarded because from URL origin and no function", contributes=False
+            )
 
     return context_line_component
 
