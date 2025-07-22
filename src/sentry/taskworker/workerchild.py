@@ -345,7 +345,7 @@ def child_process(
                     tags={"namespace": activation.namespace, "taskname": activation.taskname},
                 ),
                 sentry_sdk.isolation_scope(),
-                sentry_sdk.start_transaction(
+                sentry_sdk.start_span(
                     op="queue.task.taskworker",
                     name=activation.taskname,
                     origin="taskworker",
