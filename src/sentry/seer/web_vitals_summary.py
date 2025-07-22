@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import timedelta
 from typing import Any
 
@@ -32,7 +33,6 @@ def get_page_web_vitals_summary(
         traceTrees: The trace trees for the traces to summarize. List of spans in the EAP format.
         organization: The organization the trace belongs to.
         user: The user requesting the summary
-        onlyTransaction: Whether to only summarize the entire trace or just the transaction spans.
 
     Returns:
         A tuple containing (summary_data, status_code)
@@ -44,9 +44,6 @@ def get_page_web_vitals_summary(
     if cached_summary := cache.get(cache_key):
         return convert_dict_key_case(cached_summary, snake_to_camel_case), 200
 
-    print("--------------------------------")
-    print("calling seer")
-    print("--------------------------------")
     trace_summary = _call_seer(
         traceSlugs,
         traceTrees,
@@ -57,6 +54,55 @@ def get_page_web_vitals_summary(
     cache.set(cache_key, trace_summary_dict, timeout=int(timedelta(days=7).total_seconds()))
 
     return convert_dict_key_case(trace_summary_dict, snake_to_camel_case), 200
+
+
+def _get_frontend_spans(trace: list[dict] | dict, depth: int = 0) -> list[dict]:
+    """
+    Filters the trace to only include frontend spans.
+    Frontend spans ops include:
+    - ui.*
+    - resource.*
+    - browser.*
+    - navigation
+    - pageload
+    - mark
+    - measure
+    - paint
+    """
+    if not trace or depth > 50:
+        return []
+
+    if isinstance(trace, list):
+        frontend_spans = []
+        for span in trace:
+            frontend_spans.extend(_get_frontend_spans(span, depth))
+        return frontend_spans
+
+    frontend_spans = []
+
+    if len(trace.get("children", [])) > 0:
+        parent_span = trace.copy()
+        descendant_frontend_spans = _get_frontend_spans(parent_span.get("children", []), depth + 1)
+        if _is_frontend_span(parent_span):
+            parent_span["children"] = descendant_frontend_spans
+            frontend_spans.append(parent_span)
+        else:
+            frontend_spans.extend(descendant_frontend_spans)
+    else:
+        if _is_frontend_span(trace):
+            frontend_spans.append(trace)
+
+    return frontend_spans
+
+
+def _is_frontend_span(span: dict) -> bool:
+    span_op = span.get("op")
+    if span_op and (
+        re.match(r"^(ui\.|resource\.|browser\.)", span_op)
+        or span_op in ["mark", "measure", "paint", "navigation", "pageload"]
+    ):
+        return True
+    return False
 
 
 def _call_seer(
@@ -71,7 +117,7 @@ def _call_seer(
             "traces": [
                 {
                     "trace_id": trace_id,
-                    "trace": trace_content,
+                    "trace": _get_frontend_spans(trace_content),
                 }
                 for trace_id, trace_content in zip(trace_ids, trace_contents)
             ],
@@ -89,9 +135,5 @@ def _call_seer(
     )
 
     response.raise_for_status()
-    print("--------------------------------")
-    print("seer response")
-    print("--------------------------------")
-    print(response.json())
 
     return SummarizePageWebVitalsResponse.validate(response.json())

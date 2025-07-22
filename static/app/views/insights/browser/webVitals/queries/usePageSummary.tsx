@@ -1,3 +1,4 @@
+import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -17,7 +18,10 @@ type SuggestedInvestigation = {
   traceId: string;
 };
 
-export function usePageSummary(traceSlugs: string[]) {
+export function usePageSummary(
+  traceSlugs: string[],
+  options: Partial<UseApiQueryOptions<PageSummary>> = {}
+) {
   const organization = useOrganization();
   return useApiQuery<PageSummary>(
     [
@@ -32,6 +36,7 @@ export function usePageSummary(traceSlugs: string[]) {
     {
       staleTime: 0,
       retry: false,
+      ...options,
     }
   );
 }

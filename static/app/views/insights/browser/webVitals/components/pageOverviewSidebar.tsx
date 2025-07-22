@@ -9,21 +9,22 @@ import {Link} from 'sentry/components/core/link';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {IconFocus, IconLink, IconSeer} from 'sentry/icons';
+import {IconFocus, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {MarkedText} from 'sentry/utils/marked/markedText';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
 import {usePageSummary} from 'sentry/views/insights/browser/webVitals/queries/usePageSummary';
+import {useSpanSamplesWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/useSpanSamplesWebVitalsQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {useHasSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useHasSeerWebVitalsSuggestions';
 import type {SubregionCode} from 'sentry/views/insights/types';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -45,6 +46,7 @@ export function PageOverviewSidebar({
   browserTypes,
   subregions,
 }: Props) {
+  const hasSeerWebVitalsSuggestions = useHasSeerWebVitalsSuggestions();
   const organization = useOrganization();
   const theme = useTheme();
   const pageFilters = usePageFilters();
@@ -113,13 +115,20 @@ export function PageOverviewSidebar({
   const ringSegmentColors = theme.chart.getColorPalette(4);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
-  // SEER STUFF
+  // Query for 3 trace samples, targetting pageloads
+  const {data: traceSamples, isLoading: isLoadingTraceSamples} =
+    useSpanSamplesWebVitalsQuery({
+      transaction,
+      limit: 3,
+      webVital: 'ttfb', // Using TTFB as a proxy for pageloads
+      enabled: hasSeerWebVitalsSuggestions,
+    });
 
-  const {data: pageSummary, isLoading: isLoadingPageSummary} = usePageSummary([
-    '30c3c594f9ba48748639f2929f05dcee',
-    '800da38cb12349d09d8581f8b1ac2113',
-    // '7d9863fad38e4c6699425529d1314d15',
-  ]);
+  const traceIds = traceSamples?.map(sample => sample.trace);
+
+  const {data: pageSummary, isLoading: isLoadingPageSummary} = usePageSummary(traceIds, {
+    enabled: hasSeerWebVitalsSuggestions && !isLoadingTraceSamples,
+  });
 
   const insightCards = [
     {
@@ -129,8 +138,6 @@ export function PageOverviewSidebar({
       icon: <IconFocus size="sm" />,
     },
   ];
-
-  console.log(insightCards);
 
   return (
     <Fragment>
@@ -164,60 +171,64 @@ export function PageOverviewSidebar({
         {projectScoreIsLoading && <ProjectScoreEmptyLoadingElement />}
       </SidebarPerformanceScoreRingContainer>
       <SidebarSpacer />
-      <SectionHeading>{t('Seer Suggestions')}</SectionHeading>
-      <Content>
-        <InsightGrid>
-          {isLoadingPageSummary && <Placeholder height="1.5rem" />}
-          {insightCards.map(card => {
-            if (!card.insight) {
-              return null;
-            }
-            if (!card.insight || typeof card.insight !== 'object') {
-              return null;
-            }
-            return card.insight.map(insight => (
-              <InsightCard key={card.id}>
-                <CardTitle>
-                  <CardTitleIcon>
-                    <StyledIconSeer size="md" />
-                  </CardTitleIcon>
-                  <div>
-                    <SpanOp>{insight.spanOp}</SpanOp>
-                    <Summary>
-                      {' - '}
-                      {insight.explanation}
-                    </Summary>
-                  </div>
-                </CardTitle>
-                <CardContentContainer>
-                  <CardLineDecorationWrapper>
-                    <CardLineDecoration />
-                  </CardLineDecorationWrapper>
-                  <CardContent>
-                    <SuggestionsList>
-                      {insight.suggestions.map((suggestion, i) => (
-                        <li key={i}>{suggestion}</li>
-                      ))}
-                    </SuggestionsList>
-                    <SuggestionLinks>
-                      <Link
-                        to={`/organizations/${organization.slug}/insights/frontend/trace/${insight.traceId}/?node=span-${insight.spanId}`}
-                      >
-                        {t('Example')}
-                      </Link>
-                      {insight.referenceUrl && (
-                        <ExternalLink href={insight.referenceUrl}>
-                          {t('Reference')}
-                        </ExternalLink>
-                      )}
-                    </SuggestionLinks>
-                  </CardContent>
-                </CardContentContainer>
-              </InsightCard>
-            ));
-          })}
-        </InsightGrid>
-      </Content>
+      {hasSeerWebVitalsSuggestions && (
+        <Fragment>
+          <SectionHeading>{t('Seer Suggestions')}</SectionHeading>
+          <Content>
+            <InsightGrid>
+              {isLoadingPageSummary && <Placeholder height="1.5rem" />}
+              {insightCards.map(card => {
+                if (!card.insight) {
+                  return null;
+                }
+                if (!card.insight || typeof card.insight !== 'object') {
+                  return null;
+                }
+                return card.insight.map(insight => (
+                  <InsightCard key={card.id}>
+                    <CardTitle>
+                      <CardTitleIcon>
+                        <StyledIconSeer size="md" />
+                      </CardTitleIcon>
+                      <div>
+                        <SpanOp>{insight.spanOp}</SpanOp>
+                        <Summary>
+                          {' - '}
+                          {insight.explanation}
+                        </Summary>
+                      </div>
+                    </CardTitle>
+                    <CardContentContainer>
+                      <CardLineDecorationWrapper>
+                        <CardLineDecoration />
+                      </CardLineDecorationWrapper>
+                      <CardContent>
+                        <SuggestionsList>
+                          {insight.suggestions.map((suggestion, i) => (
+                            <li key={i}>{suggestion}</li>
+                          ))}
+                        </SuggestionsList>
+                        <SuggestionLinks>
+                          <Link
+                            to={`/organizations/${organization.slug}/insights/frontend/trace/${insight.traceId}/?node=span-${insight.spanId}`}
+                          >
+                            {t('Example')}
+                          </Link>
+                          {insight.referenceUrl && (
+                            <ExternalLink href={insight.referenceUrl}>
+                              {t('Reference')}
+                            </ExternalLink>
+                          )}
+                        </SuggestionLinks>
+                      </CardContent>
+                    </CardContentContainer>
+                  </InsightCard>
+                ));
+              })}
+            </InsightGrid>
+          </Content>
+        </Fragment>
+      )}
       <SidebarSpacer />
       <SectionHeading>
         {t('Page Loads')}

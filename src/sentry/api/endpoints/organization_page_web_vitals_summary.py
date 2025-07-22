@@ -6,6 +6,7 @@ import orjson
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -29,9 +30,8 @@ class OrganizationPageWebVitalsSummaryEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
-    owner = ApiOwner.ML_AI
+    owner = ApiOwner.PERFORMANCE
     enforce_rate_limit = True
-    # Keeping same rate limits as GroupAISummary endpoint for now
     rate_limits = {
         "POST": {
             RateLimitCategory.IP: RateLimit(limit=10, window=60),
@@ -40,15 +40,22 @@ class OrganizationPageWebVitalsSummaryEndpoint(OrganizationEndpoint):
         }
     }
 
-    permission_classes = (OrganizationPageWebVitalsSummaryPermission,)
+    def has_feature(self, organization: Organization, request: Request) -> bool:
+        return features.has(
+            "organizations:performance-web-vitals-seer-suggestions",
+            organization,
+            actor=request.user,
+        )
 
     def post(self, request: Request, organization: Organization) -> Response:
+        if not self.has_feature(organization, request):
+            return Response(status=404)
+
         data: dict = orjson.loads(request.body) if request.body else {}
         trace_ids = data.get("traceSlugs", None)
         if not trace_ids:
             return Response({"detail": "Missing traceSlugs parameter"}, status=400)
 
-        # Get the trace trees
         try:
             trace_endpoint = OrganizationTraceEndpoint()
             snuba_params = trace_endpoint.get_snuba_params(request, organization)
@@ -56,15 +63,11 @@ class OrganizationPageWebVitalsSummaryEndpoint(OrganizationEndpoint):
                 trace_endpoint.query_trace_data(snuba_params, trace_id) for trace_id in trace_ids
             ]
 
-            print("--------------------------------")
-            print("trace_trees")
-            print(trace_trees)
-            print("--------------------------------")
         except Exception:
             return Response({"detail": "Error fetching trace"}, status=400)
 
         if not trace_trees:
-            return Response({"detail": "Missing trace_tree data"}, status=400)
+            return Response({"detail": "Missing trace_trees data"}, status=400)
 
         summary_data, status_code = get_page_web_vitals_summary(
             traceSlugs=trace_ids,
