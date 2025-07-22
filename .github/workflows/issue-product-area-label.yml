@@ -1,0 +1,181 @@
+name: 'Automation: Tag issue with product area label'
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  add_labels:
+    name: Add product area label
+    runs-on: ubuntu-latest
+    if: ${{ !github.event.issue.pull_request }}
+    steps:
+      - name: Get product area from issue body
+        # https://github.com/actions-ecosystem/action-regex-match
+        uses: actions-ecosystem/action-regex-match@v2
+        id: productArea
+        with:
+          # Parse product area from issue body
+          text: ${{ github.event.issue.body }}
+          regex: '### Product Area\n\n(.*)\n\n'
+
+      - name: Get product area from support template
+        # https://github.com/actions-ecosystem/action-regex-match
+        uses: actions-ecosystem/action-regex-match@v2
+        id: productAreaSupport
+        with:
+          # Parse product area from support issue template
+          text: ${{ github.event.issue.body }}
+          regex: '### Where in the product are you\?\n\n(.*)\n\n'
+
+      # We need both regex patterns because our issue templates use different labels:
+      # - bug.yml and feature.yml use "Product Area"
+      # - support.yml uses "Where in the product are you?"
+      # Both dropdowns contain the same product area options, just with different labels
+      - name: Map product area to issue label
+        # https://github.com/kanga333/variable-mapper
+        uses: kanga333/variable-mapper@v0.3.0
+        id: productAreaLabel
+        if: steps.productArea.outputs.match != '' || steps.productAreaSupport.outputs.match != ''
+        with:
+          key: "${{ steps.productArea.outputs.match != ' && steps.productArea.outputs.group1 || steps.productAreaSupport.outputs.group1 }}"
+          map: |
+            {
+              "Alerts": {
+                "label": "Alerts"
+              },
+              "API Platform": {
+                "label": "API Platform"
+              },
+              "Auth": {
+                "label": "Auth"
+              },
+              "Backend (Infra & Debt)": {
+                "label": "Backend (Infra & Debt)"
+              },
+              "CLI": {
+                "label": "CLI"
+              },
+              "Crons": {
+                "label": "Crons"
+              },
+              "Dashboards": {
+                "label": "Dashboards"
+              },
+              "Dev Toolbar": {
+                "label": "Dev Toolbar"
+              },
+              "Explore > Discover": {
+                "label": "Explore > Discover"
+              },
+              "Explore > Logs": {
+                "label": "Explore > Logs"
+              },
+              "Explore > Profiles": {
+                "label": "Explore > Profiles"
+              },
+              "Explore > Replays": {
+                "label": "Explore > Replays"
+              },
+              "Explore > Traces": {
+                "label": "Explore > Traces"
+              },
+              "Frontend (Infra & Debt)": {
+                "label": "Frontend (Infra & Debt)"
+              },
+              "GitHub Action": {
+                "label": "GitHub Action"
+              },
+              "Ingestion & Processing": {
+                "label": "Ingestion & Processing"
+              },
+              "Insights > AI": {
+                "label": "Insights > AI"
+              },
+              "Insights > Backend": {
+                "label": "Insights > Backend"
+              },
+              "Insights > Frontend": {
+                "label": "Insights > Frontend"
+              },
+              "Insights > Mobile": {
+                "label": "Insights > Mobile"
+              },
+              "Integrations": {
+                "label": "Integrations"
+              },
+              "Issues > Details": {
+                "label": "Issues > Details"
+              },
+              "Issues > Grouping": {
+                "label": "Issues > Grouping"
+              },
+              "Issues > Other": {
+                "label": "Issues > Other"
+              },
+              "Issues > Stream/Feed": {
+                "label": "Issues > Stream/Feed"
+              },
+              "Marketing Site": {
+                "label": "Marketing Site"
+              },
+              "MCP": {
+                "label": "MCP"
+              },
+              "Notifications": {
+                "label": "Notifications"
+              },
+              "Onboarding": {
+                "label": "Onboarding"
+              },
+              "Other": {
+                "label": "Other"
+              },
+              "Performance": {
+                "label": "Performance"
+              },
+              "Platform": {
+                "label": "Platform"
+              },
+              "Projects": {
+                "label": "Projects"
+              },
+              "Releases": {
+                "label": "Releases"
+              },
+              "Seer": {
+                "label": "Seer"
+              },
+              "Self-hosted": {
+                "label": "Self-hosted"
+              },
+              "Stats": {
+                "label": "Stats"
+              },
+              "Status Page": {
+                "label": "Status Page"
+              },
+              "Subscriptions": {
+                "label": "Subscriptions"
+              },
+              "Uptime": {
+                "label": "Uptime"
+              },
+              "User Feedback": {
+                "label": "User Feedback"
+              },
+              "Wizard (CLI)": {
+                "label": "Wizard (CLI)"
+              },
+              "Unknown": {
+                "label": "Unknown"
+              }
+            }
+          export_to: output
+
+      - name: Add product area label if applicable
+        # Note: We only add the label if the issue is still open
+        if: steps.productAreaLabel.outputs.label != ''
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: ${{ steps.productAreaLabel.outputs.label }}
