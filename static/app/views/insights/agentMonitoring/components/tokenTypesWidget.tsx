@@ -3,8 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
+import {ExternalLink} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
@@ -38,11 +38,11 @@ import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/w
 const SERIES_NAME_MAP: Record<string, string> = {
   [AI_INPUT_TOKENS_ATTRIBUTE_SUM]: 'Input Tokens',
   [AI_OUTPUT_TOKENS_ATTRIBUTE_SUM]: 'Output Tokens',
-  [AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM]: 'Output Tokens (Reasoning)',
-  [AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM]: 'Input Tokens (Cached)',
+  [AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM]: 'Reasoning Tokens',
+  [AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM]: 'Cached Tokens',
 };
 
-export default function TokenDistributionWidget() {
+export default function TokenTypesWidget() {
   const theme = useTheme();
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
@@ -62,7 +62,7 @@ export default function TokenDistributionWidget() {
         AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM,
       ],
     },
-    Referrer.TOKEN_USAGE_WIDGET
+    Referrer.TOKEN_TYPES_WIDGET
   );
 
   const timeSeries = timeSeriesRequest.data;
@@ -151,8 +151,7 @@ export default function TokenDistributionWidget() {
         plottables: timeSeriesAdjusted.map(
           (ts, index) =>
             new Bars(convertSeriesToTimeseries(ts), {
-              color:
-                ts.seriesName === 'Other' ? theme.chart.neutral : colorPalette[index],
+              color: colorPalette[index],
               alias: `${SERIES_NAME_MAP[ts.seriesName]}`,
               stack: 'stack',
             })
@@ -163,24 +162,35 @@ export default function TokenDistributionWidget() {
 
   const footer = hasData && (
     <WidgetFooterTable>
-      {timeSeriesAdjusted.map((item, index) => {
-        const modelId = `${item.seriesName}`;
-        return (
-          <Fragment key={modelId}>
-            <div>
-              <SeriesColorIndicator
-                style={{
-                  backgroundColor: colorPalette[index],
-                }}
-              />
-            </div>
-            <ModelText>{SERIES_NAME_MAP[item.seriesName]}</ModelText>
-            <span>
-              <Count value={Number(sums[item.seriesName as keyof typeof sums] || 0)} />
-            </span>
-          </Fragment>
-        );
-      })}
+      <div>
+        <SeriesColorIndicator
+          style={{
+            backgroundColor: colorPalette[0],
+          }}
+        />
+      </div>
+      <FooterText>{t('Input Tokens (Cached)')}</FooterText>
+      <span>
+        <TokenTypeCount
+          value={Number(sums[AI_INPUT_TOKENS_ATTRIBUTE_SUM] || 0)}
+          secondaryValue={Number(sums[AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM] || 0)}
+        />
+      </span>
+
+      <div>
+        <SeriesColorIndicator
+          style={{
+            backgroundColor: colorPalette[2],
+          }}
+        />
+      </div>
+      <FooterText>{t('Output Tokens (Reasoning)')}</FooterText>
+      <span>
+        <TokenTypeCount
+          value={Number(sums[AI_OUTPUT_TOKENS_ATTRIBUTE_SUM] || 0)}
+          secondaryValue={Number(sums[AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM] || 0)}
+        />
+      </span>
     </WidgetFooterTable>
   );
 
@@ -193,13 +203,18 @@ export default function TokenDistributionWidget() {
         timeSeries && (
           <Toolbar
             showCreateAlert
-            referrer={Referrer.TOKEN_USAGE_WIDGET}
+            referrer={Referrer.TOKEN_TYPES_WIDGET}
             exploreParams={{
               mode: Mode.AGGREGATE,
               visualize: [
                 {
                   chartType: ChartType.BAR,
-                  yAxes: [AI_INPUT_TOKENS_ATTRIBUTE_SUM, AI_OUTPUT_TOKENS_ATTRIBUTE_SUM],
+                  yAxes: [
+                    AI_INPUT_TOKENS_ATTRIBUTE_SUM,
+                    AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM,
+                    AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
+                    AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM,
+                  ],
                 },
               ],
               groupBy: [AI_MODEL_ID_ATTRIBUTE],
@@ -209,7 +224,7 @@ export default function TokenDistributionWidget() {
             }}
             onOpenFullScreen={() => {
               openInsightChartModal({
-                title: t('Token Distribution'),
+                title: t('Token Types'),
                 children: (
                   <Fragment>
                     <ModalChartContainer>{visualization}</ModalChartContainer>
@@ -227,7 +242,30 @@ export default function TokenDistributionWidget() {
   );
 }
 
-const ModelText = styled('div')`
+function TokenTypeCount({
+  value,
+  secondaryValue,
+}: {
+  secondaryValue: number;
+  value: number;
+}) {
+  return (
+    <TokenTypeCountWrapper>
+      <Count value={value} />
+      <span>
+        (<Count value={secondaryValue} />)
+      </span>
+    </TokenTypeCountWrapper>
+  );
+}
+
+const TokenTypeCountWrapper = styled('span')`
+  display: flex;
+  gap: ${p => p.theme.space.xs};
+  justify-content: flex-end;
+`;
+
+const FooterText = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.2;

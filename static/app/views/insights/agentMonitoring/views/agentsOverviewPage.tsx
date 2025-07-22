@@ -1,9 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {PlatformIcon} from 'platformicons';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Link} from 'sentry/components/core/link';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -16,27 +14,27 @@ import {
 import Redirect from 'sentry/components/redirect';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {AiModuleToggleButton} from 'sentry/views/insights/agentMonitoring/components/aiModuleToggleButton';
+import {IssuesWidget} from 'sentry/views/insights/agentMonitoring/components/issuesWidget';
 import {LegacyLLMMonitoringInfoAlert} from 'sentry/views/insights/agentMonitoring/components/legacyLlmMonitoringAlert';
-import LLMGenerationsWidget from 'sentry/views/insights/agentMonitoring/components/llmGenerationsWidget';
+import LLMGenerationsWidget from 'sentry/views/insights/agentMonitoring/components/llmCallsWidget';
+import TokenCostWidget from 'sentry/views/insights/agentMonitoring/components/modelCostWidget';
 import {ModelsTable} from 'sentry/views/insights/agentMonitoring/components/modelsTable';
-import TokenCostWidget from 'sentry/views/insights/agentMonitoring/components/tokenCostWidget';
-import TokenDistributionWidget from 'sentry/views/insights/agentMonitoring/components/tokenDistributionWidget';
+import TokenTypesWidget from 'sentry/views/insights/agentMonitoring/components/tokenTypesWidget';
 import TokenUsageWidget from 'sentry/views/insights/agentMonitoring/components/tokenUsageWidget';
+import ToolUsageWidget from 'sentry/views/insights/agentMonitoring/components/toolCallsWidget';
+import ToolErrorsWidget from 'sentry/views/insights/agentMonitoring/components/toolErrorsWidget';
 import {ToolsTable} from 'sentry/views/insights/agentMonitoring/components/toolsTable';
-import ToolUsageWidget from 'sentry/views/insights/agentMonitoring/components/toolUsageWidget';
 import {TracesTable} from 'sentry/views/insights/agentMonitoring/components/tracesTable';
 import {
   TableType,
@@ -48,7 +46,10 @@ import {
   usePreferedAiModule,
 } from 'sentry/views/insights/agentMonitoring/utils/features';
 import {Onboarding} from 'sentry/views/insights/agentMonitoring/views/onboarding';
-import {WidgetGrid} from 'sentry/views/insights/agentMonitoring/views/styles';
+import {
+  TwoColumnWidgetGrid,
+  WidgetGrid,
+} from 'sentry/views/insights/agentMonitoring/views/styles';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
@@ -177,7 +178,7 @@ function AgentsMonitoringPage() {
                   <Onboarding />
                 ) : (
                   <Fragment>
-                    <WidgetGrid rowHeight={190}>
+                    <WidgetGrid rowHeight={210} paddingBottom={0}>
                       <WidgetGrid.Position1>
                         <OverviewAgentsRunsChartWidget />
                       </WidgetGrid.Position1>
@@ -185,7 +186,7 @@ function AgentsMonitoringPage() {
                         <OverviewAgentsDurationChartWidget />
                       </WidgetGrid.Position2>
                       <WidgetGrid.Position3>
-                        <IssueWidget />
+                        <IssuesWidget />
                       </WidgetGrid.Position3>
                     </WidgetGrid>
                     <ControlsWrapper>
@@ -250,7 +251,7 @@ function ModelsView() {
           <TokenUsageWidget />
         </WidgetGrid.Position2>
         <WidgetGrid.Position3>
-          <TokenDistributionWidget />
+          <TokenTypesWidget />
         </WidgetGrid.Position3>
       </WidgetGrid>
       <ModelsTable />
@@ -261,17 +262,14 @@ function ModelsView() {
 function ToolsView() {
   return (
     <Fragment>
-      <WidgetGrid rowHeight={260}>
-        <WidgetGrid.Position1>
+      <TwoColumnWidgetGrid rowHeight={260}>
+        <TwoColumnWidgetGrid.Position1>
           <ToolUsageWidget />
-        </WidgetGrid.Position1>
-        <WidgetGrid.Position2>
+        </TwoColumnWidgetGrid.Position1>
+        <TwoColumnWidgetGrid.Position2>
           <ToolErrorsWidget />
-        </WidgetGrid.Position2>
-        {/* <WidgetGrid.Position3>
-          <ToolTokensUsedWidget />
-        </WidgetGrid.Position3> */}
-      </WidgetGrid>
+        </TwoColumnWidgetGrid.Position2>
+      </TwoColumnWidgetGrid>
       <ToolsTable />
     </Fragment>
   );
@@ -302,106 +300,16 @@ function PageWithProviders() {
   );
 }
 
-function PlaceholderText() {
-  return <PlaceholderContent>{t('Placeholder')}</PlaceholderContent>;
-}
-
-export function IssueWidget() {
-  return (
-    <Widget
-      Title={<Widget.WidgetTitle title={t('Issues')} />}
-      Visualization={<IssuesVisualization />}
-    />
-  );
-}
-
-export function ToolErrorsWidget() {
-  return (
-    <Widget
-      Title={<Widget.WidgetTitle title={t('Tool errors')} />}
-      Visualization={<PlaceholderText />}
-    />
-  );
-}
-
-export function ToolTokensUsedWidget() {
-  return (
-    <Widget
-      Title={<Widget.WidgetTitle title={t('Tool tokens used')} />}
-      Visualization={<PlaceholderText />}
-    />
-  );
-}
-
-function IssuesVisualization() {
-  const issueData = [
-    {platform: 'nextjs', title: 'Connection timeout errors', count: 12},
-    {platform: 'javascript', title: 'Rate limit exceeded', count: 8},
-    {platform: 'python', title: 'Invalid API response format', count: 5},
-    {platform: 'node', title: 'Authentication failed', count: 3},
-    {platform: 'nextjs', title: 'Model response parsing error', count: 2},
-  ];
-
-  return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: space(1),
-        justifyContent: 'center',
-        height: '100%',
-      }}
-    >
-      {issueData.map((issue, index) => (
-        <IssueRow key={index}>
-          <PlatformIcon platform={issue.platform} size={16} />
-          <IssueTitle>
-            <Link to={`/issues/${issue.title}`}>{issue.title}</Link>
-          </IssueTitle>
-          <IssueCount>{issue.count}</IssueCount>
-        </IssueRow>
-      ))}
-    </div>
-  );
-}
-
-const PlaceholderContent = styled('div')`
-  display: flex;
-  flex: 1;
-  align-items: center;
-  justify-content: center;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
-`;
-
 const QueryBuilderWrapper = styled('div')`
   flex: 2;
-`;
-
-const IssueRow = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  padding: 0;
-`;
-
-const IssueTitle = styled('div')`
-  flex: 1;
-  font-size: ${p => p.theme.fontSize.md};
-`;
-
-const IssueCount = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: bold;
-  color: ${p => p.theme.subText};
 `;
 
 const ControlsWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: ${space(1)};
-  margin: ${space(2)} 0;
+  gap: ${p => p.theme.space.md};
+  margin: ${p => p.theme.space.xl} 0;
 `;
 
 export default PageWithProviders;

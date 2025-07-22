@@ -11,10 +11,11 @@ import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
 import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
 import {
-  AI_TOOL_NAME_ATTRIBUTE,
-  getAIToolCallsFilter,
+  AI_MODEL_ID_ATTRIBUTE,
+  getAIGenerationsFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -32,48 +33,45 @@ import {
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
-export default function ToolUsageWidget() {
+export default function LLMCallsWidget() {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans-low',
   });
 
   const theme = useTheme();
+  const fullQuery = useCombinedQuery(getAIGenerationsFilter());
 
-  const fullQuery = useCombinedQuery(getAIToolCallsFilter());
-
-  const toolsRequest = useSpans(
+  const generationsRequest = useSpans(
     {
-      fields: [AI_TOOL_NAME_ATTRIBUTE, 'count()'],
+      fields: [AI_MODEL_ID_ATTRIBUTE, 'count()'],
       sorts: [{field: 'count()', kind: 'desc'}],
       search: fullQuery,
       limit: 3,
     },
-    Referrer.TOOL_USAGE_WIDGET
+    Referrer.LLM_CALLS_WIDGET
   );
 
   const timeSeriesRequest = useTopNSpanSeries(
     {
       ...pageFilterChartParams,
       search: fullQuery,
-      fields: [AI_TOOL_NAME_ATTRIBUTE, 'count(span.duration)'],
+      fields: [AI_MODEL_ID_ATTRIBUTE, 'count(span.duration)'],
       yAxis: ['count(span.duration)'],
       sort: {field: 'count(span.duration)', kind: 'desc'},
       topN: 3,
-      enabled: !!toolsRequest.data,
+      enabled: !!generationsRequest.data,
     },
-    Referrer.TOOL_USAGE_WIDGET
+    Referrer.LLM_CALLS_WIDGET
   );
 
   const timeSeries = timeSeriesRequest.data;
 
-  const isLoading = timeSeriesRequest.isLoading || toolsRequest.isLoading;
-  const error = timeSeriesRequest.error || toolsRequest.error;
+  const isLoading = timeSeriesRequest.isLoading || generationsRequest.isLoading;
+  const error = timeSeriesRequest.error || generationsRequest.error;
 
-  // TODO(telex): Add tool name attribute to Fields and get rid of this cast
-  const tools = toolsRequest.data as unknown as Array<Record<string, string | number>>;
-
-  const hasData = tools && tools.length > 0 && timeSeries.length > 0;
+  const models = generationsRequest.data;
+  const hasData = models && models.length > 0 && timeSeries.length > 0;
 
   const colorPalette = theme.chart.getColorPalette(timeSeries.length - 1);
 
@@ -85,7 +83,7 @@ export default function ToolUsageWidget() {
       emptyMessage={
         <GenericWidgetEmptyStateWarning
           message={tct(
-            'No tool usage found. Try updating your filters, or learn more about AI Agents Insights in our [link:documentation].',
+            'No LLM calls found. Try updating your filters or learn more about AI Agents Insights in our [link:documentation].',
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/product/insights/agents/" />
@@ -112,36 +110,39 @@ export default function ToolUsageWidget() {
 
   const footer = hasData && (
     <WidgetFooterTable>
-      {tools.map((item, index) => (
-        <Fragment key={item[AI_TOOL_NAME_ATTRIBUTE]}>
-          <div>
-            <SeriesColorIndicator
-              style={{
-                backgroundColor: colorPalette[index],
-              }}
-            />
-          </div>
-          <div>
-            <ToolText>{item[AI_TOOL_NAME_ATTRIBUTE]}</ToolText>
-          </div>
-          <span>
-            <Count value={item['count()'] ?? 0} />
-          </span>
-        </Fragment>
-      ))}
+      {models?.map((item, index) => {
+        const modelId = `${item[AI_MODEL_ID_ATTRIBUTE]}`;
+        return (
+          <Fragment key={modelId}>
+            <div>
+              <SeriesColorIndicator
+                style={{
+                  backgroundColor: colorPalette[index],
+                }}
+              />
+            </div>
+            <ModelText>
+              <ModelName modelId={modelId} />
+            </ModelText>
+            <span>
+              <Count value={item['count()'] ?? 0} />
+            </span>
+          </Fragment>
+        );
+      })}
     </WidgetFooterTable>
   );
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={t('Tool Calls')} />}
+      Title={<Widget.WidgetTitle title={t('LLM Calls')} />}
       Visualization={visualization}
       Actions={
         organization.features.includes('visibility-explore-view') &&
         hasData && (
           <Toolbar
             showCreateAlert
-            referrer={Referrer.TOOL_USAGE_WIDGET}
+            referrer={Referrer.LLM_CALLS_WIDGET}
             exploreParams={{
               mode: Mode.AGGREGATE,
               visualize: [
@@ -150,14 +151,14 @@ export default function ToolUsageWidget() {
                   yAxes: ['count(span.duration)'],
                 },
               ],
-              groupBy: [AI_TOOL_NAME_ATTRIBUTE],
+              groupBy: [AI_MODEL_ID_ATTRIBUTE],
               query: fullQuery,
               sort: `-count(span.duration)`,
               interval: pageFilterChartParams.interval,
             }}
             onOpenFullScreen={() => {
               openInsightChartModal({
-                title: t('Tool Usage'),
+                title: t('LLM Calls'),
                 children: (
                   <Fragment>
                     <ModalChartContainer>{visualization}</ModalChartContainer>
@@ -175,7 +176,7 @@ export default function ToolUsageWidget() {
   );
 }
 
-const ToolText = styled('div')`
+const ModelText = styled('div')`
   ${p => p.theme.overflowEllipsis};
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.sm};

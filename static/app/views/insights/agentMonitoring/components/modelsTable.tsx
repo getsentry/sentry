@@ -109,7 +109,6 @@ export function ModelsTable() {
 
   const modelsRequest = useSpans(
     {
-      // @ts-expect-error Expression produces a union type that is too complex to represent.ts(2590)
       fields: [
         AI_MODEL_ID_ATTRIBUTE,
         AI_INPUT_TOKENS_ATTRIBUTE_SUM,
