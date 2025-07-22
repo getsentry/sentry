@@ -36,6 +36,12 @@ before being restarted.
 """
 
 
+MAX_PARAMETER_BYTES_BEFORE_COMPRESSION = 3000000  # 3MB
+"""
+The maximum number of bytes before a task parameter is compressed.
+"""
+
+
 class CompressionType(Enum):
     """
     The type of compression used for task parameters.
