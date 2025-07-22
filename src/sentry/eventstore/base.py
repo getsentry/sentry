@@ -301,14 +301,13 @@ class EventStorage(Service):
         self,
         *,
         project_id: int,
-        event_id: str | None = None,
+        event_id: str,
         group_id: int | None = None,
         data: Mapping[str, Any] | None = None,
     ) -> Event:
         """
         Returns an Event from processed data
         """
-        assert event_id is not None
         return Event(project_id=project_id, event_id=event_id, group_id=group_id, data=data)
 
     def bind_nodes(self, object_list: Sequence[Event]) -> None:
