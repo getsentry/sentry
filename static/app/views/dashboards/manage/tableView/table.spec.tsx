@@ -1,11 +1,20 @@
 import {DashboardListItemFixture} from 'sentry-fixture/dashboard';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {DashboardTable} from './table';
 
 describe('DashboardTable', () => {
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      method: 'GET',
+      body: {dashboards: []},
+    });
+  });
+
   it('should render', () => {
     render(
       <DashboardTable
@@ -104,5 +113,33 @@ describe('DashboardTable', () => {
 
     const filterCells = screen.getAllByLabelText('release:[1.0.0]');
     expect(filterCells[0]).toHaveTextContent('release is 1.0.0');
+  });
+
+  it('should update the dashboard favorite status', async () => {
+    const mockFavoriteRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/1/favorite/',
+      method: 'PUT',
+      body: {isFavorited: true},
+    });
+
+    render(
+      <DashboardTable
+        dashboards={[DashboardListItemFixture({isFavorited: false})]}
+        cursorKey="test"
+        isLoading={false}
+        title="My custom dashboards"
+      />
+    );
+
+    const starButton = screen.getByLabelText('Star');
+    await userEvent.click(starButton);
+
+    expect(mockFavoriteRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/dashboards/1/favorite/',
+      expect.objectContaining({
+        method: 'PUT',
+        data: {isFavorited: true},
+      })
+    );
   });
 });
