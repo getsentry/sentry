@@ -111,6 +111,7 @@ const StyledImageVisualization = styled(ImageVisualization)`
     width: auto;
     height: auto;
   }
+  height: auto;
 `;
 const FileDownload = styled('a')`
   cursor: pointer;
