@@ -269,6 +269,12 @@ DELETION_STATUSES = frozenset(
     [OrganizationStatus.PENDING_DELETION, OrganizationStatus.DELETION_IN_PROGRESS]
 )
 
+CONSOLE_PLATFORMS = {
+    "playstation": "PlayStation",
+    "xbox": "Xbox",
+    "nintendo-switch": "Nintendo Switch",
+}
+
 UNSAVED = object()
 DEFERRED = object()
 
@@ -332,7 +338,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     )
     defaultSeerScannerAutomation = serializers.BooleanField(required=False)
     enabledConsolePlatforms = serializers.ListField(
-        child=serializers.ChoiceField(choices=["playstation", "xbox", "nintendo-switch"]),
+        child=serializers.ChoiceField(choices=list(CONSOLE_PLATFORMS.keys())),
         required=False,
         allow_empty=True,
     )
@@ -441,9 +447,9 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "Organization does not have the project creation games tab feature enabled."
             )
 
-        # Remove duplicates by converting to set and back to list
+        # Remove duplicates and sort alphabetically
         if value is not None:
-            value = list(set(value))
+            value = sorted(set(value))
 
         return value
 
@@ -731,6 +737,45 @@ def post_org_pending_deletion(
             "organization": updated_organization,
         }
         send_delete_confirmation(delete_confirmation_args)
+
+
+def create_console_platform_audit_log(
+    request, organization, previously_enabled_platforms, currently_requested_platforms
+):
+    """Create a single audit log entry for console platform changes."""
+    previously_enabled_set = set(previously_enabled_platforms or [])
+    currently_requested_set = set(currently_requested_platforms or [])
+
+    changes = []
+
+    newly_enabled_platforms = currently_requested_set - previously_enabled_set
+    if newly_enabled_platforms:
+        enabled_names = [
+            CONSOLE_PLATFORMS[platform]
+            for platform in sorted(newly_enabled_platforms)
+            if platform in CONSOLE_PLATFORMS
+        ]
+        if enabled_names:
+            changes.append(f"Enabled Platforms: {', '.join(enabled_names)}")
+
+    newly_disabled_platforms = previously_enabled_set - currently_requested_set
+    if newly_disabled_platforms:
+        disabled_names = [
+            CONSOLE_PLATFORMS[platform]
+            for platform in sorted(newly_disabled_platforms)
+            if platform in CONSOLE_PLATFORMS
+        ]
+        if disabled_names:
+            changes.append(f"Disabled Platforms: {', '.join(disabled_names)}")
+
+    if changes:
+        create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=organization.id,
+            event=audit_log.get_event_id("ORG_CONSOLE_PLATFORM_EDIT"),
+            data={"console_platforms": "; ".join(changes)},
+        )
 
 
 @extend_schema_serializer(
@@ -1058,6 +1103,13 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         if serializer.is_valid():
             slug_change_requested = "slug" in request.data and request.data["slug"]
 
+            # Capture previous console platforms before serializer.save() updates them
+            previous_console_platforms = None
+            if "enabledConsolePlatforms" in request.data:
+                previous_console_platforms = organization.get_option(
+                    "sentry:enabled_console_platforms", []
+                )
+
             # Attempt slug change first as it's a more complex, control-silo driven workflow.
             if slug_change_requested:
                 slug = request.data["slug"]
@@ -1133,13 +1185,29 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 )
                 RegionScheduledDeletion.cancel(organization)
             elif changed_data:
-                self.create_audit_entry(
-                    request=request,
-                    organization=organization,
-                    target_object=organization.id,
-                    event=audit_log.get_event_id("ORG_EDIT"),
-                    data=changed_data,
-                )
+                if "enabledConsolePlatforms" in changed_data:
+                    previously_enabled_platforms = previous_console_platforms
+                    currently_requested_platforms = serializer.validated_data.get(
+                        "enabledConsolePlatforms", []
+                    )
+
+                    create_console_platform_audit_log(
+                        request,
+                        organization,
+                        previously_enabled_platforms,
+                        currently_requested_platforms,
+                    )
+
+                    del changed_data["enabledConsolePlatforms"]
+
+                if changed_data:
+                    self.create_audit_entry(
+                        request=request,
+                        organization=organization,
+                        target_object=organization.id,
+                        event=audit_log.get_event_id("ORG_EDIT"),
+                        data=changed_data,
+                    )
 
             context = serialize(
                 organization,
