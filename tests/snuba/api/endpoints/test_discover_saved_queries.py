@@ -734,3 +734,27 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
         assert data["yAxis"] == ["count(id)"]
         assert data["display"] == "releases"
         assert data["version"] == 2
+
+    def test_post_transactions_query_with_deprecation_flag(self):
+        with self.feature(self.feature_name) and self.feature(
+            "organizations:discover-saved-queries-deprecation"
+        ):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "new query",
+                    "projects": self.project_ids,
+                    "fields": ["title"],
+                    "yAxis": ["count(id)"],
+                    "range": "24h",
+                    "queryDataset": "transaction-like",
+                    "display": "default",
+                    "version": 2,
+                },
+            )
+        assert response.status_code == 400, response.content
+        response_data = response.json()
+        assert (
+            "The Transactions dataset is being deprecated. Please use `Traces` to save new transaction queries."
+            in response_data["queryDataset"][0]
+        )
