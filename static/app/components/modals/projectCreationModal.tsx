@@ -165,7 +165,6 @@ export default function ProjectCreationModal({
             setPlatform={handlePlatformChange}
             organization={organization}
             platform={platform?.key}
-            noAutoFilter
           />
         </Fragment>
       )}
