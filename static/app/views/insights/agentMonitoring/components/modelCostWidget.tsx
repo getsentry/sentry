@@ -35,7 +35,6 @@ import {
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
-// TODO: cost formatting
 export default function ModelCostWidget() {
   const theme = useTheme();
   const organization = useOrganization();
