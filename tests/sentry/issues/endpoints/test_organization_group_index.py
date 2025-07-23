@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import functools
+from collections import defaultdict
 from collections.abc import Sequence
 from datetime import datetime, timedelta
 from time import sleep
+from typing import Any
 from unittest.mock import MagicMock, Mock, call, patch
 from uuid import uuid4
 
@@ -4428,7 +4430,24 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
                 batch_3 = [g.id for g in groups_2[4:]]
                 assert batch_1 + batch_2 + batch_3 == [g.id for g in groups_2]
 
-                assert mock_logger.info.call_args_list == [
+                calls_by_project: dict[int, list[tuple[str, dict[str, Any]]]] = defaultdict(list)
+                for log_call in mock_logger.info.call_args_list:
+                    calls_by_project[log_call[1]["extra"]["project_id"]].append(log_call)
+
+                assert len(calls_by_project) == 2
+                assert calls_by_project[self.project.id] == [
+                    call(
+                        "delete_groups.started",
+                        extra={
+                            "object_ids_count": len(groups_1),
+                            "object_ids_current_batch": [g.id for g in groups_1],
+                            "first_id": groups_1[0].id,
+                            "project_id": self.project.id,
+                            "transaction_id": "bar",
+                        },
+                    ),
+                ]
+                assert calls_by_project[project_2.id] == [
                     call(
                         "delete_groups.started",
                         extra={
@@ -4457,16 +4476,6 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
                             "first_id": batch_3[0],
                             "project_id": project_2.id,
                             "transaction_id": "foo",
-                        },
-                    ),
-                    call(
-                        "delete_groups.started",
-                        extra={
-                            "object_ids_count": len(groups_1),
-                            "object_ids_current_batch": [g.id for g in groups_1],
-                            "first_id": groups_1[0].id,
-                            "project_id": self.project.id,
-                            "transaction_id": "bar",
                         },
                     ),
                 ]
