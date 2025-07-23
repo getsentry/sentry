@@ -288,7 +288,16 @@ function ManageDashboards() {
     });
     const urlSort = decodeScalar(location.query.sort, defaultSort);
 
-    return sortOptions.find(item => item.value === urlSort) || sortOptions[0];
+    if (urlSort) {
+      // Check if the URL sort is valid
+      const foundSort = sortOptions.find(item => item.value === urlSort);
+      if (foundSort) {
+        return foundSort;
+      }
+    }
+
+    // If it is not valid, try the default sort, and only if that is not valid, use the first option
+    return sortOptions.find(item => item.value === defaultSort) || sortOptions[0];
   }
 
   function handleSearch(query: string) {
