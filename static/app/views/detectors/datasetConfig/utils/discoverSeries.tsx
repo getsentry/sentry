@@ -31,42 +31,28 @@ export function transformEventsStatsToSeries(
 }
 
 /**
- * Transform comparisonCount from EventsStats API response into comparison series for % change alerts
- * Based on the metric alerts transformComparisonTimeseriesData function
+ * Transform comparisonCount from events-stats API response into comparison series for % change alerts
  */
 export function transformEventsStatsComparisonSeries(
-  stats: EventsStats | undefined,
-  _seriesName: string, // Renamed from seriesName to _seriesName to fix linter
-  comparisonDelta?: number
+  stats: EventsStats | undefined
 ): Series {
-  const comparisonName = comparisonDelta
-    ? `Previous ${getDuration(comparisonDelta * 1000)}` // getDuration expects milliseconds
-    : 'Comparison';
-
-  if (!stats?.data?.length) {
-    return {
-      seriesName: comparisonName,
-      data: [],
-    };
-  }
-
   // Check if any data points have comparisonCount
-  const hasComparisonData = stats.data.some(([, counts]) =>
+  const hasComparisonData = stats?.data.some(([, counts]) =>
     counts.some(count => count.comparisonCount !== undefined)
   );
 
-  if (!hasComparisonData) {
+  if (!hasComparisonData || !stats?.data?.length) {
     return {
-      seriesName: comparisonName,
+      seriesName: 'Comparison',
       data: [],
     };
   }
 
   return {
-    seriesName: comparisonName,
-    data: stats.data.map(([timestamp, counts]) => {
+    seriesName: 'Comparison',
+    data: stats.data.map(([timestampSeconds, counts]) => {
       return {
-        name: timestamp * 1000, // Convert to milliseconds
+        name: timestampSeconds * 1000,
         value: counts.reduce((acc, {comparisonCount}) => acc + (comparisonCount ?? 0), 0),
       };
     }),

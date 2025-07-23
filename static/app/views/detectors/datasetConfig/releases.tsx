@@ -3,7 +3,6 @@ import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
 import {ReleaseSearchBar} from 'sentry/views/detectors/datasetConfig/components/releaseSearchBar';
 import {
   getReleasesSeriesQueryOptions,
-  transformMetricsComparisonSeries,
   transformMetricsResponseToSeries,
 } from 'sentry/views/detectors/datasetConfig/utils/releasesSeries';
 
@@ -19,7 +18,8 @@ export const DetectorReleasesConfig: DetectorDatasetConfig<ReleasesSeriesRespons
   transformSeriesQueryData: (data, aggregate) => {
     return [transformMetricsResponseToSeries(data, aggregate)];
   },
-  transformComparisonSeriesData: (data, aggregate, comparisonDelta) => {
-    return [transformMetricsComparisonSeries(data, aggregate, comparisonDelta)];
+  transformComparisonSeriesData: () => {
+    // Releases cannot have a comparison series currently
+    return [];
   },
 };

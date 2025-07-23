@@ -67,16 +67,12 @@ export interface DetectorDatasetConfig<SeriesResponse> {
     customMeasurements?: CustomMeasurementCollection
   ) => Record<string, SelectValue<FieldValue>>;
   getSeriesQueryOptions: (options: DetectorSeriesQueryOptions) => ApiQueryKey;
+  /**
+   * Transform comparison series data for % change alerts
+   */
+  transformComparisonSeriesData: (data: SeriesResponse | undefined) => Series[];
   transformSeriesQueryData: (
     data: SeriesResponse | undefined,
     aggregate: string
-  ) => Series[];
-  /**
-   * Optional method to transform comparison series data for % change alerts
-   */
-  transformComparisonSeriesData?: (
-    data: SeriesResponse | undefined,
-    aggregate: string,
-    comparisonDelta?: number
   ) => Series[];
 }

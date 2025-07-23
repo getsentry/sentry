@@ -19,7 +19,7 @@ export const DetectorSpansConfig: DetectorDatasetConfig<SpansSeriesResponse> = {
   transformSeriesQueryData: (data, aggregate) => {
     return [transformEventsStatsToSeries(data, aggregate)];
   },
-  transformComparisonSeriesData: (data, aggregate, comparisonDelta) => {
-    return [transformEventsStatsComparisonSeries(data, aggregate, comparisonDelta)];
+  transformComparisonSeriesData: data => {
+    return [transformEventsStatsComparisonSeries(data)];
   },
 };

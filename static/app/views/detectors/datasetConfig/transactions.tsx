@@ -25,7 +25,7 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
     transformSeriesQueryData: (data, aggregate) => {
       return [transformEventsStatsToSeries(data, aggregate)];
     },
-    transformComparisonSeriesData: (data, aggregate, comparisonDelta) => {
-      return [transformEventsStatsComparisonSeries(data, aggregate, comparisonDelta)];
+    transformComparisonSeriesData: data => {
+      return [transformEventsStatsComparisonSeries(data)];
     },
   };

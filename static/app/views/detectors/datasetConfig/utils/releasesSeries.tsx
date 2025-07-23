@@ -39,24 +39,6 @@ export function transformMetricsResponseToSeries(
   };
 }
 
-export function transformMetricsComparisonSeries(
-  _data: SessionApiResponse | undefined | null, // Renamed to _data to fix linter
-  _aggregate: string, // Renamed to _aggregate to fix linter
-  comparisonDelta?: number
-): Series {
-  const comparisonName = comparisonDelta
-    ? `Previous ${getDuration(comparisonDelta * 1000)}` // getDuration expects milliseconds
-    : 'Comparison';
-
-  // Note: The metrics API may not support comparisonCount in the same way as events-stats
-  // This is a placeholder implementation that returns empty data
-  // TODO: Investigate if the metrics API supports comparison data for releases
-  return {
-    seriesName: comparisonName,
-    data: [],
-  };
-}
-
 export function getReleasesSeriesQueryOptions({
   aggregate,
   environment,
