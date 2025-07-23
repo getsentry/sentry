@@ -38,6 +38,7 @@ from sentry.utils import metrics
 REQUIRED_EVENT_PERMISSIONS = {
     "issue": "event:read",
     "error": "event:read",
+    "seer": "event:read",
     "project": "project:read",
     "member": "member:read",
     "organization": "org:read",
@@ -185,7 +186,9 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
             return result
 
     def is_installed_on(self, organization):
-        from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+        from sentry.sentry_apps.models.sentry_app_installation import (
+            SentryAppInstallation,
+        )
 
         return SentryAppInstallation.objects.filter(
             organization_id=organization.id,

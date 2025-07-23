@@ -35,7 +35,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, StrArray
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
-from sentry import options
+from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
@@ -75,6 +75,7 @@ from sentry.seer.fetch_issues.fetch_issues_given_exception_type import (
     get_latest_issue_event,
 )
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
+from sentry.sentry_apps.webhooks import broadcast_webhooks_for_organization
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
@@ -602,6 +603,35 @@ def get_github_enterprise_integration_config(
     }
 
 
+def send_seer_webhook(*, event_type: str, organization_id: int, payload: dict) -> dict:
+    """
+    Send a seer webhook event for an organization.
+
+    Args:
+        event_type: The type of seer event (e.g., "seer.issue.root_cause_started")
+        organization_id: The ID of the organization to send the webhook for
+        payload: The webhook payload data
+
+    Returns:
+        dict: Status of the webhook sending operation
+    """
+    organization = Organization.objects.get(id=organization_id)
+    if not features.has("organizations:seer-webhooks", organization):
+        return {"success": False, "error": "Seer webhooks are not enabled for this organization"}
+
+    try:
+        broadcast_webhooks_for_organization(
+            event_type=event_type,
+            organization_id=organization_id,
+            payload=payload,
+            event_category="seer",
+        )
+        return {"success": True}
+    except Exception as e:
+        logger.exception("Failed to send seer webhook: %s", e)
+        return {"success": False, "error": str(e)}
+
+
 seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_organization_slug": get_organization_slug,
     "get_sentry_organization_ids": get_sentry_organization_ids,
@@ -621,6 +651,7 @@ seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_profiles_for_trace": rpc_get_profiles_for_trace,
     "get_issues_for_transaction": rpc_get_issues_for_transaction,
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
+    "send_seer_webhook": send_seer_webhook,
 }
 
 

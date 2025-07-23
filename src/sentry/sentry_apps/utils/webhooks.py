@@ -40,6 +40,16 @@ class InstallationActionType(SentryAppActionType):
     DELETED = "deleted"
 
 
+class SeerActionType(SentryAppActionType):
+    ROOT_CAUSE_STARTED = "root_cause_started"
+    ROOT_CAUSE_COMPLETED = "root_cause_completed"
+    SOLUTION_STARTED = "solution_started"
+    SOLUTION_COMPLETED = "solution_completed"
+    CODING_STARTED = "coding_started"
+    CODING_COMPLETED = "coding_completed"
+    PR_CREATED = "pr_created"
+
+
 class SentryAppResourceType(StrEnum):
 
     @staticmethod
@@ -57,6 +67,7 @@ class SentryAppResourceType(StrEnum):
     COMMENT = "comment"
     INSTALLATION = "installation"
     METRIC_ALERT = "metric_alert"
+    SEER = "seer"
 
     # Represents an issue alert resource
     EVENT_ALERT = "event_alert"
@@ -74,6 +85,9 @@ EVENT_EXPANSION: Final[dict[SentryAppResourceType, list[str]]] = {
     ),
     SentryAppResourceType.COMMENT: SentryAppResourceType.map_sentry_app_webhook_events(
         SentryAppResourceType.COMMENT.value, CommentActionType
+    ),
+    SentryAppResourceType.SEER: SentryAppResourceType.map_sentry_app_webhook_events(
+        SentryAppResourceType.SEER.value, SeerActionType
     ),
 }
 # We present Webhook Subscriptions per-resource (Issue, Project, etc.), not
