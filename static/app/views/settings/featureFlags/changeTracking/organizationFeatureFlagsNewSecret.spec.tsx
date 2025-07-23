@@ -3,7 +3,6 @@ import {SecretFixture} from 'sentry-fixture/secret';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationFeatureFlagsNewSecret from 'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsNewSecret';
 
@@ -20,6 +19,13 @@ describe('OrganizationFeatureFlagsNewSecret', function () {
   });
 
   it('can create secret', async function () {
+    // Mock the GET request for existing secrets
+    MockApiClient.addMockResponse({
+      url: ENDPOINT,
+      method: 'GET',
+      body: {data: []},
+    });
+
     render(<OrganizationFeatureFlagsNewSecret />);
 
     const mock = MockApiClient.addMockResponse({
@@ -51,7 +57,12 @@ describe('OrganizationFeatureFlagsNewSecret', function () {
   });
 
   it('handles API errors when creating secret', async function () {
-    jest.spyOn(indicators, 'addErrorMessage');
+    // Mock the GET request for existing secrets
+    MockApiClient.addMockResponse({
+      url: ENDPOINT,
+      method: 'GET',
+      body: {data: []},
+    });
 
     render(<OrganizationFeatureFlagsNewSecret />);
 
@@ -72,9 +83,8 @@ describe('OrganizationFeatureFlagsNewSecret', function () {
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'LaunchDarkly'}));
     await userEvent.click(screen.getByRole('button', {name: 'Add Provider'}));
 
-    expect(indicators.addErrorMessage).toHaveBeenCalledWith(
-      'Failed to add provider or secret.'
-    );
+    // Check that the error is displayed in an Alert component
+    expect(await screen.findByText('Test API error occurred.')).toBeInTheDocument();
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
