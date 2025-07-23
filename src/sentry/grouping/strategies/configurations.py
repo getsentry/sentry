@@ -47,7 +47,7 @@ BASE_STRATEGY = create_strategy_configuration_class(
         # This detects anonymous classes in PHP code.
         "php_detect_anonymous_classes": False,
         # Turns on a bug that was present in some variants
-        "with_context_line_file_origin_bug": True,
+        "with_context_line_file_origin_bug": False,
         # Turns on falling back to exception values when there
         # is no stacktrace.
         "with_exception_value_fallback": True,
@@ -85,7 +85,6 @@ register_strategy_config(
     """,
     initial_context={
         "php_detect_anonymous_classes": True,
-        "with_context_line_file_origin_bug": False,
         "java_cglib_hibernate_logic": True,
     },
     enhancements_base="newstyle:2023-01-11",
