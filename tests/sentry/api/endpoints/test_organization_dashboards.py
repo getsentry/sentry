@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import pytest
 from datetime import datetime, timedelta
 from typing import Any
 
+import pytest
 from django.urls import reverse
 
 from sentry.models.dashboard import (
