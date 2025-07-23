@@ -80,7 +80,7 @@ class OrganizationMemberRequestSerializerTest(TestCase):
 
         serializer = OrganizationMemberRequestSerializer(context=context, data=data)
         assert not serializer.is_valid()
-        assert serializer.errors == {"email": [f"The user {user.email} is already a member"]}
+        assert serializer.errors == {"email": [f"The user {user.email} has already been invited"]}
 
         request = self.make_request(user=user)
 
