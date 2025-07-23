@@ -713,9 +713,6 @@ class Group(Model):
     def is_unresolved(self):
         return self.get_status() == GroupStatus.UNRESOLVED
 
-    # TODO(dcramer): remove in 9.0 / after plugins no long ref
-    is_muted = is_ignored
-
     def is_resolved(self):
         return self.get_status() == GroupStatus.RESOLVED
 
