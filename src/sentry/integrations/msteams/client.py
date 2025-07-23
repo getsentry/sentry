@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 from abc import ABC
+from typing import TypedDict
 from urllib.parse import urlencode
 
 from requests import PreparedRequest
@@ -92,21 +93,15 @@ class MsTeamsClient(MsTeamsClientABC, IntegrationProxyClient):
 
     def __init__(self, integration: Integration | RpcIntegration):
         self.integration = integration
+        self.metadata = self.integration.metadata
+        self.base_url = self.metadata["service_url"].rstrip("/")
         org_integration_id = infer_org_integration(integration_id=integration.id)
         super().__init__(org_integration_id=org_integration_id)
 
     @property
-    def metadata(self):
-        return self.integration.metadata
-
-    @property
-    def base_url(self):
-        return self.metadata["service_url"].rstrip("/")
-
-    @property
-    def access_token(self):
-        access_token = self.metadata.get("access_token")
-        expires_at = self.metadata.get("expires_at")
+    def access_token(self) -> str:
+        access_token = self.metadata["access_token"]
+        expires_at = self.metadata["expires_at"]
 
         # We don't refresh the access token in region silos.
         if SiloMode.get_current_mode() != SiloMode.REGION:
@@ -130,6 +125,8 @@ class MsTeamsClient(MsTeamsClientABC, IntegrationProxyClient):
                     raise IntegrationError("Integration not found, failed to refresh access token")
 
                 self.integration = updated_integration
+                self.metadata = self.integration.metadata
+                self.base_url = self.metadata["service_url"].rstrip("/")
         return access_token
 
     @control_silo_function
@@ -161,7 +158,12 @@ class OAuthMsTeamsClient(ApiClient):
         return self.post(self.TOKEN_URL, data=urlencode(data), headers=headers, json=False)
 
 
-def get_token_data():
+class TokenData(TypedDict):
+    access_token: str
+    expires_at: int
+
+
+def get_token_data() -> TokenData:
     client_id = options.get("msteams.client-id")
     client_secret = options.get("msteams.client-secret")
     client = OAuthMsTeamsClient(client_id, client_secret)
