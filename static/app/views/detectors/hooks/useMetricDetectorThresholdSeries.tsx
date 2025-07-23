@@ -62,7 +62,8 @@ function createPercentThresholdSeries(
     const multiplier = isAbove
       ? 1 + thresholdPercentage / 100
       : 1 - thresholdPercentage / 100;
-    const thresholdValue = comparisonValue * multiplier;
+    // Clamp to 0 to avoid negative values
+    const thresholdValue = Math.max(comparisonValue * multiplier, 0);
 
     return {
       name: point.name,
@@ -127,24 +128,6 @@ export function useMetricDetectorThresholdSeries({
 
     const {thresholds} = extractThresholdsFromConditions(conditions);
     const additional: LineSeriesOption[] = [];
-
-    // Add comparison series as dashed lines (like metric alerts)
-    if (comparisonSeries.length > 0) {
-      additional.push(
-        ...comparisonSeries.map(({data: _data, seriesName, ...otherSeriesProps}) =>
-          LineSeries({
-            name: seriesName, // Use the descriptive name from the series
-            data: _data.map(({name, value}) => [name, value]),
-            lineStyle: {color: '#8B8B8B', type: 'dashed', width: 1}, // theme.gray200
-            itemStyle: {color: '#8B8B8B'},
-            animation: false,
-            animationThreshold: 1,
-            animationDuration: 0,
-            ...otherSeriesProps,
-          })
-        )
-      );
-    }
 
     if (detectionType === 'percent') {
       // For percent detection, create threshold lines that follow comparison series
