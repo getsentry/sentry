@@ -189,18 +189,18 @@ const SetupContainer = styled('div')`
   grid-column: 1 / -1;
 `;
 
+const FiltersContainer = styled('div')`
+  display: flex;
+  flex-grow: 1;
+  gap: ${space(1)};
+  align-items: flex-start;
+`;
+
 /**
  * Prevent the search box from growing infinitely.
  * See https://github.com/getsentry/sentry/pull/80328
  */
 const SearchContainer = styled('div')`
   flex-grow: 1;
-  width: 100%;
-`;
-
-const FiltersContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-  align-items: flex-start;
+  min-width: 0;
 `;
