@@ -68,12 +68,12 @@ export default function ModelCostWidget() {
   );
 
   // We are setting the value type to currency for the time series so that the tooltip and y-axis formatting is correct
-  const timeSeries = timeSeriesRequest.data.map(ts => ({
+  const timeSeries = (timeSeriesRequest.data || []).map(ts => ({
     ...ts,
     meta: {
       ...ts.meta,
       fields: Object.fromEntries(
-        Object.entries(ts.meta.fields).map(([key, value]) => [
+        Object.entries(ts.meta?.fields || {}).map(([key, value]) => [
           key,
           value === 'number' ? 'currency' : value,
         ])
