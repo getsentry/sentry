@@ -28,6 +28,11 @@ describe('SeerComboBox', () => {
     });
 
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-explorer-ai/setup/',
+      method: 'POST',
+    });
+
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-explorer-ai/query/',
       method: 'POST',
       body: {

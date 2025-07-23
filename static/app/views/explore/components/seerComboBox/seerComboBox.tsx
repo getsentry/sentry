@@ -12,6 +12,7 @@ import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/token
 import {IconClose, IconMegaphone, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import useOrganization from 'sentry/utils/useOrganization';
 import QueryTokens from 'sentry/views/explore/components/queryTokens';
 import {
   type SeerSearchItem,
@@ -22,6 +23,7 @@ import {SeerSearchHeader} from 'sentry/views/explore/components/seerComboBox/see
 import {SeerSearchListBox} from 'sentry/views/explore/components/seerComboBox/seerSearchListBox';
 import {SeerSearchPopover} from 'sentry/views/explore/components/seerComboBox/seerSearchPopover';
 import {SeerSearchSkeleton} from 'sentry/views/explore/components/seerComboBox/seerSearchSkeleton';
+import {useTraceExploreAiQuerySetup} from 'sentry/views/explore/hooks/useTraceExploreAiQuerySetup';
 import {formatQueryToNaturalLanguage} from 'sentry/views/explore/utils';
 
 interface SeerComboBoxProps extends Omit<AriaComboBoxProps<unknown>, 'children'> {
@@ -135,6 +137,11 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
       );
     },
   });
+
+  const organization = useOrganization();
+  const areAiFeaturesAllowed =
+    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
+  useTraceExploreAiQuerySetup({enableAISearch: areAiFeaturesAllowed && state.isOpen});
 
   const {inputProps, listBoxProps} = useSearchTokenCombobox(
     {
