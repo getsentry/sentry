@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -328,7 +328,7 @@ export function SeerSearch({initialQuery = ''}: SeerSearchProps) {
             <SeerContent>
               <SeerHeader
                 title={
-                  <React.Fragment>
+                  <Fragment>
                     {t("Describe what you're looking for: ")}
                     <AnimatedExampleText
                       isAnimating={isAnimating}
@@ -341,7 +341,7 @@ export function SeerSearch({initialQuery = ''}: SeerSearchProps) {
                     >
                       {EXAMPLE_QUERIES[currentExampleIndex] || EXAMPLE_QUERIES[0]}
                     </AnimatedExampleText>
-                  </React.Fragment>
+                  </Fragment>
                 }
               />
             </SeerContent>
