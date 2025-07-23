@@ -250,9 +250,7 @@ def build_metric_alert_chart(
             user,
         )
     else:
-        if query_type == SnubaQuery.Type.PERFORMANCE and dataset == Dataset.PerformanceMetrics:
-            query_params["dataset"] = "metrics"
-        elif (
+        if (
             query_type == SnubaQuery.Type.PERFORMANCE
             and dataset == Dataset.EventsAnalyticsPlatform
             and snuba_query.event_types == [SnubaQueryEventType.EventType.TRACE_ITEM_LOG]
