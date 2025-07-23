@@ -62,6 +62,7 @@ import {
   IssuePriorityNode,
   validateIssuePriorityCondition,
 } from 'sentry/views/automations/components/actionFilters/issuePriority';
+import {IssuePriorityDeescalating} from 'sentry/views/automations/components/actionFilters/issuePriorityDeescalating';
 import {
   LatestAdoptedReleaseDetails,
   LatestAdoptedReleaseNode,
@@ -202,6 +203,15 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       details: IssuePriorityDetails,
       defaultComparison: Priority.HIGH,
       validate: validateIssuePriorityCondition,
+    },
+  ],
+  [
+    DataConditionType.ISSUE_PRIORITY_DEESCALATING,
+    {
+      label: t('De-escalation'),
+      dataCondition: IssuePriorityDeescalating,
+      details: IssuePriorityDeescalating,
+      validate: undefined,
     },
   ],
   [
