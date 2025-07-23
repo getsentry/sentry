@@ -50,8 +50,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:alert-allow-indexed", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Use metrics as the dataset for crash free metric alerts
     manager.add("organizations:alert-crash-free-metrics", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable anomaly detection feature for rollout
-    manager.add("organizations:anomaly-detection-rollout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=True)
     # Enable anomaly detection feature for EAP spans
     manager.add("organizations:anomaly-detection-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable anr frame analysis
