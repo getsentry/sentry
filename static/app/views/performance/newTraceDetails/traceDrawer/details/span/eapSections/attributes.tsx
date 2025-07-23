@@ -230,7 +230,7 @@ export function Attributes({
           size="sm"
         />
         {sortedAndFilteredAttributes.length > 0 ? (
-          <AttributesTreeWrapper>
+          <div>
             <AttributesTree
               columnCount={columnCount}
               attributes={sortedAndFilteredAttributes}
@@ -246,7 +246,7 @@ export function Attributes({
                 projectIds: findSpanAttributeValue(attributes, 'project_id'),
               })}
             />
-          </AttributesTreeWrapper>
+          </div>
         ) : (
           <NoAttributesMessage>
             <p>{t('No matching attributes found')}</p>
@@ -268,10 +268,6 @@ const ContentWrapper = styled('div')`
   flex-direction: column;
   max-width: 100%;
   gap: ${space(1.5)};
-`;
-
-const AttributesTreeWrapper = styled('div')`
-  padding-left: ${space(1)};
 `;
 
 const NoAttributesMessage = styled('div')`

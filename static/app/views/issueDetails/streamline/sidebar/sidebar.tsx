@@ -136,4 +136,8 @@ const Side = styled(Layout.Side)`
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
     border-top: 1px solid ${p => p.theme.border};
   }
+
+  > div {
+    margin-left: ${p => p.theme.space.xl};
+  }
 `;
