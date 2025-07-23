@@ -15,7 +15,6 @@ import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelN
 import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
 import {
   AI_MODEL_ID_ATTRIBUTE,
-  AI_TOKEN_USAGE_ATTRIBUTE_SUM,
   getAIGenerationsFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
@@ -34,48 +33,45 @@ import {
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
-export default function TokenUsageWidget() {
-  const theme = useTheme();
+export default function LLMCallsWidget() {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans-low',
   });
 
+  const theme = useTheme();
   const fullQuery = useCombinedQuery(getAIGenerationsFilter());
 
-  const tokensRequest = useSpans(
+  const generationsRequest = useSpans(
     {
-      fields: [AI_MODEL_ID_ATTRIBUTE, AI_TOKEN_USAGE_ATTRIBUTE_SUM],
-      sorts: [{field: AI_TOKEN_USAGE_ATTRIBUTE_SUM, kind: 'desc'}],
+      fields: [AI_MODEL_ID_ATTRIBUTE, 'count()'],
+      sorts: [{field: 'count()', kind: 'desc'}],
       search: fullQuery,
       limit: 3,
     },
-    Referrer.TOKEN_USAGE_WIDGET
+    Referrer.LLM_CALLS_WIDGET
   );
 
   const timeSeriesRequest = useTopNSpanSeries(
     {
       ...pageFilterChartParams,
       search: fullQuery,
-      fields: [AI_MODEL_ID_ATTRIBUTE, AI_TOKEN_USAGE_ATTRIBUTE_SUM],
-      yAxis: [AI_TOKEN_USAGE_ATTRIBUTE_SUM],
-      sort: {field: AI_TOKEN_USAGE_ATTRIBUTE_SUM, kind: 'desc'},
+      fields: [AI_MODEL_ID_ATTRIBUTE, 'count(span.duration)'],
+      yAxis: ['count(span.duration)'],
+      sort: {field: 'count(span.duration)', kind: 'desc'},
       topN: 3,
-      enabled: !!tokensRequest.data,
+      enabled: !!generationsRequest.data,
     },
-    Referrer.TOKEN_USAGE_WIDGET
+    Referrer.LLM_CALLS_WIDGET
   );
 
   const timeSeries = timeSeriesRequest.data;
 
-  const isLoading = timeSeriesRequest.isLoading || tokensRequest.isLoading;
-  const error = timeSeriesRequest.error || tokensRequest.error;
+  const isLoading = timeSeriesRequest.isLoading || generationsRequest.isLoading;
+  const error = timeSeriesRequest.error || generationsRequest.error;
 
-  const tokens = tokensRequest.data as unknown as
-    | Array<Record<string, string | number>>
-    | undefined;
-
-  const hasData = tokens && tokens.length > 0 && timeSeries.length > 0;
+  const models = generationsRequest.data;
+  const hasData = models && models.length > 0 && timeSeries.length > 0;
 
   const colorPalette = theme.chart.getColorPalette(timeSeries.length - 1);
 
@@ -87,7 +83,7 @@ export default function TokenUsageWidget() {
       emptyMessage={
         <GenericWidgetEmptyStateWarning
           message={tct(
-            'No token usage found. Try updating your filters, or learn more about AI Agents Insights in our [link:documentation].',
+            'No LLM calls found. Try updating your filters or learn more about AI Agents Insights in our [link:documentation].',
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/product/insights/agents/" />
@@ -114,7 +110,7 @@ export default function TokenUsageWidget() {
 
   const footer = hasData && (
     <WidgetFooterTable>
-      {tokens?.map((item, index) => {
+      {models?.map((item, index) => {
         const modelId = `${item[AI_MODEL_ID_ATTRIBUTE]}`;
         return (
           <Fragment key={modelId}>
@@ -129,7 +125,7 @@ export default function TokenUsageWidget() {
               <ModelName modelId={modelId} />
             </ModelText>
             <span>
-              <Count value={Number(item[AI_TOKEN_USAGE_ATTRIBUTE_SUM] || 0)} />
+              <Count value={item['count()'] ?? 0} />
             </span>
           </Fragment>
         );
@@ -139,30 +135,30 @@ export default function TokenUsageWidget() {
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={t('Tokens Used')} />}
+      Title={<Widget.WidgetTitle title={t('LLM Calls')} />}
       Visualization={visualization}
       Actions={
         organization.features.includes('visibility-explore-view') &&
-        timeSeries && (
+        hasData && (
           <Toolbar
             showCreateAlert
-            referrer={Referrer.TOKEN_USAGE_WIDGET}
+            referrer={Referrer.LLM_CALLS_WIDGET}
             exploreParams={{
               mode: Mode.AGGREGATE,
               visualize: [
                 {
                   chartType: ChartType.BAR,
-                  yAxes: [AI_TOKEN_USAGE_ATTRIBUTE_SUM],
+                  yAxes: ['count(span.duration)'],
                 },
               ],
               groupBy: [AI_MODEL_ID_ATTRIBUTE],
               query: fullQuery,
-              sort: `-${AI_TOKEN_USAGE_ATTRIBUTE_SUM}`,
+              sort: `-count(span.duration)`,
               interval: pageFilterChartParams.interval,
             }}
             onOpenFullScreen={() => {
               openInsightChartModal({
-                title: t('Token Usage'),
+                title: t('LLM Calls'),
                 children: (
                   <Fragment>
                     <ModalChartContainer>{visualization}</ModalChartContainer>
@@ -181,6 +177,7 @@ export default function TokenUsageWidget() {
 }
 
 const ModelText = styled('div')`
+  ${p => p.theme.overflowEllipsis};
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.2;
