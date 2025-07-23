@@ -29,6 +29,7 @@ function OrganizationFeatureFlagsNewSecret() {
   const [newSecret, setNewSecret] = useState<string | null>(null);
   const [provider, setProvider] = useState<string>('');
   const [selectedProvider, setSelectedProvider] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
   const organization = useOrganization();
   const user = useUser();
   const navigate = useNavigate();
@@ -51,6 +52,10 @@ function OrganizationFeatureFlagsNewSecret() {
       normalizeUrl(`/settings/${organization.slug}/feature-flags/change-tracking/`)
     );
   }, [organization.slug, navigate]);
+
+  const handleError = useCallback((errorMessage: string | null) => {
+    setError(errorMessage);
+  }, []);
 
   // check if selected provider is already configured
   const existingSecret = secretList?.data?.find(
@@ -86,6 +91,14 @@ function OrganizationFeatureFlagsNewSecret() {
         </Alert>
       </Alert.Container>
 
+      {error && (
+        <Alert.Container>
+          <Alert type="error" showIcon>
+            {error}
+          </Alert>
+        </Alert.Container>
+      )}
+
       {existingSecret && !canOverrideProvider && (
         <Alert.Container>
           <Alert type="warning" showIcon>
@@ -108,6 +121,7 @@ function OrganizationFeatureFlagsNewSecret() {
           ) : (
             <NewProviderForm
               onCreatedSecret={setNewSecret}
+              onError={handleError}
               onProviderChange={setSelectedProvider}
               onSetProvider={setProvider}
               canOverrideProvider={canOverrideProvider}

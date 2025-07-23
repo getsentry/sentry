@@ -7,7 +7,6 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
 import {
   PROVIDER_TO_SETUP_WEBHOOK_URL,
@@ -43,11 +42,13 @@ export default function NewProviderForm({
   onCreatedSecret,
   onProviderChange,
   onSetProvider,
+  onError,
   canOverrideProvider,
   existingSecret,
 }: {
   canOverrideProvider: boolean;
   onCreatedSecret: (secret: string) => void;
+  onError: (error: string | null) => void;
   onProviderChange: (provider: string) => void;
   onSetProvider: (provider: string) => void;
   existingSecret?: Secret;
@@ -62,7 +63,6 @@ export default function NewProviderForm({
   const navigate = useNavigate();
 
   const [selectedProvider, setSelectedProvider] = useState('');
-  const [error, setError] = useState<string | null>(null);
 
   const handleGoBack = useCallback(() => {
     navigate(
@@ -105,7 +105,7 @@ export default function NewProviderForm({
           : t('Failed to add provider or secret.');
       handleXhrErrorResponse(message, requestError);
       addErrorMessage(message);
-      setError(message);
+      onError(message);
     },
   });
 
@@ -124,20 +124,12 @@ export default function NewProviderForm({
 
   return (
     <Fragment>
-      {error && (
-        <Alert.Container>
-          <Alert type="error" showIcon>
-            {error}
-          </Alert>
-        </Alert.Container>
-      )}
-
       <Form
         apiMethod="POST"
         initialData={initialData}
         apiEndpoint={`/organizations/${organization.slug}/flags/signing-secrets/`}
         onSubmit={({provider, secret}) => {
-          setError(null);
+          onError(null);
           submitSecret({
             provider,
             secret,
