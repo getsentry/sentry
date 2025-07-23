@@ -33,7 +33,6 @@ class RateLimitType(Enum):
     NOT_LIMITED = "not_limited"
     CONCURRENT = "concurrent"
     FIXED_WINDOW = "fixed_window"
-    SNUBA = "snuba"
 
 
 @dataclass
@@ -51,12 +50,12 @@ class RateLimitMeta:
     """
 
     rate_limit_type: RateLimitType
-    current: int | None
-    remaining: int | None
-    limit: int | None
-    window: int | None
+    current: int
+    remaining: int
+    limit: int
+    window: int
     group: str
-    reset_time: int | None
+    reset_time: int
     concurrent_limit: int | None
     concurrent_requests: int | None
 
@@ -65,3 +64,13 @@ class RateLimitMeta:
         if self.concurrent_limit is not None and self.concurrent_requests is not None:
             return self.concurrent_limit - self.concurrent_requests
         return None
+
+
+@dataclass
+class SnubaRateLimitMeta:
+    """
+    Rate Limit metadata for Snuba's RateLimitExceeded error
+    """
+
+    quota_used: int | None
+    rejection_threshold: int | None

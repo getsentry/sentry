@@ -366,6 +366,16 @@ class RateLimitExceeded(SnubaError):
     Exception raised when a query cannot be executed due to rate limits.
     """
 
+    quota_used: int | None
+    rejection_threshold: int | None
+
+    def __init__(
+        self, message: str, quota_used: int | None = None, rejection_threshold: int | None = None
+    ) -> None:
+        super().__init__(message)
+        self.quota_used = quota_used
+        self.rejection_threshold = rejection_threshold
+
 
 class SchemaValidationError(QueryExecutionError):
     """
@@ -1233,7 +1243,12 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                 if body.get("error"):
                     error = body["error"]
                     if response.status == 429:
-                        raise RateLimitExceeded(error["message"])
+                        quota_allowance = error["quota_allowance"]["details"]
+                        raise RateLimitExceeded(
+                            error["message"],
+                            quota_allowance["quota_used"],
+                            quota_allowance["rejection_threshold"],
+                        )
                     elif error["type"] == "schema":
                         raise SchemaValidationError(error["message"])
                     elif error["type"] == "invalid_query":

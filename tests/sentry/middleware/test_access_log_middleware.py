@@ -39,7 +39,9 @@ class SnubaRateLimitedEndpoint(Endpoint):
 
     def get(self, request):
         raise RateLimitExceeded(
-            "RateLimitExceeded: Query on could not be run due to allocation policies, ... 'rejection_threshold': 40, 'quota_used': 41, ..."
+            "RateLimitExceeded: Query on could not be run due to allocation policies, ... 'rejection_threshold': 40, 'quota_used': 41, ...",
+            quota_used=41,
+            rejection_threshold=40,
         )
 
 
@@ -142,6 +144,8 @@ access_log_fields = (
     "reset_time",
     "limit",
     "remaining",
+    "snuba_quota_used",
+    "snuba_rejection_threshold",
 )
 
 
@@ -179,14 +183,17 @@ class TestAccessLogSnubaRateLimited(LogCaptureAPITestCase):
 
         assert self.captured_logs[0].rate_limit_type == "RateLimitType.SNUBA"
         assert self.captured_logs[0].rate_limited == "True"
-        assert self.captured_logs[0].group == "snuba"
 
-        assert self.captured_logs[0].remaining == "0"
-        assert self.captured_logs[0].concurrent_limit == "40"
-        assert self.captured_logs[0].concurrent_requests == "41"
-
+        # All the types from the standard rate limit metadata should not be set
+        assert self.captured_logs[0].remaining == "None"
+        assert self.captured_logs[0].concurrent_limit == "None"
+        assert self.captured_logs[0].concurrent_requests == "None"
         assert self.captured_logs[0].limit == "None"
         assert self.captured_logs[0].reset_time == "None"
+
+        # Snuba rate limit specific fields should be set
+        assert self.captured_logs[0].snuba_quota_used == "41"
+        assert self.captured_logs[0].snuba_rejection_threshold == "40"
 
 
 @all_silo_test
