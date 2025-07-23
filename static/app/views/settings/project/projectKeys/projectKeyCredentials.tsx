@@ -122,7 +122,7 @@ function ProjectKeyCredentials({
           >
             <TextCopyInput aria-label={t('OTLP Traces Endpoint Headers')}>
               {getDynamicText({
-                value: `x-sentry-auth=sentry sentry_key=${data.dsn.secret}`,
+                value: `x-sentry-auth=sentry sentry_key=${data.public}`,
                 fixed: '__OTLP_ENDPOINT_HEADERS__',
               })}
             </TextCopyInput>
