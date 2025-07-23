@@ -2,10 +2,8 @@ from __future__ import annotations
 
 import logging
 import threading
-import weakref
-from collections.abc import Callable, Collection, Generator, Mapping, MutableMapping, Sequence
+from collections.abc import Collection, Generator, Mapping, MutableMapping, Sequence
 from contextlib import contextmanager
-from enum import IntEnum, auto
 from typing import Any
 
 from django.conf import settings
@@ -13,7 +11,7 @@ from django.db import models, router
 from django.db.models import Model
 from django.db.models.fields import Field
 from django.db.models.manager import Manager as DjangoBaseManager
-from django.db.models.signals import class_prepared, post_delete, post_init, post_save
+from django.db.models.signals import class_prepared, post_delete, post_save
 
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.manager.types import M
@@ -33,15 +31,6 @@ _local_cache_enabled = False
 def flush_manager_local_cache() -> None:
     global _local_cache
     _local_cache = threading.local()
-
-
-class ModelManagerTriggerCondition(IntEnum):
-    QUERY = auto()
-    SAVE = auto()
-    DELETE = auto()
-
-
-ModelManagerTriggerAction = Callable[[type[Model]], None]
 
 
 def __prep_value(model: Any, key: str, value: Model | int | str) -> str:
@@ -93,11 +82,6 @@ class BaseManager(_base_manager_base[M]):
         self.cache_fields = cache_fields if cache_fields is not None else ()
         self.cache_ttl = cache_ttl
         self._cache_version: str | None = kwargs.pop("cache_version", None)
-        self.__local_cache = threading.local()
-
-        self._triggers: dict[
-            object, tuple[ModelManagerTriggerCondition, ModelManagerTriggerAction]
-        ] = {}
         super().__init__(*args, **kwargs)
 
     @staticmethod
@@ -127,15 +111,6 @@ class BaseManager(_base_manager_base[M]):
 
         return _local_cache.cache
 
-    def _get_cache(self) -> MutableMapping[str, Any]:
-        if not hasattr(self.__local_cache, "value"):
-            self.__local_cache.value = weakref.WeakKeyDictionary()
-
-        return self.__local_cache.value
-
-    def _set_cache(self, value: Any) -> None:
-        self.__local_cache.value = value
-
     @property
     def cache_version(self) -> str:
         if self._cache_version is None:
@@ -143,20 +118,6 @@ class BaseManager(_base_manager_base[M]):
                 "&".join(sorted(f.attname for f in self.model._meta.fields))
             ).hexdigest()[:3]
         return self._cache_version
-
-    __cache = property(_get_cache, _set_cache)
-
-    def __getstate__(self) -> Mapping[str, Any]:
-        d = self.__dict__.copy()
-        # we can't serialize weakrefs
-        d.pop("_BaseManager__cache", None)
-        d.pop("_BaseManager__local_cache", None)
-        return d
-
-    def __setstate__(self, state: Mapping[str, Any]) -> None:
-        self.__dict__.update(state)
-        # TODO(typing): Basically everywhere else we set this to `threading.local()`.
-        self.__local_cache = weakref.WeakKeyDictionary()  # type: ignore[assignment]
 
     def __class_prepared(self, sender: Any, **kwargs: Any) -> None:
         """
@@ -168,29 +129,12 @@ class BaseManager(_base_manager_base[M]):
         if not self.cache_fields:
             return
 
-        post_init.connect(self.__post_init, sender=sender, weak=False)
         post_save.connect(self.__post_save, sender=sender, weak=False)
         post_delete.connect(self.__post_delete, sender=sender, weak=False)
 
-    def __cache_state(self, instance: M) -> None:
-        """
-        Updates the tracked state of an instance.
-        """
-        if instance.pk:
-            self.__cache[instance] = {
-                f: self.__value_for_field(instance, f) for f in self.cache_fields
-            }
-
-    def __post_init(self, instance: M, **kwargs: Any) -> None:
-        """
-        Stores the initial state of an instance.
-        """
-        self.__cache_state(instance)
-
     def __post_save(self, instance: M, **kwargs: Any) -> None:
         """
-        Pushes changes to an instance into the cache, and removes invalid (changed)
-        lookup values.
+        Pushes changes to an instance into the cache
         """
         pk_name = instance._meta.pk.name
         pk_names = ("pk", pk_name)
@@ -222,22 +166,6 @@ class BaseManager(_base_manager_base[M]):
             logger.exception(str(e))
         instance._state.db = db
 
-        # Kill off any keys which are no longer valid
-        if instance in self.__cache:
-            for key in self.cache_fields:
-                if key not in self.__cache[instance]:
-                    continue
-                value = self.__cache[instance][key]
-                current_value = self.__value_for_field(instance, key)
-                if value != current_value:
-                    cache.delete(
-                        key=self.__get_lookup_cache_key(**{key: value}), version=self.cache_version
-                    )
-
-        self.__cache_state(instance)
-
-        self._execute_triggers(ModelManagerTriggerCondition.SAVE)
-
     def __post_delete(self, instance: M, **kwargs: Any) -> None:
         """
         Drops instance from all cache storages.
@@ -255,8 +183,6 @@ class BaseManager(_base_manager_base[M]):
         cache.delete(
             key=self.__get_lookup_cache_key(**{pk_name: instance.pk}), version=self.cache_version
         )
-
-        self._execute_triggers(ModelManagerTriggerCondition.DELETE)
 
     def __get_lookup_cache_key(self, **kwargs: Any) -> str:
         return make_key(self.model, "modelcache", kwargs)
@@ -499,43 +425,9 @@ class BaseManager(_base_manager_base[M]):
         Returns a new QuerySet object.  Subclasses can override this method to
         easily customize the behavior of the Manager.
         """
-
-        # TODO: This is a quick-and-dirty place to put the trigger hook that won't
-        #  work for all model classes, because some custom managers override
-        #  get_queryset without a `super` call.
-        self._execute_triggers(ModelManagerTriggerCondition.QUERY)
-
         if hasattr(self, "_hints"):
             return self._queryset_class(self.model, using=self._db, hints=self._hints)
         return self._queryset_class(self.model, using=self._db)
-
-    @contextmanager
-    def register_trigger(
-        self, condition: ModelManagerTriggerCondition, action: ModelManagerTriggerAction
-    ) -> Generator[None]:
-        """Register a callback for when an operation is executed inside the context.
-
-        There is no guarantee whether the action will be called before or after the
-        triggering operation is executed, nor whether it will or will not be called
-        if the triggering operation raises an exception.
-
-        Both the registration of the trigger and the execution of the action are NOT
-        THREADSAFE. This is intended for offline use in single-threaded contexts such
-        as pytest. We must add synchronization if we intend to adapt it for
-        production use.
-        """
-
-        key = object()
-        self._triggers[key] = (condition, action)
-        try:
-            yield
-        finally:
-            del self._triggers[key]
-
-    def _execute_triggers(self, condition: ModelManagerTriggerCondition) -> None:
-        for next_condition, next_action in self._triggers.values():
-            if condition == next_condition:
-                next_action(self.model)
 
 
 def create_silo_limited_copy(self: BaseManager[M], limit: SiloLimit) -> BaseManager[M]:
