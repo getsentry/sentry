@@ -88,6 +88,8 @@ export const enum SectionKey {
 
   MCP_INPUT = 'mcp-input',
   MCP_OUTPUT = 'mcp-output',
+
+  SPAN_LINKS = 'span-links',
 }
 
 /**
