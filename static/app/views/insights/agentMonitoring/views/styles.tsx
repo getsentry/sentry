@@ -1,13 +1,5 @@
 import styled from '@emotion/styled';
 
-export const SeriesColorIndicator = styled('div')`
-  position: absolute;
-  left: -1px;
-  width: 8px;
-  height: 16px;
-  border-radius: 0 3px 3px 0;
-`;
-
 const StyledGrid = styled('div')<{rowHeight: number; paddingBottom?: number}>`
   display: grid;
   gap: ${p => p.theme.space.xl};
