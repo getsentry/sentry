@@ -61,7 +61,7 @@
           const forceRefreshPage = () => {
             setTimeout(() => {
               // NOTE: window.location.reload(true) does not work on Chrome
-              window.location.replace(window.location.href)
+              window.location.replace(window.location.href);
             }, 500);
           };
 
@@ -70,7 +70,7 @@
            */
           const fetchDeleteLogin = async () => {
             const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
-            return await fetch('/api/0/auth/', {
+            return await fetch('/api/0/auth/?referrer=csrf_error', {
               method: 'DELETE',
               headers: {'X-CSRFToken': csrfToken},
               credentials: 'include',
@@ -80,8 +80,9 @@
           /**
            * API call to rotate CSRF token
            */
-          const fetchPutCsrf = async () => {
-            return await fetch('/api/0/auth-v2/csrf/', {
+          const fetchPutCsrf = async (isAutoRotate = false) => {
+            const referrer = isAutoRotate ? 'csrf_error' : 'csrf_error_repeat';
+            return await fetch(`/api/0/auth-v2/csrf/?referrer=${referrer}`, {
               method: 'PUT',
               credentials: 'include',
             });
@@ -91,20 +92,19 @@
            * onClick handler to rotate CSRF token. If 403 error, there's an existing session,
            * so try to logout to clear cookies
            */
-          const rotateCsrf = async () => {
+          const rotateCsrf = async (isAutoRotate = false) => {
             button.disabled = true;
             button.textContent = '{% trans "Rotating..." %}';
             status.textContent = '';
 
             try {
-              const csrfRes = await fetchPutCsrf();
+              const csrfRes = await fetchPutCsrf(isAutoRotate);
               const logoutRes = csrfRes.status == 403 && (await fetchDeleteLogin());
               if (!csrfRes.ok && !logoutRes.ok) {
                 throw new Error();
               }
 
-              status.textContent =
-                '{% trans "Token rotated! Refreshing the page in 1 sec..." %}';
+              status.textContent = '{% trans "Token rotated! Refreshing the page in 1 sec..." %}';
               status.style.color = 'green';
               forceRefreshPage();
             } catch (error) {
@@ -120,26 +120,26 @@
            * Register onClick using JS instead of HTML to guarantee that method exists
            * before it is registered
            */
-          button.addEventListener('click', rotateCsrf);
+          button.addEventListener('click', () => rotateCsrf(false));
 
           /**
            * If user has not see this this page in the last 5min (i.e. they are not stuck
            * in a loop), then we invoke rotateCsrf() to try to fix the problem for them
            */
           const autoRotateCsrf = () => {
-            const storedCsrfError = localStorage.getItem('lastCsrfError');
-            const lastDate = new Date(storedCsrfError);
-            const diffMs = Date.now() - lastDate.getTime();
-
             const FIVE_MINUTES_MS = 5 * 60 * 1000;
 
-            if (!storedCsrfError || diffMs > FIVE_MINUTES) {
+            const storedCsrfError = localStorage.getItem('lastCsrfError');
+            const lastDate = new Date(storedCsrfError);
+            const diffDate = Date.now() - lastDate.getTime();
+
+            if (!storedCsrfError || diffDate > FIVE_MINUTES_MS) {
               localStorage.setItem('lastCsrfError', new Date().toISOString());
 
               button.disabled = true;
               status.textContent = '{% trans "Automatically rotating tokens..." %}';
               status.style.color = 'green';
-              setTimeout(() => rotateCsrf(), 1500);
+              setTimeout(() => rotateCsrf(true), 1500);
             }
           };
 
