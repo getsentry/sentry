@@ -72,6 +72,10 @@ export interface CompositeSelectProps extends ControlProps {
    * whose values don't interfere with one another.
    */
   children: CompositeSelectChild | CompositeSelectChild[];
+  /**
+   * Custom threshold for enabling virtualization. Defaults to 100 items.
+   */
+  virtualizationThreshold?: number;
 }
 
 /**
@@ -79,6 +83,7 @@ export interface CompositeSelectProps extends ControlProps {
  */
 function CompositeSelect({
   children,
+  virtualizationThreshold,
   // Control props
   grid,
   disabled,
@@ -96,7 +101,7 @@ function CompositeSelect({
             }
 
             return (
-              <Region {...child.props} grid={grid} size={size} compositeIndex={index} />
+              <Region {...child.props} grid={grid} size={size} compositeIndex={index} virtualizationThreshold={virtualizationThreshold} />
             );
           })}
 
@@ -142,6 +147,7 @@ function Region<Value extends SelectKey>({
   size,
   compositeIndex,
   label,
+  virtualizationThreshold,
   ...props
 }: RegionProps<Value>) {
   // Combine list props into an object with two clearly separated types, one where
@@ -178,6 +184,7 @@ function Region<Value extends SelectKey>({
       compositeIndex={compositeIndex}
       size={size}
       label={label}
+      virtualizationThreshold={virtualizationThreshold}
     >
       {(opt: (typeof itemsWithKey)[number]) => (
         <Item {...opt} key={opt.key}>

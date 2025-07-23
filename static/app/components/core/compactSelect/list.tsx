@@ -97,6 +97,10 @@ interface BaseListProps<Value extends SelectKey>
    * Message to be displayed when some options are hidden due to `sizeLimit`.
    */
   sizeLimitMessage?: string;
+  /**
+   * Custom threshold for enabling virtualization. Defaults to 100 items.
+   */
+  virtualizationThreshold?: number;
 }
 
 export interface SingleListProps<Value extends SelectKey> extends BaseListProps<Value> {
@@ -144,6 +148,7 @@ function List<Value extends SelectKey>({
   compositeIndex = 0,
   sizeLimit,
   sizeLimitMessage,
+  virtualizationThreshold,
   closeOnSelect,
   ...props
 }: SingleListProps<Value> | MultipleListProps<Value>) {
@@ -352,6 +357,7 @@ function List<Value extends SelectKey>({
             id={listId}
             listState={listState}
             sizeLimitMessage={sizeLimitMessage}
+            virtualizationThreshold={virtualizationThreshold}
             keyDownHandler={keyDownHandler}
           />
         </SelectFilterContext>
@@ -366,6 +372,7 @@ function List<Value extends SelectKey>({
           shouldFocusWrap={shouldFocusWrap}
           shouldFocusOnHover={shouldFocusOnHover}
           sizeLimitMessage={sizeLimitMessage}
+          virtualizationThreshold={virtualizationThreshold}
           keyDownHandler={keyDownHandler}
         />
       )}

@@ -21,6 +21,11 @@ export type {SelectOption, SelectOptionOrSection, SelectSection, SelectKey};
 
 interface BaseSelectProps<Value extends SelectKey> extends ControlProps {
   options: Array<SelectOptionOrSection<Value>>;
+  /**
+   * Custom threshold for enabling virtualization. Defaults to 100 items.
+   * Only applied when the dropdown has more items than this threshold.
+   */
+  virtualizationThreshold?: number;
 }
 
 export interface SingleSelectProps<Value extends SelectKey>
@@ -68,6 +73,7 @@ function CompactSelect<Value extends SelectKey>({
   isOptionDisabled,
   sizeLimit,
   sizeLimitMessage,
+  virtualizationThreshold,
 
   // Control props
   grid,
@@ -124,6 +130,7 @@ function CompactSelect<Value extends SelectKey>({
         size={size}
         sizeLimit={sizeLimit}
         sizeLimitMessage={sizeLimitMessage}
+        virtualizationThreshold={virtualizationThreshold}
         aria-labelledby={triggerId}
       >
         {(item: SelectOptionOrSectionWithKey<Value>) => {

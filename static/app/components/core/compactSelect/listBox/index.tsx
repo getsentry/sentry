@@ -4,6 +4,7 @@ import {useListBox} from '@react-aria/listbox';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
+import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {
   ListLabel,
@@ -17,6 +18,11 @@ import type {FormSize} from 'sentry/utils/theme';
 
 import {ListBoxOption} from './option';
 import {ListBoxSection} from './section';
+
+// Threshold for enabling virtualization - only virtualize if more than this many items
+const VIRTUALIZATION_THRESHOLD = 100;
+// Estimated height for each list item - will be measured dynamically
+const ESTIMATED_ITEM_HEIGHT = 32;
 
 interface ListBoxProps
   extends Omit<
@@ -89,6 +95,10 @@ interface ListBoxProps
    * Message to be displayed when some options are hidden due to `sizeLimit`.
    */
   sizeLimitMessage?: string;
+  /**
+   * Custom threshold for enabling virtualization. Defaults to 100 items.
+   */
+  virtualizationThreshold?: number;
 }
 
 const EMPTY_SET = new Set<never>();
@@ -118,6 +128,7 @@ export function ListBox({
   overlayIsOpen,
   showSectionHeaders = true,
   showDetails = true,
+  virtualizationThreshold = VIRTUALIZATION_THRESHOLD,
   ...props
 }: ListBoxProps) {
   const listElementRef = useRef<HTMLUListElement>(null);
@@ -153,6 +164,70 @@ export function ListBox({
     [listState.collection, hiddenOptions]
   );
 
+  // Determine if virtualization should be enabled based on item count
+  const shouldVirtualize = listItems.length > virtualizationThreshold;
+
+  // Set up virtualizer for large lists
+  const virtualizer = useVirtualizer({
+    count: listItems.length,
+    getScrollElement: () => listElementRef.current,
+    estimateSize: () => ESTIMATED_ITEM_HEIGHT,
+    overscan: 5,
+    enabled: shouldVirtualize,
+  });
+
+  const virtualItems = shouldVirtualize ? virtualizer.getVirtualItems() : [];
+
+  // Render non-virtualized list for smaller item counts
+  if (!shouldVirtualize) {
+    return (
+      <Fragment>
+        {listItems.length !== 0 && <ListSeparator role="separator" />}
+        {listItems.length !== 0 && label && <ListLabel {...labelProps}>{label}</ListLabel>}
+        <ListWrap
+          {...mergeProps(listBoxProps, props)}
+          onKeyDown={onKeyDown}
+          ref={mergeRefs(listElementRef, ref)}
+        >
+          {overlayIsOpen &&
+            listItems.map(item => {
+              if (item.type === 'section') {
+                return (
+                  <ListBoxSection
+                    key={item.key}
+                    item={item}
+                    listState={listState}
+                    hiddenOptions={hiddenOptions}
+                    onToggle={onSectionToggle}
+                    size={size}
+                    showSectionHeaders={showSectionHeaders}
+                    showDetails={showDetails}
+                  />
+                );
+              }
+
+              return (
+                <ListBoxOption
+                  key={item.key}
+                  item={item}
+                  listState={listState}
+                  size={size}
+                  showDetails={showDetails}
+                />
+              );
+            })}
+
+          {!hasSearch && hiddenOptions.size > 0 && (
+            <SizeLimitMessage>
+              {sizeLimitMessage ?? t('Use search to find more options…')}
+            </SizeLimitMessage>
+          )}
+        </ListWrap>
+      </Fragment>
+    );
+  }
+
+  // Render virtualized list for large item counts
   return (
     <Fragment>
       {listItems.length !== 0 && <ListSeparator role="separator" />}
@@ -161,34 +236,64 @@ export function ListBox({
         {...mergeProps(listBoxProps, props)}
         onKeyDown={onKeyDown}
         ref={mergeRefs(listElementRef, ref)}
+        style={{
+          height: '300px', // Fixed height for virtualized list
+          overflow: 'auto',
+          ...props.style,
+        }}
       >
-        {overlayIsOpen &&
-          listItems.map(item => {
-            if (item.type === 'section') {
-              return (
-                <ListBoxSection
-                  key={item.key}
-                  item={item}
-                  listState={listState}
-                  hiddenOptions={hiddenOptions}
-                  onToggle={onSectionToggle}
-                  size={size}
-                  showSectionHeaders={showSectionHeaders}
-                  showDetails={showDetails}
-                />
-              );
-            }
+        {overlayIsOpen && (
+          <div
+            style={{
+              height: virtualizer.getTotalSize(),
+              width: '100%',
+              position: 'relative',
+            }}
+          >
+            {virtualItems.map(virtualItem => {
+              const item = listItems[virtualItem.index];
+              if (!item) {
+                return null;
+              }
 
-            return (
-              <ListBoxOption
-                key={item.key}
-                item={item}
-                listState={listState}
-                size={size}
-                showDetails={showDetails}
-              />
-            );
-          })}
+              return (
+                <div
+                  key={virtualItem.key}
+                  data-index={virtualItem.index}
+                  ref={virtualizer.measureElement}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    transform: `translateY(${virtualItem.start}px)`,
+                  }}
+                >
+                  {item.type === 'section' ? (
+                    <ListBoxSection
+                      key={item.key}
+                      item={item}
+                      listState={listState}
+                      hiddenOptions={hiddenOptions}
+                      onToggle={onSectionToggle}
+                      size={size}
+                      showSectionHeaders={showSectionHeaders}
+                      showDetails={showDetails}
+                    />
+                  ) : (
+                    <ListBoxOption
+                      key={item.key}
+                      item={item}
+                      listState={listState}
+                      size={size}
+                      showDetails={showDetails}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {!hasSearch && hiddenOptions.size > 0 && (
           <SizeLimitMessage>

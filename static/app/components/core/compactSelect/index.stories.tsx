@@ -450,6 +450,119 @@ export default Storybook.story('CompactSelect', story => {
       </Fragment>
     );
   });
+
+  story('Virtualization', () => {
+    const [value, setValue] = useState<string>('');
+    const [virtualizationThreshold, setVirtualizationThreshold] = useState<number>(100);
+
+    // Generate a large list of options to demonstrate virtualization
+    const generateLargeOptionsList = (count: number) => {
+      return Array.from({length: count}, (_, index) => ({
+        value: `item-${index}`,
+        label: `Item ${index + 1}`,
+        details: `Option details for item ${index + 1}`,
+      }));
+    };
+
+    const smallOptions = generateLargeOptionsList(50);
+    const mediumOptions = generateLargeOptionsList(150);
+    const largeOptions = generateLargeOptionsList(500);
+    const extraLargeOptions = generateLargeOptionsList(1000);
+
+    const handleValueChange = (newValue: any) => {
+      setValue(newValue.value);
+    };
+
+    return (
+      <Fragment>
+        <p>
+          <code>CompactSelect</code> supports automatic virtualization for large dropdown
+          lists using <code>@tanstack/react-virtual</code>. This improves performance by
+          only rendering visible items in the DOM when the list exceeds a certain threshold
+          (default: 100 items).
+        </p>
+        
+        <p>
+          You can customize the virtualization threshold using the{' '}
+          <code>virtualizationThreshold</code> prop. When a list has fewer items than the
+          threshold, it renders normally. When it exceeds the threshold, virtualization
+          kicks in automatically.
+        </p>
+
+        <div style={{marginBottom: '1rem'}}>
+          <label style={{display: 'block', marginBottom: '0.5rem'}}>
+            Virtualization Threshold: {virtualizationThreshold} items
+          </label>
+          <input
+            type="range"
+            min="50"
+            max="200"
+            step="25"
+            value={virtualizationThreshold}
+            onChange={(e) => setVirtualizationThreshold(Number(e.target.value))}
+            style={{width: '300px'}}
+          />
+        </div>
+
+        <Storybook.Grid columns={2}>
+          <div>
+            <h4>50 Items (Non-virtualized)</h4>
+            <CompactSelect
+              value={value}
+              onChange={handleValueChange}
+              options={smallOptions}
+              searchable
+              menuTitle="50 Items"
+              virtualizationThreshold={virtualizationThreshold}
+            />
+          </div>
+
+          <div>
+            <h4>150 Items (Potentially virtualized)</h4>
+            <CompactSelect
+              value={value}
+              onChange={handleValueChange}
+              options={mediumOptions}
+              searchable
+              menuTitle="150 Items"
+              virtualizationThreshold={virtualizationThreshold}
+            />
+          </div>
+
+          <div>
+            <h4>500 Items (Virtualized)</h4>
+            <CompactSelect
+              value={value}
+              onChange={handleValueChange}
+              options={largeOptions}
+              searchable
+              menuTitle="500 Items"
+              virtualizationThreshold={virtualizationThreshold}
+            />
+          </div>
+
+          <div>
+            <h4>1000 Items (Virtualized)</h4>
+            <CompactSelect
+              value={value}
+              onChange={handleValueChange}
+              options={extraLargeOptions}
+              searchable
+              menuTitle="1000 Items"
+              virtualizationThreshold={virtualizationThreshold}
+            />
+          </div>
+        </Storybook.Grid>
+
+        <p>
+          <strong>Performance Note:</strong> Virtualized lists have a fixed height 
+          (300px by default) and only render visible items plus a small overscan buffer. 
+          You can see the performance difference by opening the browser dev tools and 
+          comparing DOM node counts between virtualized and non-virtualized lists.
+        </p>
+      </Fragment>
+    );
+  });
 });
 
 const arrayToOptions = (array: string[]) =>
