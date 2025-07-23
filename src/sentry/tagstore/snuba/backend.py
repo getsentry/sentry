@@ -335,14 +335,14 @@ class SnubaTagStorage(TagStorage):
             ) as span:
                 result = cache.get(cache_key, None)
 
-                span.set_data("cache.key", [cache_key])
+                span.set_attribute("cache.key", [cache_key])
 
                 if result is not None:
-                    span.set_data("cache.hit", True)
-                    span.set_data("cache.item_size", len(str(result)))
+                    span.set_attribute("cache.hit", True)
+                    span.set_attribute("cache.item_size", len(str(result)))
                     metrics.incr("testing.tagstore.cache_tag_key.hit")
                 else:
-                    span.set_data("cache.hit", False)
+                    span.set_attribute("cache.hit", False)
                     metrics.incr("testing.tagstore.cache_tag_key.miss")
 
         if result is None:
@@ -364,8 +364,8 @@ class SnubaTagStorage(TagStorage):
                     op="cache.put", name="sentry.tagstore.cache.__get_tag_keys_for_projects"
                 ) as span:
                     cache.set(cache_key, result, 300)
-                    span.set_data("cache.key", [cache_key])
-                    span.set_data("cache.item_size", len(str(result)))
+                    span.set_attribute("cache.key", [cache_key])
+                    span.set_attribute("cache.item_size", len(str(result)))
                     metrics.incr("testing.tagstore.cache_tag_key.len", amount=len(result))
 
         ctor: _KeyCallable[TagKey, Never] | _KeyCallable[GroupTagKey, Never]

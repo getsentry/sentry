@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import os
 import time
 import uuid
 import zipfile
@@ -8,6 +9,7 @@ from io import BytesIO
 from typing import Any
 from unittest.mock import Mock, patch
 
+import django.test
 import orjson
 import pytest
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -24,6 +26,7 @@ from sentry.ingest.consumer.processors import (
     process_event,
     process_individual_attachment,
     process_userreport,
+    trace_func,
 )
 from sentry.ingest.types import ConsumerType
 from sentry.models.debugfile import create_files_from_dif_zip
@@ -621,3 +624,58 @@ def test_collect_span_metrics(default_project):
             assert mock_metrics.incr.call_count == 0
             collect_span_metrics(default_project, {"spans": [1, 2, 3]})
             assert mock_metrics.incr.call_count == 1
+
+
+@pytest.mark.parametrize(
+    ("env_value", "settings_value", "expected_sample_rate"),
+    (
+        # Both unset - should use default of 0
+        (None, None, 0.0),
+        # Only environment variable set
+        ("0", None, 0.0),
+        ("1", None, 1.0),
+        ("0.5", None, 0.5),
+        # Only settings value set
+        (None, 0, 0.0),
+        (None, 1, 1.0),
+        (None, 0.7, 0.7),
+        # Both set - environment variable should take precedence
+        ("0", 1, 0.0),  # env=0, settings=1 -> should use env (0)
+        ("1", 0, 1.0),  # env=1, settings=0 -> should use env (1)
+        ("0.3", 0.8, 0.3),  # env=0.3, settings=0.8 -> should use env (0.3)
+    ),
+)
+def test_sample_rate_passed(env_value, settings_value, expected_sample_rate):
+    # Test various combinations of environment variable and settings values
+
+    # Prepare environment
+    env_dict = {}
+    if env_value is not None:
+        env_dict["SENTRY_INGEST_CONSUMER_APM_SAMPLING"] = env_value
+
+    with patch.dict(os.environ, env_dict, clear=True):
+        with django.test.override_settings(SENTRY_INGEST_CONSUMER_APM_SAMPLING=settings_value):
+            # If settings_value is None, delete the setting to simulate it not being set
+            if settings_value is None:
+                del settings.SENTRY_INGEST_CONSUMER_APM_SAMPLING
+
+            with patch(
+                "sentry.ingest.consumer.processors.sentry_sdk.start_span"
+            ) as mock_start_span:
+                # Create a placeholder function to decorate
+                @trace_func(name="test_span")
+                def placeholder_function():
+                    return "test_result"
+
+                # Call the decorated function
+                result = placeholder_function()
+
+                # Verify the function returned correctly
+                assert result == "test_result"
+
+                # Verify start_span was called with correct arguments
+                mock_start_span.assert_called_once()
+                call_args = mock_start_span.call_args
+
+                # Check that the span_kwargs include the expected sample_rate
+                assert call_args.kwargs["attributes"]["sample_rate"] == expected_sample_rate

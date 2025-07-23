@@ -170,7 +170,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
 
         with sentry_sdk.start_span(op="discover.endpoint", name="serialize_results") as span:
             results = list(results_cursor)
-            span.set_data("result_length", len(results))
+            span.set_attribute("result_length", len(results))
             context = serialize(
                 results,
                 request.user,

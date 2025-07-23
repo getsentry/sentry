@@ -67,7 +67,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     ) -> ProcessingStrategy[KafkaPayload]:
         # TODO: remove once span buffer is live in all regions
         scope = sentry_sdk.get_isolation_scope()
-        scope.level = "warning"
+        scope.set_level("warning")
 
         self.rebalancing_count += 1
         sentry_sdk.set_tag("sentry_spans_rebalancing_count", str(self.rebalancing_count))
