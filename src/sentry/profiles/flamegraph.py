@@ -250,7 +250,12 @@ class FlamegraphExecutor:
         original_start, original_end = self.snuba_params.start, self.snuba_params.end
 
         for chunk_start, chunk_end in split_datetime_range_exponential(
-            original_start, original_end, initial_chunk_delta, max_chunk_delta, multiplier
+            original_start,
+            original_end,
+            initial_chunk_delta,
+            max_chunk_delta,
+            multiplier,
+            reverse=True,
         ):
             self.snuba_params.start = chunk_start
             self.snuba_params.end = chunk_end
@@ -650,7 +655,12 @@ class FlamegraphExecutor:
         original_start, original_end = self.snuba_params.start, self.snuba_params.end
 
         for chunk_start, chunk_end in split_datetime_range_exponential(
-            original_start, original_end, initial_chunk_delta, max_chunk_delta, multiplier
+            original_start,
+            original_end,
+            initial_chunk_delta,
+            max_chunk_delta,
+            multiplier,
+            reverse=True,
         ):
             self.snuba_params.start = chunk_start
             self.snuba_params.end = chunk_end
@@ -867,6 +877,7 @@ def split_datetime_range_exponential(
     initial_chunk_delta: timedelta,
     max_delta: timedelta,
     multiplier: int,
+    reverse: bool = False,
 ) -> Iterator[tuple[datetime, datetime]]:
     """
     Splits a datetime range into exponentially increasing chunks, yielded by a generator.
@@ -880,6 +891,7 @@ def split_datetime_range_exponential(
         initial_chunk_delta (timedelta): The duration of the first chunk.
         max_delta (timedelta): The maximum duration for any chunk.
         multiplier (int): The value by which the current delta is multiplied.
+        reverse (bool): If True, generate chunks in reverse order from end to start.
 
     Yields:
         tuple: A tuple representing a datetime chunk (start_of_chunk, end_of_chunk).
@@ -907,20 +919,41 @@ def split_datetime_range_exponential(
     if multiplier <= 0:
         raise ValueError("multiplier must be a positive integer.")
 
-    current_datetime = start_datetime
-    current_delta = initial_chunk_delta
+    if reverse:
+        # Generate chunks in reverse order (from end to start)
+        current_datetime = end_datetime
+        current_delta = initial_chunk_delta
 
-    while current_datetime < end_datetime:
-        chunk_end = current_datetime + current_delta
+        while current_datetime > start_datetime:
+            chunk_start = current_datetime - current_delta
 
-        # Ensure the last chunk does not go past the end_datetime
-        if chunk_end > end_datetime:
-            chunk_end = end_datetime
+            # Ensure the first chunk does not go past the start_datetime
+            if chunk_start < start_datetime:
+                chunk_start = start_datetime
 
-        yield (current_datetime, chunk_end)
+            yield (chunk_start, current_datetime)
 
-        # Prepare for the next iteration
-        current_datetime = chunk_end
+            # Prepare for the next iteration
+            current_datetime = chunk_start
 
-        # Double the delta for the next chunk, but cap it at max_delta
-        current_delta = min(current_delta * multiplier, max_delta)
+            # Multiply the delta for the next chunk, but cap it at max_delta
+            current_delta = min(current_delta * multiplier, max_delta)
+    else:
+        # Original forward logic
+        current_datetime = start_datetime
+        current_delta = initial_chunk_delta
+
+        while current_datetime < end_datetime:
+            chunk_end = current_datetime + current_delta
+
+            # Ensure the last chunk does not go past the end_datetime
+            if chunk_end > end_datetime:
+                chunk_end = end_datetime
+
+            yield (current_datetime, chunk_end)
+
+            # Prepare for the next iteration
+            current_datetime = chunk_end
+
+            # Double the delta for the next chunk, but cap it at max_delta
+            current_delta = min(current_delta * multiplier, max_delta)
