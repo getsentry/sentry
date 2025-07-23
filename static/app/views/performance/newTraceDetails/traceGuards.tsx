@@ -135,11 +135,12 @@ export function shouldAddMissingInstrumentationSpan(sdk: string | undefined): bo
   if (!sdk) {
     return true;
   }
-  if (sdk.length < 'sentry.javascript.'.length) {
+  if (sdk.length < 'sentry.dart'.length) {
     return true;
   }
 
   switch (sdk.toLowerCase()) {
+    // JS SDKs
     case 'sentry.javascript.browser':
     case 'sentry.javascript.react':
     case 'sentry.javascript.gatsby':
@@ -155,6 +156,18 @@ export function shouldAddMissingInstrumentationSpan(sdk: string | undefined): bo
     case 'sentry.javascript.sveltekit':
     case 'sentry.javascript.react-native':
     case 'sentry.javascript.astro':
+    case 'sentry.dart':
+    case 'sentry.dart.flutter':
+    case 'sentry.dart.browser':
+    case 'sentry.cocoa':
+    case 'sentry.cocoa.flutter':
+    case 'sentry.cocoa.react-native':
+    case 'sentry.java.android':
+    case 'sentry.java.android.flutter':
+    case 'sentry.java.android.react-native':
+    case 'sentry.native.android':
+    case 'sentry.native.android.flutter':
+    case 'sentry.native.android.react-native':
       return false;
     case undefined:
       return true;

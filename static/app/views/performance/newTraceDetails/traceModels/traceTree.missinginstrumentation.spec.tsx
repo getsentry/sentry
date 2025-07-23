@@ -203,6 +203,49 @@ describe('missing instrumentation', () => {
   });
 
   it.each([
+    // JS SDKs
+    'sentry.javascript.browser',
+    'sentry.javascript.react',
+    'sentry.javascript.gatsby',
+    'sentry.javascript.ember',
+    'sentry.javascript.vue',
+    'sentry.javascript.angular',
+    'sentry.javascript.angular-ivy',
+    'sentry.javascript.nextjs',
+    'sentry.javascript.nuxt',
+    'sentry.javascript.electron',
+    'sentry.javascript.remix',
+    'sentry.javascript.svelte',
+    'sentry.javascript.sveltekit',
+    'sentry.javascript.react-native',
+    'sentry.javascript.astro',
+    // Mobile SDKs
+    'sentry.dart',
+    'sentry.dart.flutter',
+    'sentry.dart.browser',
+    'sentry.cocoa',
+    'sentry.cocoa.flutter',
+    'sentry.cocoa.react-native',
+    'sentry.java.android',
+    'sentry.java.android.flutter',
+    'sentry.java.android.react-native',
+    'sentry.native.android',
+    'sentry.native.android.flutter',
+    'sentry.native.android.react-native',
+  ])('does not add missing instrumentation for SDK: %s', sdkName => {
+    const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
+    TraceTree.FromSpans(
+      tree.root.children[0]!.children[0]!,
+      missingInstrumentationSpans,
+      makeEventTransaction({sdk: {name: sdkName, version: '1.0.0'}})
+    );
+
+    TraceTree.DetectMissingInstrumentation(tree.root);
+
+    expect(TraceTree.Find(tree.root, c => isMissingInstrumentationNode(c))).toBeNull();
+  });
+
+  it.each([
     ['children', childrenMissingInstrumentationSpans],
     ['siblings', missingInstrumentationSpans],
   ])('idempotent - %s', (_type, setup) => {
