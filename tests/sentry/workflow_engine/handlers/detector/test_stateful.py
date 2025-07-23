@@ -328,3 +328,25 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         state_data = test_handler.state_manager.get_state_data([self.group_key])[self.group_key]
         assert state_data.is_triggered is True
         assert state_data.status == Level.LOW
+
+    def test_evaluate__with_group_key(self):
+        group_keys = [
+            "key1",
+            "key2",
+        ]
+
+        self.handler = MockDetectorStateHandler(
+            detector=self.detector,
+            has_grouping=True,
+        )
+
+        grouped_packet = DataPacket(
+            source_id="1",
+            packet={
+                "id": "1",
+                "dedupe": 1,
+                "group_vals": {key: "HIGH" for key in group_keys},
+            },
+        )
+        result = self.handler.evaluate(grouped_packet)
+        assert list(result.keys()) == group_keys
