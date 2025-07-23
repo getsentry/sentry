@@ -134,14 +134,14 @@ function AutomationEditForm({automation}: {automation: Automation}) {
           state
         );
         const updatedData = {
-          automationId: params.automationId,
+          ...automation,
           ...formData,
         };
         const updatedAutomation = await updateAutomation(updatedData);
         navigate(makeAutomationDetailsPathname(organization.slug, updatedAutomation.id));
       }
     },
-    [params.automationId, organization.slug, navigate, updateAutomation, state]
+    [automation, organization.slug, navigate, updateAutomation, state]
   );
 
   return (

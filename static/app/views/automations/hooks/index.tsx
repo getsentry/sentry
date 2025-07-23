@@ -12,7 +12,12 @@ import type {
   DataConditionHandlerGroupType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {
+  setApiQueryData,
+  useApiQuery,
+  useMutation,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -181,18 +186,26 @@ export function useUpdateAutomation() {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
-  return useMutation<Automation, void, {automationId: string} & NewAutomation>({
-    mutationFn: ({automationId, ...data}) =>
-      api.requestPromise(`/organizations/${org.slug}/workflows/${automationId}/`, {
+  return useMutation<Automation, void, Automation>({
+    mutationFn: data =>
+      api.requestPromise(`/organizations/${org.slug}/workflows/${data.id}/`, {
         method: 'PUT',
         data,
       }),
-    onSuccess: (_, data) => {
+    onMutate: data => {
+      // Optimistically update the cache
+      setApiQueryData(queryClient, [`/organizations/${org.slug}/workflows/${data.id}/`], {
+        ...data,
+        lastUpdated: Date.now(),
+      });
+    },
+    onSettled: (_, __, data) => {
+      // Invalidate after mutation completes (success or error)
       queryClient.invalidateQueries({
         queryKey: [`/organizations/${org.slug}/workflows/`],
       });
       queryClient.invalidateQueries({
-        queryKey: [`/organizations/${org.slug}/workflows/${data.automationId}/`],
+        queryKey: [`/organizations/${org.slug}/workflows/${data.id}/`],
       });
     },
     onError: _ => {

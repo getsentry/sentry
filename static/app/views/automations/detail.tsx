@@ -191,7 +191,6 @@ function Actions({automation}: {automation: Automation}) {
     const newEnabled = !automation.enabled;
     updateAutomation(
       {
-        automationId: automation.id,
         ...automation,
         enabled: newEnabled,
       },

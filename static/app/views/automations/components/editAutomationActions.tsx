@@ -21,14 +21,14 @@ interface EditAutomationActionsProps {
 export function EditAutomationActions({automation}: EditAutomationActionsProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
-  const {mutate: deleteAutomation, isPending: isDeleting} = useDeleteAutomationMutation();
+  const {mutateAsync: deleteAutomation, isPending: isDeleting} =
+    useDeleteAutomationMutation();
   const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
 
   const toggleDisabled = useCallback(() => {
     const newEnabled = !automation.enabled;
     updateAutomation(
       {
-        automationId: automation.id,
         ...automation,
         enabled: newEnabled,
       },
@@ -47,12 +47,9 @@ export function EditAutomationActions({automation}: EditAutomationActionsProps) 
       message: t('Are you sure you want to delete this automation?'),
       confirmText: t('Delete'),
       priority: 'danger',
-      onConfirm: () => {
-        deleteAutomation(automation.id, {
-          onSuccess: () => {
-            navigate(makeAutomationBasePathname(organization.slug));
-          },
-        });
+      onConfirm: async () => {
+        await deleteAutomation(automation.id);
+        navigate(makeAutomationBasePathname(organization.slug));
       },
     });
   }, [deleteAutomation, automation.id, navigate, organization.slug]);
