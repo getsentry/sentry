@@ -7,7 +7,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {hasMCPInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
@@ -58,12 +57,10 @@ function ModuleRedirect() {
 }
 
 export default function RedirectWithProviders() {
-  const useEap = useInsightsEap();
   const {view} = useDomainViewFilters();
-  const storageNamespace = useEap ? view : undefined;
   return (
     // We need to wrap the redirect in a PageFiltersContainer to ensure that the correct projects are selected (storageNamespace)
-    <PageFiltersContainer storageNamespace={storageNamespace}>
+    <PageFiltersContainer storageNamespace={view}>
       <ModuleRedirect />
     </PageFiltersContainer>
   );

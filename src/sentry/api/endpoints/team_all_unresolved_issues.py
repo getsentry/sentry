@@ -3,6 +3,7 @@ import datetime
 from collections import defaultdict
 from datetime import timedelta
 from itertools import chain
+from typing import TypedDict
 
 from django.db.models import Case, Count, F, Q, QuerySet, Value, When
 from django.db.models.functions import TruncDay
@@ -28,6 +29,13 @@ from sentry.models.team import Team
 
 OPEN_STATUSES = UNRESOLVED_STATUSES + (GroupHistoryStatus.UNIGNORED,)
 CLOSED_STATUSES = RESOLVED_STATUSES + (GroupHistoryStatus.IGNORED,)
+
+
+class _Deduped(TypedDict):
+    project: int
+    bucket: datetime.datetime
+    open: int
+    closed: int
 
 
 def calculate_unresolved_counts(
@@ -98,8 +106,8 @@ def calculate_unresolved_counts(
 
     most_recent_group_state: defaultdict[str, str] = defaultdict(lambda: "other")
     # Project => Bucket => State => Count
-    deduping_map: defaultdict[str, defaultdict[str, defaultdict[str, int]]] = defaultdict(
-        lambda: defaultdict(lambda: defaultdict(int))
+    deduping_map: defaultdict[int, defaultdict[datetime.datetime, defaultdict[str, int]]] = (
+        defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
     )
 
     for r in historical_issue_status_changes:
@@ -114,7 +122,7 @@ def calculate_unresolved_counts(
         deduping_map[r["project"]][r["bucket"]][r["state"]] += 1
         most_recent_group_state[r["group_id"]] = r["state"]
 
-    deduped_historical_issue_status_changes = []
+    deduped_historical_issue_status_changes: list[_Deduped] = []
     for p in deduping_map.keys():
         bucket_counts = deduping_map[p]
         for b in bucket_counts.keys():
