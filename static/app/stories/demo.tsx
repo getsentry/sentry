@@ -1,8 +1,11 @@
+import React from 'react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
-export const Demo = styled('div')`
+export const Demo = styled((props: React.HTMLAttributes<HTMLDivElement>) => (
+  <div {...props} data-test-id="storybook-demo" />
+))`
   margin-top: 8px;
   margin-bottom: -16px;
   width: 100%;
