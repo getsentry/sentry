@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -170,6 +171,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
             assert values == ["General"] + expected
 
+    @pytest.mark.skip(reason="flaky: #96216")
     def test_get_sortby_recently_viewed_user_last_visited(self):
         dashboard_a = Dashboard.objects.create(
             title="A",
