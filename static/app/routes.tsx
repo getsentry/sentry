@@ -1055,35 +1055,35 @@ function buildRoutes(
     </Route>
   );
 
-  const projectsChildRoutes = (
-    <Fragment>
-      <IndexRoute component={make(() => import('sentry/views/projectsDashboard'))} />
-      <Route
-        path="new/"
-        component={make(() => import('sentry/views/projectInstall/newProject'))}
-      />
-      <Route
-        path=":projectId/"
-        component={make(() => import('sentry/views/projectDetail'))}
-      />
-      <Route
-        path=":projectId/events/:eventId/"
-        component={errorHandler(ProjectEventRedirect)}
-      />
-      <Route
-        path=":projectId/getting-started/"
-        component={make(() => import('sentry/views/projectInstall/gettingStarted'))}
-      />
-    </Fragment>
-  );
+  const projectsChildRoutes = [
+    {
+      index: true,
+      component: make(() => import('sentry/views/projectsDashboard')),
+    },
+    {
+      path: 'new/',
+      component: make(() => import('sentry/views/projectInstall/newProject')),
+    },
+    {
+      path: ':projectId/',
+      component: make(() => import('sentry/views/projectDetail')),
+    },
+    {
+      path: ':projectId/events/:eventId/',
+      component: errorHandler(ProjectEventRedirect),
+    },
+    {
+      path: ':projectId/getting-started/',
+      component: make(() => import('sentry/views/projectInstall/gettingStarted')),
+    },
+  ];
   const projectsRoutes = (
     <Route
       path="/projects/"
       component={make(() => import('sentry/views/projects/'))}
       withOrgPath
-    >
-      {projectsChildRoutes}
-    </Route>
+      newStyleChildren={projectsChildRoutes}
+    />
   );
 
   const dashboardRoutes = (
@@ -1767,9 +1767,11 @@ function buildRoutes(
         {traceViewRoute}
         {moduleRoutes}
       </Route>
-      <Route path="projects/" component={make(() => import('sentry/views/projects/'))}>
-        {projectsChildRoutes}
-      </Route>
+      <Route
+        path="projects/"
+        component={make(() => import('sentry/views/projects/'))}
+        newStyleChildren={projectsChildRoutes}
+      />
       <Redirect from={`${FRONTEND_LANDING_SUB_PATH}/uptime/`} to="/insights/uptime/" />
       <Redirect from={`${BACKEND_LANDING_SUB_PATH}/uptime/`} to="/insights/uptime/" />
       <Redirect from={`${BACKEND_LANDING_SUB_PATH}/crons/`} to="/insights/crons/" />
