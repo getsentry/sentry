@@ -2,7 +2,7 @@ import {RateUnit} from 'sentry/utils/discover/fields';
 import {
   formatAbbreviatedNumber,
   formatAbbreviatedNumberWithDynamicPrecision,
-  formatCurrency,
+  formatDollars,
   formatPercentRate,
   formatRate,
   formatSpanOperation,
@@ -268,7 +268,7 @@ describe('formatTimeDuration', () => {
   });
 });
 
-describe('formatCurrency()', function () {
+describe('formatDollars', function () {
   it.each([
     [0, '$0'],
     [1, '$1'],
@@ -284,6 +284,6 @@ describe('formatCurrency()', function () {
     [-1500, '$-1.5k'],
     [-1000000, '$-1m'],
   ])('formats %s as %s', (value, expected) => {
-    expect(formatCurrency(value)).toBe(expected);
+    expect(formatDollars(value)).toBe(expected);
   });
 });
