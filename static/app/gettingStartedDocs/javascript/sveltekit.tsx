@@ -1,11 +1,10 @@
-import {Fragment} from 'react';
-
 import {ExternalLink} from 'sentry/components/core/link';
 import {CopyDsnField} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import type {
+  ContentBlock,
   Docs,
   DocsParams,
   OnboardingConfig,
@@ -30,13 +29,17 @@ import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/
 
 type Params = DocsParams;
 
-const getConfigStep = ({isSelfHosted, organization, projectSlug}: Params) => {
+const getConfigStep = ({
+  isSelfHosted,
+  organization,
+  projectSlug,
+}: Params): ContentBlock[] => {
   const urlParam = isSelfHosted ? '' : '--saas';
 
   return [
     {
-      type: StepType.INSTALL,
-      description: tct(
+      type: 'text',
+      text: tct(
         'Configure your app automatically by running the [wizardLink:Sentry wizard] in the root of your project.',
         {
           wizardLink: (
@@ -44,45 +47,41 @@ const getConfigStep = ({isSelfHosted, organization, projectSlug}: Params) => {
           ),
         }
       ),
-      configurations: [
-        {
-          language: 'bash',
-          code: `npx @sentry/wizard@latest -i sveltekit ${urlParam}  --org ${organization.slug} --project ${projectSlug}`,
-        },
-      ],
+    },
+    {
+      type: 'code',
+      language: 'bash',
+      code: `npx @sentry/wizard@latest -i sveltekit ${urlParam}  --org ${organization.slug} --project ${projectSlug}`,
     },
   ];
 };
-
-const getInstallConfig = (params: Params) => [
-  {
-    type: StepType.INSTALL,
-    configurations: getConfigStep(params),
-  },
-];
 
 const onboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       title: t('Automatic Configuration (Recommended)'),
-      configurations: getConfigStep(params),
+      content: getConfigStep(params),
     },
   ],
   configure: params => [
     {
       collapsible: true,
       title: t('Manual Configuration'),
-      description: tct(
-        'Alternatively, you can also set up the SDK manually, by following the [manualSetupLink:manual setup docs].',
+      content: [
         {
-          manualSetupLink: (
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/manual-setup/" />
+          type: 'text',
+          text: tct(
+            'Alternatively, you can also set up the SDK manually, by following the [manualSetupLink:manual setup docs].',
+            {
+              manualSetupLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/manual-setup/" />
+              ),
+            }
           ),
-        }
-      ),
-      configurations: [
+        },
         {
-          description: <CopyDsnField params={params} />,
+          type: 'custom',
+          content: <CopyDsnField params={params} />,
         },
       ],
     },
@@ -90,26 +89,25 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: (
-        <Fragment>
-          <p>
-            {tct(
-              'Start your development server and visit [code:/sentry-example-page] if you have set it up. Click the button to trigger a test error.',
-              {
-                code: <code />,
-              }
-            )}
-          </p>
-          <p>
-            {t(
-              'Or, trigger a sample error by calling a function that does not exist somewhere in your application.'
-            )}
-          </p>
-        </Fragment>
-      ),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: tct(
+            'Start your development server and visit [code:/sentry-example-page] if you have set it up. Click the button to trigger a test error.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        {
+          type: 'text',
+          text: t(
+            'Or, trigger a sample error by calling a function that does not exist somewhere in your application.'
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'Javascript',
               value: 'javascript',
@@ -118,16 +116,24 @@ const onboarding: OnboardingConfig = {
             },
           ],
         },
+        {
+          type: 'text',
+          text: t(
+            'If you see an issue in your Sentry Issues, you have successfully set up Sentry.'
+          ),
+        },
       ],
-      additionalInfo: t(
-        'If you see an issue in your Sentry Issues, you have successfully set up Sentry.'
-      ),
     },
   ],
 };
 
 const replayOnboarding: OnboardingConfig = {
-  install: (params: Params) => getInstallConfig(params),
+  install: (params: Params) => [
+    {
+      type: StepType.INSTALL,
+      content: getConfigStep(params),
+    },
+  ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
@@ -162,13 +168,18 @@ const feedbackOnboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/sveltekit]) installed, minimum version 7.85.0.',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(params),
+          type: 'text',
+          text: tct(
+            'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/sveltekit]) installed, minimum version 7.85.0.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        ...getConfigStep(params),
+      ],
     },
   ],
   configure: (params: Params) => [

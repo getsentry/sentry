@@ -5,6 +5,7 @@ import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/f
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import type {
+  ContentBlock,
   Docs,
   DocsParams,
   OnboardingConfig,
@@ -71,30 +72,16 @@ const getVerifySnippet = () => `
 </script>
 `;
 
-const getInstallConfig = () => [
-  {
-    type: StepType.INSTALL,
-    description: tct(
-      'Install the [code:@sentry/astro] package with the [code:astro] CLI:',
-      {
-        code: <code />,
-      }
-    ),
-    configurations: [
-      {
-        language: 'bash',
-        code: [
-          {
-            label: 'bash',
-            value: 'bash',
-            language: 'bash',
-            code: `npx astro add @sentry/astro`,
-          },
-        ],
-      },
-    ],
-  },
-];
+const installSnippetBlock: ContentBlock = {
+  type: 'code',
+  tabs: [
+    {
+      label: 'bash',
+      language: 'bash',
+      code: 'npx astro add @sentry/astro',
+    },
+  ],
+};
 
 const onboarding: OnboardingConfig = {
   introduction: () => (
@@ -114,19 +101,39 @@ const onboarding: OnboardingConfig = {
       </p>
     </Fragment>
   ),
-  install: () => getInstallConfig(),
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Install the [code:@sentry/astro] package with the [code:astro] CLI:',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        installSnippetBlock,
+      ],
+    },
+  ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'Open up your [astroConfig:astro.config.mjs] file and configure the DSN, and any other settings you need:',
+      content: [
         {
-          astroConfig: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'Open up your [astroConfig:astro.config.mjs] file and configure the DSN, and any other settings you need:',
+            {
+              astroConfig: <code />,
+            }
+          ),
+        },
         {
-          code: [
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
               value: 'javascript',
@@ -136,24 +143,27 @@ const onboarding: OnboardingConfig = {
           ],
         },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'Add your Sentry auth token to the [authTokenEnvVar:SENTRY_AUTH_TOKEN] environment variable:',
             {
               authTokenEnvVar: <code />,
             }
           ),
-          language: 'bash',
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
-              value: 'bash',
-              language: 'bash',
               label: 'bash',
-              code: `SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
+              language: 'bash',
+              code: 'SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___',
             },
           ],
         },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'You can further customize your SDK by [manualSetupLink:manually initializing the SDK].',
             {
               manualSetupLink: (
@@ -168,12 +178,16 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'Then throw a test error anywhere in your app, so you can test that everything is working:'
-      ),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: t(
+            'Then throw a test error anywhere in your app, so you can test that everything is working:'
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'Astro',
               value: 'html',
@@ -182,21 +196,19 @@ const onboarding: OnboardingConfig = {
             },
           ],
         },
+        {
+          type: 'text',
+          text: t(
+            "If you're new to Sentry, use the email alert to access your account and complete a product tour."
+          ),
+        },
+        {
+          type: 'text',
+          text: t(
+            "If you're an existing user and have disabled alerts, you won't receive this email."
+          ),
+        },
       ],
-      additionalInfo: (
-        <Fragment>
-          <p>
-            {t(
-              "If you're new to Sentry, use the email alert to access your account and complete a product tour."
-            )}
-          </p>
-          <p>
-            {t(
-              "If you're an existing user and have disabled alerts, you won't receive this email."
-            )}
-          </p>
-        </Fragment>
-      ),
     },
   ],
   nextSteps: () => [
@@ -214,9 +226,23 @@ const onboarding: OnboardingConfig = {
 const replayOnboarding: OnboardingConfig = {
   install: () => [
     {
-      ...getInstallConfig()[0]!,
-      additionalInfo:
-        'Session Replay is enabled by default when you install the Astro SDK!',
+      type: StepType.INSTALL,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Install the [code:@sentry/astro] package with the [code:astro] CLI:',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        installSnippetBlock,
+        {
+          type: 'text',
+          text: t('Session Replay is enabled by default when you install the Astro SDK!'),
+        },
+      ],
     },
   ],
   configure: (params: Params) => [
@@ -311,13 +337,18 @@ const feedbackOnboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/astro]) installed, minimum version 7.85.0.',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(),
+          type: 'text',
+          text: tct(
+            'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/astro]) installed, minimum version 7.85.0.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: (params: Params) => [
