@@ -117,6 +117,7 @@ vercel.json                                              @getsentry/owners-js-bu
 babel.config.*                                           @getsentry/owners-js-build
 build-utils/                                             @getsentry/owners-js-build
 eslint.config.mjs                                        @getsentry/owners-js-build
+jest-balance.json                                        @getsentry/owners-js-build
 jest.config.ts                                           @getsentry/owners-js-build
 tsconfig.*                                               @getsentry/owners-js-build
 .node-version                                            @getsentry/owners-js-deps
