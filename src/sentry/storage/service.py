@@ -2,40 +2,64 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from io import BytesIO
-from typing import IO, Literal
+from typing import IO, Literal, cast
 
+import urllib3
 import zstandard
+from django.utils import timezone
 
-from sentry.models.files.utils import get_storage
 from sentry.storage.metrics import measure_storage_put
-from sentry.utils import metrics
+from sentry.utils import jwt, metrics
 
 Usecases = Literal["attachments"]
-Compression = Literal["zstd", "internal"]
+Compression = Literal["zstd", "gzip", "lz4", "uncompressible"]
 
-ATTACHMENTS_PREFIX = "eventattachments/v1/"
+# TODO:
+CONNECTION_POOL = urllib3.HTTPConnectionPool("TODO")
+
+JWT_VALIDITY = 30
 
 
 class StorageService:
     def __init__(self, usecase: Usecases):
         self.usecase = usecase
 
+    def _make_client(self, scope: dict) -> StorageClient:
+        claim = {
+            "usecase": self.usecase,
+            "scope": scope,
+        }
+        return StorageClient(self.usecase, claim)
+
     def for_organization(self, organization_id: int) -> StorageClient:
-        return StorageClient(self.usecase)
+        return self._make_client({"organization": organization_id})
 
     def for_project(self, project_id: int) -> StorageClient:
-        return StorageClient(self.usecase)
+        return self._make_client({"project": project_id})
 
 
 class StorageClient:
-    def __init__(self, usecase: Usecases):
+    def __init__(self, usecase: Usecases, claim: dict):
         self.usecase = usecase
+        self.claim = claim
+
+    def _make_headers(self) -> dict:
+        now = int(timezone.now().timestamp())
+        exp = now + JWT_VALIDITY
+        claims = {
+            "iat": now,
+            "exp": exp,
+            **self.claim,
+        }
+
+        authorization = jwt.encode(claims, "TODO")
+        return {"Authorization": authorization}
 
     def put(
         self,
         contents: bytes | IO[bytes],
         id: str | None = None,
-        is_compressed: Compression | None = None,
+        compression: Compression | None = None,
     ) -> str:
         """
         Uploads the given `contents` to blob storage.
@@ -44,44 +68,45 @@ class StorageClient:
         from this function.
 
         The storage service will manage storing the contents compressed, unless
-        the `is_compressed` parameter is set, in which case the contents are treated
+        the `compression` parameter is set, in which case the contents are treated
         as already compressed, and no double-compression will happen.
 
-        The `"internal"` compression is special in the sense that it denotes
-        a file format that is already compressed, and does not need to be
-        re-compressed with a general-purpose compression algorithm.
+        The `"uncompressible"` compression is special in the sense that it denotes
+        a file format that is already internally compressed, and does not benefit
+        from another general-purpose compression algorithm.
         """
-        if self.usecase != "attachments":
-            raise NotImplementedError(
-                "The new blobstore is only implemented for attachments right now."
-            )
-        id = _ensure_id(id)
-        upload_id = ATTACHMENTS_PREFIX + id
+        headers = self._make_headers()
+        body = BytesIO(contents) if isinstance(contents, bytes) else contents
+        original_body: IO[bytes] = body
 
-        if is_compressed:
-            raise NotImplementedError("The `is_compressed` parameter is not yet implemented")
+        if not compression:
+            cctx = zstandard.ZstdCompressor()
+            body = cctx.stream_reader(contents)
+            headers["Content-Encoding"] = "zstd"
+        elif compression != "uncompressible":
+            headers["Content-Encoding"] = compression
 
-        if not isinstance(contents, bytes):
-            contents = contents.read()
+        compression_used = headers["Content-Encoding"] or "none"
+        with measure_storage_put(None, self.usecase, compression_used) as measurement:
+            response = CONNECTION_POOL.request(
+                "PUT",
+                f"/{id}" if id else "/",
+                body=body,
+                headers=headers,
+                preload_content=True,
+                decode_content=True,
+            ).json()
 
-        metrics.distribution(
-            "storage.put.size",
-            len(contents),
-            tags={"usecase": self.usecase, "compression": "none"},
-            unit="byte",
-        )
+            measurement.upload_size = body.tell()
+            if not compression:
+                metrics.distribution(
+                    "storage.put.size",
+                    original_body.tell(),
+                    tags={"usecase": self.usecase, "compression": "none"},
+                    unit="byte",
+                )
 
-        with measure_storage_put(None, self.usecase, "zstd") as measurement:
-            storage = get_storage()
-            # TODO: the existing "Go filestore" backend expects a seekable/rewind-able
-            # IO instance, as it calculates a crc value before actually performing the upload.
-            # This pretty much means we can't use streaming compression here,
-            # and have to perform bulk compression in memory.
-            compressed_blob = zstandard.compress(contents)
-            measurement.upload_size = len(compressed_blob)
-            storage.save(upload_id, BytesIO(compressed_blob))
-
-        return id
+            return response["key"]
 
     def get(
         self, id: str, accept_compression: Sequence[Compression] | None = None
@@ -99,39 +124,42 @@ class StorageClient:
         the blobs compression as stored, it will be decompressed on the fly,
         and `None` will be returned as compression.
         """
-        if self.usecase != "attachments":
-            raise NotImplementedError(
-                "The new blobstore is only implemented for attachments right now."
-            )
-        id = ATTACHMENTS_PREFIX + id
+        headers = self._make_headers()
+        compression = set()
+        if accept_compression:
+            compression = set(accept_compression)
+            headers["Accept-Encoding"] = ", ".join(compression)
 
-        storage = get_storage()
-        compressed_blob = storage.open(id)
+        response = CONNECTION_POOL.request(
+            "GET",
+            f"/{id}",
+            headers=headers,
+            preload_content=False,
+            decode_content=False,
+        )
+        # OR: should I use `response.stream()`?
+        stream = cast(IO[bytes], response)
 
-        if accept_compression and "zstd" in accept_compression:
-            return compressed_blob, "zstd"
+        content_encoding = response.getheader("Content-Encoding")
+        if content_encoding and content_encoding not in compression:
+            if content_encoding != "zstd":
+                raise NotImplementedError(
+                    "Transparent decoding of anything buf `zstd` is not implemented yet"
+                )
 
-        dctx = zstandard.ZstdDecompressor()
-        return dctx.stream_reader(compressed_blob, read_across_frames=True), None
+            dctx = zstandard.ZstdDecompressor()
+            return dctx.stream_reader(stream, read_across_frames=True), None
+
+        return stream, content_encoding
 
     def delete(self, id: str):
         """
         Deletes the blob with the given `id`.
         """
-        if self.usecase != "attachments":
-            raise NotImplementedError(
-                "The new blobstore is only implemented for attachments right now."
-            )
-        id = ATTACHMENTS_PREFIX + id
+        headers = self._make_headers()
 
-        storage = get_storage()
-        storage.delete(id)
-
-
-def _ensure_id(id: str | None) -> str:
-    if id:
-        return id
-
-    from sentry.models.files import FileBlob
-
-    return FileBlob.generate_unique_path()
+        CONNECTION_POOL.request(
+            "DELETE",
+            f"/{id}",
+            headers=headers,
+        )
