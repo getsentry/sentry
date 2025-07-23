@@ -26,7 +26,7 @@ function AutofixFeedback() {
         })
       }
     >
-      {t('Give Feedback')}
+      {t('Contact Us')}
     </Button>
   );
 }

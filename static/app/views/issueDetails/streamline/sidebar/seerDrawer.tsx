@@ -208,6 +208,9 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             {label: t('Seer')},
           ]}
         />
+        <FeedbackWrapper>
+          <AutofixFeedback />
+        </FeedbackWrapper>
       </SeerDrawerHeader>
       {(!showWelcomeScreen || aiConfig.isAutofixSetupLoading) && (
         <SeerDrawerNavigator>
@@ -256,7 +259,6 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                     icon={<IconSettings />}
                   />
                 </Feature>
-                <AutofixFeedback />
                 {aiConfig.hasAutofix && (
                   <Button
                     size="xs"
@@ -454,4 +456,9 @@ const ShortId = styled('div')`
 
 const ButtonBarWrapper = styled('div')`
   margin-left: auto;
+`;
+
+const FeedbackWrapper = styled('div')`
+  margin-left: auto;
+  margin-right: ${p => p.theme.space.md};
 `;
