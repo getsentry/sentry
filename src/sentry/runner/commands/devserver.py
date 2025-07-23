@@ -179,7 +179,7 @@ def devserver(
         dsn=os.environ.get("SENTRY_DEVSERVICES_DSN", ""),
         traces_sample_rate=1.0,
     )
-    with sentry_sdk.start_span(op="command", name="sentry.devserver"):
+    with sentry_sdk.start_transaction(op="command", name="sentry.devserver"):
         passed_options = {
             p.name: ctx.params[p.name]
             for p in ctx.command.params
