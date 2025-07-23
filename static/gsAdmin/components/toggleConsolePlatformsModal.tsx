@@ -92,8 +92,8 @@ function ToggleConsolePlatformsModal({
             field={{
               name: 'playstation',
               type: 'boolean',
-              label: 'Playstation',
-              help: 'Toggle the Playstation console platform for this organization.',
+              label: 'PlayStation',
+              help: 'Toggle the PlayStation console platform for this organization.',
             }}
             flexibleControlStateSize
             inline

@@ -524,7 +524,7 @@ export const platforms: PlatformIntegration[] = [
   },
   {
     id: 'playstation',
-    name: 'Playstation',
+    name: 'PlayStation',
     type: 'console',
     language: 'console',
     link: 'https://docs.sentry.io/platforms/playstation/',
