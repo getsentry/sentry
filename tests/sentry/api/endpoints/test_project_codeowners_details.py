@@ -44,15 +44,16 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         )
 
         # Mock the external HTTP request to prevent real network calls
-        self.codeowner_mock = patch(
+        self.codeowner_patcher = patch(
             "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
             return_value={
                 "html_url": "https://github.com/test/CODEOWNERS",
                 "filepath": "CODEOWNERS",
                 "raw": "test content",
             },
-        ).start()
-        self.addCleanup(patch.stopall)
+        )
+        self.codeowner_mock = self.codeowner_patcher.start()
+        self.addCleanup(self.codeowner_patcher.stop)
 
     def test_basic_delete(self):
         with self.feature({"organizations:integrations-codeowners": True}):
