@@ -1,3 +1,5 @@
+from typing import Any
+
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,7 +15,7 @@ from sentry.users.models.user import User
 from sentry.users.models.user_merge_verification_code import UserMergeVerificationCode
 
 
-class AuthMergeUserAccountsValidator(serializers.Serializer):
+class AuthMergeUserAccountsValidator(serializers.Serializer[Any]):
     verification_code = serializers.CharField(required=True)
     ids_to_merge = serializers.ListField(child=serializers.IntegerField(), required=True)
     ids_to_delete = serializers.ListField(child=serializers.IntegerField(), required=True)

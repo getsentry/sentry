@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 from unittest.mock import Mock
 
 from django.contrib.sessions.backends.base import SessionBase
@@ -11,32 +12,34 @@ EXPIRY_DATE = datetime(2023, 12, 31)
 
 
 class MockSession(SessionBase):
-    """Mock session class for testing."""
+    """
+    Mock session class for testing.
+    """
 
-    def __init__(self):
-        self.data = {}
+    def __init__(self) -> None:
+        self.data: dict[str, Any] = {}
 
-    def get(self, key, default=None):
+    def get(self, key: str, default: Any = None) -> Any:
         return self.data.get(key, default)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         return self.data[key]
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Any) -> None:
         self.data[key] = value
 
-    def __contains__(self, key):
+    def __contains__(self, key: object) -> bool:
         return key in self.data
 
-    def get_expiry_date(self, **kwargs):
+    def get_expiry_date(self, **kwargs: Any) -> datetime:
         return EXPIRY_DATE
 
 
 class SessionSerializerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.serializer = SessionSerializer()
 
-    def test_serialize_with_full_session_data(self):
+    def test_serialize_with_full_session_data(self) -> None:
         request = self.make_request(method="GET")
         request.session = MockSession()
         request.session.data = {
@@ -62,7 +65,7 @@ class SessionSerializerTest(TestCase):
             "sessionOrgs": ["org1", "org2"],
         }
 
-    def test_serialize_with_empty_session_data(self):
+    def test_serialize_with_empty_session_data(self) -> None:
         request = self.make_request(method="GET")
         request.session = MockSession()
         request.META["CSRF_COOKIE"] = "csrf_token_value"
@@ -82,12 +85,12 @@ class SessionSerializerTest(TestCase):
 
 
 class SessionBuilderTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.request = Mock(spec=Request)
         self.request.session = MockSession()
         self.session_builder = SessionBuilder(self.request)
 
-    def create_mock_user(self, **kwargs):
+    def create_mock_user(self, **kwargs: Any) -> Mock:
         # Default attributes that should all evaluate to False
         attributes = {
             "has_verified_primary_email": True,
@@ -117,7 +120,7 @@ class SessionBuilderTest(TestCase):
         self.request.user = Mock(**mock_attributes)
         return self.request.user
 
-    def test_initialize_does_not_override_flags(self):
+    def test_initialize_does_not_override_flags(self) -> None:
         """
         Ensure that the session builder does not override flags that are already set.
         """
@@ -146,17 +149,17 @@ class SessionBuilderTest(TestCase):
         assert self.request.session.data == expected_flags
         assert len(self.request.session.data) == len(expected_flags.keys())
 
-    def test_initialize_no_user(self):
+    def test_initialize_no_user(self) -> None:
         self.request.user = None
         self.session_builder.initialize_auth_flags()
         assert len(self.request.session.data) == 0
 
-    def test_initialize_anonymous_user(self):
+    def test_initialize_anonymous_user(self) -> None:
         self.create_mock_user(is_anonymous=True)
         self.session_builder.initialize_auth_flags()
         assert len(self.request.session.data) == 0
 
-    def test_initialize_all_flags_false(self):
+    def test_initialize_all_flags_false(self) -> None:
         self.create_mock_user()
         self.session_builder.initialize_auth_flags()
 
@@ -170,7 +173,7 @@ class SessionBuilderTest(TestCase):
         assert self.request.session.data == expected_flags
         assert len(self.request.session.data) == len(expected_flags.keys())
 
-    def test_initialize_all_flags_true(self):
+    def test_initialize_all_flags_true(self) -> None:
         self.request.user = self.create_mock_user(
             has_verified_primary_email=False,
             has_2fa=True,
@@ -190,7 +193,7 @@ class SessionBuilderTest(TestCase):
         assert self.request.session.data == expected_flags
         assert len(self.request.session.data) == len(expected_flags.keys())
 
-    def test_initialize_todo_password_reset(self):
+    def test_initialize_todo_password_reset(self) -> None:
         """
         todo_password_reset has 2 conditions that trigger it.
         """
@@ -227,7 +230,7 @@ class SessionBuilderTest(TestCase):
         self.session_builder.initialize_auth_flags()
         assert self.request.session["todo_password_reset"] is True
 
-    def test_initialize_todo_2fa_setup_logic(self):
+    def test_initialize_todo_2fa_setup_logic(self) -> None:
         # Case 1: User has org requiring 2FA but no 2FA enabled -> should be True
         self.request.user = self.create_mock_user(
             has_org_requiring_2fa=True,
