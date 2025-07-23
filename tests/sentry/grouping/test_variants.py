@@ -133,7 +133,7 @@ def test_old_event_with_no_fingerprint_rule_text():
             )
         },
     )
-    assert expose_fingerprint_dict(variant.values, variant.info) == {
+    assert expose_fingerprint_dict(variant.values, variant.fingerprint_info) == {
         "values": ["dogs are great"],
         "matched_rule": 'message:"*dogs*" -> "dogs are great"',
     }
