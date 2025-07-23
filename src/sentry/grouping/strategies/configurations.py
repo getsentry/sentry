@@ -39,8 +39,6 @@ BASE_STRATEGY = create_strategy_configuration_class(
         # This turns on the automatic message trimming and parameter substitution
         # by the message strategy. (Only still configurable so it can be turned off in tests.)
         "normalize_message": True,
-        # Turns on some javascript fuzzing features.
-        "javascript_fuzzing": True,
         # Platforms for which context line should be taken into
         # account when grouping.
         "contextline_platforms": ("javascript", "node", "python", "php", "ruby"),
