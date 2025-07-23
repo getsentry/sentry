@@ -45,16 +45,16 @@ BASE_STRATEGY = create_strategy_configuration_class(
         # account when grouping.
         "contextline_platforms": ("javascript", "node", "python", "php", "ruby"),
         # This detects anonymous classes in PHP code.
-        "php_detect_anonymous_classes": False,
+        "php_detect_anonymous_classes": True,
         # Turns on a bug that was present in some variants
-        "with_context_line_file_origin_bug": True,
+        "with_context_line_file_origin_bug": False,
         # Turns on falling back to exception values when there
         # is no stacktrace.
         "with_exception_value_fallback": True,
         # Stacktrace is produced in the context of this exception
         "exception_data": None,
         # replaces generated IDs in Java stack frames related to CGLIB and hibernate
-        "java_cglib_hibernate_logic": False,
+        "java_cglib_hibernate_logic": True,
     },
 )
 
@@ -83,11 +83,11 @@ register_strategy_config(
           This includes JavaScript, Python, PHP, Go, Java and Kotlin.
         * Added ChukloadErrors via new built-in fingerprinting support.
     """,
-    initial_context={
-        "php_detect_anonymous_classes": True,
-        "with_context_line_file_origin_bug": False,
-        "java_cglib_hibernate_logic": True,
-    },
+    # There's nothing in the initial context because this config uses all the default values. If we
+    # change grouping behavior in a future config, it should be gated by a config feature, that
+    # feature should be defaulted to False in the base config, and then the `initial_context` in the
+    # new config is where we'd flip it to True.
+    initial_context={},
     enhancements_base="newstyle:2023-01-11",
     fingerprinting_bases=["javascript@2024-02-02"],
 )
