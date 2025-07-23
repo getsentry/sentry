@@ -2188,60 +2188,70 @@ function buildRoutes(
     <Route
       path="/manage/"
       component={make(() => import('sentry/views/admin/adminLayout'))}
-    >
-      <IndexRoute component={make(() => import('sentry/views/admin/adminOverview'))} />
-      <Route
-        path="buffer/"
-        component={make(() => import('sentry/views/admin/adminBuffer'))}
-      />
-      <Route
-        path="relays/"
-        component={make(() => import('sentry/views/admin/adminRelays'))}
-      />
-      <Route
-        path="organizations/"
-        component={make(() => import('sentry/views/admin/adminOrganizations'))}
-      />
-      <Route
-        path="projects/"
-        component={make(() => import('sentry/views/admin/adminProjects'))}
-      />
-      <Route
-        path="queue/"
-        component={make(() => import('sentry/views/admin/adminQueue'))}
-      />
-      <Route
-        path="quotas/"
-        component={make(() => import('sentry/views/admin/adminQuotas'))}
-      />
-      <Route
-        path="settings/"
-        component={make(() => import('sentry/views/admin/adminSettings'))}
-      />
-      <Route path="users/">
-        <IndexRoute component={make(() => import('sentry/views/admin/adminUsers'))} />
-        <Route
-          path=":id"
-          component={make(() => import('sentry/views/admin/adminUserEdit'))}
-        />
-      </Route>
-      <Route
-        path="status/mail/"
-        component={make(() => import('sentry/views/admin/adminMail'))}
-      />
-      <Route
-        path="status/environment/"
-        component={make(() => import('sentry/views/admin/adminEnvironment'))}
-      />
-      <Route
-        path="status/packages/"
-        component={make(() => import('sentry/views/admin/adminPackages'))}
-      />
-      <Route
-        path="status/warnings/"
-        component={make(() => import('sentry/views/admin/adminWarnings'))}
-      />
-    </Route>
+      newStyleChildren={[
+        {
+          index: true,
+          component: make(() => import('sentry/views/admin/adminOverview')),
+        },
+        {
+          path: 'buffer/',
+          component: make(() => import('sentry/views/admin/adminBuffer')),
+        },
+        {
+          path: 'relays/',
+          component: make(() => import('sentry/views/admin/adminRelays')),
+        },
+        {
+          path: 'organizations/',
+          component: make(() => import('sentry/views/admin/adminOrganizations')),
+        },
+        {
+          path: 'projects/',
+          component: make(() => import('sentry/views/admin/adminProjects')),
+        },
+        {
+          path: 'queue/',
+          component: make(() => import('sentry/views/admin/adminQueue')),
+        },
+        {
+          path: 'quotas/',
+          component: make(() => import('sentry/views/admin/adminQuotas')),
+        },
+        {
+          path: 'settings/',
+          component: make(() => import('sentry/views/admin/adminSettings')),
+        },
+        {
+          path: 'users/',
+          children: [
+            {
+              index: true,
+              component: make(() => import('sentry/views/admin/adminUsers')),
+            },
+            {
+              path: ':id',
+              component: make(() => import('sentry/views/admin/adminUserEdit')),
+            },
+          ],
+        },
+        {
+          path: 'status/mail/',
+          component: make(() => import('sentry/views/admin/adminMail')),
+        },
+        {
+          path: 'status/environment/',
+          component: make(() => import('sentry/views/admin/adminEnvironment')),
+        },
+        {
+          path: 'status/packages/',
+          component: make(() => import('sentry/views/admin/adminPackages')),
+        },
+        {
+          path: 'status/warnings/',
+          component: make(() => import('sentry/views/admin/adminWarnings')),
+        },
+      ]}
+    />
   );
 
   const legacyOrganizationRootRoutes = (
