@@ -63,7 +63,7 @@ export default function useDeleteReplays({projectSlug}: Props) {
         query:
           selectedIds === 'all'
             ? queryOptions?.query?.query
-            : `id:${selectedIds.join(',')}`,
+            : `id:[${selectedIds.join(',')}]`,
         rangeEnd: end,
         rangeStart: start,
       };
