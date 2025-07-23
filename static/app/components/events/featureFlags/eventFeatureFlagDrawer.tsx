@@ -150,6 +150,10 @@ export const CardContainer = styled('div')<{numCols: number}>`
 
   > * {
     padding-left: 0px;
+
+    &:first-child {
+      margin-left: -${space(1)};
+    }
     :not(:last-child) {
       border-right: 1.5px solid ${p => p.theme.innerBorder};
       padding-right: ${space(2)};
@@ -158,6 +162,7 @@ export const CardContainer = styled('div')<{numCols: number}>`
       border-left: 1.5px solid ${p => p.theme.innerBorder};
       padding-left: ${space(2)};
       padding-right: 0;
+      margin-left: -1px;
     }
   }
 `;

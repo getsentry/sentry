@@ -231,9 +231,13 @@ export const TreeColumn = styled('div')`
   display: grid;
   grid-template-columns: minmax(auto, 175px) 1fr;
   grid-column-gap: ${space(3)};
+  &:first-child {
+    margin-left: -${space(1)};
+  }
   &:not(:first-child) {
     border-left: 1px solid ${p => p.theme.innerBorder};
     padding-left: ${space(2)};
+    margin-left: -1px;
   }
   &:not(:last-child) {
     border-right: 1px solid ${p => p.theme.innerBorder};
