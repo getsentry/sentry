@@ -10,7 +10,11 @@ import {
   addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {
+  type ModalRenderProps,
+  openConsoleModal,
+  openProjectCreationModal,
+} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import PlatformPicker, {
@@ -53,10 +57,29 @@ export default function ProjectCreationModal({
   const organization = useOrganization();
 
   function handlePlatformChange(selectedPlatform: Platform | null) {
+    if (
+      selectedPlatform?.type === 'console' &&
+      !organization.enabledConsolePlatforms?.includes(selectedPlatform.id)
+    ) {
+      openConsoleModal({
+        selectedPlatform: {
+          ...selectedPlatform,
+          key: selectedPlatform.id,
+        },
+        onClose: () => {
+          openProjectCreationModal({
+            defaultCategory: selectedPlatform.category,
+          });
+        },
+      });
+      return;
+    }
+
     if (!selectedPlatform) {
       setPlatform(undefined);
       return;
     }
+
     setPlatform({
       ...omit(selectedPlatform, 'id'),
       key: selectedPlatform.id,
