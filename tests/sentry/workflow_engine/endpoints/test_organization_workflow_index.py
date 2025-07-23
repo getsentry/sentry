@@ -384,7 +384,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
             data=new_workflow.get_audit_log_data(),
         )
 
-    def test_create_workflow__with_config(self, mock_audit):
+    def test_create_workflow__with_config(self):
         self.valid_workflow["config"] = {"frequency": 100}
         response = self.get_success_response(
             self.organization.slug,
@@ -395,7 +395,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
         new_workflow = Workflow.objects.get(id=response.data["id"])
         assert new_workflow.config == self.valid_workflow["config"]
 
-    def test_create_workflow__with_triggers(self, mock_audit):
+    def test_create_workflow__with_triggers(self):
         self.valid_workflow["triggers"] = {
             "logicType": "any",
             "conditions": [
@@ -419,7 +419,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
             "id"
         )
 
-    def test_create_workflow__with_actions(self, mock_audit):
+    def test_create_workflow__with_actions(self):
         self.valid_workflow["actionFilters"] = [
             {
                 "logicType": "any",
