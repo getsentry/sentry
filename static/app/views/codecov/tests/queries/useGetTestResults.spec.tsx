@@ -78,7 +78,6 @@ describe('useInfiniteTestResults', () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
-    jest.clearAllMocks();
   });
 
   it('fetches test results with no params and returns successful response', async () => {
