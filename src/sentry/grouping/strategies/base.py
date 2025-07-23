@@ -23,11 +23,6 @@ if TYPE_CHECKING:
 
 STRATEGIES: dict[str, Strategy[Any]] = {}
 
-RISK_LEVEL_LOW = 0
-RISK_LEVEL_MEDIUM = 1
-RISK_LEVEL_HIGH = 2
-
-Risk = int  # TODO: make enum or union of literals
 
 # XXX: Want to make ContextDict typeddict but also want to type/overload dict
 # API on GroupingContext
@@ -302,7 +297,6 @@ class StrategyConfiguration:
     delegates: dict[str, Strategy[Any]] = {}
     changelog: str | None = None
     hidden = False
-    risk = RISK_LEVEL_LOW
     initial_context: ContextDict = {}
     enhancements_base: str | None = DEFAULT_ENHANCEMENTS_BASE
     fingerprinting_bases: Sequence[str] | None = DEFAULT_GROUPING_FINGERPRINTING_BASES
@@ -341,7 +335,6 @@ class StrategyConfiguration:
             "changelog": cls.changelog,
             "delegates": sorted(x.id for x in cls.delegates.values()),
             "hidden": cls.hidden,
-            "risk": cls.risk,
             "latest": projectoptions.lookup_well_known_key("sentry:grouping_config").get_default(
                 epoch=projectoptions.LATEST_EPOCH
             )
@@ -356,7 +349,6 @@ def create_strategy_configuration_class(
     changelog: str | None = None,
     hidden: bool = False,
     base: type[StrategyConfiguration] | None = None,
-    risk: Risk | None = None,
     initial_context: ContextDict | None = None,
     enhancements_base: str | None = None,
     fingerprinting_bases: Sequence[str] | None = None,
@@ -385,9 +377,6 @@ def create_strategy_configuration_class(
     else:
         NewStrategyConfiguration.fingerprinting_bases = None
 
-    if risk is None:
-        risk = RISK_LEVEL_LOW
-    NewStrategyConfiguration.risk = risk
     NewStrategyConfiguration.hidden = hidden
 
     by_class: dict[str, list[str]] = {}
