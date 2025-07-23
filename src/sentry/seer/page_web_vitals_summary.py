@@ -24,7 +24,7 @@ def get_page_web_vitals_summary(
     traceSlugs: list[str],
     traceTrees: list[list[Any]],
     organization: Organization,
-    user: User | RpcUser | AnonymousUser | None = None,
+    user: User | RpcUser | AnonymousUser,
 ) -> tuple[dict[str, Any], int]:
     """
     Generate an AI summary on web vitals for a single page given a list of traces.
@@ -38,8 +38,6 @@ def get_page_web_vitals_summary(
     Returns:
         A tuple containing (summary_data, status_code)
     """
-    if user is None:
-        user = AnonymousUser()
     if not features.has(
         "organizations:performance-web-vitals-seer-suggestions", organization, actor=user
     ):

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-import orjson
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -10,13 +10,18 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
+from sentry.api.bases.organization import OrganizationPermission
+from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
 from sentry.models.organization import Organization
 from sentry.seer.page_web_vitals_summary import get_page_web_vitals_summary
+from sentry.snuba.trace import query_trace_data
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
+
+
+class PageWebVitalsSummaryRequestSerializer(serializers.Serializer):
+    traceSlugs = serializers.ListField(child=serializers.CharField())
 
 
 class OrganizationPageWebVitalsSummaryPermission(OrganizationPermission):
@@ -26,7 +31,7 @@ class OrganizationPageWebVitalsSummaryPermission(OrganizationPermission):
 
 
 @region_silo_endpoint
-class OrganizationPageWebVitalsSummaryEndpoint(OrganizationEndpoint):
+class OrganizationPageWebVitalsSummaryEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -51,20 +56,19 @@ class OrganizationPageWebVitalsSummaryEndpoint(OrganizationEndpoint):
         if not self.has_feature(organization, request):
             return Response(status=404)
 
-        data: dict = orjson.loads(request.body) if request.body else {}
+        serializer = PageWebVitalsSummaryRequestSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        data = serializer.validated_data
+
         trace_ids = data.get("traceSlugs", None)
         if not trace_ids:
             return Response({"detail": "Missing traceSlugs parameter"}, status=400)
 
-        try:
-            trace_endpoint = OrganizationTraceEndpoint()
-            snuba_params = trace_endpoint.get_snuba_params(request, organization)
-            trace_trees = [
-                trace_endpoint.query_trace_data(snuba_params, trace_id) for trace_id in trace_ids
-            ]
-
-        except Exception:
-            return Response({"detail": "Error fetching trace"}, status=400)
+        snuba_params = self.get_snuba_params(request, organization)
+        trace_trees = [query_trace_data(snuba_params, trace_id) for trace_id in trace_ids]
 
         if (
             not trace_trees
