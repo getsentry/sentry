@@ -15,10 +15,10 @@ interface Props {
 }
 
 export type ReplayBulkDeletePayload = {
-  environments: string[];
+  environments: string | string[] | undefined;
   query: string;
-  rangeEnd: string;
-  rangeStart: string;
+  rangeEnd: string | undefined;
+  rangeStart: string | undefined;
 };
 
 type Vars = [ReplayBulkDeletePayload];
@@ -52,7 +52,10 @@ export default function useDeleteReplays({projectSlug}: Props) {
   });
 
   const queryOptionsToPayload = useCallback(
-    (selectedIds: 'all' | string[], queryOptions: QueryKeyEndpointOptions) => {
+    (
+      selectedIds: 'all' | string[],
+      queryOptions: QueryKeyEndpointOptions<unknown, Record<string, string>, unknown>
+    ): ReplayBulkDeletePayload => {
       const environments = queryOptions?.query?.environment ?? [];
       const {start, end} = queryOptions?.query?.statsPeriod
         ? parseStatsPeriod(queryOptions?.query?.statsPeriod)

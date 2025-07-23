@@ -31,7 +31,9 @@ import useProjectFromId from 'sentry/utils/useProjectFromId';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 interface Props {
-  queryOptions: QueryKeyEndpointOptions | undefined;
+  queryOptions:
+    | QueryKeyEndpointOptions<unknown, Record<string, string>, unknown>
+    | undefined;
   replays: ReplayListRecord[];
   selectedIds: 'all' | string[];
 }
