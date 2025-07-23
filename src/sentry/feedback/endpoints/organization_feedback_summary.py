@@ -132,13 +132,13 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         if len(group_feedbacks) < MIN_FEEDBACKS_TO_SUMMARIZE:
             logger.error("Too few feedbacks to summarize after enforcing the character limit")
 
-        request = SummaryRequest(
+        seer_request = SummaryRequest(
             organization_id=organization.id,
             feedbacks=group_feedbacks,
         )
 
         try:
-            summary = json.loads(make_seer_request(request).decode("utf-8"))
+            summary = json.loads(make_seer_request(seer_request).decode("utf-8"))
             summary = summary["data"]
         except Exception:
             logger.exception("Error generating summary of user feedbacks")
