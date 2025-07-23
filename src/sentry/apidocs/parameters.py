@@ -1147,5 +1147,6 @@ Available fields are:
         location="query",
         required=False,
         type=str,
+        many=True,
         description="""A list of test suites belonging to a repository's test results.""",
     )
