@@ -568,9 +568,9 @@ class Enhancements:
 
             # Split the string to get encoded data for each set of rules: unsplit rules (i.e., rules
             # the way they're stored in project config), classifier rules, and contributes rules.
-            # Older base64 strings - such as those stored in events created before rule-splitting was
-            # introduced - will only have one part and thus will end up unchanged. (The delimiter is
-            # chosen specifically to be a character which can't appear in base64.)
+            # Older base64 strings - such as those stored in events created before rule-splitting
+            # was introduced - will only have one part and thus will end up unchanged by the split.
+            # (The delimiter is chosen specifically to be a character which can't appear in base64.)
             bytes_strs = raw_bytes_str.split(BASE64_ENHANCEMENTS_DELIMITER)
             configs = [cls._get_config_from_base64_bytes(bytes_str) for bytes_str in bytes_strs]
 
@@ -583,7 +583,7 @@ class Enhancements:
             version = unsplit_config.version
             bases = unsplit_config.bases
 
-            metrics_timer_tags.update({"split": version == 3})
+            metrics_timer_tags.update({"version": version})
 
             return cls(
                 rules=unsplit_config.rules,
@@ -606,7 +606,7 @@ class Enhancements:
 
         with metrics.timer("grouping.enhancements.creation") as metrics_timer_tags:
             metrics_timer_tags.update(
-                {"split": version == 3, "source": "rules_text", "referrer": referrer}
+                {"version": version, "source": "rules_text", "referrer": referrer}
             )
 
             return Enhancements(

@@ -23,7 +23,7 @@ from sentry.grouping.api import (
 from sentry.grouping.component import BaseGroupingComponent
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.fingerprinting import FingerprintingRules
-from sentry.grouping.strategies.configurations import CONFIGURATIONS, register_strategy_config
+from sentry.grouping.strategies.configurations import CONFIGURATIONS, register_grouping_config
 from sentry.grouping.variants import BaseVariant
 from sentry.models.project import Project
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
@@ -36,6 +36,13 @@ FINGERPRINT_INPUTS_DIR = path.join(path.dirname(__file__), "fingerprint_inputs")
 MANUAL_SAVE_CONFIGS = set(CONFIGURATIONS.keys()) - {DEFAULT_GROUPING_CONFIG}
 FULL_PIPELINE_CONFIGS = {DEFAULT_GROUPING_CONFIG}
 
+# When regenerating snapshots locally, you can set `SENTRY_SNAPSHOTS_WRITEBACK=1` and
+# `SENTRY_FAST_GROUPING_SNAPSHOTS=1` in the environment to update snapshots automatically and run
+# all snapshots through the faster, non-DB-involving process.
+if os.environ.get("SENTRY_FAST_GROUPING_SNAPSHOTS") and not os.environ.get("GITHUB_ACTIONS"):
+    FULL_PIPELINE_CONFIGS.remove(DEFAULT_GROUPING_CONFIG)
+    MANUAL_SAVE_CONFIGS.add(DEFAULT_GROUPING_CONFIG)
+
 # Create a grouping config to be used only in tests, in which message parameterization is turned
 # off. This lets us easily force an event to have different hashes for different configs. (We use a
 # purposefully old date so that it can be used as a secondary config.)
@@ -43,7 +50,7 @@ FULL_PIPELINE_CONFIGS = {DEFAULT_GROUPING_CONFIG}
 # Note: This must be registered after `MANUAL_SAVE_CONFIGS` is defined, so that
 # `MANUAL_SAVE_CONFIGS` doesn't include it.
 NO_MSG_PARAM_CONFIG = "no-msg-param-tests-only:2012-12-31"
-register_strategy_config(
+register_grouping_config(
     id=NO_MSG_PARAM_CONFIG,
     base=DEFAULT_GROUPING_CONFIG,
     initial_context={"normalize_message": False},

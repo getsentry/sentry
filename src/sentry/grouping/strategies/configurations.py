@@ -1,5 +1,4 @@
 from sentry.grouping.strategies.base import (
-    RISK_LEVEL_HIGH,
     StrategyConfiguration,
     create_strategy_configuration_class,
 )
@@ -9,7 +8,7 @@ CONFIGURATIONS: dict[str, type[StrategyConfiguration]] = {}
 
 # The implied base strategy *every* strategy inherits from if no
 # base is defined.
-BASE_STRATEGY = create_strategy_configuration_class(
+BASE_CONFIG = create_strategy_configuration_class(
     None,
     # Strategy priority is enforced programaticaly via the `score` argument to the `@strategy`
     # decorator (rather than by the order they're listed here), but they are nonetheless listed here
@@ -28,9 +27,6 @@ BASE_STRATEGY = create_strategy_configuration_class(
     ],
     delegates=["frame:v1", "stacktrace:v1", "single-exception:v1"],
     initial_context={
-        # This key in the context tells the system which variant should
-        # be produced.  TODO: phase this out.
-        "variant": None,
         # This is a flag that can be used by any delegate to respond to
         # a detected recursion.  This is currently used by the frame
         # strategy to disable itself.  Recursion is detected by the outer
@@ -39,8 +35,6 @@ BASE_STRATEGY = create_strategy_configuration_class(
         # This turns on the automatic message trimming and parameter substitution
         # by the message strategy. (Only still configurable so it can be turned off in tests.)
         "normalize_message": True,
-        # Turns on some javascript fuzzing features.
-        "javascript_fuzzing": True,
         # Platforms for which context line should be taken into
         # account when grouping.
         "contextline_platforms": ("javascript", "node", "python", "php", "ruby"),
@@ -59,21 +53,20 @@ BASE_STRATEGY = create_strategy_configuration_class(
 )
 
 
-def register_strategy_config(id: str, **kwargs) -> type[StrategyConfiguration]:
+def register_grouping_config(id: str, **kwargs) -> type[StrategyConfiguration]:
     if kwargs.get("base") is not None:
         kwargs["base"] = CONFIGURATIONS[kwargs["base"]]
     else:
-        kwargs["base"] = BASE_STRATEGY
+        kwargs["base"] = BASE_CONFIG
     strategy_class = create_strategy_configuration_class(id, **kwargs)
     CONFIGURATIONS[id] = strategy_class
     return strategy_class
 
 
-register_strategy_config(
+register_grouping_config(
     id="newstyle:2023-01-11",
     # There's no `base` argument here because this config is based on `BASE_STRATEGY`. To base a
     # config on a previous config, include its `id` value as the value for `base` here.
-    risk=RISK_LEVEL_HIGH,
     changelog="""
         * Better rules for when to take context lines into account for
           JavaScript platforms for grouping purposes.
