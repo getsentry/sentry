@@ -14,6 +14,9 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.preprod.api.models.project_preprod_build_details_models import (
+    platform_from_artifact_type,
+)
 from sentry.preprod.models import InstallablePreprodArtifact, PreprodArtifact
 
 logger = logging.getLogger(__name__)
@@ -93,6 +96,7 @@ class ProjectPreprodInstallDetailsEndpoint(ProjectEndpoint):
                 return JsonResponse(
                     {
                         "is_code_signature_valid": False,
+                        "platform": platform_from_artifact_type(preprod_artifact.artifact_type),
                     }
                 )
 
@@ -113,6 +117,7 @@ class ProjectPreprodInstallDetailsEndpoint(ProjectEndpoint):
         # Build response based on artifact type
         response_data: dict[str, Any] = {
             "install_url": installable_url,
+            "platform": platform_from_artifact_type(preprod_artifact.artifact_type),
         }
 
         # Only include iOS-specific fields for iOS apps
