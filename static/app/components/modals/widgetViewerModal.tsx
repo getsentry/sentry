@@ -1319,7 +1319,9 @@ function ViewerTableV2({
   const aliases = decodeColumnAliases(
     tableColumns,
     tableWidget.queries[0]?.fieldAliases ?? [],
-    tableWidget.widgetType === WidgetType.ISSUE ? datasetConfig.getFieldHeaderMap?.() : {}
+    tableWidget.widgetType === WidgetType.ISSUE
+      ? datasetConfig?.getFieldHeaderMap?.()
+      : {}
   );
 
   if (loading) {
@@ -1372,7 +1374,7 @@ function ViewerTableV2({
         sort={tableSort}
         onChangeSort={onChangeSort}
         getRenderer={(field, _dataRow, meta) => {
-          const customRenderer = datasetConfig.getCustomFieldRenderer?.(
+          const customRenderer = datasetConfig?.getCustomFieldRenderer?.(
             field,
             meta as MetaType,
             widget,
