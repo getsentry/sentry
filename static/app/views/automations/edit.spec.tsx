@@ -117,12 +117,6 @@ describe('EditAutomationActions', () => {
     // Wait for the component to load and display automation actions
     expect(await screen.findByRole('button', {name: 'Disable'})).toBeInTheDocument();
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/workflows/${automation.id}/`,
-      method: 'GET',
-      body: {...automation, enabled: !automation.enabled},
-    });
-
     // Click the toggle button to enable/disable the automation
     await userEvent.click(screen.getByRole('button', {name: 'Disable'}));
 

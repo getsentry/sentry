@@ -192,20 +192,16 @@ export function useUpdateAutomation() {
         method: 'PUT',
         data,
       }),
-    onMutate: data => {
-      // Optimistically update the cache
-      setApiQueryData(queryClient, [`/organizations/${org.slug}/workflows/${data.id}/`], {
-        ...data,
-        lastUpdated: Date.now(),
-      });
-    },
-    onSettled: (_, __, data) => {
-      // Invalidate after mutation completes (success or error)
+    onSuccess: (data, __, ___) => {
+      // Update cache with new automation data
+      setApiQueryData(
+        queryClient,
+        [`/organizations/${org.slug}/workflows/${data.id}/`],
+        data
+      );
+      // Invalidate list query
       queryClient.invalidateQueries({
         queryKey: [`/organizations/${org.slug}/workflows/`],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [`/organizations/${org.slug}/workflows/${data.id}/`],
       });
     },
     onError: _ => {
