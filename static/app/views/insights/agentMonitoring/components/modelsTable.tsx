@@ -1,6 +1,7 @@
 import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import Count from 'sentry/components/count';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import GridEditable, {
@@ -28,7 +29,9 @@ import {
 import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
 import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
+import {formatLLMCosts} from 'sentry/views/insights/agentMonitoring/utils/formatLLMCosts';
 import {
+  AI_COST_ATTRIBUTE_SUM,
   AI_INPUT_TOKENS_ATTRIBUTE_SUM,
   AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM,
   AI_MODEL_ID_ATTRIBUTE,
@@ -38,6 +41,7 @@ import {
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 // import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
@@ -45,6 +49,7 @@ import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/Numb
 
 interface TableData {
   avg: number;
+  cost: number;
   inputCachedTokens: number;
   // errorRate: number;
   inputTokens: number;
@@ -62,14 +67,10 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'count()', name: t('Requests'), width: 120},
   {key: 'avg(span.duration)', name: t('Avg'), width: 100},
   {key: 'p95(span.duration)', name: t('P95'), width: 100},
-  {key: AI_INPUT_TOKENS_ATTRIBUTE_SUM, name: t('Input tokens'), width: 140},
-  {key: AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM, name: t('Cached tokens'), width: 140},
-  {key: AI_OUTPUT_TOKENS_ATTRIBUTE_SUM, name: t('Output tokens'), width: 140},
-  {
-    key: AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM,
-    name: t('Reasoning tokens'),
-    width: 140,
-  },
+  {key: AI_COST_ATTRIBUTE_SUM, name: t('Cost'), width: 100},
+  {key: AI_INPUT_TOKENS_ATTRIBUTE_SUM, name: t('Input tokens (Cached)'), width: 180},
+  {key: AI_OUTPUT_TOKENS_ATTRIBUTE_SUM, name: t('Output tokens (Reasoning)'), width: 180},
+
   // {key: 'failure_rate()', name: t('Error Rate'), width: 120},
 ];
 
@@ -79,6 +80,7 @@ const rightAlignColumns = new Set([
   AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
   AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM,
   AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM,
+  AI_COST_ATTRIBUTE_SUM,
   // 'failure_rate()',
   'avg(span.duration)',
   'p95(span.duration)',
@@ -115,6 +117,7 @@ export function ModelsTable() {
         AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
         AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM,
         AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM,
+        AI_COST_ATTRIBUTE_SUM,
         'count()',
         'avg(span.duration)',
         'p95(span.duration)',
@@ -143,6 +146,7 @@ export function ModelsTable() {
       avg: span['avg(span.duration)'] ?? 0,
       p95: span['p95(span.duration)'] ?? 0,
       // errorRate: span['failure_rate()'],
+      cost: Number(span[AI_COST_ATTRIBUTE_SUM]),
       inputTokens: Number(span[AI_INPUT_TOKENS_ATTRIBUTE_SUM]),
       inputCachedTokens: Number(span[AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM]),
       outputTokens: Number(span[AI_OUTPUT_TOKENS_ATTRIBUTE_SUM]),
@@ -245,23 +249,48 @@ const BodyCell = memo(function BodyCell({
     case 'count()':
       return <NumberCell value={dataRow.requests} />;
     case AI_INPUT_TOKENS_ATTRIBUTE_SUM:
-      return <NumberCell value={dataRow.inputTokens} />;
+      return (
+        <TokenTypeCell
+          value={dataRow.inputTokens}
+          secondaryValue={dataRow.inputCachedTokens}
+        />
+      );
     case AI_OUTPUT_TOKENS_ATTRIBUTE_SUM:
-      return <NumberCell value={dataRow.outputTokens} />;
-    case AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM:
-      return <NumberCell value={dataRow.outputReasoningTokens} />;
-    case AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM:
-      return <NumberCell value={dataRow.inputCachedTokens} />;
+      return (
+        <TokenTypeCell
+          value={dataRow.outputTokens}
+          secondaryValue={dataRow.outputReasoningTokens}
+        />
+      );
     case 'avg(span.duration)':
       return <DurationCell milliseconds={dataRow.avg} />;
     case 'p95(span.duration)':
       return <DurationCell milliseconds={dataRow.p95} />;
+    case AI_COST_ATTRIBUTE_SUM:
+      return <TextAlignRight>{formatLLMCosts(dataRow.cost)}</TextAlignRight>;
     // case 'failure_rate()':
     //   return <ErrorRateCell errorRate={dataRow.errorRate} total={dataRow.requests} />;
     default:
       return null;
   }
 });
+
+function TokenTypeCell({value, secondaryValue}: {secondaryValue: number; value: number}) {
+  return (
+    <TokenTypeCountWrapper>
+      <Count value={value} />
+      <span>
+        (<Count value={secondaryValue} />)
+      </span>
+    </TokenTypeCountWrapper>
+  );
+}
+
+const TokenTypeCountWrapper = styled('span')`
+  display: flex;
+  gap: ${p => p.theme.space.xs};
+  justify-content: flex-end;
+`;
 
 const ModelCell = styled(CellLink)`
   line-height: 1.1;

@@ -7,7 +7,7 @@ import {ExternalLink} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
+import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -86,13 +86,15 @@ export default function TokenTypesWidget() {
     }
   );
 
-  // we need to deduct the reasoning tokens from the output tokens and cahced tokens from the input tokens
+  // we need to deduct the reasoning tokens from the output tokens and cached tokens from the input tokens
+  // then convert to percentages so all 4 types stack to 100%
   const timeSeriesAdjusted = useMemo(() => {
     if (!hasData) {
       return [];
     }
 
-    return Object.values(timeSeries).map(series => {
+    // First, adjust the values by deducting overlapping tokens
+    const adjustedSeries = Object.values(timeSeries).map(series => {
       if (series.seriesName === AI_INPUT_TOKENS_ATTRIBUTE_SUM) {
         return {
           ...series,
@@ -124,9 +126,45 @@ export default function TokenTypesWidget() {
 
       return series;
     });
+
+    // Calculate total tokens for each time point to convert to percentages
+    const dataLength = adjustedSeries[0]?.data.length || 0;
+    const totalsPerTimePoint = new Array(dataLength).fill(0);
+
+    adjustedSeries.forEach(series => {
+      series.data.forEach((point, index) => {
+        totalsPerTimePoint[index] += point.value;
+      });
+    });
+
+    // Convert to percentages
+    return adjustedSeries.map(series => ({
+      ...series,
+      meta: {
+        ...series.meta,
+        fields: {
+          ...series.meta?.fields,
+          [AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM]: 'percentage',
+          [AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM]: 'percentage',
+          [AI_INPUT_TOKENS_ATTRIBUTE_SUM]: 'percentage',
+          [AI_OUTPUT_TOKENS_ATTRIBUTE_SUM]: 'percentage',
+        },
+        units: {
+          [AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM]: 'percentage',
+          [AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM]: 'percentage',
+          [AI_INPUT_TOKENS_ATTRIBUTE_SUM]: 'percentage',
+          [AI_OUTPUT_TOKENS_ATTRIBUTE_SUM]: 'percentage',
+        },
+      },
+      data: series.data.map((point, index) => ({
+        ...point,
+        value:
+          totalsPerTimePoint[index] > 0 ? point.value / totalsPerTimePoint[index] : 0,
+      })),
+    }));
   }, [timeSeries, hasData]);
 
-  const colorPalette = theme.chart.getColorPalette(4);
+  const colorPalette = theme.chart.getColorPalette(3);
 
   const visualization = (
     <WidgetVisualizationStates
@@ -150,10 +188,10 @@ export default function TokenTypesWidget() {
         showLegend: 'never',
         plottables: timeSeriesAdjusted.map(
           (ts, index) =>
-            new Bars(convertSeriesToTimeseries(ts), {
+            // @ts-expect-error fix this later
+            new Area(convertSeriesToTimeseries(ts), {
               color: colorPalette[index],
               alias: `${SERIES_NAME_MAP[ts.seriesName]}`,
-              stack: 'stack',
             })
         ),
       }}
