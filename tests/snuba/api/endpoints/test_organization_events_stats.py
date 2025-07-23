@@ -3137,7 +3137,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
                     "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                     "user": {"email": self.user.email},
                     "tags": {"shared-tag": "yup", "env": "prod"},
-                    "exception": {"values": [{"type": "NameError"}]},
+                    "exception": {"values": [{"type": "NameError"}, {"type": "FooError"}]},
                     "fingerprint": ["group1"],
                 },
                 "project": self.project2,
@@ -3150,7 +3150,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
                     "fingerprint": ["group2"],
                     "user": {"email": self.user2.email},
                     "tags": {"shared-tag": "yup", "env": "prod"},
-                    "exception": {"values": [{"type": "NameError"}]},
+                    "exception": {"values": [{"type": "NameError"}, {"type": "FooError"}]},
                 },
                 "project": self.project2,
                 "count": 6,
@@ -3162,7 +3162,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
                     "fingerprint": ["group3"],
                     "user": {"email": "foo@example.com"},
                     "tags": {"shared-tag": "yup", "env": "prod"},
-                    "exception": {"values": [{"type": "NameError"}]},
+                    "exception": {"values": [{"type": "NameError"}, {"type": "FooError"}]},
                 },
                 "project": self.project,
                 "count": 5,
@@ -3185,7 +3185,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
                     "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                     "user": {"email": self.user.email},
                     "tags": {"shared-tag": "yup", "env": "staging"},
-                    "exception": {"values": [{"type": "NameError"}]},
+                    "exception": {"values": [{"type": "NameError"}, {"type": "FooError"}]},
                     "fingerprint": ["group7"],
                 },
                 "project": self.project,
@@ -3305,9 +3305,9 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
 
         data = response.data
         assert len(data) == 2
-        assert "NameError" in data
+        assert "[NameError,FooError]" in data
         assert "ValueError" in data
-        assert [attrs[0]["count"] for _, attrs in data["NameError"]["data"]] == [2, 0]
+        assert [attrs[0]["count"] for _, attrs in data["[NameError,FooError]"]["data"]] == [2, 0]
         assert [attrs[0]["count"] for _, attrs in data["ValueError"]["data"]] == [1, 0]
 
     def test_top_events_with_projects_other(self):

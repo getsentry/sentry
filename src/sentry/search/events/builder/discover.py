@@ -455,9 +455,9 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                         conditions.append(null_condition)
                 elif any(isinstance(value, list) for value in values_list):
                     list_conditions = []
-                    for value in values_list:
+                    for values in values_list:
                         list_conditions.append(
-                            Condition(resolved_field, Op.IN if not other else Op.NOT_IN, value)
+                            Condition(resolved_field, Op.IN if not other else Op.NOT_IN, values)
                         )
                     if len(list_conditions) > 1:
                         if not other:
