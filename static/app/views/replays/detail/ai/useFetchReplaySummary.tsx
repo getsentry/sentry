@@ -10,6 +10,7 @@ import {
   type SpanFrame,
 } from 'sentry/utils/replays/types';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -108,9 +109,14 @@ function useReplayPrompt(replayRecord: ReplayRecord | undefined, logs: string[])
   const {project: project_id} = useLocationQuery({
     fields: {project: decodeScalar},
   });
+  const replay = useReplayReader();
   const project = useProjectFromId({project_id});
+  const organization = useOrganization();
   const body = {
     logs,
+    replay_id: replay?.getReplay().id,
+    organization_id: organization.id,
+    project_id: project?.id,
   };
 
   return useQuery<ReplayPrompt | null>({
