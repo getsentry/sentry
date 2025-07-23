@@ -736,8 +736,9 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
         assert data["version"] == 2
 
     def test_post_transactions_query_with_deprecation_flag(self):
-        with self.feature(self.feature_name) and self.feature(
-            "organizations:discover-saved-queries-deprecation"
+        with (
+            self.feature(self.feature_name),
+            self.feature("organizations:discover-saved-queries-deprecation"),
         ):
             response = self.client.post(
                 self.url,
