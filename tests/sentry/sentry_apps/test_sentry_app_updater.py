@@ -29,11 +29,11 @@ class TestUpdater(TestCase):
             scopes=("project:read",),
             schema={"elements": [self.create_issue_link_schema()]},
         )
-        self.updater = SentryAppUpdater(sentry_app=self.sentry_app)
+        self.updater = SentryAppUpdater(sentry_app=self.sentry_app, user=self.user)
 
     def test_updates_name(self):
         self.updater.name = "A New Thing"
-        self.updater.run(user=self.user)
+        self.updater.run()
         assert self.sentry_app.name == "A New Thing"
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -46,9 +46,9 @@ class TestUpdater(TestCase):
             user=self.user, internal_integration=sentry_app
         )
 
-        updater = SentryAppUpdater(sentry_app=sentry_app)
+        updater = SentryAppUpdater(sentry_app=sentry_app, user=self.user)
         updater.scopes = ["project:read", "project:write"]
-        updater.run(user=self.user)
+        updater.run()
         token.refresh_from_db()
 
         assert sentry_app.get_scopes() == ["project:read", "project:write"]
@@ -85,7 +85,7 @@ class TestUpdater(TestCase):
             expires_at=(timezone.now() - timedelta(hours=1)),
         )
         self.updater.scopes = ["project:read", "project:write"]
-        self.updater.run(user=self.user)
+        self.updater.run()
         assert self.sentry_app.get_scopes() == ["project:read", "project:write"]
         tokens = ApiToken.objects.filter(application=self.sentry_app.application).order_by(
             "expires_at"
@@ -97,39 +97,39 @@ class TestUpdater(TestCase):
         sentry_app = self.create_sentry_app(
             name="sentry", organization=self.org, scopes=("project:read",), published=True
         )
-        updater = SentryAppUpdater(sentry_app=sentry_app)
+        updater = SentryAppUpdater(sentry_app=sentry_app, user=self.user)
         updater.scopes = ["project:read", "project:write"]
 
         with pytest.raises(APIError):
-            updater.run(self.user)
+            updater.run()
 
     def test_update_webhook_published_app(self):
         sentry_app = self.create_sentry_app(
             name="sentry", organization=self.org, scopes=("project:read",), published=True
         )
-        updater = SentryAppUpdater(sentry_app=sentry_app)
+        updater = SentryAppUpdater(sentry_app=sentry_app, user=self.user)
         # pass in scopes but as the same value
         updater.scopes = ["project:read"]
         updater.webhook_url = "http://example.com/hooks"
-        updater.run(self.user)
+        updater.run()
         assert sentry_app.webhook_url == "http://example.com/hooks"
 
     def test_doesnt_update_app_with_invalid_event_permissions(self):
         sentry_app = self.create_sentry_app(
             name="sentry", organization=self.org, scopes=("project:read",)
         )
-        updater = SentryAppUpdater(sentry_app=sentry_app)
+        updater = SentryAppUpdater(sentry_app=sentry_app, user=self.user)
         updater.events = ["issue"]
         with pytest.raises(APIError):
-            updater.run(self.user)
+            updater.run()
 
     def test_doesnt_update_verify_install_if_internal(self):
         self.create_project(organization=self.org)
         sentry_app = self.create_internal_integration(name="Internal", organization=self.org)
-        updater = SentryAppUpdater(sentry_app=sentry_app)
+        updater = SentryAppUpdater(sentry_app=sentry_app, user=self.user)
         updater.verify_install = True
         with pytest.raises(APIError):
-            updater.run(self.user)
+            updater.run()
 
     def test_updates_service_hook_events(self):
         sentry_app = self.create_sentry_app(
@@ -141,11 +141,12 @@ class TestUpdater(TestCase):
         self.create_sentry_app_installation(slug="sentry")
         updater = SentryAppUpdater(
             sentry_app=sentry_app,
+            user=self.user,
             events=[
                 "issue",
             ],
         )
-        updater.run(self.user)
+        updater.run()
         assert sentry_app.events == expand_events(["issue"])
         with assume_test_silo_mode(SiloMode.REGION):
             service_hook = ServiceHook.objects.filter(application_id=sentry_app.application_id)[0]
@@ -159,8 +160,12 @@ class TestUpdater(TestCase):
             events=("event.alert",),
         )
         self.create_sentry_app_installation(slug="sentry")
-        updater = SentryAppUpdater(sentry_app=sentry_app, webhook_url="http://example.com/hooks")
-        updater.run(self.user)
+        updater = SentryAppUpdater(
+            sentry_app=sentry_app,
+            user=self.user,
+            webhook_url="http://example.com/hooks",
+        )
+        updater.run()
         assert sentry_app.webhook_url == "http://example.com/hooks"
         with assume_test_silo_mode(SiloMode.REGION):
             service_hook = ServiceHook.objects.get(application_id=sentry_app.application_id)
@@ -169,48 +174,48 @@ class TestUpdater(TestCase):
 
     def test_updates_redirect_url(self):
         self.updater.redirect_url = "http://example.com/finish-setup"
-        self.updater.run(self.user)
+        self.updater.run()
         assert self.sentry_app.redirect_url == "http://example.com/finish-setup"
 
     def test_updates_is_alertable(self):
         self.updater.is_alertable = True
-        self.updater.run(self.user)
+        self.updater.run()
         assert self.sentry_app.is_alertable
 
     def test_updates_schema(self):
         ui_component = SentryAppComponent.objects.get(sentry_app_id=self.sentry_app.id)
         self.updater.schema = {"elements": [self.create_alert_rule_action_schema()]}
-        self.updater.run(self.user)
+        self.updater.run()
         new_ui_component = SentryAppComponent.objects.get(sentry_app_id=self.sentry_app.id)
         assert not ui_component.type == new_ui_component.type
         assert self.sentry_app.schema == {"elements": [self.create_alert_rule_action_schema()]}
 
     def test_updates_overview(self):
         self.updater.overview = "Description of my very cool application"
-        self.updater.run(self.user)
+        self.updater.run()
         assert self.sentry_app.overview == "Description of my very cool application"
 
     def test_update_popularity_if_superuser(self):
         popularity = 27
         self.updater.popularity = popularity
         self.user.is_superuser = True
-        self.updater.run(self.user)
+        self.updater.run()
         assert self.sentry_app.popularity == popularity
 
     def test_doesnt_update_popularity_if_not_superuser(self):
         self.updater.popularity = 27
-        self.updater.run(self.user)
+        self.updater.run()
         assert self.sentry_app.popularity == SentryApp._meta.get_field("popularity").default
 
     def test_update_status_if_superuser(self):
         self.updater.status = "published"
         self.user.is_superuser = True
-        self.updater.run(self.user)
+        self.updater.run()
         assert self.sentry_app.status == SentryAppStatus.PUBLISHED
 
     def test_doesnt_update_status_if_not_superuser(self):
         self.updater.status = "published"
-        self.updater.run(self.user)
+        self.updater.run()
         assert self.sentry_app.status == SentryAppStatus.UNPUBLISHED
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -221,10 +226,10 @@ class TestUpdater(TestCase):
         )
         with assume_test_silo_mode(SiloMode.REGION):
             assert len(ServiceHook.objects.filter(application_id=internal_app.application_id)) == 0
-        updater = SentryAppUpdater(sentry_app=internal_app)
+        updater = SentryAppUpdater(sentry_app=internal_app, user=self.user)
         updater.webhook_url = "https://sentry.io/hook"
         updater.events = ["issue"]
-        updater.run(self.user)
+        updater.run()
         with assume_test_silo_mode(SiloMode.REGION):
             service_hook = ServiceHook.objects.get(application_id=internal_app.application_id)
         assert service_hook.url == "https://sentry.io/hook"
@@ -248,8 +253,8 @@ class TestUpdater(TestCase):
         )
         with assume_test_silo_mode(SiloMode.REGION):
             assert len(ServiceHook.objects.filter(application_id=internal_app.application_id)) == 1
-        updater = SentryAppUpdater(sentry_app=internal_app)
+        updater = SentryAppUpdater(sentry_app=internal_app, user=self.user)
         updater.webhook_url = ""
-        updater.run(self.user)
+        updater.run()
         with assume_test_silo_mode(SiloMode.REGION):
             assert len(ServiceHook.objects.filter(application_id=internal_app.application_id)) == 0
