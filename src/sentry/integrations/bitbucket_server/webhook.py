@@ -60,8 +60,9 @@ class PushEventWebhook(BitbucketServerWebhook):
         if not (
             (organization := kwargs.get("organization"))
             and (integration_id := kwargs.get("integration_id"))
+            and (lifecycle := kwargs.get("lifecycle"))
         ):
-            raise ValueError("Organization and integration_id must be provided")
+            raise ValueError("Organization, integration_id, and lifecycle must be provided")
 
         try:
             repo = Repository.objects.get(
@@ -69,18 +70,21 @@ class PushEventWebhook(BitbucketServerWebhook):
                 provider=PROVIDER_NAME,
                 external_id=str(event["repository"]["id"]),
             )
-        except Repository.DoesNotExist:
+        except Repository.DoesNotExist as e:
+            lifecycle.record_halt(halt_reason=e)
             raise Http404()
 
         provider = repo.get_provider()
         try:
             installation = provider.get_installation(integration_id, organization.id)
-        except Integration.DoesNotExist:
+        except Integration.DoesNotExist as e:
+            lifecycle.record_halt(halt_reason=e)
             raise Http404()
 
         try:
             client = installation.get_client()
-        except IntegrationError:
+        except IntegrationError as e:
+            lifecycle.record_halt(halt_reason=e)
             raise BadRequest()
 
         # while we're here, make sure repo data is up to date
@@ -94,9 +98,11 @@ class PushEventWebhook(BitbucketServerWebhook):
                 commits = client.get_commits(
                     project_name, repo_name, from_hash, change.get("toHash")
                 )
-            except ApiHostError:
+            except ApiHostError as e:
+                lifecycle.record_halt(halt_reason=e)
                 raise BadRequest(detail="Unable to reach host")
-            except ApiUnauthorized:
+            except ApiUnauthorized as e:
+                lifecycle.record_halt(halt_reason=e)
                 raise BadRequest()
             except Exception as e:
                 sentry_sdk.capture_exception(e)
@@ -200,21 +206,16 @@ class BitbucketServerWebhookEndpoint(Endpoint):
 
         event_handler = handler()
 
-        known_processing_error = None
         with IntegrationWebhookEvent(
             interaction_type=event_handler.event_type,
             domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
             provider_key=event_handler.provider,
         ).capture() as lifecycle:
-            try:
-                event_handler(event, organization=organization, integration_id=integration_id)
-            except (Http404, BadRequest) as e:
-                # For known processing errors, record the halt and raise outside the lifecycle.
-                # We cannot action on these failures.
-                known_processing_error = e
-                lifecycle.record_halt(halt_reason=known_processing_error)
-
-        if known_processing_error:
-            raise known_processing_error
+            event_handler(
+                event,
+                organization=organization,
+                integration_id=integration_id,
+                lifecycle=lifecycle,
+            )
 
         return HttpResponse(status=204)
