@@ -481,6 +481,7 @@ export function CreateProject() {
           </HelpText>
           <StyledListItem>{t('Choose your platform')}</StyledListItem>
           <PlatformPicker
+            key={formData.platform?.category}
             platform={formData.platform?.key}
             defaultCategory={formData.platform?.category}
             setPlatform={handlePlatformChange}
