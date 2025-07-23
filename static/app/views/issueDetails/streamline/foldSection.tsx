@@ -231,6 +231,7 @@ const Section = styled('section')<{scrollMargin: number}>`
 
 const Content = styled('div')`
   padding: ${space(0.5)} ${space(0.75)};
+  margin-left: ${p => p.theme.space.xl};
 `;
 
 const SectionExpander = styled('div')<{preventCollapse: boolean}>`
