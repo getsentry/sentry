@@ -356,6 +356,10 @@ register("fileblob.upload.use_lock", default=True, flags=FLAG_AUTOMATOR_MODIFIAB
 # Whether to use redis to cache `FileBlob.id` lookups
 register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# New `objectstore` service configuration
+register("objectstore.config", default={}, flags=FLAG_NOSTORE)
+
+
 # Symbol server
 register(
     "symbolserver.enabled",

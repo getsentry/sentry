@@ -7,6 +7,7 @@ from typing import IO, Literal, cast
 import urllib3
 import zstandard
 from django.utils import timezone
+from urllib3.connectionpool import ConnectionPool
 
 from sentry.storage.metrics import measure_storage_put
 from sentry.utils import jwt, metrics
@@ -14,14 +15,16 @@ from sentry.utils import jwt, metrics
 Usecases = Literal["attachments"]
 Compression = Literal["zstd", "gzip", "lz4", "uncompressible"]
 
-# TODO:
-CONNECTION_POOL = urllib3.HTTPConnectionPool("TODO")
-
 JWT_VALIDITY = 30
 
 
 class StorageService:
-    def __init__(self, usecase: Usecases):
+    def __init__(self, usecase: Usecases, options: dict | None = None):
+        from sentry import options as options_store
+
+        options = options or options_store.get("objectstore.config")
+        self.pool = urllib3.connectionpool.connection_from_url(options["base_url"])
+        self.jwt_secret = options["jwt_secret"]
         self.usecase = usecase
 
     def _make_client(self, scope: dict) -> StorageClient:
@@ -29,7 +32,7 @@ class StorageService:
             "usecase": self.usecase,
             "scope": scope,
         }
-        return StorageClient(self.usecase, claim)
+        return StorageClient(self.usecase, claim, self.pool, self.jwt_secret)
 
     def for_organization(self, organization_id: int) -> StorageClient:
         return self._make_client({"organization": organization_id})
@@ -39,7 +42,9 @@ class StorageService:
 
 
 class StorageClient:
-    def __init__(self, usecase: Usecases, claim: dict):
+    def __init__(self, usecase: Usecases, claim: dict, pool: ConnectionPool, jwt_secret: str):
+        self.pool = pool
+        self.jwt_secret = jwt_secret
         self.usecase = usecase
         self.claim = claim
 
@@ -52,7 +57,7 @@ class StorageClient:
             **self.claim,
         }
 
-        authorization = jwt.encode(claims, "TODO")
+        authorization = jwt.encode(claims, self.jwt_secret)
         return {"Authorization": authorization}
 
     def put(
@@ -88,7 +93,7 @@ class StorageClient:
 
         compression_used = headers["Content-Encoding"] or "none"
         with measure_storage_put(None, self.usecase, compression_used) as measurement:
-            response = CONNECTION_POOL.request(
+            response = self.pool.request(
                 "PUT",
                 f"/{id}" if id else "/",
                 body=body,
@@ -130,7 +135,7 @@ class StorageClient:
             compression = set(accept_compression)
             headers["Accept-Encoding"] = ", ".join(compression)
 
-        response = CONNECTION_POOL.request(
+        response = self.pool.request(
             "GET",
             f"/{id}",
             headers=headers,
@@ -150,7 +155,7 @@ class StorageClient:
             dctx = zstandard.ZstdDecompressor()
             return dctx.stream_reader(stream, read_across_frames=True), None
 
-        return stream, content_encoding
+        return stream, cast(Compression, content_encoding)
 
     def delete(self, id: str):
         """
@@ -158,7 +163,7 @@ class StorageClient:
         """
         headers = self._make_headers()
 
-        CONNECTION_POOL.request(
+        self.pool.request(
             "DELETE",
             f"/{id}",
             headers=headers,
