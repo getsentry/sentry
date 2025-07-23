@@ -1,5 +1,6 @@
-import pytest
 import uuid
+
+import pytest
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.testutils.cases import APITestCase, SnubaTestCase
