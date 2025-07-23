@@ -1,4 +1,3 @@
-import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {t} from 'sentry/locale';
@@ -70,31 +69,19 @@ export function TraceSpanLinks({
         />
       }
     >
-      {linksAsAttributes?.length ? (
-        <AttributesTree
-          attributes={linksAsAttributes}
-          columnCount={1}
-          config={{
-            disableActions: true,
-            disableRichValue: true,
-          }}
-          rendererExtra={{
-            theme,
-            location,
-            organization,
-          }}
-        />
-      ) : (
-        <NoLinksMessage>{t('No links found')}</NoLinksMessage>
-      )}
+      <AttributesTree
+        attributes={linksAsAttributes}
+        columnCount={1}
+        config={{
+          disableActions: true,
+          disableRichValue: true,
+        }}
+        rendererExtra={{
+          theme,
+          location,
+          organization,
+        }}
+      />
     </FoldSection>
   );
 }
-
-const NoLinksMessage = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: ${p => p.theme.space['2xl']};
-  color: ${p => p.theme.subText};
-`;
