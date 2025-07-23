@@ -1186,16 +1186,11 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 RegionScheduledDeletion.cancel(organization)
             elif changed_data:
                 if "enabledConsolePlatforms" in changed_data:
-                    previously_enabled_platforms = previous_console_platforms
-                    currently_requested_platforms = serializer.validated_data.get(
-                        "enabledConsolePlatforms", []
-                    )
-
                     create_console_platform_audit_log(
                         request,
                         organization,
-                        previously_enabled_platforms,
-                        currently_requested_platforms,
+                        previous_console_platforms,
+                        serializer.validated_data.get("enabledConsolePlatforms", []),
                     )
 
                     del changed_data["enabledConsolePlatforms"]
