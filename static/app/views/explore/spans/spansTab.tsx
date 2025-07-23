@@ -77,7 +77,6 @@ import {Onboarding} from 'sentry/views/performance/onboarding';
 
 // eslint-disable-next-line no-restricted-imports,boundaries/element-types
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
-import { useTraceExploreAiQuerySetup } from 'sentry/views/explore/hooks/useTraceExploreAiQuerySetup';
 
 interface SpansTabOnboardingProps {
   datePageFilterProps: PickableDays;
@@ -192,8 +191,6 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
   const organization = useOrganization();
   const areAiFeaturesAllowed =
     !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
-
-  useTraceExploreAiQuerySetup({enableAISearch: areAiFeaturesAllowed});
 
   const {
     tags: numberTags,
