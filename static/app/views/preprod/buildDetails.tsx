@@ -5,6 +5,10 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {
+  BuildDetailsHeaderContent,
+  type BuildDetailsHeaderContentProps,
+} from 'sentry/views/preprod/header/buildDetailsHeaderContent';
 
 import {
   BuildDetailsSidebarContent,
@@ -52,12 +56,16 @@ export default function BuildDetails() {
   }, [fetchBuildDetailsData]);
 
   let sidebarContentProps: BuildDetailsSidebarContentProps;
+  let headerContentProps: BuildDetailsHeaderContentProps;
   if (error) {
     sidebarContentProps = {status: 'error', error};
+    headerContentProps = {status: 'error', error};
   } else if (isLoading) {
     sidebarContentProps = {status: 'loading'};
+    headerContentProps = {status: 'loading'};
   } else if (buildDetailsData) {
     sidebarContentProps = {status: 'success', buildDetails: buildDetailsData};
+    headerContentProps = {status: 'success', buildDetails: buildDetailsData};
   } else {
     throw new Error('No build details data');
   }
@@ -66,9 +74,7 @@ export default function BuildDetails() {
     <SentryDocumentTitle title="Build details">
       <Layout.Page>
         <Layout.Header>
-          {/* TODO: Breadcrumbs once release connection is implemented */}
-          {/* <Breadcrumbs crumbs={breadcrumbs} linkLastItem /> */}
-          <Layout.Title title="Build Details" />
+          <BuildDetailsHeaderContent {...headerContentProps} />
         </Layout.Header>
 
         <Layout.Body>
