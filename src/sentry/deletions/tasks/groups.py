@@ -1,6 +1,5 @@
 from collections.abc import Mapping, Sequence
 from typing import Any
-from uuid import uuid4
 
 import sentry_sdk
 
@@ -33,7 +32,7 @@ from sentry.taskworker.retry import Retry
 @track_group_async_operation
 def delete_groups(
     object_ids: Sequence[int],
-    transaction_id: str | None = None,
+    transaction_id: str,
     eventstream_state: Mapping[str, Any] | None = None,
     **kwargs: Any,
 ) -> None:
@@ -46,8 +45,6 @@ def delete_groups(
     first_group = Group.objects.filter(id__in=current_batch).order_by("id").first()
     if not first_group:
         raise DeleteAborted("delete_groups.no_group_found")
-
-    transaction_id = transaction_id or uuid4().hex
 
     # The tags can be used if we want to find errors for when a task fails
     sentry_sdk.set_tags(
