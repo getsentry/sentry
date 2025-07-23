@@ -34,7 +34,7 @@ export default function FeedbackActions({
   }
 
   return (
-    <Flex gap="md" align="flex-end" className={className} style={style}>
+    <Flex gap="md" align="center" className={className} style={style}>
       <ErrorBoundary mini>
         <FeedbackAssignedTo
           feedbackIssue={feedbackItem as any as Group}
