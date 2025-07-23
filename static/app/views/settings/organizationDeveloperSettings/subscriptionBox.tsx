@@ -44,6 +44,11 @@ function SubscriptionBox({
     message = t(
       'Your organization does not have access to the error subscription resource.'
     );
+  } else if (resource === 'seer' && !features.includes('seer_webhooks')) {
+    disabled = true;
+    message = t(
+      'Your organization does not have access to the seer subscription resource.'
+    );
   }
 
   if (webhookDisabled) {
@@ -54,6 +59,7 @@ function SubscriptionBox({
     issue: `created, resolved, assigned, archived, unresolved`,
     error: 'created',
     comment: 'created, edited, deleted',
+    seer: 'root cause, solution generation, coding, and PR creation events',
   };
 
   return (
