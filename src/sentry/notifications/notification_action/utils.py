@@ -1,6 +1,7 @@
 import logging
 
 from sentry import features, options
+from sentry.incidents.grouptype import MetricIssue
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.notifications.notification_action.registry import (
@@ -25,9 +26,12 @@ def should_fire_workflow_actions(org: Organization, type_id: int) -> bool:
             in rollout_type_ids  # While we are rolling out these groups & we are single  processing
             and features.has("organizations:workflow-engine-single-process-workflows", org)
         )
-        or features.has(
-            "organizations:workflow-engine-single-process-metric-issues",
-            org,  # Metric issue single processing
+        or (
+            type_id == MetricIssue.type_id
+            and features.has(
+                "organizations:workflow-engine-single-process-metric-issues",
+                org,  # Metric issue single processing
+            )
         )
         or features.has(
             "organizations:workflow-engine-trigger-actions",
