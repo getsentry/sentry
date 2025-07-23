@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment-timezone';
 import {PlatformIcon} from 'platformicons';
 
 import {Flex} from 'sentry/components/core/layout';
@@ -10,8 +9,7 @@ import LoadingError from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
 import Placeholder from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {useTimezone} from 'sentry/components/timezoneProvider';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -57,7 +55,6 @@ export default function AutomationHistoryList({
   emptyMessage = t('No history found'),
 }: Props) {
   const org = useOrganization();
-  const timezone = useTimezone();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -70,7 +67,7 @@ export default function AutomationHistoryList({
     isError,
     getResponseHeader,
   } = useAutomationFireHistoryQuery(
-    {id: automationId, limit, cursor, query},
+    {automationId, limit, cursor, query},
     {enabled: !!automationId}
   );
 
@@ -80,9 +77,7 @@ export default function AutomationHistoryList({
     <Fragment>
       <SimpleTableWithColumns>
         <SimpleTable.Header>
-          <SimpleTable.HeaderCell>
-            {tct('Time Sent ([timezone])', {timezone: moment.tz(timezone).zoneAbbr()})}
-          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Time Sent')}</SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell>{t('Monitor')}</SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell>{t('Issue')}</SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell>{t('Alerts')}</SimpleTable.HeaderCell>
@@ -95,7 +90,7 @@ export default function AutomationHistoryList({
         {fireHistory.map((row, index) => (
           <SimpleTable.Row key={index}>
             <SimpleTable.RowCell>
-              <DateTime date={row.lastTriggered} forcedTimezone={timezone} />
+              <DateTime date={row.lastTriggered} timeZone />
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>
               {row.detector ? (
@@ -137,7 +132,7 @@ export default function AutomationHistoryList({
 }
 
 const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: 1.5fr 3fr 3.5fr 1fr;
+  grid-template-columns: 2fr 2.5fr 3.5fr 1fr;
 `;
 
 const StyledLink = styled(Link)`

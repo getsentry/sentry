@@ -24,6 +24,6 @@ export interface AutomationFireHistory {
   count: number;
   eventId: string;
   group: Group;
-  lastTriggered: Date;
+  lastTriggered: string;
   detector?: Detector;
 }

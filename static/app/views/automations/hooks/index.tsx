@@ -71,25 +71,25 @@ export function useAutomationQuery(automationId: string) {
   });
 }
 
-export const makeAutomationFireHistoryQueryKey = ({
+const makeAutomationFireHistoryQueryKey = ({
   orgSlug,
-  id,
+  automationId,
   cursor,
   limit,
   query,
 }: {
-  id: string;
+  automationId: string;
   orgSlug: string;
   cursor?: string;
   limit?: number;
   query?: string;
 }): ApiQueryKey => [
-  `/organizations/${orgSlug}/workflows/${id}/group-history/`,
+  `/organizations/${orgSlug}/workflows/${automationId}/group-history/`,
   {query: {query, per_page: limit, cursor}},
 ];
 
 interface UseAutomationFireHistoryQueryOptions {
-  id: string;
+  automationId: string;
   cursor?: string;
   limit?: number;
   query?: string;
@@ -103,7 +103,7 @@ export function useAutomationFireHistoryQuery(
   return useApiQuery<AutomationFireHistory[]>(
     makeAutomationFireHistoryQueryKey({orgSlug: slug, ...options}),
     {
-      staleTime: Infinity,
+      staleTime: 5 * 60 * 1000, // 5 minutes
       retry: false,
       ...queryOptions,
     }
