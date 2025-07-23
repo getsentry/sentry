@@ -103,7 +103,12 @@ export function MetricDetectorChart({
     const combinedMax = thresholdMaxValue
       ? Math.max(seriesMax, thresholdMaxValue)
       : seriesMax;
-    return Math.round(combinedMax);
+
+    const roundedMax = Math.round(combinedMax);
+
+    // Add padding to the bounds
+    const padding = roundedMax * 0.1;
+    return roundedMax + padding;
   }, [series, thresholdMaxValue]);
 
   if (isPending) {
@@ -135,6 +140,7 @@ export function MetricDetectorChart({
       additionalSeries={additionalSeries}
       yAxis={{
         max: maxValue > 0 ? maxValue : undefined,
+        min: 0,
         axisLabel: {
           // Hide the maximum y-axis label to avoid showing arbitrary threshold values
           showMaxLabel: false,
