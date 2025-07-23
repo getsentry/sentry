@@ -162,11 +162,8 @@ class TestMetricIssueDetectorConfig(JSONConfigBaseTest, APITestCase):
                 type="test_metric_issue",
                 owner_user_id=self.metric_alert.user_id,
                 config={
-                    "threshold_period": self.metric_alert.threshold_period,
-                    "comparison_delta": self.metric_alert.comparison_delta,
+                    "comparison_delta": "matcha",
                     "detection_type": self.metric_alert.detection_type,
-                    "sensitivity": self.metric_alert.sensitivity,
-                    "seasonality": 42,
                 },
             )
 
