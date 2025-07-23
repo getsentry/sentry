@@ -21,6 +21,7 @@ class BranchesSerializer(serializers.Serializer):
     Serializer for repository branches response
     """
 
+    defaultBranch = serializers.CharField()
     results = BranchNodeSerializer(many=True)
     pageInfo = PageInfoSerializer()
     totalCount = serializers.IntegerField()
@@ -30,7 +31,9 @@ class BranchesSerializer(serializers.Serializer):
         Transform the GraphQL response to the serialized format
         """
         try:
-            branch_data = graphql_response["data"]["owner"]["repository"]["branches"]
+            repository_data = graphql_response["data"]["owner"]["repository"]
+            default_branch = repository_data["defaultBranch"]
+            branch_data = repository_data["branches"]
             branches = branch_data["edges"]
             page_info = branch_data.get("pageInfo", {})
 
@@ -40,6 +43,7 @@ class BranchesSerializer(serializers.Serializer):
                 nodes.append(node)
 
             response_data = {
+                "defaultBranch": default_branch,
                 "results": nodes,
                 "pageInfo": branch_data.get(
                     "pageInfo",

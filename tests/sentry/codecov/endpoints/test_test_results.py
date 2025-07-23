@@ -59,7 +59,7 @@ mock_graphql_response_populated = {
                                     "avgDuration": 0.034125877192982455,
                                     "totalDuration": 1.0,
                                     "lastDuration": 0.034125877192982455,
-                                    "name": "../usr/local/lib/python3.13/site-packages/asgiref/sync.py::GetFinalYamlInteractorTest::test_when_commit_has_yaml",
+                                    "name": "../usr/local-2/lib/python3.13/site-packages/asgiref/sync.py::GetFinalYamlInteractorTest::test_when_commit_has_yaml",
                                     "failureRate": 0.0,
                                     "flakeRate": 0.0,
                                     "commitsFailed": 0,
@@ -179,6 +179,7 @@ class TestResultsEndpointTest(APITestCase):
             "sortBy": "-AVG_DURATION",
             "interval": "INTERVAL_7_DAY",
             "limit": "10",
+            "testSuites": ["../usr/local", "../usr/local-2"],
         }
         response = self.client.get(url, query_params)
 
@@ -192,7 +193,7 @@ class TestResultsEndpointTest(APITestCase):
                 "interval": "INTERVAL_7_DAY",
                 "flags": None,
                 "term": None,
-                "test_suites": None,
+                "test_suites": ["../usr/local", "../usr/local-2"],
             },
             "ordering": {
                 "direction": "DESC",
