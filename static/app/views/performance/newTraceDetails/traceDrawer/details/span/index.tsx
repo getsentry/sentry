@@ -475,16 +475,16 @@ function EAPSpanNodeDetails({
 
                     <LogDetails />
 
-                    {(organization.features.includes('trace-view-span-links') &&
-                      links?.length) ? (
-                        <TraceSpanLinks
-                          node={node}
-                          links={links}
-                          theme={theme}
-                          location={location}
-                          organization={organization}
-                        />
-                      ) : null}
+                    {organization.features.includes('trace-view-span-links') &&
+                    links?.length ? (
+                      <TraceSpanLinks
+                        node={node}
+                        links={links}
+                        theme={theme}
+                        location={location}
+                        organization={organization}
+                      />
+                    ) : null}
 
                     {eventTransaction && organization.features.includes('profiling') ? (
                       <ProfileDetails
