@@ -171,6 +171,14 @@ function ChapterRow({
                 onClickChapterTimestamp(event, start);
               }}
             />
+            -
+            <TimestampButton
+              startTimestampMs={replay?.getStartTimestampMs() ?? 0}
+              timestampMs={end}
+              onClick={event => {
+                onClickChapterTimestamp(event, end);
+              }}
+            />
           </ReplayTimestamp>
         </ChapterTitle>
       </Chapter>
@@ -370,7 +378,9 @@ const ChapterTitle = styled('div')`
 `;
 
 // Copied from breadcrumbItem
-const ReplayTimestamp = styled('div')`
+const ReplayTimestamp = styled('span')`
+  display: flex;
+  gap: ${space(0.5)};
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.normal};
