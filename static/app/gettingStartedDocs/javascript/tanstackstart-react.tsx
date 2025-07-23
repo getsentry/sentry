@@ -102,7 +102,6 @@ export default wrapVinxiConfigWithSentry(config, {
           type: 'code',
           tabs: [
             {
-              value: 'bash',
               language: 'bash',
               label: 'Bash',
               code: `SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
@@ -121,7 +120,6 @@ export default wrapVinxiConfigWithSentry(config, {
           tabs: [
             {
               label: 'TypeScript',
-              value: 'tsx',
               language: 'tsx',
               filename: 'app/client.tsx',
               code: `import { hydrateRoot } from "react-dom/client";
@@ -189,7 +187,6 @@ hydrateRoot(document, <StartClient router={router} />);`,
           tabs: [
             {
               label: 'TypeScript',
-              value: 'tsx',
               language: 'tsx',
               filename: 'app/ssr.tsx',
               code: `import * as Sentry from "@sentry/tanstackstart-react";
@@ -227,7 +224,6 @@ Sentry.init({
           tabs: [
             {
               label: 'TypeScript',
-              value: 'tsx',
               language: 'tsx',
               filename: 'app/routes/__root.tsx',
               code: `import type { ReactNode } from "react";
@@ -252,7 +248,6 @@ export const Route = wrapCreateRootRouteWithSentry(createRootRoute)({
           tabs: [
             {
               label: 'TypeScript',
-              value: 'tsx',
               language: 'tsx',
               filename: 'app/ssr.tsx',
               code: `import {
@@ -282,7 +277,6 @@ export default createStartHandler({
           tabs: [
             {
               label: 'TypeScript',
-              value: 'typescript',
               language: 'typescript',
               filename: 'app/global-middleware.ts',
               code: `import {
@@ -317,7 +311,6 @@ registerGlobalMiddleware({
           tabs: [
             {
               label: 'TypeScript',
-              value: 'tsx',
               language: 'tsx',
               code: `import React from "react";
 import * as Sentry from "@sentry/tanstackstart-react";
@@ -347,7 +340,6 @@ export const MySentryWrappedErrorBoundary = withErrorBoundary(
           tabs: [
             {
               label: 'TypeScript',
-              value: 'tsx',
               language: 'tsx',
               code: `import { createRoute } from "@tanstack/react-router";
 import * as Sentry from "@sentry/tanstackstart-react";

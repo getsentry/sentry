@@ -189,13 +189,11 @@ const onboarding: OnboardingConfig = {
           tabs: [
             {
               label: 'Svelte v5',
-              value: 'svelte v5',
               language: 'javascript',
               code: getSdkSetupSnippet(params, true),
             },
             {
               label: 'Svelte v3/v4',
-              value: 'svelte v3/v4',
               language: 'javascript',
               code: getSdkSetupSnippet(params, false),
             },
@@ -223,13 +221,11 @@ const onboarding: OnboardingConfig = {
           tabs: [
             {
               label: 'Svelte v5',
-              value: 'svelte v5',
               language: 'html',
               code: getVerifySnippet(true),
             },
             {
               label: 'Svelte v3/v4',
-              value: 'svelte v3/v4',
               language: 'html',
               code: getVerifySnippet(false),
             },

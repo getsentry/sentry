@@ -107,7 +107,6 @@ const onboarding: OnboardingConfig = {
           tabs: [
             {
               label: 'Vue',
-              value: 'vue',
               language: 'html',
               code: getVerifyNuxtSnippet(),
             },
@@ -154,7 +153,6 @@ const replayOnboarding: OnboardingConfig = {
           tabs: [
             {
               label: 'JavaScript',
-              value: 'javascript',
               language: 'javascript',
               code: getReplaySDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/nuxt";`,

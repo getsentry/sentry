@@ -179,7 +179,6 @@ const onboarding: OnboardingConfig = {
           tabs: [
             {
               label: 'JavaScript',
-              value: 'javascript',
               language: 'javascript',
               code: getSdkSetupSnippet(params),
             },
@@ -338,7 +337,6 @@ logger.fatal("Database connection pool exhausted", {
           tabs: [
             {
               label: 'React',
-              value: 'react',
               language: 'javascript',
               code: getVerifySnippet(),
             },

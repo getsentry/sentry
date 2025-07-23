@@ -342,7 +342,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
           tabs: [
             {
               label: 'HTML',
-              value: 'html',
               language: 'html',
               filename: 'app.component.html',
               code: getVerifySnippetTemplate(),
@@ -360,7 +359,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
           tabs: [
             {
               label: 'TypeScript',
-              value: 'typescript',
               language: 'typescript',
               filename: 'app.component.ts',
               code: getVerifySnippetComponent(),

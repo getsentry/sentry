@@ -110,7 +110,6 @@ const onboarding: OnboardingConfig = {
           tabs: [
             {
               label: 'Javascript',
-              value: 'javascript',
               language: 'javascript',
               code: `myUndefinedFunction();`,
             },

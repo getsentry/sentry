@@ -136,7 +136,6 @@ const onboarding: OnboardingConfig = {
           tabs: [
             {
               label: 'JavaScript',
-              value: 'javascript',
               language: 'javascript',
               code: getSdkSetupSnippet(params),
             },
@@ -190,7 +189,6 @@ const onboarding: OnboardingConfig = {
           tabs: [
             {
               label: 'Astro',
-              value: 'html',
               language: 'html',
               code: getVerifySnippet(),
             },

@@ -475,7 +475,6 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
           tabs: [
             {
               label: 'HTML',
-              value: 'html',
               language: 'html',
               code: `
 <script
@@ -539,7 +538,6 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
           tabs: [
             {
               label: 'HTML',
-              value: 'html',
               language: 'html',
               code: `
               <script>

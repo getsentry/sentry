@@ -415,7 +415,6 @@ const onboarding: OnboardingConfig = {
           tabs: [
             {
               label: 'JavaScript',
-              value: 'javascript',
               language: 'javascript',
               code: getVerifySnippet(),
             },
