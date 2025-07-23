@@ -74,7 +74,6 @@ jobs:
           dockerfile_path: 'self-hosted/Dockerfile'
           ghcr: true
           publish_on_pr: true
-          google_ar: true
 
   assemble:
     needs: [self-hosted]
