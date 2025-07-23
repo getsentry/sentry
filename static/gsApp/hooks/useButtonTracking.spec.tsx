@@ -6,7 +6,7 @@ import {ProjectFixture} from 'getsentry-test/fixtures/project';
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import type {ButtonProps} from 'sentry/components/core/button';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import OrganizationStore from 'sentry/stores/organizationStore';
 import {TestRouteContext} from 'sentry/views/routeContext';
 
 import useButtonTracking from 'getsentry/hooks/useButtonTracking';
@@ -34,10 +34,13 @@ describe('buttonTracking', function () {
   };
 
   const wrapper = ({children}: ButtonProps) => (
-    <OrganizationContext value={organization}>
-      <TestRouteContext value={router}>{children}</TestRouteContext>
-    </OrganizationContext>
+    <TestRouteContext value={router}>{children}</TestRouteContext>
   );
+
+  beforeEach(function () {
+    OrganizationStore.init();
+    OrganizationStore.onUpdate(organization);
+  });
 
   afterEach(function () {
     (rawTrackAnalyticsEvent as jest.Mock).mockClear();
@@ -45,11 +48,10 @@ describe('buttonTracking', function () {
 
   it('calls rawTrackAnalyticsEvent with default values', function () {
     const {result} = renderHook(useButtonTracking, {
-      initialProps: {'aria-label': 'Create Alert'},
       wrapper,
     });
 
-    result.current();
+    result.current({'aria-label': 'Create Alert'});
 
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith({
       eventName: null,
@@ -63,16 +65,15 @@ describe('buttonTracking', function () {
 
   it('calls rawTrackAnalyticsEvent with data', function () {
     const {result} = renderHook(useButtonTracking, {
-      initialProps: {
-        'aria-label': 'Create Alert',
-        analyticsEventKey: 'settings.create_alert',
-        analyticsEventName: 'Settings: Create Alert',
-        analyticsParams: {priority: 'primary', href: 'sentry.io/settings/create_alert'},
-      },
       wrapper,
     });
 
-    result.current();
+    result.current({
+      'aria-label': 'Create Alert',
+      analyticsEventKey: 'settings.create_alert',
+      analyticsEventName: 'Settings: Create Alert',
+      analyticsParams: {priority: 'primary', href: 'sentry.io/settings/create_alert'},
+    });
 
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith({
       eventName: 'Settings: Create Alert',
@@ -88,15 +89,14 @@ describe('buttonTracking', function () {
 
   it('calls rawTrackAnalyticsEvent with new event names', function () {
     const {result} = renderHook(useButtonTracking, {
-      initialProps: {
-        'aria-label': 'Create Alert',
-        analyticsEventKey: 'settings.create_alert',
-        analyticsEventName: 'Settings: Create Alert',
-      },
       wrapper,
     });
 
-    result.current();
+    result.current({
+      'aria-label': 'Create Alert',
+      analyticsEventKey: 'settings.create_alert',
+      analyticsEventName: 'Settings: Create Alert',
+    });
 
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith({
       eventName: 'Settings: Create Alert',

@@ -3,9 +3,6 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import Mock, patch
 
-import pytest
-
-from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.eventstore.models import Event
 from sentry.grouping.component import DefaultGroupingComponent, MessageGroupingComponent
 from sentry.grouping.ingest.grouphash_metadata import (
@@ -23,11 +20,15 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from sentry.utils import json
 from tests.sentry.grouping import (
+    FULL_PIPELINE_CONFIGS,
     GROUPING_INPUTS_DIR,
+    MANUAL_SAVE_CONFIGS,
+    NO_MSG_PARAM_CONFIG,
     GroupingInput,
     dump_variant,
     get_snapshot_path,
     to_json,
+    with_grouping_configs,
     with_grouping_inputs,
 )
 
@@ -36,12 +37,8 @@ dummy_project = Mock(id=11211231)
 
 @django_db_all
 @with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
-@pytest.mark.parametrize(
-    "config_name",
-    set(CONFIGURATIONS.keys()) - {DEFAULT_GROUPING_CONFIG},
-    ids=lambda config_name: config_name.replace("-", "_"),
-)
-def test_hash_basis_with_legacy_configs(
+@with_grouping_configs(MANUAL_SAVE_CONFIGS)
+def test_variants_with_manual_save(
     config_name: str,
     grouping_input: GroupingInput,
     insta_snapshot: InstaSnapshotter,
@@ -51,8 +48,9 @@ def test_hash_basis_with_legacy_configs(
     process.
 
     Because manually cherry-picking only certain parts of the save process to run makes us much more
-    likely to fall out of sync with reality, for safety we only do this when testing legacy,
-    inactive grouping configs.
+    likely to fall out of sync with reality, when we're in CI, for safety we only do this when
+    testing older grouping configs. Locally, if `SENTRY_FAST_GROUPING_SNAPSHOTS` is set in the
+    environment, this is used for the default confing, too.
     """
     event = grouping_input.create_event(config_name, use_full_ingest_pipeline=False)
 
@@ -64,15 +62,8 @@ def test_hash_basis_with_legacy_configs(
 
 @django_db_all
 @with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
-@pytest.mark.parametrize(
-    "config_name",
-    # Technically we don't need to parameterize this since there's only one option, but doing it
-    # this way makes snapshots from this test organize themselves neatly alongside snapshots from
-    # the test of the legacy configs above
-    {DEFAULT_GROUPING_CONFIG},
-    ids=lambda config_name: config_name.replace("-", "_"),
-)
-def test_hash_basis_with_current_default_config(
+@with_grouping_configs(FULL_PIPELINE_CONFIGS)
+def test_variants_with_full_pipeline(
     config_name: str,
     grouping_input: GroupingInput,
     insta_snapshot: InstaSnapshotter,
@@ -83,8 +74,9 @@ def test_hash_basis_with_current_default_config(
 
     This is the most realistic way to test, but it's also slow, because it requires the overhead of
     set-up/tear-down/general interaction with our full postgres database. We therefore only do it
-    when testing the current grouping config, and rely on a much faster manual test (above) for
-    previous grouping configs.
+    when testing the current grouping config in CI, and rely on a much faster manual test (above)
+    when testing previous grouping configs. (When testing locally, the faster test can be used for
+    the default config as well if `SENTRY_FAST_GROUPING_SNAPSHOTS` is set in the environment.)
     """
 
     event = grouping_input.create_event(
@@ -95,11 +87,8 @@ def test_hash_basis_with_current_default_config(
 
 
 @django_db_all
-@pytest.mark.parametrize(
-    "config_name",
-    CONFIGURATIONS.keys(),
-    ids=lambda config_name: config_name.replace("-", "_"),
-)
+# NO_MSG_PARAM_CONFIG is only meant for use in unit tests
+@with_grouping_configs(set(CONFIGURATIONS.keys()) - {NO_MSG_PARAM_CONFIG})
 def test_unknown_hash_basis(
     config_name: str,
     insta_snapshot: InstaSnapshotter,

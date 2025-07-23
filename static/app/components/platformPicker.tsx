@@ -9,6 +9,7 @@ import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingMask from 'sentry/components/loadingMask';
 import SearchBar from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import {gaming} from 'sentry/data/platformCategories';
 import {
   createablePlatforms,
   filterAliases,
@@ -91,9 +92,20 @@ function PlatformPicker({
     noAutoFilter ? '' : (platform || '').split('-')[0]!
   );
 
-  useEffect(() => {
-    setCategory(defaultCategory ?? categories[0]!.id);
-  }, [defaultCategory, categories]);
+  const includeGamingPlatforms =
+    organization?.features.includes('project-creation-games-tab') ?? false;
+
+  const availablePlatforms = useMemo(() => {
+    if (!includeGamingPlatforms) {
+      return selectablePlatforms;
+    }
+
+    const gamingPlatforms = platforms.filter(
+      p => gaming.includes(p.id) && !createablePlatforms.has(p.id)
+    );
+
+    return [...selectablePlatforms, ...gamingPlatforms];
+  }, [includeGamingPlatforms]);
 
   const platformList = useMemo(() => {
     const currentCategory = categories.find(({id}) => id === category);
@@ -110,7 +122,7 @@ function PlatformPicker({
     };
 
     // 'other' is not part of the createablePlatforms list, therefore it won't be included in the filtered list
-    const filtered = selectablePlatforms.filter(filter ? subsetMatch : categoryMatch);
+    const filtered = availablePlatforms.filter(filter ? subsetMatch : categoryMatch);
 
     if (showOther && filter.toLowerCase() === 'other') {
       // We only show 'Other' if users click on the 'Other' suggestion rendered in the not found state or type this word in the search bar
@@ -135,7 +147,7 @@ function PlatformPicker({
       }
       return a.name.localeCompare(b.name);
     });
-  }, [filter, category, showOther, categories]);
+  }, [filter, category, availablePlatforms, showOther, categories]);
 
   const latestValuesRef = useRef({filter, platformList, source, organization});
 
@@ -217,7 +229,16 @@ function PlatformPicker({
                     source,
                     organization: organization ?? null,
                   });
-                  setPlatform({...item, category});
+
+                  const itemCategories = categories
+                    .filter(cat => cat.platforms.has(item.id))
+                    .map(cat => cat.id);
+
+                  if (itemCategories.includes(category)) {
+                    setPlatform({...item, category});
+                  } else {
+                    setPlatform({...item, category: itemCategories[0] ?? 'all'});
+                  }
                 }}
               />
             </div>

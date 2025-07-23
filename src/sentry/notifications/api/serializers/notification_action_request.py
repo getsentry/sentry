@@ -87,7 +87,7 @@ Required if **service_type** is `slack` or `opsgenie`.
     )
     projects = serializers.ListField(
         help_text="""List of projects slugs that the Notification Action is created for.""",
-        child=ProjectField(scope="project:read"),
+        child=ProjectField(scope="project:write"),
         required=False,
     )
     # Optional and not needed for spike protection so not documenting

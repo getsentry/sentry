@@ -7,6 +7,7 @@ import {Observer} from 'mobx-react';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
@@ -18,7 +19,6 @@ import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
-import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
@@ -324,7 +324,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             />
           </ConfigurationPanel>
           <Alert.Container>
-            <Alert type="muted" showIcon>
+            <Alert type="muted">
               {tct(
                 'By enabling uptime monitoring, you acknowledge that uptime check data may be stored outside your selected data region. [link:Learn more].',
                 {

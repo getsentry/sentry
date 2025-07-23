@@ -149,7 +149,7 @@ class ProjectRuleActionsEndpointTest(APITestCase):
         assert response.status_code == 400
 
 
-@apply_feature_flag_on_cls("organizations:workflow-engine-test-notifications")
+@apply_feature_flag_on_cls("organizations:workflow-engine-single-process-workflows")
 class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest):
     endpoint = "sentry-api-0-project-rule-actions"
     method = "POST"

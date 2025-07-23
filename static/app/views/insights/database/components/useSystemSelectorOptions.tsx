@@ -1,12 +1,12 @@
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   DATABASE_SYSTEM_TO_LABEL,
   SupportedDatabaseSystem,
 } from 'sentry/views/insights/database/utils/constants';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 export function useSystemSelectorOptions() {
   const [selectedSystem, setSelectedSystem] = useLocalStorageState<string | undefined>(
@@ -14,11 +14,11 @@ export function useSystemSelectorOptions() {
     undefined
   );
 
-  const {data, isPending, isError} = useSpanMetrics(
+  const {data, isPending, isError} = useSpans(
     {
       search: MutableSearch.fromQueryObject({'span.op': 'db'}),
 
-      fields: [SpanMetricsField.SPAN_SYSTEM, 'count()'],
+      fields: [SpanFields.SPAN_SYSTEM, 'count()'],
       sorts: [{field: 'count()', kind: 'desc'}],
     },
     'api.starfish.database-system-selector'

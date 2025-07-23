@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 
 export const MODULE_TITLE = t('Overview');
-export const BASE_URL = '';
+export const BASE_URL = 'agents';
 
 export const DATA_TYPE = t('Agent');
 export const DATA_TYPE_PLURAL = t('Agents');

@@ -12,7 +12,7 @@ from celery import Task
 from django.utils import timezone
 from pydantic import BaseModel, validator
 
-from sentry import buffer, nodestore
+from sentry import buffer, features, nodestore, options
 from sentry.buffer.base import BufferField
 from sentry.db import models
 from sentry.eventstore.models import Event, GroupEvent
@@ -542,6 +542,7 @@ def get_groups_to_fire(
     return groups_to_fire
 
 
+@sentry_sdk.trace
 def bulk_fetch_events(event_ids: list[str], project: Project) -> dict[str, Event]:
     node_id_to_event_id = {
         Event.generate_node_id(project.id, event_id=event_id): event_id for event_id in event_ids
@@ -565,6 +566,10 @@ def bulk_fetch_events(event_ids: list[str], project: Project) -> dict[str, Event
     return result
 
 
+@metrics.wraps(
+    "workflow_engine.delayed_workflow.get_group_to_groupevent",
+    sample_rate=1.0,
+)
 @sentry_sdk.trace
 def get_group_to_groupevent(
     event_data: EventRedisData,
@@ -636,7 +641,6 @@ def fire_actions_for_groups(
     event_data: EventRedisData,
     group_to_groupevent: dict[Group, GroupEvent],
 ) -> None:
-    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 
     serialized_groups = {
         group.id: group_event.event_id for group, group_event in group_to_groupevent.items()
@@ -671,7 +675,18 @@ def fire_actions_for_groups(
     }
 
     # Feature check caching to keep us within the trace budget.
-    should_trigger_actions = should_fire_workflow_actions(organization)
+    trigger_actions_ff = features.has("organizations:workflow-engine-trigger-actions", organization)
+    single_processing_ff = features.has(
+        "organizations:workflow-engine-single-process-workflows", organization
+    )
+    ga_type_ids = options.get("workflow_engine.issue_alert.group.type_id.ga")
+    rollout_type_ids = options.get("workflow_engine.issue_alert.group.type_id.rollout")
+
+    should_trigger_actions = lambda type_id: (
+        type_id in ga_type_ids
+        or (type_id in rollout_type_ids and single_processing_ff)
+        or trigger_actions_ff
+    )
 
     total_actions = 0
     with track_batch_performance(
@@ -723,7 +738,10 @@ def fire_actions_for_groups(
                     action_filters_for_group | workflows_actions, workflow_event_data
                 )
                 create_workflow_fire_histories(
-                    detector, filtered_actions, workflow_event_data, should_trigger_actions
+                    detector,
+                    filtered_actions,
+                    workflow_event_data,
+                    should_trigger_actions(group_event.group.type),
                 )
 
                 metrics.incr(
@@ -748,7 +766,7 @@ def fire_actions_for_groups(
                 )
                 total_actions += len(filtered_actions)
 
-                if should_trigger_actions:
+                if should_trigger_actions(group_event.group.type):
                     for action in filtered_actions:
                         task_params = build_trigger_action_task_params(
                             action, detector, workflow_event_data

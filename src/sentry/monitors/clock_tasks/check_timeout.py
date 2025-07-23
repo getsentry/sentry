@@ -7,6 +7,7 @@ from arroyo.backends.kafka import KafkaPayload
 from sentry_kafka_schemas.schema_types.monitors_clock_tasks_v1 import MarkTimeout
 
 from sentry.monitors.logic.mark_failed import mark_failed
+from sentry.monitors.logic.monitor_environment import monitor_has_newer_status_affecting_checkins
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn
 from sentry.monitors.schedule import get_prev_schedule
 from sentry.utils import metrics
@@ -68,7 +69,7 @@ def mark_checkin_timeout(checkin_id: int, ts: datetime) -> None:
     logger.info("checkin_timeout", extra={"checkin_id": checkin_id})
 
     try:
-        checkin = (
+        checkin: MonitorCheckIn = (
             MonitorCheckIn.objects.select_related("monitor_environment")
             .select_related("monitor_environment__monitor")
             .get(id=checkin_id)
@@ -82,45 +83,35 @@ def mark_checkin_timeout(checkin_id: int, ts: datetime) -> None:
     monitor_environment = checkin.monitor_environment
     monitor = monitor_environment.monitor
 
-    affected = (
-        MonitorCheckIn.objects.filter(id=checkin_id)
-        .exclude(status=CheckInStatus.TIMEOUT)
-        .update(status=CheckInStatus.TIMEOUT)
-    )
-    if not affected:
+    if checkin.status == CheckInStatus.TIMEOUT:
+        return
+    checkin.status = CheckInStatus.TIMEOUT
+    checkin.save(update_fields=["status"])
+
+    # If the monitor has had any newer OK/ERROR status check-ins than this
+    # timeout, then this timeout cannot affect the status of the monitor.
+    if monitor_has_newer_status_affecting_checkins(monitor_environment, checkin.date_added):
         return
 
-    # we only mark the monitor as failed if a newer checkin wasn't responsible
-    # for the state change
-    has_newer_result = MonitorCheckIn.objects.filter(
-        monitor_environment=monitor_environment,
-        date_added__gt=checkin.date_added,
-        status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
-    ).exists()
-    if not has_newer_result:
-        # The status was updated in the database. Update the field without
-        # needing to reload the check-in
-        checkin.status = CheckInStatus.TIMEOUT
+    # Similar to mark_missed we compute when the most recent check-in should
+    # have happened to use as our reference time for mark_failed.
+    #
+    # XXX(epurkhiser): For ScheduleType.INTERVAL this MAY compute an
+    # incorrect next_checkin from what the actual user task might expect,
+    # since we don't know the behavior of the users task scheduling in the
+    # scenario that it 1) doesn't complete, or 2) runs for longer than
+    # their configured time-out time.
+    #
+    # See `test_timeout_using_interval`
+    most_recent_expected_ts = get_prev_schedule(
+        checkin.date_added.astimezone(monitor.timezone),
+        ts.astimezone(monitor.timezone),
+        monitor.schedule,
+    )
 
-        # Similar to mark_missed we compute when the most recent check-in should
-        # have happened to use as our reference time for mark_failed.
-        #
-        # XXX(epurkhiser): For ScheduleType.INTERVAL this MAY compute an
-        # incorrect next_checkin from what the actual user task might expect,
-        # since we don't know the behavior of the users task scheduling in the
-        # scenario that it 1) doesn't complete, or 2) runs for longer than
-        # their configured time-out time.
-        #
-        # See `test_timeout_using_interval`
-        most_recent_expected_ts = get_prev_schedule(
-            checkin.date_added.astimezone(monitor.timezone),
-            ts.astimezone(monitor.timezone),
-            monitor.schedule,
-        )
-
-        mark_failed(
-            checkin,
-            failed_at=most_recent_expected_ts,
-            received=ts,
-            clock_tick=ts,
-        )
+    mark_failed(
+        checkin,
+        failed_at=most_recent_expected_ts,
+        received=ts,
+        clock_tick=ts,
+    )

@@ -21,6 +21,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.workflow_engine.models import (
+    AlertRuleDetector,
     DataCondition,
     DataConditionGroup,
     DataSource,
@@ -28,6 +29,7 @@ from sentry.workflow_engine.models import (
     Detector,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
@@ -107,6 +109,34 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
         detector.status = ObjectStatus.PENDING_DELETION
         detector.save()
         self.get_error_response(self.organization.slug, detector.id, status_code=404)
+
+    def test_with_alert_rule_mapping(self):
+        # Create a metric alert rule mapping
+        metric_alert_id = 12345
+        AlertRuleDetector.objects.create(alert_rule_id=metric_alert_id, detector=self.detector)
+
+        response = self.get_success_response(self.organization.slug, self.detector.id)
+
+        assert response.data["alertRuleId"] == metric_alert_id
+        assert response.data["ruleId"] is None
+
+    def test_with_issue_rule_mapping(self):
+        # Create an issue alert rule mapping
+        issue_rule_id = 67890
+        AlertRuleDetector.objects.create(rule_id=issue_rule_id, detector=self.detector)
+
+        response = self.get_success_response(self.organization.slug, self.detector.id)
+
+        assert response.data["ruleId"] == issue_rule_id
+        assert response.data["alertRuleId"] is None
+
+    def test_without_alert_rule_mapping(self):
+        """Test that alertRuleId and ruleId are null when no mapping exists"""
+        response = self.get_success_response(self.organization.slug, self.detector.id)
+
+        # Verify the mapping fields are null when no mapping exists
+        assert response.data["alertRuleId"] is None
+        assert response.data["ruleId"] is None
 
 
 @region_silo_test
@@ -369,6 +399,277 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         detector = Detector.objects.get(id=response.data["id"])
         assert detector.enabled is True
         assert detector.status == ObjectStatus.ACTIVE
+
+    def test_update_workflows_add_workflow(self):
+        workflow1 = self.create_workflow(organization_id=self.organization.id)
+        workflow2 = self.create_workflow(organization_id=self.organization.id)
+
+        assert DetectorWorkflow.objects.filter(detector=self.detector).count() == 0
+
+        data = {
+            **self.valid_data,
+            "workflowIds": [workflow1.id, workflow2.id],
+        }
+
+        with outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        assert response.data["workflowIds"] == [str(workflow1.id), str(workflow2.id)]
+
+        detector_workflows = DetectorWorkflow.objects.filter(detector=self.detector)
+        assert detector_workflows.count() == 2
+        workflow_ids = {dw.workflow_id for dw in detector_workflows}
+        assert workflow_ids == {workflow1.id, workflow2.id}
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            audit_entries = AuditLogEntry.objects.filter(
+                event=audit_log.get_event_id("DETECTOR_WORKFLOW_ADD"),
+                actor=self.user,
+            )
+            assert audit_entries.count() == 2
+            assert audit_entries[0].target_object == detector_workflows[0].id
+            assert audit_entries[1].target_object == detector_workflows[1].id
+
+    def test_update_workflows_replace_workflows(self):
+        """Test replacing existing workflows with new ones"""
+        existing_workflow = self.create_workflow(organization_id=self.organization.id)
+        new_workflow = self.create_workflow(organization_id=self.organization.id)
+
+        existing_detector_workflow = DetectorWorkflow.objects.create(
+            detector=self.detector, workflow=existing_workflow
+        )
+        assert DetectorWorkflow.objects.filter(detector=self.detector).count() == 1
+
+        data = {
+            **self.valid_data,
+            "workflowIds": [new_workflow.id],
+        }
+
+        with outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        assert response.data["workflowIds"] == [str(new_workflow.id)]
+
+        # Verify old workflow was removed and new one added
+        detector_workflows = DetectorWorkflow.objects.filter(detector=self.detector)
+        assert detector_workflows.count() == 1
+        detector_workflow = detector_workflows.first()
+        assert detector_workflow is not None
+        assert detector_workflow.workflow_id == new_workflow.id
+
+        # Verify audit log entries for both adding new workflow and removing old workflow
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert (
+                AuditLogEntry.objects.filter(
+                    event=audit_log.get_event_id("DETECTOR_WORKFLOW_ADD"),
+                    actor=self.user,
+                    target_object=detector_workflow.id,
+                ).count()
+                == 1
+            )
+
+            assert (
+                AuditLogEntry.objects.filter(
+                    event=audit_log.get_event_id("DETECTOR_WORKFLOW_REMOVE"),
+                    actor=self.user,
+                    target_object=existing_detector_workflow.id,
+                ).count()
+                == 1
+            )
+
+    def test_update_workflows_remove_all_workflows(self):
+        """Test removing all workflows by passing empty list"""
+        # Create and connect a workflow initially
+        workflow = self.create_workflow(organization_id=self.organization.id)
+        detector_workflow = DetectorWorkflow.objects.create(
+            detector=self.detector, workflow=workflow
+        )
+        assert DetectorWorkflow.objects.filter(detector=self.detector).count() == 1
+
+        data = {
+            **self.valid_data,
+            "workflowIds": [],
+        }
+
+        with outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        assert response.data["workflowIds"] == []
+
+        # Verify all workflows were removed
+        assert DetectorWorkflow.objects.filter(detector=self.detector).count() == 0
+
+        # Verify audit log entry for removing workflow
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert (
+                AuditLogEntry.objects.filter(
+                    event=audit_log.get_event_id("DETECTOR_WORKFLOW_REMOVE"),
+                    actor=self.user,
+                    target_object=detector_workflow.id,
+                ).count()
+                == 1
+            )
+
+    def test_update_workflows_invalid_workflow_ids(self):
+        """Test validation failure with non-existent workflow IDs"""
+        data = {
+            **self.valid_data,
+            "workflowIds": [999999],
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            **data,
+            status_code=400,
+        )
+
+        assert "Some workflows do not exist" in str(response.data)
+
+    def test_update_workflows_from_different_organization(self):
+        """Test validation failure when workflows belong to different organization"""
+        other_org = self.create_organization()
+        other_workflow = self.create_workflow(organization_id=other_org.id)
+
+        data = {
+            **self.valid_data,
+            "workflowIds": [other_workflow.id],
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            **data,
+            status_code=400,
+        )
+
+        assert "Some workflows do not exist" in str(response.data)
+
+    def test_update_workflows_transaction_rollback_on_validation_failure(self):
+        """Test that detector updates are rolled back when workflow validation fails"""
+        existing_workflow = self.create_workflow(organization_id=self.organization.id)
+        DetectorWorkflow.objects.create(detector=self.detector, workflow=existing_workflow)
+
+        initial_detector_name = self.detector.name
+        initial_workflow_count = DetectorWorkflow.objects.filter(detector=self.detector).count()
+
+        data = {
+            **self.valid_data,
+            "name": "Should Not Be Updated",
+            "workflowIds": [999999],
+        }
+
+        with outbox_runner():
+            response = self.get_error_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=400,
+            )
+
+        self.detector.refresh_from_db()
+        assert self.detector.name == initial_detector_name
+        assert (
+            DetectorWorkflow.objects.filter(detector=self.detector).count()
+            == initial_workflow_count
+        )
+        assert "Some workflows do not exist" in str(response.data)
+
+        # Verify no workflow-related audit entries were created
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert (
+                AuditLogEntry.objects.filter(
+                    event=audit_log.get_event_id("DETECTOR_WORKFLOW_ADD"),
+                    actor=self.user,
+                ).count()
+                == 0
+            )
+            assert (
+                AuditLogEntry.objects.filter(
+                    event=audit_log.get_event_id("DETECTOR_WORKFLOW_REMOVE"),
+                    actor=self.user,
+                ).count()
+                == 0
+            )
+
+    def test_update_without_workflow_ids(self):
+        """Test that omitting workflowIds doesn't affect existing workflow connections"""
+        workflow = self.create_workflow(organization_id=self.organization.id)
+        DetectorWorkflow.objects.create(detector=self.detector, workflow=workflow)
+        assert DetectorWorkflow.objects.filter(detector=self.detector).count() == 1
+
+        data = {
+            **self.valid_data,
+            "name": "Updated Without Workflows",
+        }
+
+        with outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        assert response.data["workflowIds"] == [str(workflow.id)]
+
+        self.detector.refresh_from_db()
+        assert self.detector.name == "Updated Without Workflows"
+        assert DetectorWorkflow.objects.filter(detector=self.detector).count() == 1
+
+    def test_update_workflows_no_changes(self):
+        """Test that passing the same workflow IDs doesn't change anything"""
+        workflow = self.create_workflow(organization_id=self.organization.id)
+        DetectorWorkflow.objects.create(detector=self.detector, workflow=workflow)
+        assert DetectorWorkflow.objects.filter(detector=self.detector).count() == 1
+
+        data = {
+            **self.valid_data,
+            "workflowIds": [workflow.id],  # Same workflow ID that's already connected
+        }
+
+        with outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        assert response.data["workflowIds"] == [str(workflow.id)]
+        assert DetectorWorkflow.objects.filter(detector=self.detector).count() == 1
+
+        # Verify no workflow-related audit entries were created since no changes were made
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert (
+                AuditLogEntry.objects.filter(
+                    event=audit_log.get_event_id("DETECTOR_WORKFLOW_ADD"),
+                    actor=self.user,
+                ).count()
+                == 0
+            )
+            assert (
+                AuditLogEntry.objects.filter(
+                    event=audit_log.get_event_id("DETECTOR_WORKFLOW_REMOVE"),
+                    actor=self.user,
+                ).count()
+                == 0
+            )
 
 
 @region_silo_test

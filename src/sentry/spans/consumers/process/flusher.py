@@ -131,6 +131,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
     ):
         self.next_step = next_step
         self.max_processes = max_processes or len(buffer.assigned_shards)
+        self.slice_id = buffer.slice_id
 
         self.mp_context = mp_context = multiprocessing.get_context("spawn")
         self.stopped = mp_context.Value("i", 0)
@@ -149,8 +150,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
         self.processes: dict[int, multiprocessing.context.SpawnProcess | threading.Thread] = {}
         self.process_healthy_since = {
-            process_index: mp_context.Value("i", int(time.time()))
-            for process_index in range(self.num_processes)
+            process_index: mp_context.Value("i", 0) for process_index in range(self.num_processes)
         }
         self.process_backpressure_since = {
             process_index: mp_context.Value("i", 0) for process_index in range(self.num_processes)
@@ -160,19 +160,40 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
         self._create_processes()
 
+        # When starting the consumer, block the consumer's main thread until
+        # all processes are healthy. This ensures we do not write into Redis if
+        # the flusher deterministically crashes on start, because in
+        # combination with the consumer crashlooping this will cause Redis to
+        # be filled up.
+        for process_index in self.process_to_shards_map.keys():
+            self._wait_for_process_to_become_healthy(process_index)
+
+    def _wait_for_process_to_become_healthy(self, process_index: int):
+        start_time = time.time()
+        max_unhealthy_seconds = options.get("spans.buffer.flusher.max-unhealthy-seconds") * 2
+
+        while True:
+            if self.process_healthy_since[process_index].value != 0:
+                break
+
+            if time.time() - start_time > max_unhealthy_seconds:
+                shards = self.process_to_shards_map[process_index]
+                raise RuntimeError(
+                    f"process {process_index} (shards {shards}) didn't start up in {max_unhealthy_seconds} seconds"
+                )
+
+            time.sleep(0.1)
+
     def _create_processes(self):
         # Create processes based on shard mapping
         for process_index, shards in self.process_to_shards_map.items():
             self._create_process_for_shards(process_index, shards)
 
     def _create_process_for_shards(self, process_index: int, shards: list[int]):
-        # Optimistically reset healthy_since to avoid a race between the
-        # starting process and the next flush cycle. Keep back pressure across
-        # the restart, however.
-        self.process_healthy_since[process_index].value = int(time.time())
+        self.process_healthy_since[process_index].value = 0
 
         # Create a buffer for these specific shards
-        shard_buffer = SpansBuffer(shards)
+        shard_buffer = SpansBuffer(shards, slice_id=self.slice_id)
 
         make_process: Callable[..., multiprocessing.context.SpawnProcess | threading.Thread]
         if self.produce_to_pipe is None:
@@ -337,6 +358,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 pass  # Process already closed, ignore
 
             self._create_process_for_shards(process_index, shards)
+            self._wait_for_process_to_become_healthy(process_index)
 
     def submit(self, message: Message[FilteredPayload | int]) -> None:
         # Note that submit is not actually a hot path. Their message payloads
