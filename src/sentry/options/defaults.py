@@ -850,13 +850,6 @@ register(
 )
 
 register(
-    "issues.deletion.groups.verify-groups-exist",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "issues.severity.first-event-severity-calculation-projects-allowlist",
     type=Sequence,
     default=[],

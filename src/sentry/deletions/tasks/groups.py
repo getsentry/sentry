@@ -37,15 +37,8 @@ def delete_groups(
     eventstream_state: Mapping[str, Any] | None = None,
     **kwargs: Any,
 ) -> None:
-    from sentry import deletions, eventstream, options
+    from sentry import deletions, eventstream
     from sentry.models.group import Group
-
-    if options.get("issues.deletion.groups.verify-groups-exist"):
-        # Query object_ids to verify that the groups still exist
-        groups = Group.objects.filter(id__in=object_ids)
-        if len(groups) == 0:
-            return
-        object_ids = [group.id for group in groups]
 
     current_batch, rest = object_ids[:GROUP_CHUNK_SIZE], object_ids[GROUP_CHUNK_SIZE:]
 
