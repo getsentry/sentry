@@ -43,6 +43,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         output_block_size: int | None,
         flusher_processes: int | None = None,
         produce_to_pipe: Callable[[KafkaPayload], None] | None = None,
+        kafka_slice_id: int | None = None,
     ):
         super().__init__()
 
@@ -56,6 +57,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.num_processes = num_processes
         self.flusher_processes = flusher_processes
         self.produce_to_pipe = produce_to_pipe
+        self.kafka_slice_id = kafka_slice_id
 
         if self.num_processes != 1:
             self.__pool = MultiprocessingPool(num_processes)
@@ -67,7 +69,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     ) -> ProcessingStrategy[KafkaPayload]:
         # TODO: remove once span buffer is live in all regions
         scope = sentry_sdk.get_isolation_scope()
-        scope.level = "warning"
+        scope.set_level("warning")
 
         self.rebalancing_count += 1
         sentry_sdk.set_tag("sentry_spans_rebalancing_count", str(self.rebalancing_count))
@@ -75,7 +77,10 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
         committer = CommitOffsets(commit)
 
-        buffer = SpansBuffer(assigned_shards=[p.index for p in partitions])
+        buffer = SpansBuffer(
+            assigned_shards=[p.index for p in partitions],
+            slice_id=self.kafka_slice_id,
+        )
 
         # patch onto self just for testing
         flusher: ProcessingStrategy[FilteredPayload | int]
