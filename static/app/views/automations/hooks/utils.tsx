@@ -43,21 +43,22 @@ export function findConflictingConditions(
   }
 
   // Check for mutually exclusive trigger conditions with ALL logic
-  const conflictingTriggerConditions =
-    findConflictingConditionsForConditionGroup(triggers);
-  if (
-    triggers.logicType === DataConditionGroupLogicType.ALL &&
-    conflictingTriggerConditions.size > 1
-  ) {
-    return {
-      conflictingConditionGroups: {
-        [triggers.id]: conflictingTriggerConditions,
-      },
-      conflictReason: t(
-        'The triggers highlighted in red are mutually exclusive and cannot be used together with "All" logic.'
-      ),
-    };
+  if (triggers.logicType === DataConditionGroupLogicType.ALL) {
+    const conflictingTriggerConditions =
+      findFirstSeenEventConflictingConditions(triggers);
+    if (conflictingTriggerConditions.size > 1) {
+      return {
+        conflictingConditionGroups: {
+          [triggers.id]: conflictingTriggerConditions,
+        },
+        conflictReason: t(
+          'The triggers highlighted in red are mutually exclusive and cannot be used together with "All" logic.'
+        ),
+      };
+    }
   }
+
+  let hasConflictingActionFilters = false;
 
   // Check for first seen event condition
   const firstSeenId = triggers.conditions.find(
@@ -73,11 +74,10 @@ export function findConflictingConditions(
     )
   ) {
     const conflictingConditions: Record<string, Set<string>> = {};
-    let hasConflictingActionFilters = false;
 
     // Create a mapping of conflicting conditions for each action filter
     for (const actionFilter of actionFilters) {
-      const conflicts = findConflictingConditionsForConditionGroup(actionFilter);
+      const conflicts = findFirstSeenEventConflictingConditions(actionFilter);
       conflictingConditions[actionFilter.id] = conflicts;
       if (conflicts.size > 0) {
         hasConflictingActionFilters = true;
@@ -96,6 +96,26 @@ export function findConflictingConditions(
       };
     }
   }
+
+  // Check for conflicting issue priority conditions in action filters
+  const conflictingActionFilters: Record<string, Set<string>> = {};
+  for (const actionFilter of actionFilters) {
+    const conflictingConditions = findConflictingPriorityConditions(actionFilter);
+    if (conflictingConditions.size > 0) {
+      hasConflictingActionFilters = true;
+      conflictingActionFilters[actionFilter.id] = conflictingConditions;
+    }
+  }
+
+  if (hasConflictingActionFilters) {
+    return {
+      conflictingConditionGroups: conflictingActionFilters,
+      conflictReason: t(
+        'The issue priority conditions highlighted in red are in conflict.'
+      ),
+    };
+  }
+
   return {
     conflictingConditionGroups: {},
     conflictReason: null,
@@ -115,7 +135,7 @@ const frequencyTypes = new Set<DataConditionType>([
   DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
 ]);
 
-function findConflictingConditionsForConditionGroup(
+function findFirstSeenEventConflictingConditions(
   conditionGroup: DataConditionGroup
 ): Set<string> {
   const conflictingConditions: Set<string> = new Set<string>();
@@ -166,6 +186,45 @@ function findConflictingConditionsForConditionGroup(
     conflictingConditions.size !== conditionGroup.conditions.length
   ) {
     return new Set<string>();
+  }
+
+  return conflictingConditions;
+}
+
+function findConflictingPriorityConditions(
+  conditionGroup: DataConditionGroup
+): Set<string> {
+  const conflictingConditions: Set<string> = new Set<string>();
+
+  const priorityGreaterOrEqualConditions: string[] = [];
+  const priorityDeescalatingConditions: string[] = [];
+
+  // Conflicting issue priority conditions are only relevant for ALL logic type
+  if (conditionGroup.logicType !== DataConditionGroupLogicType.ALL) {
+    return conflictingConditions;
+  }
+
+  for (const condition of conditionGroup.conditions) {
+    const isIssuePriority =
+      condition.type === DataConditionType.ISSUE_PRIORITY_GREATER_OR_EQUAL;
+    const isIssuePriorityDeescalating =
+      condition.type === DataConditionType.ISSUE_PRIORITY_DEESCALATING;
+    if (isIssuePriority) {
+      priorityGreaterOrEqualConditions.push(condition.id);
+    }
+    if (isIssuePriorityDeescalating) {
+      priorityDeescalatingConditions.push(condition.id);
+    }
+  }
+
+  // Issue priority and priority deescalating conditions conflict if logic type is ALL
+  if (
+    conditionGroup.logicType === DataConditionGroupLogicType.ALL &&
+    priorityGreaterOrEqualConditions.length > 0 &&
+    priorityDeescalatingConditions.length > 0
+  ) {
+    priorityGreaterOrEqualConditions.forEach(id => conflictingConditions.add(id));
+    priorityDeescalatingConditions.forEach(id => conflictingConditions.add(id));
   }
 
   return conflictingConditions;
