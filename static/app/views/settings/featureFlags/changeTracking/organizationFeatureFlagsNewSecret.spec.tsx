@@ -69,9 +69,7 @@ describe('OrganizationFeatureFlagsNewSecret', function () {
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'POST',
-      body: {
-        detail: 'Test API error occurred.',
-      },
+      body: 'Test API error occurred.',
       statusCode: 403,
     });
 

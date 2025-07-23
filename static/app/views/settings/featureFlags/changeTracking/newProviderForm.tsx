@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -6,7 +6,6 @@ import {
   addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ExternalLink} from 'sentry/components/core/link';
 import {
   PROVIDER_TO_SETUP_WEBHOOK_URL,
@@ -38,21 +37,23 @@ type CreateSecretQueryVariables = {
 
 type CreateSecretResponse = string;
 
+interface Props {
+  canSaveSecret: boolean;
+  onCreatedSecret: (secret: string) => void;
+  selectedProvider: string;
+  setError: (error: string | null) => void;
+  setSelectedProvider: (provider: string) => void;
+  existingSecret?: Secret;
+}
+
 export default function NewProviderForm({
   onCreatedSecret,
-  onProviderChange,
-  onSetProvider,
-  onError,
-  canOverrideProvider,
+  setSelectedProvider,
+  selectedProvider,
+  setError: setError,
+  canSaveSecret,
   existingSecret,
-}: {
-  canOverrideProvider: boolean;
-  onCreatedSecret: (secret: string) => void;
-  onError: (error: string | null) => void;
-  onProviderChange: (provider: string) => void;
-  onSetProvider: (provider: string) => void;
-  existingSecret?: Secret;
-}) {
+}: Props) {
   const initialData = {
     provider: '',
     secret: '',
@@ -62,7 +63,11 @@ export default function NewProviderForm({
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const [selectedProvider, setSelectedProvider] = useState('');
+  const handleGoBack = useCallback(() => {
+    navigate(
+      normalizeUrl(`/settings/${organization.slug}/feature-flags/change-tracking/`)
+    );
+  }, [organization.slug, navigate]);
 
   const {mutate: submitSecret, isPending} = useMutation<
     CreateSecretResponse,
@@ -86,7 +91,7 @@ export default function NewProviderForm({
     onSuccess: (_response, {secret, provider}) => {
       addSuccessMessage(t('Added provider and secret.'));
       onCreatedSecret(secret);
-      onSetProvider(provider);
+      setSelectedProvider(provider);
       queryClient.invalidateQueries({
         queryKey: makeFetchSecretQueryKey({orgSlug: organization.slug}),
       });
@@ -95,91 +100,53 @@ export default function NewProviderForm({
       clearIndicators();
       const responseJSON = error.responseJSON;
 
-      // Check if there are field-specific errors for 'secret' or 'provider'
       const hasFieldSpecificErrors = responseJSON?.secret || responseJSON?.provider;
 
       if (!hasFieldSpecificErrors) {
-        // General error - pass to parent component
+        // Only show banner if there are no field-specific errors
         const message =
-          responseJSON?.detail ||
-          (Array.isArray(responseJSON?.non_field_errors) &&
-            responseJSON.non_field_errors[0]) ||
-          (Array.isArray(responseJSON?.nonFieldErrors) &&
-            responseJSON.nonFieldErrors[0]) ||
-          t('Failed to add provider or secret.');
+          typeof responseJSON === 'string'
+            ? responseJSON
+            : t('Failed to add provider or secret.');
         handleXhrErrorResponse(message, error);
-        onError(message);
+        setError(message);
       }
-      // else Form component handles the error
     },
   });
-
-  // if secret exists, updating; else adding
-  const getButtonLabel = () => {
-    if (existingSecret) {
-      return t('Update Provider');
-    }
-    return t('Add Provider');
-  };
-
-  const handleGoBack = useCallback(() => {
-    navigate(
-      normalizeUrl(`/settings/${organization.slug}/feature-flags/change-tracking/`)
-    );
-  }, [organization.slug, navigate]);
-
-  const handleSubmit = useCallback(
-    (
-      data: Record<string, any>,
-      onSubmitSuccess: (response: any) => void,
-      onSubmitError: (error: any) => void
-    ) => {
-      submitSecret(
-        {
-          provider: data.provider,
-          secret: data.secret,
-        },
-        {
-          onSuccess: response => {
-            onSubmitSuccess(response);
-          },
-          onError: error => {
-            // Only call onSubmitError for field-specific errors
-            // General errors are already handled in the mutation's onError
-            if (error.responseJSON?.secret || error.responseJSON?.provider) {
-              onSubmitError(error);
-            }
-          },
-        }
-      );
-    },
-    [submitSecret]
-  );
-
-  const canRead = hasEveryAccess(['org:read'], {organization});
-  const canWrite = hasEveryAccess(['org:write'], {organization});
-  const canAdmin = hasEveryAccess(['org:admin'], {organization});
-  const hasAccess = canRead || canWrite || canAdmin;
 
   return (
     <Form
       initialData={initialData}
-      onSubmit={(data, onSubmitSuccess, onSubmitError) => {
-        handleSubmit(data, onSubmitSuccess, onSubmitError);
+      onSubmit={(data, onFormSubmitSuccess, onFormSubmitError) => {
+        submitSecret(
+          {
+            provider: data.provider,
+            secret: data.secret,
+          },
+          {
+            onSuccess: () => {
+              onFormSubmitSuccess({});
+            },
+            onError: error => {
+              // Only call onSubmitError for field-specific errors
+              // General errors are already handled in the mutation's onError
+              if (error.responseJSON?.secret || error.responseJSON?.provider) {
+                onFormSubmitError(error);
+              }
+            },
+          }
+        );
       }}
       onCancel={handleGoBack}
-      submitLabel={getButtonLabel()}
+      submitLabel={existingSecret ? t('Update Provider') : t('Add Provider')}
       requireChanges
-      submitDisabled={
-        !hasAccess || !selectedProvider || !canOverrideProvider || isPending
-      }
+      submitDisabled={!selectedProvider || !canSaveSecret || isPending}
     >
       <SelectField
         required
         label={t('Provider')}
         onChange={value => {
           setSelectedProvider(value);
-          onProviderChange(value);
         }}
         value={selectedProvider}
         placeholder={t('Select a provider')}

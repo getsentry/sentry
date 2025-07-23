@@ -7,11 +7,12 @@ describe('NewProviderForm', () => {
     const callback = () => {};
     render(
       <NewProviderForm
-        onSetProvider={callback}
         onCreatedSecret={callback}
-        onError={callback}
-        onProviderChange={callback}
-        canOverrideProvider
+        setSelectedProvider={callback}
+        selectedProvider="LaunchDarkly"
+        setError={callback}
+        canSaveSecret
+        existingSecret={undefined}
       />
     );
   });

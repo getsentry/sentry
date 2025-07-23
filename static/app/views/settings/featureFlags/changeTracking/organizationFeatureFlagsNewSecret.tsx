@@ -27,7 +27,6 @@ type FetchSecretResponse = {data: Secret[]};
 
 function OrganizationFeatureFlagsNewSecret() {
   const [newSecret, setNewSecret] = useState<string | null>(null);
-  const [provider, setProvider] = useState<string>('');
   const [selectedProvider, setSelectedProvider] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const organization = useOrganization();
@@ -35,12 +34,7 @@ function OrganizationFeatureFlagsNewSecret() {
   const navigate = useNavigate();
 
   // get existing secrets so we can check if the provider is already configured
-  const {
-    isPending: _isSecretsPending,
-    isError: _isSecretsError,
-    data: secretList,
-    refetch: _refetchSecretList,
-  } = useApiQuery<FetchSecretResponse>(
+  const {data: secretList} = useApiQuery<FetchSecretResponse>(
     makeFetchSecretQueryKey({orgSlug: organization.slug}),
     {
       staleTime: Infinity,
@@ -53,10 +47,6 @@ function OrganizationFeatureFlagsNewSecret() {
     );
   }, [organization.slug, navigate]);
 
-  const handleError = useCallback((errorMessage: string | null) => {
-    setError(errorMessage);
-  }, []);
-
   // check if selected provider is already configured
   const existingSecret = secretList?.data?.find(
     secret => secret.provider.toLowerCase() === selectedProvider.toLowerCase()
@@ -64,10 +54,10 @@ function OrganizationFeatureFlagsNewSecret() {
 
   // can override an existing provider if user is owner, manager, or original creator
   // anyone can add a new provider
-  const canOverrideProvider = existingSecret
-    ? hasEveryAccess(['org:write'], {organization}) ||
-      hasEveryAccess(['org:admin'], {organization}) ||
-      existingSecret.createdBy === Number(user.id)
+  const canWrite = hasEveryAccess(['org:write'], {organization});
+  const canAdmin = hasEveryAccess(['org:admin'], {organization});
+  const canSaveSecret = existingSecret
+    ? canWrite || canAdmin || existingSecret.createdBy === Number(user.id)
     : true;
 
   return (
@@ -99,7 +89,7 @@ function OrganizationFeatureFlagsNewSecret() {
         </Alert.Container>
       )}
 
-      {existingSecret && !canOverrideProvider && (
+      {existingSecret && !canSaveSecret && (
         <Alert.Container>
           <Alert type="warning" showIcon>
             {t(
@@ -116,15 +106,15 @@ function OrganizationFeatureFlagsNewSecret() {
             <NewSecretHandler
               onGoBack={handleGoBack}
               secret={newSecret}
-              provider={provider}
+              provider={selectedProvider}
             />
           ) : (
             <NewProviderForm
               onCreatedSecret={setNewSecret}
-              onError={handleError}
-              onProviderChange={setSelectedProvider}
-              onSetProvider={setProvider}
-              canOverrideProvider={canOverrideProvider}
+              setError={setError}
+              selectedProvider={selectedProvider}
+              setSelectedProvider={setSelectedProvider}
+              canSaveSecret={canSaveSecret}
               existingSecret={existingSecret}
             />
           )}
