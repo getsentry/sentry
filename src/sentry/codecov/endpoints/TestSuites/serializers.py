@@ -13,7 +13,6 @@ class TestSuiteSerializer(serializers.Serializer):
 
     __test__ = False
 
-    defaultBranch = serializers.CharField()
     testSuites = serializers.ListField(child=serializers.CharField())
 
     def to_representation(self, instance):
@@ -21,12 +20,7 @@ class TestSuiteSerializer(serializers.Serializer):
         Transform the GraphQL response to the serialized format
         """
         try:
-            repository_data = instance["data"]["owner"]["repository"]
-            response_data = {
-                "testSuites": repository_data["testAnalytics"]["testSuites"],
-                "defaultBranch": repository_data["defaultBranch"],
-            }
-
+            response_data = instance["data"]["owner"]["repository"]["testAnalytics"]
             return super().to_representation(response_data)
 
         except (KeyError, TypeError) as e:

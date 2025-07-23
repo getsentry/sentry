@@ -9,7 +9,6 @@ mock_graphql_response_populated: dict[str, Any] = {
     "data": {
         "owner": {
             "repository": {
-                "defaultBranch": "main",
                 "testAnalytics": {"testSuites": ["suite-1", "another-2", "suite-3"]},
             }
         }
@@ -17,9 +16,7 @@ mock_graphql_response_populated: dict[str, Any] = {
 }
 
 mock_graphql_response_empty: dict[str, Any] = {
-    "data": {
-        "owner": {"repository": {"defaultBranch": "main-2", "testAnalytics": {"testSuites": []}}}
-    }
+    "data": {"owner": {"repository": {"testAnalytics": {"testSuites": []}}}}
 }
 
 
@@ -65,7 +62,6 @@ class TestSuitesEndpointTest(APITestCase):
         assert mock_codecov_client_instance.query.call_count == 1
         assert response.status_code == 200
 
-        assert response.data["defaultBranch"] == "main"
         assert response.data["testSuites"] == ["suite-1", "another-2", "suite-3"]
 
     @patch("sentry.codecov.endpoints.TestSuites.test_suites.CodecovApiClient")
