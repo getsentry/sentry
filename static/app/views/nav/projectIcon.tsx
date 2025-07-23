@@ -2,19 +2,20 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import PlatformIcon from 'platformicons/build/platformIcon';
 
-import {IconAllProjects} from 'sentry/views/nav/iconAllProjects';
+import {IconGrid, IconStar} from 'sentry/icons';
 
 interface ProjectIconProps {
   projectPlatforms: string[];
+  allProjects?: boolean;
   className?: string;
 }
 
-function ProjectIcon({projectPlatforms, className}: ProjectIconProps) {
+function ProjectIcon({projectPlatforms, allProjects, className}: ProjectIconProps) {
   let renderedIcons: React.ReactNode;
 
   switch (projectPlatforms.length) {
     case 0:
-      renderedIcons = <IconAllProjects />;
+      renderedIcons = allProjects ? <IconGrid /> : <IconStar />;
       break;
     case 1:
       renderedIcons = (

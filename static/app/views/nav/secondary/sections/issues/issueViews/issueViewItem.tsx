@@ -130,7 +130,10 @@ export function IssueViewItem({
               <StyledInteractionStateLayer isPressed={isDragging === view.id} />
               <IconGrabbable color="gray300" />
             </GrabHandleWrapper>
-            <ProjectIcon projectPlatforms={projectPlatforms} />
+            <ProjectIcon
+              projectPlatforms={projectPlatforms}
+              allProjects={view.projects.length === 1 || view.projects[0] === -1}
+            />
           </LeadingItemsWrapper>
         }
         trailingItems={
