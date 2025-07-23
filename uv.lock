@@ -2566,14 +2566,14 @@ requires-dist = [
     { name = "rsa", specifier = "==4.8" },
     { name = "s3transfer", specifier = "==0.10.0" },
     { name = "selenium", marker = "extra == 'dev'", specifier = "==4.16.0" },
-    { name = "sentry-arroyo", specifier = "==2.28.0" },
+    { name = "sentry-arroyo", specifier = "==2.28.2" },
     { name = "sentry-cli", marker = "extra == 'dev'", specifier = "==2.16.0" },
     { name = "sentry-covdefaults-disable-branch-coverage", marker = "extra == 'dev'", specifier = "==1.0.2" },
     { name = "sentry-devenv", marker = "extra == 'dev'", specifier = "==1.22" },
     { name = "sentry-forked-django-stubs", marker = "extra == 'dev'", specifier = "==5.2.1.post3" },
     { name = "sentry-forked-djangorestframework-stubs", marker = "extra == 'dev'", specifier = "==3.16.0.post1" },
     { name = "sentry-forked-email-reply-parser", specifier = "==0.5.12.post1" },
-    { name = "sentry-kafka-schemas", specifier = "==1.3.14" },
+    { name = "sentry-kafka-schemas", specifier = "==1.3.18" },
     { name = "sentry-ophio", specifier = "==1.1.3" },
     { name = "sentry-protos", specifier = "==0.3.1" },
     { name = "sentry-redis-tools", specifier = "==0.5.0" },
@@ -2623,7 +2623,7 @@ requires-dist = [
     { name = "uritemplate", specifier = "==4.1.1" },
     { name = "urllib3", specifier = "==2.2.2" },
     { name = "vine", specifier = "==5.1.0" },
-    { name = "vroomrs", specifier = "==0.1.13" },
+    { name = "vroomrs", specifier = "==0.1.17" },
     { name = "wcwidth", specifier = "==0.2.13" },
     { name = "xmlsec", specifier = "==1.3.16" },
     { name = "zstandard", specifier = "==0.18.0" },
@@ -2632,14 +2632,14 @@ provides-extras = ["getsentry", "dev"]
 
 [[package]]
 name = "sentry-arroyo"
-version = "2.28.0"
+version = "2.28.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "confluent-kafka" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f5/15/0bab81a3e8db5c9a8110159d00ec30404054f263da7c979189cbb74a5f6e/sentry_arroyo-2.28.0.tar.gz", hash = "sha256:7c2db720e659ebc031321d29671ff6abc4a5923b4387fa7cb9a3ad5774081cfe", size = 86154, upload-time = "2025-07-14T12:52:40.309Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c6/c7/d54bb26379527a7731813b4771abf39a78301cb4e4c6a0479c46ef603c98/sentry_arroyo-2.28.2.tar.gz", hash = "sha256:66fee64f34dd6a1a21dbfbdaf0eb2ecae8c65c72eb449acc3782124d8ed40442", size = 86296, upload-time = "2025-07-18T14:51:34.287Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/02/ee/0702fa80ef18898e01bacfe09ee824237c3365a1507ebe6def81b4811f19/sentry_arroyo-2.28.0-py3-none-any.whl", hash = "sha256:39e202ea8dcd7bbd4e94af23b09e4e14d47f3709a43fe00d67d1e9436bdfc9af", size = 112313, upload-time = "2025-07-14T12:52:36.913Z" },
+    { url = "https://files.pythonhosted.org/packages/a6/8b/b2620c8bb78077bd1930c1c48deb5579411a27281151b6f17b54f96575c1/sentry_arroyo-2.28.2-py3-none-any.whl", hash = "sha256:86bee5a033c8ae364d7fc26044a6908b8e158a90ac3793ed361ce7c2bc4e1144", size = 112564, upload-time = "2025-07-18T14:51:32.37Z" },
 ]
 
 [[package]]
@@ -2726,7 +2726,7 @@ wheels = [
 
 [[package]]
 name = "sentry-kafka-schemas"
-version = "1.3.14"
+version = "1.3.18"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "fastjsonschema" },
@@ -2736,9 +2736,9 @@ dependencies = [
     { name = "sentry-protos" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f2/27/7150a3c17ffbfa821f240f5cd0415e3844bdbc0f79d072bd2968e203c0ee/sentry-kafka-schemas-1.3.14.tar.gz", hash = "sha256:8e3ef25e313a7af1cdd3e88234a3892e02192762a86ca1e56bc0c86d4fae6460", size = 146229, upload-time = "2025-07-03T14:22:23.996Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6e/ae/890a6e3a5edfbfa24e0212d5dd7f45e269d9f86bec58cfe6c43c764c108c/sentry-kafka-schemas-1.3.18.tar.gz", hash = "sha256:2ec79811817e34d3463d9b68f06e99d001c552ae9185f45a1459271fd4b47a18", size = 146611, upload-time = "2025-07-21T19:07:38.213Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ae/01/cb71aa5fb23be5b2589fe1da07331380194fc1f6c0921da008e10cdab237/sentry_kafka_schemas-1.3.14-py2.py3-none-any.whl", hash = "sha256:e757a1767c9333f8841f5e733996de0f9251e13a48be160ac1ca597118fce61e", size = 282000, upload-time = "2025-07-03T14:22:22.271Z" },
+    { url = "https://files.pythonhosted.org/packages/67/08/a90fa0669fd8b8f99d3b89a10412724d7409ad9d83be1c9a31abc0e62d4e/sentry_kafka_schemas-1.3.18-py2.py3-none-any.whl", hash = "sha256:29a2f1d572a57b75fa47bd53e4e58af64878be14fbeab6434a697f4601e5ef7a", size = 284124, upload-time = "2025-07-21T19:07:36.499Z" },
 ]
 
 [[package]]
@@ -3349,14 +3349,14 @@ wheels = [
 
 [[package]]
 name = "vroomrs"
-version = "0.1.13"
+version = "0.1.17"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/d8/57/0a2453b279297f0826368af16c4d896754d049670ceb3bca974d55759598/vroomrs-0.1.13.tar.gz", hash = "sha256:4224d642fe1b68b0f4ba1a2f51274d82b93e03145389612b7b23f17e410bc408", size = 81436, upload-time = "2025-07-16T15:19:52.843Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/72/5b/da6af5f67d678b75b513cfabd4cd35188431855f17bb4aaa64a2ccfafc0d/vroomrs-0.1.17.tar.gz", hash = "sha256:e2a8bd15095f1b1f4460c8e78a41c76edf0f26b2ca8d7b4624ed73bb4add2cf5", size = 81041, upload-time = "2025-07-22T10:05:17.348Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f3/75/db77d161f7031bc27c8e6d70ec3106901e9ce21dea5b101799adff1e6ffb/vroomrs-0.1.13-cp313-cp313-macosx_10_12_x86_64.whl", hash = "sha256:1e0f74397b641e1155d094f791a17d2e06197b04d49a99fc763a953d04eb2b88", size = 1408422, upload-time = "2025-07-16T15:19:36.033Z" },
-    { url = "https://files.pythonhosted.org/packages/3c/90/43e71d9267270bf4f4c60a6f02f20560f251d5bfbf1bb2a07f4b310d9dbd/vroomrs-0.1.13-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:336a9cddda6f907b6897a3f0df6c7b4098c8542b4aefd706296e870859dfe794", size = 1325702, upload-time = "2025-07-16T15:19:37.769Z" },
-    { url = "https://files.pythonhosted.org/packages/22/1b/53e9be1b75493742ec87d25421bf21a341a821a1c203fe68f00d9e7ec5d7/vroomrs-0.1.13-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:e4b0bebe533c4b7c6bb761c11a3a32866131d94f82010fe99e0ad606f71cfb16", size = 1488815, upload-time = "2025-07-16T15:19:39.062Z" },
-    { url = "https://files.pythonhosted.org/packages/21/67/2b162baad9322319726480cfef2422a5612092a4bf50f81cd50006b8540f/vroomrs-0.1.13-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ac51fc1ad5563fe6476f2fa2f1de0d39ea3ec4939499e40253219c2fbbd58b68", size = 1563053, upload-time = "2025-07-16T15:19:40.16Z" },
+    { url = "https://files.pythonhosted.org/packages/3e/99/64ea513ad5743eb51777af96e875b9a1f56ca9b2c26ccf24c545659fa507/vroomrs-0.1.17-cp313-cp313-macosx_10_12_x86_64.whl", hash = "sha256:759095e97c4891d2a68fe5ea2fae7db29145393431d43a9ac42df9b046be46fe", size = 1401896, upload-time = "2025-07-22T10:05:01.666Z" },
+    { url = "https://files.pythonhosted.org/packages/44/46/b9a602cb6fc0ff84484eb01efad99fe81283315aba9158f7872ff94c52c6/vroomrs-0.1.17-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:ff100a88d323f3d57316e385de214b6b3336d8807eb9efe60b5997332bcef59e", size = 1319664, upload-time = "2025-07-22T10:05:02.825Z" },
+    { url = "https://files.pythonhosted.org/packages/d3/cf/fe2ef8d28e6df811591a5331bc66e8f6552c58061b5ea4ea6bd462b5d4e8/vroomrs-0.1.17-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:3809f8d5542050ec56fddcb273df7eff54ebba4e53c9ae43187b72bd61bc0acf", size = 1485461, upload-time = "2025-07-22T10:05:04.475Z" },
+    { url = "https://files.pythonhosted.org/packages/bf/bd/b60e88066cd6122e58f72dd507eb0c39ca85b404153baf7ed0de9a077bb3/vroomrs-0.1.17-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:34f14ee672aae3b67fbdda8b234b807e94886825cffbe4b6bb382a8c0847eb36", size = 1554809, upload-time = "2025-07-22T10:05:05.924Z" },
 ]
 
 [[package]]
