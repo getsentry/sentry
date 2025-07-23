@@ -73,7 +73,7 @@ export function useTraces({datetime, enabled, limit, query}: UseTracesOptions) {
       project: selection.projects,
       environment: selection.environments,
       ...normalizeDateTimeParams(datetime ?? selection.datetime),
-      dataset: DiscoverDatasets.SPANS_INDEXED,
+      dataset: DiscoverDatasets.SPANS,
       query,
       per_page: limit,
       breakdownSlices: BREAKDOWN_SLICES,

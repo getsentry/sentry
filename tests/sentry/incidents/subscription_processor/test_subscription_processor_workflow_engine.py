@@ -212,27 +212,26 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         )
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
-    @patch("sentry.incidents.subscription_processor.process_data_packets")
-    def test_process_data_packets_called(self, mock_process_data_packets):
+    @patch("sentry.incidents.subscription_processor.process_data_packet")
+    def test_process_data_packet_called(self, mock_process_data_packet):
         rule = self.rule
         detector = self.create_detector(name="hojicha", type=MetricIssue.slug)
         data_source = self.create_data_source(source_id=str(self.sub.id))
         data_source.detectors.set([detector])
         self.send_update(rule, 10)
-        assert mock_process_data_packets.call_count == 1
+        assert mock_process_data_packet.call_count == 1
         assert (
-            mock_process_data_packets.call_args_list[0][0][1]
-            == DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+            mock_process_data_packet.call_args_list[0][0][1] == DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
         )
-        data_packet_list = mock_process_data_packets.call_args_list[0][0][0]
-        assert data_packet_list[0].source_id == str(self.sub.id)
-        assert data_packet_list[0].packet.values == {"value": 10}
+        data_packet = mock_process_data_packet.call_args_list[0][0][0]
+        assert data_packet.source_id == str(self.sub.id)
+        assert data_packet.packet.values == {"value": 10}
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
-    @patch("sentry.incidents.subscription_processor.process_data_packets")
+    @patch("sentry.incidents.subscription_processor.process_data_packet")
     @patch("sentry.incidents.subscription_processor.get_comparison_aggregation_value")
-    def test_process_data_packets_not_called(
-        self, mock_get_comparison_aggregation_value, mock_process_data_packets
+    def test_process_data_packet_not_called(
+        self, mock_get_comparison_aggregation_value, mock_process_data_packet
     ):
         rule = self.comparison_rule_above
         trigger = self.trigger
@@ -245,7 +244,7 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         self.send_update(
             rule, trigger.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
         )
-        assert mock_process_data_packets.call_count == 0
+        assert mock_process_data_packet.call_count == 0
 
 
 @freeze_time()

@@ -150,7 +150,18 @@ class GitHubIntegrationTest(IntegrationTestCase):
         responses.add(
             responses.POST,
             self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
-            json={"token": self.access_token, "expires_at": self.expires_at},
+            json={
+                "token": self.access_token,
+                "expires_at": self.expires_at,
+                "permissions": {
+                    "administration": "read",
+                    "contents": "read",
+                    "issues": "write",
+                    "metadata": "read",
+                    "pull_requests": "read",
+                },
+                "repository_selection": "all",
+            },
         )
 
         repositories: dict[str, Any] = {
@@ -403,6 +414,13 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "domain_name": "github.com/Test-Organization",
             "account_type": "Organization",
             "account_id": 60591805,
+            "permissions": {
+                "administration": "read",
+                "contents": "read",
+                "issues": "write",
+                "metadata": "read",
+                "pull_requests": "read",
+            },
         }
         oi = OrganizationIntegration.objects.get(
             integration=integration, organization_id=self.organization.id

@@ -130,7 +130,7 @@ class ScheduleEntry:
 
     def delay_task(self) -> None:
         monitor_config = self.monitor_config()
-        headers: dict[str, Any] | None = None
+        headers: dict[str, Any] = {}
         if monitor_config:
             check_in_id = capture_checkin(
                 monitor_slug=self._key,
@@ -141,6 +141,9 @@ class ScheduleEntry:
                 "sentry-monitor-check-in-id": check_in_id,
                 "sentry-monitor-slug": self._key,
             }
+
+        # We don't need every task linked back to the scheduler trace
+        headers["sentry-propagate-traces"] = False
 
         self._task.apply_async(headers=headers)
 
