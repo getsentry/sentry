@@ -29,7 +29,7 @@ import {
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
-export default function ToolCallsWidget() {
+export default function ToolErrorsWidget() {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans-low',

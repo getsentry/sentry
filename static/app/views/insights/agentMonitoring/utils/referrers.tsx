@@ -4,7 +4,7 @@ export enum Referrer {
   TRACE_DRAWER = 'api.performance.agent-monitoring.trace-drawer',
   TRACES_TABLE = 'api.performance.agent-monitoring.traces-table',
   TOKEN_USAGE_WIDGET = 'api.performance.agent-monitoring.token-usage-widget',
-  TOKEN_COST_WIDGET = 'api.performance.agent-monitoring.token-cost-widget',
+  MODEL_COST_WIDGET = 'api.performance.agent-monitoring.token-cost-widget',
   TOKEN_TYPES_WIDGET = 'api.performance.agent-monitoring.token-types-widget',
   TOOL_CALLS_WIDGET = 'api.performance.agent-monitoring.tool-calls-widget',
   LLM_CALLS_WIDGET = 'api.performance.agent-monitoring.llm-calls-widget',

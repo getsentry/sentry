@@ -51,7 +51,7 @@ export default function ModelCostWidget() {
       search: fullQuery,
       limit: 3,
     },
-    Referrer.TOKEN_COST_WIDGET
+    Referrer.MODEL_COST_WIDGET
   );
 
   const timeSeriesRequest = useTopNSpanSeries(
@@ -64,7 +64,7 @@ export default function ModelCostWidget() {
       topN: 3,
       enabled: !!tokensRequest.data,
     },
-    Referrer.TOKEN_COST_WIDGET
+    Referrer.MODEL_COST_WIDGET
   );
 
   const timeSeries = timeSeriesRequest.data;
@@ -145,7 +145,7 @@ export default function ModelCostWidget() {
         timeSeries && (
           <Toolbar
             showCreateAlert
-            referrer={Referrer.TOKEN_USAGE_WIDGET}
+            referrer={Referrer.MODEL_COST_WIDGET}
             exploreParams={{
               mode: Mode.AGGREGATE,
               visualize: [
