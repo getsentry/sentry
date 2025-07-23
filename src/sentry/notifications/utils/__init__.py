@@ -36,6 +36,7 @@ from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.performance_issues.base import get_url_from_span
 from sentry.performance_issues.performance_problem import PerformanceProblem
+from sentry.performance_issues.types import Span
 from sentry.silo.base import region_silo_function
 from sentry.types.rules import NotificationRuleDetails
 from sentry.users.services.user import RpcUser
@@ -223,8 +224,8 @@ def get_span_evidence_value(
 
 
 def get_parent_and_repeating_spans(
-    spans: list[dict[str, str | float]] | None, problem: PerformanceProblem
-) -> tuple[dict[str, str | float] | None, dict[str, str | float] | None]:
+    spans: list[Span] | None, problem: PerformanceProblem
+) -> tuple[Span, Span] | tuple[None, None]:
     """Parse out the parent and repeating spans given an event's spans"""
     if not spans:
         return (None, None)
