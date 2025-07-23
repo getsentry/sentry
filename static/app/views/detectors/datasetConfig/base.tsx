@@ -22,6 +22,10 @@ export interface DetectorSeriesQueryOptions {
    * The aggregate to use for the series query. eg: `count()`
    */
   aggregate: string;
+  /**
+   * Comparison delta in seconds for % change alerts
+   */
+  comparisonDelta: number | undefined;
   dataset: DiscoverDatasets;
   environment: string;
   /**
@@ -38,10 +42,6 @@ export interface DetectorSeriesQueryOptions {
    * The time period for the query. eg: `7d`
    */
   statsPeriod: TimePeriod;
-  /**
-   * Optional comparison delta in seconds for % change alerts
-   */
-  comparisonDelta?: number;
 }
 
 /**

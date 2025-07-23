@@ -22,6 +22,10 @@ interface MetricDetectorChartProps {
    */
   aggregate: string;
   /**
+   * Comparison delta in seconds for % change alerts
+   */
+  comparisonDelta: number | undefined;
+  /**
    * The condition group containing threshold conditions
    */
   conditions: Array<Omit<DataCondition, 'id'>>;
@@ -50,10 +54,6 @@ interface MetricDetectorChartProps {
    * The time period for the chart data (optional, defaults to 7d)
    */
   statsPeriod: TimePeriod;
-  /**
-   * Optional comparison delta in seconds for % change alerts
-   */
-  comparisonDelta?: number;
 }
 
 export function MetricDetectorChart({
