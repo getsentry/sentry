@@ -481,20 +481,24 @@ def should_update_escalating_metrics(event: Event) -> bool:
 
 
 @instrumented_task(
-    name="sentry.tasks.post_process.post_process_group",
+    name="sentry.issues.tasks.post_process.post_process_group",
     time_limit=120,
     soft_time_limit=110,
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
-        namespace=ingest_errors_tasks,
+        namespace=ingest_errors_postprocess_tasks,
         processing_deadline_duration=120,
     ),
 )
-def post_process_group_compat(*args, **kwargs) -> None:
+def post_process_group_shim(*args, **kwargs) -> None:
     """
     Deployment shim for post_process_group.
+
     We need to move this task to a new taskworker namespace, but don't want to change the
-    celery queue.
+    celery queue, or task name of inflight tasks.
+
+    Once all inflight work is going through this task, we can rename this function and remove
+    the binding to the old namespace.
     """
     post_process_group(*args, **kwargs)
 
@@ -505,7 +509,7 @@ def post_process_group_compat(*args, **kwargs) -> None:
     soft_time_limit=110,
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
-        namespace=ingest_errors_postprocess_tasks,
+        namespace=ingest_errors_tasks,
         processing_deadline_duration=120,
     ),
 )
