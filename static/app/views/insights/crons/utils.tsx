@@ -62,30 +62,30 @@ export const statusToText: Record<CheckInStatus, string> = {
 
 export const tickStyle: TickStyle<CheckInStatus> = theme => ({
   [CheckInStatus.ERROR]: {
-    labelColor: theme.red400,
-    tickColor: theme.red300,
+    labelColor: theme.isChonk ? theme.tokens.content.danger : theme.red400,
+    tickColor: theme.isChonk ? theme.tokens.graphics.danger : theme.red300,
   },
   [CheckInStatus.TIMEOUT]: {
-    labelColor: theme.red400,
-    tickColor: theme.red300,
-    hatchTick: theme.red200,
+    labelColor: theme.isChonk ? theme.tokens.content.danger : theme.red400,
+    tickColor: theme.isChonk ? theme.tokens.graphics.danger : theme.red300,
+    hatchTick: theme.isChonk ? theme.tokens.graphics.danger : theme.red200,
   },
   [CheckInStatus.OK]: {
-    labelColor: theme.green400,
-    tickColor: theme.green300,
+    labelColor: theme.isChonk ? theme.tokens.content.success : theme.green400,
+    tickColor: theme.isChonk ? theme.tokens.graphics.success : theme.green300,
   },
   [CheckInStatus.MISSED]: {
-    labelColor: theme.yellow400,
-    tickColor: theme.yellow300,
+    labelColor: theme.isChonk ? theme.tokens.content.warning : theme.yellow400,
+    tickColor: theme.isChonk ? theme.tokens.graphics.warning : theme.yellow300,
   },
   [CheckInStatus.IN_PROGRESS]: {
-    labelColor: theme.disabled,
-    tickColor: theme.disabled,
+    labelColor: theme.isChonk ? theme.tokens.content.muted : theme.disabled,
+    tickColor: theme.isChonk ? theme.tokens.graphics.muted : theme.disabled,
   },
   [CheckInStatus.UNKNOWN]: {
-    labelColor: theme.gray400,
-    tickColor: theme.gray300,
-    hatchTick: theme.gray200,
+    labelColor: theme.isChonk ? theme.tokens.content.muted : theme.gray400,
+    tickColor: theme.isChonk ? theme.tokens.graphics.muted : theme.gray300,
+    hatchTick: theme.isChonk ? theme.tokens.border.muted : theme.gray200,
   },
 });
 
