@@ -42,7 +42,6 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         input_block_size: int | None,
         output_block_size: int | None,
         skip_produce: bool,
-        kafka_slice_id: int | None = None,
     ):
         super().__init__()
         self.max_batch_size = max_batch_size
