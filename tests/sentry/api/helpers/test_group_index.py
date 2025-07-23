@@ -6,7 +6,7 @@ import pytest
 from django.http import QueryDict
 
 from sentry.api.helpers.group_index import update_groups, validate_search_filter_permissions
-from sentry.api.helpers.group_index.delete import delete_groups
+from sentry.api.helpers.group_index.delete import schedule_tasks_to_delete_groups
 from sentry.api.helpers.group_index.update import (
     get_group_list,
     handle_assigned_to,
@@ -1240,7 +1240,7 @@ class DeleteGroupsTest(TestCase):
             GroupHash.objects.create(project=self.project, group=group, hash=hashes[i])
             add_group_to_inbox(group, GroupInboxReason.NEW)
 
-        delete_groups(request, [self.project], self.organization.id)
+        schedule_tasks_to_delete_groups(request, [self.project], self.organization.id)
 
         assert (
             len(GroupHash.objects.filter(project_id=self.project.id, group_id__in=group_ids).all())
@@ -1271,7 +1271,7 @@ class DeleteGroupsTest(TestCase):
             GroupHash.objects.create(project=self.project, group=group, hash=hashes[i])
             add_group_to_inbox(group, GroupInboxReason.NEW)
 
-        delete_groups(request, [self.project], self.organization.id)
+        schedule_tasks_to_delete_groups(request, [self.project], self.organization.id)
 
         assert (
             len(GroupHash.objects.filter(project_id=self.project.id, group_id__in=group_ids).all())

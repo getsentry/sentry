@@ -4428,7 +4428,6 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
                 batch_3 = [g.id for g in groups_2[4:]]
                 assert batch_1 + batch_2 + batch_3 == [g.id for g in groups_2]
 
-                # Each project is scheduled without a transaction_id, so we expect the same transaction_id for both calls
                 assert mock_logger.info.call_args_list == [
                     call(
                         "delete_groups.started",
