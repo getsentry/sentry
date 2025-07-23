@@ -99,11 +99,11 @@ export default function NewProviderForm({
       // Check if there are field-specific errors for 'secret' or 'provider'
       const hasFieldSpecificErrors =
         (responseJSON?.secret &&
-          Array.isArray(responseJSON.secret) &&
-          responseJSON.secret.length > 0) ||
+          (Array.isArray(responseJSON.secret) ? responseJSON.secret.length > 0 : true)) ||
         (responseJSON?.provider &&
-          Array.isArray(responseJSON.provider) &&
-          responseJSON.provider.length > 0);
+          (Array.isArray(responseJSON.provider)
+            ? responseJSON.provider.length > 0
+            : true));
 
       if (hasFieldSpecificErrors) {
         // Field-specific errors - let the Form component handle them
@@ -138,34 +138,6 @@ export default function NewProviderForm({
     );
   }, [organization.slug, navigate]);
 
-  const handleSubmit = useCallback(
-    (
-      data: Record<string, any>,
-      onSubmitSuccess: (response: any) => void,
-      onSubmitError: (error: any) => void
-    ) => {
-      submitSecret(
-        {
-          provider: data.provider,
-          secret: data.secret,
-        },
-        {
-          onSuccess: response => {
-            onSubmitSuccess(response);
-          },
-          onError: error => {
-            // Only call onSubmitError for field-specific errors
-            // General errors are already handled in the mutation's onError
-            if (error.responseJSON?.secret || error.responseJSON?.provider) {
-              onSubmitError(error);
-            }
-          },
-        }
-      );
-    },
-    [submitSecret]
-  );
-
   const canRead = hasEveryAccess(['org:read'], {organization});
   const canWrite = hasEveryAccess(['org:write'], {organization});
   const canAdmin = hasEveryAccess(['org:admin'], {organization});
@@ -174,8 +146,11 @@ export default function NewProviderForm({
   return (
     <Form
       initialData={initialData}
-      onSubmit={(data, onSubmitSuccess, onSubmitError) => {
-        handleSubmit(data, onSubmitSuccess, onSubmitError);
+      onSubmit={({provider, secret}) => {
+        submitSecret({
+          provider,
+          secret,
+        });
       }}
       onCancel={handleGoBack}
       submitLabel={getButtonLabel()}
