@@ -515,6 +515,8 @@ def get_stream_processor(
     extra_kwargs = {}
     if consumer_definition.get("pass_consumer_group", False):
         extra_kwargs["consumer_group"] = group_id
+    if kafka_slice_id is not None:
+        extra_kwargs["kafka_slice_id"] = kafka_slice_id
     strategy_factory = cmd_context.invoke(
         strategy_factory_cls,
         **cmd_context.params,
