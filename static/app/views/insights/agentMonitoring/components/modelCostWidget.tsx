@@ -3,8 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {ExternalLink} from 'sentry/components/core/link';
-import Count from 'sentry/components/count';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
@@ -13,9 +12,10 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
 import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
+import {formatLLMCosts} from 'sentry/views/insights/agentMonitoring/utils/formatLLMCosts';
 import {
+  AI_COST_ATTRIBUTE_SUM,
   AI_MODEL_ID_ATTRIBUTE,
-  AI_TOKEN_USAGE_ATTRIBUTE_SUM,
   getAIGenerationsFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
@@ -34,7 +34,8 @@ import {
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
-export default function TokenUsageWidget() {
+// TODO: cost formatting
+export default function ModelCostWidget() {
   const theme = useTheme();
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
@@ -45,25 +46,25 @@ export default function TokenUsageWidget() {
 
   const tokensRequest = useSpans(
     {
-      fields: [AI_MODEL_ID_ATTRIBUTE, AI_TOKEN_USAGE_ATTRIBUTE_SUM],
-      sorts: [{field: AI_TOKEN_USAGE_ATTRIBUTE_SUM, kind: 'desc'}],
+      fields: [AI_MODEL_ID_ATTRIBUTE, AI_COST_ATTRIBUTE_SUM],
+      sorts: [{field: AI_COST_ATTRIBUTE_SUM, kind: 'desc'}],
       search: fullQuery,
       limit: 3,
     },
-    Referrer.TOKEN_USAGE_WIDGET
+    Referrer.MODEL_COST_WIDGET
   );
 
   const timeSeriesRequest = useTopNSpanSeries(
     {
       ...pageFilterChartParams,
       search: fullQuery,
-      fields: [AI_MODEL_ID_ATTRIBUTE, AI_TOKEN_USAGE_ATTRIBUTE_SUM],
-      yAxis: [AI_TOKEN_USAGE_ATTRIBUTE_SUM],
-      sort: {field: AI_TOKEN_USAGE_ATTRIBUTE_SUM, kind: 'desc'},
+      fields: [AI_MODEL_ID_ATTRIBUTE, AI_COST_ATTRIBUTE_SUM],
+      yAxis: [AI_COST_ATTRIBUTE_SUM],
+      sort: {field: AI_COST_ATTRIBUTE_SUM, kind: 'desc'},
       topN: 3,
       enabled: !!tokensRequest.data,
     },
-    Referrer.TOKEN_USAGE_WIDGET
+    Referrer.MODEL_COST_WIDGET
   );
 
   const timeSeries = timeSeriesRequest.data;
@@ -87,7 +88,7 @@ export default function TokenUsageWidget() {
       emptyMessage={
         <GenericWidgetEmptyStateWarning
           message={tct(
-            'No token usage found. Try updating your filters, or learn more about AI Agents Insights in our [link:documentation].',
+            'No model cost found. Try updating your filters, or learn more about AI Agents Insights in our [link:documentation].',
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/product/insights/agents/" />
@@ -128,9 +129,7 @@ export default function TokenUsageWidget() {
             <ModelText>
               <ModelName modelId={modelId} />
             </ModelText>
-            <span>
-              <Count value={Number(item[AI_TOKEN_USAGE_ATTRIBUTE_SUM] || 0)} />
-            </span>
+            <span>{formatLLMCosts(item[AI_COST_ATTRIBUTE_SUM] || 0)}</span>
           </Fragment>
         );
       })}
@@ -139,30 +138,30 @@ export default function TokenUsageWidget() {
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={t('Tokens Used')} />}
+      Title={<Widget.WidgetTitle title={t('Model Cost')} />}
       Visualization={visualization}
       Actions={
         organization.features.includes('visibility-explore-view') &&
         timeSeries && (
           <Toolbar
             showCreateAlert
-            referrer={Referrer.TOKEN_USAGE_WIDGET}
+            referrer={Referrer.MODEL_COST_WIDGET}
             exploreParams={{
               mode: Mode.AGGREGATE,
               visualize: [
                 {
                   chartType: ChartType.BAR,
-                  yAxes: [AI_TOKEN_USAGE_ATTRIBUTE_SUM],
+                  yAxes: [AI_COST_ATTRIBUTE_SUM],
                 },
               ],
               groupBy: [AI_MODEL_ID_ATTRIBUTE],
               query: fullQuery,
-              sort: `-${AI_TOKEN_USAGE_ATTRIBUTE_SUM}`,
+              sort: `-${AI_COST_ATTRIBUTE_SUM}`,
               interval: pageFilterChartParams.interval,
             }}
             onOpenFullScreen={() => {
               openInsightChartModal({
-                title: t('Token Usage'),
+                title: t('Model Cost'),
                 children: (
                   <Fragment>
                     <ModalChartContainer>{visualization}</ModalChartContainer>
