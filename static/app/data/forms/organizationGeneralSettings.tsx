@@ -23,7 +23,7 @@ const formGroups: JsonFormObject[] = [
         saveOnBlur: false,
         saveMessageAlertType: 'info',
         saveMessage: tct(
-          'Changing your organization slug will break organization tokens, may impact integrations, and break links to your organization. [link:Learn more]. You will be redirected to the new slug after saving.',
+          'Changing your organization slug will break organization tokens, may impact integrations, and break links to your organization. You will be redirected to the new slug after saving. [link:Learn more]',
           {
             link: (
               <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/22291009858971-Can-I-update-my-Sentry-Organisation-slug" />
