@@ -366,7 +366,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
             for event in occurrence_data:
                 offender_span_ids = event["occurrence"].evidence_data.get("offender_span_ids", [])
                 if len(offender_span_ids) == 0:
-                    sdk_span.set_data("evidence_data.empty", event["occurrence"].evidence_data)
+                    sdk_span.set_attribute("evidence_data.empty", event["occurrence"].evidence_data)
                 for span_id in offender_span_ids:
                     id_to_occurrence[span_id].append(event)
         for span in spans_data:

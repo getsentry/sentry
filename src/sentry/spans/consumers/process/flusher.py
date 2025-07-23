@@ -245,7 +245,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
     ) -> None:
         # TODO: remove once span buffer is live in all regions
         scope = sentry_sdk.get_isolation_scope()
-        scope.level = "warning"
+        scope.set_level("warning")
 
         shard_tag = ",".join(map(str, shards))
         sentry_sdk.set_tag("sentry_spans_buffer_component", "flusher")

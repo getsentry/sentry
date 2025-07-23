@@ -148,7 +148,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
 
     def get(self, request: Request, organization: Organization) -> Response:
         with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
-            span.set_data("organization", organization)
+            span.set_attribute("organization", organization)
 
             top_events = self.get_top_events(request)
             comparison_delta = self.get_comparison_delta(request)
