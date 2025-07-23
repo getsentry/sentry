@@ -1,4 +1,3 @@
-import type {ReactNode} from 'react';
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
@@ -10,10 +9,8 @@ import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
-import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import {useCachedTimeseriesResults} from 'sentry/views/explore/components/chart/useCachedTimeseriesResults';
@@ -67,24 +64,6 @@ export const EXPLORE_CHART_TYPE_OPTIONS = [
 ];
 
 const EXPLORE_CHART_GROUP = 'explore-charts_group';
-
-type NamedTimeSeries = TimeSeries & {
-  seriesName?: string;
-};
-
-export interface ChartInfo {
-  chartIcon: ReactNode;
-  chartType: ChartType;
-  data: NamedTimeSeries[];
-  error: QueryError | null;
-  isSampled: boolean | null;
-  loading: boolean;
-  sampleCount: number;
-  yAxes: readonly string[];
-  dataScanned?: 'full' | 'partial';
-  formattedYAxes?: Array<string | null>;
-  stack?: string;
-}
 
 export function ExploreCharts({
   canUsePreviousResults,
