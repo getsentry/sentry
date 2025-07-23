@@ -90,7 +90,13 @@ def check_service_health(services: Mapping[str, Service]) -> MutableMapping[str,
             for memory in check_service_memory(service):
                 if memory.percentage >= high_watermark:
                     reasons.append(memory)
-                logger.info("Checking node: %s:%s", memory.host, memory.port)
+
+                if memory.host is not None and "@" in memory.host:
+                    passwordless_host = memory.host.split("@")[1]
+                else:
+                    passwordless_host = memory.host
+
+                logger.info("Checking node: %s:%s", passwordless_host, memory.port)
                 logger.info(
                     "  name: %s, used: %s, available: %s, percentage: %s",
                     memory.name,
