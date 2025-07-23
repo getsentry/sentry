@@ -11,6 +11,7 @@ import styled from '@emotion/styled';
 import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 const BREAKPOINT_ORDER: readonly Breakpoint[] = ['xs', 'sm', 'md', 'lg', 'xl'];
+
 // We alias None -> 0 to make it slighly more terse and easier to read.
 type RadiusSize = keyof DO_NOT_USE_ChonkTheme['radius'] | '0';
 type SpacingSize = keyof Theme['space'] | '0';
@@ -18,18 +19,14 @@ type Breakpoint = keyof Theme['breakpoints'];
 
 // @TODO(jonasbadalic): audit for memory usage and linting performance issues.
 // These may not be trivial to infer as we are dealing with n^4 complexity
-type Spacing =
-  | `${SpacingSize} ${SpacingSize} ${SpacingSize} ${SpacingSize}`
-  | `${SpacingSize} ${SpacingSize} ${SpacingSize}`
-  | `${SpacingSize} ${SpacingSize}`
-  | `${SpacingSize}`;
+type Shorthand<T extends string, N extends 4 | 2> = N extends 4
+  ? `${T} ${T} ${T} ${T}` | `${T} ${T} ${T}` | `${T} ${T}` | `${T}`
+  : N extends 2
+    ? `${T} ${T}` | `${T}`
+    : never;
 
-type Radius =
-  | `${RadiusSize} ${RadiusSize} ${RadiusSize} ${RadiusSize}`
-  | `${RadiusSize} ${RadiusSize} ${RadiusSize}`
-  | `${RadiusSize} ${RadiusSize}`
-  | `${RadiusSize}`;
-
+type Spacing = Shorthand<SpacingSize, 4>;
+type Radius = Shorthand<RadiusSize, 4>;
 type Responsive<T> = T | Record<Breakpoint, T | undefined>;
 
 /* eslint-disable typescript-sort-keys/interface */
