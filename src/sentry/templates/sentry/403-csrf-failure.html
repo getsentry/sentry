@@ -23,13 +23,13 @@
 
         <p>{% trans "Why are you encounting a CSRF error after login?" %}</p>
         <ul>
-          <li><a href="https://docs.djangoproject.com/en/5.2/ref/csrf/#why-might-a-user-encounter-a-csrf-validation-failure-after-logging-in" _target="blank">{% trans "See explanation from Django docs" %}</a></li>
+          <li>See explanation from <a href="https://docs.djangoproject.com/en/5.2/ref/csrf/#why-might-a-user-encounter-a-csrf-validation-failure-after-logging-in" _target="blank">Django docs</a></li>
         </ul>
 
         <p>{% trans "If you're continually seeing this issue, try the following steps:" %}</p>
 
         <ol>
-          <li>{% trans "Close other tabs which loaded Sentry." %}</li>
+          <li>{% trans "Close other tabs with Sentry loaded." %}</li>
           <li>{% trans "Clear cookies (at least for Sentry's domain)." %}</li>
           <li>{% trans "Reload the page you're trying to submit (don't re-submit data)." %}</li>
           <li>{% trans "Re-enter the information, and submit the form again." %}</li>
@@ -60,7 +60,7 @@
            */
           const forceRefreshPage = () => {
             setTimeout(() => {
-              window.location.reload(true);
+              window.location.replace(window.location.href)
             }, 500);
           };
 
@@ -138,7 +138,7 @@
               button.disabled = true;
               status.textContent = '{% trans "Automatically rotating tokens..." %}';
               status.style.color = 'green';
-              setTimeout(rotateCsrf, 1500);
+              setTimeout(() => rotateCsrf(), 1500);
             }
           };
 
