@@ -63,7 +63,7 @@ export function ActionFixture(params: Partial<Action> = {}): Action {
     id: '1000',
     type: ActionType.SLACK,
     config: {
-      target_type: ActionTarget.SPECIFIC,
+      targetType: ActionTarget.SPECIFIC,
     },
     data: {},
     ...params,

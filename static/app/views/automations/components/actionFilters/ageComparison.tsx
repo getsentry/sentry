@@ -50,12 +50,12 @@ function ComparisonField() {
 
   return (
     <AutomationBuilderSelect
-      name={`${condition_id}.comparison.comparison_type`}
+      name={`${condition_id}.comparison.comparisonType`}
       aria-label={t('Comparison')}
-      value={condition.comparison.comparison_type}
+      value={condition.comparison.comparisonType}
       options={AGE_COMPARISON_CHOICES}
       onChange={(option: SelectValue<AgeComparison>) => {
-        onUpdate({comparison: {...condition.comparison, comparison_type: option.value}});
+        onUpdate({comparison: {...condition.comparison, comparisonType: option.value}});
         removeError(condition.id);
       }}
     />
@@ -103,7 +103,7 @@ export function validateAgeComparisonCondition({
   condition,
 }: ValidateDataConditionProps): string | undefined {
   if (
-    !condition.comparison.comparison_type ||
+    !condition.comparison.comparisonType ||
     condition.comparison.value === undefined ||
     !condition.comparison.time
   ) {

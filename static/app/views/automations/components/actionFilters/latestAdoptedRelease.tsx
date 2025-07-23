@@ -21,12 +21,12 @@ export function LatestAdoptedReleaseDetails({condition}: {condition: DataConditi
     {
       releaseAgeType:
         MODEL_AGE_CHOICES.find(
-          choice => choice.value === condition.comparison.release_age_type
-        )?.label || condition.comparison.release_age_type,
+          choice => choice.value === condition.comparison.releaseAgeType
+        )?.label || condition.comparison.releaseAgeType,
       ageComparison:
         AGE_COMPARISON_CHOICES.find(
-          choice => choice.value === condition.comparison.age_comparison
-        )?.label || condition.comparison.age_comparison,
+          choice => choice.value === condition.comparison.ageComparison
+        )?.label || condition.comparison.ageComparison,
       environment: condition.comparison.environment,
     }
   );
@@ -47,12 +47,12 @@ function ReleaseAgeTypeField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
     <AutomationBuilderSelect
-      name={`${condition_id}.comparison.release_age_type`}
+      name={`${condition_id}.comparison.releaseAgeType`}
       aria-label={t('Release age type')}
-      value={condition.comparison.release_age_type}
+      value={condition.comparison.releaseAgeType}
       options={MODEL_AGE_CHOICES}
       onChange={(option: SelectValue<ModelAge>) => {
-        onUpdate({comparison: {...condition.comparison, release_age_type: option.value}});
+        onUpdate({comparison: {...condition.comparison, releaseAgeType: option.value}});
       }}
     />
   );
@@ -62,12 +62,12 @@ function AgeComparisonField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
     <AutomationBuilderSelect
-      name={`${condition_id}.comparison.age_comparison`}
+      name={`${condition_id}.comparison.ageComparison`}
       aria-label={t('Age comparison')}
-      value={condition.comparison.age_comparison}
+      value={condition.comparison.ageComparison}
       options={AGE_COMPARISON_CHOICES}
       onChange={(option: SelectValue<AgeComparison>) => {
-        onUpdate({comparison: {...condition.comparison, age_comparison: option.value}});
+        onUpdate({comparison: {...condition.comparison, ageComparison: option.value}});
       }}
     />
   );
