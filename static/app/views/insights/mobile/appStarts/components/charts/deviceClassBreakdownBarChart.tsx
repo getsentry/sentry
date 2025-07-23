@@ -214,7 +214,7 @@ function DeviceClassBreakdownBarChart({
             <ChartActionDropdown
               chartType={ChartType.LINE}
               yAxes={[appStartMetric]}
-              groupBy={groupBy as any as SpanFields[]} // TODO: this casting will not be needed when we remove `useInsightsEap`
+              groupBy={[...groupBy]}
               search={search}
               title={title}
               referrer={referrer}

@@ -5,7 +5,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import type {InsightEventKey} from 'sentry/utils/analytics/insightAnalyticEvents';
 import useOrganization from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
@@ -30,7 +29,6 @@ export function ModulePageProviders({
 }: Props) {
   const organization = useOrganization();
   const moduleTitles = useModuleTitles();
-  const useEap = useInsightsEap();
   const {view} = useDomainViewFilters();
 
   const hasDateRangeQueryLimit = organization.features.includes(
@@ -45,12 +43,10 @@ export function ModulePageProviders({
     .filter(Boolean)
     .join(' — ');
 
-  const storageNamespace = useEap ? view : undefined;
-
   return (
     <PageFiltersContainer
       maxPickableDays={hasDateRangeQueryLimit ? QUERY_DATE_RANGE_LIMIT : undefined}
-      storageNamespace={storageNamespace}
+      storageNamespace={view}
     >
       <SentryDocumentTitle title={fullPageTitle} orgSlug={organization.slug}>
         <Layout.Page>
