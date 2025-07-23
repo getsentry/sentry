@@ -71,7 +71,7 @@ export function OrgDropdown({
 
   const {organizations} = useLegacyStore(OrganizationsStore);
   const [activeOrgs, inactiveOrgs] = partition(
-    organizations,
+    organizations.filter(org => org.slug !== organization.slug),
     org => org.status.id === 'active'
   );
 
@@ -173,9 +173,7 @@ export function OrgDropdown({
               children: [
                 {
                   key: 'active-orgs',
-                  children: orderBy(activeOrgs, ['name'])
-                    .filter(org => org.slug !== organization.slug)
-                    .map(makeOrganizationMenuItem),
+                  children: orderBy(activeOrgs, ['name']).map(makeOrganizationMenuItem),
                 },
                 ...(inactiveOrgs.length === 0
                   ? []
