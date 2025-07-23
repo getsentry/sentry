@@ -208,9 +208,13 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             {label: t('Seer')},
           ]}
         />
-        <FeedbackWrapper>
-          <AutofixFeedback />
-        </FeedbackWrapper>
+        {!showWelcomeScreen &&
+          !aiConfig.isAutofixSetupLoading &&
+          !aiConfig.orgNeedsGenAiAcknowledgement && (
+            <FeedbackWrapper>
+              <AutofixFeedback />
+            </FeedbackWrapper>
+          )}
       </SeerDrawerHeader>
       {(!showWelcomeScreen || aiConfig.isAutofixSetupLoading) && (
         <SeerDrawerNavigator>
