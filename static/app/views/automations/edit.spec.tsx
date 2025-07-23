@@ -11,12 +11,11 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {useParams} from 'sentry/utils/useParams';
-import AutomationDetail from 'sentry/views/automations/detail';
 import AutomationEdit from 'sentry/views/automations/edit';
 
 jest.mock('sentry/utils/useParams');
 
-describe('EditAutomationActions', () => {
+describe('EditAutomation', () => {
   const automation = AutomationFixture();
   const organization = OrganizationFixture();
 
@@ -110,7 +109,7 @@ describe('EditAutomationActions', () => {
       body: {...automation, enabled: !automation.enabled},
     });
 
-    render(<AutomationDetail />, {
+    render(<AutomationEdit />, {
       organization,
     });
 
