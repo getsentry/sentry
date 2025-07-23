@@ -14,8 +14,7 @@ const GRID_STATUS_MESSAGE_HEIGHT = GRID_BODY_ROW_HEIGHT * 4;
  * Local z-index stacking context
  * https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Positioning/Understanding_z_index/The_stacking_context
  */
-// Parent context is Panel
-const Z_INDEX_GRID = 5;
+const Z_INDEX_STICKY_HEADER = 1;
 
 // Parent context is GridHeadCell
 const Z_INDEX_GRID_RESIZER = 1;
@@ -131,7 +130,7 @@ export const GridHead = styled('thead')<{sticky?: boolean}>`
   border-top-left-radius: ${p => p.theme.borderRadius};
   border-top-right-radius: ${p => p.theme.borderRadius};
 
-  ${p => (p.sticky ? `position: sticky; top: 0; z-index: ${Z_INDEX_GRID + 1}` : '')}
+  ${p => (p.sticky ? `position: sticky; top: 0; z-index: ${Z_INDEX_STICKY_HEADER}` : '')}
 `;
 
 export const GridHeadCell = styled('th')<{isFirst: boolean}>`
