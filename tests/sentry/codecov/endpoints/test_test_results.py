@@ -179,6 +179,7 @@ class TestResultsEndpointTest(APITestCase):
             "sortBy": "-AVG_DURATION",
             "interval": "INTERVAL_7_DAY",
             "limit": "10",
+            "testSuites": "../usr/local",
         }
         response = self.client.get(url, query_params)
 
@@ -192,7 +193,7 @@ class TestResultsEndpointTest(APITestCase):
                 "interval": "INTERVAL_7_DAY",
                 "flags": None,
                 "term": None,
-                "test_suites": None,
+                "test_suites": ["../usr/local"],
             },
             "ordering": {
                 "direction": "DESC",

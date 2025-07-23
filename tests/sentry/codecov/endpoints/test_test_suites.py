@@ -10,7 +10,7 @@ mock_graphql_response_populated: dict[str, Any] = {
         "owner": {
             "repository": {
                 "defaultBranch": "main",
-                "testResults": {"testSuites": ["suite-1", "another-2", "suite-3"]},
+                "testAnalytics": {"testSuites": ["suite-1", "another-2", "suite-3"]},
             }
         }
     }
@@ -18,7 +18,7 @@ mock_graphql_response_populated: dict[str, Any] = {
 
 mock_graphql_response_empty: dict[str, Any] = {
     "data": {
-        "owner": {"repository": {"defaultBranch": "main-2", "testResults": {"testSuites": []}}}
+        "owner": {"repository": {"defaultBranch": "main-2", "testAnalytics": {"testSuites": []}}}
     }
 }
 
