@@ -12,10 +12,7 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
-import {
-  AI_TOOL_NAME_ATTRIBUTE,
-  getAIToolCallsFilter,
-} from 'sentry/views/insights/agentMonitoring/utils/query';
+import {AI_TOOL_NAME_ATTRIBUTE} from 'sentry/views/insights/agentMonitoring/utils/query';
 import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -32,7 +29,7 @@ import {
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
-export default function ToolUsageWidget() {
+export default function ToolErrorsWidget() {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans-low',
@@ -40,7 +37,7 @@ export default function ToolUsageWidget() {
 
   const theme = useTheme();
 
-  const fullQuery = useCombinedQuery(getAIToolCallsFilter());
+  const fullQuery = useCombinedQuery('span.op:gen_ai.execute_tool span.status:unknown');
 
   const toolsRequest = useSpans(
     {
@@ -49,7 +46,7 @@ export default function ToolUsageWidget() {
       search: fullQuery,
       limit: 3,
     },
-    Referrer.TOOL_USAGE_WIDGET
+    Referrer.TOOL_ERRORS_WIDGET
   );
 
   const timeSeriesRequest = useTopNSpanSeries(
@@ -62,7 +59,7 @@ export default function ToolUsageWidget() {
       topN: 3,
       enabled: !!toolsRequest.data,
     },
-    Referrer.TOOL_USAGE_WIDGET
+    Referrer.TOOL_ERRORS_WIDGET
   );
 
   const timeSeries = timeSeriesRequest.data;
@@ -70,8 +67,7 @@ export default function ToolUsageWidget() {
   const isLoading = timeSeriesRequest.isLoading || toolsRequest.isLoading;
   const error = timeSeriesRequest.error || toolsRequest.error;
 
-  // TODO(telex): Add tool name attribute to Fields and get rid of this cast
-  const tools = toolsRequest.data as unknown as Array<Record<string, string | number>>;
+  const tools = toolsRequest.data;
 
   const hasData = tools && tools.length > 0 && timeSeries.length > 0;
 
@@ -85,7 +81,7 @@ export default function ToolUsageWidget() {
       emptyMessage={
         <GenericWidgetEmptyStateWarning
           message={tct(
-            'No tool usage found. Try updating your filters, or learn more about AI Agents Insights in our [link:documentation].',
+            'No tool errors found. Try updating your filters, or learn more about AI Agents Insights in our [link:documentation].',
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/product/insights/agents/" />
@@ -134,14 +130,14 @@ export default function ToolUsageWidget() {
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={t('Tool Usage')} />}
+      Title={<Widget.WidgetTitle title={t('Tool Errors')} />}
       Visualization={visualization}
       Actions={
         organization.features.includes('visibility-explore-view') &&
         hasData && (
           <Toolbar
             showCreateAlert
-            referrer={Referrer.TOOL_USAGE_WIDGET}
+            referrer={Referrer.TOOL_ERRORS_WIDGET}
             exploreParams={{
               mode: Mode.AGGREGATE,
               visualize: [
@@ -157,7 +153,7 @@ export default function ToolUsageWidget() {
             }}
             onOpenFullScreen={() => {
               openInsightChartModal({
-                title: t('Tool Usage'),
+                title: t('Tool Errors'),
                 children: (
                   <Fragment>
                     <ModalChartContainer>{visualization}</ModalChartContainer>
