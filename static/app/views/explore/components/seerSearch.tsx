@@ -78,14 +78,10 @@ interface SeerSearchProps {
 }
 
 const EXAMPLE_QUERIES = [
-  'p95 of spans by transaction',
-  'errors in the last 24 hours by service',
-  'slowest database queries this week',
-  'top 10 endpoints with highest latency',
-  'memory usage trends by service',
-  'failed transactions grouped by user',
-  'cache hit rates over time',
-  'API response times by region',
+  'p95 duration of http client calls',
+  'database calls by transaction',
+  'POST requests slower than 250ms',
+  'failure rate by user in the last week',
 ];
 
 export function SeerSearch({initialQuery = ''}: SeerSearchProps) {
@@ -115,8 +111,8 @@ export function SeerSearch({initialQuery = ''}: SeerSearchProps) {
       setTimeout(() => {
         setCurrentExampleIndex(prevIndex => (prevIndex + 1) % EXAMPLE_QUERIES.length);
         setIsAnimating(false);
-      }, 150); // Half of the animation duration
-    }, 3000); // Change example every 3 seconds
+      }, 250);
+    }, 3500);
 
     return () => clearInterval(interval);
   }, []);
@@ -163,6 +159,19 @@ export function SeerSearch({initialQuery = ''}: SeerSearchProps) {
       addErrorMessage(t('Failed to process AI query: %(error)s', {error: error.message}));
     },
   });
+
+  const handleExampleClick = useCallback(
+    (example: string) => {
+      setSearchQuery(example);
+      trackAnalytics('trace.explorer.ai_query_example_clicked', {
+        organization,
+        example_query: example,
+      });
+
+      submitQuery(example);
+    },
+    [organization, submitQuery]
+  );
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
@@ -321,8 +330,16 @@ export function SeerSearch({initialQuery = ''}: SeerSearchProps) {
                 title={
                   <React.Fragment>
                     {t("Describe what you're looking for: ")}
-                    <AnimatedExampleText isAnimating={isAnimating}>
-                      {EXAMPLE_QUERIES[currentExampleIndex]}
+                    <AnimatedExampleText
+                      isAnimating={isAnimating}
+                      onClick={() => {
+                        const currentExample = EXAMPLE_QUERIES[currentExampleIndex];
+                        if (currentExample) {
+                          handleExampleClick(currentExample);
+                        }
+                      }}
+                    >
+                      {EXAMPLE_QUERIES[currentExampleIndex] || EXAMPLE_QUERIES[0]}
                     </AnimatedExampleText>
                   </React.Fragment>
                 }
@@ -547,7 +564,10 @@ const SkeletonLine = styled('div')<{width: string}>`
 
 const AnimatedExampleText = styled('span')<{isAnimating: boolean}>`
   opacity: ${p => (p.isAnimating ? 0 : 1)};
-  transition: opacity 0.3s ease-in-out;
+  transition:
+    opacity 0.3s ease-in-out,
+    background 0.2s ease-in-out,
+    border-color 0.2s ease-in-out;
   background: ${p => p.theme.gray200};
   color: ${p => p.theme.textColor};
   padding: ${space(0.25)} ${space(0.75)};
@@ -556,4 +576,11 @@ const AnimatedExampleText = styled('span')<{isAnimating: boolean}>`
   white-space: nowrap;
   display: inline-block;
   margin: 0 ${space(0.25)};
+  cursor: pointer;
+  border: 1px solid transparent;
+
+  &:hover {
+    background: ${p => p.theme.translucentGray200};
+    border-color: ${p => p.theme.border};
+  }
 `;
