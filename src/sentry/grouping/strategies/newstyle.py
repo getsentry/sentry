@@ -257,7 +257,7 @@ def get_function_component(
     elif platform == "php":
         if func.startswith(("[Anonymous", "class@anonymous\x00")):
             function_component.update(contributes=False, hint="ignored anonymous function")
-        if context["php_detect_anonymous_classes"] and func.startswith("class@anonymous"):
+        if func.startswith("class@anonymous"):
             new_function = func.rsplit("::", 1)[-1]
             if new_function != func:
                 function_component.update(values=[new_function], hint="anonymous class method")
