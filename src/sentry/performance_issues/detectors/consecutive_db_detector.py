@@ -188,7 +188,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         """
         independent_spans = []
         for span in spans[1:]:
-            query: str | None = span.get("description", None)
+            query = span.get("description", None)
             if (
                 query
                 and contains_complete_query(span)

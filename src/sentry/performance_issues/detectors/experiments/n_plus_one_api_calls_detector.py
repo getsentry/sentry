@@ -257,8 +257,8 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
         return f"1-{PerformanceNPlusOneAPICallsExperimentalGroupType.type_id}-{fingerprint}"
 
     def _spans_are_concurrent(self, span_a: Span, span_b: Span) -> bool:
-        span_a_start: float = span_a["start_timestamp"]
-        span_b_start: float = span_b["start_timestamp"]
+        span_a_start = span_a["start_timestamp"]
+        span_b_start = span_b["start_timestamp"]
 
         return timedelta(seconds=abs(span_a_start - span_b_start)) < timedelta(
             milliseconds=self.settings["concurrency_threshold"]
