@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -39,7 +39,13 @@ interface SeerSearchResults {
   queries: SeerSearchQuery[];
 }
 
-function SeerHeader({title, loading = false}: {title: string; loading?: boolean}) {
+function SeerHeader({
+  title,
+  loading = false,
+}: {
+  title: string | React.ReactNode;
+  loading?: boolean;
+}) {
   return (
     <QueryResultsHeader>
       <IconSeer variant={loading ? 'loading' : 'default'} color="purple300" />
@@ -71,11 +77,24 @@ interface SeerSearchProps {
   initialQuery?: string;
 }
 
+const EXAMPLE_QUERIES = [
+  'p95 of spans by transaction',
+  'errors in the last 24 hours by service',
+  'slowest database queries this week',
+  'top 10 endpoints with highest latency',
+  'memory usage trends by service',
+  'failed transactions grouped by user',
+  'cache hit rates over time',
+  'API response times by region',
+];
+
 export function SeerSearch({initialQuery = ''}: SeerSearchProps) {
   const formattedInitialQuery = formatQueryToNaturalLanguage(initialQuery);
   const {setDisplaySeerResults} = useSearchQueryBuilder();
   const [searchQuery, setSearchQuery] = useState(formattedInitialQuery);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [currentExampleIndex, setCurrentExampleIndex] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
   const openForm = useFeedbackForm();
   const organization = useOrganization();
   const areAiFeaturesAllowed =
@@ -89,6 +108,18 @@ export function SeerSearch({initialQuery = ''}: SeerSearchProps) {
   const navigate = useNavigate();
 
   useTraceExploreAiQuerySetup({enableAISearch: areAiFeaturesAllowed && isDropdownOpen});
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsAnimating(true);
+      setTimeout(() => {
+        setCurrentExampleIndex(prevIndex => (prevIndex + 1) % EXAMPLE_QUERIES.length);
+        setIsAnimating(false);
+      }, 150); // Half of the animation duration
+    }, 3000); // Change example every 3 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   const {mutate: submitQuery, isPending} = useMutation({
     mutationFn: async (query: string) => {
@@ -286,7 +317,16 @@ export function SeerSearch({initialQuery = ''}: SeerSearchProps) {
             </QueryResultsSection>
           ) : (
             <SeerContent>
-              <SeerHeader title={t("Describe what you're looking for!")} />
+              <SeerHeader
+                title={
+                  <React.Fragment>
+                    {t("Describe what you're looking for: ")}
+                    <AnimatedExampleText isAnimating={isAnimating}>
+                      {EXAMPLE_QUERIES[currentExampleIndex]}
+                    </AnimatedExampleText>
+                  </React.Fragment>
+                }
+              />
             </SeerContent>
           )}
 
@@ -503,4 +543,17 @@ const SkeletonLine = styled('div')<{width: string}>`
       opacity: 1;
     }
   }
+`;
+
+const AnimatedExampleText = styled('span')<{isAnimating: boolean}>`
+  opacity: ${p => (p.isAnimating ? 0 : 1)};
+  transition: opacity 0.3s ease-in-out;
+  background: ${p => p.theme.gray200};
+  color: ${p => p.theme.textColor};
+  padding: ${space(0.25)} ${space(0.75)};
+  border-radius: ${p => p.theme.borderRadius};
+  font-family: ${p => p.theme.text.familyMono};
+  white-space: nowrap;
+  display: inline-block;
+  margin: 0 ${space(0.25)};
 `;
