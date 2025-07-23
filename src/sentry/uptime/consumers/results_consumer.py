@@ -17,7 +17,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CheckResult,
 )
 
-from sentry import features, options, quotas
+from sentry import features, options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.models.project import Project
 from sentry.remote_subscriptions.consumers.result_consumer import (
@@ -186,8 +186,6 @@ def produce_snuba_uptime_result(
     Produces a message to Snuba's Kafka topic for uptime check results.
     """
     try:
-        retention_days = quotas.backend.get_event_retention(organization=project.organization) or 90
-
         if uptime_subscription.uptime_status == UptimeStatus.FAILED:
             incident_status = IncidentStatus.IN_INCIDENT
         else:
@@ -208,7 +206,7 @@ def produce_snuba_uptime_result(
             # Add required Snuba-specific fields
             "organization_id": project.organization_id,
             "project_id": project.id,
-            "retention_days": retention_days,
+            "retention_days": 90,
             "incident_status": incident_status.value,
             "region": result["region"],
         }
