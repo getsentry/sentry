@@ -45,7 +45,7 @@ class ResultProcessor(abc.ABC, Generic[T, U]):
         try:
             # TODO: Handle subscription not existing - we should remove the subscription from
             # the remote system in that case.
-            with sentry_sdk.start_span(
+            with sentry_sdk.start_transaction(
                 name=f"monitors.{identifier}.result_consumer.ResultProcessor",
                 op="result_processor.handle_result",
             ):
@@ -320,7 +320,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         partitioned_values = self.partition_message_batch(message)
 
         # Submit groups for processing
-        with sentry_sdk.start_span(
+        with sentry_sdk.start_transaction(
             op="process_batch", name=f"monitors.{self.identifier}.result_consumer"
         ):
             futures = [
