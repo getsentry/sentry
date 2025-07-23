@@ -38,7 +38,7 @@ function WidgetBuilderDatasetSelector() {
   if (organization.features.includes('discover-saved-queries-deprecation')) {
     disabledChoices.push([
       WidgetType.TRANSACTIONS,
-      tct('This dataset is is no longer supported. Please use the [spans] dataset.', {
+      tct('This dataset is no longer supported. Please use the [spans] dataset.', {
         spans: (
           <Link
             // We need to do this otherwise the dashboard filters will change
