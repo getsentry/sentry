@@ -148,7 +148,7 @@ export function validateEventUniqueUserFrequencyCondition({
     !condition.comparison.value ||
     !condition.comparison.interval ||
     (condition.type === DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT &&
-      !condition.comparison.comparison_interval)
+      !condition.comparison.comparisonInterval)
   ) {
     return t('Ensure all fields are filled in.');
   }
