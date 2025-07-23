@@ -46,7 +46,7 @@ export default function ToolErrorsWidget() {
       search: fullQuery,
       limit: 3,
     },
-    Referrer.TOOL_CALLS_WIDGET
+    Referrer.TOOL_ERRORS_WIDGET
   );
 
   const timeSeriesRequest = useTopNSpanSeries(
@@ -59,7 +59,7 @@ export default function ToolErrorsWidget() {
       topN: 3,
       enabled: !!toolsRequest.data,
     },
-    Referrer.TOOL_CALLS_WIDGET
+    Referrer.TOOL_ERRORS_WIDGET
   );
 
   const timeSeries = timeSeriesRequest.data;
@@ -137,7 +137,7 @@ export default function ToolErrorsWidget() {
         hasData && (
           <Toolbar
             showCreateAlert
-            referrer={Referrer.TOOL_CALLS_WIDGET}
+            referrer={Referrer.TOOL_ERRORS_WIDGET}
             exploreParams={{
               mode: Mode.AGGREGATE,
               visualize: [

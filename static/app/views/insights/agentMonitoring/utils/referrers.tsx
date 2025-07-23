@@ -7,6 +7,7 @@ export enum Referrer {
   MODEL_COST_WIDGET = 'api.performance.agent-monitoring.token-cost-widget',
   TOKEN_TYPES_WIDGET = 'api.performance.agent-monitoring.token-types-widget',
   TOOL_CALLS_WIDGET = 'api.performance.agent-monitoring.tool-calls-widget',
+  TOOL_ERRORS_WIDGET = 'api.performance.agent-monitoring.tool-errors-widget',
   LLM_CALLS_WIDGET = 'api.performance.agent-monitoring.llm-calls-widget',
   AGENT_RUNS_WIDGET = 'api.performance.agent-monitoring.agent-runs-widget',
   AGENT_DURATION_WIDGET = 'api.performance.agent-monitoring.agent-duration-widget',

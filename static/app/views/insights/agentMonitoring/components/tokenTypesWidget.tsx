@@ -6,6 +6,7 @@ import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {ExternalLink} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import {t, tct} from 'sentry/locale';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -153,7 +154,7 @@ export default function TokenTypesWidget() {
           [AI_INPUT_TOKENS_ATTRIBUTE_SUM]: 'percentage',
           [AI_OUTPUT_TOKENS_ATTRIBUTE_SUM]: 'percentage',
         },
-      },
+      } as EventsMetaType,
       data: series.data.map((point, index) => ({
         ...point,
         value:
@@ -186,7 +187,6 @@ export default function TokenTypesWidget() {
         showLegend: 'never',
         plottables: timeSeriesAdjusted.map(
           (ts, index) =>
-            // @ts-expect-error fix this later
             new Area(convertSeriesToTimeseries(ts), {
               color: colorPalette[index],
               alias: `${SERIES_NAME_MAP[ts.seriesName]}`,
