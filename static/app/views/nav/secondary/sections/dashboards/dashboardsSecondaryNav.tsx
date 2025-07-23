@@ -64,7 +64,13 @@ export function DashboardsSecondaryNav() {
                       to={`/organizations/${organization.slug}/dashboard/${dashboard.id}/`}
                       analyticsItemName="dashboard_starred_item"
                       leadingItems={
-                        <ProjectIcon projectPlatforms={dashboardProjectPlatforms} />
+                        <ProjectIcon
+                          projectPlatforms={dashboardProjectPlatforms}
+                          allProjects={
+                            dashboard.projects.length === 1 ||
+                            dashboard.projects[0] === -1
+                          }
+                        />
                       }
                     >
                       {dashboard.title}

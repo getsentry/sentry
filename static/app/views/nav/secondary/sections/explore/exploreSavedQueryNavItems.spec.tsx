@@ -18,6 +18,7 @@ describe('ExploreSavedQueryNavItems', () => {
       ],
       starred: true,
       position: 1,
+      projects: [],
     },
     {
       id: 2,
@@ -32,6 +33,7 @@ describe('ExploreSavedQueryNavItems', () => {
       ],
       starred: true,
       position: 2,
+      projects: [],
     },
   ] as unknown as SavedQuery[];
 

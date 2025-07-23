@@ -106,6 +106,7 @@ export function ExploreSavedQueryNavItems({queries}: Props) {
                     .filter(p => query.projects.map(String).includes(p.id))
                     .map(p => p.platform)
                     .filter(defined)}
+                  allProjects={query.projects.length === 1 || query.projects[0] === -1}
                 />
               </LeadingItemsWrapper>
             }
