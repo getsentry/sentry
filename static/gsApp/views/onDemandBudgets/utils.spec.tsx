@@ -138,13 +138,6 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
       onDemandBudgets: {
         enabled: true,
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        errorsBudget: 100,
-        transactionsBudget: 200,
-        attachmentsBudget: 300,
-        monitorSeatsBudget: 400,
-        replaysBudget: 0,
-        profileDurationBudget: 0,
-        profileDurationUIBudget: 0,
         budgets: {
           errors: 100,
           transactions: 200,
@@ -154,6 +147,7 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
           uptime: 500,
           profileDuration: 0,
           profileDurationUI: 0,
+          logBytes: 0,
         },
         attachmentSpendUsed: 0,
         errorSpendUsed: 0,
@@ -178,15 +172,6 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
     const ondemandBudgets = parseOnDemandBudgetsFromSubscription(subscription);
     expect(ondemandBudgets).toEqual({
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-      errorsBudget: 100,
-      transactionsBudget: 200,
-      attachmentsBudget: 300,
-      monitorSeatsBudget: 400,
-      uptimeBudget: 500,
-      replaysBudget: 0,
-      profileDurationBudget: 0,
-      profileDurationUIBudget: 0,
-      logBytesBudget: 0,
       budgets: {
         errors: 100,
         transactions: 200,
@@ -196,6 +181,7 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
         uptime: 500,
         profileDuration: 0,
         profileDurationUI: 0,
+        logBytes: 0,
       },
     });
   });
@@ -334,10 +320,6 @@ describe('getTotalBudget', function () {
       onDemandBudgets: {
         enabled: true,
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        errorsBudget: 100,
-        transactionsBudget: 200,
-        attachmentsBudget: 300,
-        replaysBudget: 0,
         budgets: {errors: 100, transactions: 200, attachments: 300, uptime: 400},
         attachmentSpendUsed: 0,
         errorSpendUsed: 0,
@@ -489,15 +471,6 @@ describe('getOnDemandBudget', function () {
   it('returns 0 for category when in per-category mode without explicit budget', function () {
     const budget: OnDemandBudgets = {
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-      errorsBudget: 100,
-      transactionsBudget: 200,
-      attachmentsBudget: 300,
-      replaysBudget: 0,
-      monitorSeatsBudget: 0,
-      profileDurationBudget: 0,
-      profileDurationUIBudget: 0,
-      uptimeBudget: 0,
-      logBytesBudget: 0,
       budgets: {
         errors: 100,
         transactions: 200,
@@ -516,15 +489,6 @@ describe('getOnDemandBudget', function () {
   it('returns correct value for LOG_BYTE category when in per-category mode with explicit budget', function () {
     const budget: OnDemandBudgets = {
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-      errorsBudget: 100,
-      transactionsBudget: 200,
-      attachmentsBudget: 300,
-      replaysBudget: 0,
-      monitorSeatsBudget: 0,
-      profileDurationBudget: 0,
-      profileDurationUIBudget: 0,
-      uptimeBudget: 0,
-      logBytesBudget: 500,
       budgets: {
         errors: 100,
         transactions: 200,
@@ -575,11 +539,6 @@ describe('trackOnDemandBudgetAnalytics', function () {
       uptime: 80,
       logBytes: 90,
     },
-    // TODO(BIL-958): remove these once we remove the old fields
-    errorsBudget: 10,
-    transactionsBudget: 20,
-    attachmentsBudget: 30,
-    replaysBudget: 40,
   };
   const perCategoryBudget1Total = 10 + 20 + 30 + 40 + 50 + 60 + 70 + 80 + 90;
   const perCategoryBudget2: OnDemandBudgets = {
@@ -595,11 +554,6 @@ describe('trackOnDemandBudgetAnalytics', function () {
       uptime: 8,
       logBytes: 9,
     },
-    // TODO(BIL-958): remove these once we remove the old fields
-    errorsBudget: 1,
-    transactionsBudget: 2,
-    attachmentsBudget: 3,
-    replaysBudget: 4,
   };
   const perCategoryBudget2Total = 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9;
 
@@ -716,11 +670,6 @@ describe('trackOnDemandBudgetAnalytics', function () {
     trackOnDemandBudgetAnalytics(organization, perCategoryBudget1, {
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
       budgets: {},
-      // TODO(BIL-958): remove these once we remove the old fields
-      errorsBudget: 0,
-      transactionsBudget: 0,
-      attachmentsBudget: 0,
-      replaysBudget: 0,
     });
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
