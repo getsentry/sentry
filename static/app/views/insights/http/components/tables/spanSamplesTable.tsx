@@ -15,7 +15,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
-import type {EAPSpanResponse} from 'sentry/views/insights/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
@@ -33,7 +33,7 @@ type ColumnKeys =
   | SpanFields.SPAN_DESCRIPTION
   | SpanFields.SPAN_STATUS_CODE;
 
-type DataRow = Pick<EAPSpanResponse, DataRowKeys>;
+type DataRow = Pick<SpanResponse, DataRowKeys>;
 
 type Column = GridColumnHeader<ColumnKeys>;
 

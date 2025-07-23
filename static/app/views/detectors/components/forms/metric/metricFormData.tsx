@@ -259,7 +259,7 @@ export const getDetectorDataset = (
 /**
  * Convert our form dataset to the backend dataset
  */
-const getBackendDataset = (dataset: DetectorDataset): string => {
+export const getBackendDataset = (dataset: DetectorDataset): Dataset => {
   switch (dataset) {
     case DetectorDataset.ERRORS:
       return Dataset.ERRORS;
