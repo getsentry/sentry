@@ -7,15 +7,13 @@ import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Input} from 'sentry/components/core/input';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import withApi from 'sentry/utils/withApi';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import type {OnDemandBudgets, Subscription} from 'getsentry/types';
-import {OnDemandBudgetMode} from 'getsentry/types';
+import type {OnDemandBudgetMode, OnDemandBudgets, Subscription} from 'getsentry/types';
 import {displayBudgetName} from 'getsentry/utils/billing';
 
 import OnDemandBudgetEdit from './onDemandBudgetEdit';
@@ -36,17 +34,6 @@ const ONDEMAND_BUDGET_EXCEEDS_INVOICED_LIMIT = t(
 const PAYG_BUDGET_EXCEEDS_INVOICED_LIMIT = t(
   'Your pay-as-you-go budget cannot exceed 5 times your monthly plan price.'
 );
-
-function coerceValue(value: number): number {
-  return value / 100;
-}
-
-function parseInputValue(e: React.ChangeEvent<HTMLInputElement>) {
-  let value = parseInt(e.target.value, 10) || 0;
-  value = Math.max(value, 0);
-  const cents = value * 100;
-  return cents;
-}
 
 type Props = {
   api: Client;
@@ -195,114 +182,6 @@ class OnDemandBudgetEditModal extends Component<Props, State> {
     }
   };
 
-  renderInputFields = (displayBudgetMode: OnDemandBudgetMode) => {
-    const {onDemandBudget} = this.state;
-    if (
-      onDemandBudget.budgetMode === OnDemandBudgetMode.SHARED &&
-      displayBudgetMode === OnDemandBudgetMode.SHARED
-    ) {
-      return (
-        <InputFields style={{alignSelf: 'center'}}>
-          <Currency>
-            <OnDemandInput
-              aria-label="shared max budget input"
-              name="sharedMaxBudget"
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={7}
-              placeholder="e.g. 50"
-              value={coerceValue(onDemandBudget.sharedMaxBudget)}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                this.setState({
-                  onDemandBudget: {
-                    ...onDemandBudget,
-                    sharedMaxBudget: parseInputValue(e),
-                  },
-                });
-              }}
-            />
-          </Currency>
-        </InputFields>
-      );
-    }
-
-    if (
-      onDemandBudget.budgetMode === OnDemandBudgetMode.PER_CATEGORY &&
-      displayBudgetMode === OnDemandBudgetMode.PER_CATEGORY
-    ) {
-      return (
-        <InputFields>
-          <DetailTitle style={{marginTop: 0}}>{t('Errors')}</DetailTitle>
-          <Currency>
-            <OnDemandInput
-              aria-label="errors budget input"
-              name="errorsBudget"
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={7}
-              placeholder="e.g. 50"
-              value={coerceValue(onDemandBudget.errorsBudget)}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                this.setState({
-                  onDemandBudget: {
-                    ...onDemandBudget,
-                    errorsBudget: parseInputValue(e),
-                  },
-                });
-              }}
-            />
-          </Currency>
-          <DetailTitle>{t('Transactions')}</DetailTitle>
-          <Currency>
-            <OnDemandInput
-              aria-label="transactions budget input"
-              name="transactionsBudget"
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={7}
-              placeholder="e.g. 50"
-              value={coerceValue(onDemandBudget.transactionsBudget)}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                this.setState({
-                  onDemandBudget: {
-                    ...onDemandBudget,
-                    transactionsBudget: parseInputValue(e),
-                  },
-                });
-              }}
-            />
-          </Currency>
-          <DetailTitle>{t('Attachments')}</DetailTitle>
-          <Currency>
-            <OnDemandInput
-              aria-label="attachments budget input"
-              name="attachmentsBudget"
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={7}
-              placeholder="e.g. 50"
-              value={coerceValue(onDemandBudget.attachmentsBudget)}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                this.setState({
-                  onDemandBudget: {
-                    ...onDemandBudget,
-                    attachmentsBudget: parseInputValue(e),
-                  },
-                });
-              }}
-            />
-          </Currency>
-        </InputFields>
-      );
-    }
-
-    return null;
-  };
-
   render() {
     const {Header, Footer, subscription, organization} = this.props;
     const onDemandBudgets = subscription.onDemandBudgets!;
@@ -357,38 +236,6 @@ class OnDemandBudgetEditModal extends Component<Props, State> {
     );
   }
 }
-
-const InputFields = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-  align-items: flex-end;
-`;
-
-const Currency = styled('div')`
-  &::before {
-    padding: 10px 10px 9px;
-    position: absolute;
-    content: '$';
-    color: ${p => p.theme.textColor};
-    font-size: ${p => p.theme.fontSize.lg};
-    line-height: ${p => p.theme.fontSize.lg};
-  }
-`;
-
-const OnDemandInput = styled(Input)`
-  padding-left: ${space(4)};
-  color: ${p => p.theme.textColor};
-  max-width: 140px;
-  height: 36px;
-`;
-
-const DetailTitle = styled('div')`
-  text-transform: uppercase;
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  margin-top: ${space(0.5)};
-`;
 
 const OffsetBody = styled('div')`
   margin: -${space(3)} -${space(4)};
