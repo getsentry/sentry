@@ -43,6 +43,7 @@ import {
   Redirect,
   Route,
   type SentryRouteObject,
+  WorkingRedirect,
 } from './components/route';
 import {makeLazyloadComponent as make} from './makeLazyloadComponent';
 
@@ -1492,36 +1493,36 @@ function buildRoutes() {
     </Fragment>
   );
 
-  const discoverChildRoutes = (
-    <Fragment>
-      <IndexRedirect to="queries/" />
-      <Route
-        path="homepage/"
-        component={make(() => import('sentry/views/discover/homepage'))}
-      />
-      {traceViewRoute}
-      <Route
-        path="queries/"
-        component={make(() => import('sentry/views/discover/landing'))}
-      />
-      <Route
-        path="results/"
-        component={make(() => import('sentry/views/discover/results'))}
-      />
-      <Route
-        path=":eventSlug/"
-        component={make(() => import('sentry/views/discover/eventDetails'))}
-      />
-    </Fragment>
-  );
+  const discoverChildRoutes: SentryRouteObject[] = [
+    {
+      index: true,
+      component: () => <WorkingRedirect to="queries/" replace />,
+    },
+    {
+      path: 'homepage/',
+      component: make(() => import('sentry/views/discover/homepage')),
+    },
+    traceViewRouteObject,
+    {
+      path: 'queries/',
+      component: make(() => import('sentry/views/discover/landing')),
+    },
+    {
+      path: 'results/',
+      component: make(() => import('sentry/views/discover/results')),
+    },
+    {
+      path: ':eventSlug/',
+      component: make(() => import('sentry/views/discover/eventDetails')),
+    },
+  ];
   const discoverRoutes = (
     <Route
       path="/discover/"
       component={make(() => import('sentry/views/discover'))}
       withOrgPath
-    >
-      {discoverChildRoutes}
-    </Route>
+      newStyleChildren={discoverChildRoutes}
+    />
   );
 
   const llmMonitoringRedirects = USING_CUSTOMER_DOMAIN ? (
