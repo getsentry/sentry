@@ -45,7 +45,7 @@ BASE_STRATEGY = create_strategy_configuration_class(
         # account when grouping.
         "contextline_platforms": ("javascript", "node", "python", "php", "ruby"),
         # This detects anonymous classes in PHP code.
-        "php_detect_anonymous_classes": False,
+        "php_detect_anonymous_classes": True,
         # Turns on a bug that was present in some variants
         "with_context_line_file_origin_bug": False,
         # Turns on falling back to exception values when there
@@ -84,7 +84,6 @@ register_strategy_config(
         * Added ChukloadErrors via new built-in fingerprinting support.
     """,
     initial_context={
-        "php_detect_anonymous_classes": True,
         "java_cglib_hibernate_logic": True,
     },
     enhancements_base="newstyle:2023-01-11",
