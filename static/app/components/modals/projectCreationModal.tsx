@@ -42,7 +42,6 @@ export default function ProjectCreationModal({
   closeModal,
   defaultCategory,
 }: Props) {
-  const [category, setCategory] = useState<Category | undefined>(defaultCategory);
   const [platform, setPlatform] = useState<OnboardingSelectedSDK | undefined>(undefined);
   const [step, setStep] = useState(0);
   const [projectName, setProjectName] = useState('');
@@ -62,7 +61,6 @@ export default function ProjectCreationModal({
       ...omit(selectedPlatform, 'id'),
       key: selectedPlatform.id,
     });
-    setCategory(selectedPlatform.category);
   }
 
   const createProject = useCallback(async () => {
@@ -138,7 +136,7 @@ export default function ProjectCreationModal({
         <Fragment>
           <Subtitle>{t('Choose a Platform')}</Subtitle>
           <PlatformPicker
-            defaultCategory={category}
+            defaultCategory={platform?.category ?? defaultCategory}
             setPlatform={handlePlatformChange}
             organization={organization}
             platform={platform?.key}

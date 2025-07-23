@@ -92,10 +92,6 @@ function PlatformPicker({
     noAutoFilter ? '' : (platform || '').split('-')[0]!
   );
 
-  useEffect(() => {
-    setCategory(defaultCategory ?? categories[0]!.id);
-  }, [defaultCategory, categories]);
-
   const includeGamingPlatforms =
     organization?.features.includes('project-creation-games-tab') ?? false;
 
@@ -233,7 +229,16 @@ function PlatformPicker({
                     source,
                     organization: organization ?? null,
                   });
-                  setPlatform({...item, category});
+
+                  const itemCategories = categories
+                    .filter(cat => cat.platforms.has(item.id))
+                    .map(cat => cat.id);
+
+                  if (itemCategories.includes(category)) {
+                    setPlatform({...item, category});
+                  } else {
+                    setPlatform({...item, category: itemCategories[0] ?? 'all'});
+                  }
                 }}
               />
             </div>
