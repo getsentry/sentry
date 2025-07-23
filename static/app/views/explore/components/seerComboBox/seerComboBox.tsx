@@ -1,0 +1,381 @@
+import {Fragment, useMemo, useRef, useState} from 'react';
+import styled from '@emotion/styled';
+import {type AriaComboBoxProps} from '@react-aria/combobox';
+import {Item} from '@react-stately/collections';
+import {useComboBoxState} from '@react-stately/combobox';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Button} from 'sentry/components/core/button';
+import {Input} from 'sentry/components/core/input';
+import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
+import {IconClose, IconMegaphone, IconSearch} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import QueryTokens from 'sentry/views/explore/components/queryTokens';
+import {
+  type SeerSearchItem,
+  useApplySeerSearchQuery,
+  useSeerSearch,
+} from 'sentry/views/explore/components/seerComboBox/hooks';
+import {SeerSearchHeader} from 'sentry/views/explore/components/seerComboBox/seerSearchHeader';
+import {SeerSearchListBox} from 'sentry/views/explore/components/seerComboBox/seerSearchListBox';
+import {SeerSearchPopover} from 'sentry/views/explore/components/seerComboBox/seerSearchPopover';
+import {SeerSearchSkeleton} from 'sentry/views/explore/components/seerComboBox/seerSearchSkeleton';
+import {formatQueryToNaturalLanguage} from 'sentry/views/explore/utils';
+
+interface SeerComboBoxProps extends Omit<AriaComboBoxProps<unknown>, 'children'> {
+  initialQuery: string;
+}
+
+interface NoneOfTheseItem {
+  key: 'none-of-these';
+  label: string;
+}
+
+function isNoneOfTheseItem(item: SeerSearchItems): item is NoneOfTheseItem {
+  return item.key === 'none-of-these';
+}
+
+type SeerSearchItems = SeerSearchItem<string> | NoneOfTheseItem;
+
+export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
+  const buttonRef = useRef(null);
+  const listBoxRef = useRef(null);
+  const popoverRef = useRef(null);
+  const containerRef = useRef(null);
+  const isInitialRender = useRef(true);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const [searchQuery, setSearchQuery] = useState(() =>
+    formatQueryToNaturalLanguage(initialQuery)
+  );
+
+  const openForm = useFeedbackForm();
+  const {setDisplaySeerResults} = useSearchQueryBuilder();
+  const {rawResult, submitQuery, isPending} = useSeerSearch();
+  const applySeerSearchQuery = useApplySeerSearchQuery();
+
+  const handleNoneOfTheseClick = () => {
+    if (openForm) {
+      openForm({
+        messagePlaceholder: t('Why were these queries incorrect?'),
+        tags: {
+          ['feedback.source']: 'trace_explorer_ai_query',
+          ['feedback.owner']: 'ml-ai',
+          ['feedback.natural_language_query']: searchQuery,
+          ['feedback.raw_result']: JSON.stringify(rawResult).replace(/\n/g, ''),
+          ['feedback.num_queries_returned']: rawResult?.length ?? 0,
+        },
+      });
+    } else {
+      addErrorMessage(t('Unable to open feedback form'));
+    }
+  };
+
+  const items: SeerSearchItems[] = useMemo(() => {
+    if (!rawResult.length) return [];
+
+    const results: SeerSearchItems[] = rawResult.map((query, index) => ({
+      ...query,
+      key: `${index}-${query.query}`,
+    }));
+
+    results.push({
+      key: 'none-of-these',
+      label: t('None of these'),
+    });
+
+    return results;
+  }, [rawResult]);
+
+  const state = useComboBoxState({
+    ...props,
+    items,
+    defaultItems: [],
+    selectedKey: null,
+    allowsCustomValue: true,
+    allowsEmptyCollection: true,
+    shouldCloseOnBlur: false,
+    inputValue: searchQuery,
+    onInputChange: setSearchQuery,
+    defaultFilter: () => true,
+    children: item => {
+      if (isNoneOfTheseItem(item)) {
+        return (
+          <Item key={item.key} textValue={item.label}>
+            <div
+              onClick={() => {
+                handleNoneOfTheseClick();
+              }}
+            >
+              {item.label}
+            </div>
+          </Item>
+        );
+      }
+
+      return (
+        <Item key={item.key}>
+          <div
+            onClick={() => {
+              state.close();
+              applySeerSearchQuery(item);
+            }}
+          >
+            <QueryTokens
+              groupBys={item.groupBys}
+              query={item.query}
+              sort={item.sort}
+              statsPeriod={item.statsPeriod}
+              visualizations={item.visualizations}
+            />
+          </div>
+        </Item>
+      );
+    },
+  });
+
+  const {inputProps, listBoxProps} = useSearchTokenCombobox(
+    {
+      ...props,
+      inputRef,
+      buttonRef,
+      listBoxRef,
+      popoverRef,
+      'aria-label': t('Ask Seer with Natural Language'),
+      onFocus: () => {
+        state.open();
+      },
+      onBlur: () => {
+        state.close();
+      },
+      onKeyDown: e => {
+        switch (e.key) {
+          case 'Escape':
+            if (!state.isOpen) {
+              setDisplaySeerResults(false);
+            }
+
+            state.close();
+            return;
+          case 'Enter':
+            if (state.isOpen && state.selectionManager.focusedKey === 'none-of-these') {
+              handleNoneOfTheseClick();
+              state.open();
+              return;
+            }
+
+            if (state.isOpen && state.selectionManager.focusedKey) {
+              const item = items.find(i => i.key === state.selectionManager.focusedKey);
+              if (!item || isNoneOfTheseItem(item)) {
+                addErrorMessage(t('Failed to find AI query to apply'));
+                return;
+              }
+              state.close();
+              applySeerSearchQuery(item);
+              return;
+            }
+
+            if (state.isOpen && searchQuery !== null && searchQuery !== '') {
+              submitQuery(searchQuery);
+              state.open();
+              return;
+            }
+
+            state.open();
+            return;
+          default:
+            return;
+        }
+      },
+    },
+    state
+  );
+
+  return (
+    <Wrapper ref={containerRef} isDropdownOpen={state.isOpen}>
+      <PositionedSearchIconContainer>
+        <SearchIcon size="sm" />
+      </PositionedSearchIconContainer>
+      <InputWrapper>
+        <InvisibleInput
+          {...inputProps}
+          autoComplete="off"
+          onClick={() => state.open()}
+          placeholder={t('Ask Seer with Natural Language')}
+          ref={element => {
+            inputRef.current = element;
+
+            if (element && !state.isOpen && isInitialRender.current) {
+              element.focus();
+              state.open();
+
+              isInitialRender.current = false;
+            }
+          }}
+        />
+      </InputWrapper>
+      <ButtonsWrapper>
+        <Button
+          size="xs"
+          icon={<IconClose />}
+          onClick={() => {
+            setDisplaySeerResults(false);
+          }}
+          aria-label={t('Close Seer Search')}
+          borderless
+        />
+      </ButtonsWrapper>
+      {state.isOpen ? (
+        <SeerSearchPopover
+          isNonModal
+          state={state}
+          triggerRef={inputRef}
+          popoverRef={popoverRef}
+          placement="bottom start"
+          containerRef={containerRef}
+        >
+          {isPending ? (
+            <SeerSearchSkeleton />
+          ) : rawResult && (rawResult?.length ?? 0) > 0 ? (
+            <Fragment>
+              <SeerSearchHeader title={t('Do any of these queries look right to you?')} />
+              <SeerSearchListBox
+                {...listBoxProps}
+                listBoxRef={listBoxRef}
+                state={state}
+              />
+            </Fragment>
+          ) : (
+            <SeerContent>
+              <SeerSearchHeader title={t("Describe what you're looking for!")} />
+            </SeerContent>
+          )}
+          <SeerFooter>
+            {openForm && (
+              <Button
+                size="xs"
+                icon={<IconMegaphone />}
+                onClick={() =>
+                  openForm({
+                    messagePlaceholder: t('How can we make Seer search better for you?'),
+                    tags: {
+                      ['feedback.source']: 'seer_trace_explorer_search',
+                      ['feedback.owner']: 'ml-ai',
+                    },
+                  })
+                }
+              >
+                {t('Give Feedback')}
+              </Button>
+            )}
+          </SeerFooter>
+        </SeerSearchPopover>
+      ) : null}
+    </Wrapper>
+  );
+}
+
+const Wrapper = styled(Input.withComponent('div'))<{isDropdownOpen: boolean}>`
+  min-height: ${p => p.theme.form.md.minHeight};
+  padding: 0;
+  height: auto;
+  width: 100%;
+  position: relative;
+  font-size: ${p => p.theme.fontSize.md};
+  cursor: text;
+
+  border-bottom-left-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.borderRadius)};
+  border-bottom-right-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.borderRadius)};
+`;
+
+const PositionedSearchIconContainer = styled('div')`
+  position: absolute;
+  left: ${p => p.theme.space.lg};
+  top: ${p => (p.theme.isChonk ? p.theme.space.sm : p.theme.space.md)};
+`;
+
+const SearchIcon = styled(IconSearch)`
+  color: ${p => p.theme.subText};
+  height: 22px;
+`;
+
+const InputWrapper = styled('div')`
+  position: relative;
+  width: 100%;
+  height: 100%;
+`;
+
+const InvisibleInput = styled('input')`
+  position: absolute;
+  inset: 0;
+  resize: none;
+  outline: none;
+  border: 0;
+  width: 100%;
+  height: ${p => p.theme.form.md.height};
+  line-height: 25px;
+  margin-bottom: -1px;
+  background: transparent;
+
+  padding-top: ${p => p.theme.space.sm};
+  padding-bottom: ${p => p.theme.space.sm};
+  padding-left: ${p => p.theme.space['3xl']};
+  padding-right: ${p => p.theme.space.sm};
+
+  &::selection {
+    background: rgba(0, 0, 0, 0.2);
+  }
+
+  :placeholder-shown {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  [disabled] {
+    color: ${p => p.theme.disabled};
+  }
+`;
+
+const ButtonsWrapper = styled('div')`
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+`;
+
+const NoneOfTheseItem = styled('div')`
+  cursor: pointer;
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  border-bottom: 1px solid ${p => p.theme.border};
+  transition: background-color 0.2s ease;
+  user-select: none;
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.md};
+
+  &:hover {
+    background-color: ${p => p.theme.backgroundSecondary};
+  }
+
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const SeerFooter = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  padding: ${p => p.theme.space.lg};
+  border-top: 1px solid ${p => p.theme.border};
+`;
+
+const SeerContent = styled('div')`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+`;
