@@ -11,6 +11,7 @@ query = """query GetBranches(
     repository(name: $repo) {
       __typename
       ... on Repository {
+        defaultBranch
         branches(
           filters: $filters
           first: $first,

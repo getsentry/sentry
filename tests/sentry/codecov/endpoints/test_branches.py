@@ -11,6 +11,7 @@ mock_graphql_response_populated: dict[str, Any] = {
     "data": {
         "owner": {
             "repository": {
+                "defaultBranch": "main",
                 "branches": {
                     "edges": [
                         {
@@ -30,7 +31,7 @@ mock_graphql_response_populated: dict[str, Any] = {
                         "hasPreviousPage": False,
                         "startCursor": None,
                     },
-                }
+                },
             }
         }
     }
@@ -40,9 +41,10 @@ mock_graphql_response_empty: dict[str, Any] = {
     "data": {
         "owner": {
             "repository": {
+                "defaultBranch": "main",
                 "branches": {
                     "edges": [],
-                }
+                },
             }
         }
     }
