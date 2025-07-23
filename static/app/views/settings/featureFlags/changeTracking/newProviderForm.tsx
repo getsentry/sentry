@@ -172,7 +172,7 @@ export default function NewProviderForm({
         placeholder={t('Select a provider')}
         name="provider"
         options={Object.values(WebhookProviderEnum).map(provider => ({
-          value: provider.toLowerCase(),
+          value: provider,
           label: provider,
         }))}
         help={t(
