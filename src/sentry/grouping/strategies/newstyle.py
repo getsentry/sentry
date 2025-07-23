@@ -133,7 +133,6 @@ def get_filename_component(
     abs_path: str,
     filename: str | None,
     platform: str | None,
-    allow_file_origin: bool = False,
 ) -> FilenameGroupingComponent:
     """Attempt to normalize filenames by detecting special filenames and by
     using the basename only.
@@ -146,7 +145,7 @@ def get_filename_component(
     filename = _basename_re.split(filename)[-1].lower()
     filename_component = FilenameGroupingComponent(values=[filename])
 
-    if has_url_origin(abs_path, allow_file_origin=allow_file_origin):
+    if has_url_origin(abs_path, allow_file_origin=True):
         filename_component.update(contributes=False, hint="ignored because frame points to a URL")
     elif filename == "<anonymous>":
         filename_component.update(contributes=False, hint="anonymous filename discarded")
@@ -270,7 +269,7 @@ def get_function_component(
     elif behavior_family == "native" and func in ("<redacted>", "<unknown>"):
         function_component.update(contributes=False, hint="ignored unknown function")
 
-    elif context["javascript_fuzzing"] and behavior_family == "javascript":
+    elif behavior_family == "javascript":
         # This changes Object.foo or Foo.foo into foo so that we can
         # resolve some common cross browser differences
         new_function = func.rsplit(".", 1)[-1]
@@ -304,9 +303,7 @@ def frame(
     # Safari throws [native code] frames in for calls like ``forEach``
     # whereas Chrome ignores these. Let's remove it from the hashing algo
     # so that they're more likely to group together
-    filename_component = get_filename_component(
-        frame.abs_path, frame.filename, platform, allow_file_origin=context["javascript_fuzzing"]
-    )
+    filename_component = get_filename_component(frame.abs_path, frame.filename, platform)
 
     # if we have a module we use that for grouping.  This will always
     # take precedence over the filename if it contributes
@@ -347,16 +344,14 @@ def frame(
 
     frame_component = FrameGroupingComponent(values=values, in_app=frame.in_app)
 
-    # if we are in javascript fuzzing mode we want to disregard some
-    # frames consistently.  These force common bad stacktraces together
-    # to have a common hash at the cost of maybe skipping over frames that
-    # would otherwise be useful.
-    if context["javascript_fuzzing"] and get_behavior_family_for_platform(platform) == "javascript":
+    # Ignore JS functions and/or whole frames which are just noise
+    if get_behavior_family_for_platform(platform) == "javascript":
         func = frame.raw_function or frame.function
         if func:
             # Strip leading namespacing, i.e., turn `some.module.path.someFunction` into
             # `someFunction` and `someObject.someMethod` into `someMethod`
             func = func.rsplit(".", 1)[-1]
+
         if not func:
             function_component.update(contributes=False)
         elif func in (
@@ -366,6 +361,7 @@ def frame(
             "Anonymous function",
         ) or func.endswith("/<"):
             function_component.update(contributes=False, hint="ignored unknown function name")
+
         if (func == "eval") or frame.abs_path in (
             "[native code]",
             "native code",
