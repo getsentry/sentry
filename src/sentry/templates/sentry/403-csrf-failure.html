@@ -2,28 +2,34 @@
 
 {% load i18n %}
 
-{% block title %}{% trans "CSRF Verification Failed" %} | {{ block.super }}{% endblock %}
+{% block title %}{% trans "CSRF Validation Failed" %} | {{ block.super }}{% endblock %}
 
 {% block main %}
     <section class="body">
         {% csrf_token %}
 
         <div class="page-header">
-            <h2>{% trans "CSRF Verification Failed" %}</h2>
+            <h2>{% trans "CSRF Validation Failed" %}</h2>
         </div>
 
         <p>{% trans "A required security token was not found or was invalid." %}</p>
 
         <div style="margin: 20px 0;">
-            <button id="csrf-rotate-btn" class="btn btn-primary" onclick="rotateCsrf()">
+            <button id="csrf-rotate-btn" class="btn btn-primary">
                 {% trans "Rotate the CSRF Token" %}
             </button>
             <span id="csrf-status" style="margin-left: 10px;"></span>
         </div>
 
+        <p>{% trans "Why are you encounting a CSRF error after login?" %}</p>
+        <ul>
+          <li><a href="https://docs.djangoproject.com/en/5.2/ref/csrf/#why-might-a-user-encounter-a-csrf-validation-failure-after-logging-in" _target="blank">{% trans "See explanation from Django docs" %}</a></li>
+        </ul>
+
         <p>{% trans "If you're continually seeing this issue, try the following steps:" %}</p>
 
         <ol>
+          <li>{% trans "Close other tabs which loaded Sentry." %}</li>
           <li>{% trans "Clear cookies (at least for Sentry's domain)." %}</li>
           <li>{% trans "Reload the page you're trying to submit (don't re-submit data)." %}</li>
           <li>{% trans "Re-enter the information, and submit the form again." %}</li>
@@ -49,86 +55,97 @@
 
           /**
            * Automatically refresh page to prevent form resubmission
+           * Set a short timeout for UX, so user can have a glimpse of the request status
+           * before they are forcefully redirected off the page.
            */
-          function forceRefreshPage() {
+          const forceRefreshPage = () => {
             setTimeout(() => {
-                window.location.replace(window.location.href)
+              window.location.reload(true);
             }, 500);
-          }
+          };
 
           /**
            * API call to logout + delete cookies
            */
-          async function fetchDeleteLogin() {
+          const fetchDeleteLogin = async () => {
             const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
             return await fetch('/api/0/auth/', {
               method: 'DELETE',
               headers: {'X-CSRFToken': csrfToken},
-              credentials: 'include'
-            })
-          }
+              credentials: 'include',
+            });
+          };
 
           /**
            * API call to rotate CSRF token
            */
-          async function fetchPutCsrf() {
+          const fetchPutCsrf = async () => {
             return await fetch('/api/0/auth-v2/csrf/', {
-                method: 'PUT',
-                credentials: 'include'
+              method: 'PUT',
+              credentials: 'include',
             });
-          }
+          };
 
           /**
-           * Try to rotate CSRF token. If 403 error, there's an existing session,
+           * onClick handler to rotate CSRF token. If 403 error, there's an existing session,
            * so try to logout to clear cookies
            */
-          async function rotateCsrf() {
-              button.disabled = true;
-              button.textContent = '{% trans "Rotating..." %}';
-              status.textContent = '';
+          const rotateCsrf = async () => {
+            button.disabled = true;
+            button.textContent = '{% trans "Rotating..." %}';
+            status.textContent = '';
 
-              try {
-                  const csrfRes = await fetchPutCsrf()
-                  const logoutRes = csrfRes.status == 403 && await fetchDeleteLogin();
-
-                  if (csrfRes.ok || logoutRes.ok) {
-                      status.textContent = '{% trans "Token rotated successfully! Refreshing the page in 1 sec..." %}';
-                      status.style.color = 'green';
-                      forceRefreshPage()
-                  } else {
-                    throw new Error();
-                  }
-              } catch (error) {
-                  status.textContent = '{% trans "Failed to rotate token." %}';
-                  status.style.color = 'red';
-              } finally {
-                  button.disabled = false;
-                  button.textContent = '{% trans "Rotate CSRF Token" %}';
+            try {
+              const csrfRes = await fetchPutCsrf();
+              const logoutRes = csrfRes.status == 403 && (await fetchDeleteLogin());
+              if (!csrfRes.ok && !logoutRes.ok) {
+                throw new Error();
               }
-          }
+
+              status.textContent =
+                '{% trans "Token rotated! Refreshing the page in 1 sec..." %}';
+              status.style.color = 'green';
+              forceRefreshPage();
+            } catch (error) {
+              status.textContent = '{% trans "Failed to rotate token." %}';
+              status.style.color = 'red';
+            } finally {
+              button.disabled = false;
+              button.textContent = '{% trans "Rotate CSRF Token" %}';
+            }
+          };
 
           /**
-           * If user has not been on this page in the last 5min,
-           * invoke rotateCsrf() automatically.
+           * Register onClick using JS instead of HTML to guarantee that method exists
+           * before it is registered
            */
-          (function(){
-              const storedCsrfError = localStorage.getItem('lastCsrfError');
-              const lastDate = new Date(storedCsrfError);
-              const diffMs = Date.now() - lastDate.getTime();
+          button.addEventListener('click', rotateCsrf);
 
-              const FIVE_MINUTES = 5 * 60 * 1000; // 5 minutes in ms
+          /**
+           * If user has not see this this page in the last 5min (i.e. they are not stuck
+           * in a loop), then we invoke rotateCsrf() to try to fix the problem for them
+           */
+          const autoRotateCsrf = () => {
+            const storedCsrfError = localStorage.getItem('lastCsrfError');
+            const lastDate = new Date(storedCsrfError);
+            const diffMs = Date.now() - lastDate.getTime();
 
-              if (!storedCsrfError || diffMs > FIVE_MINUTES) {
-                localStorage.setItem('lastCsrfError', new Date().toISOString());
+            const FIVE_MINUTES_MS = 5 * 60 * 1000;
 
-                button.disabled = true;
-                status.textContent = '{% trans "Automatically rotating tokens..." %}';
-                status.style.color = 'green';
-                setTimeout(() => {
-                    rotateCsrf()
-                }, 1500);
-              }
-          })()
+            if (!storedCsrfError || diffMs > FIVE_MINUTES) {
+              localStorage.setItem('lastCsrfError', new Date().toISOString());
+
+              button.disabled = true;
+              status.textContent = '{% trans "Automatically rotating tokens..." %}';
+              status.style.color = 'green';
+              setTimeout(rotateCsrf, 1500);
+            }
+          };
+
+          /**
+           * Attempt to automatically fix the problem
+           */
+          autoRotateCsrf();
         </script>
     </section>
 {% endblock %}
