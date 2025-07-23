@@ -130,8 +130,9 @@ class ConsumerDefinition(TypedDict, total=False):
     # Hardcoded additional kwargs for strategy_factory
     static_args: Mapping[str, Any]
 
-    # Pass the consumer group ID to the strategy factory as 'consumer_group' kwarg
+    # Pass optional kwargs to the strategy factory
     pass_consumer_group: bool
+    pass_kafka_slice_id: bool
 
     require_synchronization: bool
     synchronize_commit_group_default: str

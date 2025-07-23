@@ -2,6 +2,7 @@ from datetime import datetime
 from time import sleep as real_sleep  # Import before monkeypatch
 
 import orjson
+import pytest
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 
@@ -11,7 +12,8 @@ from tests.sentry.spans.test_buffer import DEFAULT_OPTIONS
 
 
 @override_options({**DEFAULT_OPTIONS, "spans.drop-in-buffer": []})
-def test_basic(monkeypatch):
+@pytest.mark.parametrize("kafka_slice_id", [None, 2])
+def test_basic(monkeypatch, kafka_slice_id):
     # Flush very aggressively to make test pass instantly
     monkeypatch.setattr("time.sleep", lambda _: None)
     topic = Topic("test")
@@ -24,6 +26,7 @@ def test_basic(monkeypatch):
         input_block_size=None,
         output_block_size=None,
         produce_to_pipe=messages.append,
+        kafka_slice_id=kafka_slice_id,
     )
 
     commits = []
