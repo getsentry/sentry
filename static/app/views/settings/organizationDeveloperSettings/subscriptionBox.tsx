@@ -46,9 +46,7 @@ function SubscriptionBox({
     );
   } else if (resource === 'seer' && !features.includes('seer_webhooks')) {
     disabled = true;
-    message = t(
-      'Your organization does not have access to the seer subscription resource.'
-    );
+    message = t("Your organization can't subscribe to seer events just yet.");
   }
 
   if (webhookDisabled) {
