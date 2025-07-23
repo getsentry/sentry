@@ -268,3 +268,28 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         )
         assert response.status_code == 200, response.content
         assert response.data["data"] == [{"message": "bar"}]
+
+    def test_count_meta_type_is_integer(self):
+        one_day_ago = before_now(days=1).replace(microsecond=0)
+
+        log1 = self.create_ourlog(
+            {"body": "foo"},
+            timestamp=one_day_ago,
+        )
+        self.store_ourlogs([log1])
+
+        request = {
+            "field": ["message", "count()"],
+            "project": self.project.id,
+            "dataset": self.dataset,
+        }
+
+        response = self.do_request(
+            {
+                **request,
+                "query": "timestamp:-2d",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [{"message": "foo", "count()": 1}]
+        assert response.data["meta"]["fields"]["count()"] == "integer"
