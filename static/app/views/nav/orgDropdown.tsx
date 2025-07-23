@@ -173,7 +173,9 @@ export function OrgDropdown({
               children: [
                 {
                   key: 'active-orgs',
-                  children: orderBy(activeOrgs, ['name']).map(makeOrganizationMenuItem),
+                  children: orderBy(activeOrgs, ['name'])
+                    .filter(org => org.slug !== organization.slug)
+                    .map(makeOrganizationMenuItem),
                 },
                 ...(inactiveOrgs.length === 0
                   ? []
