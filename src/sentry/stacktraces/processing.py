@@ -620,10 +620,10 @@ def process_stacktraces(
             with sentry_sdk.start_span(
                 op="stacktraces.processing.process_stacktraces.preprocess_step"
             ) as span:
-                span.set_attribute("processor", processor.__class__.__name__)
+                span.set_data("processor", processor.__class__.__name__)
                 if processor.preprocess_step(processing_task):
                     changed = True
-                    span.set_attribute("data_changed", True)
+                    span.set_data("data_changed", True)
 
         # Process all stacktraces
         for stacktrace_info, processable_frames in processing_task.iter_processable_stacktraces():
@@ -633,10 +633,10 @@ def process_stacktraces(
                     with sentry_sdk.start_span(
                         op="stacktraces.processing.process_stacktraces.process_exception"
                     ) as span:
-                        span.set_attribute("processor", processor.__class__.__name__)
+                        span.set_data("processor", processor.__class__.__name__)
                         if processor.process_exception(stacktrace_info.container):
                             changed = True
-                            span.set_attribute("data_changed", True)
+                            span.set_data("data_changed", True)
 
             # If the stacktrace is empty we skip it for processing
             if not stacktrace_info.stacktrace:
@@ -650,7 +650,7 @@ def process_stacktraces(
                 if new_frames is not None:
                     stacktrace_info.stacktrace["frames"] = new_frames
                     changed = True
-                    span.set_attribute("data_changed", True)
+                    span.set_data("data_changed", True)
             if (
                 set_raw_stacktrace
                 and new_raw_frames is not None

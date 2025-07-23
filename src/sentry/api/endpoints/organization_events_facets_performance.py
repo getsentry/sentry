@@ -262,7 +262,7 @@ def query_tag_data(
              Returns None if query was not successful which causes the endpoint to return early
     """
     with sentry_sdk.start_span(op="discover.discover", name="facets.filter_transform") as span:
-        span.set_attribute("query", filter_query)
+        span.set_data("query", filter_query)
         tag_query = DiscoverQueryBuilder(
             dataset=Dataset.Discover,
             params={},
@@ -391,7 +391,7 @@ def query_facet_performance(
     tag_key_limit = limit if tag_key else 1
 
     with sentry_sdk.start_span(op="discover.discover", name="facets.filter_transform") as span:
-        span.set_attribute("query", filter_query)
+        span.set_data("query", filter_query)
         tag_query = DiscoverQueryBuilder(
             dataset=Dataset.Discover,
             params={},
@@ -417,8 +417,8 @@ def query_facet_performance(
     )
 
     with sentry_sdk.start_span(op="discover.discover", name="facets.aggregate_tags"):
-        span.set_attribute("sample_rate", sample_rate)
-        span.set_attribute("target_sample", target_sample)
+        span.set_data("sample_rate", sample_rate)
+        span.set_data("target_sample", target_sample)
         aggregate_comparison = transaction_aggregate * 1.005 if transaction_aggregate else 0
         aggregate_column = Function("avg", [translated_aggregate_column], "aggregate")
         tag_query.where.append(excluded_tags)

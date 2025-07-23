@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import cast
 
 import sentry_sdk
+import sentry_sdk.scope
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import RunTask, RunTaskInThreads
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
@@ -78,10 +79,10 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 
 
 def process_message(message: Message[KafkaPayload]) -> ProcessedEvent | FilteredPayload:
-    with sentry_sdk.start_span(
+    with sentry_sdk.start_transaction(
         name="replays.consumer.recording_buffered.process_message",
         op="replays.consumer.recording_buffered.process_message",
-        attributes={
+        custom_sampling_context={
             "sample_rate": getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0)
         },
     ):
@@ -168,11 +169,11 @@ def parse_headers(recording: bytes, replay_id: str) -> tuple[int, bytes]:
 
 def commit_message(message: Message[ProcessedEvent]) -> None:
     isolation_scope = sentry_sdk.get_isolation_scope().fork()
-    with sentry_sdk.use_isolation_scope(isolation_scope):
-        with sentry_sdk.start_span(
+    with sentry_sdk.scope.use_isolation_scope(isolation_scope):
+        with sentry_sdk.start_transaction(
             name="replays.consumer.recording_buffered.commit_message",
             op="replays.consumer.recording_buffered.commit_message",
-            attributes={
+            custom_sampling_context={
                 "sample_rate": getattr(
                     settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0
                 )

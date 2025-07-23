@@ -78,10 +78,10 @@ def process_message(
     from sentry.utils import metrics
 
     with (
-        sentry_sdk.start_span(
+        sentry_sdk.start_transaction(
             op="handle_message",
             name="query_subscription_consumer_process_message",
-            attributes={"sample_rate": options.get("subscriptions-query.sample-rate")},
+            custom_sampling_context={"sample_rate": options.get("subscriptions-query.sample-rate")},
         ),
         metrics.timer("snuba_query_subscriber.handle_message", tags={"dataset": dataset.value}),
     ):
