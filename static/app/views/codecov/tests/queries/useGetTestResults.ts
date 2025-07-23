@@ -123,7 +123,6 @@ export function useInfiniteTestResults({
               branch,
               term,
               ...(mappedFilterBy ? {filterBy: mappedFilterBy} : {}),
-              // Include cursor and navigation in the actual API call
               ...(cursor ? {cursor} : {}),
               ...(navigation ? {navigation} : {}),
             },

@@ -73,7 +73,6 @@ function Content() {
     navigation: location.query?.navigation as 'next' | 'prev' | undefined,
   });
 
-  // Handle cursor navigation for pagination
   const handleCursor = useCallback(
     (
       _cursor: string | undefined,
