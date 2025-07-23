@@ -18,7 +18,7 @@ interface Visualization {
   yAxes: string[];
 }
 
-export interface SeerSearchQuery {
+interface SeerSearchQuery {
   groupBys: string[];
   query: string;
   sort: string;
