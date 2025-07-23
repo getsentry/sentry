@@ -1,5 +1,5 @@
 from collections.abc import MutableMapping
-from typing import Any
+from typing import Any, cast
 
 import orjson
 import sentry_sdk
@@ -127,6 +127,8 @@ def _sanitize_span_link(link: SpanLink) -> SpanLink:
     attributes, so span links are stored as a JSON-encoded string. In order to
     prevent unbounded storage, we only support well-known attributes.
     """
+    sanitized_link = cast(SpanLink, {**link})
+
     allowed_attributes = {}
     attributes = link.get("attributes", {}) or {}
 
@@ -145,4 +147,10 @@ def _sanitize_span_link(link: SpanLink) -> SpanLink:
     if dropped_attributes_count > 0:
         allowed_attributes["sentry.dropped_attributes_count"] = dropped_attributes_count
 
-    return {**link, "attributes": allowed_attributes}
+    # Only include the `attributes` key if the key was present in the original
+    # link, don't create a an empty object, since there is a semantic difference
+    # between missing attributes, and an empty attributes object
+    if "attributes" in link:
+        sanitized_link["attributes"] = allowed_attributes
+
+    return sanitized_link
