@@ -193,7 +193,7 @@ class CustomFingerprintVariant(BaseVariant):
 
     def __init__(self, fingerprint: list[str], fingerprint_info: FingerprintInfo):
         self.values = fingerprint
-        self.info = fingerprint_info
+        self.fingerprint_info = fingerprint_info
 
     @property
     def description(self) -> str:
@@ -203,7 +203,7 @@ class CustomFingerprintVariant(BaseVariant):
         return hash_from_values(self.values)
 
     def _get_metadata_as_dict(self) -> FingerprintVariantMetadata:
-        return expose_fingerprint_dict(self.values, self.info)
+        return expose_fingerprint_dict(self.values, self.fingerprint_info)
 
 
 class BuiltInFingerprintVariant(CustomFingerprintVariant):
@@ -250,7 +250,7 @@ class SaltedComponentVariant(ComponentVariant):
     ):
         ComponentVariant.__init__(self, component, contributing_component, strategy_config)
         self.values = fingerprint
-        self.info = fingerprint_info
+        self.fingerprint_info = fingerprint_info
 
     @property
     def description(self) -> str:
@@ -272,7 +272,7 @@ class SaltedComponentVariant(ComponentVariant):
     def _get_metadata_as_dict(self) -> Mapping[str, Any]:
         return {
             **ComponentVariant._get_metadata_as_dict(self),
-            **expose_fingerprint_dict(self.values, self.info),
+            **expose_fingerprint_dict(self.values, self.fingerprint_info),
         }
 
 
