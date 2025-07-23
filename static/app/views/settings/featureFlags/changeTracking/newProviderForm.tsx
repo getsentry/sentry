@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -125,19 +125,6 @@ export default function NewProviderForm({
 
   const [selectedProvider, setSelectedProvider] = useState('');
 
-  const handleGoBack = useCallback(() => {
-    navigate(
-      normalizeUrl(`/settings/${organization.slug}/feature-flags/change-tracking/`)
-    );
-  }, [organization.slug, navigate]);
-
-  const hasAccess = useMemo(() => {
-    const canRead = hasEveryAccess(['org:read'], {organization});
-    const canWrite = hasEveryAccess(['org:write'], {organization});
-    const canAdmin = hasEveryAccess(['org:admin'], {organization});
-    return canRead || canWrite || canAdmin;
-  }, [organization]);
-
   // if secret exists, updating; else adding
   const getButtonLabel = () => {
     if (existingSecret) {
@@ -146,88 +133,94 @@ export default function NewProviderForm({
     return t('Add Provider');
   };
 
+  const handleGoBack = useCallback(() => {
+    navigate(
+      normalizeUrl(`/settings/${organization.slug}/feature-flags/change-tracking/`)
+    );
+  }, [organization.slug, navigate]);
+
   const handleSubmit = useProviderFormSubmission({
     onCreatedSecret,
     onSetProvider,
     onError,
   });
 
+  const canRead = hasEveryAccess(['org:read'], {organization});
+  const canWrite = hasEveryAccess(['org:write'], {organization});
+  const canAdmin = hasEveryAccess(['org:admin'], {organization});
+  const hasAccess = canRead || canWrite || canAdmin;
+
   return (
-    <Fragment>
-      <Form
-        initialData={initialData}
-        onSubmit={(data, onSubmitSuccess, onSubmitError) => {
-          handleSubmit(data, onSubmitSuccess, onSubmitError);
+    <Form
+      initialData={initialData}
+      onSubmit={(data, onSubmitSuccess, onSubmitError) => {
+        handleSubmit(data, onSubmitSuccess, onSubmitError);
+      }}
+      onCancel={handleGoBack}
+      submitLabel={getButtonLabel()}
+      requireChanges
+      submitDisabled={!hasAccess || !selectedProvider || !canOverrideProvider}
+    >
+      <SelectField
+        required
+        label={t('Provider')}
+        onChange={value => {
+          setSelectedProvider(value);
+          onProviderChange(value);
         }}
-        onCancel={handleGoBack}
-        submitLabel={getButtonLabel()}
-        requireChanges
-        submitDisabled={!hasAccess || !selectedProvider || !canOverrideProvider}
+        value={selectedProvider}
+        placeholder={t('Select a provider')}
+        name="provider"
+        options={Object.values(WebhookProviderEnum).map(provider => ({
+          value: provider.toLowerCase(),
+          label: provider,
+        }))}
+        help={t(
+          'If you have already linked this provider, pasting a new secret will override the existing secret.'
+        )}
+      />
+      <StyledFieldGroup
+        label={t('Webhook URL')}
+        help={
+          Object.keys(PROVIDER_TO_SETUP_WEBHOOK_URL).includes(selectedProvider)
+            ? tct(
+                "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter this URL.",
+                {
+                  link: (
+                    <ExternalLink
+                      href={
+                        PROVIDER_TO_SETUP_WEBHOOK_URL[
+                          selectedProvider as WebhookProviderEnum
+                        ]
+                      }
+                    />
+                  ),
+                }
+              )
+            : t(
+                "Create a webhook integration with your feature flag service. When you do so, you'll need to enter this URL."
+              )
+        }
+        inline
+        flexibleControlStateSize
       >
-        <SelectField
-          required
-          label={t('Provider')}
-          onChange={value => {
-            setSelectedProvider(value);
-            onProviderChange(value);
-          }}
-          value={selectedProvider}
-          placeholder={t('Select a provider')}
-          name="provider"
-          options={Object.values(WebhookProviderEnum).map(provider => ({
-            value: provider.toLowerCase(),
-            label: provider,
-          }))}
-          help={t(
-            'If you have already linked this provider, pasting a new secret will override the existing secret.'
-          )}
-        />
-        <StyledFieldGroup
-          label={t('Webhook URL')}
-          help={
-            Object.keys(PROVIDER_TO_SETUP_WEBHOOK_URL).includes(selectedProvider)
-              ? tct(
-                  "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter this URL.",
-                  {
-                    link: (
-                      <ExternalLink
-                        href={
-                          PROVIDER_TO_SETUP_WEBHOOK_URL[
-                            selectedProvider as WebhookProviderEnum
-                          ]
-                        }
-                      />
-                    ),
-                  }
-                )
-              : t(
-                  "Create a webhook integration with your feature flag service. When you do so, you'll need to enter this URL."
-                )
-          }
-          inline
-          flexibleControlStateSize
-        >
-          <TextCopyInput
-            aria-label={t('Webhook URL')}
-            disabled={!selectedProvider.length}
-          >
-            {selectedProvider.length
-              ? `https://sentry.io/api/0/organizations/${organization.slug}/flags/hooks/provider/${selectedProvider.toLowerCase()}/`
-              : ''}
-          </TextCopyInput>
-        </StyledFieldGroup>
-        <TextField
-          name="secret"
-          label={t('Secret')}
-          maxLength={100}
-          minLength={1}
-          required
-          help={t(
-            'Paste the signing secret given by your provider when creating the webhook.'
-          )}
-        />
-      </Form>
-    </Fragment>
+        <TextCopyInput aria-label={t('Webhook URL')} disabled={!selectedProvider.length}>
+          {selectedProvider.length
+            ? `https://sentry.io/api/0/organizations/${organization.slug}/flags/hooks/provider/${selectedProvider.toLowerCase()}/`
+            : ''}
+        </TextCopyInput>
+      </StyledFieldGroup>
+      <TextField
+        name="secret"
+        label={t('Secret')}
+        maxLength={100}
+        minLength={1}
+        required
+        help={t(
+          'Paste the signing secret given by your provider when creating the webhook.'
+        )}
+      />
+    </Form>
   );
 }
 
