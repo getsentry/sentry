@@ -25,9 +25,6 @@ from sentry.api.endpoints.organization_member_invite.index import (
     OrganizationMemberInviteIndexEndpoint,
 )
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
-from sentry.api.endpoints.organization_page_web_vitals_summary import (
-    OrganizationPageWebVitalsSummaryEndpoint,
-)
 from sentry.api.endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
 from sentry.api.endpoints.organization_plugins_index import OrganizationPluginsEndpoint
 from sentry.api.endpoints.organization_projects_experiment import (
@@ -347,6 +344,9 @@ from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.seer.endpoints.group_autofix_update import GroupAutofixUpdateEndpoint
 from sentry.seer.endpoints.organization_events_anomalies import OrganizationEventsAnomaliesEndpoint
+from sentry.seer.endpoints.organization_page_web_vitals_summary import (
+    OrganizationPageWebVitalsSummaryEndpoint,
+)
 from sentry.seer.endpoints.organization_seer_explorer_chat import (
     OrganizationSeerExplorerChatEndpoint,
 )

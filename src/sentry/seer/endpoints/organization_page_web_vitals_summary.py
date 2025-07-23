@@ -13,7 +13,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
 from sentry.models.organization import Organization
-from sentry.seer.web_vitals_summary import get_page_web_vitals_summary
+from sentry.seer.page_web_vitals_summary import get_page_web_vitals_summary
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
@@ -66,7 +66,11 @@ class OrganizationPageWebVitalsSummaryEndpoint(OrganizationEndpoint):
         except Exception:
             return Response({"detail": "Error fetching trace"}, status=400)
 
-        if not trace_trees:
+        if (
+            not trace_trees
+            or len(trace_trees) != len(trace_ids)
+            or any(trace_tree is None or len(trace_tree) == 0 for trace_tree in trace_trees)
+        ):
             return Response({"detail": "Missing trace_trees data"}, status=400)
 
         summary_data, status_code = get_page_web_vitals_summary(

@@ -8,6 +8,7 @@ import requests
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
+from sentry import features
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.models.organization import Organization
 from sentry.seer.models import SummarizePageWebVitalsResponse
@@ -39,21 +40,27 @@ def get_page_web_vitals_summary(
     """
     if user is None:
         user = AnonymousUser()
+    if not features.has(
+        "organizations:performance-web-vitals-seer-suggestions", organization, actor=user
+    ):
+        return {"detail": "Feature flag not enabled"}, 400
 
     cache_key = "ai-page-web-vitals-summary:" + str(traceSlugs)
     if cached_summary := cache.get(cache_key):
         return convert_dict_key_case(cached_summary, snake_to_camel_case), 200
 
-    trace_summary = _call_seer(
+    page_web_vitals_summary = _call_seer(
         traceSlugs,
         traceTrees,
     )
 
-    trace_summary_dict = trace_summary.dict()
+    page_web_vitals_summary_dict = page_web_vitals_summary.dict()
 
-    cache.set(cache_key, trace_summary_dict, timeout=int(timedelta(days=7).total_seconds()))
+    cache.set(
+        cache_key, page_web_vitals_summary_dict, timeout=int(timedelta(days=7).total_seconds())
+    )
 
-    return convert_dict_key_case(trace_summary_dict, snake_to_camel_case), 200
+    return convert_dict_key_case(page_web_vitals_summary_dict, snake_to_camel_case), 200
 
 
 def _get_frontend_spans(trace: list[dict] | dict, depth: int = 0) -> list[dict]:
