@@ -16,9 +16,11 @@ interface UseMetricDetectorSeriesProps {
   projectId: string;
   query: string;
   statsPeriod: TimePeriod;
+  comparisonDelta?: number;
 }
 
 interface UseMetricDetectorSeriesResult {
+  comparisonSeries: Series[];
   isError: boolean;
   isPending: boolean;
   series: Series[];
@@ -35,6 +37,7 @@ export function useMetricDetectorSeries({
   environment,
   projectId,
   statsPeriod,
+  comparisonDelta,
 }: UseMetricDetectorSeriesProps): UseMetricDetectorSeriesResult {
   const organization = useOrganization();
   const datasetConfig = useMemo(() => getDatasetConfig(dataset), [dataset]);
@@ -47,6 +50,7 @@ export function useMetricDetectorSeries({
     projectId,
     dataset: DETECTOR_DATASET_TO_DISCOVER_DATASET_MAP[dataset],
     statsPeriod,
+    comparisonDelta,
   });
 
   const {data, isPending, isError} = useApiQuery<
@@ -56,10 +60,28 @@ export function useMetricDetectorSeries({
     staleTime: 5 * 60 * 1000,
   });
 
-  const series = useMemo(() => {
+  const {series, comparisonSeries} = useMemo(() => {
     // TypeScript can't infer that each dataset config expects its own specific response type
-    return datasetConfig.transformSeriesQueryData(data as any, aggregate);
-  }, [datasetConfig, data, aggregate]);
+    const transformedSeries = datasetConfig.transformSeriesQueryData(
+      data as any,
+      aggregate
+    );
 
-  return {series, isPending, isError};
+    // Extract comparison series if comparisonDelta is provided and data contains comparisonCount
+    const transformedComparisonSeries =
+      comparisonDelta && datasetConfig.transformComparisonSeriesData
+        ? datasetConfig.transformComparisonSeriesData(
+            data as any,
+            aggregate,
+            comparisonDelta
+          )
+        : [];
+
+    return {
+      series: transformedSeries,
+      comparisonSeries: transformedComparisonSeries,
+    };
+  }, [datasetConfig, data, aggregate, comparisonDelta]);
+
+  return {series, comparisonSeries, isPending, isError};
 }

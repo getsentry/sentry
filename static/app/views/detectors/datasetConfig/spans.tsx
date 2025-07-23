@@ -3,6 +3,7 @@ import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
 import {TraceSearchBar} from 'sentry/views/detectors/datasetConfig/components/traceSearchBar';
 import {
   getDiscoverSeriesQueryOptions,
+  transformEventsStatsComparisonSeries,
   transformEventsStatsToSeries,
 } from 'sentry/views/detectors/datasetConfig/utils/discoverSeries';
 
@@ -17,5 +18,8 @@ export const DetectorSpansConfig: DetectorDatasetConfig<SpansSeriesResponse> = {
   getSeriesQueryOptions: getDiscoverSeriesQueryOptions,
   transformSeriesQueryData: (data, aggregate) => {
     return [transformEventsStatsToSeries(data, aggregate)];
+  },
+  transformComparisonSeriesData: (data, aggregate, comparisonDelta) => {
+    return [transformEventsStatsComparisonSeries(data, aggregate, comparisonDelta)];
   },
 };

@@ -14,7 +14,7 @@ import type {DetectorDataset} from 'sentry/views/detectors/components/forms/metr
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
 
-const CHART_HEIGHT = 165;
+const CHART_HEIGHT = 180;
 
 interface MetricDetectorChartProps {
   /**
@@ -50,6 +50,10 @@ interface MetricDetectorChartProps {
    * The time period for the chart data (optional, defaults to 7d)
    */
   statsPeriod: TimePeriod;
+  /**
+   * Optional comparison delta in seconds for % change alerts
+   */
+  comparisonDelta?: number;
 }
 
 export function MetricDetectorChart({
@@ -62,8 +66,9 @@ export function MetricDetectorChart({
   conditions,
   detectionType,
   statsPeriod,
+  comparisonDelta,
 }: MetricDetectorChartProps) {
-  const {series, isPending, isError} = useMetricDetectorSeries({
+  const {series, comparisonSeries, isPending, isError} = useMetricDetectorSeries({
     dataset,
     aggregate,
     interval,
@@ -71,42 +76,35 @@ export function MetricDetectorChart({
     environment,
     projectId,
     statsPeriod,
+    comparisonDelta,
   });
 
-  const {series: thresholdSeries, maxValue: thresholdMaxValue} =
+  const {maxValue: thresholdMaxValue, additionalSeries} =
     useMetricDetectorThresholdSeries({
       conditions,
       detectionType,
+      comparisonSeries,
     });
 
   // Calculate y-axis bounds to ensure all thresholds are visible
-  const yAxisBounds = useMemo((): {max: number | undefined; min: number | undefined} => {
-    if (thresholdMaxValue === undefined) {
-      return {min: undefined, max: undefined};
+  const maxValue = useMemo(() => {
+    // Get max from series data
+    let seriesMax = 0;
+    if (series.length > 0) {
+      const allSeriesValues = series.flatMap(s =>
+        s.data
+          .map(point => point.value)
+          .filter(val => typeof val === 'number' && !isNaN(val))
+      );
+      seriesMax = allSeriesValues.length > 0 ? Math.max(...allSeriesValues) : 0;
     }
-    // Get series data bounds
-    const seriesData = series[0]?.data || [];
-    const seriesValues = seriesData.map(point => point.value).filter(val => !isNaN(val));
 
-    // Calculate bounds including thresholds
-    const allValues = [...seriesValues, thresholdMaxValue];
-    const min = allValues.length > 0 ? Math.min(...allValues) : 0;
-    const max = allValues.length > 0 ? Math.max(...allValues) : 0;
-
-    // Add some padding to the bounds
-    const padding = (max - min) * 0.1;
-    const paddedMin = Math.max(0, min - padding);
-    const paddedMax = max + padding;
-
-    return {
-      min: Math.round(paddedMin),
-      max: Math.round(paddedMax),
-    };
+    // Combine with threshold max and round to nearest whole number
+    const combinedMax = thresholdMaxValue
+      ? Math.max(seriesMax, thresholdMaxValue)
+      : seriesMax;
+    return Math.round(combinedMax);
   }, [series, thresholdMaxValue]);
-
-  const mergedSeries = useMemo(() => {
-    return [...series, ...thresholdSeries];
-  }, [series, thresholdSeries]);
 
   if (isPending) {
     return (
@@ -133,10 +131,10 @@ export function MetricDetectorChart({
       showTimeInTooltip
       height={CHART_HEIGHT}
       stacked={false}
-      series={mergedSeries}
+      series={series}
+      additionalSeries={additionalSeries}
       yAxis={{
-        min: yAxisBounds.min,
-        max: yAxisBounds.max,
+        max: maxValue > 0 ? maxValue : undefined,
         axisLabel: {
           // Hide the maximum y-axis label to avoid showing arbitrary threshold values
           showMaxLabel: false,
@@ -146,8 +144,8 @@ export function MetricDetectorChart({
       }}
       grid={{
         left: space(0.25),
-        right: space(0.5),
-        top: space(0.5),
+        right: space(0.25),
+        top: space(1.5),
         bottom: space(1),
       }}
     />

@@ -3,6 +3,7 @@ import {LogsConfig} from 'sentry/views/dashboards/datasetConfig/logs';
 import {TraceSearchBar} from 'sentry/views/detectors/datasetConfig/components/traceSearchBar';
 import {
   getDiscoverSeriesQueryOptions,
+  transformEventsStatsComparisonSeries,
   transformEventsStatsToSeries,
 } from 'sentry/views/detectors/datasetConfig/utils/discoverSeries';
 
@@ -17,5 +18,8 @@ export const DetectorLogsConfig: DetectorDatasetConfig<LogsSeriesRepsonse> = {
   getSeriesQueryOptions: getDiscoverSeriesQueryOptions,
   transformSeriesQueryData: (data, aggregate) => {
     return [transformEventsStatsToSeries(data, aggregate)];
+  },
+  transformComparisonSeriesData: (data, aggregate, comparisonDelta) => {
+    return [transformEventsStatsComparisonSeries(data, aggregate, comparisonDelta)];
   },
 };

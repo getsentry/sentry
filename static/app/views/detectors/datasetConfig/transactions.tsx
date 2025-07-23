@@ -4,6 +4,7 @@ import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transact
 import {TraceSearchBar} from 'sentry/views/detectors/datasetConfig/components/traceSearchBar';
 import {
   getDiscoverSeriesQueryOptions,
+  transformEventsStatsComparisonSeries,
   transformEventsStatsToSeries,
 } from 'sentry/views/detectors/datasetConfig/utils/discoverSeries';
 
@@ -23,5 +24,8 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
       }),
     transformSeriesQueryData: (data, aggregate) => {
       return [transformEventsStatsToSeries(data, aggregate)];
+    },
+    transformComparisonSeriesData: (data, aggregate, comparisonDelta) => {
+      return [transformEventsStatsComparisonSeries(data, aggregate, comparisonDelta)];
     },
   };

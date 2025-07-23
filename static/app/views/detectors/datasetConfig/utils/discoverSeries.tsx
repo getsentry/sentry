@@ -30,6 +30,49 @@ export function transformEventsStatsToSeries(
   };
 }
 
+/**
+ * Transform comparisonCount from EventsStats API response into comparison series for % change alerts
+ * Based on the metric alerts transformComparisonTimeseriesData function
+ */
+export function transformEventsStatsComparisonSeries(
+  stats: EventsStats | undefined,
+  _seriesName: string, // Renamed from seriesName to _seriesName to fix linter
+  comparisonDelta?: number
+): Series {
+  const comparisonName = comparisonDelta
+    ? `Previous ${getDuration(comparisonDelta * 1000)}` // getDuration expects milliseconds
+    : 'Comparison';
+
+  if (!stats?.data?.length) {
+    return {
+      seriesName: comparisonName,
+      data: [],
+    };
+  }
+
+  // Check if any data points have comparisonCount
+  const hasComparisonData = stats.data.some(([, counts]) =>
+    counts.some(count => count.comparisonCount !== undefined)
+  );
+
+  if (!hasComparisonData) {
+    return {
+      seriesName: comparisonName,
+      data: [],
+    };
+  }
+
+  return {
+    seriesName: comparisonName,
+    data: stats.data.map(([timestamp, counts]) => {
+      return {
+        name: timestamp * 1000, // Convert to milliseconds
+        value: counts.reduce((acc, {comparisonCount}) => acc + (comparisonCount ?? 0), 0),
+      };
+    }),
+  };
+}
+
 export function getDiscoverSeriesQueryOptions({
   aggregate,
   environment,
@@ -39,6 +82,7 @@ export function getDiscoverSeriesQueryOptions({
   query,
   dataset,
   statsPeriod,
+  comparisonDelta,
 }: DetectorSeriesQueryOptions): ApiQueryKey {
   return [
     `/organizations/${organization.slug}/events-stats/`,
@@ -54,6 +98,7 @@ export function getDiscoverSeriesQueryOptions({
         statsPeriod,
         ...(environment && {environment: [environment]}),
         ...(query && {query}),
+        ...(comparisonDelta && {comparisonDelta}),
       },
     },
   ];

@@ -27,15 +27,33 @@ export function transformMetricsResponseToSeries(
 
   return {
     seriesName: field,
-    data: data.intervals.map((interval, index) => {
+    data: data.intervals.map((interval: string, index: number) => {
       return {
         name: new Date(interval).getTime(),
-        value: data.groups.reduce((acc, group) => {
+        value: data.groups.reduce((acc: number, group) => {
           const value = group.series?.[field]?.[index] ?? 0;
           return acc + value;
         }, 0),
       };
     }),
+  };
+}
+
+export function transformMetricsComparisonSeries(
+  _data: SessionApiResponse | undefined | null, // Renamed to _data to fix linter
+  _aggregate: string, // Renamed to _aggregate to fix linter
+  comparisonDelta?: number
+): Series {
+  const comparisonName = comparisonDelta
+    ? `Previous ${getDuration(comparisonDelta * 1000)}` // getDuration expects milliseconds
+    : 'Comparison';
+
+  // Note: The metrics API may not support comparisonCount in the same way as events-stats
+  // This is a placeholder implementation that returns empty data
+  // TODO: Investigate if the metrics API supports comparison data for releases
+  return {
+    seriesName: comparisonName,
+    data: [],
   };
 }
 
@@ -47,6 +65,7 @@ export function getReleasesSeriesQueryOptions({
   projectId,
   query,
   statsPeriod,
+  comparisonDelta,
 }: DetectorSeriesQueryOptions): ApiQueryKey {
   const field = fieldsToDerivedMetrics(aggregate);
   return [
@@ -63,6 +82,7 @@ export function getReleasesSeriesQueryOptions({
         statsPeriod,
         ...(environment && {environment: [environment]}),
         ...(query && {query}),
+        ...(comparisonDelta && {comparisonDelta}),
       },
     },
   ];

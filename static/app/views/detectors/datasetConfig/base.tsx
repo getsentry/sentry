@@ -38,6 +38,10 @@ export interface DetectorSeriesQueryOptions {
    * The time period for the query. eg: `7d`
    */
   statsPeriod: TimePeriod;
+  /**
+   * Optional comparison delta in seconds for % change alerts
+   */
+  comparisonDelta?: number;
 }
 
 /**
@@ -66,5 +70,13 @@ export interface DetectorDatasetConfig<SeriesResponse> {
   transformSeriesQueryData: (
     data: SeriesResponse | undefined,
     aggregate: string
+  ) => Series[];
+  /**
+   * Optional method to transform comparison series data for % change alerts
+   */
+  transformComparisonSeriesData?: (
+    data: SeriesResponse | undefined,
+    aggregate: string,
+    comparisonDelta?: number
   ) => Series[];
 }
