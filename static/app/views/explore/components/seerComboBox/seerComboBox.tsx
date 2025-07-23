@@ -11,6 +11,7 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {IconClose, IconMegaphone, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import QueryTokens from 'sentry/views/explore/components/queryTokens';
@@ -57,6 +58,9 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
   const {setDisplaySeerResults} = useSearchQueryBuilder();
   const {rawResult, submitQuery, isPending} = useSeerSearch();
   const applySeerSearchQuery = useApplySeerSearchQuery();
+  const organization = useOrganization();
+  const areAiFeaturesAllowed =
+    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
 
   const handleNoneOfTheseClick = () => {
     if (openForm) {
@@ -108,6 +112,11 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
           <Item key={item.key} textValue={item.label}>
             <div
               onClick={() => {
+                trackAnalytics('trace.explorer.ai_query_rejected', {
+                  organization,
+                  natural_language_query: searchQuery,
+                  num_queries_returned: rawResult?.length ?? 0,
+                });
                 handleNoneOfTheseClick();
               }}
             >
@@ -138,9 +147,6 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
     },
   });
 
-  const organization = useOrganization();
-  const areAiFeaturesAllowed =
-    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
   useTraceExploreAiQuerySetup({enableAISearch: areAiFeaturesAllowed && state.isOpen});
 
   const {inputProps, listBoxProps} = useSearchTokenCombobox(
@@ -189,6 +195,10 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
               searchQuery.trim() !== null &&
               searchQuery.trim() !== ''
             ) {
+              trackAnalytics('trace.explorer.ai_query_submitted', {
+                organization,
+                natural_language_query: searchQuery.trim(),
+              });
               submitQuery(searchQuery.trim());
               state.open();
               return;
@@ -232,6 +242,10 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
           size="xs"
           icon={<IconClose />}
           onClick={() => {
+            trackAnalytics('trace.explorer.ai_query_interface', {
+              organization,
+              action: 'closed',
+            });
             setDisplaySeerResults(false);
           }}
           aria-label={t('Close Seer Search')}
