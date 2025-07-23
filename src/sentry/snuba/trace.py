@@ -281,7 +281,7 @@ def query_trace_data(
     error_id: str | None = None,
     additional_attributes: list[str] | None = None,
 ) -> list[SerializedEvent]:
-    """QueSerializedEvent data for a given trace"""
+    """Query SerializedEvent data for a given trace"""
     # This is a hack, long term EAP will store both errors and performance_issues eventually but is not ready
     # currently. But we want to move performance data off the old tables immediately. To keep the code simpler I'm
     # parallelizing the queries here, but ideally this parallelization lives in the spans_rpc module instead

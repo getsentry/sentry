@@ -1,7 +1,9 @@
 import datetime
 from unittest.mock import ANY, patch
 
-from sentry.api.endpoints.organization_trace import SerializedSpan
+from rest_framework.exceptions import ErrorDetail
+
+from sentry.snuba.trace import SerializedSpan
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.skips import requires_snuba
@@ -85,12 +87,15 @@ class OrganizationPageWebVitalsSummaryEndpointTest(APITestCase, SnubaTestCase):
         return f"/api/0/organizations/{self.org.slug}/page-web-vitals-summary/"
 
     @patch("sentry.seer.endpoints.organization_page_web_vitals_summary.get_page_web_vitals_summary")
-    @patch("sentry.seer.endpoints.organization_page_web_vitals_summary.OrganizationTraceEndpoint")
+    @patch(
+        "sentry.seer.endpoints.organization_page_web_vitals_summary.OrganizationPageWebVitalsSummaryEndpoint.get_snuba_params"
+    )
+    @patch("sentry.seer.endpoints.organization_page_web_vitals_summary.query_trace_data")
     def test_endpoint_calls_get_page_web_vitals_summary(
-        self, mock_trace_endpoint_class, mock_get_page_web_vitals_summary
+        self, mock_query_trace_data, mock_get_snuba_params, mock_get_page_web_vitals_summary
     ):
-        mock_trace_endpoint_class.return_value.query_trace_data.return_value = self.mock_trace_tree
-
+        mock_query_trace_data.return_value = self.mock_trace_tree
+        mock_get_snuba_params.return_value = {}
         mock_get_page_web_vitals_summary.return_value = (self.mock_summary_response, 200)
 
         response = self.client.post(
@@ -102,7 +107,7 @@ class OrganizationPageWebVitalsSummaryEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert response.data == self.mock_summary_response
 
-        mock_trace_endpoint_class.assert_called_once()
+        mock_query_trace_data.assert_called_once()
         mock_get_page_web_vitals_summary.assert_called_once_with(
             traceSlugs=[self.trace_id],
             traceTrees=[self.mock_trace_tree],
@@ -113,22 +118,30 @@ class OrganizationPageWebVitalsSummaryEndpointTest(APITestCase, SnubaTestCase):
     def test_endpoint_without_trace_slug(self):
         response = self.client.post(self.url, format="json")
         assert response.status_code == 400
-        assert response.data == {"detail": "Missing traceSlugs parameter"}
+        assert response.data == {
+            "traceSlugs": [ErrorDetail(string="This field is required.", code="required")],
+        }
 
-    @patch("sentry.seer.endpoints.organization_page_web_vitals_summary.OrganizationTraceEndpoint")
-    def test_endpoint_with_error_response(self, mock_trace_endpoint_class):
-        mock_trace_endpoint_class.return_value.get_snuba_params.return_value = {}
-        mock_trace_endpoint_class.return_value.query_trace_data.side_effect = Exception(
+    @patch(
+        "sentry.seer.endpoints.organization_page_web_vitals_summary.OrganizationPageWebVitalsSummaryEndpoint.get_snuba_params"
+    )
+    @patch("sentry.seer.endpoints.organization_page_web_vitals_summary.query_trace_data")
+    def test_endpoint_with_error_response(self, mock_query_trace_data, mock_get_snuba_params):
+        mock_get_snuba_params.return_value = {}
+        mock_query_trace_data.return_value.query_trace_data.side_effect = Exception(
             "Test exception"
         )
         response = self.client.post(self.url, data={"traceSlugs": [self.trace_id]}, format="json")
         assert response.status_code == 400
-        assert response.data == {"detail": "Error fetching trace"}
+        assert response.data == {"detail": "Missing trace_trees data"}
 
-    @patch("sentry.seer.endpoints.organization_page_web_vitals_summary.OrganizationTraceEndpoint")
-    def test_endpoint_with_missing_trace_tree(self, mock_organization_trace_endpoint):
-        mock_organization_trace_endpoint.return_value.get_snuba_params.return_value = {}
-        mock_organization_trace_endpoint.return_value.query_trace_data.return_value = []
+    @patch(
+        "sentry.seer.endpoints.organization_page_web_vitals_summary.OrganizationPageWebVitalsSummaryEndpoint.get_snuba_params"
+    )
+    @patch("sentry.seer.endpoints.organization_page_web_vitals_summary.query_trace_data")
+    def test_endpoint_with_missing_trace_tree(self, mock_query_trace_data, mock_get_snuba_params):
+        mock_get_snuba_params.return_value = {}
+        mock_query_trace_data.return_value.query_trace_data.return_value = []
         response = self.client.post(self.url, data={"traceSlugs": [self.trace_id]}, format="json")
         assert response.status_code == 400
         assert response.data == {"detail": "Missing trace_trees data"}

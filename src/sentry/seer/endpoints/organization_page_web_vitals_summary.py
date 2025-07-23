@@ -64,8 +64,6 @@ class OrganizationPageWebVitalsSummaryEndpoint(OrganizationEventsV2EndpointBase)
         data = serializer.validated_data
 
         trace_ids = data.get("traceSlugs", None)
-        if not trace_ids:
-            return Response({"detail": "Missing traceSlugs parameter"}, status=400)
 
         snuba_params = self.get_snuba_params(request, organization)
         trace_trees = [query_trace_data(snuba_params, trace_id) for trace_id in trace_ids]
