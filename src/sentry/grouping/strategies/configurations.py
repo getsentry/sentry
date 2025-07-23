@@ -42,15 +42,8 @@ BASE_STRATEGY = create_strategy_configuration_class(
         # Platforms for which context line should be taken into
         # account when grouping.
         "contextline_platforms": ("javascript", "node", "python", "php", "ruby"),
-        # This detects anonymous classes in PHP code.
-        "php_detect_anonymous_classes": True,
-        # Turns on falling back to exception values when there
-        # is no stacktrace.
-        "with_exception_value_fallback": True,
         # Stacktrace is produced in the context of this exception
         "exception_data": None,
-        # replaces generated IDs in Java stack frames related to CGLIB and hibernate
-        "java_cglib_hibernate_logic": True,
     },
 )
 

@@ -193,10 +193,10 @@ def get_module_component(
             module = _java_cglib_enhancer_re.sub(r"\1<auto>", module)
             module = _java_assist_enhancer_re.sub(r"\1<auto>", module)
             module = _clojure_enhancer_re.sub(r"\1<auto>", module)
-            if context["java_cglib_hibernate_logic"]:
-                module = _java_enhancer_by_re.sub(r"\1<auto>", module)
-                module = _java_fast_class_by_re.sub(r"\1<auto>", module)
-                module = _java_hibernate_proxy_re.sub(r"\1<auto>", module)
+            module = _java_enhancer_by_re.sub(r"\1<auto>", module)
+            module = _java_fast_class_by_re.sub(r"\1<auto>", module)
+            module = _java_hibernate_proxy_re.sub(r"\1<auto>", module)
+
             if module != old_module:
                 module_component.update(values=[module], hint="removed codegen marker")
 
@@ -257,7 +257,7 @@ def get_function_component(
     elif platform == "php":
         if func.startswith(("[Anonymous", "class@anonymous\x00")):
             function_component.update(contributes=False, hint="ignored anonymous function")
-        if context["php_detect_anonymous_classes"] and func.startswith("class@anonymous"):
+        if func.startswith("class@anonymous"):
             new_function = func.rsplit("::", 1)[-1]
             if new_function != func:
                 function_component.update(values=[new_function], hint="anonymous class method")
@@ -561,33 +561,32 @@ def single_exception(
         if ns_error_component is not None:
             values.append(ns_error_component)
 
-        if context["with_exception_value_fallback"]:
-            value_component = ErrorValueGroupingComponent()
+        value_component = ErrorValueGroupingComponent()
 
-            raw = exception.value
-            if raw is not None:
-                normalized = normalize_message_for_grouping(raw, event)
-                hint = "stripped event-specific values" if raw != normalized else None
-                if normalized:
-                    value_component.update(values=[normalized], hint=hint)
+        raw = exception.value
+        if raw is not None:
+            normalized = normalize_message_for_grouping(raw, event)
+            hint = "stripped event-specific values" if raw != normalized else None
+            if normalized:
+                value_component.update(values=[normalized], hint=hint)
 
-            if stacktrace_component.contributes and value_component.contributes:
-                value_component.update(
-                    contributes=False,
-                    hint="ignored because stacktrace takes precedence",
-                )
+        if stacktrace_component.contributes and value_component.contributes:
+            value_component.update(
+                contributes=False,
+                hint="ignored because stacktrace takes precedence",
+            )
 
-            if (
-                ns_error_component is not None
-                and ns_error_component.contributes
-                and value_component.contributes
-            ):
-                value_component.update(
-                    contributes=False,
-                    hint="ignored because ns-error info takes precedence",
-                )
+        if (
+            ns_error_component is not None
+            and ns_error_component.contributes
+            and value_component.contributes
+        ):
+            value_component.update(
+                contributes=False,
+                hint="ignored because ns-error info takes precedence",
+            )
 
-            values.append(value_component)
+        values.append(value_component)
 
         exception_components_by_variant[variant_name] = ExceptionGroupingComponent(
             values=values, frame_counts=stacktrace_component.frame_counts
