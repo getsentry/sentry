@@ -308,10 +308,10 @@ class CustomRulesEndpoint(APITestCase):
         )
 
     @mock.patch("sentry.api.endpoints.custom_rules.schedule_invalidate_project_config")
-    def test_invalidates_organisation_config(self, mock_invalidate_project_config):
+    def test_invalidates_organization_config(self, mock_invalidate_project_config):
         """
         Tests that org rules invalidates all the configurations for the projects
-        in the organisation
+        in the organization
         """
         request_data = {
             "query": "event.type:transaction http.method:POST",
