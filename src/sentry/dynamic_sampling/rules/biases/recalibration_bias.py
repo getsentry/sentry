@@ -10,12 +10,12 @@ from sentry.models.project import Project
 
 class RecalibrationBias(Bias):
     """
-    Correction bias that tries to bring the overall sampling rate for the organisation to the
+    Correction bias that tries to bring the overall sampling rate for the organization to the
     desired sampling rate.
 
     Various biases boost and shrink different transactions in order to obtain an appropriate
     number of samples from all areas of the application, doing this changes the overall sampling
-    rate from the desired sampling rate, this bias tries to rectify the overall organisation sampling
+    rate from the desired sampling rate, this bias tries to rectify the overall organization sampling
     rate and bring it to the desired sampling rate,it uses the previous interval rate to figure out
     how this should be done.
     """
