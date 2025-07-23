@@ -8,9 +8,12 @@ class SessionData(SessionBase):
     """
 
     # Flags to control the authentication flow on frontend.
-    # NOTE(dlee): Keep the keys sorted in order of importance!!
+    # Keep the keys sorted in order of importance!!
+    # Maintaining the hierarchy is good context for future engineers.
     todo_email_verification: bool | None
     todo_2fa_verification: bool | None
+    todo_password_reset: bool | None
+    todo_2fa_setup: bool | None
 
     # Django's internal session data
     _auth_user_id: str | None  # Django's internal user ID storage
