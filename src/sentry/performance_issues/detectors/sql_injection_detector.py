@@ -123,11 +123,6 @@ class SQLInjectionDetector(PerformanceDetector):
         spans_involved = [span["span_id"]]
         vulnerable_parameters = []
 
-        if "WHERE" not in description.upper() or any(
-            keyword in description for keyword in PARAMETERIZED_KEYWORDS
-        ):
-            return
-
         for key, value in self.request_parameters:
             regex_key = rf'(?<![\w.$])"?{re.escape(key)}"?(?![\w.$"])'
             regex_value = rf"(?<![\w.$])(['\"]?){re.escape(value)}\1(?![\w.$'\"])"
@@ -209,7 +204,12 @@ class SQLInjectionDetector(PerformanceDetector):
 
         op = span.get("op", None)
 
-        if not op or not op.startswith("db") or op.startswith("db.redis"):
+        if (
+            not op
+            or not op.startswith("db")
+            or op.startswith("db.redis")
+            or op == "db.sql.active_record"
+        ):
             return False
 
         # Auto-generated rails queries can contain interpolated values
@@ -221,9 +221,12 @@ class SQLInjectionDetector(PerformanceDetector):
             return False
 
         description = description.strip()
-        if description[:6].upper() != "SELECT":
+        if (
+            description[:6].upper() != "SELECT"
+            or "WHERE" not in description.upper()
+            or any(keyword in description for keyword in PARAMETERIZED_KEYWORDS)
+        ):
             return False
-
         return True
 
     @classmethod
