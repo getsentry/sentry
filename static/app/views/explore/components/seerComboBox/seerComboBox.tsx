@@ -184,8 +184,12 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
               return;
             }
 
-            if (state.isOpen && searchQuery !== null && searchQuery !== '') {
-              submitQuery(searchQuery);
+            if (
+              state.isOpen &&
+              searchQuery.trim() !== null &&
+              searchQuery.trim() !== ''
+            ) {
+              submitQuery(searchQuery.trim());
               state.open();
               return;
             }
