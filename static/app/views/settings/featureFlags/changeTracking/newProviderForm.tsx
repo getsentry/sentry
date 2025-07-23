@@ -1,11 +1,7 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ExternalLink} from 'sentry/components/core/link';
 import {
@@ -19,24 +15,14 @@ import Form from 'sentry/components/forms/form';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   makeFetchSecretQueryKey,
   type Secret,
 } from 'sentry/views/settings/featureFlags/changeTracking';
-
-type CreateSecretQueryVariables = {
-  provider: string;
-  secret: string;
-};
-
-type CreateSecretResponse = string;
 
 export default function NewProviderForm({
   onCreatedSecret,
@@ -58,7 +44,6 @@ export default function NewProviderForm({
     secret: '',
   };
   const organization = useOrganization();
-  const api = useApi();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -69,45 +54,6 @@ export default function NewProviderForm({
       normalizeUrl(`/settings/${organization.slug}/feature-flags/change-tracking/`)
     );
   }, [organization.slug, navigate]);
-
-  const {mutate: submitSecret, isPending} = useMutation<
-    CreateSecretResponse,
-    RequestError,
-    CreateSecretQueryVariables
-  >({
-    mutationFn: ({provider, secret}) => {
-      addLoadingMessage();
-      return api.requestPromise(
-        `/organizations/${organization.slug}/flags/signing-secrets/`,
-        {
-          method: 'POST',
-          data: {
-            provider: provider.toLowerCase(),
-            secret,
-          },
-        }
-      );
-    },
-
-    onSuccess: (_response, {secret, provider}) => {
-      addSuccessMessage(t('Added provider and secret.'));
-      onCreatedSecret(secret);
-      onSetProvider(provider);
-      queryClient.invalidateQueries({
-        queryKey: makeFetchSecretQueryKey({orgSlug: organization.slug}),
-      });
-    },
-    onError: requestError => {
-      const message =
-        Array.isArray(requestError.responseJSON?.secret) &&
-        requestError.responseJSON?.secret?.[0]
-          ? requestError.responseJSON.secret[0]
-          : t('Failed to add provider or secret.');
-      handleXhrErrorResponse(message, requestError);
-      addErrorMessage(message);
-      onError(message);
-    },
-  });
 
   const canRead = hasEveryAccess(['org:read'], {organization});
   const canWrite = hasEveryAccess(['org:write'], {organization});
@@ -128,19 +74,41 @@ export default function NewProviderForm({
         apiMethod="POST"
         initialData={initialData}
         apiEndpoint={`/organizations/${organization.slug}/flags/signing-secrets/`}
-        onSubmit={({provider, secret}) => {
-          onError(null);
-          submitSecret({
-            provider,
-            secret,
+        onSubmitSuccess={(_response, formModel) => {
+          addSuccessMessage(t('Added provider and secret.'));
+          const formData = formModel.getData();
+          onCreatedSecret(formData.secret as string);
+          onSetProvider(formData.provider as string);
+          queryClient.invalidateQueries({
+            queryKey: makeFetchSecretQueryKey({orgSlug: organization.slug}),
           });
+        }}
+        onSubmitError={error => {
+          const responseJSON = error.responseJSON;
+
+          // Check if there are field-specific errors for 'secret' or 'provider'
+          const hasFieldSpecificErrors =
+            (responseJSON?.secret &&
+              Array.isArray(responseJSON.secret) &&
+              responseJSON.secret.length > 0) ||
+            (responseJSON?.provider &&
+              Array.isArray(responseJSON.provider) &&
+              responseJSON.provider.length > 0);
+
+          if (!hasFieldSpecificErrors) {
+            // Only pass general errors to parent component
+            const message =
+              responseJSON?.detail ||
+              responseJSON?.non_field_errors?.[0] ||
+              responseJSON?.nonFieldErrors?.[0] ||
+              t('Failed to add provider or secret.');
+            onError(message);
+          }
         }}
         onCancel={handleGoBack}
         submitLabel={getButtonLabel()}
         requireChanges
-        submitDisabled={
-          !hasAccess || isPending || !selectedProvider || !canOverrideProvider
-        }
+        submitDisabled={!hasAccess || !selectedProvider || !canOverrideProvider}
       >
         <SelectField
           required
@@ -153,7 +121,7 @@ export default function NewProviderForm({
           placeholder={t('Select a provider')}
           name="provider"
           options={Object.values(WebhookProviderEnum).map(provider => ({
-            value: provider,
+            value: provider.toLowerCase(),
             label: provider,
           }))}
           help={t(
