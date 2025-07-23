@@ -11,6 +11,7 @@ import {
 } from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {getFormattedDate} from 'sentry/utils/dates';
+import {openInstallModal} from 'sentry/views/preprod/components/installModal';
 import {type BuildDetailsAppInfo, BuildDetailsState} from 'sentry/views/preprod/types';
 import {
   formatBytes,
@@ -21,13 +22,20 @@ import {
 
 interface BuildDetailsSidebarAppInfoProps {
   appInfo: BuildDetailsAppInfo;
+  artifactId: string;
   downloadSizeBytes: number;
   installSizeBytes: number;
+  projectId: string;
   state: BuildDetailsState;
 }
 
 export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProps) {
-  const {appInfo, state, installSizeBytes, downloadSizeBytes} = props;
+  const {appInfo, state, installSizeBytes, downloadSizeBytes, projectId, artifactId} =
+    props;
+
+  const handleInstallClick = () => {
+    openInstallModal(projectId, artifactId);
+  };
 
   return (
     <AppInfoContainer>
@@ -73,7 +81,11 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
             <IconLink />
           </InfoIcon>
           <InfoValue>
-            {appInfo.is_installable ? 'Installable' : 'Not Installable'}
+            {appInfo.is_installable ? (
+              <InstallableLink onClick={handleInstallClick}>Installable</InstallableLink>
+            ) : (
+              'Not Installable'
+            )}
           </InfoValue>
         </InfoRow>
       </InfoSection>
@@ -254,4 +266,20 @@ const ProcessingTag = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.bold};
+`;
+
+const InstallableLink = styled('button')`
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-size: inherit;
+  color: ${p => p.theme.linkColor};
+  text-decoration: underline;
+  cursor: pointer;
+  font-family: inherit;
+
+  &:hover {
+    color: ${p => p.theme.linkHoverColor};
+  }
 `;

@@ -9,7 +9,9 @@ import {type BuildDetailsApiResponse} from 'sentry/views/preprod/types';
 type BuildDetailsSidebarError = {error: string; status: 'error'};
 type BuildDetailsSidebarLoading = {status: 'loading'};
 type BuildDetailsSidebarSuccess = {
+  artifactId: string;
   buildDetails: BuildDetailsApiResponse;
+  projectId: string;
   status: 'success';
 };
 
@@ -45,6 +47,8 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
       <BuildDetailsSidebarAppInfo
         appInfo={app_info}
         state={state}
+        projectId={props.projectId}
+        artifactId={props.artifactId}
         // TODO: Get from size data when available
         installSizeBytes={1000000}
         downloadSizeBytes={1000000}
