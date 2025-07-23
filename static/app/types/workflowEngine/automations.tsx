@@ -1,4 +1,6 @@
+import type {Group} from 'sentry/types/group';
 import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
 
 export interface NewAutomation {
   actionFilters: DataConditionGroup[];
@@ -16,4 +18,12 @@ export interface Automation extends Readonly<NewAutomation> {
   readonly dateUpdated: string;
   readonly id: string;
   readonly lastTriggered: string;
+}
+
+export interface AutomationFireHistory {
+  count: number;
+  eventId: string;
+  group: Group;
+  lastTriggered: string;
+  detector?: Detector;
 }

@@ -81,7 +81,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
           <DetailLayout.Main>
             <Section title={t('History')}>
               <ErrorBoundary mini>
-                <AutomationHistoryList history={[]} />
+                <AutomationHistoryList automationId={automation.id} />
               </ErrorBoundary>
             </Section>
             <Section title={t('Connected Monitors')}>
