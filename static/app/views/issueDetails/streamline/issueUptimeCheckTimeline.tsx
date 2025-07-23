@@ -98,7 +98,7 @@ export function IssueUptimeCheckTimeline({group}: {group: Group}) {
     <ChartContainer>
       <TimelineLegend ref={elementRef} role="caption">
         {legendStatuses.map(status => (
-          <Flex align="center" gap={space(0.5)} key={status}>
+          <Flex align="center" gap="xs" key={status}>
             <CheckIndicator status={status} width={8} />
             <TimelineLegendText>{statusToText[status]}</TimelineLegendText>
           </Flex>

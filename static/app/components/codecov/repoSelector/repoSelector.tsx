@@ -128,7 +128,7 @@ export function RepoSelector() {
             {...triggerProps}
           >
             <TriggerLabelWrap>
-              <Flex align="center" gap={space(0.75)}>
+              <Flex align="center" gap="sm">
                 <IconContainer>
                   <IconRepository />
                 </IconContainer>

@@ -36,7 +36,7 @@ function OrgFooterMessage() {
     <Fragment>
       <AddIntegratedOrgButton />
       <MenuFooterDivider />
-      <Flex justify="flex-start" gap={space(1)}>
+      <Flex justify="flex-start" gap="md">
         <IconInfo size="sm" style={{margin: '2px 0'}} />
         <div>
           <FooterInfoHeading>
@@ -102,7 +102,7 @@ export function IntegratedOrgSelector() {
             {...triggerProps}
           >
             <TriggerLabelWrap>
-              <Flex justify="flex-start" gap={space(0.75)} align="center">
+              <Flex justify="flex-start" gap="sm" align="center">
                 <IconContainer>
                   <IconIntegratedOrg />
                 </IconContainer>

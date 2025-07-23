@@ -2556,6 +2556,32 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# the duration of the first datetime chunk of data queried
+# expressed in hours.
+register(
+    "profiling.flamegraph.query.initial_chunk_delta.hours",
+    type=Int,
+    default=12,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# the max duration of any datetime chunk of data queried
+# expressed in hours.
+register(
+    "profiling.flamegraph.query.max_delta.hours",
+    type=Int,
+    default=48,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# The value by which the current delta is multiplied
+register(
+    "profiling.flamegraph.query.multiplier",
+    type=Int,
+    default=2,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # list of platform names for which we allow using unsampled profiles for the purpose
 # of improving profile (function) metrics
 register(
