@@ -101,6 +101,7 @@ from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.not_set import NOT_SET, NotSet
 from sentry.utils.snuba import is_measurement
 from sentry.workflow_engine.endpoints.validators.utils import toggle_detector
+from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 from sentry.workflow_engine.models.detector import Detector
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
@@ -178,6 +179,10 @@ def create_incident(
             organization_id=incident.organization_id,
             incident_type=incident_type.value,
         )
+
+        # If this is a metric alert incident, check for pending group relationships
+        if alert_rule and incident_type == IncidentType.ALERT_TRIGGERED:
+            IncidentGroupOpenPeriod.create_pending_relationships_for_incident(incident, alert_rule)
 
     return incident
 

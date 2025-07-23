@@ -22,6 +22,7 @@ from sentry.event_manager import (
     save_grouphash_and_group,
 )
 from sentry.eventstore.models import Event, GroupEvent, augment_message_with_occurrence
+from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.grouptype import FeedbackGroup, should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.issues.priority import PriorityChangeReason, update_priority
@@ -34,6 +35,7 @@ from sentry.types.group import PriorityLevel
 from sentry.utils import json, metrics, redis
 from sentry.utils.strings import truncatechars
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
+from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 
 issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS
@@ -69,6 +71,15 @@ def save_issue_occurrence(
             group_info.group.project, environment, release, [group_info]
         )
         _get_or_create_group_release(environment, release, event, [group_info])
+
+        # Create IncidentGroupOpenPeriod relationship for metric issues
+        if occurrence.type == MetricIssue:
+            open_period = get_latest_open_period(group_info.group)
+            if open_period:
+                IncidentGroupOpenPeriod.create_from_occurrence(
+                    occurrence, group_info.group, open_period
+                )
+
         send_issue_occurrence_to_eventstream(event, occurrence, group_info)
     return occurrence, group_info
 
