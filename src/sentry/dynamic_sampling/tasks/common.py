@@ -197,7 +197,7 @@ class TimedIterator(Iterator[Any]):
 
 class GetActiveOrgs:
     """
-    Fetch organisations in batches.
+    Fetch organizations in batches.
     A batch will return at max max_orgs elements
     It will accumulate org ids in the list until either it accumulates max_orgs or the
     number of projects in the already accumulated orgs is more than max_projects or there
@@ -346,11 +346,11 @@ class GetActiveOrgs:
 @dataclass(frozen=True)
 class OrganizationDataVolume:
     """
-    Represents the total and indexed number of transactions received by an organisation
+    Represents the total and indexed number of transactions received by an organization
     (in a particular interval of time).
     """
 
-    # organisation id
+    # organization id
     org_id: int
     # total number of transactions
     total: int
@@ -363,7 +363,7 @@ class OrganizationDataVolume:
 
 class GetActiveOrgsVolumes:
     """
-    Fetch organisations volumes in batches.
+    Fetch organizations volumes in batches.
     A batch will return at max max_orgs elements
     """
 
