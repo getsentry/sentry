@@ -121,7 +121,6 @@ export function useMetricDetectorThresholdSeries({
   const theme = useTheme();
 
   return useMemo((): UseMetricDetectorThresholdSeriesResult => {
-    // Handle null/undefined conditions
     if (!conditions) {
       return {maxValue: undefined, additionalSeries: []};
     }
@@ -130,65 +129,64 @@ export function useMetricDetectorThresholdSeries({
     const additional: LineSeriesOption[] = [];
 
     if (detectionType === 'percent') {
-      // For percent detection, create threshold lines that follow comparison series
-      if (comparisonSeries.length > 0 && thresholds.length > 0) {
-        const percentThresholdSeries = thresholds.map(threshold => {
-          const isAbove = threshold.type === DataConditionType.GREATER;
-          const lineColor =
-            threshold.priority === DetectorPriorityLevel.HIGH
-              ? theme.red300
-              : theme.yellow300;
-
-          const seriesName = `${threshold.value}% ${isAbove ? 'Higher' : 'Lower'} Threshold`;
-
-          const series = createPercentThresholdSeries(
-            comparisonSeries,
-            threshold.value,
-            isAbove,
-            seriesName
-          );
-
-          return LineSeries({
-            name: seriesName,
-            data: series.data.map(({name, value}) => [name, value]),
-            lineStyle: {
-              color: lineColor,
-              type: 'dashed',
-              width: 2,
-            },
-            areaStyle: {
-              color: lineColor,
-              opacity: 0.2,
-              origin: 'end',
-            },
-            itemStyle: {color: lineColor},
-            animation: false,
-            animationThreshold: 1,
-            animationDuration: 0,
-            symbol: 'none', // Hide data point markers
-          });
-        });
-
-        additional.push(...percentThresholdSeries);
-
-        // Calculate maxValue from threshold data points (similar to static thresholds)
-        const thresholdValues = thresholds.flatMap(threshold => {
-          const isAbove = threshold.type === DataConditionType.GREATER;
-          const series = createPercentThresholdSeries(
-            comparisonSeries,
-            threshold.value,
-            isAbove,
-            `${threshold.value}% ${isAbove ? 'Higher' : 'Lower'} Threshold`
-          );
-          return series.data.map(point => point.value);
-        });
-
-        const maxValue =
-          thresholdValues.length > 0 ? Math.max(...thresholdValues) : undefined;
-        return {maxValue, additionalSeries: additional};
+      if (comparisonSeries.length === 0 || thresholds.length === 0) {
+        return {maxValue: undefined, additionalSeries: additional};
       }
 
-      return {maxValue: undefined, additionalSeries: additional};
+      const percentThresholdSeries = thresholds.map(threshold => {
+        const isAbove = threshold.type === DataConditionType.GREATER;
+        const lineColor =
+          threshold.priority === DetectorPriorityLevel.HIGH
+            ? theme.red300
+            : theme.yellow300;
+
+        const seriesName = `${threshold.value}% ${isAbove ? 'Higher' : 'Lower'} Threshold`;
+
+        const series = createPercentThresholdSeries(
+          comparisonSeries,
+          threshold.value,
+          isAbove,
+          seriesName
+        );
+
+        return LineSeries({
+          name: seriesName,
+          data: series.data.map(({name, value}) => [name, value]),
+          lineStyle: {
+            color: lineColor,
+            type: 'dashed',
+            width: 2,
+          },
+          areaStyle: {
+            color: lineColor,
+            opacity: 0.2,
+            origin: 'end', // Apply area style to the top of the chart
+          },
+          itemStyle: {color: lineColor},
+          animation: false,
+          animationThreshold: 1,
+          animationDuration: 0,
+          symbol: 'none', // Hide data point markers
+        });
+      });
+
+      additional.push(...percentThresholdSeries);
+
+      // Calculate maxValue from threshold data points (similar to static thresholds)
+      const thresholdValues = thresholds.flatMap(threshold => {
+        const isAbove = threshold.type === DataConditionType.GREATER;
+        const series = createPercentThresholdSeries(
+          comparisonSeries,
+          threshold.value,
+          isAbove,
+          `${threshold.value}% ${isAbove ? 'Higher' : 'Lower'} Threshold`
+        );
+        return series.data.map(point => point.value);
+      });
+
+      const maxValue =
+        thresholdValues.length > 0 ? Math.max(...thresholdValues) : undefined;
+      return {maxValue, additionalSeries: additional};
     }
 
     if (detectionType === 'static') {
