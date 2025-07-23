@@ -94,7 +94,9 @@ type ExclusiveEllipsisProps =
   | {ellipsis?: never; wrap?: BaseTextProps['wrap']};
 
 export const Text = styled(
-  <T extends 'span' | 'p' | 'div' = 'span'>(props: TextProps<T>) => {
+  <T extends 'span' | 'p' | 'div' = 'span'>(
+    props: TextProps<T> & ExclusiveEllipsisProps
+  ) => {
     const {children, ...rest} = props;
     const Component = props.as || 'span';
     return <Component {...(rest as any)}>{children}</Component>;
