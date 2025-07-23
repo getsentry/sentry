@@ -561,33 +561,32 @@ def single_exception(
         if ns_error_component is not None:
             values.append(ns_error_component)
 
-        if context["with_exception_value_fallback"]:
-            value_component = ErrorValueGroupingComponent()
+        value_component = ErrorValueGroupingComponent()
 
-            raw = exception.value
-            if raw is not None:
-                normalized = normalize_message_for_grouping(raw, event)
-                hint = "stripped event-specific values" if raw != normalized else None
-                if normalized:
-                    value_component.update(values=[normalized], hint=hint)
+        raw = exception.value
+        if raw is not None:
+            normalized = normalize_message_for_grouping(raw, event)
+            hint = "stripped event-specific values" if raw != normalized else None
+            if normalized:
+                value_component.update(values=[normalized], hint=hint)
 
-            if stacktrace_component.contributes and value_component.contributes:
-                value_component.update(
-                    contributes=False,
-                    hint="ignored because stacktrace takes precedence",
-                )
+        if stacktrace_component.contributes and value_component.contributes:
+            value_component.update(
+                contributes=False,
+                hint="ignored because stacktrace takes precedence",
+            )
 
-            if (
-                ns_error_component is not None
-                and ns_error_component.contributes
-                and value_component.contributes
-            ):
-                value_component.update(
-                    contributes=False,
-                    hint="ignored because ns-error info takes precedence",
-                )
+        if (
+            ns_error_component is not None
+            and ns_error_component.contributes
+            and value_component.contributes
+        ):
+            value_component.update(
+                contributes=False,
+                hint="ignored because ns-error info takes precedence",
+            )
 
-            values.append(value_component)
+        values.append(value_component)
 
         exception_components_by_variant[variant_name] = ExceptionGroupingComponent(
             values=values, frame_counts=stacktrace_component.frame_counts
