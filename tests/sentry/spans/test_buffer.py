@@ -671,3 +671,31 @@ def test_max_segment_spans_limit(buffer: SpansBuffer):
     # NB: We currently accept that we leak redirect keys when we limit segments.
     # buffer.done_flush_segments(rv)
     # assert_clean(buffer.client)
+
+
+def test_kafka_slice_id(buffer: SpansBuffer):
+    with override_options(DEFAULT_OPTIONS):
+        buffer = SpansBuffer(assigned_shards=list(range(1)), slice_id=2)
+
+        queue_key = buffer._get_queue_key(0)
+        assert queue_key == b"span-buf:q:2-0"
+
+        spans = [
+            Span(
+                payload=_payload("a" * 16),
+                trace_id="a" * 32,
+                span_id="a" * 16,
+                parent_span_id=None,
+                project_id=1,
+                is_segment_span=True,
+                end_timestamp_precise=1700000000.0,
+            )
+        ]
+
+        process_spans(spans, buffer, now=0)
+
+        assert buffer.client.keys("span-buf:q:*") == [queue_key]
+
+        segments = buffer.flush_segments(now=11)
+        buffer.done_flush_segments(segments)
+        assert_clean(buffer.client)

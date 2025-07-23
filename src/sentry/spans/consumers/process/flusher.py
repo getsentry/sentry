@@ -131,6 +131,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
     ):
         self.next_step = next_step
         self.max_processes = max_processes or len(buffer.assigned_shards)
+        self.slice_id = buffer.slice_id
 
         self.mp_context = mp_context = multiprocessing.get_context("spawn")
         self.stopped = mp_context.Value("i", 0)
@@ -192,7 +193,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self.process_healthy_since[process_index].value = 0
 
         # Create a buffer for these specific shards
-        shard_buffer = SpansBuffer(shards)
+        shard_buffer = SpansBuffer(shards, slice_id=self.slice_id)
 
         make_process: Callable[..., multiprocessing.context.SpawnProcess | threading.Thread]
         if self.produce_to_pipe is None:
