@@ -26,6 +26,7 @@ import {
 } from 'sentry/views/insights/agentMonitoring/components/headSortCell';
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
 import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
+import {ErrorCell} from 'sentry/views/insights/agentMonitoring/utils/cells';
 import {
   AI_TOOL_NAME_ATTRIBUTE,
   getAIToolCallsFilter,
@@ -114,10 +115,10 @@ export function ToolsTable() {
 
     return toolsRequest.data.map(span => ({
       tool: `${span[AI_TOOL_NAME_ATTRIBUTE]}`,
-      requests: span['count()'],
-      avg: span['avg(span.duration)'],
-      p95: span['p95(span.duration)'],
-      errors: span['count_if(span.status,unknown)'],
+      requests: Number(span['count()']),
+      avg: Number(span['avg(span.duration)']),
+      p95: Number(span['p95(span.duration)']),
+      errors: Number(span['count_if(span.status,unknown)']),
     }));
   }, [toolsRequest.data]);
 
@@ -152,9 +153,9 @@ export function ToolsTable() {
 
   const renderBodyCell = useCallback(
     (column: GridColumnOrder<string>, dataRow: TableData) => {
-      return <BodyCell column={column} dataRow={dataRow} />;
+      return <BodyCell column={column} dataRow={dataRow} query={fullQuery} />;
     },
-    []
+    [fullQuery]
   );
 
   return (
@@ -183,9 +184,11 @@ export function ToolsTable() {
 const BodyCell = memo(function BodyCell({
   column,
   dataRow,
+  query,
 }: {
   column: GridColumnHeader<string>;
   dataRow: TableData;
+  query: string;
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -216,7 +219,17 @@ const BodyCell = memo(function BodyCell({
     case 'p95(span.duration)':
       return <DurationCell milliseconds={dataRow.p95} />;
     case 'count_if(span.status,unknown)':
-      return <NumberCell value={dataRow.errors} />;
+      return (
+        <ErrorCell
+          value={dataRow.errors}
+          target={getExploreUrl({
+            query: `${query} span.status:unknown gen_ai.tool.name:${dataRow.tool}`,
+            organization,
+            selection,
+            referrer: Referrer.TOOLS_TABLE,
+          })}
+        />
+      );
     default:
       return null;
   }
