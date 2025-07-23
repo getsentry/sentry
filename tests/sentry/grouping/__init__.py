@@ -23,7 +23,7 @@ from sentry.grouping.api import (
 from sentry.grouping.component import BaseGroupingComponent
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.fingerprinting import FingerprintingRules
-from sentry.grouping.strategies.configurations import CONFIGURATIONS, register_strategy_config
+from sentry.grouping.strategies.configurations import CONFIGURATIONS, register_grouping_config
 from sentry.grouping.variants import BaseVariant
 from sentry.models.project import Project
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
@@ -50,7 +50,7 @@ if os.environ.get("SENTRY_FAST_GROUPING_SNAPSHOTS") and not os.environ.get("GITH
 # Note: This must be registered after `MANUAL_SAVE_CONFIGS` is defined, so that
 # `MANUAL_SAVE_CONFIGS` doesn't include it.
 NO_MSG_PARAM_CONFIG = "no-msg-param-tests-only:2012-12-31"
-register_strategy_config(
+register_grouping_config(
     id=NO_MSG_PARAM_CONFIG,
     base=DEFAULT_GROUPING_CONFIG,
     initial_context={"normalize_message": False},

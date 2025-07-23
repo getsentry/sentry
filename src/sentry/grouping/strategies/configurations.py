@@ -45,7 +45,7 @@ BASE_CONFIG = create_strategy_configuration_class(
 )
 
 
-def register_strategy_config(id: str, **kwargs) -> type[StrategyConfiguration]:
+def register_grouping_config(id: str, **kwargs) -> type[StrategyConfiguration]:
     if kwargs.get("base") is not None:
         kwargs["base"] = CONFIGURATIONS[kwargs["base"]]
     else:
@@ -55,7 +55,7 @@ def register_strategy_config(id: str, **kwargs) -> type[StrategyConfiguration]:
     return strategy_class
 
 
-register_strategy_config(
+register_grouping_config(
     id="newstyle:2023-01-11",
     # There's no `base` argument here because this config is based on `BASE_STRATEGY`. To base a
     # config on a previous config, include its `id` value as the value for `base` here.
