@@ -64,8 +64,8 @@ export default function useDeleteReplays({projectSlug}: Props) {
           selectedIds === 'all'
             ? (queryOptions?.query?.query ?? '')
             : `id:[${selectedIds.join(',')}]`,
-        rangeEnd: new Date(end).toISOString(),
-        rangeStart: new Date(start).toISOString(),
+        rangeStart: start ? new Date(start).toISOString() : start,
+        rangeEnd: end ? new Date(end).toISOString() : end,
       };
     },
     [project?.environments]
