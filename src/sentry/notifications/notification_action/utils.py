@@ -26,8 +26,9 @@ def should_fire_workflow_actions(org: Organization, type_id: int) -> bool:
             and features.has("organizations:workflow-engine-single-process-workflows", org)
         )
         or features.has(
-            "organizations:workflow-engine-trigger-actions", org
-        )  # This is for temporary rollouts
+            "organizations:workflow-engine-single-process-metric-issues",
+            org,  # Metric issue single processing
+        )
     )
 
 
