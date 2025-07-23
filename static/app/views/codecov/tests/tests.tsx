@@ -81,6 +81,7 @@ function Content() {
       query: Record<string, any>,
       delta: number
     ) => {
+      // Without these guards, the pagination cursor can get stuck on an incorrect value.
       const navigation = delta === -1 ? 'prev' : 'next';
       const goPrevPage = navigation === 'prev' && response.hasPreviousPage;
       const goNextPage = navigation === 'next' && response.hasNextPage;
@@ -107,7 +108,9 @@ function Content() {
       <Summaries />
       <TestSearchBar testCount={response.totalCount} />
       <TestAnalyticsTable response={response} sort={sorts[0]} />
-      <Pagination pageLinks="showComponent" onCursor={handleCursor} />
+      {/* We don't need to use the pageLinks prop because Codecov handles pagination using our own cursor implementation. But we need to
+          put a dummy value here because otherwise the component wouldn't render. */}
+      <StyledPagination pageLinks="showComponent" onCursor={handleCursor} />
     </Fragment>
   );
 }
@@ -140,4 +143,8 @@ const StyledIconSearch = styled(IconSearch)`
 const ControlsContainer = styled('div')`
   display: flex;
   gap: ${space(2)};
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin-top: 0px;
 `;
