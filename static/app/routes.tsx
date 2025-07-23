@@ -657,32 +657,37 @@ function buildRoutes(
     </Route>
   );
 
-  const statsChildRoutes = (
-    <Fragment>
-      <IndexRoute component={make(() => import('sentry/views/organizationStats'))} />
-      <Route
-        component={make(() => import('sentry/views/organizationStats/teamInsights'))}
-      >
-        <Route
-          path="issues/"
-          component={make(
+  const statsChildRoutes = [
+    {
+      index: true,
+      component: make(() => import('sentry/views/organizationStats')),
+    },
+    {
+      component: make(() => import('sentry/views/organizationStats/teamInsights')),
+      children: [
+        {
+          path: 'issues/',
+          component: make(
             () => import('sentry/views/organizationStats/teamInsights/issues')
-          )}
-        />
-        <Route
-          path="health/"
-          component={make(
+          ),
+        },
+        {
+          path: 'health/',
+          component: make(
             () => import('sentry/views/organizationStats/teamInsights/health')
-          )}
-        />
-      </Route>
-    </Fragment>
-  );
+          ),
+        },
+      ],
+    },
+  ];
   const statsRoutes = (
     <Fragment>
-      <Route path="/stats/" withOrgPath component={OrganizationStatsWrapper}>
-        {statsChildRoutes}
-      </Route>
+      <Route
+        path="/stats/"
+        withOrgPath
+        component={OrganizationStatsWrapper}
+        newStyleChildren={statsChildRoutes}
+      />
       <Redirect
         from="/organizations/:orgId/stats/team/"
         to="/organizations/:orgId/stats/issues/"
