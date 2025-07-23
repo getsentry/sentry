@@ -1,7 +1,11 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {
+  addLoadingMessage,
+  addSuccessMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ExternalLink} from 'sentry/components/core/link';
 import {
@@ -17,6 +21,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -44,6 +49,7 @@ export default function NewProviderForm({
     secret: '',
   };
   const organization = useOrganization();
+  const api = useApi();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -71,39 +77,57 @@ export default function NewProviderForm({
   return (
     <Fragment>
       <Form
-        apiMethod="POST"
         initialData={initialData}
-        apiEndpoint={`/organizations/${organization.slug}/flags/signing-secrets/`}
-        onSubmitSuccess={(_response, formModel) => {
-          addSuccessMessage(t('Added provider and secret.'));
-          const formData = formModel.getData();
-          onCreatedSecret(formData.secret as string);
-          onSetProvider(formData.provider as string);
-          queryClient.invalidateQueries({
-            queryKey: makeFetchSecretQueryKey({orgSlug: organization.slug}),
-          });
-        }}
-        onSubmitError={error => {
-          const responseJSON = error.responseJSON;
+        onSubmit={(data, onSubmitSuccess, onSubmitError) => {
+          addLoadingMessage();
 
-          // Check if there are field-specific errors for 'secret' or 'provider'
-          const hasFieldSpecificErrors =
-            (responseJSON?.secret &&
-              Array.isArray(responseJSON.secret) &&
-              responseJSON.secret.length > 0) ||
-            (responseJSON?.provider &&
-              Array.isArray(responseJSON.provider) &&
-              responseJSON.provider.length > 0);
+          api
+            .requestPromise(
+              `/organizations/${organization.slug}/flags/signing-secrets/`,
+              {
+                method: 'POST',
+                data: {
+                  provider: data.provider?.toLowerCase(),
+                  secret: data.secret,
+                },
+              }
+            )
+            .then(response => {
+              clearIndicators();
+              addSuccessMessage(t('Added provider and secret.'));
+              onCreatedSecret(data.secret as string);
+              onSetProvider(data.provider as string);
+              queryClient.invalidateQueries({
+                queryKey: makeFetchSecretQueryKey({orgSlug: organization.slug}),
+              });
+              onSubmitSuccess(response);
+            })
+            .catch(error => {
+              clearIndicators();
+              const responseJSON = error.responseJSON;
 
-          if (!hasFieldSpecificErrors) {
-            // Only pass general errors to parent component
-            const message =
-              responseJSON?.detail ||
-              responseJSON?.non_field_errors?.[0] ||
-              responseJSON?.nonFieldErrors?.[0] ||
-              t('Failed to add provider or secret.');
-            onError(message);
-          }
+              // Check if there are field-specific errors for 'secret' or 'provider'
+              const hasFieldSpecificErrors =
+                (responseJSON?.secret &&
+                  Array.isArray(responseJSON.secret) &&
+                  responseJSON.secret.length > 0) ||
+                (responseJSON?.provider &&
+                  Array.isArray(responseJSON.provider) &&
+                  responseJSON.provider.length > 0);
+
+              if (hasFieldSpecificErrors) {
+                // Field-specific errors - let the Form component handle them
+                onSubmitError(error);
+              } else {
+                // General error - pass to parent component
+                const message =
+                  responseJSON?.detail ||
+                  responseJSON?.non_field_errors?.[0] ||
+                  responseJSON?.nonFieldErrors?.[0] ||
+                  t('Failed to add provider or secret.');
+                onError(message);
+              }
+            });
         }}
         onCancel={handleGoBack}
         submitLabel={getButtonLabel()}
