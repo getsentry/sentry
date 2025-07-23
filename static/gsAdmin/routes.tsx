@@ -14,6 +14,7 @@ import DataRequests from 'admin/views/dataRequests';
 import DebuggingTools from 'admin/views/debuggingTools';
 import DocIntegrationDetails from 'admin/views/docIntegrationDetails';
 import DocIntegrations from 'admin/views/docIntegrations';
+import GenerateSpikeProjectionsForBatch from 'admin/views/generateSpikeProjectionsForBatch';
 import Home from 'admin/views/home';
 import InstanceLevelOAuth from 'admin/views/instanceLevelOAuth/instanceLevelOAuth';
 import InstanceLevelOAuthDetails from 'admin/views/instanceLevelOAuth/instanceLevelOAuthDetails';
@@ -128,6 +129,9 @@ function buildRoutes() {
         <IndexRoute component={BillingPlans} />
       </Route>
 
+      <Route path="spike-projection-generation/">
+        <IndexRoute component={GenerateSpikeProjectionsForBatch} />
+      </Route>
       <Route path="*" component={NotFound} />
     </Route>
   );
