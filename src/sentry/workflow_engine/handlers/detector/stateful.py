@@ -434,7 +434,7 @@ class StatefulDetectorHandler(
         else:
             # Call the `create_occurrence` method to create the detector occurrence.
             detector_occurrence, event_data = self.create_occurrence(
-                condition_results, data_packet, new_priority
+                condition_results, data_packet, new_priority, group_key
             )
             detector_result = self._create_decorated_issue_occurrence(
                 data_packet, detector_occurrence, condition_results, new_priority, group_key

@@ -26,6 +26,7 @@ def create_snuba_query(
     resolution: timedelta,
     environment: Environment | None,
     event_types: Collection[SnubaQueryEventType.EventType] = (),
+    group_by: list[str] | None = None,
 ):
     """
     Constructs a SnubaQuery which is the postgres representation of a query in snuba
@@ -50,6 +51,7 @@ def create_snuba_query(
         time_window=int(time_window.total_seconds()),
         resolution=int(resolution.total_seconds()),
         environment=environment,
+        group_by=group_by or [],
     )
     if not event_types:
         if dataset == Dataset.Events:

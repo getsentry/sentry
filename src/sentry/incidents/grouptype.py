@@ -25,7 +25,12 @@ from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
-from sentry.workflow_engine.types import DetectorException, DetectorPriorityLevel, DetectorSettings
+from sentry.workflow_engine.types import (
+    DetectorException,
+    DetectorGroupKey,
+    DetectorPriorityLevel,
+    DetectorSettings,
+)
 
 COMPARISON_DELTA_CHOICES: list[None | int] = [choice.value for choice in ComparisonDeltaChoices]
 COMPARISON_DELTA_CHOICES.append(None)
@@ -42,6 +47,7 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
         evaluation_result: ProcessedDataConditionGroup,
         data_packet: DataPacket[QuerySubscriptionUpdate],
         priority: DetectorPriorityLevel,
+        group_key: DetectorGroupKey | None = None,
     ) -> tuple[DetectorOccurrence, EventData]:
         try:
             alert_rule_detector = AlertRuleDetector.objects.get(detector=self.detector)
@@ -82,7 +88,7 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
         return (
             DetectorOccurrence(
                 issue_title=self.detector.name,
-                subtitle=self.construct_title(snuba_query, detector_trigger, priority),
+                subtitle=self.construct_title(snuba_query, detector_trigger, priority, group_key),
                 evidence_data={
                     "alert_id": alert_id,
                 },
@@ -99,18 +105,47 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
     def extract_dedupe_value(self, data_packet: DataPacket[QuerySubscriptionUpdate]) -> int:
         return int(data_packet.packet.get("timestamp", datetime.now(UTC)).timestamp())
 
-    def extract_value(self, data_packet: DataPacket[QuerySubscriptionUpdate]) -> int:
+    def extract_value(
+        self, data_packet: DataPacket[QuerySubscriptionUpdate]
+    ) -> dict[DetectorGroupKey, int] | int:
         # this is a bit of a hack - anomaly detection data packets send extra data we need to pass along
         values = data_packet.packet["values"]
-        if values.get("value") is not None:
-            return values.get("value")
-        return values
+        # Check if this is grouped data
+        if "groups" in values:
+            # Return grouped data as dict[DetectorGroupKey, int]
+            grouped_values = {}
+            for group_data in values["groups"]:
+                group_keys = group_data.get("group_keys", {})
+                group_value = group_data.get("value", 0)
+
+                # Create group key from group keys
+                group_key = self._create_group_key(group_keys)
+                grouped_values[group_key] = group_value
+
+            return grouped_values
+        else:
+            # Return single value for backward compatibility
+            if values.get("value") is not None:
+                return values.get("value")
+            return values
+
+    def _create_group_key(self, group_keys: dict[str, str]) -> str:
+        """Create a deterministic group key from group keys"""
+        if not group_keys:
+            return None
+
+        # Sort keys for deterministic ordering
+        # we may want to sort based on the order of the group_by in the snuba query?
+        sorted_items = sorted(group_keys.items())
+        key_string = ",".join(f"{k}={v}" for k, v in sorted_items)
+        return key_string
 
     def construct_title(
         self,
         snuba_query: SnubaQuery,
         detector_trigger: DataCondition,
         priority: DetectorPriorityLevel,
+        group_key: DetectorGroupKey | None = None,
     ) -> str:
         comparison_delta = self.detector.config.get("comparison_delta")
         agg_display_key = snuba_query.aggregate
@@ -146,9 +181,11 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
             )
         else:
             comparison = detector_trigger.comparison
-
-        template = "{label}: {metric} in the last {time_window} {higher_or_lower} {comparison}"
+        template = (
+            "{group_key} {label}: {metric} in the last {time_window} {higher_or_lower} {comparison}"
+        )
         return template.format(
+            group_key=group_key,
             label=label.capitalize(),
             metric=aggregate,
             higher_or_lower=higher_or_lower,

@@ -10,6 +10,18 @@ class QuerySubscriptionUpdate(TypedDict):
     timestamp: datetime
 
 
+# class GroupData(TypedDict):
+#     group_keys: dict[str, str]
+#     value: float
+
+
+# class QuerySubscriptionUpdateGroupBy(TypedDict):
+#     entity: str
+#     subscription_id: str
+#     timestamp: datetime
+#     values: list[GroupData]
+
+
 class AlertRuleActivationConditionType(Enum):
     RELEASE_CREATION = 0
     DEPLOY_CREATION = 1

@@ -108,6 +108,7 @@ class DetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationType]
         evaluation_result: ProcessedDataConditionGroup,
         data_packet: DataPacket[DataPacketType],
         priority: DetectorPriorityLevel,
+        group_key: DetectorGroupKey | None = None,
     ) -> tuple[DetectorOccurrence, EventData]:
         """
         This method provides the value that was evaluated against, the data packet that was

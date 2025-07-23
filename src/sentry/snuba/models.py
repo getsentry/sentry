@@ -6,6 +6,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, ClassVar, Self, override
 
 from django.conf import settings
+from django.contrib.postgres.fields.array import ArrayField
 from django.db import models
 from django.utils import timezone
 
@@ -44,6 +45,7 @@ class SnubaQuery(Model):
     dataset = models.TextField()
     query = models.TextField()
     aggregate = models.TextField()
+    group_by = ArrayField(models.TextField(), default=list)
     time_window = models.IntegerField()
     resolution = models.IntegerField()
     date_added = models.DateTimeField(default=timezone.now)
