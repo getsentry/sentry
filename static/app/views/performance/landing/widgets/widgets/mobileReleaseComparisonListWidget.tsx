@@ -113,7 +113,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {InteractiveTitle} = props;
   const {setPageError} = usePageAlert();
-  const dataset = DiscoverDatasets.SPANS_EAP_RPC;
+  const dataset = DiscoverDatasets.SPANS;
 
   const queryParams: Record<string, string> = {...EAP_QUERY_PARAMS};
   const segmentOp = 'span.op';

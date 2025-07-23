@@ -84,7 +84,7 @@ export function EventSamples({
       'span.duration',
     ],
     query: searchQuery.formatString(),
-    dataset: DiscoverDatasets.SPANS_INDEXED,
+    dataset: DiscoverDatasets.SPANS,
     version: 2,
     projects: selection.projects,
   };
