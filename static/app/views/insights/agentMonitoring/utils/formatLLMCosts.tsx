@@ -1,4 +1,4 @@
-import {formatAbbreviatedNumberWithDynamicPrecision} from 'sentry/utils/formatters';
+import {formatCurrency} from 'sentry/utils/formatters';
 
 export function formatLLMCosts(cost: string | number) {
   let number = Number(cost);
@@ -9,5 +9,5 @@ export function formatLLMCosts(cost: string | number) {
   if (number < 0.01) {
     return `<$${(0.01).toLocaleString()}`;
   }
-  return `$${formatAbbreviatedNumberWithDynamicPrecision(number)}`;
+  return formatCurrency(number);
 }

@@ -294,3 +294,7 @@ export function formatTimeDuration(duration?: number, numLargestUnitsToShow?: nu
 
   return parts.join(' ');
 }
+
+export function formatCurrency(value: number) {
+  return `$${formatAbbreviatedNumberWithDynamicPrecision(value)}`;
+}
