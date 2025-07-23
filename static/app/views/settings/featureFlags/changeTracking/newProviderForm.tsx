@@ -2,6 +2,7 @@ import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {
+  addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
   clearIndicators,
@@ -19,7 +20,9 @@ import Form from 'sentry/components/forms/form';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -28,6 +31,13 @@ import {
   makeFetchSecretQueryKey,
   type Secret,
 } from 'sentry/views/settings/featureFlags/changeTracking';
+
+type CreateSecretQueryVariables = {
+  provider: string;
+  secret: string;
+};
+
+type CreateSecretResponse = string;
 
 export default function NewProviderForm({
   onCreatedSecret,
@@ -49,37 +59,40 @@ export default function NewProviderForm({
     secret: '',
   };
   const organization = useOrganization();
-  const navigate = useNavigate();
   const api = useApi();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
   const [selectedProvider, setSelectedProvider] = useState('');
 
-  const mutation = useMutation({
-    mutationFn: (data: Record<string, any>) => {
+  const {mutate: submitSecret, isPending} = useMutation<
+    CreateSecretResponse,
+    RequestError,
+    CreateSecretQueryVariables
+  >({
+    mutationFn: ({provider, secret}) => {
+      addLoadingMessage();
       return api.requestPromise(
         `/organizations/${organization.slug}/flags/signing-secrets/`,
         {
           method: 'POST',
           data: {
-            provider: data.provider?.toLowerCase(),
-            secret: data.secret,
+            provider: provider.toLowerCase(),
+            secret,
           },
         }
       );
     },
-    onMutate: () => {
-      addLoadingMessage();
-    },
-    onSuccess: (_response, data) => {
-      clearIndicators();
+
+    onSuccess: (_response, {secret, provider}) => {
       addSuccessMessage(t('Added provider and secret.'));
-      onCreatedSecret(data.secret);
-      onSetProvider(data.provider?.toLowerCase() || '');
+      onCreatedSecret(secret);
+      onSetProvider(provider);
       queryClient.invalidateQueries({
         queryKey: makeFetchSecretQueryKey({orgSlug: organization.slug}),
       });
     },
-    onError: (error: any, _data) => {
+    onError: error => {
       clearIndicators();
       const responseJSON = error.responseJSON;
 
@@ -92,18 +105,22 @@ export default function NewProviderForm({
           Array.isArray(responseJSON.provider) &&
           responseJSON.provider.length > 0);
 
-      if (!hasFieldSpecificErrors) {
-        // General error - pass to parent component and don't re-throw
+      if (hasFieldSpecificErrors) {
+        // Field-specific errors - let the Form component handle them
+        throw error;
+      } else {
+        // General error - pass to parent component
         const message =
           responseJSON?.detail ||
-          responseJSON?.non_field_errors?.[0] ||
-          responseJSON?.nonFieldErrors?.[0] ||
+          (Array.isArray(responseJSON?.non_field_errors) &&
+            responseJSON.non_field_errors[0]) ||
+          (Array.isArray(responseJSON?.nonFieldErrors) &&
+            responseJSON.nonFieldErrors[0]) ||
           t('Failed to add provider or secret.');
+        handleXhrErrorResponse(message, error);
+        addErrorMessage(message);
         onError(message);
-        return; // Don't re-throw general errors
       }
-      // For field-specific errors, re-throw the error so the Form component can handle them
-      throw error;
     },
   });
 
@@ -121,6 +138,34 @@ export default function NewProviderForm({
     );
   }, [organization.slug, navigate]);
 
+  const handleSubmit = useCallback(
+    (
+      data: Record<string, any>,
+      onSubmitSuccess: (response: any) => void,
+      onSubmitError: (error: any) => void
+    ) => {
+      submitSecret(
+        {
+          provider: data.provider,
+          secret: data.secret,
+        },
+        {
+          onSuccess: response => {
+            onSubmitSuccess(response);
+          },
+          onError: error => {
+            // Only call onSubmitError for field-specific errors
+            // General errors are already handled in the mutation's onError
+            if (error.responseJSON?.secret || error.responseJSON?.provider) {
+              onSubmitError(error);
+            }
+          },
+        }
+      );
+    },
+    [submitSecret]
+  );
+
   const canRead = hasEveryAccess(['org:read'], {organization});
   const canWrite = hasEveryAccess(['org:write'], {organization});
   const canAdmin = hasEveryAccess(['org:admin'], {organization});
@@ -130,15 +175,14 @@ export default function NewProviderForm({
     <Form
       initialData={initialData}
       onSubmit={(data, onSubmitSuccess, onSubmitError) => {
-        mutation.mutate(data, {
-          onSuccess: onSubmitSuccess,
-          onError: onSubmitError,
-        });
+        handleSubmit(data, onSubmitSuccess, onSubmitError);
       }}
       onCancel={handleGoBack}
       submitLabel={getButtonLabel()}
       requireChanges
-      submitDisabled={!hasAccess || !selectedProvider || !canOverrideProvider}
+      submitDisabled={
+        !hasAccess || !selectedProvider || !canOverrideProvider || isPending
+      }
     >
       <SelectField
         required
