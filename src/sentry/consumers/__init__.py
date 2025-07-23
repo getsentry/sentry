@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections.abc import Mapping, Sequence
+from typing import Any
 
 import click
 from arroyo.backends.abstract import Consumer
@@ -513,7 +514,7 @@ def get_stream_processor(
         name=consumer_name, params=list(consumer_definition.get("click_options") or ())
     )
     cmd_context = cmd.make_context(consumer_name, list(consumer_args))
-    extra_kwargs = {}
+    extra_kwargs: dict[str, Any] = {}
     if consumer_definition.get("pass_consumer_group", False):
         extra_kwargs["consumer_group"] = group_id
     if consumer_definition.get("pass_kafka_slice_id", False):
