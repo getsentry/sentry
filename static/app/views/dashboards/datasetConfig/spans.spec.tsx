@@ -59,7 +59,7 @@ describe('SpansConfig', () => {
       expect(eventsStatsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events-stats/',
         expect.objectContaining({
-          query: expect.objectContaining({dataset: DiscoverDatasets.SPANS_EAP}),
+          query: expect.objectContaining({dataset: DiscoverDatasets.SPANS}),
         })
       );
     });

@@ -3,7 +3,7 @@ import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {ABYTE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {DurationUnit, type RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {formatRate} from 'sentry/utils/formatters';
+import {formatDollars, formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {convertDuration} from 'sentry/utils/unitConversion/convertDuration';
@@ -53,6 +53,8 @@ export function formatTooltipValue(
     case 'score':
       // Scores are always integers, no half-marks.
       return value.toFixed(0);
+    case 'currency':
+      return formatDollars(value);
     default:
       return value.toString();
   }

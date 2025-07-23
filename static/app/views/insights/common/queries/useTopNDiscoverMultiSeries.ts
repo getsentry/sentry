@@ -46,7 +46,7 @@ export const useTopNSpanMultiSeries = <
 ) => {
   return useTopNDiscoverMultiSeries<YAxisFields, Fields>(
     options,
-    DiscoverDatasets.SPANS_EAP_RPC,
+    DiscoverDatasets.SPANS,
     referrer,
     pageFilters
   );

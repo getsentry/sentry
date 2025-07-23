@@ -139,7 +139,7 @@ export default function TokenUsageWidget() {
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={t('Token Usage')} />}
+      Title={<Widget.WidgetTitle title={t('Tokens Used')} />}
       Visualization={visualization}
       Actions={
         organization.features.includes('visibility-explore-view') &&

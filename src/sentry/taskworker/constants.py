@@ -35,6 +35,11 @@ The number of tasks a worker child process will process
 before being restarted.
 """
 
+MAX_BACKOFF_SECONDS_WHEN_HOST_UNAVAILABLE = 20
+"""
+The maximum number of seconds to wait before retrying RPCs when the host is unavailable.
+"""
+
 
 class CompressionType(Enum):
     """

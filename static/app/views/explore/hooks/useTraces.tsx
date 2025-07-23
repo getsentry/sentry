@@ -92,7 +92,7 @@ export function useTraces({
       project: selection.projects,
       environment: selection.environments,
       ...normalizeDateTimeParams(datetime ?? selection.datetime),
-      dataset: DiscoverDatasets.SPANS_EAP,
+      dataset: DiscoverDatasets.SPANS,
       query,
       sort,
       per_page: limit,

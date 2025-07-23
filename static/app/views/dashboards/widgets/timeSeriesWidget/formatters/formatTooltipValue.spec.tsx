@@ -73,4 +73,17 @@ describe('formatTooltipValue', () => {
       expect(formatTooltipValue(value, 'score', unit)).toEqual(formattedValue);
     });
   });
+
+  describe('currency', () => {
+    it.each([
+      [0, '$0'],
+      [17, '$17'],
+      [171, '$171'],
+      [17111, '$17.11k'],
+      [17_000_110, '$17m'],
+      [1_000_110_000, '$1b'],
+    ])('Formats %s as %s', (value, formattedValue) => {
+      expect(formatTooltipValue(value, 'currency')).toEqual(formattedValue);
+    });
+  });
 });

@@ -71,7 +71,7 @@ export function OrgDropdown({
 
   const {organizations} = useLegacyStore(OrganizationsStore);
   const [activeOrgs, inactiveOrgs] = partition(
-    organizations,
+    organizations.filter(org => org.slug !== organization.slug),
     org => org.status.id === 'active'
   );
 

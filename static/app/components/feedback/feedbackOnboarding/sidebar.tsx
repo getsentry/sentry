@@ -316,7 +316,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           tooltipPosition={'top-start'}
         />
       ) : (
-        newDocs?.platformOptions &&
+        (newDocs?.platformOptions?.siblingOption ||
+          newDocs?.platformOptions?.packageManager) &&
         widgetPlatform &&
         !isExcluded &&
         !crashReportOnboarding &&

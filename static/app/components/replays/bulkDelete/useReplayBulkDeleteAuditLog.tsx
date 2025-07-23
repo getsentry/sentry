@@ -18,13 +18,14 @@ export default function useReplayBulkDeleteAuditLog({
   query,
 }: Props) {
   const organization = useOrganization();
-  const {data, error, getResponseHeader, isPending} = useApiQuery<{
+  const {data, error, getResponseHeader, isPending, refetch} = useApiQuery<{
     data: ReplayBulkDeleteAuditLog[];
   }>([`/projects/${organization.slug}/${projectSlug}/replays/jobs/delete/`, {query}], {
     enabled,
+    refetchInterval: 1000,
     retry: false,
     staleTime: 0,
   });
 
-  return {data, error, getResponseHeader, isPending};
+  return {data, error, getResponseHeader, isPending, refetch};
 }

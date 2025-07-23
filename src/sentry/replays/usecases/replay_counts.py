@@ -73,8 +73,11 @@ def get_replay_counts(
 
 
 def _get_replay_id_mappings(
-    query: str, snuba_params: SnubaParams, data_source: str = Dataset.Discover.value
-) -> dict[str, list[int]]:
+    query: str,
+    snuba_params: SnubaParams,
+    data_source: str = Dataset.Discover.value,
+    # XXX: the returned list depends on the query and so it could be any type :(
+) -> dict[str, list[Any]]:
     """
     Parses select_column ("identifier") from a query, then queries data_source to map replay_id -> [identifier].
     If select_column is replay_id, return an identity map of replay_id -> [replay_id].

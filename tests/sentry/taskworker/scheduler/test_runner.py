@@ -149,6 +149,11 @@ def test_schedulerunner_tick_one_task_spawned(
         assert sleep_time == 300
         assert mock_send.call_count == 1
 
+        # scheduled tasks should not continue the scheduler trace
+        send_args = mock_send.call_args
+        assert send_args.args[0].headers["sentry-propagate-traces"] == "False"
+        assert "sentry-trace" not in send_args.args[0].headers
+
     assert run_storage.set.call_count == 1
     # set() is called with the correct next_run time
     run_storage.set.assert_called_with("test:valid", datetime(2025, 1, 24, 14, 30, 0, tzinfo=UTC))
@@ -190,6 +195,8 @@ def test_schedulerunner_tick_create_checkin(
         send_args = mock_send.call_args
         assert "sentry-monitor-check-in-id" in send_args.args[0].headers
         assert send_args.args[0].headers["sentry-monitor-slug"] == "important-task"
+        assert send_args.args[0].headers["sentry-propagate-traces"] == "False"
+        assert "sentry-trace" not in send_args.args[0].headers
 
         # Ensure a checkin was created
         assert mock_capture_checkin.call_count == 1

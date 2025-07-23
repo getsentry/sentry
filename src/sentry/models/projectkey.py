@@ -266,6 +266,12 @@ class ProjectKey(Model):
         return f"{endpoint}/api/{self.project_id}/playstation/?sentry_key={self.public_key}"
 
     @property
+    def otlp_traces_endpoint(self):
+        endpoint = self.get_endpoint()
+
+        return f"{endpoint}/api/{self.project_id}/otlp/v1/traces"
+
+    @property
     def unreal_endpoint(self):
         return f"{self.get_endpoint()}/api/{self.project_id}/unreal/{self.public_key}/"
 

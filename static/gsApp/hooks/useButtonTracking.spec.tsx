@@ -6,7 +6,7 @@ import {ProjectFixture} from 'getsentry-test/fixtures/project';
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import type {ButtonProps} from 'sentry/components/core/button';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import OrganizationStore from 'sentry/stores/organizationStore';
 import {TestRouteContext} from 'sentry/views/routeContext';
 
 import useButtonTracking from 'getsentry/hooks/useButtonTracking';
@@ -34,10 +34,13 @@ describe('buttonTracking', function () {
   };
 
   const wrapper = ({children}: ButtonProps) => (
-    <OrganizationContext value={organization}>
-      <TestRouteContext value={router}>{children}</TestRouteContext>
-    </OrganizationContext>
+    <TestRouteContext value={router}>{children}</TestRouteContext>
   );
+
+  beforeEach(function () {
+    OrganizationStore.init();
+    OrganizationStore.onUpdate(organization);
+  });
 
   afterEach(function () {
     (rawTrackAnalyticsEvent as jest.Mock).mockClear();

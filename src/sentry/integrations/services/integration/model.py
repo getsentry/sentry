@@ -58,6 +58,7 @@ class RpcOrganizationIntegration(RpcModel):
     config: dict[str, Any]
     status: int  # As ObjectStatus
     grace_period_end: datetime | None
+    date_added: datetime | None
 
     def __hash__(self) -> int:
         return hash(self.id)

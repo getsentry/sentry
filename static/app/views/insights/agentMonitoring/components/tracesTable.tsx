@@ -5,7 +5,6 @@ import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
-import Placeholder from 'sentry/components/placeholder';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
@@ -17,11 +16,18 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 import {useTraceViewDrawer} from 'sentry/views/insights/agentMonitoring/components/drawer';
 import {LLMCosts} from 'sentry/views/insights/agentMonitoring/components/llmCosts';
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
 import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
+import {
+  ErrorCell,
+  NumberPlaceholder,
+} from 'sentry/views/insights/agentMonitoring/utils/cells';
 import {
   AI_COST_ATTRIBUTE_SUM,
   AI_GENERATION_OPS,
@@ -223,9 +229,9 @@ export function TracesTable() {
 
   const renderBodyCell = useCallback(
     (column: GridColumnOrder<string>, dataRow: TableData) => {
-      return <BodyCell column={column} dataRow={dataRow} />;
+      return <BodyCell column={column} dataRow={dataRow} query={combinedQuery} />;
     },
-    []
+    [combinedQuery]
   );
 
   return (
@@ -254,10 +260,14 @@ export function TracesTable() {
 const BodyCell = memo(function BodyCell({
   column,
   dataRow,
+  query,
 }: {
   column: GridColumnHeader<string>;
   dataRow: TableData;
+  query: string;
 }) {
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
   const {openTraceViewDrawer} = useTraceViewDrawer({});
 
   switch (column.key) {
@@ -283,6 +293,18 @@ const BodyCell = memo(function BodyCell({
     case 'duration':
       return <DurationCell milliseconds={dataRow.duration} />;
     case 'errors':
+      return (
+        <ErrorCell
+          value={dataRow.errors}
+          target={getExploreUrl({
+            query: `${query} span.status:unknown trace:[${dataRow.traceId}]`,
+            organization,
+            selection,
+            referrer: Referrer.TRACES_TABLE,
+          })}
+          isLoading={dataRow.isSpanDataLoading}
+        />
+      );
     case 'llmCalls':
     case 'toolCalls':
     case 'totalTokens':
@@ -309,10 +331,6 @@ const BodyCell = memo(function BodyCell({
       return null;
   }
 });
-
-function NumberPlaceholder() {
-  return <Placeholder style={{marginLeft: 'auto'}} height={'14px'} width={'50px'} />;
-}
 
 const GridEditableContainer = styled('div')`
   position: relative;

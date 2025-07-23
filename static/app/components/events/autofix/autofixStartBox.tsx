@@ -166,6 +166,7 @@ const InputWrapper = styled('form')`
 
 const StyledInput = styled(TextArea)`
   resize: none;
+  background: ${p => p.theme.background};
 
   border-color: ${p => p.theme.innerBorder};
   &:hover {

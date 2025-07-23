@@ -313,7 +313,7 @@ type ApiMutationVariables<
   method: 'PUT' | 'POST' | 'DELETE';
   url: string;
   data?: Data;
-  options?: Pick<QueryKeyEndpointOptions<Headers, Query>, 'query' | 'headers'>;
+  options?: Pick<QueryKeyEndpointOptions<Headers, Query>, 'query' | 'headers' | 'host'>;
 };
 
 /**
@@ -330,6 +330,7 @@ export function fetchMutation<TResponseData = unknown>(
     method,
     query: options?.query,
     headers: options?.headers,
+    host: options?.host,
     data,
   });
 }

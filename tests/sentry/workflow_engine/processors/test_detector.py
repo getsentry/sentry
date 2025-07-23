@@ -18,6 +18,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
+from sentry.utils.cache import cache
 from sentry.workflow_engine.handlers.detector import DetectorStateData
 from sentry.workflow_engine.handlers.detector.stateful import get_redis_client
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
@@ -36,6 +37,30 @@ from tests.sentry.workflow_engine.handlers.detector.test_base import (
     MockDetectorStateHandler,
     build_mock_occurrence_and_event,
 )
+
+
+class TestInit(BaseDetectorHandlerTest):
+    def setUp(self):
+        super().setUp()
+        self.detector = self.create_detector(
+            type=self.handler_type.slug,
+            workflow_condition_group=self.create_data_condition_group(),
+        )
+        cache.clear()
+
+    def test_no_caching(self):
+        # Refetch without `.select_related` to make sure that the object isn't cached
+        self.detector = Detector.objects.get(id=self.detector.id)
+        with self.assertNumQueries(1):
+            self.detector.detector_handler
+
+    def test_caching(self):
+        # Refetch with `.select_related` to make sure that the object iscached
+        self.detector = Detector.objects.select_related("workflow_condition_group").get(
+            id=self.detector.id
+        )
+        with self.assertNumQueries(0):
+            self.detector.detector_handler
 
 
 @freeze_time()

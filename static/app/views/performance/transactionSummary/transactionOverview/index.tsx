@@ -384,7 +384,7 @@ function generateEventView({
       fields,
       query: conditions.formatString(),
       projects: [],
-      dataset: shouldUseOTelFriendlyUI ? DiscoverDatasets.SPANS_EAP_RPC : undefined,
+      dataset: shouldUseOTelFriendlyUI ? DiscoverDatasets.SPANS : undefined,
     },
     location
   );

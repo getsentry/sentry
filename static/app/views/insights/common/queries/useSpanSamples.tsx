@@ -9,7 +9,6 @@ import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
   SpanProperty,
   SpanQueryFilters,
@@ -68,7 +67,6 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
     additionalFields = [],
   } = options;
   const location = useLocation();
-  const useEap = useInsightsEap();
 
   const query = spanSearch === undefined ? new MutableSearch([]) : spanSearch.copy();
   query.addFilterValue(SPAN_GROUP, groupId);
@@ -141,8 +139,8 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
             SpanFields.TRANSACTION_SPAN_ID, // TODO: transaction.span_id should be a default from the backend
             ...additionalFields,
           ],
-          sampling: useEap ? SAMPLING_MODE.NORMAL : undefined,
-          dataset: useEap ? DiscoverDatasets.SPANS_EAP : undefined,
+          sampling: SAMPLING_MODE.NORMAL,
+          dataset: DiscoverDatasets.SPANS,
           sort: `-${SPAN_SELF_TIME}`,
         },
       },

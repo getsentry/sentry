@@ -85,7 +85,7 @@ export function SpanOperationTable({
     ],
     query: queryStringPrimary,
     orderby,
-    dataset: DiscoverDatasets.SPANS_EAP_RPC,
+    dataset: DiscoverDatasets.SPANS,
     version: 2,
     projects: selection.projects,
     interval: getInterval(selection.datetime, STARFISH_CHART_INTERVAL_FIDELITY),
