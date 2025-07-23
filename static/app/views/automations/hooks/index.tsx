@@ -2,7 +2,11 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {t, tn} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
-import type {Automation, NewAutomation} from 'sentry/types/workflowEngine/automations';
+import type {
+  Automation,
+  AutomationFireHistory,
+  NewAutomation,
+} from 'sentry/types/workflowEngine/automations';
 import type {
   DataConditionHandler,
   DataConditionHandlerGroupType,
@@ -65,6 +69,45 @@ export function useAutomationQuery(automationId: string) {
     staleTime: 0,
     retry: false,
   });
+}
+
+export const makeAutomationFireHistoryQueryKey = ({
+  orgSlug,
+  id,
+  cursor,
+  limit,
+  query,
+}: {
+  id: string;
+  orgSlug: string;
+  cursor?: string;
+  limit?: number;
+  query?: string;
+}): ApiQueryKey => [
+  `/organizations/${orgSlug}/workflows/${id}/group-history/`,
+  {query: {query, per_page: limit, cursor}},
+];
+
+interface UseAutomationFireHistoryQueryOptions {
+  id: string;
+  cursor?: string;
+  limit?: number;
+  query?: string;
+}
+export function useAutomationFireHistoryQuery(
+  options: UseAutomationFireHistoryQueryOptions,
+  queryOptions: Partial<UseApiQueryOptions<AutomationFireHistory[]>> = {}
+) {
+  const {slug} = useOrganization();
+
+  return useApiQuery<AutomationFireHistory[]>(
+    makeAutomationFireHistoryQueryKey({orgSlug: slug, ...options}),
+    {
+      staleTime: Infinity,
+      retry: false,
+      ...queryOptions,
+    }
+  );
 }
 
 export function useDataConditionsQuery(groupType: DataConditionHandlerGroupType) {
