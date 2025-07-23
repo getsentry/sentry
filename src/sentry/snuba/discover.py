@@ -560,7 +560,7 @@ def top_events_timeseries(
             rollup,
         )
     with sentry_sdk.start_span(op="discover.discover", name="top_events.transform_results") as span:
-        span.set_attribute("result_count", len(result.get("data", [])))
+        span.set_data("result_count", len(result.get("data", [])))
         result = top_events_builder.process_results(result)
 
         issues: Mapping[int, str | None] = {}
@@ -734,7 +734,7 @@ def get_facets(
             individual_tags.append(tag)
 
     with sentry_sdk.start_span(op="discover.discover", name="facets.individual_tags") as span:
-        span.set_attribute("tag_count", len(individual_tags))
+        span.set_data("tag_count", len(individual_tags))
         for tag_name in individual_tags:
             tag = f"tags[{tag_name}]"
             tag_value_builder = DiscoverQueryBuilder(
