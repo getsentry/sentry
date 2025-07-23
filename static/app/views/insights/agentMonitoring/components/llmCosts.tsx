@@ -15,7 +15,7 @@ export function LLMCosts({cost, className}: LLMCostsProps) {
         maximumFractionDigits: 8,
       })}
     >
-      {cost ? formatLLMCosts(cost) : '-'}
+      {cost ? formatLLMCosts(cost) : '—'}
     </span>
   );
 }

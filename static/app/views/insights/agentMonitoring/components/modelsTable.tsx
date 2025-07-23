@@ -29,6 +29,7 @@ import {
 import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
 import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
+import {ErrorCell} from 'sentry/views/insights/agentMonitoring/utils/cells';
 import {formatLLMCosts} from 'sentry/views/insights/agentMonitoring/utils/formatLLMCosts';
 import {
   AI_COST_ATTRIBUTE_SUM,
@@ -65,12 +66,12 @@ const EMPTY_ARRAY: never[] = [];
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'model', name: t('Model'), width: COL_WIDTH_UNDEFINED},
   {key: 'count()', name: t('Requests'), width: 120},
+  {key: 'count_if(span.status,unknown)', name: t('Errors'), width: 120},
   {key: 'avg(span.duration)', name: t('Avg'), width: 100},
   {key: 'p95(span.duration)', name: t('P95'), width: 100},
   {key: AI_COST_ATTRIBUTE_SUM, name: t('Cost'), width: 100},
   {key: AI_INPUT_TOKENS_ATTRIBUTE_SUM, name: t('Input tokens (Cached)'), width: 180},
   {key: AI_OUTPUT_TOKENS_ATTRIBUTE_SUM, name: t('Output tokens (Reasoning)'), width: 180},
-  {key: 'count_if(span.status,unknown)', name: t('Errors'), width: 120},
 ];
 
 const rightAlignColumns = new Set([
@@ -184,9 +185,9 @@ export function ModelsTable() {
 
   const renderBodyCell = useCallback(
     (column: GridColumnOrder<string>, dataRow: TableData) => {
-      return <BodyCell column={column} dataRow={dataRow} />;
+      return <BodyCell column={column} dataRow={dataRow} query={fullQuery} />;
     },
-    []
+    [fullQuery]
   );
 
   return (
@@ -215,9 +216,11 @@ export function ModelsTable() {
 const BodyCell = memo(function BodyCell({
   column,
   dataRow,
+  query,
 }: {
   column: GridColumnHeader<string>;
   dataRow: TableData;
+  query: string;
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -268,7 +271,17 @@ const BodyCell = memo(function BodyCell({
     case AI_COST_ATTRIBUTE_SUM:
       return <TextAlignRight>{formatLLMCosts(dataRow.cost)}</TextAlignRight>;
     case 'count_if(span.status,unknown)':
-      return <NumberCell value={dataRow.errors} />;
+      return (
+        <ErrorCell
+          value={dataRow.errors}
+          target={getExploreUrl({
+            query: `${query} span.status:unknown gen_ai.request.model:${dataRow.model}`,
+            organization,
+            selection,
+            referrer: Referrer.MODELS_TABLE,
+          })}
+        />
+      );
     default:
       return null;
   }
