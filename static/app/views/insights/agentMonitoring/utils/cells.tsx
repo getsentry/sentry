@@ -14,8 +14,8 @@ export function ErrorCell({
   if (isLoading) {
     return <NumberPlaceholder />;
   }
-  if (value === 0) {
-    return <TextAlignRight>{value}</TextAlignRight>;
+  if (value === 0 || isNaN(value)) {
+    return <TextAlignRight>0</TextAlignRight>;
   }
   return (
     <TextAlignRight>

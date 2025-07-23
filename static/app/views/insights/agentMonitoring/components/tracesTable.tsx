@@ -5,7 +5,6 @@ import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
-import Placeholder from 'sentry/components/placeholder';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
@@ -25,7 +24,10 @@ import {useTraceViewDrawer} from 'sentry/views/insights/agentMonitoring/componen
 import {LLMCosts} from 'sentry/views/insights/agentMonitoring/components/llmCosts';
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
 import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
-import {ErrorCell} from 'sentry/views/insights/agentMonitoring/utils/cells';
+import {
+  ErrorCell,
+  NumberPlaceholder,
+} from 'sentry/views/insights/agentMonitoring/utils/cells';
 import {
   AI_COST_ATTRIBUTE_SUM,
   AI_GENERATION_OPS,
@@ -329,10 +331,6 @@ const BodyCell = memo(function BodyCell({
       return null;
   }
 });
-
-function NumberPlaceholder() {
-  return <Placeholder style={{marginLeft: 'auto'}} height={'14px'} width={'50px'} />;
-}
 
 const GridEditableContainer = styled('div')`
   position: relative;
