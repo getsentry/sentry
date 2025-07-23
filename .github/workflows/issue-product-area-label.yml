@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Get product area from issue body
         # https://github.com/actions-ecosystem/action-regex-match
-        uses: actions-ecosystem/action-regex-match@v2
+        uses: actions-ecosystem/action-regex-match@9e6c4fb3d5e898f505be7a1fb6e7b0a278f6665b
         id: productArea
         with:
           # Parse product area from issue body
@@ -21,7 +21,7 @@ jobs:
 
       - name: Get product area from support template
         # https://github.com/actions-ecosystem/action-regex-match
-        uses: actions-ecosystem/action-regex-match@v2
+        uses: actions-ecosystem/action-regex-match@9e6c4fb3d5e898f505be7a1fb6e7b0a278f6665b
         id: productAreaSupport
         with:
           # Parse product area from support issue template
@@ -34,11 +34,11 @@ jobs:
       # Both dropdowns contain the same product area options, just with different labels
       - name: Map product area to issue label
         # https://github.com/kanga333/variable-mapper
-        uses: kanga333/variable-mapper@v0.3.0
+        uses: kanga333/variable-mapper@3681b75f5c6c00162721168fb91ab74925eaebcb
         id: productAreaLabel
         if: steps.productArea.outputs.match != '' || steps.productAreaSupport.outputs.match != ''
         with:
-          key: "${{ steps.productArea.outputs.match != ' && steps.productArea.outputs.group1 || steps.productAreaSupport.outputs.group1 }}"
+          key: "${{ steps.productArea.outputs.match != '' && steps.productArea.outputs.group1 || steps.productAreaSupport.outputs.group1 }}"
           map: |
             {
               "Alerts": {
@@ -176,6 +176,6 @@ jobs:
       - name: Add product area label if applicable
         # Note: We only add the label if the issue is still open
         if: steps.productAreaLabel.outputs.label != ''
-        uses: actions-ecosystem/action-add-labels@v1
+        uses: actions-ecosystem/action-add-labels@bd52874380e3909a1ac983768df6976535ece7f8
         with:
           labels: ${{ steps.productAreaLabel.outputs.label }}
