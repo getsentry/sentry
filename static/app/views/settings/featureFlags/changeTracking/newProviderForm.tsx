@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -29,6 +29,78 @@ import {
   type Secret,
 } from 'sentry/views/settings/featureFlags/changeTracking';
 
+type UseProviderFormSubmissionProps = {
+  onCreatedSecret: (secret: string) => void;
+  onError: (error: string | null) => void;
+  onSetProvider: (provider: string) => void;
+};
+
+function useProviderFormSubmission({
+  onCreatedSecret,
+  onSetProvider,
+  onError,
+}: UseProviderFormSubmissionProps) {
+  const organization = useOrganization();
+  const api = useApi();
+  const queryClient = useQueryClient();
+
+  return useCallback(
+    (
+      data: Record<string, any>,
+      onSubmitSuccess: (response: any) => void,
+      onSubmitError: (error: any) => void
+    ) => {
+      addLoadingMessage();
+
+      api
+        .requestPromise(`/organizations/${organization.slug}/flags/signing-secrets/`, {
+          method: 'POST',
+          data: {
+            provider: data.provider?.toLowerCase(),
+            secret: data.secret,
+          },
+        })
+        .then(response => {
+          clearIndicators();
+          addSuccessMessage(t('Added provider and secret.'));
+          onCreatedSecret(data.secret);
+          onSetProvider(data.provider);
+          queryClient.invalidateQueries({
+            queryKey: makeFetchSecretQueryKey({orgSlug: organization.slug}),
+          });
+          onSubmitSuccess(response);
+        })
+        .catch(error => {
+          clearIndicators();
+          const responseJSON = error.responseJSON;
+
+          // Check if there are field-specific errors for 'secret' or 'provider'
+          const hasFieldSpecificErrors =
+            (responseJSON?.secret &&
+              Array.isArray(responseJSON.secret) &&
+              responseJSON.secret.length > 0) ||
+            (responseJSON?.provider &&
+              Array.isArray(responseJSON.provider) &&
+              responseJSON.provider.length > 0);
+
+          if (hasFieldSpecificErrors) {
+            // Field-specific errors - let the Form component handle them
+            onSubmitError(error);
+          } else {
+            // General error - pass to parent component
+            const message =
+              responseJSON?.detail ||
+              responseJSON?.non_field_errors?.[0] ||
+              responseJSON?.nonFieldErrors?.[0] ||
+              t('Failed to add provider or secret.');
+            onError(message);
+          }
+        });
+    },
+    [api, organization.slug, queryClient, onCreatedSecret, onSetProvider, onError]
+  );
+}
+
 export default function NewProviderForm({
   onCreatedSecret,
   onProviderChange,
@@ -49,8 +121,6 @@ export default function NewProviderForm({
     secret: '',
   };
   const organization = useOrganization();
-  const api = useApi();
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
 
   const [selectedProvider, setSelectedProvider] = useState('');
@@ -61,10 +131,12 @@ export default function NewProviderForm({
     );
   }, [organization.slug, navigate]);
 
-  const canRead = hasEveryAccess(['org:read'], {organization});
-  const canWrite = hasEveryAccess(['org:write'], {organization});
-  const canAdmin = hasEveryAccess(['org:admin'], {organization});
-  const hasAccess = canRead || canWrite || canAdmin;
+  const hasAccess = useMemo(() => {
+    const canRead = hasEveryAccess(['org:read'], {organization});
+    const canWrite = hasEveryAccess(['org:write'], {organization});
+    const canAdmin = hasEveryAccess(['org:admin'], {organization});
+    return canRead || canWrite || canAdmin;
+  }, [organization]);
 
   // if secret exists, updating; else adding
   const getButtonLabel = () => {
@@ -74,60 +146,18 @@ export default function NewProviderForm({
     return t('Add Provider');
   };
 
+  const handleSubmit = useProviderFormSubmission({
+    onCreatedSecret,
+    onSetProvider,
+    onError,
+  });
+
   return (
     <Fragment>
       <Form
         initialData={initialData}
         onSubmit={(data, onSubmitSuccess, onSubmitError) => {
-          addLoadingMessage();
-
-          api
-            .requestPromise(
-              `/organizations/${organization.slug}/flags/signing-secrets/`,
-              {
-                method: 'POST',
-                data: {
-                  provider: data.provider?.toLowerCase(),
-                  secret: data.secret,
-                },
-              }
-            )
-            .then(response => {
-              clearIndicators();
-              addSuccessMessage(t('Added provider and secret.'));
-              onCreatedSecret(data.secret as string);
-              onSetProvider(data.provider as string);
-              queryClient.invalidateQueries({
-                queryKey: makeFetchSecretQueryKey({orgSlug: organization.slug}),
-              });
-              onSubmitSuccess(response);
-            })
-            .catch(error => {
-              clearIndicators();
-              const responseJSON = error.responseJSON;
-
-              // Check if there are field-specific errors for 'secret' or 'provider'
-              const hasFieldSpecificErrors =
-                (responseJSON?.secret &&
-                  Array.isArray(responseJSON.secret) &&
-                  responseJSON.secret.length > 0) ||
-                (responseJSON?.provider &&
-                  Array.isArray(responseJSON.provider) &&
-                  responseJSON.provider.length > 0);
-
-              if (hasFieldSpecificErrors) {
-                // Field-specific errors - let the Form component handle them
-                onSubmitError(error);
-              } else {
-                // General error - pass to parent component
-                const message =
-                  responseJSON?.detail ||
-                  responseJSON?.non_field_errors?.[0] ||
-                  responseJSON?.nonFieldErrors?.[0] ||
-                  t('Failed to add provider or secret.');
-                onError(message);
-              }
-            });
+          handleSubmit(data, onSubmitSuccess, onSubmitError);
         }}
         onCancel={handleGoBack}
         submitLabel={getButtonLabel()}
