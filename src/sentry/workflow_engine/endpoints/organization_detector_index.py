@@ -72,7 +72,7 @@ def convert_assignee_values(value: Iterable[str], projects: Sequence[Project], u
         elif actor is None:
             assignee_query |= Q(owner_team_id__isnull=True, owner_user_id__isnull=True)
         else:
-            assert_never()
+            assert_never(actor)
     return assignee_query
 
 
@@ -146,7 +146,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         Return a list of detectors for a given organization.
         """
         if not request.user.is_authenticated:
-            return self.respond(status=401)
+            return self.respond(status=status.HTTP_401_UNAUTHORIZED)
 
         projects = self.get_projects(request, organization)
         queryset: QuerySet[Detector] = Detector.objects.filter(
