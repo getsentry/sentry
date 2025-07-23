@@ -71,8 +71,7 @@ export default function TokenTypesWidget() {
 
   const sums = Object.values(timeSeries).reduce(
     (acc, series) => {
-      // @ts-expect-error fix this later
-      acc[series.seriesName] += series.data.reduce(
+      acc[series.seriesName as keyof typeof acc] += series.data.reduce(
         (acc2, point) => acc2 + point.value,
         0
       );
@@ -93,7 +92,6 @@ export default function TokenTypesWidget() {
       return [];
     }
 
-    // First, adjust the values by deducting overlapping tokens
     const adjustedSeries = Object.values(timeSeries).map(series => {
       if (series.seriesName === AI_INPUT_TOKENS_ATTRIBUTE_SUM) {
         return {

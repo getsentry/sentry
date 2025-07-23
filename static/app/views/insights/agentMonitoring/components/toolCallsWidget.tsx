@@ -70,8 +70,7 @@ export default function ToolCallsWidget() {
   const isLoading = timeSeriesRequest.isLoading || toolsRequest.isLoading;
   const error = timeSeriesRequest.error || toolsRequest.error;
 
-  // TODO(telex): Add tool name attribute to Fields and get rid of this cast
-  const tools = toolsRequest.data as unknown as Array<Record<string, string | number>>;
+  const tools = toolsRequest.data;
 
   const hasData = tools && tools.length > 0 && timeSeries.length > 0;
 
