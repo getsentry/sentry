@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import invariant from 'invariant';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
@@ -12,6 +13,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import Duration from 'sentry/components/duration/duration';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {KeyValueData} from 'sentry/components/keyValueData';
+import useReplayBulkDeleteAuditLog from 'sentry/components/replays/bulkDelete/useReplayBulkDeleteAuditLog';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar, IconDelete} from 'sentry/icons';
@@ -35,6 +37,7 @@ interface Props {
 }
 
 export default function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
+  const analyticsArea = useAnalyticsArea();
   const {project: projectIds} = useLocationQuery({
     fields: {
       project: decodeList,
@@ -52,6 +55,11 @@ export default function DeleteReplays({selectedIds, replays, queryOptions}: Prop
   const deletePayload = queryOptionsToPayload(selectedIds, queryOptions ?? {});
 
   const settingsPath = `/settings/projects/${project?.slug}/replays/?replaySettingsTab=bulk-delete`;
+
+  const {refetch: refetchAuditLog} = useReplayBulkDeleteAuditLog({
+    projectSlug: project?.slug ?? '',
+    query: {referrer: analyticsArea},
+  });
 
   return (
     <Tooltip
@@ -90,12 +98,15 @@ export default function DeleteReplays({selectedIds, replays, queryOptions}: Prop
               ),
               onConfirm: () => {
                 bulkDelete([deletePayload], {
-                  onSuccess: () =>
+                  onSuccess: () => {
                     addSuccessMessage(
-                      tct('Replays are being deleted. [link:View progress]', {
+                      tct('Replays are being deleted. [settings:View progress]', {
                         settings: <LinkWithUnderline to={settingsPath} />,
                       })
-                    ),
+                    );
+                    // TODO: get the list to refetch
+                    refetchAuditLog();
+                  },
                   onError: () =>
                     addErrorMessage(
                       tn(
