@@ -70,11 +70,7 @@ export function useMetricDetectorSeries({
     // Extract comparison series if comparisonDelta is provided and data contains comparisonCount
     const transformedComparisonSeries =
       comparisonDelta && datasetConfig.transformComparisonSeriesData
-        ? datasetConfig.transformComparisonSeriesData(
-            data as any,
-            aggregate,
-            comparisonDelta
-          )
+        ? datasetConfig.transformComparisonSeriesData(data as any)
         : [];
 
     return {
