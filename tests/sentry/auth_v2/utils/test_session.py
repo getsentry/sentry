@@ -110,7 +110,7 @@ class SessionBuilderTest(TestCase):
 
         mock_attributes = {}
         for key, value in attributes.items():
-            mock_attributes[key] = Mock(return_value=value)
+            mock_attributes[f"{key}.return_value"] = value
         for key, value in properties.items():
             mock_attributes[key] = value
 
