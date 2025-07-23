@@ -1,11 +1,16 @@
 import type {CSSProperties} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import type {DO_NOT_USE_ChonkTheme, Theme} from '@emotion/react';
-import {css} from '@emotion/react';
+import {
+  css,
+  type DO_NOT_USE_ChonkTheme,
+  type SerializedStyles,
+  type Theme,
+} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
+const BREAKPOINT_ORDER: readonly Breakpoint[] = ['xs', 'sm', 'md', 'lg', 'xl'];
 // We alias None -> 0 to make it slighly more terse and easier to read.
 type RadiusSize = keyof DO_NOT_USE_ChonkTheme['radius'] | '0';
 type SpacingSize = keyof Theme['space'] | '0';
@@ -63,6 +68,11 @@ interface BaseContainerProps {
   width?: Responsive<CSSProperties['width']>;
   minWidth?: Responsive<CSSProperties['minWidth']>;
   maxWidth?: Responsive<CSSProperties['maxWidth']>;
+
+  // Height
+  height?: Responsive<CSSProperties['height']>;
+  minHeight?: Responsive<CSSProperties['minHeight']>;
+  maxHeight?: Responsive<CSSProperties['maxHeight']>;
 }
 /* eslint-enable typescript-sort-keys/interface */
 
@@ -91,6 +101,7 @@ const omitContainerProps = new Set<keyof ContainerProps<any>>([
   'as',
   'background',
   'display',
+  'height',
   'm',
   'mb',
   'ml',
@@ -104,7 +115,13 @@ const omitContainerProps = new Set<keyof ContainerProps<any>>([
   'overflow',
   'overflowX',
   'overflowY',
+  'position',
   'radius',
+  'width',
+  'minWidth',
+  'maxWidth',
+  'minHeight',
+  'maxHeight',
 ]);
 
 export const Container = styled(
@@ -121,34 +138,44 @@ export const Container = styled(
     },
   }
 )<ContainerProps>`
-  display: ${p => p.display};
+  ${p => responsiveCSS('display', p.display, p.theme, v => v)};
+  ${p => responsiveCSS('position', p.position, p.theme, v => v)};
 
-  overflow: ${p => p.overflow};
-  overflow-x: ${p => p.overflowX};
-  overflow-y: ${p => p.overflowY};
+  ${p => responsiveCSS('overflow', p.overflow, p.theme, v => v)};
+  ${p => responsiveCSS('overflow-x', p.overflowX, p.theme, v => v)};
+  ${p => responsiveCSS('overflow-y', p.overflowY, p.theme, v => v)};
 
-  background: ${p =>
-    isString(p.background) ? p.theme.tokens.background[p.background] : undefined};
+  ${p =>
+    responsiveCSS(
+      'background',
+      p.background,
+      p.theme,
+      v => p.theme.tokens.background[v]
+    )};
 
-  border-radius: ${p => (isString(p.radius) ? getRadius(p.radius, p.theme) : undefined)};
+  ${p => responsiveCSS('border-radius', p.radius, p.theme, getRadius)};
 
-  padding: ${p => (isString(p.p) ? getSpacing(p.p, p.theme) : undefined)};
-  padding-top: ${p => (isString(p.pt) ? getSpacing(p.pt, p.theme) : undefined)};
-  padding-bottom: ${p => (isString(p.pb) ? getSpacing(p.pb, p.theme) : undefined)};
-  padding-left: ${p => (isString(p.pl) ? getSpacing(p.pl, p.theme) : undefined)};
-  padding-right: ${p => (isString(p.pr) ? getSpacing(p.pr, p.theme) : undefined)};
+  ${p => responsiveCSS('padding', p.p, p.theme, getSpacing)};
+  ${p => responsiveCSS('padding-top', p.pt, p.theme, getSpacing)};
+  ${p => responsiveCSS('padding-bottom', p.pb, p.theme, getSpacing)};
+  ${p => responsiveCSS('padding-left', p.pl, p.theme, getSpacing)};
+  ${p => responsiveCSS('padding-right', p.pr, p.theme, getSpacing)};
 
-  margin: ${p => (isString(p.m) ? getSpacing(p.m, p.theme) : undefined)};
-  margin-top: ${p => (isString(p.mt) ? getSpacing(p.mt, p.theme) : undefined)};
-  margin-bottom: ${p => (isString(p.mb) ? getSpacing(p.mb, p.theme) : undefined)};
-  margin-left: ${p => (isString(p.ml) ? getSpacing(p.ml, p.theme) : undefined)};
-  margin-right: ${p => (isString(p.mr) ? getSpacing(p.mr, p.theme) : undefined)};
+  ${p => responsiveCSS('margin', p.m, p.theme, getSpacing)};
+  ${p => responsiveCSS('margin-top', p.mt, p.theme, getSpacing)};
+  ${p => responsiveCSS('margin-bottom', p.mb, p.theme, getSpacing)};
+  ${p => responsiveCSS('margin-left', p.ml, p.theme, getSpacing)};
+  ${p => responsiveCSS('margin-right', p.mr, p.theme, getSpacing)};
 
-  ${p => containerBreakpointCSS(p.theme, p, {current: 'xs', previous: 'sm'})}
-  ${p => containerBreakpointCSS(p.theme, p, {current: 'sm', previous: 'md'})}
-  ${p => containerBreakpointCSS(p.theme, p, {current: 'md', previous: 'lg'})}
-  ${p => containerBreakpointCSS(p.theme, p, {current: 'lg', previous: 'xl'})}
-  ${p => containerBreakpointCSS(p.theme, p, {current: 'xl'})} /**
+  ${p => responsiveCSS('width', p.width, p.theme, v => v)};
+  ${p => responsiveCSS('min-width', p.minWidth, p.theme, v => v)};
+  ${p => responsiveCSS('max-width', p.maxWidth, p.theme, v => v)};
+
+  ${p => responsiveCSS('height', p.height, p.theme, v => v)};
+  ${p => responsiveCSS('min-height', p.minHeight, p.theme, v => v)};
+  ${p => responsiveCSS('max-height', p.maxHeight, p.theme, v => v)};
+
+  /**
    * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
    * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.
    * https://github.com/styled-components/styled-components/issues/1803
@@ -157,47 +184,47 @@ export const Container = styled(
   props: ContainerProps<T>
 ) => React.ReactElement;
 
-function containerBreakpointCSS(
+function responsiveCSS<T>(
+  property: string,
+  value: Responsive<T> | undefined,
   theme: Theme,
-  p: ContainerProps,
-  {
-    current,
-    previous,
-  }: {
-    current: Breakpoint;
-    previous?: Breakpoint;
+  resolver: (value: T, theme: Theme) => string | number
+): SerializedStyles | undefined {
+  if (!value) {
+    return undefined;
   }
-) {
-  const mediaQuery = previous
-    ? `(max-width: ${theme.breakpoints[previous]}) and(min-width: ${theme.breakpoints[current]})`
-    : `(min-width: ${theme.breakpoints[current]})`;
+
+  if (!isResponsive(value)) {
+    return css`
+      ${property}: ${resolver(value, theme)};
+    `;
+  }
+
+  let first = true;
 
   return css`
-    @media ${mediaQuery} {
-      display: ${p.display};
+    ${BREAKPOINT_ORDER.map(breakpoint => {
+      const v = value[breakpoint];
+      if (v === undefined) {
+        return undefined;
+      }
 
-      overflow: ${p.overflow};
-      overflow-x: ${p.overflowX};
-      overflow-y: ${p.overflowY};
+      if (first) {
+        first = false;
+        return css`
+          @media (min-width: ${theme.breakpoints[breakpoint]}),
+            (max-width: ${theme.breakpoints[breakpoint]}) {
+            ${property}: ${resolver(v, theme)};
+          }
+        `;
+      }
 
-      background: ${isString(p.background)
-        ? theme.tokens.background[p.background]
-        : undefined};
-
-      border-radius: ${isString(p.radius) ? getRadius(p.radius, theme) : undefined};
-
-      padding: ${isString(p.p) ? getSpacing(p.p, theme) : undefined};
-      padding-top: ${isString(p.pt) ? getSpacing(p.pt, theme) : undefined};
-      padding-bottom: ${isString(p.pb) ? getSpacing(p.pb, theme) : undefined};
-      padding-left: ${isString(p.pl) ? getSpacing(p.pl, theme) : undefined};
-      padding-right: ${isString(p.pr) ? getSpacing(p.pr, theme) : undefined};
-
-      margin: ${isString(p.m) ? getSpacing(p.m, theme) : undefined};
-      margin-top: ${isString(p.mt) ? getSpacing(p.mt, theme) : undefined};
-      margin-bottom: ${isString(p.mb) ? getSpacing(p.mb, theme) : undefined};
-      margin-left: ${isString(p.ml) ? getSpacing(p.ml, theme) : undefined};
-      margin-right: ${isString(p.mr) ? getSpacing(p.mr, theme) : undefined};
-    }
+      return css`
+        @media (min-width: ${theme.breakpoints[breakpoint]}) {
+          ${property}: ${resolver(v, theme)};
+        }
+      `;
+    }).filter(Boolean)}
   `;
 }
 
@@ -251,19 +278,21 @@ export const Flex = styled(
     },
   }
 )<FlexProps<any>>`
-  display: ${p => (p.as === 'span' || p.inline ? 'inline-flex' : 'flex')};
-  flex-direction: ${p => (isString(p.direction) ? p.direction : undefined)};
-  justify-content: ${p => p.justify};
-  align-items: ${p => p.align};
-  gap: ${p => (isString(p.gap) ? getSpacing(p.gap, p.theme) : undefined)};
-  flex-wrap: ${p => p.wrap};
-  flex: ${p => p.flex};
+  ${p =>
+    responsiveCSS(
+      'display',
+      p.as === 'span' || p.inline ? 'inline-flex' : 'flex',
+      p.theme,
+      v => v
+    )};
+  ${p => responsiveCSS('flex-direction', p.direction, p.theme, v => v)};
+  ${p => responsiveCSS('justify-content', p.justify, p.theme, v => v)};
+  ${p => responsiveCSS('align-items', p.align, p.theme, v => v)};
+  ${p => responsiveCSS('gap', p.gap, p.theme, getSpacing)};
+  ${p => responsiveCSS('flex-wrap', p.wrap, p.theme, v => v)};
+  ${p => responsiveCSS('flex', p.flex, p.theme, v => v)};
 
-  ${p => flexBreakpointCSS(p.theme, p, {current: 'xs', previous: 'sm'})}
-  ${p => flexBreakpointCSS(p.theme, p, {current: 'sm', previous: 'md'})}
-  ${p => flexBreakpointCSS(p.theme, p, {current: 'md', previous: 'lg'})}
-  ${p => flexBreakpointCSS(p.theme, p, {current: 'lg', previous: 'xl'})}
-  ${p => flexBreakpointCSS(p.theme, p, {current: 'xl'})} /**
+  /**
    * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
    * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.
    * https://github.com/styled-components/styled-components/issues/1803
@@ -271,35 +300,6 @@ export const Flex = styled(
 ` as unknown as <T extends ContainerElement = 'div'>(
   props: FlexProps<T>
 ) => React.ReactElement;
-
-function flexBreakpointCSS(
-  theme: Theme,
-  p: FlexProps,
-  {current, previous}: {current: Breakpoint; previous?: Breakpoint}
-) {
-  const mediaQuery = previous
-    ? `(max-width: ${theme.breakpoints[previous]}) and(min-width: ${theme.breakpoints[current]})`
-    : `(min-width: ${theme.breakpoints[current]})`;
-
-  return css`
-    @media ${mediaQuery} {
-      display: ${isBreakpointProp(p.inline)
-        ? p.inline[current]
-          ? 'inline-flex'
-          : 'flex'
-        : undefined};
-
-      flex-direction: ${isBreakpointProp(p.direction) ? p.direction[current] : undefined};
-      justify-content: ${isBreakpointProp(p.justify) ? p.justify[current] : undefined};
-      align-items: ${isBreakpointProp(p.align) ? p.align[current] : undefined};
-
-      gap: ${isBreakpointProp(p.gap) ? p.gap[current] : undefined};
-
-      flex-wrap: ${isBreakpointProp(p.wrap) ? p.wrap[current] : undefined};
-      flex: ${isBreakpointProp(p.flex) ? p.flex[current] : undefined};
-    }
-  `;
-}
 
 function resolveRadius(sizeComponent: Radius | undefined, theme: Theme) {
   if (sizeComponent === undefined) {
@@ -324,31 +324,18 @@ function resolveSpacing(sizeComponent: SpacingSize, theme: Theme) {
   return theme.space[sizeComponent] ?? theme.space.none;
 }
 
-function isString(prop: unknown): prop is string {
-  return typeof prop === 'string';
-}
-
-function isBreakpointProp<T>(prop: unknown): prop is Record<Breakpoint, T> {
+function isResponsive(prop: unknown): prop is Record<Breakpoint, any> {
   return typeof prop === 'object' && prop !== null;
 }
 
-// @TODO(jonasbadalic): do we need to cache this?
-function getRadius(radius: Radius | undefined, theme: Theme) {
-  if (!radius) {
-    return undefined;
-  }
-
+function getRadius(radius: Radius, theme: Theme) {
   return radius
     .split(' ')
     .map(size => resolveRadius(size as RadiusSize, theme))
     .join(' ');
 }
 
-// @TODO(jonasbadalic): do we need to cache this?
-function getSpacing(spacing: Spacing | undefined, theme: Theme): string | undefined {
-  if (!spacing) {
-    return undefined;
-  }
+function getSpacing(spacing: Spacing, theme: Theme): string {
   return spacing
     .split(' ')
     .map(size => resolveSpacing(size as SpacingSize, theme))

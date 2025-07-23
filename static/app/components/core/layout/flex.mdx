@@ -49,7 +49,6 @@ Simialarly to `Container`, `Flex` inherits all spacing props like `m`, `p`, `mt`
     <Card>Item 2</Card>
     <Card>Item 3</Card>
   </Flex>
-
 </Storybook.Demo>
 ```jsx
 <Flex direction="row" gap="md" justify="space-between" align="center">
@@ -109,22 +108,27 @@ All props support responsive values using breakpoint objects. Breakpoints are: `
 Example of a responsive flex container that uses a static gap, but changes direction based on the breakpoint.
 
 <Storybook.Demo>
-  <Flex direction={{sm: 'column', md: 'row'}} gap="md" p="md">
+  <Flex direction={{xs: 'row-reverse', sm: 'column', md: 'row'}} gap="md" p="md">
     <Card>Responsive</Card>
     <Card>Layout</Card>
     <Card>Items</Card>
+    <Card>🔥</Card>
   </Flex>
 </Storybook.Demo>
 ```jsx
 <Flex
   // Direction = column on sm and row on md
-  direction={{sm: 'column', md: 'row'}}
-  // Gap = md on all sizes
-  gap="md"
+  direction={{xs: 'column-reverse', sm: 'column', md: 'row'}}
+
+// Gap = md on all sizes
+gap="md"
+
 >
+
   <div>Responsive</div>
   <div>Layout</div>
   <div>Items</div>
+  <div>🔥</div>
 </Flex>
 ```
 
