@@ -1,4 +1,5 @@
 from unittest import mock
+from unittest.mock import MagicMock
 
 from snuba_sdk import Column, Condition, Op
 
@@ -13,7 +14,7 @@ from sentry.utils.samples import load_data
 
 
 class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
         self.two_min_ago = before_now(minutes=2)
@@ -86,7 +87,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
 
         self.eventstore = SnubaEventStorage()
 
-    def test_get_events(self):
+    def test_get_events(self) -> None:
         events = self.eventstore.get_events(
             filter=Filter(
                 project_ids=[self.project1.id, self.project2.id],
@@ -124,7 +125,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert events[2].event_id == "a" * 32
 
     @mock.patch("sentry.nodestore.get_multi")
-    def test_get_unfetched_events(self, get_multi):
+    def test_get_unfetched_events(self, get_multi: MagicMock) -> None:
         events = self.eventstore.get_unfetched_events(
             filter=Filter(project_ids=[self.project1.id]),
             tenant_ids={"organization_id": 123, "referrer": "r"},
@@ -133,7 +134,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert get_multi.call_count == 0
 
     @mock.patch("sentry.nodestore.get_multi")
-    def test_get_unfetched_transactions(self, get_multi):
+    def test_get_unfetched_transactions(self, get_multi: MagicMock) -> None:
         transactions_proj1 = self.eventstore.get_unfetched_transactions(
             filter=Filter(project_ids=[self.project1.id]),
             tenant_ids={"organization_id": self.project1.organization_id},
@@ -148,7 +149,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert len(transactions_proj2) == 2
         assert get_multi.call_count == 0
 
-    def test_get_event_by_id(self):
+    def test_get_event_by_id(self) -> None:
         # Get valid event
         event = self.eventstore.get_event_by_id(self.project1.id, "a" * 32)
 
@@ -170,7 +171,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert event.get_event_type() == "transaction"
         assert event.project_id == self.project2.id
 
-    def test_get_event_by_id_cached(self):
+    def test_get_event_by_id_cached(self) -> None:
         # Simulate getting an event that exists in eventstore but has not yet been written to snuba.
         with mock.patch("sentry.eventstore.snuba.backend.Event") as mock_event:
             dummy_event = Event(
@@ -197,7 +198,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert event.project_id == self.project2.id
         assert event.group_id == event.group.id
 
-    def test_get_event_beyond_retention(self):
+    def test_get_event_beyond_retention(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "d" * 32,
@@ -214,8 +215,9 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
             event = self.eventstore.get_event_by_id(self.project2.id, "d" * 32)
             assert event is None
 
-    def test_get_adjacent_event_ids(self):
+    def test_get_adjacent_event_ids(self) -> None:
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
+        assert event is not None
 
         filter = Filter(project_ids=[self.project1.id, self.project2.id])
 
@@ -259,7 +261,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert prev_event is None
         assert next_event is None
 
-    def test_adjacent_event_ids_same_timestamp(self):
+    def test_adjacent_event_ids_same_timestamp(self) -> None:
         project = self.create_project()
 
         event1 = self.store_event(
@@ -306,7 +308,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert prev_event == (str(project.id), "a" * 32)
         assert next_event is None
 
-    def test_transaction_get_next_prev_event_id(self):
+    def test_transaction_get_next_prev_event_id(self) -> None:
         group = self.transaction_event_2.group
         _filter = Filter(
             project_ids=[self.project2.id],
@@ -328,7 +330,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert prev_event is None
         assert next_event == (str(self.project2.id), self.transaction_event_3.event_id)
 
-    def test_get_adjacent_event_ids_snql(self):
+    def test_get_adjacent_event_ids_snql(self) -> None:
         project = self.create_project()
         data = {
             "type": "default",
@@ -390,7 +392,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         )
         assert next_ids is None
 
-    def test_get_adjacent_event_ids_snql_order_of_event_ids(self):
+    def test_get_adjacent_event_ids_snql_order_of_event_ids(self) -> None:
         project = self.create_project()
         event1 = self.store_event(
             data={
@@ -433,7 +435,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert prev_ids == (str(event1.project_id), event1.event_id)
         assert next_ids == (str(event3.project_id), event3.event_id)
 
-    def test_adjacent_event_ids_same_timestamp_snql(self):
+    def test_adjacent_event_ids_same_timestamp_snql(self) -> None:
         project = self.create_project()
         event1 = self.store_event(
             data={
@@ -483,7 +485,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert prev_ids == (str(project.id), event1.event_id)
         assert next_ids is None
 
-    def test_adjacent_event_ids_with_query_conditions(self):
+    def test_adjacent_event_ids_with_query_conditions(self) -> None:
         project = self.create_project()
         event_a = self.store_event(
             data={
@@ -544,7 +546,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert prev_ids == (str(event_a.project_id), event_a.event_id)
         assert next_ids is None
 
-    def test_adjacent_event_ids_with_date_range_conditions(self):
+    def test_adjacent_event_ids_with_date_range_conditions(self) -> None:
         project = self.create_project()
         self.store_event(
             data={

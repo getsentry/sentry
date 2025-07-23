@@ -186,8 +186,7 @@ class ConfigValidator(serializers.Serializer):
 
         # Translate alternative schedule type key
         if isinstance(schedule, dict) and schedule.get("type"):
-            schedule_type = schedule.get("type")
-            schedule_type = SCHEDULE_TYPES.get(schedule_type)
+            schedule_type = SCHEDULE_TYPES.get(schedule["type"])
 
         if schedule_type is None:
             raise ValidationError({"schedule_type": "Missing or invalid schedule type"})

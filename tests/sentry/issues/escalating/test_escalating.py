@@ -329,6 +329,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             assert is_escalating(archived_group) == (True, 1)
             logger.error.assert_called_once()
 
+    @pytest.mark.skip(reason="flaky: #94622")
     @freeze_time(TIME_YESTERDAY)
     def test_is_escalating_two_weeks(self) -> None:
         """

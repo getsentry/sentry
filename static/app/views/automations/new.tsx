@@ -11,12 +11,14 @@ import {
   StickyFooterLabel,
 } from 'sentry/components/workflowEngine/ui/footer';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import EditConnectedMonitors from 'sentry/views/automations/components/editConnectedMonitors';
+import {ConnectMonitorsContent} from 'sentry/views/automations/components/editConnectedMonitors';
 import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
+import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
 
 function AutomationBreadcrumbs() {
   const organization = useOrganization();
@@ -60,9 +62,18 @@ export default function AutomationNew() {
         </StyledLayoutHeader>
         <Layout.Body>
           <Layout.Main fullWidth>
-            <EditConnectedMonitors
-              connectedIds={connectedIds}
-              setConnectedIds={setConnectedIds}
+            <ConnectMonitorsContent
+              initialIds={connectedIds}
+              saveConnectedIds={setConnectedIds}
+              footerContent={
+                <LinkButton
+                  icon={<IconAdd />}
+                  href={makeMonitorCreatePathname(organization.slug)}
+                  external
+                >
+                  {t('Create New Monitor')}
+                </LinkButton>
+              }
             />
           </Layout.Main>
         </Layout.Body>

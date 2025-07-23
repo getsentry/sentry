@@ -32,6 +32,10 @@ from sentry.monitors.clock_dispatch import try_monitor_clock_tick
 from sentry.monitors.constants import PermitCheckInStatus
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.logic.mark_ok import mark_ok
+from sentry.monitors.logic.monitor_environment import (
+    monitor_has_newer_status_affecting_checkins,
+    update_monitor_environment,
+)
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -957,9 +961,13 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
                 # Note: We use `start_time` for received here since it's the time that this
                 # checkin was received by relay. Potentially, `ts` should be the client
                 # timestamp. If we change that, leave `received` the same.
-                mark_failed(check_in, failed_at=start_time, received=start_time)
+                if not monitor_has_newer_status_affecting_checkins(
+                    monitor_environment, check_in.date_added
+                ):
+                    update_monitor_environment(monitor_environment, check_in.date_added, start_time)
+                    mark_failed(check_in, failed_at=start_time, received=start_time)
             else:
-                mark_ok(check_in, succeeded_at=start_time)
+                mark_ok(check_in, start_time)
 
             # track how much time it took for the message to make it through
             # relay into kafka. This should help us understand when missed
@@ -998,7 +1006,7 @@ def process_checkin(item: CheckinItem) -> None:
     Process an individual check-in
     """
     try:
-        with sentry_sdk.start_transaction(
+        with sentry_sdk.start_span(
             op="_process_checkin",
             name="monitors.monitor_consumer",
         ) as txn:
@@ -1068,7 +1076,7 @@ def process_batch(
     metrics.gauge("monitors.checkin.parallel_batch_groups", len(checkin_mapping))
 
     # Submit check-in groups for processing
-    with sentry_sdk.start_transaction(op="process_batch", name="monitors.monitor_consumer"):
+    with sentry_sdk.start_span(op="process_batch", name="monitors.monitor_consumer"):
         futures = [
             executor.submit(process_checkin_group, group) for group in checkin_mapping.values()
         ]
