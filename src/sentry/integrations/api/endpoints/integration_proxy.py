@@ -34,6 +34,8 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
+METRIC_PREFIX = "hybrid_cloud.integration_proxy"
+
 
 @control_silo_endpoint
 class InternalIntegrationProxyEndpoint(Endpoint):
@@ -62,6 +64,9 @@ class InternalIntegrationProxyEndpoint(Endpoint):
     @client.setter
     def client(self, client):
         self._client = client
+
+    def _log_metric(self, metric_name: str, **kwargs):
+        metrics.incr(f"{METRIC_PREFIX}.{metric_name}", **kwargs)
 
     def _validate_sender(self, request: HttpRequest) -> bool:
         """
@@ -109,7 +114,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         )
         if self.org_integration is None:
             logger.info("integration_proxy.invalid_org_integration", extra=self.log_extra)
-            metrics.incr("hybrid_cloud.integration_proxy.failure.invalid_org_integration")
+            self._log_metric("failure.invalid_org_integration")
             return False
         self.log_extra["integration_id"] = self.org_integration.integration_id
 
@@ -118,7 +123,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         if not self.integration or self.integration.status is not ObjectStatus.ACTIVE:
             logger.info("integration_proxy.invalid_integration", extra=self.log_extra)
             if self.integration and self.integration.status is not ObjectStatus.ACTIVE:
-                metrics.incr("hybrid_cloud.integration_proxy.failure.invalid_integration")
+                self._log_metric("failure.invalid_integration")
             return False
 
         # Get the integration client
@@ -150,19 +155,19 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         if not is_correct_silo:
             self.log_extra["silo_mode"] = SiloMode.get_current_mode().value
             logger.info("integration_proxy.incorrect_silo_mode", extra=self.log_extra)
-            metrics.incr("hybrid_cloud.integration_proxy.failure.invalid_mode", sample_rate=1.0)
+            self._log_metric("failure.invalid_mode", sample_rate=1.0)
             return False
 
         is_valid_sender = self._validate_sender(request=request)
         if not is_valid_sender:
             logger.info("integration_proxy.failure.invalid_sender", extra=self.log_extra)
-            metrics.incr("hybrid_cloud.integration_proxy.failure.invalid_sender", sample_rate=1.0)
+            self._log_metric("failure.invalid_sender", sample_rate=1.0)
             return False
 
         is_valid_request = self._validate_request(request=request)
         if not is_valid_request:
             logger.info("integration_proxy.failure.invalid_request", extra=self.log_extra)
-            metrics.incr("hybrid_cloud.integration_proxy.failure.invalid_request", sample_rate=1.0)
+            self._log_metric("failure.invalid_request", sample_rate=1.0)
             return False
         return True
 
@@ -203,7 +208,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         if not self._should_operate(request):
             return HttpResponseBadRequest()
 
-        metrics.incr("hybrid_cloud.integration_proxy.initialize", sample_rate=1.0)
+        self._log_metric("initialize", sample_rate=1.0)
 
         base_url = request.headers.get(PROXY_BASE_URL_HEADER)
         base_url = base_url.rstrip("/")
@@ -214,10 +219,8 @@ class InternalIntegrationProxyEndpoint(Endpoint):
 
         response = self._call_third_party_api(request=request, full_url=full_url, headers=headers)
 
-        metrics.incr(
-            "hybrid_cloud.integration_proxy.complete.response_code",
-            tags={"status": response.status_code},
-            sample_rate=1.0,
+        self._log_metric(
+            "complete.response_code", tags={"status": response.status_code}, sample_rate=1.0
         )
         return response
 
