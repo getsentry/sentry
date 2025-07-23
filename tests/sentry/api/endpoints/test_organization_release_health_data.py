@@ -1765,6 +1765,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         for tag_value, value in (
             ("errored_preaggr", 10),
             ("crashed", 2),
+            ("unhandled", 1),
             ("abnormal", 4),
             ("init", 15),
         ):
@@ -1787,7 +1788,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             interval="1m",
         )
         group = response.data["groups"][0]
-        assert group["totals"]["session.errored"] == 7
+        assert group["totals"]["session.errored"] == 8
         assert group["series"]["session.errored"] == [0, 4, 0, 0, 0, 3]
 
     def test_orderby_composite_entity_derived_metric(self):
@@ -1838,6 +1839,10 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert bar_group["by"]["release"] == "bar"
         assert bar_group["totals"] == {"session.abnormal": 3}
         assert bar_group["series"] == {"session.abnormal": [0, 0, 0, 3, 0, 0]}
+
+    def test_unhandled_sessions(self):
+        # TODO: ryan953
+        pass
 
     def test_crashed_user_sessions(self):
         for tag_value, values in (

@@ -654,6 +654,11 @@ crash_free_metric_alert = {
                 "series": {"sum(session)": [185, 170, 147, 170, 105, 133, 53]},
             },
             {
+                "by": {"session.status": "unhandled"},
+                "totals": {"sum(session)": 0},
+                "series": {"sum(session)": [0, 0, 0, 0, 0, 0, 0]},
+            },
+            {
                 "by": {"session.status": "crashed"},
                 "totals": {"sum(session)": 401},
                 "series": {"sum(session)": [80, 60, 70, 60, 41, 56, 34]},

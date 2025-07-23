@@ -120,11 +120,16 @@ class SessionsField:
             return max(healthy_sessions, 0)
         if status == "abnormal":
             return row["sessions_abnormal"]
+        if status == "unhandled":
+            return row["sessions_unhandled"]
         if status == "crashed":
             return row["sessions_crashed"]
         if status == "errored":
             errored_sessions = (
-                row["sessions_errored"] - row["sessions_crashed"] - row["sessions_abnormal"]
+                row["sessions_errored"]
+                - row["sessions_unhandled"]
+                - row["sessions_crashed"]
+                - row["sessions_abnormal"]
             )
             return max(errored_sessions, 0)
         return 0
@@ -133,7 +138,7 @@ class SessionsField:
 class UsersField:
     def get_snuba_columns(self, raw_groupby):
         if "session.status" in raw_groupby:
-            return ["users", "users_abnormal", "users_crashed", "users_errored"]
+            return ["users", "users_abnormal", "users_crashed", "users_errored", "users_unhandled"]
         return ["users"]
 
     def extract_from_row(self, row, group):
@@ -147,10 +152,17 @@ class UsersField:
             return max(healthy_users, 0)
         if status == "abnormal":
             return row["users_abnormal"]
+        if status == "unhandled":
+            return row["users_unhandled"]
         if status == "crashed":
             return row["users_crashed"]
         if status == "errored":
-            errored_users = row["users_errored"] - row["users_crashed"] - row["users_abnormal"]
+            errored_users = (
+                row["users_errored"]
+                - row["users_crashed"]
+                - row["users_abnormal"]
+                - row["users_unhandled"]
+            )
             return max(errored_users, 0)
         return 0
 

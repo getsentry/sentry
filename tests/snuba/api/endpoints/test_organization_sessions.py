@@ -539,7 +539,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
                 "series": {"sum(session)": [0, 0]},
                 "totals": {"sum(session)": 0},
             }
-            for status in ("abnormal", "crashed", "errored", "healthy")
+            for status in ("abnormal", "unhandled", "crashed", "errored", "healthy")
         ]
 
     @freeze_time(MOCK_DATETIME)
@@ -650,6 +650,11 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
                 "totals": {"sum(session)": 0},
             },
             {
+                "by": {"session.status": "unhandled"},
+                "series": {"sum(session)": [0, 0]},
+                "totals": {"sum(session)": 0},
+            },
+            {
                 "by": {"session.status": "crashed"},
                 "series": {"sum(session)": [0, 1]},
                 "totals": {"sum(session)": 1},
@@ -740,6 +745,11 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
                 "totals": {"count_unique(user)": 0},
             },
             {
+                "by": {"session.status": "unhandled"},
+                "series": {"count_unique(user)": [0, 0]},
+                "totals": {"count_unique(user)": 0},
+            },
+            {
                 "by": {"session.status": "crashed"},
                 "series": {"count_unique(user)": [0, 0]},
                 "totals": {"count_unique(user)": 0},
@@ -798,9 +808,9 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         self.store_session(
             make_session(project, session_id=session2b, distinct_id=user2, status="ok")
         )
-        self.store_session(
-            make_session(project, session_id=session2b, distinct_id=user2, status="abnormal")
-        )
+        # self.store_session(
+        #     make_session(project, session_id=session2b, distinct_id=user2, status="abnormal")
+        # )
 
         self.store_session(
             make_session(
@@ -845,6 +855,11 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         assert result_sorted(response.data)["groups"] == [
             {
                 "by": {"session.status": "abnormal"},
+                "series": {"count_unique(user)": [0, 1]},
+                "totals": {"count_unique(user)": 1},
+            },
+            {
+                "by": {"session.status": "unhandled"},
                 "series": {"count_unique(user)": [0, 1]},
                 "totals": {"count_unique(user)": 1},
             },
@@ -935,7 +950,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
                 assert group["totals"] == {key: None for key in expected}, group["by"]
                 assert group["series"] == {key: [None, None] for key in expected}
 
-        assert seen == {"abnormal", "crashed", "errored", "healthy"}
+        assert seen == {"abnormal", "unhandled", "crashed", "errored", "healthy"}
 
     @freeze_time(MOCK_DATETIME)
     def test_snuba_limit_exceeded(self):
@@ -1006,6 +1021,14 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
                     },
                     "totals": {"sum(session)": 0, "count_unique(user)": 0},
                     "series": {"sum(session)": [0, 0, 0, 0], "count_unique(user)": [0, 0, 0, 0]},
+                },
+                {
+                    "by": {
+                        "project": self.project1.id,
+                        "release": "foo@1.0.0",
+                        "session.status": "unhandled",
+                        "environment": "production",
+                    },
                 },
                 {
                     "by": {

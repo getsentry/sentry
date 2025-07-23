@@ -33,6 +33,8 @@ from sentry.snuba.metrics.fields.snql import (
     session_duration_filters,
     subtraction,
     tolerated_count_transaction,
+    unhandled_sessions,
+    unhandled_users,
     uniq_aggregation_on_metric,
     uniq_if_column_snql,
 )
@@ -66,6 +68,7 @@ class DerivedMetricSnQLTestCase(TestCase):
                     self.org_id: {
                         "abnormal",
                         "crashed",
+                        "unhandled",
                         "errored_preaggr",
                         "errored",
                         "exited",
@@ -98,6 +101,7 @@ class DerivedMetricSnQLTestCase(TestCase):
             ("crashed", crashed_sessions),
             ("errored_preaggr", errored_preaggr_sessions),
             ("abnormal", abnormal_sessions),
+            ("unhandled", unhandled_sessions),
         ]:
             assert func(self.org_id, self.metric_ids, alias=status) == Function(
                 "sumIf",
@@ -129,6 +133,7 @@ class DerivedMetricSnQLTestCase(TestCase):
             ("crashed", crashed_users),
             ("abnormal", abnormal_users),
             ("errored", errored_all_users),
+            ("unhandled", unhandled_users),
         ]:
             assert func(self.org_id, self.metric_ids, alias=status) == Function(
                 "uniqIf",
