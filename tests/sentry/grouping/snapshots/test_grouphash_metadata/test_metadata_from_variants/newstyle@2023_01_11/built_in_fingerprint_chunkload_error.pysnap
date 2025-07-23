@@ -1,5 +1,5 @@
 ---
-created: '2024-11-20T21:26:48.752953+00:00'
+created: '2025-07-18T18:37:12.474851+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -24,5 +24,5 @@ metrics with tags: {
 contributing variants:
   built_in_fingerprint*
     hash: "5d731dcf8ecc4f042eeacf528d8d8da9"
-    info: {"matched_rule":{"attributes":{},"fingerprint":["chunkloaderror"],"is_builtin":true,"matchers":[["family","javascript"],["type","ChunkLoadError"]],"text":"family:\"javascript\" type:\"ChunkLoadError\" -> \"chunkloaderror\""}}
+    fingerprint_info: {"matched_rule":{"attributes":{},"fingerprint":["chunkloaderror"],"is_builtin":true,"matchers":[["family","javascript"],["type","ChunkLoadError"]],"text":"family:\"javascript\" type:\"ChunkLoadError\" -> \"chunkloaderror\""}}
     values: ["chunkloaderror"]
