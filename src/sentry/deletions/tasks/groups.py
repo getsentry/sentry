@@ -75,9 +75,10 @@ def delete_groups(
     )
     has_more = task.chunk()
     if has_more or rest:
+        next_object_ids = object_ids if has_more else rest
         delete_groups.apply_async(
             kwargs={
-                "object_ids": object_ids if has_more else rest,
+                "object_ids": next_object_ids,
                 "transaction_id": transaction_id,
                 "eventstream_state": eventstream_state,
             },
