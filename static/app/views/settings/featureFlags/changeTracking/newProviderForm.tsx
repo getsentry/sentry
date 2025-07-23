@@ -74,7 +74,7 @@ export default function NewProviderForm({
       clearIndicators();
       addSuccessMessage(t('Added provider and secret.'));
       onCreatedSecret(data.secret);
-      onSetProvider(data.provider);
+      onSetProvider(data.provider?.toLowerCase() || '');
       queryClient.invalidateQueries({
         queryKey: makeFetchSecretQueryKey({orgSlug: organization.slug}),
       });
@@ -93,15 +93,16 @@ export default function NewProviderForm({
           responseJSON.provider.length > 0);
 
       if (!hasFieldSpecificErrors) {
-        // General error - pass to parent component
+        // General error - pass to parent component and don't re-throw
         const message =
           responseJSON?.detail ||
           responseJSON?.non_field_errors?.[0] ||
           responseJSON?.nonFieldErrors?.[0] ||
           t('Failed to add provider or secret.');
         onError(message);
+        return; // Don't re-throw general errors
       }
-      // For field-specific errors, we re-throw the error so the Form component can handle them
+      // For field-specific errors, re-throw the error so the Form component can handle them
       throw error;
     },
   });
