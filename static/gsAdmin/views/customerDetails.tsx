@@ -18,6 +18,7 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {
+  fetchMutation,
   setApiQueryData,
   useApiQuery,
   useMutation,
@@ -159,6 +160,20 @@ export default function CustomerDetails() {
       } else {
         addErrorMessage(DEFAULT_ERROR_MESSAGE);
       }
+    },
+  });
+
+  const onGenerateSpikeProjectionsMutation = useMutation({
+    mutationFn: () =>
+      fetchMutation({
+        url: `/_admin/${orgId}/queue-spike-projection/`,
+        method: 'POST',
+      }),
+    onSuccess: () => {
+      addSuccessMessage('Queued spike projection generation task.');
+    },
+    onError: (error: RequestError) => {
+      addErrorMessage(error.message);
     },
   });
 
@@ -691,6 +706,13 @@ export default function CustomerDetails() {
                 spendAllocationEnabled: subscription.spendAllocationEnabled,
                 onUpdated: onToggleSpendAllocation,
               }),
+          },
+          {
+            key: 'generateSpikeProjections',
+            name: 'Generate Spike Projections',
+            help: 'Generate spike projections for all eligible SKUs for all projects for the next 7 days.',
+            disabled: !isBillingAdmin,
+            onAction: () => onGenerateSpikeProjectionsMutation.mutate(),
           },
           {
             key: 'changeGoogleDomain',

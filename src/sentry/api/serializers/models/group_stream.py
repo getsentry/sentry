@@ -278,6 +278,14 @@ class _SeenStatsFunc(Protocol):
     ) -> Mapping[str, Any]: ...
 
 
+class _Filtered(TypedDict):
+    count: str
+    userCount: int
+    firstSeen: datetime | None
+    lastSeen: datetime | None
+    stats: NotRequired[dict[str, Any]]
+
+
 class StreamGroupSerializerSnubaResponse(TypedDict):
     id: str
     # from base response
@@ -319,7 +327,7 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     # from the serializer itself
     stats: NotRequired[dict[str, Any]]
     lifetime: NotRequired[dict[str, Any]]
-    filtered: NotRequired[dict[str, Any] | None]
+    filtered: NotRequired[_Filtered | None]
     sessionCount: NotRequired[int]
     inbox: NotRequired[InboxDetails]
     owners: NotRequired[OwnersSerialized]
@@ -543,7 +551,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             if not self._collapse("filtered"):
                 if self.conditions:
                     seen_stats = self._convert_seen_stats(attrs["filtered"])
-                    filtered = {
+                    filtered: _Filtered = {
                         "count": seen_stats["count"],
                         "userCount": seen_stats["userCount"],
                         "firstSeen": seen_stats["firstSeen"],
