@@ -542,6 +542,7 @@ def get_groups_to_fire(
     return groups_to_fire
 
 
+@sentry_sdk.trace
 def bulk_fetch_events(event_ids: list[str], project: Project) -> dict[str, Event]:
     node_id_to_event_id = {
         Event.generate_node_id(project.id, event_id=event_id): event_id for event_id in event_ids
@@ -565,6 +566,10 @@ def bulk_fetch_events(event_ids: list[str], project: Project) -> dict[str, Event
     return result
 
 
+@metrics.wraps(
+    "workflow_engine.delayed_workflow.get_group_to_groupevent",
+    sample_rate=1.0,
+)
 @sentry_sdk.trace
 def get_group_to_groupevent(
     event_data: EventRedisData,
