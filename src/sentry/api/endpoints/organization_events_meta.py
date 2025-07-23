@@ -23,9 +23,10 @@ from sentry.middleware import is_frontend_request
 from sentry.models.organization import Organization
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.snuba import ourlogs, spans_indexed, spans_metrics, spans_rpc
+from sentry.snuba import spans_indexed, spans_metrics, spans_rpc
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.utils import RPC_DATASETS
 
 
 @region_silo_endpoint
@@ -84,8 +85,8 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
         )
 
         with handle_query_errors():
-            if dataset == spans_rpc:
-                result = spans_rpc.run_table_query(
+            if dataset in RPC_DATASETS:
+                result = dataset.run_table_query(
                     params=snuba_params,
                     query_string=request.query_params.get("query"),
                     selected_columns=["count()"],
@@ -94,20 +95,8 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
                     limit=1,
                     referrer=Referrer.API_ORGANIZATION_EVENTS_META,
                     config=SearchResolverConfig(),
-                    sampling_mode=None,
                 )
 
-                return Response({"count": result["data"][0]["count()"]})
-            elif dataset == ourlogs:
-                result = ourlogs.query(
-                    selected_columns=["count()"],
-                    snuba_params=snuba_params,
-                    query=request.query_params.get("query"),
-                    orderby=None,
-                    offset=0,
-                    limit=1,
-                    referrer=Referrer.API_ORGANIZATION_EVENTS_META,
-                )
                 return Response({"count": result["data"][0]["count()"]})
             else:
                 result = dataset.query(

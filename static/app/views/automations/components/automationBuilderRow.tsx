@@ -22,7 +22,7 @@ export default function AutomationBuilderRow({
   errorMessage,
 }: RowProps) {
   return (
-    <Flex direction="column" gap={space(0.5)}>
+    <Flex direction="column" gap="xs">
       <RowContainer incompatible={hasError}>
         <RowLine>{children}</RowLine>
         <DeleteButton
@@ -34,11 +34,7 @@ export default function AutomationBuilderRow({
           className={'delete-row'}
         />
       </RowContainer>
-      {hasError && errorMessage && (
-        <Alert type={'error'} showIcon>
-          {errorMessage}
-        </Alert>
-      )}
+      {hasError && errorMessage && <Alert type={'error'}>{errorMessage}</Alert>}
     </Flex>
   );
 }

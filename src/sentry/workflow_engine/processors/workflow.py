@@ -432,40 +432,12 @@ def process_workflows(
         # If there aren't any actions on the associated workflows, there's nothing to trigger
         return triggered_workflows
 
-    should_trigger_actions = should_fire_workflow_actions(organization)
+    should_trigger_actions = should_fire_workflow_actions(organization, event_data.group.type)
 
     create_workflow_fire_histories(detector, actions, event_data, should_trigger_actions)
 
-    with sentry_sdk.start_span(op="workflow_engine.process_workflows.trigger_actions"):
-        if should_trigger_actions:
-            for action in actions:
-                task_params = build_trigger_action_task_params(action, detector, event_data)
-                trigger_action.delay(**task_params)
-        else:
-            logger.info(
-                "workflow_engine.triggered_actions",
-                extra={
-                    "action_ids": [action.id for action in actions],
-                    "event_data": asdict(event_data),
-                },
-            )
-            # If the feature flag is not enabled, only send a metric
-            for action in actions:
-                metrics_incr(
-                    "process_workflows.action_triggered",
-                    1,
-                    tags={"action_type": action.type},
-                )
-                logger.debug(
-                    "workflow_engine.action.would-trigger",
-                    extra={
-                        "action_id": action.id,
-                        "event_data": asdict(event_data),
-                    },
-                )
-
-    # in order to check if workflow engine is firing 1:1 with the old system, we must only count once rather than each action
-    if len(actions) > 0:
-        metrics_incr("process_workflows.fired_actions")
+    for action in actions:
+        task_params = build_trigger_action_task_params(action, detector, event_data)
+        trigger_action.delay(**task_params)
 
     return triggered_workflows

@@ -32,6 +32,7 @@ export function MetricDetectorFixture(
     conditionGroup: params.conditionGroup ?? DataConditionGroupFixture(),
     dataSources: params.dataSources ?? [SnubaQueryDataSourceFixture()],
     owner: null,
+    alertRuleId: null,
     ...params,
   };
 }
@@ -110,7 +111,7 @@ export function SnubaQueryDataSourceFixture(
       status: 1,
       subscription: '1',
       snubaQuery: {
-        aggregate: '',
+        aggregate: 'count()',
         dataset: Dataset.ERRORS,
         id: '',
         query: '',

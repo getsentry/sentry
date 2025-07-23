@@ -170,7 +170,6 @@ DETAILED_PROJECT = {
     "scrapeJavaScript": True,
     "groupingConfig": "newstyle:2012-12-31",
     "groupingEnhancements": "",
-    "groupingEnhancementsBase": None,
     "derivedGroupingEnhancements": "",
     "secondaryGroupingExpiry": 1687010243,
     "secondaryGroupingConfig": "newstyle:2012-11-21",
@@ -258,7 +257,6 @@ DETAILED_PROJECT = {
         {"id": "boostReplayId", "active": True},
         {"id": "recalibrationRule", "active": True},
     ],
-    "eventProcessing": {"symbolicationDegraded": False},
     "symbolSources": "[]",
     "tempestFetchScreenshots": False,
     "tempestFetchDumps": False,
@@ -306,7 +304,6 @@ PROJECT_SUMMARY = {
     "hasAccess": True,
     "dateCreated": "2023-03-29T15:25:21.344565Z",
     "environments": ["production"],
-    "eventProcessing": {"symbolicationDegraded": False},
     "features": [
         "alert-filters",
         "custom-inbound-filters",

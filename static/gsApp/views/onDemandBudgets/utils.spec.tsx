@@ -8,11 +8,13 @@ import {
 import {DataCategory} from 'sentry/types/core';
 
 import {OnDemandBudgetMode, type OnDemandBudgets} from 'getsentry/types';
+import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {
   exceedsInvoicedBudgetLimit,
   getOnDemandBudget,
   getTotalBudget,
   parseOnDemandBudgetsFromSubscription,
+  trackOnDemandBudgetAnalytics,
 } from 'getsentry/views/onDemandBudgets/utils';
 
 describe('parseOnDemandBudgetsFromSubscription', function () {
@@ -136,13 +138,6 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
       onDemandBudgets: {
         enabled: true,
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        errorsBudget: 100,
-        transactionsBudget: 200,
-        attachmentsBudget: 300,
-        monitorSeatsBudget: 400,
-        replaysBudget: 0,
-        profileDurationBudget: 0,
-        profileDurationUIBudget: 0,
         budgets: {
           errors: 100,
           transactions: 200,
@@ -152,6 +147,7 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
           uptime: 500,
           profileDuration: 0,
           profileDurationUI: 0,
+          logBytes: 0,
         },
         attachmentSpendUsed: 0,
         errorSpendUsed: 0,
@@ -176,15 +172,6 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
     const ondemandBudgets = parseOnDemandBudgetsFromSubscription(subscription);
     expect(ondemandBudgets).toEqual({
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-      errorsBudget: 100,
-      transactionsBudget: 200,
-      attachmentsBudget: 300,
-      monitorSeatsBudget: 400,
-      uptimeBudget: 500,
-      replaysBudget: 0,
-      profileDurationBudget: 0,
-      profileDurationUIBudget: 0,
-      logBytesBudget: 0,
       budgets: {
         errors: 100,
         transactions: 200,
@@ -194,6 +181,7 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
         uptime: 500,
         profileDuration: 0,
         profileDurationUI: 0,
+        logBytes: 0,
       },
     });
   });
@@ -332,10 +320,6 @@ describe('getTotalBudget', function () {
       onDemandBudgets: {
         enabled: true,
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        errorsBudget: 100,
-        transactionsBudget: 200,
-        attachmentsBudget: 300,
-        replaysBudget: 0,
         budgets: {errors: 100, transactions: 200, attachments: 300, uptime: 400},
         attachmentSpendUsed: 0,
         errorSpendUsed: 0,
@@ -487,15 +471,6 @@ describe('getOnDemandBudget', function () {
   it('returns 0 for category when in per-category mode without explicit budget', function () {
     const budget: OnDemandBudgets = {
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-      errorsBudget: 100,
-      transactionsBudget: 200,
-      attachmentsBudget: 300,
-      replaysBudget: 0,
-      monitorSeatsBudget: 0,
-      profileDurationBudget: 0,
-      profileDurationUIBudget: 0,
-      uptimeBudget: 0,
-      logBytesBudget: 0,
       budgets: {
         errors: 100,
         transactions: 200,
@@ -514,15 +489,6 @@ describe('getOnDemandBudget', function () {
   it('returns correct value for LOG_BYTE category when in per-category mode with explicit budget', function () {
     const budget: OnDemandBudgets = {
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-      errorsBudget: 100,
-      transactionsBudget: 200,
-      attachmentsBudget: 300,
-      replaysBudget: 0,
-      monitorSeatsBudget: 0,
-      profileDurationBudget: 0,
-      profileDurationUIBudget: 0,
-      uptimeBudget: 0,
-      logBytesBudget: 500,
       budgets: {
         errors: 100,
         transactions: 200,
@@ -546,5 +512,171 @@ describe('getOnDemandBudget', function () {
     };
 
     expect(getOnDemandBudget(budget, DataCategory.LOG_BYTE)).toBe(1000);
+  });
+});
+
+jest.mock('getsentry/utils/trackGetsentryAnalytics');
+describe('trackOnDemandBudgetAnalytics', function () {
+  const organization = OrganizationFixture();
+  const sharedBudget1: OnDemandBudgets = {
+    budgetMode: OnDemandBudgetMode.SHARED,
+    sharedMaxBudget: 1000,
+  };
+  const sharedBudget2: OnDemandBudgets = {
+    budgetMode: OnDemandBudgetMode.SHARED,
+    sharedMaxBudget: 2000,
+  };
+  const perCategoryBudget1: OnDemandBudgets = {
+    budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+    budgets: {
+      errors: 10,
+      transactions: 20,
+      attachments: 30,
+      replays: 40,
+      monitorSeats: 50,
+      profileDuration: 60,
+      profileDurationUI: 70,
+      uptime: 80,
+      logBytes: 90,
+    },
+  };
+  const perCategoryBudget1Total = 10 + 20 + 30 + 40 + 50 + 60 + 70 + 80 + 90;
+  const perCategoryBudget2: OnDemandBudgets = {
+    budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+    budgets: {
+      errors: 1,
+      transactions: 2,
+      attachments: 3,
+      replays: 4,
+      monitorSeats: 5,
+      profileDuration: 6,
+      profileDurationUI: 7,
+      uptime: 8,
+      logBytes: 9,
+    },
+  };
+  const perCategoryBudget2Total = 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9;
+
+  it('tracks shared to shared on-demand budget update', function () {
+    trackOnDemandBudgetAnalytics(organization, sharedBudget1, sharedBudget2);
+
+    expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
+      'ondemand_budget_modal.ondemand_budget.update',
+      {
+        organization,
+        previous_strategy: OnDemandBudgetMode.SHARED,
+        previous_total_budget: 1000,
+        strategy: OnDemandBudgetMode.SHARED,
+        total_budget: 2000,
+      }
+    );
+  });
+  it('tracks per-category to per-category on-demand budget update', function () {
+    trackOnDemandBudgetAnalytics(organization, perCategoryBudget1, perCategoryBudget2);
+
+    expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
+      'ondemand_budget_modal.ondemand_budget.update',
+      {
+        organization,
+        previous_strategy: OnDemandBudgetMode.PER_CATEGORY,
+        previous_total_budget: perCategoryBudget1Total,
+        strategy: OnDemandBudgetMode.PER_CATEGORY,
+        total_budget: perCategoryBudget2Total,
+        error_budget: 1,
+        transaction_budget: 2,
+        attachment_budget: 3,
+        replay_budget: 4,
+        monitor_seat_budget: 5,
+        profile_duration_budget: 6,
+        profile_duration_ui_budget: 7,
+        uptime_budget: 8,
+        log_byte_budget: 9,
+        previous_error_budget: 10,
+        previous_transaction_budget: 20,
+        previous_attachment_budget: 30,
+        previous_replay_budget: 40,
+        previous_monitor_seat_budget: 50,
+        previous_profile_duration_budget: 60,
+        previous_profile_duration_ui_budget: 70,
+        previous_uptime_budget: 80,
+        previous_log_byte_budget: 90,
+      }
+    );
+  });
+
+  it('tracks shared to per-category on-demand budget update', function () {
+    trackOnDemandBudgetAnalytics(organization, sharedBudget1, perCategoryBudget1);
+
+    expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
+      'ondemand_budget_modal.ondemand_budget.update',
+      {
+        organization,
+        previous_strategy: OnDemandBudgetMode.SHARED,
+        previous_total_budget: 1000,
+        strategy: OnDemandBudgetMode.PER_CATEGORY,
+        total_budget: perCategoryBudget1Total,
+        error_budget: 10,
+        transaction_budget: 20,
+        attachment_budget: 30,
+        replay_budget: 40,
+        monitor_seat_budget: 50,
+        profile_duration_budget: 60,
+        profile_duration_ui_budget: 70,
+        uptime_budget: 80,
+        log_byte_budget: 90,
+      }
+    );
+  });
+
+  it('tracks per-category to shared on-demand budget update', function () {
+    trackOnDemandBudgetAnalytics(organization, perCategoryBudget1, sharedBudget1);
+
+    expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
+      'ondemand_budget_modal.ondemand_budget.update',
+      {
+        organization,
+        previous_strategy: OnDemandBudgetMode.PER_CATEGORY,
+        previous_total_budget: perCategoryBudget1Total,
+        strategy: OnDemandBudgetMode.SHARED,
+        total_budget: 1000,
+        previous_error_budget: 10,
+        previous_transaction_budget: 20,
+        previous_attachment_budget: 30,
+        previous_replay_budget: 40,
+        previous_monitor_seat_budget: 50,
+        previous_profile_duration_budget: 60,
+        previous_profile_duration_ui_budget: 70,
+        previous_uptime_budget: 80,
+        previous_log_byte_budget: 90,
+      }
+    );
+  });
+
+  it('tracks shared budget being turned off', function () {
+    trackOnDemandBudgetAnalytics(organization, sharedBudget1, {
+      budgetMode: OnDemandBudgetMode.SHARED,
+      sharedMaxBudget: 0,
+    });
+
+    expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
+      'ondemand_budget_modal.ondemand_budget.turned_off',
+      {
+        organization,
+      }
+    );
+  });
+
+  it('tracks per-category budget being turned off', function () {
+    trackOnDemandBudgetAnalytics(organization, perCategoryBudget1, {
+      budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+      budgets: {},
+    });
+
+    expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
+      'ondemand_budget_modal.ondemand_budget.turned_off',
+      {
+        organization,
+      }
+    );
   });
 });

@@ -37,24 +37,24 @@ BASE_STRATEGY = create_strategy_configuration_class(
         # strategy.
         "is_recursion": False,
         # This turns on the automatic message trimming and parameter substitution
-        # by the message strategy.
-        "normalize_message": False,
-        # newstyle: turns on some javascript fuzzing features.
-        "javascript_fuzzing": False,
-        # newstyle: platforms for which context line should be taken into
+        # by the message strategy. (Only still configurable so it can be turned off in tests.)
+        "normalize_message": True,
+        # Turns on some javascript fuzzing features.
+        "javascript_fuzzing": True,
+        # Platforms for which context line should be taken into
         # account when grouping.
-        "contextline_platforms": (),
-        # newstyle: this detects anonymous classes in PHP code.
-        "php_detect_anonymous_classes": False,
-        # newstyle: turns on a bug that was present in some variants
+        "contextline_platforms": ("javascript", "node", "python", "php", "ruby"),
+        # This detects anonymous classes in PHP code.
+        "php_detect_anonymous_classes": True,
+        # Turns on a bug that was present in some variants
         "with_context_line_file_origin_bug": False,
-        # newstyle: turns on falling back to exception values when there
+        # Turns on falling back to exception values when there
         # is no stacktrace.
-        "with_exception_value_fallback": False,
+        "with_exception_value_fallback": True,
         # Stacktrace is produced in the context of this exception
         "exception_data": None,
         # replaces generated IDs in Java stack frames related to CGLIB and hibernate
-        "java_cglib_hibernate_logic": False,
+        "java_cglib_hibernate_logic": True,
     },
 )
 
@@ -69,63 +69,10 @@ def register_strategy_config(id: str, **kwargs) -> type[StrategyConfiguration]:
     return strategy_class
 
 
-# Legacy groupings
-#
-# These we do not plan on changing much, but bugfixes here might still go
-# into new grouping versions.
-
-register_strategy_config(
-    id="legacy:2019-03-12",
-    strategies=[
-        "threads:legacy",
-        "stacktrace:legacy",
-        "chained-exception:legacy",
-    ],
-    delegates=["frame:legacy", "stacktrace:legacy", "single-exception:legacy"],
-    changelog="""
-        * Traditional grouping algorithm
-        * Some known weaknesses with regards to grouping of native frames
-    """,
-    initial_context={
-        "normalize_message": False,
-    },
-    enhancements_base="legacy:2019-03-12",
-)
-
-# Simple newstyle grouping
-#
-# This is a grouping strategy that applies very simple rules and will
-# become the new default at one point.  Optimized for native and
-# javascript but works for all platforms.
-register_strategy_config(
-    id="newstyle:2019-05-08",
-    risk=RISK_LEVEL_HIGH,
-    changelog="""
-        * Uses source code information all platforms with reliable sources
-          for grouping (JavaScript, Python, PHP and Ruby) and function
-          names and filenames otherwise.
-        * Fallback grouping applies clean-up logic on exception messages
-          (numbers, uuids, email addresses and others are removed)
-        * JavaScript stacktraces are better deduplicated across browser
-          versions yielding a higher chance of these grouping together.
-        * JavaScript stacktraces involving source maps are likely to group
-          better.
-        * C/C++ and other native stacktraces are more reliably grouped.
-    """,
-    initial_context={
-        "javascript_fuzzing": True,
-        "contextline_platforms": ("javascript", "node", "python", "php", "ruby"),
-        "with_context_line_file_origin_bug": True,
-        "normalize_message": True,
-        "with_exception_value_fallback": True,
-    },
-    enhancements_base="common:2019-03-23",
-)
-
-# This is the grouping strategy used for new projects.
 register_strategy_config(
     id="newstyle:2023-01-11",
-    base="newstyle:2019-05-08",
+    # There's no `base` argument here because this config is based on `BASE_STRATEGY`. To base a
+    # config on a previous config, include its `id` value as the value for `base` here.
     risk=RISK_LEVEL_HIGH,
     changelog="""
         * Better rules for when to take context lines into account for
@@ -136,11 +83,11 @@ register_strategy_config(
           This includes JavaScript, Python, PHP, Go, Java and Kotlin.
         * Added ChukloadErrors via new built-in fingerprinting support.
     """,
-    initial_context={
-        "php_detect_anonymous_classes": True,
-        "with_context_line_file_origin_bug": False,
-        "java_cglib_hibernate_logic": True,
-    },
+    # There's nothing in the initial context because this config uses all the default values. If we
+    # change grouping behavior in a future config, it should be gated by a config feature, that
+    # feature should be defaulted to False in the base config, and then the `initial_context` in the
+    # new config is where we'd flip it to True.
+    initial_context={},
     enhancements_base="newstyle:2023-01-11",
     fingerprinting_bases=["javascript@2024-02-02"],
 )

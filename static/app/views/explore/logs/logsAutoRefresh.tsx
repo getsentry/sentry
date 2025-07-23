@@ -1,293 +1,109 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
-import isEqual from 'lodash/isEqual';
+import {Fragment, type ReactNode, useEffect} from 'react';
 
 import {Switch} from 'sentry/components/core/switch';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
+import {
+  type AutoRefreshState,
+  useLogsAutoRefresh,
+  useLogsAutoRefreshEnabled,
+  useSetLogsAutoRefresh,
+} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   useLogsAnalyticsPageSource,
-  useLogsAutoRefresh,
-  useLogsGroupBy,
-  useLogsRefreshInterval,
+  useLogsMode,
   useLogsSortBys,
-  useSetLogsAutoRefresh,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {AutoRefreshLabel} from 'sentry/views/explore/logs/styles';
-import {
-  checkSortIsTimeBasedDescending,
-  parseLinkHeaderFromLogsPage,
-} from 'sentry/views/explore/logs/utils';
+import {useLogsAutoRefreshInterval} from 'sentry/views/explore/logs/useLogsAutoRefreshInterval';
+import {checkSortIsTimeBasedDescending} from 'sentry/views/explore/logs/utils';
 
-const ABSOLUTE_MAX_AUTO_REFRESH_TIME_MS = 1000 * 60 * 10; // 10 minutes absolute max
-const CONSECUTIVE_PAGES_WITH_MORE_DATA = 3; // Number of consecutive requests with more data before disabling
+const MAX_LOGS_PER_SECOND = 100; // Rate limit for initial check
 
-type DisableReason = 'sort' | 'timeout' | 'rateLimit' | 'error';
-
-const SWITCH_DISABLE_REASONS: DisableReason[] = ['sort'];
+type PreFlightDisableReason =
+  | 'sort' // Wrong sort order
+  | 'absolute_time' // Using absolute date range
+  | 'aggregates' // In aggregates view
+  | 'rate_limit_initial' // Too many logs per second
+  | 'initial_error'; // Initial table query errored
 
 interface AutorefreshToggleProps {
+  averageLogsPerSecond?: number | null;
   disabled?: boolean;
 }
 
+/**
+ * Toggle control for the logs auto-refresh feature.
+ *
+ * Auto-refresh uses two types of state:
+ * - Pre-flight conditions (PreFlightDisableReason): Checked locally before enabling, prevents toggle activation
+ * - Runtime state (AutoRefreshState): Stored in URL params, tracks active refresh status and failures
+ *
+ * Preflight conditions don't disable autorefresh when values change (eg. sort changes), it's assumed all preflight conditions
+ * should be handled via logs page params resetting autorefresh state meaning future values will be checked again before the toggle can be re-enabled.
+ */
 export function AutorefreshToggle({
   disabled: externallyDisabled,
+  averageLogsPerSecond = 0,
 }: AutorefreshToggleProps) {
   const organization = useOrganization();
   const analyticsPageSource = useLogsAnalyticsPageSource();
-  const checked = useLogsAutoRefresh();
-  const setChecked = useSetLogsAutoRefresh();
+  const {autoRefresh} = useLogsAutoRefresh();
+  const autorefreshEnabled = useLogsAutoRefreshEnabled();
+  const setAutorefresh = useSetLogsAutoRefresh();
   const sortBys = useLogsSortBys();
-  const groupBy = useLogsGroupBy();
+  const mode = useLogsMode();
   const {selection} = usePageFilters();
-  const previousSelection = usePrevious(selection);
-  const previousGroupBy = usePrevious(groupBy);
-  const refreshInterval = useLogsRefreshInterval();
+  const selectionString = JSON.stringify(selection);
+  const previousSelection = usePrevious(selectionString);
   const {infiniteLogsQueryResult} = useLogsPageData();
-  const {fetchPreviousPage, isError} = infiniteLogsQueryResult;
+  const {isError, fetchPreviousPage} = infiniteLogsQueryResult;
 
-  const sortBysString = JSON.stringify(sortBys);
-  const previousSortBysString = usePrevious(sortBysString);
+  useLogsAutoRefreshInterval({
+    fetchPreviousPage: () => fetchPreviousPage() as any,
+    isError,
+  });
 
-  const [disableReason, setDisableReason] = useState<DisableReason | undefined>(
-    undefined
-  );
-
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const intervalStartTime = useRef(Date.now());
-  const isPausedRef = useRef(false);
-  const isRefreshRunningRef = useRef(false);
-  const consecutivePagesWithMoreDataRef = useRef(0);
-
-  const statsPeriod = selection.datetime.period;
-  const isDescendingTimeBasedSort = checkSortIsTimeBasedDescending(sortBys);
-  const enabled =
-    isDescendingTimeBasedSort && checked && defined(statsPeriod) && !externallyDisabled;
-
-  // Disable auto-refresh if anything in the selection changes
+  // Changing selection should disable autorefresh
   useEffect(() => {
-    const selectionChanged = !isEqual(previousSelection, selection);
-    if (selectionChanged) {
-      setChecked(false);
+    if (previousSelection !== selectionString) {
+      setAutorefresh('idle');
     }
-  }, [selection, previousSelection, setChecked]);
+  }, [selectionString, previousSelection, setAutorefresh]);
 
-  // Disable auto-refresh if the group-by changes
-  useEffect(() => {
-    if (groupBy && groupBy !== previousGroupBy) {
-      setChecked(false);
-    }
-  }, [groupBy, previousGroupBy, setChecked]);
+  const hasAbsoluteDates = Boolean(selection.datetime.start && selection.datetime.end);
 
-  // Reset disableReason when sort bys change
-  useEffect(() => {
-    if (previousSortBysString && sortBysString !== previousSortBysString) {
-      setDisableReason(isDescendingTimeBasedSort ? undefined : 'sort');
-    }
-  }, [sortBysString, previousSortBysString, isDescendingTimeBasedSort]);
+  const preFlightDisableReason = getPreFlightDisableReason({
+    sortBys,
+    hasAbsoluteDates,
+    mode,
+    averageLogsPerSecond,
+    initialIsError: isError,
+  });
 
-  // Disable auto-refresh when externally disabled
-  useEffect(() => {
-    if (externallyDisabled && checked) {
-      setChecked(false);
-    }
-  }, [externallyDisabled, checked, setChecked]);
-
-  useEffect(() => {
-    if (isError && enabled) {
-      setDisableReason('error');
-      setChecked(false);
-    }
-  }, [isError, enabled, setChecked]);
-
-  const shouldPauseForVisibility = useCallback((): boolean => {
-    if (document.visibilityState === 'hidden') {
-      isPausedRef.current = true;
-      return true;
-    }
-    isPausedRef.current = false;
-    return false;
-  }, []);
-
-  const shouldDisableForTimeout = useCallback((): boolean => {
-    const timeSinceStart = Date.now() - intervalStartTime.current;
-
-    // Check if we've exceeded the absolute max timeout
-    const hasTimedOut = timeSinceStart > ABSOLUTE_MAX_AUTO_REFRESH_TIME_MS;
-
-    if (hasTimedOut) {
-      trackAnalytics('logs.auto_refresh.timeout', {
-        organization,
-        page_source: analyticsPageSource,
-      });
-    }
-
-    return hasTimedOut;
-  }, [organization, analyticsPageSource]);
-
-  // Our querying is currently at 5000 max logs per page, and our default refresh interval is 5 seconds.
-  // This means each page if at it's max logs, we're getting 1000 logs per second.
-  // We check if this is happening 3 times in a row, and if so, we disable auto-refresh since our rate limit is 1k/s and we're exceeding it.
-  const shouldDisableForRateLimit = useCallback((pageResult: any): boolean => {
-    const parsed = parseLinkHeaderFromLogsPage(pageResult);
-
-    if (parsed.next?.results) {
-      consecutivePagesWithMoreDataRef.current++;
-
-      if (consecutivePagesWithMoreDataRef.current >= CONSECUTIVE_PAGES_WITH_MORE_DATA) {
-        consecutivePagesWithMoreDataRef.current = 0;
-        return true;
-      }
-    } else {
-      consecutivePagesWithMoreDataRef.current = 0;
-    }
-
-    return false;
-  }, []);
-
-  const fetchPageWithRateLimitCheck = useCallback(async (): Promise<void> => {
-    if (shouldPauseForVisibility()) {
-      return;
-    }
-
-    let previousPage: any;
-    try {
-      previousPage = await fetchPreviousPage();
-    } catch (error) {
-      // Handle network errors or other exceptions
-      setDisableReason('error');
-      setChecked(false);
-      return;
-    }
-
-    if (!previousPage) {
-      // This can happen if the fetchPreviousPage call is stale (it returns promise.resolve())
-      return;
-    }
-
-    // Check if the response indicates an error
-    if (previousPage.status === 'error' || previousPage.isError) {
-      setDisableReason('error');
-      setChecked(false);
-      return;
-    }
-
-    // Check rate limit using the pageResult we just fetched
-    if (shouldDisableForRateLimit(previousPage)) {
-      setDisableReason('rateLimit');
-      setChecked(false);
-      return;
-    }
-  }, [
-    shouldPauseForVisibility,
-    fetchPreviousPage,
-    shouldDisableForRateLimit,
-    setChecked,
-  ]);
-
-  // Set up the refresh interval
-  useEffect(() => {
-    if (enabled) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-
-      isPausedRef.current = false;
-      isRefreshRunningRef.current = false;
-      intervalStartTime.current = Date.now();
-      consecutivePagesWithMoreDataRef.current = 0;
-
-      const executeRefresh = async () => {
-        if (isRefreshRunningRef.current) {
-          return;
-        }
-
-        isRefreshRunningRef.current = true;
-
-        try {
-          if (shouldDisableForTimeout()) {
-            setDisableReason('timeout');
-            setChecked(false);
-            return;
-          }
-
-          await fetchPageWithRateLimitCheck();
-        } finally {
-          isRefreshRunningRef.current = false;
-        }
-      };
-
-      executeRefresh();
-      intervalRef.current = setInterval(executeRefresh, refreshInterval);
-    } else {
-      // Clean up interval when disabled
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-
-      // Reset running state and counters
-      isRefreshRunningRef.current = false;
-      consecutivePagesWithMoreDataRef.current = 0;
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-      isRefreshRunningRef.current = false;
-      consecutivePagesWithMoreDataRef.current = 0;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, refreshInterval]);
-
-  const getTooltipMessage = (): string => {
-    if (externallyDisabled) {
-      return t('Auto-refresh is not available in the aggregates view.');
-    }
-    switch (disableReason) {
-      case 'rateLimit':
-        return t(
-          'Auto-refresh was disabled due to high data volume. Try adding a filter to reduce the number of logs.'
-        );
-      case 'timeout':
-        return t(
-          'Auto-refresh was disabled due to reaching the absolute max auto-refresh time of 10 minutes. Re-enable to continue.'
-        );
-      case 'error':
-        return t(
-          'Auto-refresh was disabled due to an error fetching logs. If the issue persists, please contact support.'
-        );
-      case 'sort':
-      default:
-        return t(
-          'Auto-refresh is only supported when sorting by time in descending order and using a relative time period.'
-        );
-    }
-  };
+  const isToggleDisabled = !!preFlightDisableReason || externallyDisabled;
+  const tooltipReason =
+    (autoRefresh !== 'idle' && autoRefresh !== 'enabled' ? autoRefresh : null) ||
+    preFlightDisableReason;
 
   return (
     <Fragment>
       <AutoRefreshLabel>
         <Tooltip
-          title={getTooltipMessage()}
-          disabled={disableReason === undefined && !externallyDisabled}
+          title={getTooltipMessage(tooltipReason, externallyDisabled)}
+          disabled={!tooltipReason && !externallyDisabled}
           skipWrapper
         >
           <Switch
-            disabled={
-              externallyDisabled ||
-              (disableReason && SWITCH_DISABLE_REASONS.includes(disableReason))
-            }
-            checked={checked}
+            disabled={isToggleDisabled}
+            checked={autorefreshEnabled}
             onChange={() => {
-              const newChecked = !checked;
+              const newChecked = !autorefreshEnabled;
 
               trackAnalytics('logs.auto_refresh.toggled', {
                 enabled: newChecked,
@@ -295,11 +111,11 @@ export function AutorefreshToggle({
                 page_source: analyticsPageSource,
               });
 
-              if (!checked) {
-                // When enabling auto-refresh, reset the disable reason
-                setDisableReason(undefined);
+              if (newChecked) {
+                setAutorefresh('enabled');
+              } else {
+                setAutorefresh('idle');
               }
-              setChecked(newChecked);
             }}
           />
         </Tooltip>
@@ -307,4 +123,80 @@ export function AutorefreshToggle({
       </AutoRefreshLabel>
     </Fragment>
   );
+}
+
+function getPreFlightDisableReason({
+  sortBys,
+  hasAbsoluteDates,
+  mode,
+  averageLogsPerSecond,
+  initialIsError,
+}: {
+  hasAbsoluteDates: boolean;
+  mode: string;
+  sortBys: ReturnType<typeof useLogsSortBys>;
+  averageLogsPerSecond?: number | null;
+  initialIsError?: boolean;
+}): PreFlightDisableReason | null {
+  if (mode === 'aggregates') {
+    return 'aggregates';
+  }
+  if (!checkSortIsTimeBasedDescending(sortBys)) {
+    return 'sort';
+  }
+  if (hasAbsoluteDates) {
+    return 'absolute_time';
+  }
+  if (averageLogsPerSecond && averageLogsPerSecond > MAX_LOGS_PER_SECOND) {
+    return 'rate_limit_initial';
+  }
+  if (initialIsError) {
+    return 'initial_error';
+  }
+  return null;
+}
+
+function getTooltipMessage(
+  reason: PreFlightDisableReason | AutoRefreshState | null,
+  externallyDisabled?: boolean
+): ReactNode {
+  if (externallyDisabled) {
+    return t('Auto-refresh is not available in the aggregates view.');
+  }
+
+  switch (reason) {
+    case 'rate_limit_initial':
+      return tct(
+        'Auto-refresh is disabled due to high data volume ([maxLogsPerSecond] logs per second). Try adding a filter to reduce the number of logs.',
+        {maxLogsPerSecond: MAX_LOGS_PER_SECOND}
+      );
+    case 'rate_limit':
+      return t(
+        'Auto-refresh was disabled due to high data volume. Try adding a filter to reduce the number of logs.'
+      );
+    case 'timeout':
+      return t(
+        'Auto-refresh was disabled due to reaching the absolute max auto-refresh time of 10 minutes. Re-enable to continue.'
+      );
+    case 'error':
+      return t(
+        'Auto-refresh was disabled due to an error fetching logs. If the issue persists, please contact support.'
+      );
+    case 'absolute_time':
+      return t(
+        'Auto-refresh is only supported when using a relative time period, not absolute dates.'
+      );
+    case 'sort':
+      return t(
+        'Auto-refresh is only supported when sorting by time in descending order and using a relative time period.'
+      );
+    case 'aggregates':
+      return t('Auto-refresh is not available in the aggregates view.');
+    case 'initial_error':
+      return t(
+        'Auto-refresh is not available due to an error fetching logs. If the issue persists, please contact support.'
+      );
+    default:
+      return null;
+  }
 }

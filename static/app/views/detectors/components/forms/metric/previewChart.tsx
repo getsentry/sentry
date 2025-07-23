@@ -1,12 +1,16 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {t} from 'sentry/locale';
 import {MetricDetectorChart} from 'sentry/views/detectors/components/forms/metric/metricDetectorChart';
 import {
   createConditions,
+  getBackendDataset,
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {useTimePeriodSelection} from 'sentry/views/detectors/hooks/useTimePeriodSelection';
 
 export function MetricDetectorPreviewChart() {
   // Get all the form fields needed for the chart
@@ -32,12 +36,20 @@ export function MetricDetectorPreviewChart() {
   const initialPriorityLevel = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel
   );
-  const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
+  const detectionType = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.detectionType
+  );
+
+  const {selectedTimePeriod, setSelectedTimePeriod, timePeriodOptions} =
+    useTimePeriodSelection({
+      dataset: getBackendDataset(dataset),
+      interval,
+    });
 
   // Create condition group from form data using the helper function
   const conditions = useMemo(() => {
     // Wait for a condition value to be defined
-    if (kind === 'static' && !conditionValue) {
+    if (detectionType === 'static' && !conditionValue) {
       return [];
     }
 
@@ -47,7 +59,7 @@ export function MetricDetectorPreviewChart() {
       initialPriorityLevel,
       highThreshold,
     });
-  }, [conditionType, conditionValue, initialPriorityLevel, highThreshold, kind]);
+  }, [conditionType, conditionValue, initialPriorityLevel, highThreshold, detectionType]);
 
   return (
     <ChartContainer>
@@ -59,13 +71,34 @@ export function MetricDetectorPreviewChart() {
         environment={environment}
         projectId={projectId}
         conditions={conditions}
-        detectionType={kind}
+        detectionType={detectionType}
+        statsPeriod={selectedTimePeriod}
       />
+      <ChartFooter>
+        <CompactSelect
+          size="sm"
+          options={timePeriodOptions}
+          value={selectedTimePeriod}
+          onChange={opt => setSelectedTimePeriod(opt.value)}
+          triggerProps={{
+            borderless: true,
+            prefix: t('Display'),
+          }}
+        />
+      </ChartFooter>
     </ChartContainer>
   );
 }
 
 const ChartContainer = styled('div')`
   max-width: 1440px;
+  border-top: 1px solid ${p => p.theme.border};
+`;
+
+const ChartFooter = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: ${p => `${p.theme.space.sm} 0`};
   border-top: 1px solid ${p => p.theme.border};
 `;

@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta, timezone
 
-import pytest
 from django.utils.timezone import now
 
 from sentry.models.group import GroupStatus
@@ -15,7 +14,6 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 class TeamIssueBreakdownTest(APITestCase):
     endpoint = "sentry-api-0-team-all-unresolved-issues"
 
-    @pytest.mark.xfail(reason="flakey")
     def test_status_format(self):
         project1 = self.create_project(teams=[self.team])
         group1_1 = self.create_group(project=project1, first_seen=before_now(days=40))
@@ -157,6 +155,24 @@ class TeamIssueBreakdownTest(APITestCase):
             group=group3_1, date_added=before_now(days=4), status=GroupHistoryStatus.RESOLVED
         )
 
+        # Test that we don't double-count creation if first GroupHistory row is "open"
+        # If error, should see index 0 incorrectly report 0 open issues
+        project4 = self.create_project(teams=[self.team])
+        group4_1 = self.create_group(
+            project=project4, first_seen=before_now(days=40), status=GroupStatus.UNRESOLVED
+        )
+        GroupAssignee.objects.assign(group4_1, self.user)
+        group4_2 = self.create_group(
+            project=project4, first_seen=before_now(days=5), status=GroupStatus.RESOLVED
+        )
+        GroupAssignee.objects.assign(group4_2, self.user)
+        self.create_group_history(
+            group=group4_2, date_added=before_now(days=3), status=GroupHistoryStatus.UNRESOLVED
+        )
+        self.create_group_history(
+            group=group4_2, date_added=before_now(days=1), status=GroupHistoryStatus.RESOLVED
+        )
+
         self.login_as(user=self.user)
         response = self.get_success_response(
             self.team.organization.slug, self.team.slug, statsPeriod="7d"
@@ -175,6 +191,7 @@ class TeamIssueBreakdownTest(APITestCase):
         compare_response(response, project1, [3, 3, 3, 4, 4, 5, 5])
         compare_response(response, project2, [0, 1, 0, 1, 0, 1, 0])
         compare_response(response, project3, [0, 1, 0, 0, 0, 0, 0])
+        compare_response(response, project4, [1, 2, 2, 2, 2, 1, 1])
 
     def test_status_format_with_environment(self):
         project1 = self.create_project(teams=[self.team])

@@ -17,7 +17,11 @@ import {Flex} from 'sentry/components/core/layout';
 import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
-import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
+import type {SeerRepoDefinition} from 'sentry/components/events/autofix/types';
+import {
+  GuidedSteps,
+  useGuidedStepsContext,
+} from 'sentry/components/guidedSteps/guidedSteps';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -46,6 +50,7 @@ import {
 type ProjectState = {
   isPending: boolean;
   preference: any;
+  codeMappingRepos?: SeerRepoDefinition[];
 };
 
 type ProjectStateMap = Record<string, ProjectState>;
@@ -77,8 +82,8 @@ function filterProjectsWithAccess(projects: Project[], organization: any) {
 function ProjectRow({onClick, project}: {onClick: () => void; project: Project}) {
   return (
     <ClickablePanelItem onClick={onClick}>
-      <Flex align="center" gap={space(1)} justify="space-between" flex={1}>
-        <Flex align="center" gap={space(1)}>
+      <Flex align="center" gap="md" justify="space-between" flex={1}>
+        <Flex align="center" gap="md">
           <ProjectAvatar project={project} title={project.slug} />
           <ProjectName>{project.slug}</ProjectName>
         </Flex>
@@ -98,7 +103,11 @@ function ProjectRowWithUpdate({
 }: {
   isFetchingRepositories: boolean;
   onSuccess: (projectId: string) => void;
-  onUpdateProjectState: (projectId: string, preference: any) => void;
+  onUpdateProjectState: (
+    projectId: string,
+    preference: any,
+    codeMappingRepos?: SeerRepoDefinition[]
+  ) => void;
   project: Project;
   projectStates: ProjectStateMap;
   repositories: any[];
@@ -155,14 +164,19 @@ function ProjectPreferenceLoader({
   project,
   onUpdate,
 }: {
-  onUpdate: (project: Project, preference: any, isPending: boolean) => void;
+  onUpdate: (
+    project: Project,
+    preference: any,
+    isPending: boolean,
+    codeMappingRepos?: SeerRepoDefinition[]
+  ) => void;
   project: Project;
 }) {
-  const {preference, isPending} = useProjectSeerPreferences(project);
+  const {preference, isPending, codeMappingRepos} = useProjectSeerPreferences(project);
 
   useEffect(() => {
-    onUpdate(project, preference, isPending);
-  }, [project, preference, isPending, onUpdate]);
+    onUpdate(project, preference, isPending, codeMappingRepos);
+  }, [project, preference, isPending, onUpdate, codeMappingRepos]);
 
   return null;
 }
@@ -172,7 +186,12 @@ function ProjectsWithoutRepos({
   onProjectStateUpdate,
   projects,
 }: {
-  onProjectStateUpdate: (project: Project, preference: any, isPending: boolean) => void;
+  onProjectStateUpdate: (
+    project: Project,
+    preference: any,
+    isPending: boolean,
+    codeMappingRepos?: SeerRepoDefinition[]
+  ) => void;
   onProjectSuccess: (projectId: string) => void;
   projects: Project[];
 }) {
@@ -184,16 +203,43 @@ function ProjectsWithoutRepos({
     new Set<string>()
   );
   const [searchQuery, setSearchQuery] = useState('');
+  const [projectsWithoutReposCount, setProjectsWithoutReposCount] = useState(0);
 
   const handleProjectUpdate = useCallback(
-    (project: Project, preference: any, isPending: boolean) => {
-      setProjectStates(prev => ({
-        ...prev,
-        [project.id]: {preference, isPending},
-      }));
-      onProjectStateUpdate(project, preference, isPending);
+    (
+      project: Project,
+      preference: any,
+      isPending: boolean,
+      codeMappingRepos?: SeerRepoDefinition[]
+    ) => {
+      setProjectStates(prev => {
+        const prevState = prev[project.id];
+        const newState = {
+          ...prev,
+          [project.id]: {preference, isPending, codeMappingRepos},
+        };
+
+        // If this project just finished loading (was pending, now not pending)
+        // and has no repos and wasn't successfully connected, increment counter
+        if (
+          prevState?.isPending &&
+          !isPending &&
+          !successfullyConnectedProjects.has(project.id)
+        ) {
+          let repoCount = preference?.repositories?.length || 0;
+          if (repoCount === 0 && codeMappingRepos) {
+            repoCount = codeMappingRepos.length;
+          }
+          if (repoCount === 0) {
+            setProjectsWithoutReposCount(count => count + 1);
+          }
+        }
+
+        return newState;
+      });
+      onProjectStateUpdate(project, preference, isPending, codeMappingRepos);
     },
-    [onProjectStateUpdate]
+    [onProjectStateUpdate, successfullyConnectedProjects]
   );
 
   const handleProjectSuccess = useCallback(
@@ -205,14 +251,21 @@ function ProjectsWithoutRepos({
   );
 
   const handleUpdateProjectState = useCallback(
-    (projectId: string, preference: any) => {
-      setProjectStates(prev => ({
-        ...prev,
-        [projectId]: {preference, isPending: false},
-      }));
+    (projectId: string, preference: any, codeMappingRepos?: SeerRepoDefinition[]) => {
+      setProjectStates(prev => {
+        const existingState = prev[projectId];
+        return {
+          ...prev,
+          [projectId]: {
+            preference,
+            isPending: false,
+            codeMappingRepos: existingState?.codeMappingRepos,
+          },
+        };
+      });
       const project = projects.find(p => p.id === projectId);
       if (project) {
-        onProjectStateUpdate(project, preference, false);
+        onProjectStateUpdate(project, preference, false, codeMappingRepos);
       }
     },
     [projects, onProjectStateUpdate]
@@ -234,7 +287,10 @@ function ProjectsWithoutRepos({
       const state = projectStates[project.id];
       if (!state || state.isPending) return false;
 
-      const repoCount = state.preference?.repositories?.length || 0;
+      let repoCount = state.preference?.repositories?.length || 0;
+      if (repoCount === 0 && state.codeMappingRepos) {
+        repoCount = state.codeMappingRepos?.length || 0;
+      }
       return repoCount === 0;
     });
 
@@ -253,7 +309,9 @@ function ProjectsWithoutRepos({
     return (
       <Panel>
         <PanelHeader>
-          <HeaderText>{t('Loading projects...')}</HeaderText>
+          <HeaderText>
+            {t('%s Projects missing repositories...', projectsWithoutReposCount)}
+          </HeaderText>
         </PanelHeader>
         <PanelBody>
           <LoadingState>
@@ -309,7 +367,7 @@ function ProjectsWithoutRepos({
             />
           ))}
           {projectsWithoutRepos.length === 0 && (
-            <EmptyState>{t('All your projects have repositories connected!')}</EmptyState>
+            <EmptyState>{t('All your projects have repositories connected.')}</EmptyState>
           )}
         </PanelBody>
       </Panel>
@@ -340,7 +398,10 @@ function ProjectsWithReposTracker({
 
       const state = projectStates[project.id];
       if (state && !state.isPending) {
-        const repoCount = state.preference?.repositories?.length || 0;
+        let repoCount = state.preference?.repositories?.length || 0;
+        if (repoCount === 0 && state.codeMappingRepos) {
+          repoCount = state.codeMappingRepos?.length || 0;
+        }
         return repoCount > 0;
       }
 
@@ -355,76 +416,20 @@ function ProjectsWithReposTracker({
   return null;
 }
 
-function SeerAutomationOnboarding() {
+function AutoTriggerFixesButton({
+  projectsWithRepos,
+  selectedThreshold,
+  fetching,
+}: {
+  fetching: boolean;
+  projectsWithRepos: Project[];
+  selectedThreshold: string;
+}) {
   const organization = useOrganization();
-  const {projects, fetching} = useProjects();
   const api = useApi();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const [selectedThreshold, setSelectedThreshold] = useState('low');
-  const [projectsWithRepos, setProjectsWithRepos] = useState<Project[]>([]);
-  const [projectStates, setProjectStates] = useState<ProjectStateMap>({});
-  const [successfullyConnectedProjects, setSuccessfullyConnectedProjects] = useState(
-    new Set<string>()
-  );
-
-  const filteredProjects = useMemo(() => {
-    return filterProjectsWithAccess(projects, organization);
-  }, [projects, organization]);
-
-  const projectsWithoutRepos = useMemo(() => {
-    return filteredProjects.filter(project => {
-      // Exclude projects that have been successfully connected this session
-      if (successfullyConnectedProjects.has(project.id)) return false;
-
-      // Exclude projects that already have repositories
-      const state = projectStates[project.id];
-      if (state && !state.isPending) {
-        const repoCount = state.preference?.repositories?.length || 0;
-        return repoCount === 0;
-      }
-
-      // Include projects that are still loading (we don't know their repo status yet)
-      return true;
-    });
-  }, [filteredProjects, successfullyConnectedProjects, projectStates]);
-
-  const handleEnableIssueScans = useCallback(async () => {
-    if (projectsWithoutRepos.length === 0) {
-      addErrorMessage(t('No remaining projects found to update'));
-      return;
-    }
-
-    addLoadingMessage(t('Enabling issue scans for remaining projects...'), {
-      duration: 30000,
-    });
-
-    try {
-      await Promise.all(
-        projectsWithoutRepos.map(project =>
-          api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
-            method: 'PUT',
-            data: {seerScannerAutomation: true},
-          })
-        )
-      );
-
-      addSuccessMessage(
-        t('Issue scans enabled for %s remaining project(s)', projectsWithoutRepos.length)
-      );
-
-      projectsWithoutRepos.forEach(project => {
-        queryClient.invalidateQueries({
-          queryKey: makeDetailedProjectQueryKey({
-            orgSlug: organization.slug,
-            projectSlug: project.slug,
-          }),
-        });
-      });
-    } catch (err) {
-      addErrorMessage(t('Failed to enable issue scans for some projects'));
-    }
-  }, [api, organization.slug, projectsWithoutRepos, queryClient]);
+  const {setCurrentStep, getStepNumber} = useGuidedStepsContext();
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleEnableAutoTriggerFixes = useCallback(async () => {
     if (projectsWithRepos.length === 0) {
@@ -435,6 +440,7 @@ function SeerAutomationOnboarding() {
     addLoadingMessage(t('Enabling automation for projects with repositories...'), {
       duration: 30000,
     });
+    setIsLoading(true);
 
     try {
       await Promise.all(
@@ -464,16 +470,158 @@ function SeerAutomationOnboarding() {
           }),
         });
       });
+
+      // Automatically advance to the next step after successful completion
+      const enableIssueScansStepNumber = getStepNumber('enable-issue-scans');
+      setCurrentStep(enableIssueScansStepNumber);
     } catch (err) {
       addErrorMessage(t('Failed to enable automation for some projects'));
+    } finally {
+      setIsLoading(false);
     }
-  }, [api, organization.slug, projectsWithRepos, selectedThreshold, queryClient]);
+  }, [
+    api,
+    organization.slug,
+    projectsWithRepos,
+    selectedThreshold,
+    queryClient,
+    getStepNumber,
+    setCurrentStep,
+  ]);
+
+  return (
+    <Button
+      priority="primary"
+      onClick={handleEnableAutoTriggerFixes}
+      disabled={fetching || projectsWithRepos.length === 0 || isLoading}
+      busy={isLoading}
+    >
+      {t('Enable for %s recommended project(s)', projectsWithRepos.length)}
+    </Button>
+  );
+}
+
+function EnableIssueScansButton({
+  projectsWithoutRepos,
+  fetching,
+}: {
+  fetching: boolean;
+  projectsWithoutRepos: Project[];
+}) {
+  const organization = useOrganization();
+  const api = useApi();
+  const queryClient = useQueryClient();
+  const {setCurrentStep, getStepNumber} = useGuidedStepsContext();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleEnableIssueScans = useCallback(async () => {
+    if (projectsWithoutRepos.length === 0) {
+      addErrorMessage(t('No remaining projects found to update'));
+      return;
+    }
+
+    addLoadingMessage(t('Enabling issue scans for remaining projects...'), {
+      duration: 30000,
+    });
+    setIsLoading(true);
+
+    try {
+      await Promise.all(
+        projectsWithoutRepos.map(project =>
+          api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
+            method: 'PUT',
+            data: {seerScannerAutomation: true},
+          })
+        )
+      );
+
+      addSuccessMessage(
+        t('Issue scans enabled for %s remaining project(s)', projectsWithoutRepos.length)
+      );
+
+      projectsWithoutRepos.forEach(project => {
+        queryClient.invalidateQueries({
+          queryKey: makeDetailedProjectQueryKey({
+            orgSlug: organization.slug,
+            projectSlug: project.slug,
+          }),
+        });
+      });
+
+      // Automatically advance to the next step after successful completion
+      const reviewCustomizeStepNumber = getStepNumber('review-customize');
+      setCurrentStep(reviewCustomizeStepNumber);
+    } catch (err) {
+      addErrorMessage(t('Failed to enable issue scans for some projects'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [
+    api,
+    organization.slug,
+    projectsWithoutRepos,
+    queryClient,
+    getStepNumber,
+    setCurrentStep,
+  ]);
+
+  return (
+    <Button
+      priority="primary"
+      onClick={handleEnableIssueScans}
+      disabled={fetching || projectsWithoutRepos.length === 0 || isLoading}
+      busy={isLoading}
+    >
+      {t('Enable for all projects')}
+    </Button>
+  );
+}
+
+function SeerAutomationOnboarding() {
+  const organization = useOrganization();
+  const {projects, fetching} = useProjects();
+  const navigate = useNavigate();
+  const [selectedThreshold, setSelectedThreshold] = useState('low');
+  const [projectsWithRepos, setProjectsWithRepos] = useState<Project[]>([]);
+  const [projectStates, setProjectStates] = useState<ProjectStateMap>({});
+  const [successfullyConnectedProjects, setSuccessfullyConnectedProjects] = useState(
+    new Set<string>()
+  );
+
+  const filteredProjects = useMemo(() => {
+    return filterProjectsWithAccess(projects, organization);
+  }, [projects, organization]);
+
+  const projectsWithoutRepos = useMemo(() => {
+    return filteredProjects.filter(project => {
+      // Exclude projects that have been successfully connected this session
+      if (successfullyConnectedProjects.has(project.id)) return false;
+
+      // Exclude projects that already have repositories
+      const state = projectStates[project.id];
+      if (state && !state.isPending) {
+        let repoCount = state.preference?.repositories?.length || 0;
+        if (repoCount === 0 && state.codeMappingRepos) {
+          repoCount = state.codeMappingRepos?.length || 0;
+        }
+        return repoCount === 0;
+      }
+
+      // Include projects that are still loading (we don't know their repo status yet)
+      return true;
+    });
+  }, [filteredProjects, successfullyConnectedProjects, projectStates]);
 
   const handleProjectStatesUpdate = useCallback(
-    (project: Project, preference: any, isPending: boolean) => {
+    (
+      project: Project,
+      preference: any,
+      isPending: boolean,
+      codeMappingRepos?: SeerRepoDefinition[]
+    ) => {
       setProjectStates(prev => ({
         ...prev,
-        [project.id]: {preference, isPending},
+        [project.id]: {preference, isPending, codeMappingRepos},
       }));
     },
     []
@@ -545,7 +693,7 @@ function SeerAutomationOnboarding() {
               {projectsWithRepos.length > 0 && (
                 <Fragment>
                   <ThresholdSelectorWrapper>
-                    <Flex gap={space(1)} align="center">
+                    <Flex gap="md" align="center">
                       <SelectorLabel>
                         {t('Automatically diagnose issues that are...')}
                       </SelectorLabel>
@@ -561,13 +709,11 @@ function SeerAutomationOnboarding() {
                       />
                     </Flex>
                   </ThresholdSelectorWrapper>
-                  <Button
-                    priority="primary"
-                    onClick={handleEnableAutoTriggerFixes}
-                    disabled={fetching || projectsWithRepos.length === 0}
-                  >
-                    {t('Enable for %s recommended project(s)', projectsWithRepos.length)}
-                  </Button>
+                  <AutoTriggerFixesButton
+                    fetching={fetching}
+                    projectsWithRepos={projectsWithRepos}
+                    selectedThreshold={selectedThreshold}
+                  />
                 </Fragment>
               )}
 
@@ -598,13 +744,10 @@ function SeerAutomationOnboarding() {
             </StepDescription>
 
             <ScanActionWrapper>
-              <Button
-                priority="primary"
-                onClick={handleEnableIssueScans}
-                disabled={fetching || projectsWithoutRepos.length === 0}
-              >
-                {t('Enable for all projects')}
-              </Button>
+              <EnableIssueScansButton
+                fetching={fetching}
+                projectsWithoutRepos={projectsWithoutRepos}
+              />
               {projectsWithoutRepos.length === 0 && !fetching && (
                 <EmptyProjectsMessage>
                   {t('All projects are set up with Seer!')}

@@ -567,13 +567,15 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
     @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
     @patch("sentry.utils.metrics.incr")
     def test_metrics_issue_dual_processing_metrics(self, mock_incr):
-        process_workflows(self.event_data)
+        with self.tasks():
+            process_workflows(self.event_data)
         mock_incr.assert_any_call(
-            "workflow_engine.process_workflows.fired_actions",
-            1,
+            "workflow_engine.tasks.trigger_action_task_started",
             tags={
                 "detector_type": self.detector.type,
+                "action_type": "slack",
             },
+            sample_rate=1.0,
         )
 
     def test_basic__no_filter(self) -> None:

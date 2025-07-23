@@ -88,7 +88,9 @@ interface PriorityControlProps {
 }
 
 export default function PriorityControl({minimumPriority}: PriorityControlProps) {
-  const detectorKind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
+  const detectionType = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.detectionType
+  );
   const initialPriorityLevel = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel
   );
@@ -100,7 +102,7 @@ export default function PriorityControl({minimumPriority}: PriorityControlProps)
   );
   const thresholdSuffix = getStaticDetectorThresholdSuffix(aggregate);
 
-  if (detectorKind === 'dynamic') {
+  if (detectionType === 'dynamic') {
     return null;
   }
 
@@ -109,11 +111,7 @@ export default function PriorityControl({minimumPriority}: PriorityControlProps)
       <PrioritizeRow
         left={
           <Flex align="center" direction="column">
-            {!detectorKind || detectorKind === 'static' ? (
-              <ThresholdPriority />
-            ) : (
-              <ChangePriority />
-            )}
+            {detectionType === 'static' ? <ThresholdPriority /> : <ChangePriority />}
             <SecondaryLabel>({t('issue created')})</SecondaryLabel>
           </Flex>
         }
@@ -122,7 +120,7 @@ export default function PriorityControl({minimumPriority}: PriorityControlProps)
       {priorityIsConfigurable(initialPriorityLevel, DetectorPriorityLevel.MEDIUM) && (
         <PrioritizeRow
           left={
-            <Flex align="center" gap={space(1)}>
+            <Flex align="center" gap="md">
               <SmallNumberField
                 alignRight
                 inline
@@ -134,7 +132,7 @@ export default function PriorityControl({minimumPriority}: PriorityControlProps)
                 name={METRIC_DETECTOR_FORM_FIELDS.mediumThreshold}
                 aria-label={t('Medium threshold')}
               />
-              <div>{conditionKindAndTypeToLabel[detectorKind][conditionType!]}</div>
+              <div>{conditionKindAndTypeToLabel[detectionType][conditionType!]}</div>
             </Flex>
           }
           right={<GroupPriorityBadge showLabel priority={PriorityLevel.MEDIUM} />}
@@ -143,7 +141,7 @@ export default function PriorityControl({minimumPriority}: PriorityControlProps)
       {priorityIsConfigurable(initialPriorityLevel, DetectorPriorityLevel.HIGH) && (
         <PrioritizeRow
           left={
-            <Flex align="center" gap={space(1)}>
+            <Flex align="center" gap="md">
               <SmallNumberField
                 alignRight
                 inline
@@ -155,7 +153,7 @@ export default function PriorityControl({minimumPriority}: PriorityControlProps)
                 name={METRIC_DETECTOR_FORM_FIELDS.highThreshold}
                 aria-label={t('High threshold')}
               />
-              <div>{conditionKindAndTypeToLabel[detectorKind][conditionType!]}</div>
+              <div>{conditionKindAndTypeToLabel[detectionType][conditionType!]}</div>
             </Flex>
           }
           right={<GroupPriorityBadge showLabel priority={PriorityLevel.HIGH} />}

@@ -19,13 +19,7 @@ import {
   getRetryDelay,
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
-import type {
-  EAPSpanProperty,
-  SpanFields,
-  SpanFunctions,
-  SpanMetricsProperty,
-} from 'sentry/views/insights/types';
+import type {SpanProperty} from 'sentry/views/insights/types';
 
 import {convertDiscoverTimeseriesResponse} from './convertDiscoverTimeseriesResponse';
 
@@ -44,35 +38,14 @@ interface UseMetricsSeriesOptions<Fields> {
   transformAliasToInputFormat?: boolean;
 }
 
-export const useTopNSpanMetricsSeries = <Fields extends SpanMetricsProperty[]>(
-  options: UseMetricsSeriesOptions<Fields>,
-  referrer: string,
-  pageFilters?: PageFilters
-) => {
-  const useEap = useInsightsEap();
-  return useTopNDiscoverSeries<Fields>(
-    options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_METRICS,
-    referrer,
-    pageFilters
-  );
-};
-
-export const useTopNSpanEAPSeries = <
-  Fields extends
-    | EAPSpanProperty[]
-    | SpanMetricsProperty[]
-    | SpanFields[]
-    | SpanFunctions[]
-    | string[],
->(
+export const useTopNSpanSeries = <Fields extends SpanProperty[]>(
   options: UseMetricsSeriesOptions<Fields>,
   referrer: string,
   pageFilters?: PageFilters
 ) => {
   return useTopNDiscoverSeries<Fields>(
     options,
-    DiscoverDatasets.SPANS_EAP_RPC,
+    DiscoverDatasets.SPANS,
     referrer,
     pageFilters
   );
@@ -96,9 +69,6 @@ const useTopNDiscoverSeries = <T extends string[]>(
   const defaultPageFilters = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
-
-  // TODO: remove this check with eap
-  const shouldSetSamplingMode = dataset === DiscoverDatasets.SPANS_EAP_RPC;
 
   const eventView = getSeriesEventView(
     search,
@@ -129,7 +99,7 @@ const useTopNDiscoverSeries = <T extends string[]>(
       orderby: sort ? encodeSort(sort) : undefined,
       interval: eventView.interval,
       transformAliasToInputFormat: options.transformAliasToInputFormat ? '1' : '0',
-      sampling: shouldSetSamplingMode ? samplingMode : undefined,
+      sampling: samplingMode,
     }),
     options: {
       enabled: options.enabled && defaultPageFilters.isReady,

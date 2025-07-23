@@ -22,7 +22,7 @@ from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils.cache import cache_key_for_event
 from sentry.workflow_engine.models import Detector, DetectorWorkflow
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.processors import process_data_sources, process_detectors
+from sentry.workflow_engine.processors import process_data_source, process_detectors
 from sentry.workflow_engine.processors.delayed_workflow import process_delayed_workflows
 from sentry.workflow_engine.processors.workflow import WORKFLOW_ENGINE_BUFFER_LIST_KEY
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -103,13 +103,12 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
         with mock.patch(
             "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
         ) as mock_producer:
-            processed_packets = process_data_sources(
-                [self.data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+            packet, detectors = process_data_source(
+                self.data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
             )
 
-            for packet, detectors in processed_packets:
-                results = process_detectors(packet, detectors)
-                assert len(results) == 1
+            results = process_detectors(packet, detectors)
+            assert len(results) == 1
 
             mock_producer.assert_called_once()
 
@@ -121,9 +120,10 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
             "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
         ) as mock_producer:
             # Change the type to mismatch from the packet. This should not find any detectors and return.
-            processed_packets = process_data_sources([self.data_packet], "snuba_query")
+            packet, detectors = process_data_source(self.data_packet, "snuba_query")
 
-            assert processed_packets == []
+            assert packet == self.data_packet
+            assert detectors == []
             mock_producer.assert_not_called()
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
@@ -134,16 +134,17 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
         with mock.patch(
             "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
         ) as mock_producer:
-            processed_packets = process_data_sources(
-                [self.data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+            packet, detectors = process_data_source(
+                self.data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
             )
 
-            assert processed_packets == []
+            assert packet == self.data_packet
+            assert detectors == []
             mock_producer.assert_not_called()
 
 
 class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest):
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @with_feature("organizations:issue-metric-issue-post-process-group")
     @with_feature("organizations:workflow-engine-process-metric-issue-workflows")
     def test_workflow_engine__workflows(self):
         """
@@ -157,7 +158,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
             self.call_post_process_group(self.group.id)
             mock_process_workflow.assert_called_once()
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @with_feature("organizations:issue-metric-issue-post-process-group")
     def test_workflow_engine__workflows__other_events(self):
         """
         Ensure that the workflow engine only supports MetricIssue events for now.
