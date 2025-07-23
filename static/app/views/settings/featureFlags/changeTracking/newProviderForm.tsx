@@ -2,7 +2,6 @@ import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {
-  addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
   clearIndicators,
@@ -118,7 +117,6 @@ export default function NewProviderForm({
             responseJSON.nonFieldErrors[0]) ||
           t('Failed to add provider or secret.');
         handleXhrErrorResponse(message, error);
-        addErrorMessage(message);
         onError(message);
       }
     },
