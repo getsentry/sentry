@@ -760,11 +760,6 @@ function buildRoutes(
         />
       </Route>
       <Route
-        path="rate-limits/"
-        name={t('Rate Limits')}
-        component={make(() => import('sentry/views/settings/organizationRateLimits'))}
-      />
-      <Route
         path="relay/"
         name={t('Relay')}
         component={make(() => import('sentry/views/settings/organizationRelay'))}
@@ -2271,7 +2266,6 @@ function buildRoutes(
         <Redirect from="api-keys/:apiKey/" to="/settings/:orgId/api-keys/:apiKey/" />
         <Redirect from="members/" to="/settings/:orgId/members/" />
         <Redirect from="members/:memberId/" to="/settings/:orgId/members/:memberId/" />
-        <Redirect from="rate-limits/" to="/settings/:orgId/rate-limits/" />
         <Redirect from="repos/" to="/settings/:orgId/repos/" />
         <Redirect from="user-feedback/" to="/organizations/:orgId/feedback/" />
       </Route>

@@ -64,7 +64,7 @@ export function IssueViews({sectionRef}: IssueViewsProps) {
   }
 
   return (
-    <SecondaryNav.Section id="issues-starred-views" title={t('Starred Views')}>
+    <SecondaryNav.Section id="issues-starred-views" title={t('NEW Views')}>
       <Reorder.Group
         as="div"
         axis="y"
