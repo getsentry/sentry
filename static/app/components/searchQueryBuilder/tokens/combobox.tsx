@@ -370,7 +370,7 @@ export function SearchQueryBuilderCombobox<
   ['data-test-id']: dataTestId,
   ref,
 }: SearchQueryBuilderComboboxProps<T>) {
-  const {disabled, portalTarget, enableAISearch} = useSearchQueryBuilder();
+  const {disabled, portalTarget, enableAISearch, wrapperRef} = useSearchQueryBuilder();
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -499,10 +499,7 @@ export function SearchQueryBuilderCombobox<
     isKeyboardDismissDisabled: true,
     shouldCloseOnBlur: true,
     shouldCloseOnInteractOutside: el => {
-      if (
-        popoverRef.current?.contains(el) ||
-        el.closest('[data-test-id="search-query-builder"]')
-      ) {
+      if (popoverRef.current?.contains(el) || wrapperRef.current?.contains(el)) {
         return false;
       }
 
