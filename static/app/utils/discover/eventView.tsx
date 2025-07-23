@@ -1222,9 +1222,7 @@ class EventView {
         per_page: DEFAULT_PER_PAGE,
         query: queryString,
         dataset:
-          this.dataset === DiscoverDatasets.SPANS_EAP_RPC
-            ? DiscoverDatasets.SPANS_EAP
-            : this.dataset,
+          this.dataset === DiscoverDatasets.SPANS ? DiscoverDatasets.SPANS : this.dataset,
       }
     ) as EventQuery & LocationQuery;
 

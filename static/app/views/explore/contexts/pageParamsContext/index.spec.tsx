@@ -74,7 +74,7 @@ describe('PageParamsProvider', function () {
 
     act(() =>
       setPageParams({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp'],
         mode: Mode.AGGREGATE,
         query: '',
@@ -126,7 +126,7 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'span.op', 'timestamp'],
         mode: Mode.AGGREGATE,
         query: '',
@@ -149,7 +149,7 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
@@ -173,7 +173,7 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
@@ -196,7 +196,7 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
@@ -219,7 +219,7 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
@@ -253,7 +253,7 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.SAMPLES,
         query: '',
@@ -291,7 +291,7 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: [
           'id',
           'sdk.name',
@@ -324,7 +324,7 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: 'foo:bar',
@@ -347,7 +347,7 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.SAMPLES,
         query: '',
@@ -370,7 +370,7 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.SAMPLES,
         query: '',
@@ -402,7 +402,7 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
@@ -437,7 +437,7 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
@@ -472,7 +472,7 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
@@ -504,7 +504,7 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
@@ -527,7 +527,7 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp'],
         mode: Mode.AGGREGATE,
         query: '',
@@ -556,7 +556,7 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
         mode: Mode.AGGREGATE,
         query: '',

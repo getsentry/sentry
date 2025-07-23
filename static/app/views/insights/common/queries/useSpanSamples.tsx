@@ -140,7 +140,7 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
             ...additionalFields,
           ],
           sampling: SAMPLING_MODE.NORMAL,
-          dataset: DiscoverDatasets.SPANS_EAP,
+          dataset: DiscoverDatasets.SPANS,
           sort: `-${SPAN_SELF_TIME}`,
         },
       },
