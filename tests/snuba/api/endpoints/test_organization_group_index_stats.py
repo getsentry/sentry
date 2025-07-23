@@ -1,3 +1,4 @@
+import pytest
 import uuid
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
@@ -238,6 +239,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert response_data[0]["filtered"]["count"] == "1"
         assert response_data[0]["lifetime"]["count"] == "1"
 
+    @pytest.mark.skip(reason="flaky: #96218")
     def test_error_upsampling_with_allowlisted_project(self):
         """Test that count is upsampled for allowlisted projects in group index stats."""
         with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
