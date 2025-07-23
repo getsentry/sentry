@@ -170,8 +170,8 @@ function ChapterRow({
               onClick={event => {
                 onClickChapterTimestamp(event, start);
               }}
-            />{' '}
-            -{' '}
+            />
+            -
             <TimestampButton
               startTimestampMs={replay?.getStartTimestampMs() ?? 0}
               timestampMs={end}
