@@ -38,11 +38,7 @@ export const useSpans = <Fields extends SpanProperty[]>(
   options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
-  return useDiscover<Fields, SpanResponse>(
-    options,
-    DiscoverDatasets.SPANS_EAP_RPC,
-    referrer
-  );
+  return useDiscover<Fields, SpanResponse>(options, DiscoverDatasets.SPANS, referrer);
 };
 
 const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, ResponseType>(

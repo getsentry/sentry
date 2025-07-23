@@ -370,7 +370,7 @@ export function useCompareAnalytics({
 > & {
   query: ReadableExploreQueryParts;
 }) {
-  const dataset = DiscoverDatasets.SPANS_EAP_RPC;
+  const dataset = DiscoverDatasets.SPANS;
   const query = queryParts.query;
   const fields = queryParts.fields;
   const visualizes = queryParts.yAxes.map(

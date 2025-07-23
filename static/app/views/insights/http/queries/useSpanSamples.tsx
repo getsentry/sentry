@@ -70,7 +70,7 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
           additionalFields: [...fields, SpanFields.TRANSACTION_SPAN_ID],
           sort: '-timestamp',
           sampling: SAMPLING_MODE.NORMAL,
-          dataset: DiscoverDatasets.SPANS_EAP,
+          dataset: DiscoverDatasets.SPANS,
           referrer,
         },
       },

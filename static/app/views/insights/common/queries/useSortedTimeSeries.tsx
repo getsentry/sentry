@@ -78,7 +78,7 @@ export const useSortedTimeSeries = <
     pageFilters.selection,
     yAxis,
     topEvents,
-    dataset ?? DiscoverDatasets.SPANS_INDEXED,
+    dataset ?? DiscoverDatasets.SPANS,
     orderby
   );
 

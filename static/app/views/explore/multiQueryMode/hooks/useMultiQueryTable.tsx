@@ -81,7 +81,7 @@ function useMultiQueryTableAggregateModeImpl({
       orderby: sortBys.map(formatSort),
       query,
       version: 2,
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
+      dataset: DiscoverDatasets.SPANS,
     };
 
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
@@ -141,7 +141,7 @@ function useMultiQueryTableSampleModeImpl({
       orderby: sortBys.map(formatSort),
       query,
       version: 2,
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
+      dataset: DiscoverDatasets.SPANS,
     };
 
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);

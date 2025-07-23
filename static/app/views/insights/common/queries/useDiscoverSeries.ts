@@ -44,7 +44,7 @@ export const useSpanSeries = <Fields extends SpanProperty[]>(
 ) => {
   return useDiscoverSeries<Fields>(
     options,
-    DiscoverDatasets.SPANS_EAP_RPC,
+    DiscoverDatasets.SPANS,
     referrer,
     pageFilters
   );

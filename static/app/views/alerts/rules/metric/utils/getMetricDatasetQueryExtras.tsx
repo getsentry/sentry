@@ -37,7 +37,7 @@ export function getMetricDatasetQueryExtras({
 
   if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
     return {
-      dataset: DiscoverDatasets.SPANS_EAP,
+      dataset: DiscoverDatasets.SPANS,
     };
   }
 
@@ -53,7 +53,7 @@ export function getMetricDatasetQueryExtras({
     queryExtras.dataset = getDiscoverDataset(dataset, newAlertOrQuery);
   }
   if (location?.query?.aggregate?.includes('ai.total')) {
-    queryExtras.dataset = DiscoverDatasets.SPANS_METRICS;
+    queryExtras.dataset = DiscoverDatasets.SPANS;
     queryExtras.query = '';
   }
 
