@@ -108,7 +108,7 @@ function ProjectKeyCredentials({
           >
             <TextCopyInput aria-label={t('OTLP Traces Endpoint')}>
               {getDynamicText({
-                value: data.dsn.otlp,
+                value: data.dsn.otlp_traces,
                 fixed: '__OTLP_ENDPOINT__',
               })}
             </TextCopyInput>
