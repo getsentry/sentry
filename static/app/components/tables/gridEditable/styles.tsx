@@ -15,7 +15,6 @@ const GRID_STATUS_MESSAGE_HEIGHT = GRID_BODY_ROW_HEIGHT * 4;
  * https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Positioning/Understanding_z_index/The_stacking_context
  */
 // Parent context is Panel
-const Z_INDEX_PANEL = 1;
 const Z_INDEX_GRID = 5;
 
 // Parent context is GridHeadCell
@@ -64,7 +63,6 @@ export const Body = styled(
 )`
   overflow-x: auto;
   overflow-y: ${({showVerticalScrollbar}) => (showVerticalScrollbar ? 'auto' : 'hidden')};
-  z-index: ${Z_INDEX_PANEL};
 `;
 
 /**
@@ -94,7 +92,6 @@ export const Grid = styled('table')<{
   border-collapse: collapse;
   margin: 0;
 
-  z-index: ${Z_INDEX_GRID};
   ${p =>
     p.scrollable &&
     css`
