@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -67,7 +68,19 @@ export default function ModelCostWidget() {
     Referrer.MODEL_COST_WIDGET
   );
 
-  const timeSeries = timeSeriesRequest.data;
+  // We are setting the value type to currency for the time series so that the tooltip and y-axis formatting is correct
+  const timeSeries = timeSeriesRequest.data.map(ts => ({
+    ...ts,
+    meta: {
+      ...ts.meta,
+      fields: Object.fromEntries(
+        Object.entries(ts.meta.fields).map(([key, value]) => [
+          key,
+          value === 'number' ? 'currency' : value,
+        ])
+      ),
+    } as EventsMetaType,
+  }));
 
   const isLoading = timeSeriesRequest.isLoading || tokensRequest.isLoading;
   const error = timeSeriesRequest.error || tokensRequest.error;
