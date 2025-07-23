@@ -77,7 +77,6 @@ describe('useInfiniteTestResults', () => {
   });
 
   afterEach(() => {
-    // Clean up all mocks between tests to ensure test isolation
     jest.restoreAllMocks();
     jest.clearAllMocks();
   });
