@@ -12,7 +12,6 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import type {BoxSelectOptions} from 'sentry/views/explore/hooks/useChartBoxSelect';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import type {ChartInfo} from 'sentry/views/explore/spans/charts';
 
 export type SuspectAttributesResult = {
   rankedAttributes: Array<{
@@ -29,11 +28,11 @@ export type SuspectAttributesResult = {
 };
 
 function useSuspectAttributes({
-  chartInfo,
   boxSelectOptions,
+  yAxis,
 }: {
   boxSelectOptions: BoxSelectOptions;
-  chartInfo: ChartInfo;
+  yAxis: string;
 }) {
   const location = useLocation();
   const organization = useOrganization();
@@ -61,7 +60,6 @@ function useSuspectAttributes({
   const formattedStartTimestamp = getUtcDateString(startTimestamp);
   const formattedEndTimestamp = getUtcDateString(endTimestamp);
 
-  const yAxis = chartInfo.yAxes[0];
   const parsedFunction = parseFunction(yAxis ?? '');
   const plottedFunctionName = parsedFunction?.name;
   const plottedFunctionParameter = parsedFunction?.arguments[0];

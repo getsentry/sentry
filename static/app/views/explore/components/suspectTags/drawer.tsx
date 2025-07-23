@@ -11,15 +11,14 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {Charts} from 'sentry/views/explore/components/suspectTags/charts';
 import type {BoxSelectOptions} from 'sentry/views/explore/hooks/useChartBoxSelect';
 import useSuspectAttributes from 'sentry/views/explore/hooks/useSuspectAttributes';
-import type {ChartInfo} from 'sentry/views/explore/spans/charts';
 
 type Props = {
   boxSelectOptions: BoxSelectOptions;
-  chartInfo: ChartInfo;
+  yAxis: string;
 };
 
-export function Drawer({boxSelectOptions, chartInfo}: Props) {
-  const {data, isLoading, isError} = useSuspectAttributes({boxSelectOptions, chartInfo});
+export function Drawer({boxSelectOptions, yAxis}: Props) {
+  const {data, isLoading, isError} = useSuspectAttributes({boxSelectOptions, yAxis});
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredRankedAttributes = useMemo(() => {
