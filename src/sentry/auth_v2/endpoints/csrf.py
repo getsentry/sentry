@@ -7,7 +7,7 @@ from rest_framework import status
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
-from sentry.auth_v2.serializers import SessionSerializer
+from sentry.auth_v2.utils.session import SessionSerializer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
