@@ -27,6 +27,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline/sidebar/groupActivityIcons';
 import getGroupActivityItem from 'sentry/views/issueDetails/streamline/sidebar/groupActivityItem';
 import {NoteDropdown} from 'sentry/views/issueDetails/streamline/sidebar/noteDropdown';
@@ -260,10 +262,39 @@ export default function StreamlinedActivitySection({
     },
   };
 
-  return (
-    <div>
-      {!isDrawer && (
-        <Flex justify="space-between" align="center" style={{marginBottom: space(1)}}>
+  return isDrawer ? (
+    <Timeline.Container>
+      <NoteInputWithStorage
+        key={inputId}
+        storageKey="groupinput:latest"
+        itemKey={group.id}
+        onCreate={n => {
+          handleCreate(n, activeUser);
+          setInputId(uniqueId());
+        }}
+        source="issue-details"
+        {...noteProps}
+      />
+      {group.activity
+        .filter(item => !filterComments || item.type === GroupActivityType.NOTE)
+        .map(item => {
+          return (
+            <TimelineItem
+              item={item}
+              handleDelete={handleDelete}
+              handleUpdate={handleUpdate}
+              group={group}
+              teams={teams}
+              key={item.id}
+              isDrawer={isDrawer}
+            />
+          );
+        })}
+    </Timeline.Container>
+  ) : (
+    <SidebarFoldSection
+      title={
+        <Flex justify="space-between" align="center">
           <SidebarSectionTitle style={{gap: space(0.75), margin: 0}}>
             {t('Activity')}
             {group.numComments > 0 ? (
@@ -304,10 +335,12 @@ export default function StreamlinedActivitySection({
               num_activities: group.activity.length,
             }}
           >
-            {t('View')}
+            {t('View All')}
           </ViewButton>
         </Flex>
-      )}
+      }
+      sectionKey={SectionKey.ACTIVITY}
+    >
       <Timeline.Container>
         <NoteInputWithStorage
           key={inputId}
@@ -320,7 +353,7 @@ export default function StreamlinedActivitySection({
           source="issue-details"
           {...noteProps}
         />
-        {(group.activity.length < 5 || isDrawer) &&
+        {group.activity.length < 5 &&
           group.activity
             .filter(item => !filterComments || item.type === GroupActivityType.NOTE)
             .map(item => {
@@ -336,7 +369,7 @@ export default function StreamlinedActivitySection({
                 />
               );
             })}
-        {!isDrawer && group.activity.length >= 5 && (
+        {group.activity.length >= 5 && (
           <Fragment>
             {group.activity.slice(0, 3).map(item => {
               return (
@@ -371,7 +404,7 @@ export default function StreamlinedActivitySection({
           </Fragment>
         )}
       </Timeline.Container>
-    </div>
+    </SidebarFoldSection>
   );
 }
 

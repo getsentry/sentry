@@ -88,7 +88,6 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
         <StreamlinedActivitySection group={group} />
         {showPeopleSection && (
           <Fragment>
-            <StyledBreak />
             <PeopleSection
               userParticipants={userParticipants}
               teamParticipants={teamParticipants}
@@ -98,7 +97,6 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
         )}
         {issueTypeConfig.similarIssues.enabled && (
           <Fragment>
-            <StyledBreak />
             <SimilarIssuesSidebarSection />
           </Fragment>
         )}
