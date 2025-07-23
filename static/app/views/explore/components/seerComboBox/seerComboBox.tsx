@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {Item} from '@react-stately/collections';
@@ -149,6 +149,18 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
 
   useTraceExploreAiQuerySetup({enableAISearch: areAiFeaturesAllowed && state.isOpen});
 
+  const handleExampleClick = useCallback(
+    (example: string) => {
+      setSearchQuery(example);
+      trackAnalytics('trace.explorer.ai_query_example_clicked', {
+        organization,
+        example_query: example,
+      });
+      submitQuery(example);
+    },
+    [organization, submitQuery]
+  );
+
   const {inputProps, listBoxProps} = useSearchTokenCombobox(
     {
       ...props,
@@ -274,7 +286,10 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
             </Fragment>
           ) : (
             <SeerContent>
-              <SeerSearchHeader title={t("Describe what you're looking for!")} />
+              <SeerSearchHeader
+                title={t("Describe what you're looking for!")}
+                handleExampleClick={handleExampleClick}
+              />
             </SeerContent>
           )}
           <SeerFooter>
