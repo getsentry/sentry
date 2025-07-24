@@ -1,3 +1,4 @@
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import trimStart from 'lodash/trimStart';
 
@@ -377,11 +378,11 @@ export function renderEventIdAsLinkable(
   });
 
   return (
-    <Tooltip title={t('View Event')}>
+    <StyledTooltip title={t('View Event')}>
       <Link data-test-id="view-event" to={target}>
         <Container>{getShortEventId(id)}</Container>
       </Link>
-    </Tooltip>
+    </StyledTooltip>
   );
 }
 
@@ -414,11 +415,11 @@ export function renderTraceAsLinkable(widget?: Widget) {
     });
 
     return (
-      <Tooltip title={t('View Trace')}>
+      <StyledTooltip title={t('View Trace')}>
         <Link data-test-id="view-trace" to={target}>
           <Container>{getShortEventId(id)}</Container>
         </Link>
-      </Tooltip>
+      </StyledTooltip>
     );
   };
 }
@@ -692,3 +693,7 @@ const getQueryExtraForSplittingDiscover = (
 
   return {};
 };
+
+const StyledTooltip = styled(Tooltip)`
+  vertical-align: middle;
+`;
