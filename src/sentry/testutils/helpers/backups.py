@@ -808,9 +808,9 @@ class ExhaustiveFixtures(Fixtures):
         )
 
         install = self.create_sentry_app_installation(slug=app.slug, organization=org, user=owner)
-        updater = SentryAppUpdater(sentry_app=app)
+        updater = SentryAppUpdater(sentry_app=app, user=owner)
         updater.schema = {"elements": [self.create_alert_rule_action_schema()]}
-        updater.run(owner)
+        updater.run()
 
         # Api*
         ApiAuthorization.objects.create(application=app.application, user=owner)

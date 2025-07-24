@@ -222,7 +222,7 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
     def test_disallow_app_with_all_features_disabled(self):
         # prepare an app with paid features
         app = self.unpublished_app
-        SentryAppUpdater(sentry_app=app, features=[Feature.ALERTS]).run(user=self.user)
+        SentryAppUpdater(sentry_app=app, features=[Feature.ALERTS], user=self.user).run()
         app.update(status=SentryAppStatus.PUBLISHED)
 
         # test on a free-tier org
