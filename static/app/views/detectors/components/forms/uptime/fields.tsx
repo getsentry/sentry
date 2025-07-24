@@ -5,7 +5,7 @@ import type {
 } from 'sentry/types/workflowEngine/detectors';
 import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
 
-export interface UptimeDetectorFormData {
+interface UptimeDetectorFormData {
   body: string;
   environment: string;
   headers: Array<[string, string]>;
