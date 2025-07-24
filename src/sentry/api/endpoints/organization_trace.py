@@ -334,8 +334,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
         occurrence_query = self.perf_issues_query(snuba_params, trace_id)
 
         # 1 worker each for spans, errors, performance issues
-        query_thread_pool = ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=3)
-        with query_thread_pool:
+        with ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=3) as query_thread_pool:
             spans_future = query_thread_pool.submit(
                 run_trace_query,
                 trace_id,
