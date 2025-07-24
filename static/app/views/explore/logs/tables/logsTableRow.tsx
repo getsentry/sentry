@@ -156,13 +156,14 @@ export const LogRowContent = memo(function LogRowContent({
         onCollapse?.(String(dataRow[OurLogKnownFieldKey.ID]));
       } else {
         onExpand?.(String(dataRow[OurLogKnownFieldKey.ID]));
-        if (autorefreshEnabled) {
-          setAutorefresh('idle');
-        }
       }
     } else {
       setExpanded(e => !e);
     }
+    if (!isExpanded && autorefreshEnabled) {
+      setAutorefresh('idle');
+    }
+
     trackAnalytics('logs.table.row_expanded', {
       log_id: String(dataRow[OurLogKnownFieldKey.ID]),
       page_source: analyticsPageSource,
