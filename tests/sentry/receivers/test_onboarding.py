@@ -10,6 +10,10 @@ from sentry.analytics.events.first_event_sent import (
     FirstEventSentEvent,
     FirstEventSentForProjectEvent,
 )
+from sentry.analytics.events.first_replay_sent import FirstReplaySentEvent
+from sentry.analytics.events.first_transaction_sent import FirstTransactionSentEvent
+from sentry.analytics.events.member_invited import MemberInvitedEvent
+from sentry.analytics.events.project_transferred import ProjectTransferredEvent
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationonboardingtask import (
     OnboardingTask,
@@ -889,14 +893,15 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
-        record_analytics.assert_called_with(
-            "first_transaction.sent",
-            default_user_id=self.organization.default_owner_id,
-            organization_id=self.organization.id,
-            project_id=project.id,
-            platform=project.platform,
+        assert_last_analytics_event(
+            record_analytics,
+            FirstTransactionSentEvent(
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                project_id=project.id,
+                platform=project.platform,
+            ),
         )
-
         #  Capture first error
         error_event = self.store_event(
             data={
@@ -1022,12 +1027,14 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
-        record_analytics.assert_called_with(
-            "member.invited",
-            invited_member_id=member.id,
-            inviter_user_id=user.id,
-            organization_id=self.organization.id,
-            referrer=None,
+        assert_last_analytics_event(
+            record_analytics,
+            MemberInvitedEvent(
+                invited_member_id=member.id,
+                inviter_user_id=user.id,
+                organization_id=self.organization.id,
+                referrer=None,
+            ),
         )
 
         # Manually update the completionSeen column of existing tasks
@@ -1054,15 +1061,15 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
-        record_analytics.assert_called_with(
-            "first_replay.sent",
-            user_id=self.user.id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=project.platform,
-        )
-
-        # Get real time notifications
+        assert_last_analytics_event(
+            record_analytics,
+            FirstReplaySentEvent(
+                user_id=self.user.id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=project.platform,
+            ),
+        )  # Get real time notifications
         slack_integration = self._create_integration("slack", 4321)
         integration_added.send(
             integration_id=slack_integration.id,
@@ -1086,7 +1093,6 @@ class OrganizationOnboardingTaskTest(TestCase):
             provider=slack_integration.provider,
             id=slack_integration.id,
         )
-
         # Add Sentry to other parts app
         second_project = self.create_project(
             first_event=timezone.now(), organization=self.organization
@@ -1351,14 +1357,15 @@ class OrganizationOnboardingTaskTest(TestCase):
             sender=None,
         )
 
-        record_analytics.assert_called_with(
-            "project.transferred",
-            old_organization_id=self.organization.id,
-            new_organization_id=new_organization.id,
-            project_id=project.id,
-            platform=project.platform,
+        assert_last_analytics_event(
+            record_analytics,
+            ProjectTransferredEvent(
+                old_organization_id=self.organization.id,
+                new_organization_id=new_organization.id,
+                project_id=project.id,
+                platform=project.platform,
+            ),
         )
-
         project2 = self.create_project(platform="javascript-react")
         project_created.send(project=project2, user=self.user, default_rules=False, sender=None)
         project2.organization = new_organization
@@ -1368,12 +1375,14 @@ class OrganizationOnboardingTaskTest(TestCase):
             sender=None,
         )
 
-        record_analytics.assert_called_with(
-            "project.transferred",
-            old_organization_id=self.organization.id,
-            new_organization_id=new_organization.id,
-            project_id=project2.id,
-            platform=project2.platform,
+        assert_last_analytics_event(
+            record_analytics,
+            ProjectTransferredEvent(
+                old_organization_id=self.organization.id,
+                new_organization_id=new_organization.id,
+                project_id=project2.id,
+                platform=project2.platform,
+            ),
         )
 
         transferred_tasks = OrganizationOnboardingTask.objects.filter(

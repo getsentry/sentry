@@ -1,15 +1,12 @@
 from sentry import analytics
 
 
+@analytics.eventclass("first_cron_checkin.sent")
 class FirstCronCheckinSent(analytics.Event):
-    type = "first_cron_checkin.sent"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("monitor_id"),
-        analytics.Attribute("user_id", required=False),
-    )
+    organization_id: int
+    project_id: int
+    monitor_id: int
+    user_id: int | None = None
 
 
 analytics.register(FirstCronCheckinSent)
