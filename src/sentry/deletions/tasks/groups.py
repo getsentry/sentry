@@ -3,9 +3,11 @@ from typing import Any
 
 import sentry_sdk
 
+from sentry import eventstream
 from sentry.deletions.defaults.group import GROUP_CHUNK_SIZE
 from sentry.deletions.tasks.scheduled import MAX_RETRIES, logger
 from sentry.exceptions import DeleteAborted
+from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 from sentry.taskworker.config import TaskworkerConfig
@@ -14,7 +16,7 @@ from sentry.taskworker.retry import Retry
 
 
 @instrumented_task(
-    name="sentry.deletions.tasks.groups.delete_groups",
+    name="sentry.deletions.tasks.groups.delete_groups_old",
     queue="cleanup",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
@@ -30,13 +32,13 @@ from sentry.taskworker.retry import Retry
 )
 @retry(exclude=(DeleteAborted,))
 @track_group_async_operation
-def delete_groups(
+def delete_groups_old(
     object_ids: Sequence[int],
     transaction_id: str,
     eventstream_state: Mapping[str, Any] | None = None,
     **kwargs: Any,
 ) -> None:
-    from sentry import deletions, eventstream
+    from sentry import deletions
     from sentry.models.group import Group
 
     current_batch, rest = object_ids[:GROUP_CHUNK_SIZE], object_ids[GROUP_CHUNK_SIZE:]
@@ -72,14 +74,61 @@ def delete_groups(
     )
     has_more = task.chunk()
     if has_more or rest:
-        delete_groups.apply_async(
+        delete_groups_for_project_task.apply_async(
             kwargs={
                 "object_ids": object_ids if has_more else rest,
+                "project_id": first_group.project_id,
                 "transaction_id": transaction_id,
-                "eventstream_state": eventstream_state,
             },
         )
+
+
+@instrumented_task(
+    name="sentry.deletions.tasks.groups.delete_groups",
+    queue="cleanup",
+    default_retry_delay=60 * 5,
+    max_retries=MAX_RETRIES,
+    acks_late=True,
+    silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=deletion_tasks,
+        retry=Retry(
+            times=MAX_RETRIES,
+            delay=60 * 5,
+        ),
+    ),
+)
+@retry(exclude=(DeleteAborted,))
+@track_group_async_operation
+def delete_groups_for_project_task(
+    object_ids: Sequence[int],
+    transaction_id: str,
+    project_id: int | None = None,  # XXX: Make it mandatory later
+    eventstream_state: Mapping[str, Any] | None = None,  # XXX: We will remove it later
+    **kwargs: Any,
+) -> None:
+    groups = Group.objects.filter(id__in=object_ids).order_by("id")
+    if project_id:
+        if not all(group.project_id == project_id for group in groups):
+            raise DeleteAborted("delete_groups.project_id_mismatch")
     else:
-        # all groups have been deleted
-        if eventstream_state:
-            eventstream.backend.end_delete_groups(eventstream_state)
+        # XXX: We will remove this block later
+        # Select first_group from object_ids to get the project_id
+        first_group = groups.first()
+        if not first_group:
+            raise DeleteAborted("delete_groups.no_group_found")
+        project_id = first_group.project_id
+
+    assert project_id is not None, "project_id is required"
+
+    # This is a no-op on the Snuba side, however, one day it may be.
+    eventstream_state = eventstream.backend.start_delete_groups(project_id, object_ids)
+    delete_groups_old(
+        object_ids=object_ids,
+        transaction_id=transaction_id,
+        eventstream_state=eventstream_state,
+        project_id=project_id,
+        **kwargs,
+    )
+    # This will delete all Snuba events for the groups that were deleted.
+    eventstream.backend.end_delete_groups(eventstream_state)

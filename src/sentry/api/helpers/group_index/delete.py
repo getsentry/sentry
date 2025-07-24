@@ -10,9 +10,9 @@ import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, eventstream
+from sentry import audit_log
 from sentry.api.base import audit_logger
-from sentry.deletions.tasks.groups import delete_groups as delete_groups_task
+from sentry.deletions.tasks.groups import delete_groups_for_project_task
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
@@ -80,8 +80,6 @@ def delete_group_list(
         status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
     ).update(status=GroupStatus.PENDING_DELETION, substatus=None)
 
-    eventstream_state = eventstream.backend.start_delete_groups(project.id, group_ids)
-
     # The moment groups are marked as pending deletion, we create audit entries
     # so that we can see who requested the deletion. Even if anything after this point
     # fails, we will still have a record of who requested the deletion.
@@ -95,11 +93,11 @@ def delete_group_list(
     # `Group` instances that are pending deletion
     GroupInbox.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
 
-    delete_groups_task.apply_async(
+    delete_groups_for_project_task.apply_async(
         kwargs={
+            "project_id": project.id,
             "object_ids": group_ids,
             "transaction_id": str(transaction_id),
-            "eventstream_state": eventstream_state,
         }
     )
 
