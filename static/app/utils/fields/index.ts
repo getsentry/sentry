@@ -402,18 +402,18 @@ export enum IsFieldValues {
 }
 
 export enum IsFieldDescriptions {
-  RESOLVED = 'Issues that have been marked as fixed',
-  UNRESOLVED = 'Issues that are still active and need attention',
-  ARCHIVED = 'Issues that have been archived (previously called ignored)',
-  ESCALATING = 'Issues that are occurring significantly more often than before',
+  RESOLVED = 'Issues marked as fixed.',
+  UNRESOLVED = 'Issues still active and need attention',
+  ARCHIVED = 'Archived issues',
+  ESCALATING = 'Issues occurring significantly more often than they used to',
   NEW = 'Issues that first occurred in the last 7 days',
-  ONGOING = 'Issues that have been active for more than 7 days',
-  REGRESSED = 'Issues that were previously resolved but have reoccurred',
-  ASSIGNED = 'Issues that have been assigned to a team member',
-  UNASSIGNED = 'Issues that have not been assigned to anyone',
-  FOR_REVIEW = 'Issues that are pending review',
-  LINKED = 'Issues that are linked to other issues',
-  UNLINKED = 'Issues that are not linked to other issues',
+  ONGOING = 'Issues created more than 7 days ago or manually been marked as reviewed',
+  REGRESSED = 'Issues resolved then occurred again',
+  ASSIGNED = 'Issues assigned to a team member',
+  UNASSIGNED = 'Issues not assigned to anyone',
+  FOR_REVIEW = 'Issues pending review',
+  LINKED = 'Issues linked to other issues',
+  UNLINKED = 'Issues not linked to other issues',
 }
 
 export const FIELD_VALUE_TO_FIELD_DESCRIPTION = {
