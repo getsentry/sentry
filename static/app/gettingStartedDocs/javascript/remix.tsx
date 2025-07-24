@@ -49,6 +49,7 @@ const getConfigStep = ({isSelfHosted, organization, projectSlug}: Params) => {
   ];
 };
 
+// TODO: Refactor once the other product areas support content blocks
 const getInstallConfig = (params: Params) => [
   {
     type: StepType.INSTALL,
@@ -77,17 +78,21 @@ const onboarding: OnboardingConfig = {
     {
       collapsible: true,
       title: t('Manual Configuration'),
-      description: tct(
-        'Alternatively, you can also set up the SDK manually, by following the [manualSetupLink:manual setup docs].',
+      content: [
         {
-          manualSetupLink: (
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/remix/manual-setup/" />
+          type: 'text',
+          text: tct(
+            'Alternatively, you can also set up the SDK manually, by following the [manualSetupLink:manual setup docs].',
+            {
+              manualSetupLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/remix/manual-setup/" />
+              ),
+            }
           ),
-        }
-      ),
-      configurations: [
+        },
         {
-          description: <CopyDsnField params={params} />,
+          type: 'text',
+          text: <CopyDsnField params={params} />,
         },
       ],
     },
@@ -95,26 +100,25 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: (
-        <Fragment>
-          <p>
-            {tct(
-              'Start your development server and visit [code:/sentry-example-page] if you have set it up. Click the button to trigger a test error.',
-              {
-                code: <code />,
-              }
-            )}
-          </p>
-          <p>
-            {t(
-              'Or, trigger a sample error by calling a function that does not exist somewhere in your application.'
-            )}
-          </p>
-        </Fragment>
-      ),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: tct(
+            'Start your development server and visit [code:/sentry-example-page] if you have set it up. Click the button to trigger a test error.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        {
+          type: 'text',
+          text: t(
+            'Or, trigger a sample error by calling a function that does not exist somewhere in your application.'
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'Javascript',
               value: 'javascript',
