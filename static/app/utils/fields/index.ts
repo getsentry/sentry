@@ -402,7 +402,6 @@ export enum IsFieldValues {
 }
 
 export enum IsFieldDescriptions {
-  ERROR = 'Error',
   RESOLVED = 'Issues that have been marked as fixed',
   UNRESOLVED = 'Issues that are still active and need attention',
   ARCHIVED = 'Issues that have been archived (previously called ignored)',
@@ -418,8 +417,6 @@ export enum IsFieldDescriptions {
 }
 
 export const FIELD_VALUE_TO_FIELD_DESCRIPTION = {
-  error: IsFieldDescriptions.ERROR,
-
   resolved: IsFieldDescriptions.RESOLVED,
   unresolved: IsFieldDescriptions.UNRESOLVED,
   archived: IsFieldDescriptions.ARCHIVED,
