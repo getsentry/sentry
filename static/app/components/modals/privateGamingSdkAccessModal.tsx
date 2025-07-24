@@ -23,7 +23,6 @@ export interface PrivateGamingSdkAccessModalProps {
   organization: Organization;
   projectSlug: string;
   sdkName: string;
-  source: string;
   gamingPlatform?: GamingPlatform;
   onSubmit?: () => void;
 }
@@ -38,7 +37,6 @@ export function PrivateGamingSdkAccessModal({
   sdkName,
   gamingPlatform,
   onSubmit,
-  source,
 }: PrivateGamingSdkAccessModalProps & ModalRenderProps) {
   const user = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,6 +72,8 @@ export function PrivateGamingSdkAccessModal({
       `Project: ${projectSlug}`,
       `GitHub Profile: ${githubProfile}`,
     ].join('\n');
+
+    const source = `${sdkName.toLowerCase()}-sdk-access`;
 
     // Use captureFeedback with proper user context instead of tags
     captureFeedback(
@@ -115,7 +115,6 @@ export function PrivateGamingSdkAccessModal({
     closeModal,
     onSubmit,
     projectSlug,
-    source,
   ]);
 
   return (
