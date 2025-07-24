@@ -5,7 +5,7 @@ from sentry import analytics
 class IntegrationsFailedToFetchCommitContextAllFrames(analytics.Event):
     organization_id: int
     project_id: int
-    group_id: str
+    group_id: int
     event_id: str
     num_frames: int
     num_successfully_mapped_frames: int
@@ -16,7 +16,7 @@ class IntegrationsFailedToFetchCommitContextAllFrames(analytics.Event):
 class IntegrationsSuccessfullyFetchedCommitContextAllFrames(analytics.Event):
     organization_id: int
     project_id: int
-    group_id: str
+    group_id: int
     event_id: str
     num_frames: int
     num_unique_commits: int
