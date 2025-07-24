@@ -206,6 +206,7 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
         organization,
         example_query: example,
       });
+      inputRef.current?.focus();
       submitQuery(example);
     },
     [organization, submitQuery]
