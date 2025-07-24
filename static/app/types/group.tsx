@@ -335,6 +335,7 @@ export type Tag = {
    */
   maxSuggestedValues?: number;
   predefined?: boolean;
+  secondaryAliases?: string[];
   totalValues?: number;
   uniqueValues?: number;
   /**
