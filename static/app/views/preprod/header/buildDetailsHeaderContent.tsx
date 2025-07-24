@@ -12,7 +12,7 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
-export interface BuildDetailsHeaderContentProps {
+interface BuildDetailsHeaderContentProps {
   buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
 }
 
@@ -43,18 +43,18 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     );
   }
 
-  if (!buildDetailsData) {
-    return (
-      <HeaderContainer>
-        <Alert type="error">No build details found</Alert>
-      </HeaderContainer>
-    );
-  }
-
   if (isBuildDetailsError) {
     return (
       <HeaderContainer>
         <Alert type="error">{buildDetailsError?.message}</Alert>
+      </HeaderContainer>
+    );
+  }
+
+  if (!buildDetailsData) {
+    return (
+      <HeaderContainer>
+        <Alert type="error">No build details found</Alert>
       </HeaderContainer>
     );
   }

@@ -7,7 +7,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {BuildDetailsSidebarAppInfo} from 'sentry/views/preprod/sidebar/buildDetailsSidebarAppInfo';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
-export interface BuildDetailsSidebarContentProps {
+interface BuildDetailsSidebarContentProps {
   artifactId: string;
   buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
   projectId: string;

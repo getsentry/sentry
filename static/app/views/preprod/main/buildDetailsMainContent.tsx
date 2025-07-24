@@ -7,7 +7,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {AppSizeTreemap} from 'sentry/views/preprod/main/appSizeTreemap';
 import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
 
-export interface BuildDetailsMainContentProps {
+interface BuildDetailsMainContentProps {
   appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError>;
 }
 
@@ -27,18 +27,18 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     );
   }
 
-  if (!appSizeData) {
-    return (
-      <MainContentContainer>
-        <Alert type="error">No app size data found</Alert>
-      </MainContentContainer>
-    );
-  }
-
   if (isAppSizeError) {
     return (
       <MainContentContainer>
         <Alert type="error">{appSizeError?.message}</Alert>
+      </MainContentContainer>
+    );
+  }
+
+  if (!appSizeData) {
+    return (
+      <MainContentContainer>
+        <Alert type="error">No app size data found</Alert>
       </MainContentContainer>
     );
   }
