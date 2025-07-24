@@ -42,7 +42,10 @@ class TestReappearedEventCondition(ConditionTestCase):
 
     def test(self):
         job = WorkflowEventData(
-            event=self.group_event, group=self.group_event.group, has_reappeared=True
+            event=self.group_event,
+            group=self.group_event.group,
+            has_reappeared=False,
+            has_escalated=True,
         )
         dc = self.create_data_condition(
             type=self.condition,
@@ -52,5 +55,5 @@ class TestReappearedEventCondition(ConditionTestCase):
 
         self.assert_passes(dc, job)
 
-        job = replace(job, has_reappeared=False)
+        job = replace(job, has_escalated=False)
         self.assert_does_not_pass(dc, job)

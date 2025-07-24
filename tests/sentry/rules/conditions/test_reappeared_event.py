@@ -11,6 +11,6 @@ class ReappearedEventConditionTest(RuleTestCase):
     def test_applies_correctly(self):
         rule = self.get_rule()
 
-        self.assertPasses(rule, self.event, has_reappeared=True)
+        self.assertPasses(rule, self.event, has_escalated=True)
 
-        self.assertDoesNotPass(rule, self.event, has_reappeared=False)
+        self.assertDoesNotPass(rule, self.event, has_escalated=False)
