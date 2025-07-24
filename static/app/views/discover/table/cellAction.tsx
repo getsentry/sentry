@@ -295,16 +295,25 @@ type Props = React.PropsWithoutRef<CellActionsOpts> & {
   triggerType?: ActionTriggerType;
 };
 
-function CellAction({triggerType = ActionTriggerType.BOLD_HOVER, ...props}: Props) {
+function CellAction({
+  triggerType = ActionTriggerType.BOLD_HOVER,
+  allowActions,
+  ...props
+}: Props) {
   const organization = useOrganization();
   const {children, column} = props;
-  const cellActions = makeCellActions(props);
+
+  const useCellActionsV2 = organization.features.includes('discover-cell-actions-v2');
+  let filteredActions = allowActions;
+  if (!useCellActionsV2)
+    filteredActions = filteredActions?.filter(
+      action => action !== Actions.OPEN_EXTERNAL_LINK
+    );
+
+  const cellActions = makeCellActions({...props, allowActions: filteredActions});
   const align = fieldAlignment(column.key as string, column.type);
 
-  if (
-    organization.features.includes('discover-cell-actions-v2') &&
-    triggerType === ActionTriggerType.BOLD_HOVER
-  )
+  if (useCellActionsV2 && triggerType === ActionTriggerType.BOLD_HOVER)
     return (
       <Container
         data-test-id={cellActions === null ? undefined : 'cell-action-container'}
