@@ -362,7 +362,7 @@ export function SeerAutomationProjectList() {
           )}
           {paginatedProjects.map(project => (
             <ClickablePanelItem key={project.id} onClick={() => handleRowClick(project)}>
-              <Flex justify="space-between" align="center" gap="xl" flex={1}>
+              <Flex justify="between" align="center" gap="xl" flex={1}>
                 <Flex gap="md" align="center">
                   <StyledCheckbox
                     checked={selected.has(project.id)}
@@ -380,7 +380,7 @@ export function SeerAutomationProjectList() {
         </PanelBody>
       </Panel>
       {totalProjects > PROJECTS_PER_PAGE && (
-        <Flex justify="flex-end">
+        <Flex justify="end">
           <ButtonBar merged gap="none">
             <Button
               icon={<IconChevron direction="left" />}

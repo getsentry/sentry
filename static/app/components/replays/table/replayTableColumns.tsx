@@ -560,7 +560,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
             size={24}
           />
           <SubText>
-            <Flex gap="xs" align="flex-start">
+            <Flex gap="xs" align="start">
               <DisplayName data-underline-on-hover>
                 {replay.user.display_name || t('Anonymous User')}
               </DisplayName>
