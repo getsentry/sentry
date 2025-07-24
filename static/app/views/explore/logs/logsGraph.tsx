@@ -24,7 +24,7 @@ interface LogsGraphProps {
 export function LogsGraph({timeseriesResult}: LogsGraphProps) {
   const aggregate = useLogsAggregate();
 
-  const canUsePreviousResults = false;
+  const canUsePreviousResults = timeseriesResult.isPending;
   const cachedTimeseriesResult = useCachedTimeseriesResults({
     canUsePreviousResults,
     timeseriesResult,
