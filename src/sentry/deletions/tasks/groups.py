@@ -75,13 +75,13 @@ def delete_groups(
         delete_groups.apply_async(
             kwargs={
                 "object_ids": object_ids if has_more else rest,
-                "project_id": first_group.project_id,
                 "transaction_id": transaction_id,
+                "eventstream_state": eventstream_state,
             },
         )
     else:
+        # all groups have been deleted
         if eventstream_state:
-            # This will delete all Snuba events for all deleted groups
             eventstream.backend.end_delete_groups(eventstream_state)
 
 
