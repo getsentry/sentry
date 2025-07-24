@@ -13,8 +13,8 @@ import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 const BREAKPOINT_ORDER: readonly Breakpoint[] = ['xs', 'sm', 'md', 'lg', 'xl'];
 
 // We alias None -> 0 to make it slighly more terse and easier to read.
-type RadiusSize = keyof DO_NOT_USE_ChonkTheme['radius'] | '0';
-type SpacingSize = keyof Theme['space'] | '0';
+type RadiusSize = keyof DO_NOT_USE_ChonkTheme['radius'];
+type SpacingSize = keyof Theme['space'];
 type Breakpoint = keyof Theme['breakpoints'];
 
 // @TODO(jonasbadalic): audit for memory usage and linting performance issues.
@@ -38,18 +38,13 @@ function resolveRadius(sizeComponent: RadiusSize | undefined, theme: Theme) {
   if (sizeComponent === undefined) {
     return undefined;
   }
-  if (sizeComponent === '0') {
-    return '0px';
-  }
+
   return isChonkTheme(theme) ? theme.radius[sizeComponent] : theme.borderRadius;
 }
 
 function resolveSpacing(sizeComponent: SpacingSize, theme: Theme) {
   if (sizeComponent === undefined) {
     return undefined;
-  }
-  if (sizeComponent === '0') {
-    return theme.space.none;
   }
 
   return theme.space[sizeComponent] ?? theme.space.none;
