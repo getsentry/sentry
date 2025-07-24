@@ -56,3 +56,39 @@ class TestTestUtilsFeatureHelper(TestCase):
             assert isinstance(org_context.organization, RpcOrganization)
 
             assert features.has("system:multi-region")
+
+            assert features.has("system:multi-region")
+
+
+class TestWithFeatureClassDecorator(TestCase):
+    """Test that with_feature works correctly when used as a class decorator."""
+
+    def test_with_feature_on_class_works(self):
+        """Test that using with_feature as a class decorator enables features for all methods."""
+
+        @with_feature("organizations:global-views")
+        class TestClassWithFeature(TestCase):
+            def test_method_1(self):
+                org = self.create_organization()
+                assert features.has("organizations:global-views", org)
+
+            def test_method_2(self):
+                org = self.create_organization()
+                assert features.has("organizations:global-views", org)
+
+        # Verify the fixture was created
+        fixture_found = False
+        for attr_name in dir(TestClassWithFeature):
+            if (
+                attr_name.startswith("_feature_fixture")
+                and "organizations:global-views" in attr_name
+            ):
+                fixture_found = True
+                break
+
+        assert fixture_found, "Feature fixture was not created on the class"
+
+        test_instance = TestClassWithFeature()
+        test_instance.setUp()
+        test_instance.test_method_1()
+        test_instance.test_method_2()
