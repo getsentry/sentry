@@ -190,7 +190,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
             and dataset == DiscoverSavedQueryTypes.TRANSACTION_LIKE
         ):
             raise serializers.ValidationError(
-                "The Transactions dataset is being deprecated. Please use `Traces` to save new transaction queries."
+                f"The Transactions dataset is being deprecated. Please append the `is_transaction:true` filter in the Trace Explorer product in Sentry or use the `/organizations/{self.context['organization'].slug}/explore/saved/` endpoint with the filter to save new transaction queries."
             )
 
         return dataset

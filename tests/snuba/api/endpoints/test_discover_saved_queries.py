@@ -756,6 +756,6 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
         assert response.status_code == 400, response.content
         response_data = response.json()
         assert (
-            "The Transactions dataset is being deprecated. Please use `Traces` to save new transaction queries."
+            f"The Transactions dataset is being deprecated. Please append the `is_transaction:true` filter in the Trace Explorer product in Sentry or use the `/organizations/{self.org.slug}/explore/saved/` endpoint with the filter to save new transaction queries."
             in response_data["queryDataset"][0]
         )
