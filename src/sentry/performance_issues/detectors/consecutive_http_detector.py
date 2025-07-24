@@ -96,8 +96,8 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
 
     def _store_performance_problem(self) -> None:
         fingerprint = self._fingerprint()
-        offender_span_ids = [span.get("span_id", None) for span in self.consecutive_http_spans]
-        desc: str = self.consecutive_http_spans[0].get("description", None)
+        offender_span_ids = [span["span_id"] for span in self.consecutive_http_spans]
+        desc: str = self.consecutive_http_spans[0].get("description", "")
 
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint,
