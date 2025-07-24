@@ -12,6 +12,7 @@ mock_graphql_response_empty = {
         "owner": {
             "repository": {
                 "__typename": "Repository",
+                "defaultBranch": "main",
                 "testAnalytics": {
                     "testResults": {
                         "edges": [],
@@ -34,6 +35,7 @@ mock_graphql_response_populated = {
         "owner": {
             "repository": {
                 "__typename": "Repository",
+                "defaultBranch": "another-branch",
                 "testAnalytics": {
                     "testResults": {
                         "edges": [
