@@ -61,8 +61,14 @@ def delete_group_list(
             error_ids.append(g.id)
 
     transaction_id = uuid4().hex
-    extra = {"objects": group_ids, "project_id": project.id, "transaction_id": transaction_id}
-    delete_logger.info("object.delete.api", extra=extra)
+    delete_logger.info(
+        "object.delete.api",
+        extra={
+            "objects": group_ids,
+            "project_id": project.id,
+            "transaction_id": transaction_id,
+        },
+    )
     # The tags can be used if we want to find errors for when a task fails
     sentry_sdk.set_tags(
         {
@@ -76,11 +82,11 @@ def delete_group_list(
     # Tell seer to delete grouping records for these groups
     may_schedule_task_to_delete_hashes_from_seer(error_ids)
 
-    eventstream_state = eventstream.backend.start_delete_groups(project.id, group_ids)
-
     Group.objects.filter(id__in=group_ids).exclude(
         status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
     ).update(status=GroupStatus.PENDING_DELETION, substatus=None)
+
+    eventstream_state = eventstream.backend.start_delete_groups(project.id, group_ids)
 
     # The moment groups are marked as pending deletion, we create audit entries
     # so that we can see who requested the deletion. Even if anything after this point
