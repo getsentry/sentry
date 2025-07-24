@@ -306,6 +306,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             )
 
             # Verify the group is in the correct state
+            assert high_priority_event_2.group is not None
             assert high_priority_event_2.group.status == GroupStatus.IGNORED
             assert high_priority_event_2.group.substatus == GroupSubStatus.UNTIL_ESCALATING
 
