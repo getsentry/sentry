@@ -65,8 +65,34 @@ class InternalIntegrationProxyEndpoint(Endpoint):
     def client(self, client):
         self._client = client
 
-    def _log_metric(self, metric_name: str, **kwargs):
-        metrics.incr(f"{METRIC_PREFIX}.{metric_name}", **kwargs)
+    def _add_metric(
+        self,
+        metric_name: str,
+        sample_rate: float | None = None,
+        tags: dict[str, str] | None = None,
+    ):
+        extras = {"tags": tags} if tags is not None else {}
+
+        metrics.incr(
+            f"{METRIC_PREFIX}.{metric_name}",
+            sample_rate=sample_rate,
+            **extras,
+        )
+
+    def _add_failure_metric(
+        self,
+        failure_type: str,
+        sample_rate: float | None = None,
+        additional_tags: dict[str, str] | None = None,
+    ):
+        if additional_tags is None:
+            additional_tags = {}
+        tags = {"failure_type": failure_type, **additional_tags}
+        self._add_metric(
+            metric_name="proxy_failure",
+            sample_rate=sample_rate,
+            tags=tags,
+        )
 
     def _validate_sender(self, request: HttpRequest) -> bool:
         """
@@ -77,6 +103,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         base_url = request.headers.get(PROXY_BASE_URL_HEADER)
         if signature is None or identifier is None or base_url is None:
             logger.info("integration_proxy.invalid_sender_headers", extra=self.log_extra)
+            self._add_failure_metric("invalid_sender_headers", sample_rate=1.0)
             return False
         is_valid = verify_subnet_signature(
             base_url=base_url,
@@ -87,6 +114,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         )
         if not is_valid:
             logger.info("integration_proxy.invalid_sender_signature", extra=self.log_extra)
+            self._add_failure_metric("invalid_sender_signature", sample_rate=1.0)
 
         return is_valid
 
@@ -114,7 +142,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         )
         if self.org_integration is None:
             logger.info("integration_proxy.invalid_org_integration", extra=self.log_extra)
-            self._log_metric("failure.invalid_org_integration")
+            self._add_failure_metric("invalid_org_integration")
             return False
         self.log_extra["integration_id"] = self.org_integration.integration_id
 
@@ -123,7 +151,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         if not self.integration or self.integration.status is not ObjectStatus.ACTIVE:
             logger.info("integration_proxy.invalid_integration", extra=self.log_extra)
             if self.integration and self.integration.status is not ObjectStatus.ACTIVE:
-                self._log_metric("failure.invalid_integration")
+                self._add_metric("failure.invalid_integration")
             return False
 
         # Get the integration client
@@ -143,6 +171,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         self.log_extra["client_type"] = client_class.__name__
         if not issubclass(client_class, IntegrationProxyClient):
             logger.info("integration_proxy.invalid_client", extra=self.log_extra)
+            self._add_failure_metric("invalid_client", sample_rate=1.0)
             return False
 
         return True
@@ -155,19 +184,19 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         if not is_correct_silo:
             self.log_extra["silo_mode"] = SiloMode.get_current_mode().value
             logger.info("integration_proxy.incorrect_silo_mode", extra=self.log_extra)
-            self._log_metric("failure.invalid_mode", sample_rate=1.0)
+            self._add_failure_metric("invalid_mode", sample_rate=1.0)
             return False
 
         is_valid_sender = self._validate_sender(request=request)
         if not is_valid_sender:
             logger.info("integration_proxy.failure.invalid_sender", extra=self.log_extra)
-            self._log_metric("failure.invalid_sender", sample_rate=1.0)
+            self._add_failure_metric("invalid_sender", sample_rate=1.0)
             return False
 
         is_valid_request = self._validate_request(request=request)
         if not is_valid_request:
             logger.info("integration_proxy.failure.invalid_request", extra=self.log_extra)
-            self._log_metric("failure.invalid_request", sample_rate=1.0)
+            self._add_failure_metric("invalid_request", sample_rate=1.0)
             return False
         return True
 
@@ -208,7 +237,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         if not self._should_operate(request):
             return HttpResponseBadRequest()
 
-        self._log_metric("initialize", sample_rate=1.0)
+        self._add_metric(metric_name="initialize", sample_rate=1.0)
 
         base_url = request.headers.get(PROXY_BASE_URL_HEADER)
         base_url = base_url.rstrip("/")
@@ -219,8 +248,10 @@ class InternalIntegrationProxyEndpoint(Endpoint):
 
         response = self._call_third_party_api(request=request, full_url=full_url, headers=headers)
 
-        self._log_metric(
-            "complete.response_code", tags={"status": response.status_code}, sample_rate=1.0
+        self._add_metric(
+            metric_name="complete.response_code",
+            sample_rate=1.0,
+            tags={"status": response.status_code},
         )
         return response
 
@@ -233,14 +264,18 @@ class InternalIntegrationProxyEndpoint(Endpoint):
     ) -> DRFResponse:
         if isinstance(exc, IdentityNotValid):
             logger.warning("hybrid_cloud.integration_proxy.invalid_identity", extra=self.log_extra)
+            self._add_failure_metric("invalid_identity", sample_rate=1.0)
             return self.respond(status=400)
         elif isinstance(exc, ApiHostError):
             logger.info(
                 "hybrid_cloud.integration_proxy.host_unreachable_error", extra=self.log_extra
             )
+            self._add_failure_metric("host_unreachable_error", sample_rate=1.0)
             return self.respond(status=exc.code)
         elif isinstance(exc, ApiTimeoutError):
             logger.info("hybrid_cloud.integration_proxy.host_timeout_error", extra=self.log_extra)
+            self._add_failure_metric("host_timeout_error", sample_rate=1.0)
             return self.respond(status=exc.code)
 
+        self._add_failure_metric("unknown_error", sample_rate=1.0)
         return super().handle_exception_with_details(request, exc, handler_context, scope)
