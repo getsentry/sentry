@@ -276,9 +276,16 @@ def create_issue_alert_rule_data(
     :param issue_alert_rule: Dictionary of configurations for an associated Rule
     :return: dict
     """
-    issue_alert_rule_data = {
+    return {
         "actionMatch": "any",
-        "actions": [],
+        "actions": [
+            {
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": target["target_identifier"],
+                "targetType": target["target_type"],
+            }
+            for target in issue_alert_rule.get("targets", [])
+        ],
         "conditions": [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -309,19 +316,6 @@ def create_issue_alert_rule_data(
         "projects": [project.slug],
         "snooze": False,
     }
-
-    for target in issue_alert_rule.get("targets", []):
-        target_identifier = target["target_identifier"]
-        target_type = target["target_type"]
-
-        action = {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetIdentifier": target_identifier,
-            "targetType": target_type,
-        }
-        issue_alert_rule_data["actions"].append(action)
-
-    return issue_alert_rule_data
 
 
 def update_issue_alert_rule(

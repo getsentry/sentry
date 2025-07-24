@@ -36,13 +36,13 @@ QUERY_AGGREGATION_DISPLAY = {
 }
 
 
-@dataclass
-class MetricIssueEvidenceData(EvidenceData[float]):
-    alert_id: int
-
-
 MetricUpdate = ProcessedSubscriptionUpdate | AnomalyDetectionUpdate
-MetricResult = int | dict
+MetricResult = float | dict
+
+
+@dataclass
+class MetricIssueEvidenceData(EvidenceData[MetricResult]):
+    alert_id: int
 
 
 class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricResult]):
@@ -194,11 +194,6 @@ class MetricIssue(GroupType):
             "type": "object",
             "required": ["detection_type"],
             "properties": {
-                "threshold_period": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 20,
-                },  # remove after we complete backfill
                 "comparison_delta": {
                     "type": ["integer", "null"],
                     "enum": COMPARISON_DELTA_CHOICES,
@@ -207,8 +202,6 @@ class MetricIssue(GroupType):
                     "type": "string",
                     "enum": [detection_type.value for detection_type in AlertRuleDetectionType],
                 },
-                "sensitivity": {"type": ["string", "null"]},  # remove after we complete backfill
-                "seasonality": {"type": ["string", "null"]},  # remove after we complete backfill
             },
         },
     )

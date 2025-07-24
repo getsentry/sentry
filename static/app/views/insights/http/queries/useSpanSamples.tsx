@@ -13,7 +13,7 @@ import type {
   NonDefaultSpanSampleFields,
 } from 'sentry/views/insights/common/queries/useSpanSamples';
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
-import {type EAPSpanResponse, SpanFields} from 'sentry/views/insights/types';
+import {SpanFields, type SpanResponse} from 'sentry/views/insights/types';
 
 interface UseSpanSamplesOptions<Fields> {
   enabled?: boolean;
@@ -50,7 +50,7 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
   const dateConditions = getDateConditions(selection);
 
   return useApiQuery<{
-    data: Array<Pick<EAPSpanResponse, Fields[number] | DefaultSpanSampleFields>>;
+    data: Array<Pick<SpanResponse, Fields[number] | DefaultSpanSampleFields>>;
     meta: EventsMetaType;
   }>(
     [
@@ -70,7 +70,7 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
           additionalFields: [...fields, SpanFields.TRANSACTION_SPAN_ID],
           sort: '-timestamp',
           sampling: SAMPLING_MODE.NORMAL,
-          dataset: DiscoverDatasets.SPANS_EAP,
+          dataset: DiscoverDatasets.SPANS,
           referrer,
         },
       },

@@ -35,6 +35,17 @@ The number of tasks a worker child process will process
 before being restarted.
 """
 
+MAX_BACKOFF_SECONDS_WHEN_HOST_UNAVAILABLE = 20
+"""
+The maximum number of seconds to wait before retrying RPCs when the host is unavailable.
+"""
+
+
+MAX_PARAMETER_BYTES_BEFORE_COMPRESSION = 3000000  # 3MB
+"""
+The maximum number of bytes before a task parameter is compressed.
+"""
+
 
 class CompressionType(Enum):
     """

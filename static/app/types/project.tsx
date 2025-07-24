@@ -69,9 +69,6 @@ export type Project = {
   autofixAutomationTuning?: 'off' | 'super_low' | 'low' | 'medium' | 'high' | 'always';
   builtinSymbolSources?: string[];
   defaultEnvironment?: string;
-  eventProcessing?: {
-    symbolicationDegraded?: boolean;
-  };
   hasUserReports?: boolean;
   highlightContext?: Record<string, string[]>;
   highlightPreset?: {
@@ -112,6 +109,7 @@ export type ProjectKey = {
     crons: string;
     csp: string;
     minidump: string;
+    otlp_traces: string;
     playstation: string;
     public: string;
     secret: string;
@@ -319,4 +317,7 @@ export type PlatformIntegration = {
   link: string | null;
   name: string;
   type: string;
+  iconConfig?: {
+    withLanguageIcon: boolean;
+  };
 };

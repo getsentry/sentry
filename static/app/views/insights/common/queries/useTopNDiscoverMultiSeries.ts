@@ -18,7 +18,7 @@ import {
   getRetryDelay,
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
-import type {EAPSpanProperty} from 'sentry/views/insights/types';
+import type {SpanProperty} from 'sentry/views/insights/types';
 
 import {convertDiscoverTimeseriesResponse} from './convertDiscoverTimeseriesResponse';
 
@@ -37,8 +37,8 @@ interface UseMetricsSeriesOptions<YAxisFields, Fields> {
 }
 
 export const useTopNSpanMultiSeries = <
-  YAxisFields extends EAPSpanProperty[],
-  Fields extends EAPSpanProperty[],
+  YAxisFields extends SpanProperty[],
+  Fields extends SpanProperty[],
 >(
   options: UseMetricsSeriesOptions<YAxisFields, Fields>,
   referrer: string,
@@ -46,7 +46,7 @@ export const useTopNSpanMultiSeries = <
 ) => {
   return useTopNDiscoverMultiSeries<YAxisFields, Fields>(
     options,
-    DiscoverDatasets.SPANS_EAP_RPC,
+    DiscoverDatasets.SPANS,
     referrer,
     pageFilters
   );
@@ -73,9 +73,6 @@ const useTopNDiscoverMultiSeries = <
   const defaultPageFilters = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
-
-  // TODO: remove this check with eap
-  const shouldSetSamplingMode = dataset === DiscoverDatasets.SPANS_EAP_RPC;
 
   const eventView = getSeriesEventView(
     search,
@@ -104,7 +101,7 @@ const useTopNDiscoverMultiSeries = <
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
       transformAliasToInputFormat: options.transformAliasToInputFormat ? '1' : '0',
-      sampling: shouldSetSamplingMode ? samplingMode : undefined,
+      sampling: samplingMode,
     }),
     options: {
       enabled: options.enabled && defaultPageFilters.isReady,
