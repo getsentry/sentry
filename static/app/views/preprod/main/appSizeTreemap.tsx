@@ -215,7 +215,6 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       color: theme.textColor,
       fontFamily: 'Rubik',
     },
-    // TODO
     formatter: function (params: any) {
       const value = typeof params.value === 'number' ? params.value : 0;
       const percent = ((value / totalSize) * 100).toFixed(2);

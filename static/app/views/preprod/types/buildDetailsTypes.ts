@@ -27,7 +27,7 @@ interface BuildDetailsVcsInfo {
   // branch?: string; // Uncomment when available
 }
 
-export enum BuildDetailsState {
+enum BuildDetailsState {
   UPLOADING = 0,
   UPLOADED = 1,
   PROCESSED = 3,
