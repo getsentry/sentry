@@ -186,13 +186,17 @@ export function useUpdateAutomation() {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
-  return useMutation<Automation, void, Automation>({
+  return useMutation<
+    Automation,
+    void,
+    Partial<Automation> & {id: Automation['id']; name: Automation['name']}
+  >({
     mutationFn: data =>
       api.requestPromise(`/organizations/${org.slug}/workflows/${data.id}/`, {
         method: 'PUT',
         data,
       }),
-    onSuccess: (data, __, ___) => {
+    onSuccess: data => {
       // Update cache with new automation data
       setApiQueryData(
         queryClient,

@@ -29,7 +29,8 @@ export function EditAutomationActions({automation}: EditAutomationActionsProps) 
     const newEnabled = !automation.enabled;
     updateAutomation(
       {
-        ...automation,
+        id: automation.id,
+        name: automation.name,
         enabled: newEnabled,
       },
       {
