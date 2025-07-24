@@ -380,6 +380,8 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                 "url": as_string_strict(event["data"]["payload"]["description"]),
                 "method": str(event["data"]["payload"]["data"]["method"]),
                 "statusCode": int(event["data"]["payload"]["data"]["statusCode"]),
+                "duration": float(event["data"]["payload"]["endTimestamp"])
+                - float(event["data"]["payload"]["startTimestamp"]),
             }
 
             for key, value in (
@@ -416,6 +418,8 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                     "decodedBodySize": int(event["data"]["payload"]["data"]["decodedBodySize"]),
                     "encodedBodySize": int(event["data"]["payload"]["data"]["encodedBodySize"]),
                     "url": as_string_strict(event["data"]["payload"]["description"]),
+                    "duration": float(event["data"]["payload"]["endTimestamp"])
+                    - float(event["data"]["payload"]["startTimestamp"]),
                 },
                 "event_hash": uuid.uuid4().bytes,
                 "timestamp": float(event["data"]["payload"]["startTimestamp"]),
@@ -488,6 +492,8 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                     "totalJSHeapSize": int(payload["data"]["totalJSHeapSize"]),
                     "usedJSHeapSize": int(payload["data"]["usedJSHeapSize"]),
                     "endTimestamp": float(payload["endTimestamp"]),
+                    "duration": float(event["data"]["payload"]["endTimestamp"])
+                    - float(event["data"]["payload"]["startTimestamp"]),
                 },
                 "event_hash": uuid.uuid4().bytes,
                 "timestamp": float(payload["startTimestamp"]),

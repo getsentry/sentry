@@ -905,6 +905,7 @@ def test_as_trace_item_context_resource_fetch_event():
         "data": {
             "payload": {
                 "startTimestamp": 1674298825.0,
+                "endTimestamp": 1674298825.0,
                 "description": "https://sentry.io/",
                 "data": {
                     "requestBodySize": 1024,
@@ -922,6 +923,7 @@ def test_as_trace_item_context_resource_fetch_event():
     assert result["attributes"]["category"] == "resource.fetch"
     assert result["attributes"]["request_size"] == 1024
     assert result["attributes"]["response_size"] == 2048
+    assert "duration" in result["attributes"]
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
@@ -930,6 +932,7 @@ def test_as_trace_item_context_resource_xhr_event():
         "data": {
             "payload": {
                 "startTimestamp": 1674298825.0,
+                "endTimestamp": 1674298825.0,
                 "description": "https://sentry.io/",
                 "data": {
                     "method": "GET",
@@ -946,6 +949,7 @@ def test_as_trace_item_context_resource_xhr_event():
     assert result["attributes"]["category"] == "resource.xhr"
     assert result["attributes"]["request_size"] == 512
     assert result["attributes"]["response_size"] == 1024
+    assert "duration" in result["attributes"]
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
@@ -954,6 +958,7 @@ def test_as_trace_item_context_resource_no_sizes():
         "data": {
             "payload": {
                 "startTimestamp": 1674298825.0,
+                "endTimestamp": 1674298825.0,
                 "description": "https://sentry.io/",
                 "data": {"method": "GET", "statusCode": 200},
             }
@@ -965,6 +970,7 @@ def test_as_trace_item_context_resource_no_sizes():
     assert result["attributes"]["category"] == "resource.fetch"
     assert "request_size" not in result["attributes"]
     assert "response_size" not in result["attributes"]
+    assert "duration" in result["attributes"]
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
@@ -973,6 +979,7 @@ def test_as_trace_item_context_resource_script_event():
         "data": {
             "payload": {
                 "startTimestamp": 1674298825.0,
+                "endTimestamp": 1674298825.0,
                 "description": "https://sentry.io/",
                 "data": {
                     "size": 10,
@@ -991,6 +998,7 @@ def test_as_trace_item_context_resource_script_event():
     assert result["attributes"]["statusCode"] == 200
     assert result["attributes"]["decodedBodySize"] == 45
     assert result["attributes"]["encodedBodySize"] == 55
+    assert "duration" in result["attributes"]
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
@@ -999,6 +1007,7 @@ def test_as_trace_item_context_resource_image_event():
         "data": {
             "payload": {
                 "startTimestamp": 1674298825.0,
+                "endTimestamp": 1674298825.0,
                 "description": "https://sentry.io/",
                 "data": {
                     "size": 10,
@@ -1017,6 +1026,7 @@ def test_as_trace_item_context_resource_image_event():
     assert result["attributes"]["statusCode"] == 200
     assert result["attributes"]["decodedBodySize"] == 45
     assert result["attributes"]["encodedBodySize"] == 55
+    assert "duration" in result["attributes"]
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
