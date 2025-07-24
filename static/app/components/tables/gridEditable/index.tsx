@@ -412,7 +412,7 @@ class GridEditable<
         <InteractionStateLayer isHovered={row === highlightedRowKey} as="td" />
 
         {prependColumns?.map((item, i) => (
-          <GridBodyCell data-test-id="grid-body-cell" key={`prepend-${i}`}>
+          <GridBodyCell data-test-id="grid-body-cell" key={`prepend-${i}`} isPrepended>
             {item}
           </GridBodyCell>
         ))}
