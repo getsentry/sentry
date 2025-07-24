@@ -1261,9 +1261,7 @@ def test_project_config_with_transaction_name_clustering_disabled(
 def test_project_config_trusted_relay_settings(
     default_project, feature_enabled, project_option_value
 ):
-    default_project.organization.update_option(
-        "sentry:ingest-through-trusted-relays-only", project_option_value
-    )
+    default_project.update_option("sentry:ingest-through-trusted-relays-only", project_option_value)
 
     features_dict = {}
     if feature_enabled:
