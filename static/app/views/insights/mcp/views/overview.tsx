@@ -168,7 +168,14 @@ function McpOverviewPage() {
       stringSecondaryAliases,
       replaceRawSearchKeys: ['span.description'],
     }),
-    [numberSecondaryAliases, numberTags, searchQuery, stringSecondaryAliases, stringTags]
+    [
+      numberSecondaryAliases,
+      numberTags,
+      searchQuery,
+      setSearchQuery,
+      stringSecondaryAliases,
+      stringTags,
+    ]
   );
 
   const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(
