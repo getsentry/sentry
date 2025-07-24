@@ -62,7 +62,7 @@ export function BranchSelector() {
 
   const branchResetButton = useCallback(
     ({closeOverlay}: any) => {
-      if (!branch || branch === defaultBranch) {
+      if (!defaultBranch || !branch || branch === defaultBranch) {
         return null;
       }
 
