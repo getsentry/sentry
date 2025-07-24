@@ -1416,16 +1416,50 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         enabled_platforms = self.organization.get_option("sentry:enabled_console_platforms")
         assert len(enabled_platforms) == 2 and set(enabled_platforms) == {"playstation", "xbox"}
 
+        with outbox_runner():
+            pass
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            console_log = AuditLogEntry.objects.get(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("ORG_CONSOLE_PLATFORM_EDIT"),
+            )
+            assert console_log.data["console_platforms"] == "Enabled Platforms: PlayStation, Xbox"
+
+            # Verify console platforms are NOT in the main ORG_EDIT audit log
+            # (Since this test only changes console platforms, there should be no ORG_EDIT log)
+            org_edit_logs = AuditLogEntry.objects.filter(
+                organization_id=self.organization.id, event=audit_log.get_event_id("ORG_EDIT")
+            )
+            assert org_edit_logs.count() == 0
+
     @with_feature({"organizations:project-creation-games-tab": True})
     def test_enabled_console_platforms_empty_platforms_parameter(self):
         staff_user = self.create_user(is_staff=True)
         self.create_member(organization=self.organization, user=staff_user, role="owner")
         self.login_as(user=staff_user, staff=True)
 
+        self.organization.update_option(
+            "sentry:enabled_console_platforms", ["playstation", "nintendo-switch"]
+        )
+
         data: dict[str, list[str]] = {"enabledConsolePlatforms": []}
         self.get_success_response(self.organization.slug, **data)
         enabled_platforms = self.organization.get_option("sentry:enabled_console_platforms")
         assert enabled_platforms == []
+
+        with outbox_runner():
+            pass
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            console_log = AuditLogEntry.objects.get(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("ORG_CONSOLE_PLATFORM_EDIT"),
+            )
+            assert (
+                console_log.data["console_platforms"]
+                == "Disabled Platforms: Nintendo Switch, PlayStation"
+            )
 
     @with_feature({"organizations:project-creation-games-tab": True})
     def test_enabled_console_platforms_duplicate_platform_parameter(self):
@@ -1437,6 +1471,42 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_success_response(self.organization.slug, **data)
         enabled_platforms = self.organization.get_option("sentry:enabled_console_platforms")
         assert enabled_platforms == ["playstation"]
+
+        with outbox_runner():
+            pass
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            console_log = AuditLogEntry.objects.get(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("ORG_CONSOLE_PLATFORM_EDIT"),
+            )
+            assert console_log.data["console_platforms"] == "Enabled Platforms: PlayStation"
+
+    @with_feature({"organizations:project-creation-games-tab": True})
+    def test_enabled_and_disabled_console_platforms(self):
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=staff_user, role="owner")
+        self.login_as(user=staff_user, staff=True)
+
+        self.organization.update_option("sentry:enabled_console_platforms", ["nintendo-switch"])
+
+        data = {"enabledConsolePlatforms": ["playstation", "xbox"]}
+        self.get_success_response(self.organization.slug, **data)
+        enabled_platforms = self.organization.get_option("sentry:enabled_console_platforms")
+        assert set(enabled_platforms) == {"playstation", "xbox"}
+
+        with outbox_runner():
+            pass
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            console_log = AuditLogEntry.objects.get(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("ORG_CONSOLE_PLATFORM_EDIT"),
+            )
+            assert (
+                console_log.data["console_platforms"]
+                == "Enabled Platforms: PlayStation, Xbox; Disabled Platforms: Nintendo Switch"
+            )
 
     def test_enable_pr_review_test_generation_default_true(self):
         response = self.get_success_response(self.organization.slug)
