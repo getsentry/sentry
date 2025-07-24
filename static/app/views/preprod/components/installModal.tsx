@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {InstallDetailsApiResponse} from 'sentry/views/preprod/types';
+import type {InstallDetailsApiResponse} from 'sentry/views/preprod/types/installDetailsTypes';
 
 interface InstallModalProps {
   artifactId: string;

@@ -1,4 +1,4 @@
-export type Platform = 'ios' | 'android' | 'macos';
+import type {Platform} from './sharedTypes';
 
 export interface BuildDetailsApiResponse {
   app_info: BuildDetailsAppInfo;
@@ -38,12 +38,4 @@ export enum BuildDetailsArtifactType {
   XCARCHIVE = 0,
   AAB = 1,
   APK = 2,
-}
-
-export interface InstallDetailsApiResponse {
-  platform: Platform;
-  codesigning_type?: string;
-  install_url?: string;
-  is_code_signature_valid?: boolean;
-  profile_name?: string;
 }
