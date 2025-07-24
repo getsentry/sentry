@@ -59,7 +59,7 @@ class ProjectReplaySummarizeBreadcrumbsAsyncEndpoint(ProjectEndpoint):
         ]
 
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
-        """Return a summary of the replay and ordered time ranges ("chapters") describing the user's journey through the application."""
+        """Poll for the status of a replay summary task in Seer."""
         if any(
             features.has(feature, project.organization, actor=request.user)
             for feature in self.features
@@ -72,6 +72,7 @@ class ProjectReplaySummarizeBreadcrumbsAsyncEndpoint(ProjectEndpoint):
             }
         )
 
+        # Request Seer for the state of the summary task.
         response = requests.post(
             f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/replay/breadcrumbs/state",
             data=seer_request,
@@ -93,6 +94,7 @@ class ProjectReplaySummarizeBreadcrumbsAsyncEndpoint(ProjectEndpoint):
         return response
 
     def post(self, request: Request, project: Project, replay_id: str) -> Response:
+        """Start a replay summary task in Seer."""
         if any(
             features.has(feature, project.organization, actor=request.user)
             for feature in self.features
@@ -135,6 +137,7 @@ class ProjectReplaySummarizeBreadcrumbsAsyncEndpoint(ProjectEndpoint):
         # Combine replay and error data and parse into logs.
         logs = get_summary_logs(segment_data, error_events, project.id)
 
+        # Post to Seer to start a summary task.
         seer_request = json.dumps(
             {
                 "logs": logs,
