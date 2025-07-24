@@ -8,8 +8,7 @@ const metricConfig: IssueCategoryConfigMapping = {
     actions: {
       archiveUntilOccurrence: {enabled: true},
       delete: {
-        enabled: false,
-        disabledReason: t('Not yet supported for regression issues'),
+        enabled: true,
       },
       deleteAndDiscard: {
         enabled: false,
