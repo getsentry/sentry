@@ -80,8 +80,9 @@ def delete_groups(
             },
         )
     else:
-        # This will delete all Snuba events for all deleted groups
-        eventstream.backend.end_delete_groups(eventstream_state)
+        if eventstream_state:
+            # This will delete all Snuba events for all deleted groups
+            eventstream.backend.end_delete_groups(eventstream_state)
 
 
 @instrumented_task(
@@ -137,7 +138,11 @@ def delete_groups_for_project(
         )
 
     # The new scheduling will not be scheduling more than this size
-    assert len(object_ids) <= GROUP_CHUNK_SIZE, "object_ids should be less than GROUP_CHUNK_SIZE"
+    if len(object_ids) > GROUP_CHUNK_SIZE:
+        raise DeleteAborted(
+            f"delete_groups.object_ids_too_large: {len(object_ids)} groups "
+            f"is greater than GROUP_CHUNK_SIZE"
+        )
 
     # This is a no-op on the Snuba side, however, one day it may not be.
     eventstream_state = eventstream.backend.start_delete_groups(project_id, object_ids)
@@ -166,8 +171,6 @@ def delete_groups_for_project(
                 "transaction_id": transaction_id,
             },
         )
-
-    assert eventstream is not None
 
     # This will delete all Snuba events for all deleted groups
     eventstream.backend.end_delete_groups(eventstream_state)
