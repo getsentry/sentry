@@ -87,30 +87,26 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
         )}
         <StreamlinedActivitySection group={group} />
         {showPeopleSection && (
-          <Fragment>
-            <PeopleSection
-              userParticipants={userParticipants}
-              teamParticipants={teamParticipants}
-              viewers={viewers}
-            />
-          </Fragment>
+          <PeopleSection
+            userParticipants={userParticipants}
+            teamParticipants={teamParticipants}
+            viewers={viewers}
+          />
         )}
         {issueTypeConfig.similarIssues.enabled && (
           <Fragment>
             <SimilarIssuesSidebarSection />
+            <StyledBreak />
           </Fragment>
         )}
         {issueTypeConfig.mergedIssues.enabled && (
           <Fragment>
-            <StyledBreak />
             <MergedIssuesSidebarSection />
+            <StyledBreak />
           </Fragment>
         )}
         {issueTypeConfig.detector.enabled && (
-          <Fragment>
-            <StyledBreak />
-            <DetectorSection group={group} project={project} />
-          </Fragment>
+          <DetectorSection group={group} project={project} />
         )}
       </Side>
     </SharedTourElement>
