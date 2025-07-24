@@ -305,6 +305,18 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         try:
             with transaction.atomic(router.db_for_write(Dashboard)):
                 dashboard = serializer.save()
+
+                if features.has(
+                    "organizations:dashboards-starred-reordering", organization, actor=request.user
+                ):
+                    is_favorited = request.data.get("isFavorited", False)
+                    if is_favorited is not False:
+                        DashboardFavoriteUser.objects.insert_favorite_dashboard(
+                            organization=organization,
+                            user_id=request.user.id,
+                            dashboard=dashboard,
+                        )
+
             return Response(serialize(dashboard, request.user), status=201)
         except IntegrityError:
             duplicate = request.data.get("duplicate", False)
