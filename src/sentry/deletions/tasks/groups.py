@@ -148,20 +148,24 @@ def delete_groups_for_project(
     # These can be used for debugging
     extra = {"object_ids": object_ids, "project_id": project_id, "transaction_id": transaction_id}
     sentry_sdk.set_tags(extra)
-    logger.info("delete_groups.started", extra={"object_ids": object_ids, **extra})
+    logger.info("delete_groups.started", extra=extra)
 
-    task = deletions.get(model=Group, query={"id__in": object_ids})
+    task = deletions.get(model=Group, query={"id__in": object_ids}, transaction_id=transaction_id)
     has_more = task.chunk()
 
-    # XXX: Delete this block once I'm convince this is not happening
+    # Handle incomplete deletions by rescheduling the task
     if has_more:
-        metrics.incr("deletions.groups.delete_groups_old.chunked", 1, sample_rate=1)
-        sentry_sdk.capture_message(
-            "This should not be happening",
-            level="info",
-            # Use this to query the logs
-            tags={"transaction_id": transaction_id},
+        metrics.incr("deletions.groups.delete_groups_for_project.chunked", 1, sample_rate=1)
+        logger.warning(
+            "delete_groups_for_project.incomplete_deletion: rescheduling task",
+            extra={"transaction_id": transaction_id, "project_id": project_id}
         )
+        # Reschedule the task to process remaining groups
+        delete_groups_for_project.apply_async(
+            args=[project_id, object_ids, transaction_id],
+            kwargs=kwargs,
+        )
+        return
 
     # This will delete all Snuba events for all deleted groups
     eventstream.backend.end_delete_groups(eventstream_state)
