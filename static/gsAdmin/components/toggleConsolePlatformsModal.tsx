@@ -50,6 +50,7 @@ function ToggleConsolePlatformsModal({
     onSuccess: () => {
       addSuccessMessage(`Console platforms updated for ${organization.slug}`);
       onSuccess();
+      closeModal();
     },
     onError: () => {
       addErrorMessage(`Failed to update console platforms for ${organization.slug}`);
