@@ -225,7 +225,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
-          version: '0.7.15'
+          version: '0.7.21'
 
       - name: check requirements
         run: |
@@ -330,7 +330,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
-          version: '0.7.15'
+          version: '0.7.21'
           # we just cache the venv-dir directly in action-setup-venv
           enable-cache: false
 

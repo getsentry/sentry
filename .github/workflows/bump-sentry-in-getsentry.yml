@@ -34,6 +34,10 @@ jobs:
           # who can write to getsentry and is SAML+SSO ready.
           token: ${{ secrets.BUMP_SENTRY_TOKEN }}
 
+      - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
+        with:
+          version: '0.7.21'
+
       - name: bump-sentry ${{ github.sha }}
         run: |
           cd getsentry
