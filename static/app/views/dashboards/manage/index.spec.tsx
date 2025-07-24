@@ -303,4 +303,23 @@ describe('Dashboards > Detail', function () {
       );
     });
   });
+
+  it('shows the most favorited sort option for the %s view type', async function () {
+    const org = OrganizationFixture({
+      features: [...FEATURES, 'dashboards-starred-reordering'],
+    });
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
+
+    render(<ManageDashboards />, {
+      organization: org,
+    });
+
+    await selectEvent.openMenu(await screen.findByRole('button', {name: /sort by/i}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Most Starred'}));
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({query: {sort: 'mostFavorited'}})
+    );
+  });
 });
