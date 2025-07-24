@@ -372,6 +372,7 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
                 delete_groups_for_project(
                     object_ids=[group1.id, group2.id, group3.id, group4.id],
                     transaction_id=uuid4().hex,
+                    project_id=self.project.id,
                 )
 
             # There should be two batches: [group3, group1] (2+3=5 > 5, so group2 starts new batch), [group2]

@@ -60,7 +60,9 @@ class DeleteGroupTest(TestCase):
         assert nodestore.backend.get(node_id_2)
 
         with self.tasks():
-            delete_groups_for_project(object_ids=[group.id], transaction_id=uuid4().hex)
+            delete_groups_for_project(
+                object_ids=[group.id], transaction_id=uuid4().hex, project_id=project.id
+            )
 
         assert not GroupRedirect.objects.filter(group_id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
@@ -76,7 +78,9 @@ class DeleteGroupTest(TestCase):
         group.delete()
 
         with self.tasks():
-            delete_groups_for_project(object_ids=group_ids, transaction_id=uuid4().hex)
+            delete_groups_for_project(
+                object_ids=group_ids, transaction_id=uuid4().hex, project_id=group.project_id
+            )
 
         assert Group.objects.count() == 0
 
@@ -86,7 +90,15 @@ class DeleteGroupTest(TestCase):
         group.delete()
 
         with self.tasks(), pytest.raises(DeleteAborted):
-            delete_groups_for_project(object_ids=group_ids, transaction_id=uuid4().hex)
+            delete_groups_for_project(
+                object_ids=group_ids, transaction_id=uuid4().hex, project_id=self.project.id
+            )
+
+    def test_no_object_ids(self) -> None:
+        with self.tasks(), pytest.raises(DeleteAborted):
+            delete_groups_for_project(
+                object_ids=[], transaction_id=uuid4().hex, project_id=self.project.id
+            )
 
     def test_prevent_project_groups_mismatch(self) -> None:
         group = self.create_group()

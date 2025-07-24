@@ -25,7 +25,9 @@ class DeleteGroupHashTest(TestCase):
         assert grouphash_metadata
 
         with self.tasks():
-            delete_groups_for_project(object_ids=[group_id], transaction_id=uuid4().hex)
+            delete_groups_for_project(
+                object_ids=[group_id], transaction_id=uuid4().hex, project_id=self.project.id
+            )
 
         assert not Group.objects.filter(id=group_id).exists()
         assert not GroupHash.objects.filter(group_id=group_id).exists()
@@ -59,7 +61,11 @@ class DeleteGroupHashTest(TestCase):
             assert new_grouphash.metadata.seer_matched_grouphash == existing_grouphash
 
         with self.tasks():
-            delete_groups_for_project(object_ids=[existing_group_id], transaction_id=uuid4().hex)
+            delete_groups_for_project(
+                object_ids=[existing_group_id],
+                transaction_id=uuid4().hex,
+                project_id=self.project.id,
+            )
 
         assert not Group.objects.filter(id=existing_group_id).exists()
         assert not GroupHash.objects.filter(group_id=existing_group_id).exists()
@@ -124,7 +130,9 @@ class DeleteGroupHashTest(TestCase):
 
         with self.tasks():
             delete_groups_for_project(
-                object_ids=[existing_event.group.id], transaction_id=uuid4().hex
+                object_ids=[existing_event.group.id],
+                transaction_id=uuid4().hex,
+                project_id=self.project.id,
             )
 
         assert not Group.objects.filter(id=existing_event.group.id).exists()
