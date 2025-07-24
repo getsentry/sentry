@@ -8,17 +8,18 @@ import BaseSearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {Charts} from 'sentry/views/explore/components/suspectTags/charts';
 import type {BoxSelectOptions} from 'sentry/views/explore/hooks/useChartBoxSelect';
 import useSuspectAttributes from 'sentry/views/explore/hooks/useSuspectAttributes';
 
 type Props = {
   boxSelectOptions: BoxSelectOptions;
-  yAxis: string;
+  chartInfo: ChartInfo;
 };
 
-export function Drawer({boxSelectOptions, yAxis}: Props) {
-  const {data, isLoading, isError} = useSuspectAttributes({boxSelectOptions, yAxis});
+export function Drawer({boxSelectOptions, chartInfo}: Props) {
+  const {data, isLoading, isError} = useSuspectAttributes({boxSelectOptions, chartInfo});
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredRankedAttributes = useMemo(() => {

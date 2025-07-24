@@ -13,6 +13,7 @@ import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
+import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {useCachedTimeseriesResults} from 'sentry/views/explore/components/chart/useCachedTimeseriesResults';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
 import {FloatingTrigger} from 'sentry/views/explore/components/suspectTags/floatingTrigger';
@@ -166,6 +167,39 @@ function Chart({
     yAxis: visualize.yAxis,
   });
 
+  const chartType = visualize.chartType;
+  const chartIcon =
+    chartType === ChartType.LINE ? 'line' : chartType === ChartType.AREA ? 'area' : 'bar';
+
+  const chartInfo: ChartInfo = useMemo(() => {
+    const isTopN = defined(topEvents) && topEvents > 0;
+    const series = cachedTimeseriesResult.data[visualize.yAxis] ?? [];
+
+    let confidenceSeries = series;
+
+    let samplingMeta = determineSeriesSampleCountAndIsSampled(confidenceSeries, isTopN);
+
+    // This implies that the sampling meta data is not available.
+    // When this happens, we override it with the sampling meta
+    // data from the DEFAULT_VISUALIZATION.
+    if (samplingMeta.sampleCount === 0 && !defined(samplingMeta.isSampled)) {
+      confidenceSeries = cachedTimeseriesResult.data[DEFAULT_VISUALIZATION] ?? [];
+      samplingMeta = determineSeriesSampleCountAndIsSampled(confidenceSeries, isTopN);
+    }
+
+    return {
+      chartType,
+      confidence: combineConfidenceForSeries(confidenceSeries),
+      series,
+      timeseriesResult: cachedTimeseriesResult,
+      yAxis: visualize.yAxis,
+      dataScanned: samplingMeta.dataScanned,
+      isSampled: samplingMeta.isSampled,
+      sampleCount: samplingMeta.sampleCount,
+      samplingMode,
+    };
+  }, [chartType, cachedTimeseriesResult, visualize, samplingMode, topEvents]);
+
   const Title = (
     <ChartTitle>
       <Widget.WidgetTitle
@@ -173,10 +207,6 @@ function Chart({
       />
     </ChartTitle>
   );
-
-  const chartType = visualize.chartType;
-  const chartIcon =
-    chartType === ChartType.LINE ? 'line' : chartType === ChartType.AREA ? 'area' : 'bar';
 
   const Actions = (
     <Fragment>
@@ -229,11 +259,8 @@ function Chart({
         Actions={Actions}
         Visualization={
           <ChartVisualization
-            chartType={chartType}
-            timeseriesResult={cachedTimeseriesResult}
-            yAxis={visualize.yAxis}
+            chartInfo={chartInfo}
             hidden={!visible}
-            samplingMode={samplingMode}
             chartRef={chartRef}
             brush={boxSelectOptions.brush}
             onBrushEnd={boxSelectOptions.onBrushEnd}
@@ -242,57 +269,25 @@ function Chart({
           />
         }
         Footer={
-          <ChartFooter
-            timeseriesResult={cachedTimeseriesResult}
-            yAxis={visualize.yAxis}
-            topEvents={topEvents}
+          <ConfidenceFooter
+            sampleCount={chartInfo.sampleCount}
+            isSampled={chartInfo.isSampled}
+            confidence={chartInfo.confidence}
+            topEvents={
+              topEvents ? Math.min(topEvents, chartInfo.series.length) : undefined
+            }
+            dataScanned={chartInfo.dataScanned}
           />
         }
         height={chartHeight}
         revealActions="always"
       />
       <FloatingTrigger
+        chartInfo={chartInfo}
         boxSelectOptions={boxSelectOptions}
         triggerWrapperRef={triggerWrapperRef}
-        yAxis={visualize.yAxis}
       />
     </ChartWrapper>
-  );
-}
-
-interface ChartFooterProps {
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
-  yAxis: string;
-  topEvents?: number;
-}
-
-function ChartFooter({timeseriesResult, yAxis, topEvents}: ChartFooterProps) {
-  const {series, confidence, sampleCount, isSampled, dataScanned} = useMemo(() => {
-    const isTopN = defined(topEvents) && topEvents > 0;
-
-    let s = timeseriesResult.data[yAxis] ?? [];
-    let value = determineSeriesSampleCountAndIsSampled(s, isTopN);
-
-    // This implies that the sampling meta data is not available.
-    // When this happens, we override it with the sampling meta
-    // data from the DEFAULT_VISUALIZATION.
-    if (value.sampleCount === 0 && !defined(value.isSampled)) {
-      s = timeseriesResult.data[DEFAULT_VISUALIZATION] ?? [];
-      value = determineSeriesSampleCountAndIsSampled(s, isTopN);
-    }
-
-    s = s.filter(defined);
-    return {...value, confidence: combineConfidenceForSeries(s), series: s};
-  }, [timeseriesResult, yAxis, topEvents]);
-
-  return (
-    <ConfidenceFooter
-      sampleCount={sampleCount}
-      isSampled={isSampled}
-      confidence={confidence}
-      topEvents={topEvents ? Math.min(topEvents, series.length) : undefined}
-      dataScanned={dataScanned}
-    />
   );
 }
 

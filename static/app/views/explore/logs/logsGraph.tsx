@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -35,6 +35,16 @@ export function LogsGraph({timeseriesResult}: LogsGraphProps) {
   const [interval, setInterval, intervalOptions] = useChartInterval({
     unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
   });
+
+  const chartInfo = useMemo(() => {
+    const series = cachedTimeseriesResult.data[aggregate] ?? [];
+    return {
+      chartType,
+      series,
+      timeseriesResult: cachedTimeseriesResult,
+      yAxis: aggregate,
+    };
+  }, [chartType, cachedTimeseriesResult, aggregate]);
 
   const Title = (
     <Widget.WidgetTitle title={prettifyAggregation(aggregate) ?? aggregate} />
@@ -80,13 +90,7 @@ export function LogsGraph({timeseriesResult}: LogsGraphProps) {
     <Widget
       Title={Title}
       Actions={Actions}
-      Visualization={
-        <ChartVisualization
-          chartType={chartType}
-          timeseriesResult={cachedTimeseriesResult}
-          yAxis={aggregate}
-        />
-      }
+      Visualization={<ChartVisualization chartInfo={chartInfo} />}
       revealActions="always"
     />
   );
