@@ -4405,77 +4405,6 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
 
         self.assert_deleted_groups([group1, group2])
 
-    def test_bulk_delete_for_many_projects_with_option(self) -> None:
-        NEW_CHUNK_SIZE = 2
-        with (
-            self.options({"deletions.groups.use-new-task": True}),
-            self.feature("organizations:global-views"),
-        ):
-            project_2 = self.create_project(slug="baz", organization=self.organization)
-            groups_1 = self.create_n_groups_with_hashes(2, project=self.project)
-            groups_2 = self.create_n_groups_with_hashes(5, project=project_2)
-
-            with (
-                self.tasks(),
-                patch("sentry.api.helpers.group_index.delete.GROUP_CHUNK_SIZE", NEW_CHUNK_SIZE),
-                patch("sentry.deletions.tasks.groups.logger") as mock_logger,
-                patch(
-                    "sentry.api.helpers.group_index.delete.uuid4",
-                    side_effect=[self.get_mock_uuid("foo"), self.get_mock_uuid("bar")],
-                ),
-            ):
-                self.login_as(user=self.user)
-                response = self.get_success_response(qs_params={"query": ""})
-                assert response.status_code == 204
-                batch_1 = [g.id for g in groups_2[0:2]]
-                batch_2 = [g.id for g in groups_2[2:4]]
-                batch_3 = [g.id for g in groups_2[4:]]
-                assert batch_1 + batch_2 + batch_3 == [g.id for g in groups_2]
-
-                calls_by_project: dict[int, list[tuple[str, dict[str, Any]]]] = defaultdict(list)
-                for log_call in mock_logger.info.call_args_list:
-                    calls_by_project[log_call[1]["extra"]["project_id"]].append(log_call)
-
-                assert len(calls_by_project) == 2
-                assert calls_by_project[self.project.id] == [
-                    call(
-                        "delete_groups.started",
-                        extra={
-                            "object_ids": [g.id for g in groups_1],
-                            "project_id": self.project.id,
-                            "transaction_id": "bar",
-                        },
-                    ),
-                ]
-                assert calls_by_project[project_2.id] == [
-                    call(
-                        "delete_groups.started",
-                        extra={
-                            "object_ids": batch_1,
-                            "project_id": project_2.id,
-                            "transaction_id": "foo",
-                        },
-                    ),
-                    call(
-                        "delete_groups.started",
-                        extra={
-                            "object_ids": batch_2,
-                            "project_id": project_2.id,
-                            "transaction_id": "foo",
-                        },
-                    ),
-                    call(
-                        "delete_groups.started",
-                        extra={
-                            "object_ids": batch_3,
-                            "project_id": project_2.id,
-                            "transaction_id": "foo",
-                        },
-                    ),
-                ]
-
-            self.assert_deleted_groups(groups_1 + groups_2)
-
     def test_bulk_delete_for_many_projects_without_option(self) -> None:
         NEW_CHUNK_SIZE = 2
         with self.feature("organizations:global-views"):
@@ -4544,6 +4473,77 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
                             "object_ids_count": 1,
                             "object_ids_current_batch": batch_3,
                             "first_id": batch_3[0],
+                            "project_id": project_2.id,
+                            "transaction_id": "foo",
+                        },
+                    ),
+                ]
+
+            self.assert_deleted_groups(groups_1 + groups_2)
+
+    def test_bulk_delete_for_many_projects_with_option(self) -> None:
+        NEW_CHUNK_SIZE = 2
+        with (
+            self.options({"deletions.groups.use-new-task": True}),
+            self.feature("organizations:global-views"),
+        ):
+            project_2 = self.create_project(slug="baz", organization=self.organization)
+            groups_1 = self.create_n_groups_with_hashes(2, project=self.project)
+            groups_2 = self.create_n_groups_with_hashes(5, project=project_2)
+
+            with (
+                self.tasks(),
+                patch("sentry.api.helpers.group_index.delete.GROUP_CHUNK_SIZE", NEW_CHUNK_SIZE),
+                patch("sentry.deletions.tasks.groups.logger") as mock_logger,
+                patch(
+                    "sentry.api.helpers.group_index.delete.uuid4",
+                    side_effect=[self.get_mock_uuid("foo"), self.get_mock_uuid("bar")],
+                ),
+            ):
+                self.login_as(user=self.user)
+                response = self.get_success_response(qs_params={"query": ""})
+                assert response.status_code == 204
+                batch_1 = [g.id for g in groups_2[0:2]]
+                batch_2 = [g.id for g in groups_2[2:4]]
+                batch_3 = [g.id for g in groups_2[4:]]
+                assert batch_1 + batch_2 + batch_3 == [g.id for g in groups_2]
+
+                calls_by_project: dict[int, list[tuple[str, dict[str, Any]]]] = defaultdict(list)
+                for log_call in mock_logger.info.call_args_list:
+                    calls_by_project[log_call[1]["extra"]["project_id"]].append(log_call)
+
+                assert len(calls_by_project) == 2
+                assert calls_by_project[self.project.id] == [
+                    call(
+                        "delete_groups.started",
+                        extra={
+                            "object_ids": [g.id for g in groups_1],
+                            "project_id": self.project.id,
+                            "transaction_id": "bar",
+                        },
+                    ),
+                ]
+                assert calls_by_project[project_2.id] == [
+                    call(
+                        "delete_groups.started",
+                        extra={
+                            "object_ids": batch_1,
+                            "project_id": project_2.id,
+                            "transaction_id": "foo",
+                        },
+                    ),
+                    call(
+                        "delete_groups.started",
+                        extra={
+                            "object_ids": batch_2,
+                            "project_id": project_2.id,
+                            "transaction_id": "foo",
+                        },
+                    ),
+                    call(
+                        "delete_groups.started",
+                        extra={
+                            "object_ids": batch_3,
                             "project_id": project_2.id,
                             "transaction_id": "foo",
                         },
