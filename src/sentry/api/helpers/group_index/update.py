@@ -18,6 +18,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, features, options
+from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignment
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.db.models.query import create_or_update
@@ -1040,23 +1041,25 @@ def handle_assigned_to(
                 group, resolved_actor, acting_user, extra=extra
             )
             analytics.record(
-                "manual.issue_assignment",
-                organization_id=project_lookup[group.project_id].organization_id,
-                project_id=group.project_id,
-                group_id=group.id,
-                assigned_by=assigned_by,
-                had_to_deassign=assignment["updated_assignment"],
+                ManualIssueAssignment(
+                    organization_id=project_lookup[group.project_id].organization_id,
+                    project_id=group.project_id,
+                    group_id=group.id,
+                    assigned_by=assigned_by,
+                    had_to_deassign=assignment["updated_assignment"],
+                )
             )
         return serialize(resolved_actor, acting_user, ActorSerializer())
     else:
         for group in group_list:
             GroupAssignee.objects.deassign(group, acting_user)
             analytics.record(
-                "manual.issue_assignment",
-                organization_id=project_lookup[group.project_id].organization_id,
-                project_id=group.project_id,
-                group_id=group.id,
-                assigned_by=assigned_by,
-                had_to_deassign=True,
+                ManualIssueAssignment(
+                    organization_id=project_lookup[group.project_id].organization_id,
+                    project_id=group.project_id,
+                    group_id=group.id,
+                    assigned_by=assigned_by,
+                    had_to_deassign=True,
+                )
             )
         return None
