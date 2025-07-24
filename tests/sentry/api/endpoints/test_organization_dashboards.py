@@ -1806,6 +1806,46 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         starred_dashboard = response.data[2]
         assert starred_dashboard["projects"] == []
 
+    def test_automatically_favorites_dashboard_when_isFavorited_is_true(self):
+        data = {
+            "title": "Dashboard with errors widget",
+            "isFavorited": True,
+        }
+        with self.feature("organizations:dashboards-starred-reordering"):
+            response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 201, response.data
+        dashboard = Dashboard.objects.get(
+            organization=self.organization, title="Dashboard with errors widget"
+        )
+        assert response.data["isFavorited"] is True
+
+        assert (
+            DashboardFavoriteUser.objects.get_favorite_dashboard(
+                organization=self.organization, user_id=self.user.id, dashboard=dashboard
+            )
+            is not None
+        )
+
+    def test_does_not_automatically_favorite_dashboard_when_isFavorited_is_false(self):
+        data = {
+            "title": "Dashboard with errors widget",
+            "isFavorited": False,
+        }
+        with self.feature("organizations:dashboards-starred-reordering"):
+            response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 201, response.data
+        dashboard = Dashboard.objects.get(
+            organization=self.organization, title="Dashboard with errors widget"
+        )
+        assert response.data["isFavorited"] is False
+
+        assert (
+            DashboardFavoriteUser.objects.get_favorite_dashboard(
+                organization=self.organization, user_id=self.user.id, dashboard=dashboard
+            )
+            is None
+        )
+
     def test_order_by_most_favorited(self):
         Dashboard.objects.all().delete()
 

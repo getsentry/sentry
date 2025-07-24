@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from django.db.models import (
     Case,
@@ -14,6 +15,7 @@ from django.db.models import (
     When,
 )
 from drf_spectacular.utils import extend_schema
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -108,7 +110,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         Retrieve a list of custom dashboards that are associated with the given organization.
         """
         if not request.user.is_authenticated:
-            return Response(status=400)
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
 
         if not features.has("organizations:dashboards-basic", organization, actor=request.user):
             return Response(status=404)
@@ -308,6 +310,9 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         """
         Create a new dashboard for the given Organization
         """
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
         if not features.has("organizations:dashboards-edit", organization, actor=request.user):
             return Response(status=404)
 
@@ -327,6 +332,22 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         try:
             with transaction.atomic(router.db_for_write(Dashboard)):
                 dashboard = serializer.save()
+
+                if features.has(
+                    "organizations:dashboards-starred-reordering",
+                    organization,
+                    actor=request.user,
+                ):
+                    if serializer.validated_data.get("is_favorited"):
+                        try:
+                            DashboardFavoriteUser.objects.insert_favorite_dashboard(
+                                organization=organization,
+                                user_id=request.user.id,
+                                dashboard=dashboard,
+                            )
+                        except Exception as e:
+                            sentry_sdk.capture_exception(e)
+
             return Response(serialize(dashboard, request.user), status=201)
         except IntegrityError:
             duplicate = request.data.get("duplicate", False)
