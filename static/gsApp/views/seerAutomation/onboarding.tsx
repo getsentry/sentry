@@ -438,13 +438,13 @@ function AutoTriggerFixesButton({
     }
 
     addLoadingMessage(t('Enabling automation for projects with repositories...'), {
-      duration: 30000,
+      duration: 60000,
     });
     setIsLoading(true);
 
     try {
-      // Process projects in batches of 15 to avoid concurrency limit
-      const batchSize = 15;
+      // Process projects in batches to avoid concurrency limit
+      const batchSize = 20;
       for (let i = 0; i < projectsWithRepos.length; i += batchSize) {
         const batch = projectsWithRepos.slice(i, i + batchSize);
         await Promise.all(
@@ -526,13 +526,13 @@ function EnableIssueScansButton({
     }
 
     addLoadingMessage(t('Enabling issue scans for remaining projects...'), {
-      duration: 30000,
+      duration: 60000,
     });
     setIsLoading(true);
 
     try {
-      // Process projects in batches of 15 to avoid concurrency limit
-      const batchSize = 15;
+      // Process projects in batches to avoid concurrency limit
+      const batchSize = 20;
       for (let i = 0; i < projectsWithoutRepos.length; i += batchSize) {
         const batch = projectsWithoutRepos.slice(i, i + batchSize);
         await Promise.all(
