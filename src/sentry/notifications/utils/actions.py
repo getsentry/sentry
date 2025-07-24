@@ -20,7 +20,7 @@ class MessageAction:
     # If this is a select type, the selected value.
     value: str | None = None
 
-    # Denotes the type of action
+    # Denotes the type of action, used for routing
     action_id: str | None = None
 
     style: Literal["primary", "danger", "default"] | None = None

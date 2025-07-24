@@ -19,6 +19,7 @@ from sentry.integrations.middleware.hybrid_cloud.parser import (
     create_async_request_payload,
 )
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.slack.message_builder.routing import SlackRoutingData, decode_action_id
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.requests.event import is_event_challenge
 from sentry.integrations.slack.sdk_client import SlackSdkClient
@@ -244,9 +245,32 @@ class SlackRequestParser(BaseRequestParser):
             linking_organization = next(
                 (org for org in organizations if org.slug == linking_organization_slug), None
             )
-
             if linking_organization:
                 return [linking_organization]
+
+        elif self.view_class == SlackActionEndpoint:
+            drf_request: Request = SlackDMEndpoint().initialize_request(self.request)
+            slack_request = self.view_class.slack_request_class(drf_request)
+            actions = slack_request.data.get("actions", [])
+            action_ids: list[str] = [
+                action["action_id"] for action in actions if action["action_id"]
+            ]
+            decoded_actions: list[SlackRoutingData] = [
+                decode_action_id(action_id) for action_id in action_ids
+            ]
+            decoded_organization_slugs = [
+                action.organization_slug for action in decoded_actions if action.organization_slug
+            ]
+            if len(decoded_organization_slugs) > 1:
+                # This shouldn't happen, it indicates we've encoded different organizations into
+                # the different actions of a slack message.
+                logger.info(
+                    "slack.control.filter_organizations_from_request.multiple_organizations",
+                    extra={"action_ids": action_ids},
+                )
+                return organizations
+            if len(decoded_organization_slugs) == 1:
+                return [org for org in organizations if org.slug == decoded_organization_slugs[0]]
 
         return organizations
 
