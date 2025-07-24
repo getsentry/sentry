@@ -3,7 +3,7 @@ export interface AppSizeApiResponse {
   treemap: TreemapResults;
 }
 
-interface TreemapResults {
+export interface TreemapResults {
   category_breakdown: Record<string, Record<string, number>>;
   file_count: number;
   platform: 'ios' | 'android';
