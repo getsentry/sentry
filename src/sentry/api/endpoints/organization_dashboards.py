@@ -4,6 +4,7 @@ import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from django.db.models import Case, Exists, F, IntegerField, OrderBy, OuterRef, Subquery, Value, When
 from drf_spectacular.utils import extend_schema
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -300,6 +301,9 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             },
         )
 
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
@@ -308,7 +312,9 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 dashboard = serializer.save()
 
                 if features.has(
-                    "organizations:dashboards-starred-reordering", organization, actor=request.user
+                    "organizations:dashboards-starred-reordering",
+                    organization,
+                    actor=request.user,
                 ):
                     if serializer.validated_data.get("is_favorited"):
                         try:
