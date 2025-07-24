@@ -36,7 +36,7 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(limit=10, window=1, concurrent_limit=10),
+            RateLimitCategory.IP: RateLimit(limit=5, window=1, concurrent_limit=5),
             RateLimitCategory.USER: RateLimit(limit=10, window=1, concurrent_limit=10),
             RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1, concurrent_limit=5),
         }
