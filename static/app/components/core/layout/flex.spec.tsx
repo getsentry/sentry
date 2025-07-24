@@ -4,76 +4,50 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Container, Flex} from 'sentry/components/core/layout/flex';
 
-describe('Container', () => {
+describe.each([
+  ['Container', Container],
+  ['Flex', Flex],
+])('%s', (_, Component) => {
   it('renders children', () => {
-    render(<Container>Hello</Container>);
+    render(<Component>Hello</Component>);
     expect(screen.getByText('Hello')).toBeInTheDocument();
   });
 
   it('passes attributes to the underlying element', () => {
-    render(<Container data-test-id="container">Hello</Container>);
+    render(<Component data-test-id="container">Hello</Component>);
     expect(screen.getByTestId('container')).toBeInTheDocument();
   });
 
   it('renders as a different element if specified', () => {
-    render(<Container as="section">Hello</Container>);
+    render(<Component as="section">Hello</Component>);
     expect(screen.getByText('Hello').tagName).toBe('SECTION');
   });
 
   it('does not bleed attributes to the underlying element', () => {
-    render(<Container radius="sm">Hello</Container>);
+    render(<Component radius="sm">Hello</Component>);
     expect(screen.getByText('Hello')).not.toHaveAttribute('radius');
   });
 
   it('allows settings native html attributes', () => {
-    render(<Container style={{color: 'red'}}>Hello</Container>);
+    render(<Component style={{color: 'red'}}>Hello</Component>);
     expect(screen.getByText('Hello')).toHaveStyle({color: 'red'});
   });
 
   it('attaches ref to the underlying element', () => {
     const ref = createRef<HTMLOListElement>();
     render(
-      <Flex ref={ref} as="ol">
+      <Component ref={ref} as="ol">
         Hello
-      </Flex>
+      </Component>
     );
     expect(ref.current).toBeInTheDocument();
   });
-});
 
-describe('Flex', () => {
-  it('renders children', () => {
-    render(<Flex>Hello</Flex>);
-    expect(screen.getByText('Hello')).toBeInTheDocument();
-  });
-
-  it('passes attributes to the underlying element', () => {
-    render(<Flex data-test-id="flex">Hello</Flex>);
-    expect(screen.getByTestId('flex')).toBeInTheDocument();
-  });
-
-  it('renders as a different element if specified', () => {
-    render(<Flex as="section">Hello</Flex>);
-    expect(screen.getByText('Hello').tagName).toBe('SECTION');
-  });
-
-  it('does not bleed attributes to the underlying element', () => {
-    render(<Flex radius="sm">Hello</Flex>);
-    expect(screen.getByText('Hello')).not.toHaveAttribute('radius');
-  });
-
-  it('allows setting native html attributes', () => {
-    render(<Flex style={{color: 'red'}}>Hello</Flex>);
-    expect(screen.getByText('Hello')).toHaveStyle({color: 'red'});
-  });
-
-  it('attaches ref to the underlying element', () => {
-    const ref = createRef<HTMLOListElement>();
+  it('respects prop order', () => {
     render(
-      <Flex ref={ref} as="ol">
+      <Component radius="sm" p="md" pb="sm">
         Hello
-      </Flex>
+      </Component>
     );
-    expect(ref.current).toBeInTheDocument();
   });
 });

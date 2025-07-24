@@ -26,8 +26,68 @@ type Shorthand<T extends string, N extends 4 | 2> = N extends 4
     : never;
 
 type Spacing = Shorthand<SpacingSize, 4>;
+type SingleSpacing = SpacingSize;
+
 type Radius = Shorthand<RadiusSize, 4>;
 type Responsive<T> = T | Record<Breakpoint, T | undefined>;
+
+/**
+ * Our layout components use string sizes that map to t-shirt sizes, so we need
+ * resolvers to transform them into actual CSS values.
+ * The task is to take a string like "md sm" and lookup its theme value so that
+ * it can become something like "16px 8px". Separate resolvers are needed for
+ * handling the different themes and the implementation of chonk vs non chonk.
+ */
+function resolveRadius(sizeComponent: Radius | undefined, theme: Theme) {
+  if (sizeComponent === undefined) {
+    return undefined;
+  }
+  if (sizeComponent === '0') {
+    return '0px';
+  }
+  return isChonkTheme(theme)
+    ? theme.radius[sizeComponent as keyof typeof theme.radius]
+    : theme.borderRadius;
+}
+
+function resolveSpacing(sizeComponent: SpacingSize, theme: Theme) {
+  if (sizeComponent === undefined) {
+    return undefined;
+  }
+  if (sizeComponent === '0') {
+    return theme.space.none;
+  }
+
+  return theme.space[sizeComponent] ?? theme.space.none;
+}
+
+function isResponsive(prop: unknown): prop is Record<Breakpoint, any> {
+  return typeof prop === 'object' && prop !== null;
+}
+
+function getRadius(radius: Radius, theme: Theme) {
+  if (radius.length <= 3) {
+    // This can only be a single radius value, so we can resolve it directly.
+    return resolveRadius(radius as RadiusSize, theme) as string;
+  }
+
+  return radius
+    .split(' ')
+    .map(size => resolveRadius(size as RadiusSize, theme))
+    .join(' ');
+}
+
+function getSpacing(spacing: Spacing, theme: Theme): string {
+  if (spacing.length <= 3) {
+    // This can only be a single spacing value, so we can resolve it directly.
+    return resolveSpacing(spacing as SpacingSize, theme) as string;
+  }
+
+  return spacing
+    .split(' ')
+    .map(size => resolveSpacing(size as SpacingSize, theme))
+    .join(' ');
+}
 
 /* eslint-disable typescript-sort-keys/interface */
 interface BaseContainerProps {
@@ -38,17 +98,17 @@ interface BaseContainerProps {
   >;
   // Margin
   m?: Responsive<Spacing>;
-  mb?: Responsive<Spacing>;
-  ml?: Responsive<Spacing>;
-  mr?: Responsive<Spacing>;
-  mt?: Responsive<Spacing>;
+  mb?: SingleSpacing;
+  ml?: SingleSpacing;
+  mr?: SingleSpacing;
+  mt?: SingleSpacing;
 
   // Padding
   p?: Responsive<Spacing>;
-  pb?: Responsive<Spacing>;
-  pl?: Responsive<Spacing>;
-  pr?: Responsive<Spacing>;
-  pt?: Responsive<Spacing>;
+  pb?: SingleSpacing;
+  pl?: SingleSpacing;
+  pr?: SingleSpacing;
+  pt?: SingleSpacing;
 
   // Position
   position?: Responsive<'static' | 'relative' | 'absolute' | 'fixed' | 'sticky'>;
@@ -98,7 +158,6 @@ const omitContainerProps = new Set<keyof ContainerProps<any>>([
   'as',
   'background',
   'display',
-  'height',
   'm',
   'mb',
   'ml',
@@ -117,6 +176,7 @@ const omitContainerProps = new Set<keyof ContainerProps<any>>([
   'width',
   'minWidth',
   'maxWidth',
+  'height',
   'minHeight',
   'maxHeight',
 ]);
@@ -297,44 +357,3 @@ export const Flex = styled(
 ` as unknown as <T extends ContainerElement = 'div'>(
   props: FlexProps<T>
 ) => React.ReactElement;
-
-function resolveRadius(sizeComponent: Radius | undefined, theme: Theme) {
-  if (sizeComponent === undefined) {
-    return undefined;
-  }
-  if (sizeComponent === '0') {
-    return '0px';
-  }
-  return isChonkTheme(theme)
-    ? theme.radius[sizeComponent as keyof typeof theme.radius]
-    : theme.borderRadius;
-}
-
-function resolveSpacing(sizeComponent: SpacingSize, theme: Theme) {
-  if (sizeComponent === undefined) {
-    return undefined;
-  }
-  if (sizeComponent === '0') {
-    return theme.space.none;
-  }
-
-  return theme.space[sizeComponent] ?? theme.space.none;
-}
-
-function isResponsive(prop: unknown): prop is Record<Breakpoint, any> {
-  return typeof prop === 'object' && prop !== null;
-}
-
-function getRadius(radius: Radius, theme: Theme) {
-  return radius
-    .split(' ')
-    .map(size => resolveRadius(size as RadiusSize, theme))
-    .join(' ');
-}
-
-function getSpacing(spacing: Spacing, theme: Theme): string {
-  return spacing
-    .split(' ')
-    .map(size => resolveSpacing(size as SpacingSize, theme))
-    .join(' ');
-}
