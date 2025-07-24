@@ -8,6 +8,7 @@ from typing import Protocol, TypeVar
 
 import sentry_protos.snuba.v1alpha.request_common_pb2
 import sentry_sdk
+import sentry_sdk.scope
 import urllib3
 from google.protobuf.message import Message as ProtobufMessage
 from rest_framework.exceptions import NotFound
@@ -49,7 +50,6 @@ SNUBA_INFO_FILE = os.environ.get("SENTRY_SNUBA_INFO_FILE", "")
 SNUBA_INFO = (
     os.environ.get("SENTRY_SNUBA_INFO", "false").lower() in ("true", "1") or SNUBA_INFO_FILE
 )
-_query_thread_pool = ThreadPoolExecutor(max_workers=10)
 
 
 @dataclass(frozen=True)
@@ -124,17 +124,18 @@ def _make_rpc_requests(
         thread_isolation_scope=sentry_sdk.get_isolation_scope(),
         thread_current_scope=sentry_sdk.get_current_scope(),
     )
-    response = [
-        result
-        for result in _query_thread_pool.map(
-            partial_request,
-            endpoint_names,
-            # Currently assuming everything is v1
-            ["v1"] * len(referrers),
-            referrers,
-            requests,
-        )
-    ]
+    with ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=10) as query_thread_pool:
+        response = [
+            result
+            for result in query_thread_pool.map(
+                partial_request,
+                endpoint_names,
+                # Currently assuming everything is v1
+                ["v1"] * len(referrers),
+                referrers,
+                requests,
+            )
+        ]
 
     # Split the results back up, the thread pool will return them back in order so we can use the type in the
     # requests list to determine which request goes where
@@ -258,12 +259,12 @@ def _make_rpc_request(
         from google.protobuf.json_format import MessageToJson
 
         log_snuba_info(f"{referrer}.body:\n{MessageToJson(req)}")  # type: ignore[arg-type]
-    with sentry_sdk.use_isolation_scope(thread_isolation_scope):
-        with sentry_sdk.use_scope(thread_current_scope):
+    with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope):
+        with sentry_sdk.scope.use_scope(thread_current_scope):
             with sentry_sdk.start_span(op="snuba_rpc.run", name=req.__class__.__name__) as span:
                 if referrer:
                     span.set_tag("snuba.referrer", referrer)
-                    span.set_attribute("snuba.query", req)
+                    span.set_data("snuba.query", req)
                 try:
                     http_resp = _snuba_pool.urlopen(
                         "POST",

@@ -133,7 +133,6 @@ def get_filename_component(
     abs_path: str,
     filename: str | None,
     platform: str | None,
-    allow_file_origin: bool = False,
 ) -> FilenameGroupingComponent:
     """Attempt to normalize filenames by detecting special filenames and by
     using the basename only.
@@ -146,7 +145,7 @@ def get_filename_component(
     filename = _basename_re.split(filename)[-1].lower()
     filename_component = FilenameGroupingComponent(values=[filename])
 
-    if has_url_origin(abs_path, allow_file_origin=allow_file_origin):
+    if has_url_origin(abs_path, allow_file_origin=True):
         filename_component.update(contributes=False, hint="ignored because frame points to a URL")
     elif filename == "<anonymous>":
         filename_component.update(contributes=False, hint="anonymous filename discarded")
@@ -194,10 +193,10 @@ def get_module_component(
             module = _java_cglib_enhancer_re.sub(r"\1<auto>", module)
             module = _java_assist_enhancer_re.sub(r"\1<auto>", module)
             module = _clojure_enhancer_re.sub(r"\1<auto>", module)
-            if context["java_cglib_hibernate_logic"]:
-                module = _java_enhancer_by_re.sub(r"\1<auto>", module)
-                module = _java_fast_class_by_re.sub(r"\1<auto>", module)
-                module = _java_hibernate_proxy_re.sub(r"\1<auto>", module)
+            module = _java_enhancer_by_re.sub(r"\1<auto>", module)
+            module = _java_fast_class_by_re.sub(r"\1<auto>", module)
+            module = _java_hibernate_proxy_re.sub(r"\1<auto>", module)
+
             if module != old_module:
                 module_component.update(values=[module], hint="removed codegen marker")
 
@@ -258,7 +257,7 @@ def get_function_component(
     elif platform == "php":
         if func.startswith(("[Anonymous", "class@anonymous\x00")):
             function_component.update(contributes=False, hint="ignored anonymous function")
-        if context["php_detect_anonymous_classes"] and func.startswith("class@anonymous"):
+        if func.startswith("class@anonymous"):
             new_function = func.rsplit("::", 1)[-1]
             if new_function != func:
                 function_component.update(values=[new_function], hint="anonymous class method")
@@ -270,7 +269,7 @@ def get_function_component(
     elif behavior_family == "native" and func in ("<redacted>", "<unknown>"):
         function_component.update(contributes=False, hint="ignored unknown function")
 
-    elif context["javascript_fuzzing"] and behavior_family == "javascript":
+    elif behavior_family == "javascript":
         # This changes Object.foo or Foo.foo into foo so that we can
         # resolve some common cross browser differences
         new_function = func.rsplit(".", 1)[-1]
@@ -304,9 +303,7 @@ def frame(
     # Safari throws [native code] frames in for calls like ``forEach``
     # whereas Chrome ignores these. Let's remove it from the hashing algo
     # so that they're more likely to group together
-    filename_component = get_filename_component(
-        frame.abs_path, frame.filename, platform, allow_file_origin=context["javascript_fuzzing"]
-    )
+    filename_component = get_filename_component(frame.abs_path, frame.filename, platform)
 
     # if we have a module we use that for grouping.  This will always
     # take precedence over the filename if it contributes
@@ -347,16 +344,14 @@ def frame(
 
     frame_component = FrameGroupingComponent(values=values, in_app=frame.in_app)
 
-    # if we are in javascript fuzzing mode we want to disregard some
-    # frames consistently.  These force common bad stacktraces together
-    # to have a common hash at the cost of maybe skipping over frames that
-    # would otherwise be useful.
-    if context["javascript_fuzzing"] and get_behavior_family_for_platform(platform) == "javascript":
+    # Ignore JS functions and/or whole frames which are just noise
+    if get_behavior_family_for_platform(platform) == "javascript":
         func = frame.raw_function or frame.function
         if func:
             # Strip leading namespacing, i.e., turn `some.module.path.someFunction` into
             # `someFunction` and `someObject.someMethod` into `someMethod`
             func = func.rsplit(".", 1)[-1]
+
         if not func:
             function_component.update(contributes=False)
         elif func in (
@@ -366,6 +361,7 @@ def frame(
             "Anonymous function",
         ) or func.endswith("/<"):
             function_component.update(contributes=False, hint="ignored unknown function name")
+
         if (func == "eval") or frame.abs_path in (
             "[native code]",
             "native code",
@@ -396,16 +392,14 @@ def get_contextline_component(
     if line:
         if len(frame.context_line) > 120:
             context_line_component.update(hint="discarded because line too long", contributes=False)
-        elif get_behavior_family_for_platform(platform) == "javascript":
-            if context["with_context_line_file_origin_bug"]:
-                if has_url_origin(frame.abs_path, allow_file_origin=True):
-                    context_line_component.update(
-                        hint="discarded because from URL origin", contributes=False
-                    )
-            elif not function and has_url_origin(frame.abs_path):
-                context_line_component.update(
-                    hint="discarded because from URL origin and no function", contributes=False
-                )
+        elif (
+            get_behavior_family_for_platform(platform) == "javascript"
+            and not function
+            and has_url_origin(frame.abs_path)
+        ):
+            context_line_component.update(
+                hint="discarded because from URL origin and no function", contributes=False
+            )
 
     return context_line_component
 
@@ -567,33 +561,32 @@ def single_exception(
         if ns_error_component is not None:
             values.append(ns_error_component)
 
-        if context["with_exception_value_fallback"]:
-            value_component = ErrorValueGroupingComponent()
+        value_component = ErrorValueGroupingComponent()
 
-            raw = exception.value
-            if raw is not None:
-                normalized = normalize_message_for_grouping(raw, event)
-                hint = "stripped event-specific values" if raw != normalized else None
-                if normalized:
-                    value_component.update(values=[normalized], hint=hint)
+        raw = exception.value
+        if raw is not None:
+            normalized = normalize_message_for_grouping(raw, event)
+            hint = "stripped event-specific values" if raw != normalized else None
+            if normalized:
+                value_component.update(values=[normalized], hint=hint)
 
-            if stacktrace_component.contributes and value_component.contributes:
-                value_component.update(
-                    contributes=False,
-                    hint="ignored because stacktrace takes precedence",
-                )
+        if stacktrace_component.contributes and value_component.contributes:
+            value_component.update(
+                contributes=False,
+                hint="ignored because stacktrace takes precedence",
+            )
 
-            if (
-                ns_error_component is not None
-                and ns_error_component.contributes
-                and value_component.contributes
-            ):
-                value_component.update(
-                    contributes=False,
-                    hint="ignored because ns-error info takes precedence",
-                )
+        if (
+            ns_error_component is not None
+            and ns_error_component.contributes
+            and value_component.contributes
+        ):
+            value_component.update(
+                contributes=False,
+                hint="ignored because ns-error info takes precedence",
+            )
 
-            values.append(value_component)
+        values.append(value_component)
 
         exception_components_by_variant[variant_name] = ExceptionGroupingComponent(
             values=values, frame_counts=stacktrace_component.frame_counts

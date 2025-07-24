@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from uuid import UUID
 
 import pytest
 
@@ -34,9 +35,9 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         self.store_ourlogs(logs)
         response = self.do_request(
             {
-                "field": ["log.body"],
+                "field": ["id", "log.body"],
                 "query": "",
-                "orderby": "log.body",
+                "orderby": "-log.body",
                 "project": self.project.id,
                 "dataset": self.dataset,
             }
@@ -46,8 +47,14 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         meta = response.data["meta"]
         assert len(data) == 2
         assert data == [
-            {"log.body": "bar"},
-            {"log.body": "foo"},
+            {
+                "id": UUID(bytes=bytes(reversed(logs[0].item_id))).hex,
+                "log.body": "foo",
+            },
+            {
+                "id": UUID(bytes=bytes(reversed(logs[1].item_id))).hex,
+                "log.body": "bar",
+            },
         ]
         assert meta["dataset"] == self.dataset
 
@@ -268,3 +275,28 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         )
         assert response.status_code == 200, response.content
         assert response.data["data"] == [{"message": "bar"}]
+
+    def test_count_meta_type_is_integer(self):
+        one_day_ago = before_now(days=1).replace(microsecond=0)
+
+        log1 = self.create_ourlog(
+            {"body": "foo"},
+            timestamp=one_day_ago,
+        )
+        self.store_ourlogs([log1])
+
+        request = {
+            "field": ["message", "count()"],
+            "project": self.project.id,
+            "dataset": self.dataset,
+        }
+
+        response = self.do_request(
+            {
+                **request,
+                "query": "timestamp:-2d",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [{"message": "foo", "count()": 1}]
+        assert response.data["meta"]["fields"]["count()"] == "integer"

@@ -179,8 +179,8 @@ def get_project_key():
 
 
 def traces_sampler(sampling_context):
-    wsgi_path = sampling_context.get("url.path")
-    if wsgi_path is not None and wsgi_path in SAMPLED_ROUTES:
+    wsgi_path = sampling_context.get("wsgi_environ", {}).get("PATH_INFO")
+    if wsgi_path and wsgi_path in SAMPLED_ROUTES:
         return SAMPLED_ROUTES[wsgi_path]
 
     # Apply sample_rate from custom_sampling_context
@@ -189,13 +189,14 @@ def traces_sampler(sampling_context):
         return float(custom_sample_rate)
 
     # If there's already a sampling decision, just use that
-    parent_sampled = sampling_context.get("parent_sampled")
-    if parent_sampled is not None:
+    if sampling_context["parent_sampled"] is not None:
         return sampling_context["parent_sampled"]
 
-    task_name = sampling_context.get("celery.job.task")
-    if task_name is not None and task_name in SAMPLED_TASKS:
-        return SAMPLED_TASKS[task_name]
+    if "celery_job" in sampling_context:
+        task_name = sampling_context["celery_job"].get("task")
+
+        if task_name in SAMPLED_TASKS:
+            return SAMPLED_TASKS[task_name]
 
     # Default to the sampling rate in settings
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
@@ -711,7 +712,7 @@ def get_trace_id():
 def set_span_attribute(data_name, value):
     span = sentry_sdk.get_current_span()
     if span is not None:
-        span.set_attribute(data_name, value)
+        span.set_data(data_name, value)
 
 
 def merge_context_into_scope(
