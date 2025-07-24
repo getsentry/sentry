@@ -1,4 +1,3 @@
-import pytest
 from collections import namedtuple
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -6,6 +5,7 @@ from hashlib import md5
 from unittest import mock
 from unittest.mock import patch
 
+import pytest
 from django.utils import timezone
 
 from sentry.api.helpers.group_index.update import handle_priority
