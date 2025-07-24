@@ -65,8 +65,6 @@ describe('PriorityControl', function () {
         <PriorityControl minimumPriority={DetectorPriorityLevel.LOW} />
       </Form>
     );
-    const medium = screen.getByLabelText('Medium threshold');
-    await userEvent.type(medium, '4');
 
     const high = screen.getByLabelText('High threshold');
     await userEvent.type(high, '5');
