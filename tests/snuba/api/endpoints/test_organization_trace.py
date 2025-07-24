@@ -300,3 +300,28 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 )
 
         assert response.status_code == 400, response.content
+
+    def test_orphan_trace(self):
+        self.load_trace(is_eap=True)
+        orphan_event = self.create_event(
+            trace_id=self.trace_id,
+            transaction="/transaction/orphan",
+            spans=[],
+            project_id=self.project.id,
+            # Random span id so there's no parent
+            parent_span_id=uuid4().hex[:16],
+            milliseconds=500,
+            is_eap=True,
+        )
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"timestamp": self.day_ago},
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert len(data) == 2
+        if len(data[0]["children"]) == 0:
+            orphan = data[0]
+        else:
+            orphan = data[1]
+        self.assert_event(orphan, orphan_event, "orphan")
