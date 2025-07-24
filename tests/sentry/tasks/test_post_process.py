@@ -67,6 +67,7 @@ from sentry.tasks.post_process import (
 )
 from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.helpers.options import override_options
@@ -2232,7 +2233,7 @@ class CheckIfFlagsSentTestMixin(BasePostProgressGroupMixin):
 
         mock_incr.assert_any_call("feature_flags.event_has_flags_context")
         mock_dist.assert_any_call("feature_flags.num_flags_sent", 2)
-        mock_record.assert_called_with(
+        assert_last_analytics_event(
             FirstFlagSentEvent(
                 organization_id=self.organization.id,
                 project_id=project.id,
