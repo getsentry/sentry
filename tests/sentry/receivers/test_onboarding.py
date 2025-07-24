@@ -6,6 +6,10 @@ from django.utils import timezone
 
 from sentry import onboarding_tasks
 from sentry.analytics import record
+from sentry.analytics.events.first_event_sent import (
+    FirstEventSentEvent,
+    FirstEventSentForProjectEvent,
+)
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationonboardingtask import (
     OnboardingTask,
@@ -30,6 +34,10 @@ from sentry.signals import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import (
+    assert_any_analytics_event,
+    assert_last_analytics_event,
+)
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
@@ -204,28 +212,30 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         # Ensure analytics events are called in the right order
         assert len(record_analytics.call_args_list) >= 2  # Ensure at least two calls
-
-        record_analytics.call_args_list[-2].assert_called_with(
-            "first_event_for_project.sent",
-            user_id=self.user.id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=event.platform,
-            project_platform=project.platform,
-            url=dict(event.tags).get("url", None),
-            has_minified_stack_trace=has_event_minified_stack_trace(event),
-            sdk_name=None,
+        assert_any_analytics_event(
+            record_analytics,
+            FirstEventSentForProjectEvent(
+                user_id=self.user.id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=event.platform,
+                project_platform=project.platform,
+                url=dict(event.tags).get("url", None),
+                has_minified_stack_trace=has_event_minified_stack_trace(event),
+                sdk_name=None,
+            ),
         )
 
-        record_analytics.call_args_list[-1].assert_called_with(
-            "first_event.sent",
-            user_id=self.user.id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=event.platform,
-            project_platform=project.platform,
+        assert_any_analytics_event(
+            record_analytics,
+            FirstEventSentEvent(
+                user_id=self.user.id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=event.platform,
+                project_platform=project.platform,
+            ),
         )
-
         # Create second project and send event
         second_project = self.create_project(first_event=now, platform="python")
         project_created.send(project=second_project, user=self.user, sender=None)
@@ -251,20 +261,22 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         # Ensure "first_event_for_project.sent" was called again for second project
         record_analytics.call_args_list[-1].assert_called_with(
-            "first_event_for_project.sent",
-            user_id=self.user.id,
-            organization_id=second_project.organization_id,
-            project_id=second_project.id,
-            platform=event.platform,
-            project_platform=second_project.platform,
-            url=dict(event.tags).get("url", None),
-            has_minified_stack_trace=has_event_minified_stack_trace(event),
-            sdk_name=None,
+            FirstEventSentForProjectEvent(
+                user_id=self.user.id,
+                organization_id=second_project.organization_id,
+                project_id=second_project.id,
+                platform=event.platform,
+                project_platform=second_project.platform,
+                url=dict(event.tags).get("url", None),
+                has_minified_stack_trace=has_event_minified_stack_trace(event),
+                sdk_name=None,
+            )
         )
-
         # Ensure "first_event.sent" was called exactly once
         first_event_sent_calls = [
-            call for call in record_analytics.call_args_list if call[0][0] == "first_event.sent"
+            call
+            for call in record_analytics.call_args_list
+            if type(call[0][0]) is FirstEventSentEvent
         ]
         assert len(first_event_sent_calls) == 1
 
@@ -904,13 +916,15 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
-        record_analytics.assert_called_with(
-            "first_event.sent",
-            user_id=self.user.id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=error_event.platform,
-            project_platform=project.platform,
+        assert_last_analytics_event(
+            record_analytics,
+            FirstEventSentEvent(
+                user_id=self.user.id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=error_event.platform,
+                project_platform=project.platform,
+            ),
         )
 
         # Configure an issue alert
