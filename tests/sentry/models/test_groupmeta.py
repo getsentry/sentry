@@ -26,15 +26,3 @@ class GroupMetaManagerTest(TestCase):
         GroupMeta.objects.create(group=self.group, key="foo", value="bar")
         GroupMeta.objects.unset_value(self.group, "foo")
         assert not GroupMeta.objects.filter(group=self.group, key="foo").exists()
-
-    def test_get_value_bulk(self):
-        with pytest.raises(GroupMetaCacheNotPopulated):
-            GroupMeta.objects.get_value_bulk([self.group], "foo")
-
-        GroupMeta.objects.create(group=self.group, key="foo", value="bar")
-        with pytest.raises(GroupMetaCacheNotPopulated):
-            GroupMeta.objects.get_value_bulk([self.group], "foo")
-
-        GroupMeta.objects.populate_cache([self.group])
-        result = GroupMeta.objects.get_value_bulk([self.group], "foo")
-        assert result == {self.group: "bar"}

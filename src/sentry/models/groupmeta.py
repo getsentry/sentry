@@ -56,16 +56,6 @@ class GroupMetaManager(BaseManager["GroupMeta"]):
         for group_id, key, value in results:
             self.__cache[group_id][key] = value
 
-    def get_value_bulk(self, instance_list, key, default=None):
-        results = {}
-        for instance in instance_list:
-            try:
-                inst_cache = self.__cache[instance.id]
-            except KeyError:
-                raise GroupMetaCacheNotPopulated(ERR_CACHE_MISSING % (instance.id,))
-            results[instance] = inst_cache.get(key, default)
-        return results
-
     def get_value(self, instance, key, default=None):
         try:
             inst_cache = self.__cache[instance.id]
