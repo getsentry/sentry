@@ -118,7 +118,6 @@ def delete_groups_for_project(
         transaction_id:     Unique identifier for this deletion operation
         project_id:         Project ID that all groups must belong to. If None,
                             will be inferred from the first group.
-        eventstream_state:  Snuba eventstream state. If None, will be inferred from the first group.
         kwargs:             Additional arguments to pass to the task.
     """
     if not object_ids:
@@ -129,10 +128,6 @@ def delete_groups_for_project(
     if not groups.exists():
         raise DeleteAborted("delete_groups.no_groups_found")
 
-    # Get project_id from first group if not provided
-    if project_id is None:
-        project_id = groups.first().project_id
-
     # Validate all groups belong to the same project
     invalid_groups = groups.exclude(project_id=project_id)
     if invalid_groups.exists():
@@ -141,34 +136,22 @@ def delete_groups_for_project(
             f"don't belong to project {project_id}"
         )
 
-    current_batch, rest = object_ids[:GROUP_CHUNK_SIZE], object_ids[GROUP_CHUNK_SIZE:]
+    # The new scheduling will not be scheduling more than this size
+    assert len(object_ids) <= GROUP_CHUNK_SIZE, "object_ids should be less than GROUP_CHUNK_SIZE"
 
     # This is a no-op on the Snuba side, however, one day it may not be.
     eventstream_state = eventstream.backend.start_delete_groups(project_id, object_ids)
 
-    # The tags can be used if we want to find errors for when a task fails
-    sentry_sdk.set_tags({"project_id": project_id, "transaction_id": transaction_id})
+    # These can be used for debugging
+    extra = {"object_ids": object_ids, "project_id": project_id, "transaction_id": transaction_id}
+    sentry_sdk.set_tags(extra)
+    logger.info("delete_groups.started", extra={"object_ids": object_ids, **extra})
 
-    logger.info(
-        "delete_groups.started",
-        extra={
-            "object_ids_count": len(object_ids),
-            "object_ids_current_batch": current_batch,
-            "first_id": groups.first().id,
-            # These can be used when looking for logs in GCP
-            "project_id": project_id,
-            # All tasks initiated by the same request will have the same transaction_id
-            "transaction_id": transaction_id,
-        },
-    )
-
-    task = deletions.get(
-        model=Group, query={"id__in": current_batch}, transaction_id=transaction_id
-    )
+    task = deletions.get(model=Group, query={"id__in": object_ids})
     has_more = task.chunk()
-    if has_more or rest:
-        # I want confirmation that this is not happening since the deletion task
-        # uses the same chunking logic.
+
+    # XXX: Delete this block once I'm convince this is not happening
+    if has_more:
         metrics.incr("deletions.groups.delete_groups_old.chunked", 1, sample_rate=1)
         sentry_sdk.capture_message(
             "This should not be happening",
@@ -178,11 +161,13 @@ def delete_groups_for_project(
         )
         delete_groups_for_project.apply_async(
             kwargs={
-                "object_ids": object_ids if has_more else rest,
+                "object_ids": object_ids,
                 "project_id": project_id,
                 "transaction_id": transaction_id,
             },
         )
-    else:
-        # This will delete all Snuba events for all deleted groups
-        eventstream.backend.end_delete_groups(eventstream_state)
+
+    assert eventstream is not None
+
+    # This will delete all Snuba events for all deleted groups
+    eventstream.backend.end_delete_groups(eventstream_state)
