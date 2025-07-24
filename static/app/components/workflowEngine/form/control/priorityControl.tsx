@@ -1,5 +1,6 @@
 import {useContext} from 'react';
 import styled from '@emotion/styled';
+import toNumber from 'lodash/toNumber';
 
 import {GroupPriorityBadge} from 'sentry/components/badge/groupPriority';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -16,6 +17,7 @@ import {
   DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
+import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
@@ -83,8 +85,52 @@ function ChangePriority() {
   );
 }
 
+function createValidationError(field: string, message: string): [string, string] {
+  return [field, message];
+}
+
+function validateThresholdOrder(
+  value: number,
+  reference: number,
+  conditionType: DataConditionType,
+  isGreaterExpected: boolean
+): boolean {
+  if (conditionType === DataConditionType.GREATER) {
+    return isGreaterExpected ? value > reference : value < reference;
+  }
+  // For LESS condition type, logic is inverted
+  return isGreaterExpected ? value < reference : value > reference;
+}
+
+function validateHighThreshold({
+  form,
+}: {
+  form: MetricDetectorFormData;
+  id: string;
+}): Array<[string, string]> {
+  const highNum = toNumber(form.highThreshold);
+  const conditionNum = toNumber(form.conditionValue);
+  const {conditionType} = form;
+
+  if (!conditionType) {
+    return [];
+  }
+
+  if (highNum !== null && conditionNum !== null) {
+    if (!validateThresholdOrder(highNum, conditionNum, conditionType, true)) {
+      const message = t(
+        'High threshold must be %s than medium threshold',
+        conditionType === DataConditionType.GREATER ? t('higher') : t('lower')
+      );
+      return [createValidationError(METRIC_DETECTOR_FORM_FIELDS.highThreshold, message)];
+    }
+  }
+
+  return [];
+}
+
 interface PriorityControlProps {
-  minimumPriority: DetectorPriorityLevel;
+  minimumPriority: DetectorPriorityLevel.MEDIUM | DetectorPriorityLevel.HIGH;
 }
 
 export default function PriorityControl({minimumPriority}: PriorityControlProps) {
@@ -117,34 +163,12 @@ export default function PriorityControl({minimumPriority}: PriorityControlProps)
         }
         right={<InitialPrioritySelect minimumPriority={minimumPriority} />}
       />
-      {priorityIsConfigurable(initialPriorityLevel, DetectorPriorityLevel.MEDIUM) && (
+      {initialPriorityLevel === DetectorPriorityLevel.MEDIUM && (
         <PrioritizeRow
           left={
             <Flex align="center" gap="md">
               <SmallNumberField
-                alignRight
-                inline
-                hideLabel
-                flexibleControlStateSize
-                size="sm"
-                suffix={thresholdSuffix}
-                placeholder="0"
-                name={METRIC_DETECTOR_FORM_FIELDS.mediumThreshold}
-                aria-label={t('Medium threshold')}
-              />
-              <div>{conditionKindAndTypeToLabel[detectionType][conditionType!]}</div>
-            </Flex>
-          }
-          right={<GroupPriorityBadge showLabel priority={PriorityLevel.MEDIUM} />}
-        />
-      )}
-      {priorityIsConfigurable(initialPriorityLevel, DetectorPriorityLevel.HIGH) && (
-        <PrioritizeRow
-          left={
-            <Flex align="center" gap="md">
-              <SmallNumberField
-                alignRight
-                inline
+                inline={false}
                 hideLabel
                 flexibleControlStateSize
                 size="sm"
@@ -152,6 +176,8 @@ export default function PriorityControl({minimumPriority}: PriorityControlProps)
                 placeholder="0"
                 name={METRIC_DETECTOR_FORM_FIELDS.highThreshold}
                 aria-label={t('High threshold')}
+                validate={validateHighThreshold}
+                required
               />
               <div>{conditionKindAndTypeToLabel[detectionType][conditionType!]}</div>
             </Flex>
@@ -161,13 +187,6 @@ export default function PriorityControl({minimumPriority}: PriorityControlProps)
       )}
     </Grid>
   );
-}
-
-function priorityIsConfigurable(
-  initialPriorityLevel: DetectorPriorityLevel,
-  targetPriority: DetectorPriorityLevel
-): boolean {
-  return targetPriority > initialPriorityLevel;
 }
 
 function PrioritizeRow({left, right}: {left: React.ReactNode; right: React.ReactNode}) {
@@ -258,7 +277,7 @@ const Cell = styled('div')`
 `;
 
 const SmallNumberField = styled(NumberField)`
-  width: 3.5rem;
+  width: 6rem;
   padding: 0;
   & > div {
     padding-left: 0;
