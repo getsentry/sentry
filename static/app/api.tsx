@@ -61,10 +61,6 @@ export type ResponseMeta<R = any> = {
    */
   getResponseHeader: (header: string) => string | null;
   /**
-   * the response headers as a key-value object
-   */
-  headers: Record<string, string | undefined>;
-  /**
    * The response body decoded from json
    */
   responseJSON: R;
@@ -76,7 +72,6 @@ export type ResponseMeta<R = any> = {
    * The response status code
    */
   status: Response['status'];
-
   /**
    * The response status code text
    */
@@ -606,7 +601,6 @@ export class Client {
             statusText,
             responseJSON,
             responseText,
-            headers: Object.fromEntries(response.headers.entries()),
             getResponseHeader: (header: string) => response.headers.get(header),
           };
 

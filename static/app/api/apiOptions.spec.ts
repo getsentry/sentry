@@ -1,13 +1,12 @@
 import {expectTypeOf} from 'expect-type';
 
+import type {ApiResult} from 'sentry/api';
 import type {Release} from 'sentry/types/release';
 
 import {apiOptions} from './apiOptions';
 
 type Promisable<T> = T | Promise<T>;
-type QueryFunctionResult<T> = Promisable<
-  Readonly<{content: T; headers: Record<string, string | undefined> | undefined}>
->;
+type QueryFunctionResult<T> = Promisable<ApiResult<T>>;
 
 describe('apiOptions', () => {
   test('should encode path parameters correctly', () => {

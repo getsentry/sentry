@@ -1,5 +1,6 @@
 import {queryOptions} from '@tanstack/react-query';
 
+import type {ApiResult} from 'sentry/api';
 import {fetchDataQuery, type QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
 
 import type {ApiMapping, ApiPath, MaybeApiPath} from './apiDefinition';
@@ -34,7 +35,7 @@ type Options<TApiPath extends string> = PathParamOptions<TApiPath> &
 
 const paramRegex = /\$([a-zA-Z0-9_-]+)/g;
 
-const selectContent = <TData>(data: {content: TData}) => data.content;
+const selectContent = <TData>(data: ApiResult<TData>) => data[0];
 
 export function apiOptions<
   TManualData = never,
@@ -55,11 +56,7 @@ export function apiOptions<
   return queryOptions({
     queryKey:
       Object.keys(options).length > 0 ? ([url, options] as const) : ([url] as const),
-    queryFn: async ctx => {
-      const response = await fetchDataQuery<TActualData>(ctx);
-
-      return {content: response[0], headers: response[2]?.headers} as const;
-    },
+    queryFn: fetchDataQuery<TActualData>,
     staleTime,
     select: selectContent,
   });
