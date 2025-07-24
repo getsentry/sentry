@@ -88,11 +88,7 @@ export function AggregateColumnEditorModal({
   const canDeleteVisualize = tempColumns.filter(isVisualize).length > 1;
 
   return (
-    <DragNDropContext
-      columns={tempColumns}
-      setColumns={setTempColumns}
-      defaultColumn={() => ({groupBy: ''})}
-    >
+    <DragNDropContext columns={tempColumns} setColumns={setTempColumns}>
       {({insertColumn, updateColumnAtIndex, deleteColumnAtIndex, editableColumns}) => (
         <Fragment>
           <Header closeButton data-test-id="editor-header">

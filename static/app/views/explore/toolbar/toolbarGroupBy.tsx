@@ -54,7 +54,7 @@ export function ToolbarGroupBy({autoSwitchToAggregates}: ToolbarGroupBy) {
   const options: Array<SelectOption<string>> = useGroupByFields({groupBys, tags});
 
   return (
-    <DragNDropContext columns={groupBys} setColumns={setColumns} defaultColumn={() => ''}>
+    <DragNDropContext columns={groupBys} setColumns={setColumns}>
       {({editableColumns, insertColumn, updateColumnAtIndex, deleteColumnAtIndex}) => {
         return (
           <ToolbarSection data-test-id="section-group-by">
@@ -83,7 +83,7 @@ export function ToolbarGroupBy({autoSwitchToAggregates}: ToolbarGroupBy) {
                 borderless
                 size="zero"
                 icon={<IconAdd />}
-                onClick={() => insertColumn()}
+                onClick={() => insertColumn('')}
                 priority="link"
                 aria-label={t('Add Group')}
               >

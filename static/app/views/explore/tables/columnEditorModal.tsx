@@ -131,11 +131,7 @@ export function ColumnEditorModal({
   }
 
   return (
-    <DragNDropContext
-      columns={tempColumns}
-      setColumns={setTempColumns}
-      defaultColumn={() => ''}
-    >
+    <DragNDropContext columns={tempColumns} setColumns={setTempColumns}>
       {({insertColumn, updateColumnAtIndex, deleteColumnAtIndex, editableColumns}) => (
         <Fragment>
           <Header closeButton data-test-id="editor-header">
@@ -159,7 +155,7 @@ export function ColumnEditorModal({
                 <Button
                   size="sm"
                   aria-label={t('Add a Column')}
-                  onClick={() => insertColumn()}
+                  onClick={() => insertColumn('')}
                   icon={<IconAdd isCircled />}
                 >
                   {t('Add a Column')}
