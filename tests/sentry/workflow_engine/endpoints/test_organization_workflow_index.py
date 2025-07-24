@@ -1,10 +1,13 @@
 from typing import Any
+from unittest import mock
 
+from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.workflow_engine.models import Action, Workflow, WorkflowDataConditionGroup
+from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 
 
@@ -362,7 +365,8 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
             "actionFilters": [],
         }
 
-    def test_create_workflow__basic(self):
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.workflow.create_audit_entry")
+    def test_create_workflow__basic(self, mock_audit):
         response = self.get_success_response(
             self.organization.slug,
             raw_data=self.valid_workflow,
@@ -371,6 +375,14 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
         assert response.status_code == 201
         new_workflow = Workflow.objects.get(id=response.data["id"])
         assert new_workflow.name == self.valid_workflow["name"]
+
+        mock_audit.assert_called_once_with(
+            request=mock.ANY,
+            organization=self.organization,
+            target_object=new_workflow.id,
+            event=audit_log.get_event_id("WORKFLOW_ADD"),
+            data=new_workflow.get_audit_log_data(),
+        )
 
     def test_create_workflow__with_config(self):
         self.valid_workflow["config"] = {"frequency": 100}
@@ -499,3 +511,74 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
         )
 
         assert response.status_code == 400
+
+    @mock.patch("sentry.workflow_engine.endpoints.validators.detector_workflow.create_audit_entry")
+    def test_create_workflow_with_detector_ids(self, mock_audit):
+        detector_1 = self.create_detector()
+        detector_2 = self.create_detector()
+
+        workflow_data = {
+            **self.valid_workflow,
+            "detectorIds": [detector_1.id, detector_2.id],
+        }
+
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=workflow_data,
+        )
+
+        assert response.status_code == 201
+
+        created_detector_workflows = DetectorWorkflow.objects.filter(
+            workflow_id=response.data["id"]
+        )
+        assert created_detector_workflows.count() == 2
+
+        assert mock_audit.call_count == 2
+        detector_workflow_audit_calls = [
+            call
+            for call in mock_audit.call_args_list
+            if call.kwargs.get("event") == audit_log.get_event_id("DETECTOR_WORKFLOW_ADD")
+        ]
+        assert len(detector_workflow_audit_calls) == 2
+
+    def test_create_workflow_with_invalid_detector_ids(self):
+        workflow_data = {
+            **self.valid_workflow,
+            "detectorIds": [999999],  # doesn't exist
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            raw_data=workflow_data,
+            status_code=400,
+        )
+        assert "detectors do not exist" in str(response.data).lower()
+
+        assert Workflow.objects.count() == 0
+
+    def test_create_workflow_with_unauthorized_detectors(self):
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        member_user = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "contributor")],
+            user=member_user,
+            role="member",
+            organization=self.organization,
+        )
+        self.login_as(user=member_user)
+
+        detector = self.create_detector()  # owned by self.user, not member_user
+
+        workflow_data = {
+            **self.valid_workflow,
+            "detectorIds": [detector.id],
+        }
+
+        self.get_error_response(
+            self.organization.slug,
+            raw_data=workflow_data,
+            status_code=403,
+        )

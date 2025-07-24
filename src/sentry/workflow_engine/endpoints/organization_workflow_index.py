@@ -1,6 +1,7 @@
 from datetime import datetime
 from functools import partial
 
+from django.db import router, transaction
 from django.db.models import Count, Max, Q, QuerySet
 from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema
@@ -30,6 +31,9 @@ from sentry.workflow_engine.endpoints.serializers import WorkflowSerializer
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
+from sentry.workflow_engine.endpoints.validators.detector_workflow import (
+    BulkWorkflowDetectorsValidator,
+)
 from sentry.workflow_engine.models import Workflow
 
 # Maps API field name to database field name, with synthetic aggregate fields keeping
@@ -198,5 +202,20 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         )
 
         validator.is_valid(raise_exception=True)
-        workflow = validator.create(validator.validated_data)
+
+        with transaction.atomic(router.db_for_write(Workflow)):
+            workflow = validator.create(validator.validated_data)
+
+            detector_ids = request.data.get("detectorIds", [])
+            if detector_ids:
+                bulk_validator = BulkWorkflowDetectorsValidator(
+                    data={
+                        "workflow_id": workflow.id,
+                        "detector_ids": detector_ids,
+                    },
+                    context={"organization": organization, "request": request},
+                )
+                bulk_validator.is_valid(raise_exception=True)
+                bulk_validator.save()
+
         return Response(serialize(workflow, request.user), status=status.HTTP_201_CREATED)
