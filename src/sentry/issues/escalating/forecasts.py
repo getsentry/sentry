@@ -50,7 +50,7 @@ def save_forecast_per_group(
                 "save_forecast_per_group",
                 extra={"group_id": group_id, "group_counts": group_count},
             )
-        analytics.record(IssueForecastSaved(num_groups=len(group_counts.keys())))
+    analytics.record(IssueForecastSaved(num_groups=len(group_counts.keys())))
 
 
 def generate_and_save_forecasts(groups: Iterable[Group]) -> None:
