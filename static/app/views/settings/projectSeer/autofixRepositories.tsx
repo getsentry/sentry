@@ -303,7 +303,13 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
             <AutofixRepoItem
               key={repo.id}
               repo={repo}
-              settings={repoSettings[repo.externalId] || {branch: '', instructions: ''}}
+              settings={
+                repoSettings[repo.externalId] || {
+                  branch: '',
+                  instructions: '',
+                  branch_overrides: [],
+                }
+              }
               onSettingsChange={settings => {
                 updateRepoSettings(repo.externalId, settings);
               }}
