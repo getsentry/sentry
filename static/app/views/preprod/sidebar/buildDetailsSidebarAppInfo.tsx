@@ -10,11 +10,14 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {space} from 'sentry/styles/space';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {openInstallModal} from 'sentry/views/preprod/components/installModal';
-import {type BuildDetailsAppInfo, BuildDetailsState} from 'sentry/views/preprod/types';
 import {
-  formatBytes,
+  type BuildDetailsAppInfo,
+  BuildDetailsState,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {
   getPlatformIconFromPlatform,
   getReadableArtifactTypeLabel,
   getReadablePlatformLabel,
@@ -94,11 +97,11 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
         <SizeRow>
           <SizeItem>
             <SizeLabel>Install Size</SizeLabel>
-            <SizeValue>{formatBytes(installSizeBytes)}</SizeValue>
+            <SizeValue>{formatBytesBase10(installSizeBytes)}</SizeValue>
           </SizeItem>
           <SizeItem>
             <SizeLabel>Download Size</SizeLabel>
-            <SizeValue>{formatBytes(downloadSizeBytes)}</SizeValue>
+            <SizeValue>{formatBytesBase10(downloadSizeBytes)}</SizeValue>
           </SizeItem>
         </SizeRow>
       </SizeSection>

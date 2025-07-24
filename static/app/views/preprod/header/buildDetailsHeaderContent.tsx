@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/core/button';
 import Placeholder from 'sentry/components/placeholder';
 import {IconEllipsis, IconTelescope} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types';
+import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 type BuildDetailsHeaderError = {error: string; status: 'error'};
 type BuildDetailsHeaderLoading = {status: 'loading'};

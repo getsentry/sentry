@@ -4,7 +4,7 @@ import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
 import {BuildDetailsSidebarAppInfo} from 'sentry/views/preprod/sidebar/buildDetailsSidebarAppInfo';
-import {type BuildDetailsApiResponse} from 'sentry/views/preprod/types';
+import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 type BuildDetailsSidebarError = {error: string; status: 'error'};
 type BuildDetailsSidebarLoading = {status: 'loading'};
