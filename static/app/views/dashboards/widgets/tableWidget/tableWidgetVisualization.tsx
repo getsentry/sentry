@@ -247,7 +247,14 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
 
           const cell = valueRenderer(dataRow, baggage);
 
-          return <div key={`${rowIndex}-${columnIndex}:${tableColumn.name}`}>{cell}</div>;
+          return (
+            <StyledBodyCell
+              columnIndex={columnIndex}
+              key={`${rowIndex}-${columnIndex}:${tableColumn.name}`}
+            >
+              {cell}
+            </StyledBodyCell>
+          );
         },
         onResizeColumn: (columnIndex: number, nextColumn: TabularColumn) => {
           widths[columnIndex] = defined(nextColumn.width)
@@ -323,4 +330,10 @@ TableWidgetVisualization.LoadingPlaceholder = function ({
 
 const StyledTooltip = styled(Tooltip)`
   display: initial;
+  vertical-align: middle;
+`;
+
+// GridEditable sets the first child to have right padding 0 which doesn't work for this table
+const StyledBodyCell = styled('div')<{columnIndex: number}>`
+  ${p => (p.columnIndex === 0 ? `padding-right: ${p.theme.space.xl}` : '')}
 `;
