@@ -33,10 +33,11 @@ def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
     )
 
     if response.status_code != 200:
-        # XXX: Should we be raising something else here? Or logging it somewhere?
+        # XXX: Should we be raising a more descriptive error here?
         raise Exception(f"Failed to generate labels: {response.status_code} {response.text}")
 
-    # This could throw if not valid JSON and if the structure isn't what we expect
+    # This could throw if not valid JSON or if the structure isn't what we expect
     labels = json.loads(response.content.decode("utf-8"))["data"]["labels"]
 
+    # This is guaranteed to be a list of strings as this is validated in Seer
     return labels

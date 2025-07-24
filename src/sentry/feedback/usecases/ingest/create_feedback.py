@@ -8,9 +8,10 @@ from uuid import UUID, uuid4
 
 import jsonschema
 
-from sentry import options
+from sentry import features, options
 from sentry.constants import DataCategory
 from sentry.feedback.lib.utils import UNREAL_FEEDBACK_UNATTENDED_MESSAGE, FeedbackCreationSource
+from sentry.feedback.usecases.label_generation import generate_labels
 from sentry.feedback.usecases.spam_detection import is_spam, spam_detection_enabled
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -330,6 +331,13 @@ def create_feedback_issue(
             sample_rate=1.0,
         )
 
+    # Generating labels using Seer, which will later be used to categorize feedbacks
+    if features.has("organizations:user-feedback-ai-categorization", project.organization):
+        try:
+            labels = generate_labels(feedback_message, project.organization_id)
+        except Exception:
+            logger.exception("Error generating labels", extra={"project_id": project_id})
+
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
     event["event_id"] = event.get("event_id") or uuid4().hex
@@ -379,6 +387,9 @@ def create_feedback_issue(
 
     if event_fixed.get("release"):
         event_fixed["tags"]["release"] = event_fixed["release"]
+
+    for idx, label in enumerate(labels):
+        event_fixed["tags"][f"feedback.category.label.{idx}"] = label
 
     # make sure event data is valid for issue platform
     validate_issue_platform_event_schema(event_fixed)
