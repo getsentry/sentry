@@ -61,7 +61,6 @@ async function promiseRequest(url: string) {
       const responseMeta: ResponseMeta = {
         status: response.status,
         statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries()),
         responseJSON: json,
         responseText: text,
         getResponseHeader: (header: string) => response.headers.get(header),
