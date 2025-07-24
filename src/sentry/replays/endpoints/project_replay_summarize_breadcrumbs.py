@@ -18,6 +18,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models.project import Project
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, storage
 from sentry.replays.lib.summarize import (
+    EventDict,
     fetch_error_details,
     fetch_trace_connected_errors,
     get_summary_logs,
@@ -29,14 +30,6 @@ from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
-
-
-class EventDict(TypedDict):
-    id: str
-    title: str
-    message: str
-    timestamp: float
-    category: str
 
 
 class SeerRequest(TypedDict):
