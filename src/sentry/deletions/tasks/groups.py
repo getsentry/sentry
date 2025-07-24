@@ -162,13 +162,6 @@ def delete_groups_for_project(
             # Use this to query the logs
             tags={"transaction_id": transaction_id},
         )
-        delete_groups_for_project.apply_async(
-            kwargs={
-                "object_ids": object_ids,
-                "project_id": project_id,
-                "transaction_id": transaction_id,
-            },
-        )
 
     # This will delete all Snuba events for all deleted groups
     eventstream.backend.end_delete_groups(eventstream_state)
