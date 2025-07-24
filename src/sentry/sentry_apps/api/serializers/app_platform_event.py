@@ -13,7 +13,7 @@ from sentry.utils import json
 
 class AppPlatformEventActor(TypedDict):
     type: str
-    id: str
+    id: str | int
     name: str
 
 
@@ -71,7 +71,7 @@ class AppPlatformEvent(Generic[T]):
 
         return AppPlatformEventActor(
             type="user",
-            id=str(self.actor.id),
+            id=self.actor.id,
             name=self.actor.name,
         )
 

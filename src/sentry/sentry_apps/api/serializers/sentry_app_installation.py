@@ -28,7 +28,7 @@ class SentryAppInstallationResult(TypedDict):
     app: SentryAppInstallationAppResult
     organization: SentryAppInstallationOrganizationResult
     uuid: str
-    status: SentryAppInstallationStatus
+    status: str
     code: NotRequired[str]
 
 
@@ -63,7 +63,7 @@ class SentryAppInstallationSerializer(Serializer):
         self, obj, attrs, user: User | RpcUser | AnonymousUser, **kwargs
     ) -> SentryAppInstallationResult:
         access = kwargs.get("access")
-        data = {
+        data: SentryAppInstallationResult = {
             "app": {"uuid": attrs["sentry_app"].uuid, "slug": attrs["sentry_app"].slug},
             "organization": {"slug": attrs["organization"].slug, "id": attrs["organization"].id},
             "uuid": obj.uuid,
@@ -75,10 +75,4 @@ class SentryAppInstallationSerializer(Serializer):
         if obj.api_grant and ((access and access.has_scope("org:integrations")) or is_webhook):
             data["code"] = obj.api_grant.code
 
-        return SentryAppInstallationResult(
-            app=data["app"],
-            organization=data["organization"],
-            uuid=data["uuid"],
-            status=data["status"],
-            code=data["code"],
-        )
+        return data
