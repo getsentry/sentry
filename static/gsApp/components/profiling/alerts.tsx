@@ -9,6 +9,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -289,6 +290,7 @@ function ContinuousProfilingBetaAlertBannerInner({
           notificationType="overage_critical"
           referrer={`overage-alert-${eventTypes.join('-')}`}
           source="continuous-profiling-beta-trial-banner"
+          buttonText={toTitleCase(`Update ${subscription.planDetails.budgetTerm} Budget`)}
         />
       }
     >
