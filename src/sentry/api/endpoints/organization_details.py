@@ -743,30 +743,19 @@ def create_console_platform_audit_log(
     request, organization, previously_enabled_platforms, currently_requested_platforms
 ):
     """Create a single audit log entry for console platform changes."""
-    previously_enabled_set = set(previously_enabled_platforms or [])
-    currently_requested_set = set(currently_requested_platforms or [])
+    prev = set(previously_enabled_platforms or [])
+    curr = set(currently_requested_platforms or [])
+    added = curr - prev
+    removed = prev - curr
+    enabled = [CONSOLE_PLATFORMS[p] for p in sorted(added) if p in CONSOLE_PLATFORMS]
+    disabled = [CONSOLE_PLATFORMS[p] for p in sorted(removed) if p in CONSOLE_PLATFORMS]
 
     changes = []
+    if enabled:
+        changes.append(f"Enabled Platforms: {', '.join(enabled)}")
+    if disabled:
+        changes.append(f"Disabled Platforms: {', '.join(disabled)}")
 
-    newly_enabled_platforms = currently_requested_set - previously_enabled_set
-    if newly_enabled_platforms:
-        enabled_names = [
-            CONSOLE_PLATFORMS[platform]
-            for platform in sorted(newly_enabled_platforms)
-            if platform in CONSOLE_PLATFORMS
-        ]
-        if enabled_names:
-            changes.append(f"Enabled Platforms: {', '.join(enabled_names)}")
-
-    newly_disabled_platforms = previously_enabled_set - currently_requested_set
-    if newly_disabled_platforms:
-        disabled_names = [
-            CONSOLE_PLATFORMS[platform]
-            for platform in sorted(newly_disabled_platforms)
-            if platform in CONSOLE_PLATFORMS
-        ]
-        if disabled_names:
-            changes.append(f"Disabled Platforms: {', '.join(disabled_names)}")
 
     if changes:
         create_audit_entry(
