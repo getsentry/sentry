@@ -329,6 +329,7 @@ from sentry.replays.endpoints.project_replay_recording_segment_index import (
     ProjectReplayRecordingSegmentIndexEndpoint,
 )
 from sentry.replays.endpoints.project_replay_summarize_breadcrumbs import (
+    ProjectReplaySummarizeBreadcrumbsAsyncEndpoint,
     ProjectReplaySummarizeBreadcrumbsEndpoint,
 )
 from sentry.replays.endpoints.project_replay_video_details import ProjectReplayVideoDetailsEndpoint
@@ -2750,6 +2751,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/replays/(?P<replay_id>[^/]+)/summarize/breadcrumbs/$",
         ProjectReplaySummarizeBreadcrumbsEndpoint.as_view(),
         name="sentry-api-0-project-replay-summarize-breadcrumbs",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/replays/(?P<replay_id>[^/]+)/summarize/breadcrumbs-v2/$",
+        ProjectReplaySummarizeBreadcrumbsAsyncEndpoint.as_view(),
+        name="sentry-api-0-project-replay-summarize-breadcrumbs-v2",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/replays/(?P<replay_id>[^/]+)/recording-segments/(?P<segment_id>\d+)/$",

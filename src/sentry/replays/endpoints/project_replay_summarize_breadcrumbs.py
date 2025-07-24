@@ -54,7 +54,7 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
         super().__init__(**options)
 
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
-        """Return a collection of replay recording segments."""
+        """Return a summary of the replay and ordered time ranges ("chapters") describing the user's journey through the application."""
         if (
             not features.has(
                 "organizations:session-replay", project.organization, actor=request.user
