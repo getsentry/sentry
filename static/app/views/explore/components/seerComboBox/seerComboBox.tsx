@@ -1,6 +1,7 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
+import {mergeRefs} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 
@@ -14,6 +15,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
+import useOverlay from 'sentry/utils/useOverlay';
 import QueryTokens from 'sentry/views/explore/components/queryTokens';
 import {
   type SeerSearchItem,
@@ -26,6 +28,54 @@ import {SeerSearchPopover} from 'sentry/views/explore/components/seerComboBox/se
 import {SeerSearchSkeleton} from 'sentry/views/explore/components/seerComboBox/seerSearchSkeleton';
 import {useTraceExploreAiQuerySetup} from 'sentry/views/explore/hooks/useTraceExploreAiQuerySetup';
 import {formatQueryToNaturalLanguage} from 'sentry/views/explore/utils';
+
+// The menu size can change from things like loading states, long options,
+// or custom menus like a date picker. This hook ensures that the overlay
+// is updated in response to these changes.
+function useUpdateOverlayPositionOnContentChange({
+  contentRef,
+  updateOverlayPosition,
+  isOpen,
+}: {
+  contentRef: React.RefObject<HTMLDivElement | null>;
+  isOpen: boolean;
+  updateOverlayPosition: (() => void) | null;
+}) {
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+
+  // Keep a ref to the updateOverlayPosition function so that we can
+  // access the latest value in the resize observer callback.
+  const updateOverlayPositionRef = useRef(updateOverlayPosition);
+  if (updateOverlayPositionRef.current !== updateOverlayPosition) {
+    updateOverlayPositionRef.current = updateOverlayPosition;
+  }
+
+  useLayoutEffect(() => {
+    resizeObserverRef.current = new ResizeObserver(() => {
+      if (!updateOverlayPositionRef.current) {
+        return;
+      }
+      updateOverlayPositionRef.current?.();
+    });
+
+    return () => {
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!contentRef.current || !resizeObserverRef.current || !isOpen) {
+      return () => {};
+    }
+
+    resizeObserverRef.current?.observe(contentRef.current);
+
+    return () => {
+      resizeObserverRef.current?.disconnect();
+    };
+  }, [contentRef, isOpen, updateOverlayPosition]);
+}
 
 interface SeerComboBoxProps extends Omit<AriaComboBoxProps<unknown>, 'children'> {
   initialQuery: string;
@@ -43,10 +93,10 @@ function isNoneOfTheseItem(item: SeerSearchItems): item is NoneOfTheseItem {
 type SeerSearchItems = SeerSearchItem<string> | NoneOfTheseItem;
 
 export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
-  const buttonRef = useRef(null);
-  const listBoxRef = useRef(null);
-  const popoverRef = useRef(null);
-  const containerRef = useRef(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const listBoxRef = useRef<HTMLUListElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLInputElement>(null);
   const isInitialRender = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -226,6 +276,48 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
     state
   );
 
+  const {
+    overlayProps,
+    triggerProps,
+    update: updateOverlayPosition,
+  } = useOverlay({
+    type: 'listbox',
+    isOpen: state.isOpen,
+    position: 'bottom-start',
+    offset: 2,
+    shouldCloseOnBlur: true,
+    shouldApplyMinWidth: false,
+    isKeyboardDismissDisabled: true,
+    preventOverflowOptions: {boundary: document.body},
+    flipOptions: {
+      // We don't want the menu to ever flip to the other side of the input
+      fallbackPlacements: [],
+    },
+    shouldCloseOnInteractOutside: el => {
+      if (popoverRef.current?.contains(el) || containerRef.current?.contains(el)) {
+        return false;
+      }
+      return true;
+    },
+    onInteractOutside: () => {
+      state.close();
+    },
+  });
+
+  useUpdateOverlayPositionOnContentChange({
+    contentRef: popoverRef,
+    updateOverlayPosition,
+    isOpen: state.isOpen,
+  });
+
+  useLayoutEffect(() => {
+    if (!state.isOpen && inputRef.current && isInitialRender.current) {
+      isInitialRender.current = false;
+      inputRef.current?.focus();
+      state.open();
+    }
+  }, [state]);
+
   return (
     <Wrapper ref={containerRef} isDropdownOpen={state.isOpen}>
       <PositionedSearchIconContainer>
@@ -237,16 +329,7 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
           autoComplete="off"
           onClick={() => state.open()}
           placeholder={t('Ask Seer with Natural Language')}
-          ref={element => {
-            inputRef.current = element;
-
-            if (element && !state.isOpen && isInitialRender.current) {
-              element.focus();
-              state.open();
-
-              isInitialRender.current = false;
-            }
-          }}
+          ref={mergeRefs(inputRef, triggerProps.ref as React.Ref<HTMLInputElement>)}
         />
       </InputWrapper>
       <ButtonsWrapper>
@@ -270,8 +353,8 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
           state={state}
           triggerRef={inputRef}
           popoverRef={popoverRef}
-          placement="bottom start"
           containerRef={containerRef}
+          overlayProps={overlayProps}
         >
           {isPending ? (
             <SeerSearchSkeleton />
