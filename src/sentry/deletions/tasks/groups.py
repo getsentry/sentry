@@ -115,11 +115,9 @@ def delete_groups_for_project(
     constraints. It will eventually replace delete_groups_old.
 
     Args:
+        project_id:         Project ID that all groups must belong to.
         object_ids:         List of group IDs to delete
-        transaction_id:     Unique identifier for this deletion operation
-        project_id:         Project ID that all groups must belong to. If None,
-                            will be inferred from the first group.
-        kwargs:             Additional arguments to pass to the task.
+        transaction_id:     Unique identifier to help debug deletion tasks
     """
     if not object_ids:
         raise DeleteAborted("delete_groups.empty_object_ids")

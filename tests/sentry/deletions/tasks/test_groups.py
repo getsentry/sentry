@@ -1,8 +1,9 @@
+from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
 
-from sentry import nodestore
+from sentry import eventstore, nodestore
 from sentry.deletions.tasks.groups import delete_groups_for_project
 from sentry.eventstore.models import Event
 from sentry.exceptions import DeleteAborted
@@ -23,10 +24,9 @@ class DeleteGroupTest(TestCase):
     def test_simple(self) -> None:
         event_id = "a" * 32
         event_id_2 = "b" * 32
-        project = self.create_project()
 
-        node_id = Event.generate_node_id(project.id, event_id)
-        node_id_2 = Event.generate_node_id(project.id, event_id_2)
+        node_id = Event.generate_node_id(self.project.id, event_id)
+        node_id_2 = Event.generate_node_id(self.project.id, event_id_2)
 
         event = self.store_event(
             data={
@@ -34,7 +34,7 @@ class DeleteGroupTest(TestCase):
                 "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group1"],
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
 
         self.store_event(
@@ -43,15 +43,21 @@ class DeleteGroupTest(TestCase):
                 "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group1"],
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
 
         assert event.group is not None
         group = event.group
+        # The API call marks the groups as pending deletion
         group.update(status=GroupStatus.PENDING_DELETION, substatus=None)
 
-        GroupAssignee.objects.create(group=group, project=project, user_id=self.user.id)
-        grouphash = GroupHash.objects.create(project=project, group=group, hash=uuid4().hex)
+        conditions = eventstore.Filter(project_ids=[self.project.id], group_ids=[group.id])
+        tenant_ids = {"organization_id": self.organization.id, "referrer": "foo"}
+        events = eventstore.backend.get_events(conditions, tenant_ids=tenant_ids)
+        assert len(events) == 2
+
+        GroupAssignee.objects.create(group=group, project=self.project, user_id=self.user.id)
+        grouphash = GroupHash.objects.create(project=self.project, group=group, hash=uuid4().hex)
         GroupHashMetadata.objects.create(grouphash=grouphash)
         GroupMeta.objects.create(group=group, key="foo", value="bar")
         GroupRedirect.objects.create(group_id=group.id, previous_group_id=1)
@@ -61,7 +67,7 @@ class DeleteGroupTest(TestCase):
 
         with self.tasks():
             delete_groups_for_project(
-                object_ids=[group.id], transaction_id=uuid4().hex, project_id=project.id
+                object_ids=[group.id], transaction_id=uuid4().hex, project_id=self.project.id
             )
 
         assert not GroupRedirect.objects.filter(group_id=group.id).exists()
@@ -71,34 +77,26 @@ class DeleteGroupTest(TestCase):
         assert not nodestore.backend.get(node_id)
         assert not nodestore.backend.get(node_id_2)
 
-    def test_first_group_not_found(self) -> None:
-        group = self.create_group()
-        group2 = self.create_group()
-        group_ids = [group.id, group2.id]
-        group.delete()
-
-        with self.tasks():
-            delete_groups_for_project(
-                object_ids=group_ids, transaction_id=uuid4().hex, project_id=group.project_id
-            )
-
-        assert Group.objects.count() == 0
-
-    def test_no_first_group_found(self) -> None:
-        group = self.create_group()
-        group_ids = [group.id]
-        group.delete()
-
-        with self.tasks(), pytest.raises(DeleteAborted):
-            delete_groups_for_project(
-                object_ids=group_ids, transaction_id=uuid4().hex, project_id=self.project.id
-            )
+        # Ensure events are deleted from Snuba
+        events = eventstore.backend.get_events(conditions, tenant_ids=tenant_ids)
+        assert len(events) == 0
 
     def test_no_object_ids(self) -> None:
-        with self.tasks(), pytest.raises(DeleteAborted):
+        with self.tasks(), pytest.raises(DeleteAborted) as excinfo:
             delete_groups_for_project(
                 object_ids=[], transaction_id=uuid4().hex, project_id=self.project.id
             )
+        assert str(excinfo.value) == "delete_groups.empty_object_ids"
+
+    def test_groups_are_already_deleted(self) -> None:
+        group = self.create_group()
+        group.delete()
+
+        with self.tasks(), pytest.raises(DeleteAborted) as excinfo:
+            delete_groups_for_project(
+                object_ids=[group.id], transaction_id=uuid4().hex, project_id=self.project.id
+            )
+        assert str(excinfo.value) == "delete_groups.no_groups_found"
 
     def test_prevent_project_groups_mismatch(self) -> None:
         group = self.create_group()
@@ -106,9 +104,30 @@ class DeleteGroupTest(TestCase):
         group2 = self.create_group(project=project2)
         group_ids = [group.id, group2.id]
 
-        with self.tasks(), pytest.raises(DeleteAborted):
+        with self.tasks(), pytest.raises(DeleteAborted) as excinfo:
             delete_groups_for_project(
                 object_ids=group_ids,
                 transaction_id=uuid4().hex,
                 project_id=group.project_id,
             )
+        assert (
+            str(excinfo.value)
+            == f"delete_groups.project_id_mismatch: 1 groups don't belong to project {group.project_id}"
+        )
+
+    def test_scheduled_tasks_with_too_many_groups(self) -> None:
+        NEW_CHUNK_SIZE = 2
+        group = self.create_group()
+        group_ids = [group.id] * (NEW_CHUNK_SIZE + 1)
+        with (
+            patch("sentry.deletions.tasks.groups.GROUP_CHUNK_SIZE", NEW_CHUNK_SIZE),
+            self.tasks(),
+            pytest.raises(DeleteAborted) as excinfo,
+        ):
+            delete_groups_for_project(
+                object_ids=group_ids, transaction_id=uuid4().hex, project_id=self.project.id
+            )
+        assert (
+            str(excinfo.value)
+            == f"delete_groups.object_ids_too_large: {len(group_ids)} groups is greater than GROUP_CHUNK_SIZE"
+        )
