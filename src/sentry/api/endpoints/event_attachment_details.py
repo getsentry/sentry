@@ -60,6 +60,9 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         name = posixpath.basename(" ".join(attachment.name.split()))
 
         def stream_attachment():
+            # TODO: We should pass along the `Accept-Encoding`, so we can avoid
+            # decompressing on the API side, and just transfer the already
+            # compressed bytes to the client as it indicated it can handle it.
             with attachment.getfile() as fp:
                 while chunk := fp.read(4096):
                     yield chunk
@@ -68,6 +71,9 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
             stream_attachment(),
             content_type=attachment.content_type,
         )
+        # TODO(see above): response["Content-Encoding"] = compression
+        # Also, if we were to directly stream compressed data, the `Content-Length`
+        # has to refer to the compressed size, which we currently don’t save anywhere.
         response["Content-Length"] = attachment.size
         response["Content-Disposition"] = f'attachment; filename="{name}"'
 
