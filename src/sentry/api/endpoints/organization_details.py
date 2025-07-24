@@ -447,9 +447,9 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "Organization does not have the project creation games tab feature enabled."
             )
 
-        # Remove duplicates and sort alphabetically
+        # Remove duplicates by converting to set and back to list
         if value is not None:
-            value = sorted(set(value))
+            value = list(set(value))
 
         return value
 
