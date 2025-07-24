@@ -332,8 +332,16 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 return None
             case EventType.OPTIONS:
                 return None
+            case EventType.MEMORY:
+                return None
             case EventType.FEEDBACK:
                 return None  # the log message is processed before this method is called
+            case EventType.SLOW_CLICK:
+                return None
+            case EventType.RESOURCE_IMAGE:
+                return None
+            case EventType.RESOURCE_SCRIPT:
+                return None
     except (KeyError, ValueError):
         logger.exception(
             "Error parsing event in replay AI summary",
