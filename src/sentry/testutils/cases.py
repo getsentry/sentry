@@ -831,8 +831,7 @@ class DRFPermissionTestCase(TestCase):
         Override the return type of make_request b/c DRF permission classes
         expect a DRF request (go figure)
         """
-        drf_request: Request = super().make_request(*arg, **kwargs)  # type: ignore[assignment]
-        return drf_request
+        return super().make_request(*arg, **kwargs)  # type: ignore[return-value]
 
     def setUp(self):
         self.superuser = self.create_user(is_superuser=True, is_staff=False)
