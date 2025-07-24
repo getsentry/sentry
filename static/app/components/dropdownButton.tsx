@@ -76,7 +76,6 @@ interface StyledButtonProps
 const StyledButton = styled(Button)<StyledButtonProps>`
   position: relative;
   max-width: 100%;
-  z-index: 2;
 
   ${p =>
     (p.isOpen || p.disabled) &&

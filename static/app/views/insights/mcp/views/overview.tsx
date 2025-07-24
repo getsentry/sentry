@@ -150,8 +150,10 @@ function McpOverviewPage() {
     [activeView, location, navigate, organization]
   );
 
-  const {tags: numberTags} = useTraceItemTags('number');
-  const {tags: stringTags} = useTraceItemTags('string');
+  const {tags: numberTags, secondaryAliases: numberSecondaryAliases} =
+    useTraceItemTags('number');
+  const {tags: stringTags, secondaryAliases: stringSecondaryAliases} =
+    useTraceItemTags('string');
 
   const eapSpanSearchQueryBuilderProps = useMemo(
     () => ({
@@ -162,9 +164,18 @@ function McpOverviewPage() {
       searchSource: 'mcp-monitoring',
       numberTags,
       stringTags,
+      numberSecondaryAliases,
+      stringSecondaryAliases,
       replaceRawSearchKeys: ['span.description'],
     }),
-    [searchQuery, numberTags, stringTags, setSearchQuery]
+    [
+      numberSecondaryAliases,
+      numberTags,
+      searchQuery,
+      setSearchQuery,
+      stringSecondaryAliases,
+      stringTags,
+    ]
   );
 
   const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(

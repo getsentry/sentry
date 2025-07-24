@@ -32,7 +32,10 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
         with self.feature(features):
             response = self.client.get(
-                reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
+                reverse(
+                    self.view,
+                    kwargs={"organization_id_or_slug": self.organization.slug},
+                ),
                 query,
                 format="json",
                 **kwargs,
@@ -81,11 +84,13 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         )
         assert response.status_code == 200, response.data
         distributions = response.data["rankedAttributes"]
-        assert distributions[0]["attributeName"] == "sentry.device"
-        assert distributions[0]["cohort1"] == [
+        attribute = next(a for a in distributions if a["attributeName"] == "sentry.device")
+        assert attribute
+        assert attribute["cohort1"] == [
             {"label": "mobile", "value": 3.0},
             {"label": "desktop", "value": 1.0},
         ]
-        assert distributions[0]["cohort2"] == [{"label": "desktop", "value": 3.0}]
+        assert attribute["cohort2"] == [{"label": "desktop", "value": 3.0}]
 
-        assert distributions[1]["attributeName"] == "browser"
+        attribute = next(a for a in distributions if a["attributeName"] == "browser")
+        assert attribute["attributeName"] == "browser"

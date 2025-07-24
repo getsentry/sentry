@@ -302,7 +302,7 @@ def _schedule_invalidate_project_configs(organization: Organization, project_ids
     Schedule a task to update the project configs for the given projects
     """
     if not project_ids:
-        # an organisation rule, update all projects from the org
+        # an organization rule, update all projects from the org
         schedule_invalidate_project_config(
             trigger="dynamic_sampling:custom_rule_upsert",
             organization_id=organization.id,
