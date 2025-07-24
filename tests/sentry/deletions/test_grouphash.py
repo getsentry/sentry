@@ -1,4 +1,5 @@
 from unittest.mock import patch
+from uuid import uuid4
 
 from sentry.deletions.tasks.groups import delete_groups
 from sentry.models.group import Group
@@ -24,7 +25,7 @@ class DeleteGroupHashTest(TestCase):
         assert grouphash_metadata
 
         with self.tasks():
-            delete_groups(object_ids=[group_id])
+            delete_groups(object_ids=[group_id], transaction_id=uuid4().hex)
 
         assert not Group.objects.filter(id=group_id).exists()
         assert not GroupHash.objects.filter(group_id=group_id).exists()
@@ -58,7 +59,7 @@ class DeleteGroupHashTest(TestCase):
             assert new_grouphash.metadata.seer_matched_grouphash == existing_grouphash
 
         with self.tasks():
-            delete_groups(object_ids=[existing_group_id])
+            delete_groups(object_ids=[existing_group_id], transaction_id=uuid4().hex)
 
         assert not Group.objects.filter(id=existing_group_id).exists()
         assert not GroupHash.objects.filter(group_id=existing_group_id).exists()
@@ -122,7 +123,7 @@ class DeleteGroupHashTest(TestCase):
         )
 
         with self.tasks():
-            delete_groups(object_ids=[existing_event.group.id])
+            delete_groups(object_ids=[existing_event.group.id], transaction_id=uuid4().hex)
 
         assert not Group.objects.filter(id=existing_event.group.id).exists()
         assert not GroupHash.objects.filter(group_id=existing_event.group.id).exists()

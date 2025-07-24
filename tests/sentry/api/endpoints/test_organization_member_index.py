@@ -80,7 +80,7 @@ class OrganizationMemberRequestSerializerTest(TestCase):
 
         serializer = OrganizationMemberRequestSerializer(context=context, data=data)
         assert not serializer.is_valid()
-        assert serializer.errors == {"email": [f"The user {user.email} is already a member"]}
+        assert serializer.errors == {"email": [f"The user {user.email} has already been invited"]}
 
         request = self.make_request(user=user)
 
@@ -457,6 +457,23 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
 
         member = OrganizationMember.objects.get(id=member.id)
         assert member.email is None
+        assert member.role == "member"
+
+    def test_cannot_invite_when_already_invited(self):
+        user = self.create_user("foobar@example.com")
+        member = OrganizationMember.objects.create(
+            organization=self.organization,
+            invite_status=InviteStatus.APPROVED.value,
+            role="member",
+            email=user.email,
+        )
+
+        data = {"email": user.email, "role": "member", "teams": [self.team.slug]}
+        with self.settings(SENTRY_ENABLE_INVITES=True):
+            self.get_error_response(self.organization.slug, method="post", **data, status_code=400)
+
+        member = OrganizationMember.objects.get(id=member.id)
+        assert member.email == user.email  # email is not cleared until user accepts invite
         assert member.role == "member"
 
     def test_can_invite_with_invites_to_other_orgs(self):

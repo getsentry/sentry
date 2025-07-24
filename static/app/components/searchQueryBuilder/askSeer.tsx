@@ -41,9 +41,7 @@ function AskSeerConsentOption<T>({state}: {state: ComboBoxState<T>}) {
       <InteractionStateLayer isHovered={isFocused} isPressed={isPressed} />
       <AskSeerConsentLabelWrapper>
         <IconSeer />
-        <AskSeerLabel {...labelProps}>
-          {t('Enable Gen AI')} <FeatureBadge type="beta" />
-        </AskSeerLabel>
+        <AskSeerLabel {...labelProps}>{t('Enable Gen AI')}</AskSeerLabel>
       </AskSeerConsentLabelWrapper>
       <SeerConsentText>
         {tct(

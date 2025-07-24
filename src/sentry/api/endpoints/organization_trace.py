@@ -30,8 +30,6 @@ from sentry.snuba.spans_rpc import run_trace_query
 from sentry.utils.numbers import base32_encode
 from sentry.utils.validators import is_event_id
 
-# 1 worker each for spans, errors, performance issues
-_query_thread_pool = ThreadPoolExecutor(max_workers=3)
 # Mostly here for testing
 ERROR_LIMIT = 10_000
 
@@ -335,22 +333,25 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
         errors_query = self.errors_query(snuba_params, trace_id, error_id)
         occurrence_query = self.perf_issues_query(snuba_params, trace_id)
 
-        spans_future = _query_thread_pool.submit(
-            run_trace_query,
-            trace_id,
-            snuba_params,
-            Referrer.API_TRACE_VIEW_GET_EVENTS.value,
-            SearchResolverConfig(),
-            additional_attributes,
-        )
-        errors_future = _query_thread_pool.submit(
-            self.run_errors_query,
-            errors_query,
-        )
-        occurrence_future = _query_thread_pool.submit(
-            self.run_perf_issues_query,
-            occurrence_query,
-        )
+        # 1 worker each for spans, errors, performance issues
+        query_thread_pool = ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=3)
+        with query_thread_pool:
+            spans_future = query_thread_pool.submit(
+                run_trace_query,
+                trace_id,
+                snuba_params,
+                Referrer.API_TRACE_VIEW_GET_EVENTS.value,
+                SearchResolverConfig(),
+                additional_attributes,
+            )
+            errors_future = query_thread_pool.submit(
+                self.run_errors_query,
+                errors_query,
+            )
+            occurrence_future = query_thread_pool.submit(
+                self.run_perf_issues_query,
+                occurrence_query,
+            )
 
         spans_data = spans_future.result()
         errors_data = errors_future.result()
@@ -366,7 +367,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
             for event in occurrence_data:
                 offender_span_ids = event["occurrence"].evidence_data.get("offender_span_ids", [])
                 if len(offender_span_ids) == 0:
-                    sdk_span.set_attribute("evidence_data.empty", event["occurrence"].evidence_data)
+                    sdk_span.set_data("evidence_data.empty", event["occurrence"].evidence_data)
                 for span_id in offender_span_ids:
                     id_to_occurrence[span_id].append(event)
         for span in spans_data:
