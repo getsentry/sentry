@@ -99,7 +99,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         Retrieve a list of custom dashboards that are associated with the given organization.
         """
         if not request.user.is_authenticated:
-            return Response(status=400)
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
 
         if not features.has("organizations:dashboards-basic", organization, actor=request.user):
             return Response(status=404)
@@ -291,6 +291,9 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:dashboards-edit", organization, actor=request.user):
             return Response(status=404)
 
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
         serializer = DashboardSerializer(
             data=request.data,
             context={
@@ -300,9 +303,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 "environment": self.request.GET.getlist("environment"),
             },
         )
-
-        if not request.user.is_authenticated:
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
