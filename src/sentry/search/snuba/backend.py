@@ -251,22 +251,28 @@ def regressed_in_release_filter(versions: Sequence[str], projects: Sequence[Proj
 def seer_actionability_filter(trigger_values: list[float]) -> Q:
     """
     Converts float thresholds for the Seer fixability score into a query of ranges:
-    - "low" -> [0.0, low threshold]
-    - "medium" -> (low threshold, high threshold]
+    - "super_low" -> [0.0, low threshold]
+    - "low" -> (low threshold, medium threshold]
+    - "medium" -> (medium threshold, high threshold]
     - "high" -> (high threshold, super high threshold]
     - "super_high" -> (super high threshold, 1.0]
     """
     query = Q()
 
     for val in set(trigger_values):
-        if val == FixabilityScoreThresholds.LOW.value:
+        if val == FixabilityScoreThresholds.SUPER_LOW.value:
             query |= Q(
                 seer_fixability_score__gte=0.0,
                 seer_fixability_score__lte=FixabilityScoreThresholds.LOW.value,
             )
-        elif val == FixabilityScoreThresholds.MEDIUM.value:
+        if val == FixabilityScoreThresholds.LOW.value:
             query |= Q(
                 seer_fixability_score__gt=FixabilityScoreThresholds.LOW.value,
+                seer_fixability_score__lte=FixabilityScoreThresholds.MEDIUM.value,
+            )
+        elif val == FixabilityScoreThresholds.MEDIUM.value:
+            query |= Q(
+                seer_fixability_score__gt=FixabilityScoreThresholds.MEDIUM.value,
                 seer_fixability_score__lte=FixabilityScoreThresholds.HIGH.value,
             )
         elif val == FixabilityScoreThresholds.HIGH.value:
