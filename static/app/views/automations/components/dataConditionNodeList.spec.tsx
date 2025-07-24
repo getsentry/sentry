@@ -80,8 +80,7 @@ describe('DataConditionNodeList', function () {
     );
     await userEvent.click(screen.getByRole('textbox', {name: 'Add condition'}));
 
-    // Deescalating condition should not be shown in the dropdown
-    expect(screen.getAllByRole('menuitemradio')).toHaveLength(3);
+    expect(screen.getAllByRole('menuitemradio')).toHaveLength(4);
     expect(screen.getByRole('menuitemradio', {name: 'Issue age'})).toBeInTheDocument();
     expect(
       screen.getByRole('menuitemradio', {name: 'Issue priority'})
@@ -143,66 +142,6 @@ describe('DataConditionNodeList', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Delete row'}));
     expect(mockOnDeleteRow).toHaveBeenCalledWith('1');
-  });
-
-  it('handles adding issue priority deescalating condition', async function () {
-    render(
-      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
-        <AutomationBuilderConflictContext.Provider value={defaultConflictContextProps}>
-          <DataConditionNodeList
-            {...defaultProps}
-            conditions={[
-              DataConditionFixture({
-                type: DataConditionType.ISSUE_PRIORITY_GREATER_OR_EQUAL,
-              }),
-            ]}
-          />
-        </AutomationBuilderConflictContext.Provider>
-      </AutomationBuilderErrorContext.Provider>,
-      {
-        organization,
-      }
-    );
-
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Notify on deescalation'}));
-    expect(mockOnAddRow).toHaveBeenCalledWith(
-      DataConditionType.ISSUE_PRIORITY_DEESCALATING
-    );
-  });
-
-  it('handles deleting issue priority deescalating condition', async function () {
-    render(
-      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
-        <AutomationBuilderConflictContext.Provider value={defaultConflictContextProps}>
-          <DataConditionNodeList
-            {...defaultProps}
-            conditions={[
-              DataConditionFixture({
-                id: 'issue-priority',
-                type: DataConditionType.ISSUE_PRIORITY_GREATER_OR_EQUAL,
-              }),
-              DataConditionFixture({
-                id: 'deescalating',
-                type: DataConditionType.ISSUE_PRIORITY_DEESCALATING,
-              }),
-            ]}
-          />
-        </AutomationBuilderConflictContext.Provider>
-      </AutomationBuilderErrorContext.Provider>,
-      {
-        organization,
-      }
-    );
-
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Notify on deescalation'}));
-    expect(mockOnDeleteRow).toHaveBeenCalledWith('deescalating');
-    mockOnDeleteRow.mockClear();
-
-    // Deleting the issue priority condition should also delete the deescalating condition
-    await userEvent.click(screen.getByRole('button', {name: 'Delete row'}));
-    expect(mockOnDeleteRow).toHaveBeenCalledTimes(2);
-    expect(mockOnDeleteRow).toHaveBeenCalledWith('issue-priority');
-    expect(mockOnDeleteRow).toHaveBeenCalledWith('deescalating');
   });
 
   it('shows conflicting condition warning for action filters', function () {

@@ -3410,6 +3410,8 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-ingest-dlq": "default",
     "taskworker-ingest-errors": "default",
     "taskworker-ingest-errors-dlq": "default",
+    "taskworker-ingest-errors-postprocess": "default",
+    "taskworker-ingest-errors-postprocess-dlq": "default",
     "taskworker-ingest-transactions": "default",
     "taskworker-ingest-transactions-dlq": "default",
     "taskworker-ingest-attachments": "default",
@@ -3430,6 +3432,8 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-symbolication-dlq": "default",
     "taskworker-usage": "default",
     "taskworker-usage-dlq": "default",
+    "taskworker-workflows-engine": "default",
+    "taskworker-workflows-engine-dlq": "default",
 }
 
 
@@ -3611,7 +3615,8 @@ SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994
 
 SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
 
-SEER_GHE_ENCRYPT_KEY: str | None = None  # For encrypting the access token for the GHE integration
+# For encrypting the access token for the GHE integration
+SEER_GHE_ENCRYPT_KEY: str | None = os.getenv("SEER_GHE_ENCRYPT_KEY")
 
 
 # This is the URL to the profiling service

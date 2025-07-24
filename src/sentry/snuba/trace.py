@@ -16,9 +16,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import run_trace_query
 from sentry.utils.numbers import base32_encode
 
-# 1 worker each for spans, errors, performance issues
-_query_thread_pool = ThreadPoolExecutor(max_workers=3)
-
 # Mostly here for testing
 ERROR_LIMIT = 10_000
 
@@ -281,7 +278,7 @@ def query_trace_data(
     error_id: str | None = None,
     additional_attributes: list[str] | None = None,
 ) -> list[SerializedEvent]:
-    """Query SerializedEvent data for a given trace"""
+    """Queries span/error data for a given trace"""
     # This is a hack, long term EAP will store both errors and performance_issues eventually but is not ready
     # currently. But we want to move performance data off the old tables immediately. To keep the code simpler I'm
     # parallelizing the queries here, but ideally this parallelization lives in the spans_rpc module instead
@@ -293,22 +290,25 @@ def query_trace_data(
     errors_query = _errors_query(snuba_params, trace_id, error_id)
     occurrence_query = _perf_issues_query(snuba_params, trace_id)
 
-    spans_future = _query_thread_pool.submit(
-        run_trace_query,
-        trace_id,
-        snuba_params,
-        Referrer.API_TRACE_VIEW_GET_EVENTS.value,
-        SearchResolverConfig(),
-        additional_attributes,
-    )
-    errors_future = _query_thread_pool.submit(
-        _run_errors_query,
-        errors_query,
-    )
-    occurrence_future = _query_thread_pool.submit(
-        _run_perf_issues_query,
-        occurrence_query,
-    )
+    # 1 worker each for spans, errors, performance issues
+    query_thread_pool = ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=3)
+    with query_thread_pool:
+        spans_future = query_thread_pool.submit(
+            run_trace_query,
+            trace_id,
+            snuba_params,
+            Referrer.API_TRACE_VIEW_GET_EVENTS.value,
+            SearchResolverConfig(),
+            additional_attributes,
+        )
+        errors_future = query_thread_pool.submit(
+            _run_errors_query,
+            errors_query,
+        )
+        occurrence_future = query_thread_pool.submit(
+            _run_perf_issues_query,
+            occurrence_query,
+        )
 
     spans_data = spans_future.result()
     errors_data = errors_future.result()

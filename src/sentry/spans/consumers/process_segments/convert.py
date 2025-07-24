@@ -1,16 +1,12 @@
 from collections.abc import MutableMapping
 from typing import Any
 
+import orjson
 import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
+from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SpanLink
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_pb2 import (
-    AnyValue,
-    ArrayValue,
-    KeyValue,
-    KeyValueList,
-    TraceItem,
-)
+from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 
 from sentry.spans.consumers.process_segments.enrichment import Span
 
@@ -75,6 +71,14 @@ def convert_span_to_item(span: Span) -> TraceItem:
         if v is not None:
             attributes[attribute_name] = _anyvalue(v)
 
+    if links := span.get("links"):
+        try:
+            sanitized_links = [_sanitize_span_link(link) for link in links]
+            attributes["sentry.links"] = _anyvalue(sanitized_links)
+        except Exception:
+            sentry_sdk.capture_exception()
+            attributes["sentry.dropped_links_count"] = AnyValue(int_value=len(links))
+
     return TraceItem(
         organization_id=span["organization_id"],
         project_id=span["project_id"],
@@ -101,12 +105,8 @@ def _anyvalue(value: Any) -> AnyValue:
         return AnyValue(int_value=value)
     elif isinstance(value, float):
         return AnyValue(double_value=value)
-    elif isinstance(value, list):
-        array_values = [_anyvalue(v) for v in value if v is not None]
-        return AnyValue(array_value=ArrayValue(values=array_values))
-    elif isinstance(value, dict):
-        kv_values = [KeyValue(key=k, value=_anyvalue(v)) for k, v in value.items() if v is not None]
-        return AnyValue(kvlist_value=KeyValueList(values=kv_values))
+    elif isinstance(value, (list, dict)):
+        return AnyValue(string_value=orjson.dumps(value).decode())
 
     raise ValueError(f"Unknown value type: {type(value)}")
 
@@ -116,3 +116,32 @@ def _timestamp(value: float) -> Timestamp:
         seconds=int(value),
         nanos=round((value % 1) * 1_000_000) * 1000,
     )
+
+
+ALLOWED_LINK_ATTRIBUTE_KEYS = ["sentry.link.type", "sentry.dropped_attributes_count"]
+
+
+def _sanitize_span_link(link: SpanLink) -> SpanLink:
+    """
+    Prepares a span link for storage in EAP. EAP does not support array
+    attributes, so span links are stored as a JSON-encoded string. In order to
+    prevent unbounded storage, we only support well-known attributes.
+    """
+    allowed_attributes = {}
+
+    # In the future, we want Relay to drop unsupported attributes, so there
+    # might be an intermediary state where there is a pre-existing dropped
+    # attributes count. Respect that count, if it's present. It should always be
+    # an integer.
+    dropped_attributes_count = link.get("attributes", {}).get("sentry.dropped_attributes_count", 0)
+
+    for key, value in link.get("attributes", {}).items():
+        if key in ALLOWED_LINK_ATTRIBUTE_KEYS:
+            allowed_attributes[key] = value
+        else:
+            dropped_attributes_count += 1
+
+    if dropped_attributes_count > 0:
+        allowed_attributes["sentry.dropped_attributes_count"] = dropped_attributes_count
+
+    return {**link, "attributes": allowed_attributes}

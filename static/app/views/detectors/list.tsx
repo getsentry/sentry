@@ -21,7 +21,7 @@ import DetectorListTable from 'sentry/views/detectors/components/detectorListTab
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
 import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
-import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
+import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
 
 export default function DetectorsList() {
   useWorkflowEngineFeatureGate({redirect: true});
@@ -122,7 +122,7 @@ function Actions() {
     <Fragment>
       <LinkButton
         to={{
-          pathname: `${makeMonitorBasePathname(organization.slug)}new/`,
+          pathname: makeMonitorCreatePathname(organization.slug),
           query: project ? {project} : undefined,
         }}
         priority="primary"
