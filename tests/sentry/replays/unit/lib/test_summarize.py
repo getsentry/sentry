@@ -1,3 +1,6 @@
+from collections.abc import Generator
+
+from sentry.models.project import Project
 from sentry.replays.lib.summarize import (
     EventDict,
     as_log_message,
@@ -9,8 +12,8 @@ from sentry.utils import json
 
 
 @django_db_all
-def test_get_request_data(default_project):
-    def _faker():
+def test_get_request_data(default_project: Project) -> None:
+    def _faker() -> Generator[tuple[int, memoryview]]:
         yield 0, memoryview(
             json.dumps(
                 [
@@ -60,7 +63,7 @@ def test_get_request_data(default_project):
     ]
 
 
-def test_as_log_message():
+def test_as_log_message() -> None:
     event = {
         "type": 5,
         "timestamp": 0.0,
@@ -250,7 +253,7 @@ def test_as_log_message():
     assert as_log_message({}) is None
 
 
-def test_parse_timestamp():
+def test_parse_timestamp() -> None:
     # Test None input
     assert parse_timestamp(None, "ms") == 0.0
     assert parse_timestamp(None, "s") == 0.0
