@@ -1103,9 +1103,8 @@ def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
                 usage_type=UsageUnit.BYTES,
             )
         job["event"].data["nodestore_insert"] = inserted_time
-        cache_on_write = (
-            options.get("nodestore.set-subkeys.enable-errors-caching")
-            and job["event"].get_event_type() == ErrorEvent.key
+        cache_on_write = job["event"].get_event_type() == ErrorEvent.key and options.get(
+            "nodestore.set-subkeys.enable-errors-caching"
         )
         job["event"].data.save(subkeys=subkeys, cache_on_write=cache_on_write)
 
