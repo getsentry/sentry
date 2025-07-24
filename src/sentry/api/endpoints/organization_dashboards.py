@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from django.db.models import Case, Exists, F, IntegerField, OrderBy, OuterRef, Subquery, Value, When
 from drf_spectacular.utils import extend_schema
@@ -311,11 +312,14 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 ):
                     is_favorited = request.data.get("isFavorited", False)
                     if is_favorited:
-                        DashboardFavoriteUser.objects.insert_favorite_dashboard(
-                            organization=organization,
-                            user_id=request.user.id,
-                            dashboard=dashboard,
-                        )
+                        try:
+                            DashboardFavoriteUser.objects.insert_favorite_dashboard(
+                                organization=organization,
+                                user_id=request.user.id,
+                                dashboard=dashboard,
+                            )
+                        except Exception as e:
+                            sentry_sdk.capture_exception(e)
 
             return Response(serialize(dashboard, request.user), status=201)
         except IntegrityError:
