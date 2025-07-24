@@ -3,7 +3,7 @@ from uuid import uuid4
 import pytest
 
 from sentry import nodestore
-from sentry.deletions.tasks.groups import delete_groups_for_project_task
+from sentry.deletions.tasks.groups import delete_groups_for_project
 from sentry.eventstore.models import Event
 from sentry.exceptions import DeleteAborted
 from sentry.models.group import Group, GroupStatus
@@ -60,7 +60,7 @@ class DeleteGroupTest(TestCase):
         assert nodestore.backend.get(node_id_2)
 
         with self.tasks():
-            delete_groups_for_project_task(object_ids=[group.id], transaction_id=uuid4().hex)
+            delete_groups_for_project(object_ids=[group.id], transaction_id=uuid4().hex)
 
         assert not GroupRedirect.objects.filter(group_id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
@@ -76,7 +76,7 @@ class DeleteGroupTest(TestCase):
         group.delete()
 
         with self.tasks():
-            delete_groups_for_project_task(object_ids=group_ids, transaction_id=uuid4().hex)
+            delete_groups_for_project(object_ids=group_ids, transaction_id=uuid4().hex)
 
         assert Group.objects.count() == 0
 
@@ -86,7 +86,7 @@ class DeleteGroupTest(TestCase):
         group.delete()
 
         with self.tasks(), pytest.raises(DeleteAborted):
-            delete_groups_for_project_task(object_ids=group_ids, transaction_id=uuid4().hex)
+            delete_groups_for_project(object_ids=group_ids, transaction_id=uuid4().hex)
 
     def test_prevent_project_groups_mismatch(self) -> None:
         group = self.create_group()
@@ -95,7 +95,7 @@ class DeleteGroupTest(TestCase):
         group_ids = [group.id, group2.id]
 
         with self.tasks(), pytest.raises(DeleteAborted):
-            delete_groups_for_project_task(
+            delete_groups_for_project(
                 object_ids=group_ids,
                 transaction_id=uuid4().hex,
                 project_id=group.project_id,

@@ -9,7 +9,7 @@ from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 
 from sentry import nodestore
 from sentry.deletions.defaults.group import ErrorEventsDeletionTask, IssuePlatformEventsDeletionTask
-from sentry.deletions.tasks.groups import delete_groups_for_project_task
+from sentry.deletions.tasks.groups import delete_groups_for_project
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import FeedbackGroup, GroupCategory
@@ -75,7 +75,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert nodestore.backend.get(self.keep_node_id)
 
         with self.tasks():
-            delete_groups_for_project_task(
+            delete_groups_for_project(
                 object_ids=[group.id], transaction_id=uuid4().hex, project_id=self.project.id
             )
 
@@ -100,7 +100,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
         group = self.event.group
         with self.tasks():
-            delete_groups_for_project_task(
+            delete_groups_for_project(
                 object_ids=[group.id, other_event.group_id],
                 transaction_id=uuid4().hex,
                 project_id=self.project.id,
@@ -136,7 +136,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             prev_history=other_history_one,
         )
         with self.tasks():
-            delete_groups_for_project_task(
+            delete_groups_for_project(
                 object_ids=[group.id, other_group.id],
                 transaction_id=uuid4().hex,
                 project_id=self.project.id,
@@ -154,7 +154,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             group = self.event.group
 
             with self.tasks():
-                delete_groups_for_project_task(
+                delete_groups_for_project(
                     object_ids=[group.id],
                     transaction_id=uuid4().hex,
                     project_id=self.project.id,
@@ -188,7 +188,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         ]
         group = self.event.group
         with self.tasks():
-            delete_groups_for_project_task(
+            delete_groups_for_project(
                 object_ids=[group.id, other_event.group_id],
                 transaction_id=uuid4().hex,
                 project_id=self.project.id,
@@ -240,7 +240,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         ]
 
         with self.tasks():
-            delete_groups_for_project_task(
+            delete_groups_for_project(
                 object_ids=[error_group.id, invalid_group.id],
                 transaction_id=uuid4().hex,
                 project_id=self.project.id,
@@ -332,7 +332,7 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
         # This will delete the group and the events from the node store and Snuba
         with self.tasks():
-            delete_groups_for_project_task(
+            delete_groups_for_project(
                 object_ids=[issue_platform_group.id],
                 transaction_id=uuid4().hex,
                 project_id=self.project.id,
@@ -369,7 +369,7 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
             # This will delete the group and the events from the node store and Snuba
             with self.tasks():
-                delete_groups_for_project_task(
+                delete_groups_for_project(
                     object_ids=[group1.id, group2.id, group3.id, group4.id],
                     transaction_id=uuid4().hex,
                 )

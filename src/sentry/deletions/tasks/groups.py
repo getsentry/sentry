@@ -3,7 +3,6 @@ from typing import Any
 
 import sentry_sdk
 
-from sentry import eventstream
 from sentry.deletions.defaults.group import GROUP_CHUNK_SIZE
 from sentry.deletions.tasks.scheduled import MAX_RETRIES, logger
 from sentry.exceptions import DeleteAborted
@@ -17,7 +16,7 @@ from sentry.utils import metrics
 
 
 @instrumented_task(
-    name="sentry.deletions.tasks.groups.delete_groups_old",
+    name="sentry.deletions.tasks.groups.delete_groups",
     queue="cleanup",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
@@ -39,7 +38,7 @@ def delete_groups_old(
     eventstream_state: Mapping[str, Any] | None = None,
     **kwargs: Any,
 ) -> None:
-    from sentry import deletions
+    from sentry import deletions, eventstream
     from sentry.models.group import Group
 
     current_batch, rest = object_ids[:GROUP_CHUNK_SIZE], object_ids[GROUP_CHUNK_SIZE:]
@@ -100,7 +99,7 @@ def delete_groups_old(
 
 
 @instrumented_task(
-    name="sentry.deletions.tasks.groups.delete_groups",
+    name="sentry.deletions.tasks.groups.delete_groups_for_project",
     queue="cleanup",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
@@ -116,7 +115,7 @@ def delete_groups_old(
 )
 @retry(exclude=(DeleteAborted,))
 @track_group_async_operation
-def delete_groups_for_project_task(
+def delete_groups_for_project(
     object_ids: Sequence[int],
     transaction_id: str,
     project_id: int | None = None,  # XXX: Make it mandatory later
