@@ -310,8 +310,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 if features.has(
                     "organizations:dashboards-starred-reordering", organization, actor=request.user
                 ):
-                    is_favorited = request.data.get("isFavorited", False)
-                    if is_favorited:
+                    if serializer.validated_data.get("is_favorited"):
                         try:
                             DashboardFavoriteUser.objects.insert_favorite_dashboard(
                                 organization=organization,
