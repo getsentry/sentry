@@ -401,7 +401,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                 resource_attributes["response_size"] = response_size
 
             return {
-                "attributes": resource_attributes,  # type: ignore[typeddict-item]
+                "attributes": resource_attributes,
                 "event_hash": uuid.uuid4().bytes,
                 "timestamp": float(event["data"]["payload"]["startTimestamp"]),
             }
