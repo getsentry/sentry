@@ -472,12 +472,6 @@ class Quota(Service):
                 scope=QuotaScope.PROJECT,
             ),
             AbuseQuota(
-                id="paspi",
-                option="project-abuse-quota.span-limit",
-                categories=[DataCategory.SPAN_INDEXED],
-                scope=QuotaScope.PROJECT,
-            ),
-            AbuseQuota(
                 id="pal",
                 option="project-abuse-quota.log-limit",
                 categories=[DataCategory.LOG_ITEM],
