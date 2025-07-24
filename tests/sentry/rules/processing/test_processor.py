@@ -36,6 +36,9 @@ EMAIL_ACTION_DATA = {
 }
 
 EVERY_EVENT_COND_DATA = {"id": "sentry.rules.conditions.every_event.EveryEventCondition"}
+ESCALATING_EVENT_COND_DATA = {
+    "id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"
+}
 
 
 class MockConditionTrue(EventCondition):
@@ -111,6 +114,104 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         assert rule_fire_histories.count() == 2
         for rule_fire_history in rule_fire_histories:
             assert getattr(rule_fire_history, "notification_uuid", None) is not None
+
+    def test_escalating_event_condition_with_reappeared(self):
+        self.rule.update(
+            data={
+                "conditions": [ESCALATING_EVENT_COND_DATA],
+                "actions": [EMAIL_ACTION_DATA],
+            },
+        )
+
+        rp = RuleProcessor(
+            self.group_event,
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            has_reappeared=True,
+            has_escalated=False,
+        )
+        results = list(rp.apply())
+        assert len(results) == 0
+        assert (
+            RuleFireHistory.objects.filter(rule=self.rule, group=self.group_event.group).count()
+            == 0
+        )
+
+    def test_escalating_event_condition_with_escalated(self):
+        self.rule.update(
+            data={
+                "conditions": [ESCALATING_EVENT_COND_DATA],
+                "actions": [EMAIL_ACTION_DATA],
+            },
+        )
+
+        rp = RuleProcessor(
+            self.group_event,
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            has_escalated=True,
+            has_reappeared=False,
+        )
+        results = list(rp.apply())
+        assert len(results) == 1
+        callback, futures = results[0]
+        assert len(futures) == 1
+        assert futures[0].rule == self.rule
+        assert (
+            RuleFireHistory.objects.filter(rule=self.rule, group=self.group_event.group).count()
+            == 1
+        )
+
+    def test_escalating_event_condition_with_escalated_and_reappeared(self):
+        self.rule.update(
+            data={
+                "conditions": [ESCALATING_EVENT_COND_DATA],
+                "actions": [EMAIL_ACTION_DATA],
+            },
+        )
+        rp = RuleProcessor(
+            self.group_event,
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            has_reappeared=True,
+            has_escalated=True,
+        )
+
+        results = list(rp.apply())
+        assert len(results) == 1
+        callback, futures = results[0]
+        assert len(futures) == 1
+        assert futures[0].rule == self.rule
+        assert (
+            RuleFireHistory.objects.filter(rule=self.rule, group=self.group_event.group).count()
+            == 1
+        )
+
+    def test_escalating_event_condition_not_escalated_or_reappeared(self):
+        self.rule.update(
+            data={
+                "conditions": [ESCALATING_EVENT_COND_DATA],
+                "actions": [EMAIL_ACTION_DATA],
+            },
+        )
+        rp = RuleProcessor(
+            self.group_event,
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            has_reappeared=False,
+            has_escalated=False,
+        )
+        results = list(rp.apply())
+
+        assert len(results) == 0
+        assert (
+            RuleFireHistory.objects.filter(rule=self.rule, group=self.group_event.group).count()
+            == 0
+        )
 
     def test_delayed_rule_match_any_slow_conditions(self):
         """
