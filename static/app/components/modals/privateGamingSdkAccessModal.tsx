@@ -23,6 +23,7 @@ export interface PrivateGamingSdkAccessModalProps {
   organization: Organization;
   projectSlug: string;
   sdkName: string;
+  source: string;
   gamingPlatform?: GamingPlatform;
   onSubmit?: () => void;
 }
@@ -37,6 +38,7 @@ export function PrivateGamingSdkAccessModal({
   sdkName,
   gamingPlatform,
   onSubmit,
+  source,
 }: PrivateGamingSdkAccessModalProps & ModalRenderProps) {
   const user = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -79,9 +81,9 @@ export function PrivateGamingSdkAccessModal({
         message: messageBody,
         name: user.name,
         email: user.email,
-        source: `${gamingPlatform}-sdk-access`,
+        source,
         tags: {
-          feature: `${gamingPlatform}-sdk-access`,
+          feature: source,
         },
       },
       {
@@ -105,7 +107,6 @@ export function PrivateGamingSdkAccessModal({
     closeModal();
   }, [
     isFormValid,
-    gamingPlatform,
     githubProfile,
     organization,
     sdkName,
@@ -114,6 +115,7 @@ export function PrivateGamingSdkAccessModal({
     closeModal,
     onSubmit,
     projectSlug,
+    source,
   ]);
 
   return (

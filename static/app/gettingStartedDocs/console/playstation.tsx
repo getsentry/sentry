@@ -52,6 +52,7 @@ const onboarding: OnboardingConfig = {
                   projectSlug: params.projectSlug,
                   sdkName: 'PlayStation',
                   gamingPlatform: 'playstation',
+                  source: 'playstation-sdk-access',
                 });
               }}
             >
