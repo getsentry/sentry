@@ -124,7 +124,7 @@ describe('EditAutomation', () => {
       expect(mockUpdateAutomation).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/workflows/${automation.id}/`,
         expect.objectContaining({
-          data: {...automation, enabled: !automation.enabled},
+          data: {id: automation.id, name: automation.name, enabled: !automation.enabled},
         })
       );
     });

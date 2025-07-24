@@ -6,10 +6,10 @@ export interface NewAutomation {
   actionFilters: DataConditionGroup[];
   config: {frequency?: number};
   detectorIds: string[];
+  enabled: boolean;
   environment: string | null;
   name: string;
   triggers: DataConditionGroup | null;
-  enabled?: boolean;
 }
 
 export interface Automation extends Readonly<NewAutomation> {

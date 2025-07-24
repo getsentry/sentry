@@ -19,7 +19,7 @@ export function AutomationFixture(params: Partial<Automation> = {}): Automation 
     dateCreated: '2025-01-01T00:00:00.000Z',
     dateUpdated: '2025-01-01T00:00:00.000Z',
     lastTriggered: '2025-01-01T00:00:00.000Z',
-    config: {},
+    config: {frequency: 1440},
     enabled: true,
     actionFilters: [ActionFilterFixture()],
     detectorIds: ['1'],

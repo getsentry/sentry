@@ -62,6 +62,7 @@ export function getNewAutomationData(
       frequency: data.frequency ?? undefined,
     },
     detectorIds: data.detectorIds,
+    enabled: true,
   };
   return result;
 }
