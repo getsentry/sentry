@@ -9,6 +9,10 @@ from typing import Any
 from django.utils.datastructures import OrderedSet
 
 from sentry import analytics
+from sentry.analytics.events.integration_commit_context_all_frames import (
+    IntegrationsFailedToFetchCommitContextAllFrames,
+    IntegrationsSuccessfullyFetchedCommitContextAllFrames,
+)
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
@@ -362,14 +366,15 @@ def _record_commit_context_all_frames_analytics(
             },
         )
         analytics.record(
-            "integrations.failed_to_fetch_commit_context_all_frames",
-            organization_id=organization_id,
-            project_id=project_id,
-            group_id=extra["group"],
-            event_id=extra["event"],
-            num_frames=len(frames),
-            num_successfully_mapped_frames=num_successfully_mapped_frames,
-            reason=reason,
+            IntegrationsFailedToFetchCommitContextAllFrames(
+                organization_id=organization_id,
+                project_id=project_id,
+                group_id=extra["group"],
+                event_id=extra["event"],
+                num_frames=len(frames),
+                num_successfully_mapped_frames=num_successfully_mapped_frames,
+                reason=reason,
+            )
         )
         return
 
@@ -392,18 +397,19 @@ def _record_commit_context_all_frames_analytics(
     )
 
     analytics.record(
-        "integrations.successfully_fetched_commit_context_all_frames",
-        organization_id=organization_id,
-        project_id=project_id,
-        group_id=extra["group"],
-        event_id=extra["event"],
-        num_frames=len(frames),
-        num_unique_commits=len(unique_commit_ids),
-        num_unique_commit_authors=len(unique_author_emails),
-        num_successfully_mapped_frames=num_successfully_mapped_frames,
-        selected_frame_index=selected_frame_index,
-        selected_provider=selected_provider,
-        selected_code_mapping_id=selected_blame.code_mapping.id,
+        IntegrationsSuccessfullyFetchedCommitContextAllFrames(
+            organization_id=organization_id,
+            project_id=project_id,
+            group_id=extra["group"],
+            event_id=extra["event"],
+            num_frames=len(frames),
+            num_unique_commits=len(unique_commit_ids),
+            num_unique_commit_authors=len(unique_author_emails),
+            num_successfully_mapped_frames=num_successfully_mapped_frames,
+            selected_frame_index=selected_frame_index,
+            selected_provider=selected_provider,
+            selected_code_mapping_id=selected_blame.code_mapping.id,
+        )
     )
 
 

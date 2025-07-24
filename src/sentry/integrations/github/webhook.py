@@ -17,6 +17,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry import analytics, options
+from sentry.analytics.events.webhook_repository_created import WebHookRepositoryCreatedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
@@ -140,10 +141,11 @@ class GitHubWebhook(SCMWebhook, ABC):
                         continue
 
                     analytics.record(
-                        "webhook.repository_created",
-                        organization_id=org.id,
-                        repository_id=repo.id,
-                        integration=IntegrationProviderSlug.GITHUB.value,
+                        WebHookRepositoryCreatedEvent(
+                            organization_id=org.id,
+                            repository_id=repo.id,
+                            integration=IntegrationProviderSlug.GITHUB.value,
+                        )
                     )
                     metrics.incr("github.webhook.repository_created")
 
