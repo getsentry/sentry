@@ -87,6 +87,12 @@ class BaseScheduledDeletion(Model):
                 "actor_id": actor.id if actor else None,
             },
         )
+        if not created:
+            record = cls.objects.get(
+                app_label=instance._meta.app_label,
+                model_name=model_name,
+                object_id=instance.pk,
+            )
 
         delete_logger.info(
             "object.delete.queued",
