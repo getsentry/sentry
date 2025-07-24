@@ -3,10 +3,10 @@ import type {TreemapSeriesOption, VisualMapComponentOption} from 'echarts';
 
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
 import {space} from 'sentry/styles/space';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {type TreemapResults, TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
-import {formatBytes} from 'sentry/views/preprod/utils';
 
-export interface AppSizeTreemapProps {
+interface AppSizeTreemapProps {
   treemapData: TreemapResults;
 }
 
@@ -228,7 +228,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
               <div style="display: flex; flex-direction: column; line-height: 1; gap: ${space(0.5)}">
                 <p style="font-size: 14px; font-weight: bold; margin-bottom: -2px;">${params.name}</p>
                 <p style="font-size: 12px; margin-bottom: -4px;">${params.data?.path}</p>
-                <p style="font-size: 12px; margin-bottom: -4px;">${formatBytes(value, false)} (${percent}%)</p>
+                <p style="font-size: 12px; margin-bottom: -4px;">${formatBytesBase10(value, false)} (${percent}%)</p>
               </div>
             </div>
           `;

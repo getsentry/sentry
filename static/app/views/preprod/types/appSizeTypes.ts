@@ -12,7 +12,7 @@ export interface TreemapResults {
   total_install_size: number;
 }
 
-export interface TreemapElement {
+interface TreemapElement {
   children: TreemapElement[];
   details: Record<string, unknown>;
   download_size: number;
