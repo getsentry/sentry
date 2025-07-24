@@ -1,9 +1,11 @@
 from datetime import datetime
 
+from django.test import override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import create_test_regions, region_silo_test
 
 
@@ -99,3 +101,27 @@ class GroupTagExportTest(TestCase, SnubaTestCase):
         resp = self.client.get(url, HTTP_HOST="us.testserver")
         assert resp.status_code == 200
         assert "Location" not in resp
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_rate_limit(self):
+        url = reverse(
+            "sentry-group-tag-export",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+                "group_id": self.group.id,
+                "key": self.key,
+            },
+        )
+        self.url = f"{url}?environment={self.environment.name}"
+
+        now = timezone.now()
+        with freeze_time(now):
+            # Make 10 requests within the limit (limit is 10 per user per minute)
+            for i in range(10):
+                response = self.client.get(self.url)
+                assert response.status_code == 200
+
+            # The 11th request should be rate limited
+            response = self.client.get(self.url)
+            assert response.status_code == 429
