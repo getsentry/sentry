@@ -431,6 +431,319 @@ function buildRoutes() {
     </Route>
   );
 
+  const projectSettingsChildRoutes: SentryRouteObject[] = [
+    {
+      index: true,
+      name: t('General'),
+      component: make(() => import('sentry/views/settings/projectGeneralSettings')),
+    },
+    {
+      path: 'install/',
+      component: () => (
+        <WorkingRedirect to="/projects/:projectId/getting-started/" replace />
+      ),
+    },
+    {
+      path: 'teams/',
+      name: t('Teams'),
+      component: make(() => import('sentry/views/settings/project/projectTeams')),
+    },
+    {
+      path: 'alerts/',
+      name: t('Alerts'),
+      component: make(() => import('sentry/views/settings/projectAlerts')),
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/settings/projectAlerts/settings')),
+        },
+        {
+          path: 'new/',
+          component: () => (
+            <WorkingRedirect to="/organizations/:orgId/alerts/:projectId/new/" replace />
+          ),
+        },
+        {
+          path: 'rules/',
+          component: () => (
+            <WorkingRedirect to="/organizations/:orgId/alerts/rules/" replace />
+          ),
+        },
+        {
+          path: 'rules/new/',
+          component: () => (
+            <WorkingRedirect to="/organizations/:orgId/alerts/:projectId/new/" replace />
+          ),
+        },
+        {
+          path: 'metric-rules/new/',
+          component: () => (
+            <WorkingRedirect to="/organizations/:orgId/alerts/:projectId/new/" replace />
+          ),
+        },
+        {
+          path: 'rules/:ruleId/',
+          component: () => (
+            <WorkingRedirect
+              to="/organizations/:orgId/alerts/rules/:projectId/:ruleId/"
+              replace
+            />
+          ),
+        },
+        {
+          path: 'metric-rules/:ruleId/',
+          component: () => (
+            <WorkingRedirect
+              to="/organizations/:orgId/alerts/metric-rules/:projectId/:ruleId/"
+              replace
+            />
+          ),
+        },
+      ],
+    },
+    {
+      path: 'environments/',
+      name: t('Environments'),
+      component: make(() => import('sentry/views/settings/project/projectEnvironments')),
+      children: [
+        {
+          index: true,
+        },
+        {
+          path: 'hidden/',
+        },
+      ],
+    },
+    {
+      path: 'tags/',
+      name: t('Tags & Context'),
+      component: make(() => import('sentry/views/settings/projectTags')),
+    },
+    {
+      path: 'issue-tracking/',
+      component: () => (
+        <WorkingRedirect to="/settings/:orgId/:projectId/plugins/" replace />
+      ),
+    },
+    {
+      path: 'release-tracking/',
+      name: t('Release Tracking'),
+      component: make(
+        () => import('sentry/views/settings/project/projectReleaseTracking')
+      ),
+    },
+    {
+      path: 'ownership/',
+      name: t('Ownership Rules'),
+      component: make(() => import('sentry/views/settings/project/projectOwnership')),
+    },
+    {
+      path: 'data-forwarding/',
+      name: t('Data Forwarding'),
+      component: make(() => import('sentry/views/settings/projectDataForwarding')),
+    },
+    {
+      path: 'seer/',
+      name: t('Seer'),
+      component: make(() => import('sentry/views/settings/projectSeer/index')),
+    },
+    {
+      path: 'user-feedback/',
+      name: t('User Feedback'),
+      component: make(() => import('sentry/views/settings/projectUserFeedback')),
+    },
+    {
+      path: 'security-and-privacy/',
+      name: t('Security & Privacy'),
+      children: [
+        {
+          index: true,
+          component: make(
+            () => import('sentry/views/settings/projectSecurityAndPrivacy')
+          ),
+        },
+        {
+          path: 'advanced-data-scrubbing/:scrubbingId/',
+          component: make(
+            () => import('sentry/views/settings/projectSecurityAndPrivacy')
+          ),
+        },
+      ],
+    },
+    {
+      path: 'debug-symbols/',
+      name: t('Debug Information Files'),
+      component: make(() => import('sentry/views/settings/projectDebugFiles')),
+    },
+    {
+      path: 'proguard/',
+      name: t('ProGuard Mappings'),
+      component: make(() => import('sentry/views/settings/projectProguard')),
+    },
+    {
+      path: 'performance/',
+      name: t('Performance'),
+      component: make(() => import('sentry/views/settings/projectPerformance')),
+    },
+    {
+      path: 'playstation/',
+      name: t('PlayStation'),
+      component: make(() => import('sentry/views/settings/project/tempest')),
+    },
+    {
+      path: 'replays/',
+      name: t('Replays'),
+      component: make(() => import('sentry/views/settings/project/projectReplays')),
+    },
+    {
+      path: 'toolbar/',
+      name: t('Developer Toolbar'),
+      component: make(() => import('sentry/views/settings/project/projectToolbar')),
+    },
+    {
+      path: 'source-maps/',
+      name: t('Source Maps'),
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/settings/projectSourceMaps')),
+        },
+        {
+          path: ':bundleId/',
+          name: t('Source Map Uploads'),
+          component: make(() => import('sentry/views/settings/projectSourceMaps')),
+        },
+        {
+          path: 'source-maps/artifact-bundles/',
+          component: () => <WorkingRedirect to="source-maps/" replace />,
+        },
+        {
+          path: 'source-maps/release-bundles/',
+          component: () => <WorkingRedirect to="source-maps/" replace />,
+        },
+      ],
+    },
+    {
+      path: 'filters/',
+      name: t('Inbound Filters'),
+      component: make(() => import('sentry/views/settings/project/projectFilters')),
+      children: [
+        {
+          index: true,
+          component: () => <WorkingRedirect to="data-filters/" replace />,
+        },
+        {
+          path: ':filterType/',
+        },
+      ],
+    },
+    {
+      path: 'dynamic-sampling/',
+      component: () => <WorkingRedirect to="performance/" replace />,
+    },
+    {
+      path: 'issue-grouping/',
+      name: t('Issue Grouping'),
+      component: make(() => import('sentry/views/settings/projectIssueGrouping')),
+    },
+    {
+      path: 'hooks/',
+      name: t('Service Hooks'),
+      component: make(() => import('sentry/views/settings/project/projectServiceHooks')),
+    },
+    {
+      path: 'hooks/new/',
+      name: t('Create Service Hook'),
+      component: make(
+        () => import('sentry/views/settings/project/projectCreateServiceHook')
+      ),
+    },
+    {
+      path: 'hooks/:hookId/',
+      name: t('Service Hook Details'),
+      component: make(
+        () => import('sentry/views/settings/project/projectServiceHookDetails')
+      ),
+    },
+    {
+      path: 'keys/',
+      name: t('Client Keys'),
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/settings/project/projectKeys/list')),
+        },
+        {
+          path: ':keyId/',
+          name: t('Details'),
+          component: make(
+            () => import('sentry/views/settings/project/projectKeys/details')
+          ),
+        },
+      ],
+    },
+    {
+      path: 'loader-script/',
+      name: t('Loader Script'),
+      component: make(() => import('sentry/views/settings/project/loaderScript')),
+    },
+    {
+      path: 'csp/',
+      component: () => (
+        <WorkingRedirect
+          to="/settings/:orgId/projects/:projectId/security-headers/csp/"
+          replace
+        />
+      ),
+    },
+    {
+      path: 'security-headers/',
+      name: t('Security Headers'),
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/settings/projectSecurityHeaders')),
+        },
+        {
+          path: 'csp/',
+          name: t('Content Security Policy'),
+          component: make(
+            () => import('sentry/views/settings/projectSecurityHeaders/csp')
+          ),
+        },
+        {
+          path: 'expect-ct/',
+          name: t('Certificate Transparency'),
+          component: make(
+            () => import('sentry/views/settings/projectSecurityHeaders/expectCt')
+          ),
+        },
+        {
+          path: 'hpkp/',
+          name: t('HPKP'),
+          component: make(
+            () => import('sentry/views/settings/projectSecurityHeaders/hpkp')
+          ),
+        },
+      ],
+    },
+    {
+      path: 'plugins/',
+      name: t('Legacy Integrations'),
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/settings/projectPlugins')),
+        },
+        {
+          path: ':pluginId/',
+          name: t('Integration Details'),
+          component: make(() => import('sentry/views/settings/projectPlugins/details')),
+        },
+      ],
+    },
+  ];
+
   const projectSettingsRoutes = (
     <Route
       path="projects/:projectId/"
@@ -438,233 +751,8 @@ function buildRoutes() {
       component={make(
         () => import('sentry/views/settings/project/projectSettingsLayout')
       )}
-    >
-      <IndexRoute
-        name={t('General')}
-        component={make(() => import('sentry/views/settings/projectGeneralSettings'))}
-      />
-      <Redirect from="install/" to="/projects/:projectId/getting-started/" />
-      <Route
-        path="teams/"
-        name={t('Teams')}
-        component={make(() => import('sentry/views/settings/project/projectTeams'))}
-      />
-      <Route
-        path="alerts/"
-        name={t('Alerts')}
-        component={make(() => import('sentry/views/settings/projectAlerts'))}
-      >
-        <IndexRoute
-          component={make(() => import('sentry/views/settings/projectAlerts/settings'))}
-        />
-        <Redirect from="new/" to="/organizations/:orgId/alerts/:projectId/new/" />
-        <Redirect from="rules/" to="/organizations/:orgId/alerts/rules/" />
-        <Redirect from="rules/new/" to="/organizations/:orgId/alerts/:projectId/new/" />
-        <Redirect
-          from="metric-rules/new/"
-          to="/organizations/:orgId/alerts/:projectId/new/"
-        />
-        <Redirect
-          from="rules/:ruleId/"
-          to="/organizations/:orgId/alerts/rules/:projectId/:ruleId/"
-        />
-        <Redirect
-          from="metric-rules/:ruleId/"
-          to="/organizations/:orgId/alerts/metric-rules/:projectId/:ruleId/"
-        />
-      </Route>
-      <Route
-        path="environments/"
-        name={t('Environments')}
-        component={make(
-          () => import('sentry/views/settings/project/projectEnvironments')
-        )}
-      >
-        <IndexRoute />
-        <Route path="hidden/" />
-      </Route>
-      <Route
-        path="tags/"
-        name={t('Tags & Context')}
-        component={make(() => import('sentry/views/settings/projectTags'))}
-      />
-      <Redirect from="issue-tracking/" to="/settings/:orgId/:projectId/plugins/" />
-      <Route
-        path="release-tracking/"
-        name={t('Release Tracking')}
-        component={make(
-          () => import('sentry/views/settings/project/projectReleaseTracking')
-        )}
-      />
-      <Route
-        path="ownership/"
-        name={t('Ownership Rules')}
-        component={make(() => import('sentry/views/settings/project/projectOwnership'))}
-      />
-      <Route
-        path="data-forwarding/"
-        name={t('Data Forwarding')}
-        component={make(() => import('sentry/views/settings/projectDataForwarding'))}
-      />
-      <Route
-        path="seer/"
-        name={t('Seer')}
-        component={make(() => import('sentry/views/settings/projectSeer/index'))}
-      />
-      <Route
-        path="user-feedback/"
-        name={t('User Feedback')}
-        component={make(() => import('sentry/views/settings/projectUserFeedback'))}
-      />
-      <Route path="security-and-privacy/" name={t('Security & Privacy')}>
-        <IndexRoute
-          component={make(
-            () => import('sentry/views/settings/projectSecurityAndPrivacy')
-          )}
-        />
-        <Route
-          path="advanced-data-scrubbing/:scrubbingId/"
-          component={make(
-            () => import('sentry/views/settings/projectSecurityAndPrivacy')
-          )}
-        />
-      </Route>
-      <Route
-        path="debug-symbols/"
-        name={t('Debug Information Files')}
-        component={make(() => import('sentry/views/settings/projectDebugFiles'))}
-      />
-      <Route
-        path="proguard/"
-        name={t('ProGuard Mappings')}
-        component={make(() => import('sentry/views/settings/projectProguard'))}
-      />
-      <Route
-        path="performance/"
-        name={t('Performance')}
-        component={make(() => import('sentry/views/settings/projectPerformance'))}
-      />
-
-      <Route
-        path="playstation/"
-        name={t('PlayStation')}
-        component={make(() => import('sentry/views/settings/project/tempest'))}
-      />
-      <Route
-        path="replays/"
-        name={t('Replays')}
-        component={make(() => import('sentry/views/settings/project/projectReplays'))}
-      />
-      <Route
-        path="toolbar/"
-        name={t('Developer Toolbar')}
-        component={make(() => import('sentry/views/settings/project/projectToolbar'))}
-      />
-      <Route path="source-maps/" name={t('Source Maps')}>
-        <IndexRoute
-          component={make(() => import('sentry/views/settings/projectSourceMaps'))}
-        />
-        <Route
-          name={t('Source Map Uploads')}
-          path=":bundleId/"
-          component={make(() => import('sentry/views/settings/projectSourceMaps'))}
-        />
-        <Redirect from="source-maps/artifact-bundles/" to="source-maps/" />
-        <Redirect from="source-maps/release-bundles/" to="source-maps/" />
-      </Route>
-      <Route
-        path="filters/"
-        name={t('Inbound Filters')}
-        component={make(() => import('sentry/views/settings/project/projectFilters'))}
-      >
-        <IndexRedirect to="data-filters/" />
-        <Route path=":filterType/" />
-      </Route>
-      <Redirect from="dynamic-sampling/" to="performance/" />
-      <Route
-        path="issue-grouping/"
-        name={t('Issue Grouping')}
-        component={make(() => import('sentry/views/settings/projectIssueGrouping'))}
-      />
-      <Route
-        path="hooks/"
-        name={t('Service Hooks')}
-        component={make(
-          () => import('sentry/views/settings/project/projectServiceHooks')
-        )}
-      />
-      <Route
-        path="hooks/new/"
-        name={t('Create Service Hook')}
-        component={make(
-          () => import('sentry/views/settings/project/projectCreateServiceHook')
-        )}
-      />
-      <Route
-        path="hooks/:hookId/"
-        name={t('Service Hook Details')}
-        component={make(
-          () => import('sentry/views/settings/project/projectServiceHookDetails')
-        )}
-      />
-      <Route path="keys/" name={t('Client Keys')}>
-        <IndexRoute
-          component={make(() => import('sentry/views/settings/project/projectKeys/list'))}
-        />
-        <Route
-          path=":keyId/"
-          name={t('Details')}
-          component={make(
-            () => import('sentry/views/settings/project/projectKeys/details')
-          )}
-        />
-      </Route>
-      <Route
-        path="loader-script/"
-        name={t('Loader Script')}
-        component={make(() => import('sentry/views/settings/project/loaderScript'))}
-      />
-      <Redirect
-        from="csp/"
-        to="/settings/:orgId/projects/:projectId/security-headers/csp/"
-      />
-      <Route path="security-headers/" name={t('Security Headers')}>
-        <IndexRoute
-          component={make(() => import('sentry/views/settings/projectSecurityHeaders'))}
-        />
-        <Route
-          path="csp/"
-          name={t('Content Security Policy')}
-          component={make(
-            () => import('sentry/views/settings/projectSecurityHeaders/csp')
-          )}
-        />
-        <Route
-          path="expect-ct/"
-          name={t('Certificate Transparency')}
-          component={make(
-            () => import('sentry/views/settings/projectSecurityHeaders/expectCt')
-          )}
-        />
-        <Route
-          path="hpkp/"
-          name={t('HPKP')}
-          component={make(
-            () => import('sentry/views/settings/projectSecurityHeaders/hpkp')
-          )}
-        />
-      </Route>
-      <Route path="plugins/" name={t('Legacy Integrations')}>
-        <IndexRoute
-          component={make(() => import('sentry/views/settings/projectPlugins'))}
-        />
-        <Route
-          path=":pluginId/"
-          name={t('Integration Details')}
-          component={make(() => import('sentry/views/settings/projectPlugins/details'))}
-        />
-      </Route>
-    </Route>
+      newStyleChildren={projectSettingsChildRoutes}
+    />
   );
 
   const statsChildRoutes: SentryRouteObject[] = [
