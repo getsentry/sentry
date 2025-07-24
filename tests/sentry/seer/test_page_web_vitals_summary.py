@@ -89,7 +89,7 @@ class PageWebVitalsSummaryTest(TestCase, SnubaTestCase):
     def tearDown(self):
         super().tearDown()
         # Clear the cache with the correct key format
-        cache.delete("ai-page-web-vitals-summary:" + str([self.trace_id]))
+        cache.delete("ai-page-web-vitals-summary:" + "-".join(sorted([self.trace_id])))
 
     @patch("sentry.features.has")
     def test_get_page_web_vitals_summary_feature_flag_disabled(self, mock_has_feature):
@@ -142,7 +142,7 @@ class PageWebVitalsSummaryTest(TestCase, SnubaTestCase):
         cached_summary = self.mock_summary_response.dict()
 
         cache.set(
-            "ai-page-web-vitals-summary:" + str([self.trace_id]),
+            "ai-page-web-vitals-summary:" + "-".join(sorted([self.trace_id])),
             cached_summary,
             timeout=60 * 60 * 24 * 7,
         )
