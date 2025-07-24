@@ -66,7 +66,31 @@ class ProjectReplaySummarizeBreadcrumbsAsyncEndpoint(ProjectEndpoint):
         ):
             return self.respond(status=404)
 
-        return self.respond(status=404)
+        seer_request = json.dumps(
+            {
+                "replay_id": replay_id,
+            }
+        )
+
+        response = requests.post(
+            f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/replay/breadcrumbs/state",
+            data=seer_request,
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                **sign_with_seer_secret(seer_request.encode()),
+            },
+        )
+        if response.status_code != 200:
+            logger.warning(
+                "Replay: Seer returned error when polling for replay breadcrumbs summary",
+                extra={
+                    "status_code": response.status_code,
+                    "response": response.text,
+                    "content": response.content,
+                },
+            )
+        response.raise_for_status()
+        return response
 
     def post(self, request: Request, project: Project, replay_id: str) -> Response:
         if any(
@@ -111,7 +135,6 @@ class ProjectReplaySummarizeBreadcrumbsAsyncEndpoint(ProjectEndpoint):
         # Combine replay and error data and parse into logs.
         logs = get_summary_logs(segment_data, error_events, project.id)
 
-        # Conforms to SummarizeReplayBreadcrumbsStartRequest type in Seer.
         seer_request = json.dumps(
             {
                 "logs": logs,
@@ -132,16 +155,14 @@ class ProjectReplaySummarizeBreadcrumbsAsyncEndpoint(ProjectEndpoint):
                 **sign_with_seer_secret(seer_request.encode()),
             },
         )
-
         if response.status_code != 200:
             logger.warning(
-                "Replay: Failed to start Seer task for a replay breadcrumbs summary",
+                "Replay: Seer returned error when starting a replay breadcrumbs summary",
                 extra={
                     "status_code": response.status_code,
                     "response": response.text,
                     "content": response.content,
                 },
             )
-
         response.raise_for_status()
         return response
