@@ -249,6 +249,7 @@ const omitFlexProps = new Set<keyof FlexProps>([
   'align',
   'justify',
   'wrap',
+  'order',
 ]);
 
 type FlexProps<T extends ContainerElement = 'div'> = Omit<
@@ -265,6 +266,7 @@ type FlexProps<T extends ContainerElement = 'div'> = Omit<
   inline?: Responsive<boolean>;
   // @TODO(jonasbadalic): remove the `between` and `around` values and use the `space-between` and `space-around` values instead.
   justify?: Responsive<'start' | 'end' | 'center' | 'between' | 'around' | 'evenly'>;
+  order?: Responsive<CSSProperties['order']>;
   wrap?: Responsive<'nowrap' | 'wrap' | 'wrap-reverse'>;
 };
 
@@ -280,20 +282,11 @@ export const Flex = styled(
   }
 )<FlexProps<any>>`
   ${p => rc('display', p.as === 'span' || p.inline ? 'inline-flex' : 'flex', p.theme)};
-  ${p => rc('flex-direction', p.direction, p.theme)};
-  ${p =>
-    rc('align-items', p.align, p.theme, (value, _theme) => {
-      switch (value) {
-        case 'start':
-          return 'flex-start';
-        case 'end':
-          return 'flex-end';
-        default:
-          return value;
-      }
-    })};
 
+  ${p => rc('order', p.order, p.theme)};
   ${p => rc('gap', p.gap, p.theme, getSpacing)};
+
+  ${p => rc('flex-direction', p.direction, p.theme)};
   ${p => rc('flex-wrap', p.wrap, p.theme)};
   ${p => rc('flex', p.flex, p.theme)};
   ${p =>
@@ -316,6 +309,17 @@ export const Flex = styled(
       }
     })};
 
+  ${p =>
+    rc('align-items', p.align, p.theme, (value, _theme) => {
+      switch (value) {
+        case 'start':
+          return 'flex-start';
+        case 'end':
+          return 'flex-end';
+        default:
+          return value;
+      }
+    })};
   /**
    * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
    * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.
