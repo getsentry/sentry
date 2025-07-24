@@ -7,6 +7,7 @@ from collections.abc import Iterable, Sequence
 from datetime import datetime
 
 from sentry import analytics
+from sentry.issues.analytics import IssueForecastSaved
 from sentry.issues.escalating.escalating import (
     ParsedGroupsCount,
     parse_groups_past_counts,
@@ -49,7 +50,7 @@ def save_forecast_per_group(
                 "save_forecast_per_group",
                 extra={"group_id": group_id, "group_counts": group_count},
             )
-    analytics.record("issue_forecasts.saved", num_groups=len(group_counts.keys()))
+        analytics.record(IssueForecastSaved(num_groups=len(group_counts.keys())))
 
 
 def generate_and_save_forecasts(groups: Iterable[Group]) -> None:
