@@ -2535,30 +2535,42 @@ function buildRoutes() {
     </Fragment>
   );
 
-  const gettingStartedRoutes = (
-    <Fragment>
-      {USING_CUSTOMER_DOMAIN && (
-        <Fragment>
-          <Redirect
-            from="/getting-started/:projectId/"
-            to="/projects/:projectId/getting-started/"
-          />
-          <Redirect
-            from="/getting-started/:projectId/:platform/"
-            to="/projects/:projectId/getting-started/"
-          />
-        </Fragment>
-      )}
-      <Redirect
-        from="/:orgId/:projectId/getting-started/"
-        to="/organizations/:orgId/projects/:projectId/getting-started/"
-      />
-      <Redirect
-        from="/:orgId/:projectId/getting-started/:platform/"
-        to="/organizations/:orgId/projects/:projectId/getting-started/"
-      />
-    </Fragment>
-  );
+  const gettingStartedChildRoutes: SentryRouteObject[] = [
+    {
+      path: '/getting-started/:projectId/',
+      component: () => (
+        <WorkingRedirect to="/projects/:projectId/getting-started/" replace />
+      ),
+      customerDomainOnlyRoute: true,
+    },
+    {
+      path: '/getting-started/:projectId/:platform/',
+      component: () => (
+        <WorkingRedirect to="/projects/:projectId/getting-started/" replace />
+      ),
+      customerDomainOnlyRoute: true,
+    },
+    {
+      path: '/:orgId/:projectId/getting-started/',
+      component: () => (
+        <WorkingRedirect
+          to="/organizations/:orgId/projects/:projectId/getting-started/"
+          replace
+        />
+      ),
+    },
+    {
+      path: '/:orgId/:projectId/getting-started/:platform/',
+      component: () => (
+        <WorkingRedirect
+          to="/organizations/:orgId/projects/:projectId/getting-started/"
+          replace
+        />
+      ),
+    },
+  ];
+
+  const gettingStartedRoutes = <Route newStyleChildren={gettingStartedChildRoutes} />;
 
   const profilingRoutes = (
     <Route

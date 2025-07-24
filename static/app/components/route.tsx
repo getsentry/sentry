@@ -56,6 +56,10 @@ export interface SentryRouteObject extends CustomProps {
    */
   component?: React.ComponentType<any>;
   /**
+   * Only enable this route when USING_CUSTOMER_DOMAIN is enabled
+   */
+  customerDomainOnlyRoute?: true;
+  /**
    * Is a index route
    */
   index?: boolean;
