@@ -78,8 +78,9 @@ class ProjectReplaySummarizeBreadcrumbsAsyncEndpoint(ProjectEndpoint):
 
         if response.status_code != 200:
             logger.warning(
-                "Replay: Seer returned error when starting a replay breadcrumbs summary",
+                "Seer returned error during replay breadcrumbs summary",
                 extra={
+                    "url": url,
                     "status_code": response.status_code,
                     "response": response.text,
                     "content": response.content,
