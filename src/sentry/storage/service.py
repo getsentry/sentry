@@ -12,59 +12,53 @@ from urllib3.connectionpool import HTTPConnectionPool
 from sentry.storage.metrics import measure_storage_put
 from sentry.utils import jwt, metrics
 
-Usecases = Literal["attachments"]
+Permission = Literal["read", "write"]
 Compression = Literal["zstd", "gzip", "lz4", "uncompressible"]
 
 JWT_VALIDITY = 30
 
 
 class StorageService:
-    pool: HTTPConnectionPool
-    jwt_secret: str
-
-    def __init__(self, usecase: Usecases, options: dict | None = None):
+    def __init__(self, usecase: str, options: dict | None = None):
         self.usecase = usecase
         self.options = options
 
-    def _ensure_config(self):
-        if self.pool:
-            return
+    def _make_client(self, scope: dict) -> StorageClient:
         from sentry import options as options_store
 
         options = self.options or options_store.get("objectstore.config")
-        self.pool = urllib3.connectionpool.connection_from_url(options["base_url"])
-        self.jwt_secret = options["jwt_secret"]
+        pool = urllib3.connectionpool.connection_from_url(options["base_url"])
+        jwt_secret = options["jwt_secret"]
 
-    def _make_client(self, scope: dict) -> StorageClient:
-        self._ensure_config()
         claim = {
             "usecase": self.usecase,
             "scope": scope,
         }
 
-        return StorageClient(self.usecase, claim, self.pool, self.jwt_secret)
+        return StorageClient(self.usecase, claim, pool, jwt_secret)
 
     def for_organization(self, organization_id: int) -> StorageClient:
         return self._make_client({"organization": organization_id})
 
-    def for_project(self, project_id: int) -> StorageClient:
-        return self._make_client({"project": project_id})
+    def for_project(self, organization_id: int, project_id: int) -> StorageClient:
+        return self._make_client({"organization": organization_id, "project": project_id})
 
 
 class StorageClient:
-    def __init__(self, usecase: Usecases, claim: dict, pool: HTTPConnectionPool, jwt_secret: str):
+    def __init__(self, usecase: str, claim: dict, pool: HTTPConnectionPool, jwt_secret: str):
         self.pool = pool
         self.jwt_secret = jwt_secret
         self.usecase = usecase
         self.claim = claim
 
-    def _make_headers(self) -> dict:
+    def _make_headers(self, permission: Permission) -> dict:
         now = int(timezone.now().timestamp())
         exp = now + JWT_VALIDITY
         claims = {
             "iat": now,
             "exp": exp,
             **self.claim,
+            "permissions": [permission],
         }
 
         authorization = jwt.encode(claims, self.jwt_secret)
@@ -90,18 +84,18 @@ class StorageClient:
         a file format that is already internally compressed, and does not benefit
         from another general-purpose compression algorithm.
         """
-        headers = self._make_headers()
+        headers = self._make_headers("write")
         body = BytesIO(contents) if isinstance(contents, bytes) else contents
         original_body: IO[bytes] = body
 
         if not compression:
             cctx = zstandard.ZstdCompressor()
-            body = cctx.stream_reader(contents)
+            body = cctx.stream_reader(original_body)
             headers["Content-Encoding"] = "zstd"
         elif compression != "uncompressible":
             headers["Content-Encoding"] = compression
 
-        compression_used = headers["Content-Encoding"] or "none"
+        compression_used = headers.get("Content-Encoding", "none")
         with measure_storage_put(None, self.usecase, compression_used) as measurement:
             response = self.pool.request(
                 "PUT",
@@ -139,7 +133,7 @@ class StorageClient:
         the blobs compression as stored, it will be decompressed on the fly,
         and `None` will be returned as compression.
         """
-        headers = self._make_headers()
+        headers = self._make_headers("read")
         compression = set()
         if accept_compression:
             compression = set(accept_compression)
@@ -171,7 +165,7 @@ class StorageClient:
         """
         Deletes the blob with the given `id`.
         """
-        headers = self._make_headers()
+        headers = self._make_headers("write")
 
         self.pool.request(
             "DELETE",
