@@ -2,28 +2,38 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from io import BytesIO
-from typing import IO, Literal, cast
+from typing import IO, Literal, NamedTuple, NotRequired, TypedDict, cast
 
 import urllib3
 import zstandard
 from django.utils import timezone
 from urllib3.connectionpool import HTTPConnectionPool
 
-from sentry.storage.metrics import measure_storage_put
+from sentry.objectstore.metrics import measure_storage_put
 from sentry.utils import jwt, metrics
 
 Permission = Literal["read", "write"]
 Compression = Literal["zstd", "gzip", "lz4", "uncompressible"]
 
-JWT_VALIDITY = 30
+JWT_VALIDITY_SECS = 30
 
 
-class StorageService:
+class Scope(TypedDict):
+    organization: int
+    project: NotRequired[int]
+
+
+class GetResult(NamedTuple):
+    payload: IO[bytes]
+    compression: Compression | None
+
+
+class ObjectStoreService:
     def __init__(self, usecase: str, options: dict | None = None):
         self.usecase = usecase
         self.options = options
 
-    def _make_client(self, scope: dict) -> StorageClient:
+    def _make_client(self, scope: Scope) -> ObjectStoreClient:
         from sentry import options as options_store
 
         options = self.options or options_store.get("objectstore.config")
@@ -35,16 +45,16 @@ class StorageService:
             "scope": scope,
         }
 
-        return StorageClient(self.usecase, claim, pool, jwt_secret)
+        return ObjectStoreClient(self.usecase, claim, pool, jwt_secret)
 
-    def for_organization(self, organization_id: int) -> StorageClient:
+    def for_organization(self, organization_id: int) -> ObjectStoreClient:
         return self._make_client({"organization": organization_id})
 
-    def for_project(self, organization_id: int, project_id: int) -> StorageClient:
+    def for_project(self, organization_id: int, project_id: int) -> ObjectStoreClient:
         return self._make_client({"organization": organization_id, "project": project_id})
 
 
-class StorageClient:
+class ObjectStoreClient:
     def __init__(self, usecase: str, claim: dict, pool: HTTPConnectionPool, jwt_secret: str):
         self.pool = pool
         self.jwt_secret = jwt_secret
@@ -53,7 +63,7 @@ class StorageClient:
 
     def _make_headers(self, permission: Permission) -> dict:
         now = int(timezone.now().timestamp())
-        exp = now + JWT_VALIDITY
+        exp = now + JWT_VALIDITY_SECS
         claims = {
             "iat": now,
             "exp": exp,
@@ -117,9 +127,7 @@ class StorageClient:
 
             return response["key"]
 
-    def get(
-        self, id: str, accept_compression: Sequence[Compression] | None = None
-    ) -> tuple[IO[bytes], Compression | None]:
+    def get(self, id: str, accept_compression: Sequence[Compression] | None = None) -> GetResult:
         """
         This fetches the blob with the given `id`, returning an `IO` stream that
         can be read.
@@ -157,9 +165,9 @@ class StorageClient:
                 )
 
             dctx = zstandard.ZstdDecompressor()
-            return dctx.stream_reader(stream, read_across_frames=True), None
+            return GetResult(dctx.stream_reader(stream, read_across_frames=True), None)
 
-        return stream, cast(Compression, content_encoding)
+        return GetResult(stream, cast(Compression, content_encoding))
 
     def delete(self, id: str):
         """

@@ -10,7 +10,7 @@ from django.core.cache import BaseCache, InvalidCacheBackendError, caches
 from django.utils.functional import cached_property
 
 from sentry import options
-from sentry.storage.metrics import measure_storage_put
+from sentry.objectstore.metrics import measure_storage_put
 from sentry.utils import json, metrics
 from sentry.utils.services import Service
 

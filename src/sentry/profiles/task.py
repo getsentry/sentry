@@ -32,6 +32,7 @@ from sentry.models.files.utils import get_profiles_storage
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectsdk import EventType, ProjectSDK, get_minimum_sdk_version
+from sentry.objectstore.metrics import measure_storage_put
 from sentry.profiles.java import (
     convert_android_methods_to_jvm_frames,
     deobfuscate_signature,
@@ -46,7 +47,6 @@ from sentry.profiles.utils import (
 from sentry.search.utils import DEVICE_CLASS
 from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
-from sentry.storage.metrics import measure_storage_put
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.constants import CompressionType
