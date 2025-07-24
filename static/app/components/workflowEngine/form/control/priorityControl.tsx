@@ -108,14 +108,16 @@ function validateHighThreshold({
     return [];
   }
 
-  if (highNum !== null && conditionNum !== null) {
-    if (!validateThresholdOrder(highNum, conditionNum, conditionType, true)) {
-      const message = t(
-        'High threshold must be %s than medium threshold',
-        conditionType === DataConditionType.GREATER ? t('higher') : t('lower')
-      );
-      return [createValidationError(METRIC_DETECTOR_FORM_FIELDS.highThreshold, message)];
-    }
+  if (
+    Number.isFinite(highNum) &&
+    Number.isFinite(conditionNum) &&
+    !validateThresholdOrder(highNum, conditionNum, conditionType, true)
+  ) {
+    const message = t(
+      'High threshold must be %s than medium threshold',
+      conditionType === DataConditionType.GREATER ? t('higher') : t('lower')
+    );
+    return [createValidationError(METRIC_DETECTOR_FORM_FIELDS.highThreshold, message)];
   }
 
   return [];
