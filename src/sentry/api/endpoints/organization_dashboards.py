@@ -1,7 +1,18 @@
 from __future__ import annotations
 
 from django.db import IntegrityError, router, transaction
-from django.db.models import Case, Exists, F, IntegerField, OrderBy, OuterRef, Subquery, Value, When
+from django.db.models import (
+    Case,
+    Count,
+    Exists,
+    F,
+    IntegerField,
+    OrderBy,
+    OuterRef,
+    Subquery,
+    Value,
+    When,
+)
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -204,6 +215,17 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             order_by = [
                 Case(When(created_by_id=request.user.id, then=-1), default=1),
                 "-last_visited",
+            ]
+
+        elif sort_by == "mostFavorited" and features.has(
+            "organizations:dashboards-starred-reordering", organization, actor=request.user
+        ):
+            dashboards = dashboards.annotate(
+                favorites_count=Count("dashboardfavoriteuser", distinct=True)
+            )
+            order_by = [
+                "favorites_count" if desc else "-favorites_count",
+                "-date_added",
             ]
 
         else:
