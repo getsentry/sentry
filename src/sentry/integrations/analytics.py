@@ -61,7 +61,7 @@ class IntegrationIssueCommentsSyncedEvent(analytics.Event):
 @analytics.eventclass("integration.repo.added")
 class IntegrationRepoAddedEvent(analytics.Event):
     provider: str
-    id: int
+    id: int | None = None
     organization_id: int
 
 
