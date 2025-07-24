@@ -288,11 +288,11 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         """
         Create a new dashboard for the given Organization
         """
-        if not features.has("organizations:dashboards-edit", organization, actor=request.user):
-            return Response(status=404)
-
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        if not features.has("organizations:dashboards-edit", organization, actor=request.user):
+            return Response(status=404)
 
         serializer = DashboardSerializer(
             data=request.data,
