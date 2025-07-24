@@ -82,17 +82,17 @@ const makeAutomationFireHistoryQueryKey = ({
   orgSlug: string;
   cursor?: string;
   limit?: number;
-  query?: string;
+  query?: Record<string, any>;
 }): ApiQueryKey => [
   `/organizations/${orgSlug}/workflows/${automationId}/group-history/`,
-  {query: {query, per_page: limit, cursor}},
+  {query: {...query, per_page: limit, cursor}},
 ];
 
 interface UseAutomationFireHistoryQueryOptions {
   automationId: string;
   cursor?: string;
   limit?: number;
-  query?: string;
+  query?: Record<string, any>;
 }
 export function useAutomationFireHistoryQuery(
   options: UseAutomationFireHistoryQueryOptions,

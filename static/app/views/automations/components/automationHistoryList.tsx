@@ -22,7 +22,7 @@ type Props = {
   automationId: string;
   emptyMessage?: string;
   limit?: number;
-  query?: string;
+  query?: Record<string, any>;
 };
 
 function Skeletons() {

@@ -1,7 +1,10 @@
 /* eslint-disable no-alert */
 import {Fragment} from 'react';
+import pick from 'lodash/pick';
+import moment from 'moment-timezone';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
@@ -10,14 +13,17 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {type ChangeData, TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import TimeSince from 'sentry/components/timeSince';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {DateString} from 'sentry/types/core';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -26,6 +32,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useUserFromId from 'sentry/utils/useUserFromId';
 import AutomationHistoryList from 'sentry/views/automations/components/automationHistoryList';
+import {AutomationStatsChart} from 'sentry/views/automations/components/automationStatsChart';
 import ConditionsPanel from 'sentry/views/automations/components/conditionsPanel';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
 import {useAutomationQuery} from 'sentry/views/automations/hooks';
@@ -34,12 +41,104 @@ import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 
 const AUTOMATION_DETECTORS_LIMIT = 10;
 
+export const DEFAULT_CHART_PERIOD = '7d';
+
+const PAGE_QUERY_PARAMS = [
+  'pageStatsPeriod',
+  'pageStart',
+  'pageEnd',
+  'pageUtc',
+  'cursor',
+];
+
 function AutomationDetailContent({automation}: {automation: Automation}) {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
 
   const {data: createdByUser} = useUserFromId({id: Number(automation.createdBy)});
+
+  function getDataDatetime(): DateTimeObject {
+    const query = location?.query ?? {};
+
+    const {
+      start,
+      end,
+      statsPeriod,
+      utc: utcString,
+    } = normalizeDateTimeParams(query, {
+      allowEmptyPeriod: true,
+      allowAbsoluteDatetime: true,
+      allowAbsolutePageDatetime: true,
+    });
+
+    if (!statsPeriod && !start && !end) {
+      return {period: DEFAULT_CHART_PERIOD};
+    }
+
+    // Following getParams, statsPeriod will take priority over start/end
+    if (statsPeriod) {
+      return {period: statsPeriod};
+    }
+
+    const utc = utcString === 'true';
+    if (start && end) {
+      return utc
+        ? {
+            start: moment.utc(start).format(),
+            end: moment.utc(end).format(),
+            utc,
+          }
+        : {
+            start: moment(start).utc().format(),
+            end: moment(end).utc().format(),
+            utc,
+          };
+    }
+
+    return {period: DEFAULT_CHART_PERIOD};
+  }
+
+  function setStateOnUrl(nextState: {
+    cursor?: string;
+    pageEnd?: DateString;
+    pageStart?: DateString;
+    pageStatsPeriod?: string | null;
+    pageUtc?: boolean | null;
+    team?: string;
+  }) {
+    return navigate({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        ...pick(nextState, PAGE_QUERY_PARAMS),
+      },
+    });
+  }
+
+  function handleUpdateDatetime(datetime: ChangeData) {
+    const {start, end, relative, utc} = datetime;
+
+    if (start && end) {
+      const parser = utc ? moment.utc : moment;
+
+      return setStateOnUrl({
+        pageStatsPeriod: undefined,
+        pageStart: parser(start).format(),
+        pageEnd: parser(end).format(),
+        pageUtc: utc ?? undefined,
+        cursor: undefined,
+      });
+    }
+
+    return setStateOnUrl({
+      pageStatsPeriod: relative || undefined,
+      pageStart: undefined,
+      pageEnd: undefined,
+      pageUtc: undefined,
+      cursor: undefined,
+    });
+  }
 
   const {
     data: detectors,
@@ -56,6 +155,8 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
       enabled: automation.detectorIds.length > 0,
     }
   );
+
+  const {period, start, end, utc} = getDataDatetime();
 
   return (
     <SentryDocumentTitle title={automation.name} noSuffix>
@@ -79,9 +180,33 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
         </DetailLayout.Header>
         <DetailLayout.Body>
           <DetailLayout.Main>
+            <TimeRangeSelector
+              relative={period ?? ''}
+              start={start ?? null}
+              end={end ?? null}
+              utc={utc ?? null}
+              onChange={handleUpdateDatetime}
+            />
+            <ErrorBoundary>
+              <AutomationStatsChart
+                automationId={automation.id}
+                period={period ?? ''}
+                start={start ?? null}
+                end={end ?? null}
+                utc={utc ?? null}
+              />
+            </ErrorBoundary>
             <Section title={t('History')}>
               <ErrorBoundary mini>
-                <AutomationHistoryList automationId={automation.id} />
+                <AutomationHistoryList
+                  automationId={automation.id}
+                  query={{
+                    ...(period && {statsPeriod: period}),
+                    start,
+                    end,
+                    utc,
+                  }}
+                />
               </ErrorBoundary>
             </Section>
             <Section title={t('Connected Monitors')}>
