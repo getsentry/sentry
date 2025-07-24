@@ -91,36 +91,25 @@ interface BaseContainerProps {
     'block' | 'inline' | 'inline-block' | 'flex' | 'inline-flex' | 'grid' | 'inline-grid'
   >;
 
-  // Padding
   padding?: Responsive<Shorthand<SpacingSize, 4>>;
-  pb?: Responsive<SpacingSize>;
-  pl?: Responsive<SpacingSize>;
-  pr?: Responsive<SpacingSize>;
-  pt?: Responsive<SpacingSize>;
 
-  // Position
   position?: Responsive<'static' | 'relative' | 'absolute' | 'fixed' | 'sticky'>;
 
-  // Overflow
   overflow?: Responsive<'visible' | 'hidden' | 'scroll' | 'auto'>;
   overflowX?: Responsive<'visible' | 'hidden' | 'scroll' | 'auto'>;
   overflowY?: Responsive<'visible' | 'hidden' | 'scroll' | 'auto'>;
 
-  // Radius
   radius?: Responsive<Shorthand<RadiusSize, 4>>;
 
-  // Width
   width?: Responsive<CSSProperties['width']>;
   minWidth?: Responsive<CSSProperties['minWidth']>;
   maxWidth?: Responsive<CSSProperties['maxWidth']>;
 
-  // Height
   height?: Responsive<CSSProperties['height']>;
   minHeight?: Responsive<CSSProperties['minHeight']>;
   maxHeight?: Responsive<CSSProperties['maxHeight']>;
 }
 /* eslint-enable typescript-sort-keys/interface */
-
 type ContainerElement =
   | 'article'
   | 'aside'
@@ -147,10 +136,6 @@ const omitContainerProps = new Set<keyof ContainerProps<any>>([
   'background',
   'display',
   'padding',
-  'pb',
-  'pl',
-  'pr',
-  'pt',
   'overflow',
   'overflowX',
   'overflowY',
@@ -185,6 +170,8 @@ export const Container = styled(
   ${p => rc('overflow-x', p.overflowX, p.theme)};
   ${p => rc('overflow-y', p.overflowY, p.theme)};
 
+  ${p => rc('padding', p.padding, p.theme, getSpacing)};
+
   ${p => rc('background', p.background, p.theme, v => p.theme.tokens.background[v])};
 
   ${p => rc('border-radius', p.radius, p.theme, getRadius)};
@@ -197,35 +184,7 @@ export const Container = styled(
   ${p => rc('min-height', p.minHeight, p.theme)};
   ${p => rc('max-height', p.maxHeight, p.theme)};
 
-  /*
-  * Serialize order sensitive props last and ensure they are applied in the
-  * same order as they are defined in the props object.
-  */
-  ${p => {
-    const styles: Array<SerializedStyles | undefined> = [];
-    for (const key in p) {
-      switch (key as keyof BaseContainerProps) {
-        case 'padding':
-          styles.push(rc('padding', p.padding, p.theme, getSpacing));
-          break;
-        case 'pt':
-          styles.push(rc('padding-top', p.pt, p.theme, getSpacing));
-          break;
-        case 'pb':
-          styles.push(rc('padding-bottom', p.pb, p.theme, getSpacing));
-          break;
-        case 'pl':
-          styles.push(rc('padding-left', p.pl, p.theme, getSpacing));
-          break;
-        case 'pr':
-          styles.push(rc('padding-right', p.pr, p.theme, getSpacing));
-          break;
-        default:
-          break;
-      }
-    }
-    return styles.filter(Boolean);
-  }}/**
+  /**
    * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
    * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.
    * https://github.com/styled-components/styled-components/issues/1803

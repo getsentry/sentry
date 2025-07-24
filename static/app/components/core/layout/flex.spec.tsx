@@ -44,13 +44,13 @@ describe.each([
     expect(ref.current?.tagName).toBe('OL');
   });
 
-  it('respects prop order', () => {
+  it('reuses class names for the same props', () => {
     render(
       <React.Fragment>
-        <Component radius="sm" padding="md" pb="sm">
+        <Component radius="sm" padding="md">
           Padding First
         </Component>
-        <Component radius="sm" pb="sm" padding="md">
+        <Component radius="sm" padding="md">
           PaddingBottom First
         </Component>
       </React.Fragment>
@@ -58,7 +58,7 @@ describe.each([
 
     const paddingFirst = screen.getByText('Padding First').className;
     const paddingBottomFirst = screen.getByText('PaddingBottom First').className;
-    expect(paddingFirst).not.toEqual(paddingBottomFirst);
+    expect(paddingFirst).toEqual(paddingBottomFirst);
   });
 });
 
