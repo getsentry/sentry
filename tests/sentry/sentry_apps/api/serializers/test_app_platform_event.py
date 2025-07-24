@@ -1,8 +1,10 @@
 import datetime
+from typing import Any
 
 import orjson
 
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
+from sentry.sentry_apps.models.sentry_app import SentryAppActionType, SentryAppResourceType
 from sentry.testutils.cases import TestCase
 
 
@@ -18,7 +20,10 @@ class AppPlatformEventSerializerTest(TestCase):
     def test_no_actor(self):
         data = {"time": datetime.datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=datetime.UTC)}
         result = AppPlatformEvent(
-            resource="event_alert", action="triggered", install=self.install, data=data
+            resource=SentryAppResourceType.EVENT_ALERT,
+            action=SentryAppActionType.TRIGGERED,
+            install=self.install,
+            data=data,
         )
 
         # Our serializer uses orjson to create the results but the result should match what json
@@ -37,13 +42,13 @@ class AppPlatformEventSerializerTest(TestCase):
         signature = self.sentry_app.build_signature(result.body)
 
         assert result.headers["Content-Type"] == "application/json"
-        assert result.headers["Sentry-Hook-Resource"] == "event_alert"
+        assert result.headers["Sentry-Hook-Resource"] == SentryAppResourceType.EVENT_ALERT
         assert result.headers["Sentry-Hook-Signature"] == signature
 
     def test_sentry_app_actor(self):
-        result = AppPlatformEvent(
-            resource="issue",
-            action="assigned",
+        result = AppPlatformEvent[dict[str, Any]](
+            resource=SentryAppResourceType.ISSUE,
+            action=SentryAppActionType.ASSIGNED,
             install=self.install,
             data={},
             actor=self.sentry_app.proxy_user,
@@ -58,13 +63,13 @@ class AppPlatformEventSerializerTest(TestCase):
         signature = self.sentry_app.build_signature(result.body)
 
         assert result.headers["Content-Type"] == "application/json"
-        assert result.headers["Sentry-Hook-Resource"] == "issue"
+        assert result.headers["Sentry-Hook-Resource"] == SentryAppResourceType.ISSUE
         assert result.headers["Sentry-Hook-Signature"] == signature
 
     def test_user_actor(self):
-        result = AppPlatformEvent(
-            resource="installation",
-            action="created",
+        result = AppPlatformEvent[dict[str, Any]](
+            resource=SentryAppResourceType.INSTALLATION,
+            action=SentryAppActionType.CREATED,
             install=self.install,
             data={},
             actor=self.user,

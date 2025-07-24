@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Concatenate, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any, Concatenate, ParamSpec, TypeVar
 
 from requests import RequestException, Response
 from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
@@ -32,6 +32,7 @@ logger = logging.getLogger("sentry.sentry_apps.webhooks")
 
 P = ParamSpec("P")
 R = TypeVar("R")
+T = TypeVar("T", bound=dict[str, Any])
 
 
 def ignore_unpublished_app_errors(
@@ -54,7 +55,7 @@ def ignore_unpublished_app_errors(
 @ignore_unpublished_app_errors
 def send_and_save_webhook_request(
     sentry_app: SentryApp | RpcSentryApp,
-    app_platform_event: AppPlatformEvent,
+    app_platform_event: AppPlatformEvent[T],
     url: str | None = None,
 ) -> Response:
     """

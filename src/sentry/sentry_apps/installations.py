@@ -3,6 +3,7 @@ from __future__ import annotations
 import dataclasses
 import datetime
 from functools import cached_property
+from typing import TypedDict
 
 from django.db import router, transaction
 from django.http.request import HttpRequest
@@ -15,6 +16,7 @@ from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.api.serializers.sentry_app_installation import (
+    SentryAppInstallationResult,
     SentryAppInstallationSerializer,
 )
 from sentry.sentry_apps.metrics import (
@@ -22,7 +24,11 @@ from sentry.sentry_apps.metrics import (
     SentryAppInteractionEvent,
     SentryAppInteractionType,
 )
-from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app import (
+    SentryApp,
+    SentryAppActionType,
+    SentryAppResourceType,
+)
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.sentry_apps.services.hook import hook_service
@@ -190,6 +196,10 @@ class SentryAppInstallationCreator:
         return SentryApp.objects.get(slug=self.slug)
 
 
+class SentryAppInstallationWebhookData(TypedDict):
+    installation: SentryAppInstallationResult
+
+
 @dataclasses.dataclass
 class SentryAppInstallationNotifier:
     sentry_app_installation: SentryAppInstallation
@@ -213,11 +223,11 @@ class SentryAppInstallationNotifier:
             is_webhook=True,
         )
 
-        return AppPlatformEvent(
-            resource="installation",
-            action=self.action,
+        return AppPlatformEvent[SentryAppInstallationWebhookData](
+            resource=SentryAppResourceType.INSTALLATION,
+            action=SentryAppActionType(self.action),
             install=self.sentry_app_installation,
-            data={"installation": data},
+            data=SentryAppInstallationWebhookData(installation=data),
             actor=self.user,
         )
 

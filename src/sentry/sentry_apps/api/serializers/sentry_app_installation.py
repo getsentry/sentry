@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import MutableMapping, Sequence
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -12,6 +12,24 @@ from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+
+
+class SentryAppInstallationAppResult(TypedDict):
+    uuid: str
+    slug: str
+
+
+class SentryAppInstallationOrganizationResult(TypedDict):
+    slug: str
+    id: int
+
+
+class SentryAppInstallationResult(TypedDict):
+    app: SentryAppInstallationAppResult
+    organization: SentryAppInstallationOrganizationResult
+    uuid: str
+    status: SentryAppInstallationStatus
+    code: NotRequired[str]
 
 
 @register(SentryAppInstallation)
@@ -41,7 +59,9 @@ class SentryAppInstallationSerializer(Serializer):
             }
         return result
 
-    def serialize(self, obj, attrs, user: User | RpcUser | AnonymousUser, **kwargs):
+    def serialize(
+        self, obj, attrs, user: User | RpcUser | AnonymousUser, **kwargs
+    ) -> SentryAppInstallationResult:
         access = kwargs.get("access")
         data = {
             "app": {"uuid": attrs["sentry_app"].uuid, "slug": attrs["sentry_app"].slug},
@@ -55,4 +75,10 @@ class SentryAppInstallationSerializer(Serializer):
         if obj.api_grant and ((access and access.has_scope("org:integrations")) or is_webhook):
             data["code"] = obj.api_grant.code
 
-        return data
+        return SentryAppInstallationResult(
+            app=data["app"],
+            organization=data["organization"],
+            uuid=data["uuid"],
+            status=data["status"],
+            code=data["code"],
+        )
