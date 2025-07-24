@@ -143,8 +143,9 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
                 if created:
                     is_value_changed = True
                 elif obj.value != value:
-                    obj.value = value
-                    obj.save(update_fields=["value"])
+                    # update the value via ORM update() to avoid post save signals which
+                    # might cause cache reload when it is not needed (e.g. post_save signal)
+                    self.filter(id=obj.id).update(value=value)
                     is_value_changed = True
 
             if reload_cache and is_value_changed:
