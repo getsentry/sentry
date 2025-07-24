@@ -23,6 +23,8 @@ import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
+import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -102,7 +104,7 @@ export default function ReplayPreviewPlayer({
           columnIndex={0}
           showDropdownFilters={false}
         />
-        <LinkButton
+        <ContainedLinkButton
           size="sm"
           to={{
             pathname: makeReplaysPathname({
@@ -119,7 +121,7 @@ export default function ReplayPreviewPlayer({
           {...fullReplayButtonProps}
         >
           {t('See Full Replay')}
-        </LinkButton>
+        </ContainedLinkButton>
       </HeaderWrapper>
       <PreviewPlayerContainer ref={fullscreenRef} isSidebarOpen={isSidebarOpen}>
         <TooltipContext value={{container: fullscreenRef.current}}>
@@ -258,3 +260,12 @@ const HeaderWrapper = styled('div')`
 const StyledAlert = styled(Alert)`
   margin: ${space(1)} 0;
 `;
+
+const ContainedLinkButton = withChonk(
+  LinkButton,
+  chonkStyled(LinkButton)`
+    position: absolute;
+    right: 0;
+    top: 3px;
+  `
+);
