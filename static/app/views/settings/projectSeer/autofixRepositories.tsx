@@ -58,6 +58,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
             {
               branch: repo.branch_name || '',
               instructions: repo.instructions || '',
+              branch_overrides: repo.branch_overrides || [],
             },
           ])
         );
@@ -69,6 +70,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
           initialSettings[repo.externalId] = preferencesMap.get(repo.externalId) || {
             branch: '',
             instructions: '',
+            branch_overrides: [],
           };
         });
 
@@ -86,6 +88,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
           initialSettings[repo.externalId] = {
             branch: '',
             instructions: '',
+            branch_overrides: [],
           };
         });
 
