@@ -228,7 +228,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
               <div style="display: flex; flex-direction: column; line-height: 1; gap: ${space(0.5)}">
                 <p style="font-size: 14px; font-weight: bold; margin-bottom: -2px;">${params.name}</p>
                 <p style="font-size: 12px; margin-bottom: -4px;">${params.data?.path}</p>
-                <p style="font-size: 12px; margin-bottom: -4px;">${formatBytesBase10(value, false)} (${percent}%)</p>
+                <p style="font-size: 12px; margin-bottom: -4px;">${formatBytesBase10(value)} (${percent}%)</p>
               </div>
             </div>
           `;
