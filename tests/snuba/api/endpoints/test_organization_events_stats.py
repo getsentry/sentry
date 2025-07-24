@@ -3303,9 +3303,9 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
         data = response.data
         assert len(data) == 2
         assert "[NameError,FooError]" in data
-        assert "ValueError" in data
+        assert "[ValueError]" in data
         assert [attrs[0]["count"] for _, attrs in data["[NameError,FooError]"]["data"]] == [2, 0]
-        assert [attrs[0]["count"] for _, attrs in data["ValueError"]["data"]] == [1, 0]
+        assert [attrs[0]["count"] for _, attrs in data["[ValueError]"]["data"]] == [1, 0]
 
     def test_top_events_with_projects_other(self):
         with self.feature(self.enabled_features):

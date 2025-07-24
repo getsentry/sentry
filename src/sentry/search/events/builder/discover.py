@@ -456,6 +456,8 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                 elif any(isinstance(value, list) for value in values_list):
                     list_conditions = []
                     for values in values_list:
+                        # This depends on a weird clickhouse behaviour where the best way to compare arrays is to do
+                        # array("foo", "bar") IN array("foo", "bar") == 1
                         list_conditions.append(
                             Condition(resolved_field, Op.IN if not other else Op.NOT_IN, values)
                         )
