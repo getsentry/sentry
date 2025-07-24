@@ -11,7 +11,7 @@ from rest_framework.exceptions import ParseError
 from sentry import nodestore
 from sentry.eventstore.models import Event
 from sentry.replays.endpoints.project_replay_summarize_breadcrumbs import (
-    GroupEvent,
+    EventDict,
     as_log_message,
     get_request_data,
     parse_timestamp,
@@ -611,14 +611,14 @@ def test_get_request_data(default_project):
         )
 
     error_events = [
-        GroupEvent(
+        EventDict(
             category="error",
             id="123",
             title="ZeroDivisionError",
             timestamp=3.0,
             message="division by zero",
         ),
-        GroupEvent(
+        EventDict(
             category="error",
             id="234",
             title="BadError",
