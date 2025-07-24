@@ -5,7 +5,7 @@ from sentry.testutils.cases import TestCase
 
 
 class ChainedExceptionTest(TestCase):
-    def test_ignores_mechanism_in_python_sdk_version_3_chained_exception_events(self):
+    def test_ignores_mechanism_in_python_sdk_version_3_chained_exception_events(self) -> None:
         # First, get hashes for an event with no `mechanism` data
         event_data: dict[str, Any] = {
             "platform": "python",

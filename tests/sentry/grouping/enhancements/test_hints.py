@@ -331,13 +331,13 @@ def test_get_hint_for_frame(
     ],
 )
 def test_combining_hints(
-    variant_name,
-    in_app,
-    contributes,
-    in_app_hint,
-    contributes_hint,
-    expected_result,
-):
+    variant_name: str,
+    in_app: bool,
+    contributes: bool,
+    in_app_hint: str | None,
+    contributes_hint: str | None,
+    expected_result: str | None,
+) -> None:
     frame_component = FrameGroupingComponent(in_app=in_app, contributes=contributes, values=[])
     assert (
         _combine_hints(variant_name, frame_component, in_app_hint, contributes_hint)

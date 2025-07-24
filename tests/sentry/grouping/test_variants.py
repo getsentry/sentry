@@ -59,7 +59,7 @@ def test_variants_with_full_pipeline(
     grouping_input: GroupingInput,
     insta_snapshot: InstaSnapshotter,
     default_project: Project,
-):
+) -> None:
     """
     Run the variant snapshot tests using the full `EventManager.save` process.
 
@@ -115,7 +115,7 @@ def _assert_and_snapshot_results(
 
 @django_db_all
 # TODO: This can be deleted after Jan 2025, when affected events have aged out
-def test_old_event_with_no_fingerprint_rule_text():
+def test_old_event_with_no_fingerprint_rule_text() -> None:
     variant = CustomFingerprintVariant(
         ["dogs are great"],
         {
