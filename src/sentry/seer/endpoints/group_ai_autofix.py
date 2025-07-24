@@ -73,7 +73,6 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             check_repo_access=check_repo_access,
             is_user_fetching=bool(is_user_watching),
         )
-        # here
 
         if check_repo_access:
             cache.set(access_check_cache_key, True, timeout=60)  # 1 minute timeout
