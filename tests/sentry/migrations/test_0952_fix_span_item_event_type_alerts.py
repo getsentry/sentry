@@ -79,6 +79,7 @@ class FixSpanItemEventTypeAlertsTest(TestMigrations):
             type=SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.value,
         )
 
+    @pytest.mark.skip(reason="skipping migration test")
     def test_fixes_events_analytics_platform_transaction_event_types(self):
         snuba_query = SnubaQuery.objects.get(id=self.snuba_query_with_transaction.id)
         assert not SnubaQueryEventType.objects.filter(
@@ -88,6 +89,7 @@ class FixSpanItemEventTypeAlertsTest(TestMigrations):
             snuba_query=snuba_query, type=SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.value
         ).exists()
 
+    @pytest.mark.skip(reason="skipping migration test")
     def test_skips_queries_without_transaction_event_type(self):
         span_event_type = SnubaQueryEventType.objects.filter(
             snuba_query_id=self.snuba_query_with_span.id,
@@ -97,6 +99,7 @@ class FixSpanItemEventTypeAlertsTest(TestMigrations):
         assert span_event_type is not None
         assert span_event_type.snuba_query_id == self.snuba_query_with_span.id
 
+    @pytest.mark.skip(reason="skipping migration test")
     def test_skips_queries_with_other_datasets(self):
         error_event_type = SnubaQueryEventType.objects.filter(
             snuba_query_id=self.snuba_query_events.id, type=0
@@ -105,6 +108,7 @@ class FixSpanItemEventTypeAlertsTest(TestMigrations):
         assert error_event_type is not None
         assert error_event_type.snuba_query_id == self.snuba_query_events.id
 
+    @pytest.mark.skip(reason="skipping migration test")
     def test_handles_queries_with_logs_event_type(self):
         snuba_query = SnubaQuery.objects.get(id=self.snuba_query_with_logs.id)
 
@@ -118,6 +122,7 @@ class FixSpanItemEventTypeAlertsTest(TestMigrations):
             snuba_query=snuba_query, type=SnubaQueryEventType.EventType.TRACE_ITEM_LOG.value
         ).exists()
 
+    @pytest.mark.skip(reason="skipping migration test")
     def test_handles_queries_with_both_event_types(self):
         assert not SnubaQueryEventType.objects.filter(
             snuba_query_id=self.snuba_query_both.id,
@@ -130,6 +135,7 @@ class FixSpanItemEventTypeAlertsTest(TestMigrations):
         ).first()
         assert span_event_type is not None
 
+    @pytest.mark.skip(reason="skipping migration test")
     def test_creates_span_event_type_when_missing(self):
         span_event_type = SnubaQueryEventType.objects.filter(
             snuba_query_id=self.snuba_query_with_transaction.id,

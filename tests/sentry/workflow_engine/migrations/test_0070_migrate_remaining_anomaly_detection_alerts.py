@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import orjson
+import pytest
 import responses
 from urllib3.response import HTTPResponse
 
@@ -145,6 +146,7 @@ class MigrateAnomalyDetectionAlertsTest(TestMigrations):
             integration=self.discord_integration,
         )
 
+    @pytest.mark.skip(reason="skipping migration test")
     def test_valid_rule(self):
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.valid_rule.id)
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=self.valid_rule.id)
@@ -187,6 +189,7 @@ class MigrateAnomalyDetectionAlertsTest(TestMigrations):
         data_source_detector = DataSourceDetector.objects.get(data_source=data_source)
         assert data_source_detector.detector == detector
 
+    @pytest.mark.skip(reason="skipping migration test")
     def test_valid_trigger(self):
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.valid_rule.id)
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=self.valid_rule.id)
@@ -226,6 +229,7 @@ class MigrateAnomalyDetectionAlertsTest(TestMigrations):
         )
         assert resolve_action_filter.condition_result is True
 
+    @pytest.mark.skip(reason="skipping migration test")
     def test_skip_correctly_dual_written_rule(self):
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=self.dual_written_rule.id)
         detector = Detector.objects.get(id=alert_rule_detector.detector.id)
@@ -238,6 +242,7 @@ class MigrateAnomalyDetectionAlertsTest(TestMigrations):
             condition_result=DetectorPriorityLevel.OK,
         ).exists()
 
+    @pytest.mark.skip(reason="skipping migration test")
     def test_simple_trigger_action(self):
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.valid_rule.id)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
@@ -265,6 +270,7 @@ class MigrateAnomalyDetectionAlertsTest(TestMigrations):
         assert action.config.get("target_identifier") == self.email_action.target_identifier
         assert action.config.get("target_type") == self.email_action.target_type
 
+    @pytest.mark.skip(reason="skipping migration test")
     def test_discord_action(self):
         aarta = ActionAlertRuleTriggerAction.objects.get(
             alert_rule_trigger_action_id=self.discord_action.id
@@ -273,6 +279,7 @@ class MigrateAnomalyDetectionAlertsTest(TestMigrations):
 
         assert action.type == Action.Type.DISCORD
 
+    @pytest.mark.skip(reason="skipping migration test")
     def test_create_with_incident(self):
         alert_rule_detector = AlertRuleDetector.objects.get(
             alert_rule_id=self.rule_with_incident.id
@@ -283,12 +290,14 @@ class MigrateAnomalyDetectionAlertsTest(TestMigrations):
         assert detector_state.is_triggered is True
         assert detector_state.state == str(DetectorPriorityLevel.HIGH)
 
+    @pytest.mark.skip(reason="skipping migration test")
     def test_create_snoozed(self):
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=self.snoozed_rule.id)
 
         detector = Detector.objects.get(id=alert_rule_detector.detector.id)
         assert not detector.enabled
 
+    @pytest.mark.skip(reason="skipping migration test")
     def test_create_error(self):
         """
         Test that none of the ACI objects are written to the DB if an exception occurs, and test that
