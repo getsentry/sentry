@@ -95,7 +95,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 cohort_1_request,
             )
             totals_1_future = query_thread_pool.submit(
-                run_table_query,
+                Spans.run_table_query,
                 params=snuba_params,
                 query_string=query_1,
                 selected_columns=["count(span.duration)"],
@@ -113,7 +113,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
             )
 
             totals_2_future = query_thread_pool.submit(
-                run_table_query,
+                Spans.run_table_query,
                 params=snuba_params,
                 query_string=query_2,
                 selected_columns=["count(span.duration)"],
