@@ -162,21 +162,13 @@ class RedisQuotaTest(TestCase):
         assert quotas[4].window == 10
         assert quotas[4].reason_code == "project_abuse_limit"
 
-        assert quotas[5].id == "paspi"
+        assert quotas[5].id == "pal"
         assert quotas[5].scope == QuotaScope.PROJECT
         assert quotas[5].scope_id is None
-        assert quotas[5].categories == {DataCategory.SPAN_INDEXED}
-        assert quotas[5].limit == 6050
+        assert quotas[5].categories == {DataCategory.LOG_ITEM}
+        assert quotas[5].limit == 6060
         assert quotas[5].window == 10
         assert quotas[5].reason_code == "project_abuse_limit"
-
-        assert quotas[6].id == "pal"
-        assert quotas[6].scope == QuotaScope.PROJECT
-        assert quotas[6].scope_id is None
-        assert quotas[6].categories == {DataCategory.LOG_ITEM}
-        assert quotas[6].limit == 6060
-        assert quotas[6].window == 10
-        assert quotas[6].reason_code == "project_abuse_limit"
 
         expected_quotas: dict[tuple[QuotaScope, UseCaseID | None], str] = dict()
         for scope, prefix in [
