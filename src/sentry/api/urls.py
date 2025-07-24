@@ -329,8 +329,10 @@ from sentry.replays.endpoints.project_replay_recording_segment_index import (
     ProjectReplayRecordingSegmentIndexEndpoint,
 )
 from sentry.replays.endpoints.project_replay_summarize_breadcrumbs import (
-    ProjectReplaySummarizeBreadcrumbsAsyncEndpoint,
     ProjectReplaySummarizeBreadcrumbsEndpoint,
+)
+from sentry.replays.endpoints.project_replay_summarize_breadcrumbs_async import (
+    ProjectReplaySummarizeBreadcrumbsAsyncEndpoint,
 )
 from sentry.replays.endpoints.project_replay_video_details import ProjectReplayVideoDetailsEndpoint
 from sentry.replays.endpoints.project_replay_viewed_by import ProjectReplayViewedByEndpoint
