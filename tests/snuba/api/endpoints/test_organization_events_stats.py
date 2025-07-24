@@ -3275,12 +3275,9 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
 
-    def test_top_events_with_query_on_field(self):
+    def test_top_events_with_array_field(self):
         """
-        Test that if there is a query on one of the group by fields, the top
-        events are filtered correctly. In this case, we are asking for the top 2
-        error types, with a query on the `error.type` field. The test data only
-        has two error types, so there should _not_ be an `"Other"` group.
+        Test that when doing a qurey on top events with an array field that its handled correctly
         """
 
         with self.feature(self.enabled_features):
