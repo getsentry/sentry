@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
+from sentry.analytics.events.issue_auto_resolved import IssueAutoResolvedEvent
 from sentry.issues.grouptype import (
     PerformanceP95EndpointRegressionGroupType,
     PerformanceSlowDBQueryGroupType,
@@ -12,6 +13,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.tasks.auto_resolve_issues import schedule_auto_resolution
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.features import with_feature
 
 
@@ -80,13 +82,15 @@ class ScheduleAutoResolutionTest(TestCase):
         assert project3.get_option("sentry:_last_auto_resolve") == current_ts
         # this should get cleaned up since it had no resolve age set
         assert not project4.get_option("sentry:_last_auto_resolve")
-        mock_record.assert_any_call(
-            "issue.auto_resolved",
-            project_id=project.id,
-            organization_id=project.organization_id,
-            group_id=group1.id,
-            issue_type="error",
-            issue_category="error",
+        assert_any_analytics_event(
+            mock_record,
+            IssueAutoResolvedEvent(
+                project_id=project.id,
+                organization_id=project.organization_id,
+                group_id=group1.id,
+                issue_type="error",
+                issue_category="error",
+            ),
         )
 
     @patch("sentry.tasks.auto_ongoing_issues.backend")
