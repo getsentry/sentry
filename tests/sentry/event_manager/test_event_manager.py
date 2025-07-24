@@ -3176,7 +3176,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager.normalize()
         manager.save(self.project.id)
 
-        # Verify that set_subkeys was called with cache_on_write=True
         mock_set_cache_item.assert_called_once()
 
         # Test that cache_on_write=False is passed to nodestore for non-error events
