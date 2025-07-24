@@ -171,6 +171,7 @@ type ErrorFieldKey =
   | FieldKey.ASSIGNED_OR_SUGGESTED
   | FieldKey.BOOKMARKS
   | FieldKey.CULPRIT
+  | FieldKey.DETECTOR
   | FieldKey.ERROR_HANDLED
   | FieldKey.ERROR_MECHANISM
   | FieldKey.ERROR_TYPE
@@ -1470,11 +1471,6 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FieldKey.DETECTOR]: {
-    desc: t('The detector that triggered the issue'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
   [FieldKey.HTTP_STATUS_CODE]: {
     desc: t('Type of response (i.e., 200, 404)'),
     kind: FieldKind.FIELD,
@@ -1585,6 +1581,11 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
   },
   [FieldKey.CULPRIT]: {
     deprecated: true,
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.DETECTOR]: {
+    desc: t('The detector that triggered the issue'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
