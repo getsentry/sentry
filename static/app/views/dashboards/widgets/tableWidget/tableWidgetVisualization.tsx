@@ -323,4 +323,5 @@ TableWidgetVisualization.LoadingPlaceholder = function ({
 
 const StyledTooltip = styled(Tooltip)`
   display: initial;
+  vertical-align: middle;
 `;
