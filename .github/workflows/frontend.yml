@@ -210,7 +210,7 @@ jobs:
           if [ ${{ github.ref }} = 'refs/heads/master' ]; then
             pnpm run test-ci --forceExit --coverage
           else
-            pnpm run test-ci --forceExit
+            pnpm run test-ci --forceExit --coverage
           fi
 
       # We only upload coverage data for FE changes since it conflicts with
