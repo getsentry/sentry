@@ -1,5 +1,5 @@
 import logging
-from typing import TypedDict
+from typing import Any, TypedDict
 
 import requests
 from django.conf import settings
@@ -58,6 +58,36 @@ class ProjectReplaySummarizeBreadcrumbsAsyncEndpoint(ProjectEndpoint):
             "organizations:gen-ai-features",
         ]
 
+    def make_seer_request(self, url: str, post_body: dict[str, Any]) -> Response:
+        """Make a POST request to a Seer endpoint. Raises HTTPError and logs non-200 status codes."""
+        data = json.dumps(post_body)
+        try:
+            response = requests.post(
+                url,
+                data=data,
+                headers={
+                    "content-type": "application/json;charset=utf-8",
+                    **sign_with_seer_secret(data.encode()),
+                },
+            )
+        except requests.exceptions.Timeout:
+            logger.warning(
+                "Replay: Seer timed out when starting a replay breadcrumbs summary",
+            )
+            self.respond(status=504)
+
+        if response.status_code != 200:
+            logger.warning(
+                "Replay: Seer returned error when starting a replay breadcrumbs summary",
+                extra={
+                    "status_code": response.status_code,
+                    "response": response.text,
+                    "content": response.content,
+                },
+            )
+        response.raise_for_status()
+        return Response(data=response.json(), status=response.status_code)
+
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
         """Poll for the status of a replay summary task in Seer."""
         if not all(
@@ -66,32 +96,15 @@ class ProjectReplaySummarizeBreadcrumbsAsyncEndpoint(ProjectEndpoint):
         ):
             return self.respond(status=404)
 
-        seer_request = json.dumps(
-            {
-                "replay_id": replay_id,
-            }
-        )
-
         # Request Seer for the state of the summary task.
-        response = requests.post(
+        seer_request = {
+            "replay_id": replay_id,
+        }
+
+        return self.make_seer_request(
             f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/replay/breadcrumbs/state",
-            data=seer_request,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(seer_request.encode()),
-            },
+            seer_request,
         )
-        if response.status_code != 200:
-            logger.warning(
-                "Replay: Seer returned error when polling for replay breadcrumbs summary",
-                extra={
-                    "status_code": response.status_code,
-                    "response": response.text,
-                    "content": response.content,
-                },
-            )
-        response.raise_for_status()
-        return response
 
     def post(self, request: Request, project: Project, replay_id: str) -> Response:
         """Start a replay summary task in Seer."""
@@ -138,34 +151,15 @@ class ProjectReplaySummarizeBreadcrumbsAsyncEndpoint(ProjectEndpoint):
         logs = get_summary_logs(segment_data, error_events, project.id)
 
         # Post to Seer to start a summary task.
-        seer_request = json.dumps(
+        # XXX: Request isn't streaming. Limitation of Seer authentication. Would be much faster if we
+        # could stream the request data since the GCS download will (likely) dominate latency.
+        return self.make_seer_request(
+            f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/replay/breadcrumbs/start",
             {
                 "logs": logs,
                 "num_segments": len(segment_md),
                 "replay_id": replay_id,
                 "organization_id": project.organization.id,
                 "project_id": project.id,
-            }
-        )
-
-        # XXX: Request isn't streaming. Limitation of Seer authentication. Would be much faster if we
-        # could stream the request data since the GCS download will (likely) dominate latency.
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/replay/breadcrumbs/start",
-            data=seer_request,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(seer_request.encode()),
             },
         )
-        if response.status_code != 200:
-            logger.warning(
-                "Replay: Seer returned error when starting a replay breadcrumbs summary",
-                extra={
-                    "status_code": response.status_code,
-                    "response": response.text,
-                    "content": response.content,
-                },
-            )
-        response.raise_for_status()
-        return response
