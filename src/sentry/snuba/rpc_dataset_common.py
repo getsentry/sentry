@@ -99,8 +99,9 @@ class RPCBase:
             definitions=cls.DEFINITIONS,
         )
 
-    @staticmethod
+    @classmethod
     def categorize_column(
+        cls,
         column: AnyResolved,
     ) -> Column:
         # Can't do bare literals, so they're actually formulas with +0
@@ -115,8 +116,9 @@ class RPCBase:
         else:
             return Column(key=column.proto_definition, label=column.public_alias)
 
-    @staticmethod
+    @classmethod
     def categorize_aggregate(
+        cls,
         column: AnyResolved,
     ) -> Expression:
         if isinstance(column, (ResolvedFormula, ResolvedEquation)):
@@ -265,8 +267,9 @@ class RPCBase:
         }
         return results
 
-    @staticmethod
+    @classmethod
     def process_table_response(
+        cls,
         rpc_response: TraceItemTableResponse,
         table_request: TableRequest,
         debug: bool = False,
@@ -323,8 +326,9 @@ class RPCBase:
 
     """ Timeseries Methods """
 
-    @staticmethod
+    @classmethod
     def validate_granularity(
+        cls,
         params: SnubaParams,
     ) -> None:
         """The granularity has already been somewhat validated by src/sentry/utils/dates.py:validate_granularity
@@ -341,9 +345,9 @@ class RPCBase:
                 f"Selected interval is not allowed, allowed intervals are: {sorted(VALID_GRANULARITIES)}"
             )
 
-    @staticmethod
+    @classmethod
     def update_timestamps(
-        params: SnubaParams, resolver: SearchResolver
+        cls, params: SnubaParams, resolver: SearchResolver
     ) -> tuple[TraceItemFilter | None, SnubaParams]:
         """We need to update snuba params to query a wider period than requested so that we get aligned granularities while
         still querying the requested period
@@ -403,8 +407,8 @@ class RPCBase:
         else:
             raise InvalidSearchQuery("start, end and interval are required")
 
-    @staticmethod
-    def process_timeseries_list(timeseries_list: list[TimeSeries]) -> ProcessedTimeseries:
+    @classmethod
+    def process_timeseries_list(cls, timeseries_list: list[TimeSeries]) -> ProcessedTimeseries:
         result = ProcessedTimeseries()
 
         for timeseries in timeseries_list:

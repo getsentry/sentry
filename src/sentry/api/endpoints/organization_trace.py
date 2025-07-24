@@ -333,23 +333,23 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
         errors_query = self.errors_query(snuba_params, trace_id, error_id)
         occurrence_query = self.perf_issues_query(snuba_params, trace_id)
 
-        query_thread_pool = ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=3)
-        spans_future = query_thread_pool.submit(
-            Spans.run_trace_query,
-            params=snuba_params,
-            trace_id=trace_id,
-            referrer=Referrer.API_TRACE_VIEW_GET_EVENTS.value,
-            config=SearchResolverConfig(),
-            additional_attributes=additional_attributes,
-        )
-        errors_future = query_thread_pool.submit(
-            self.run_errors_query,
-            errors_query,
-        )
-        occurrence_future = query_thread_pool.submit(
-            self.run_perf_issues_query,
-            occurrence_query,
-        )
+        with ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=3) as query_thread_pool:
+            spans_future = query_thread_pool.submit(
+                Spans.run_trace_query,
+                params=snuba_params,
+                trace_id=trace_id,
+                referrer=Referrer.API_TRACE_VIEW_GET_EVENTS.value,
+                config=SearchResolverConfig(),
+                additional_attributes=additional_attributes,
+            )
+            errors_future = query_thread_pool.submit(
+                self.run_errors_query,
+                errors_query,
+            )
+            occurrence_future = query_thread_pool.submit(
+                self.run_perf_issues_query,
+                occurrence_query,
+            )
 
         spans_data = spans_future.result()
         errors_data = errors_future.result()
