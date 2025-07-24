@@ -145,7 +145,7 @@ export function useSortedFilterKeyItems({
   } = useSearchQueryBuilder();
   const organization = useOrganization();
   const hasWildcardSearch = organization.features.includes(
-    'search-query-builder-wildcard-search'
+    'search-query-builder-wildcard-operators'
   );
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
