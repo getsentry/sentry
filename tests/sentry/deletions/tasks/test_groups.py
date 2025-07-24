@@ -118,6 +118,7 @@ class DeleteGroupTest(TestCase):
     def test_scheduled_tasks_with_too_many_groups(self) -> None:
         NEW_CHUNK_SIZE = 2
         groups = self.create_n_groups_with_hashes(NEW_CHUNK_SIZE + 1, self.project)
+        assert len(groups) > NEW_CHUNK_SIZE
         group_ids = [group.id for group in groups]
 
         with (
