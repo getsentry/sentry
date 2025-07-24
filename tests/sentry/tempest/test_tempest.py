@@ -26,6 +26,18 @@ class TempestTasksTest(TestCase):
         mock_fetch.assert_called_once()
 
     @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")
+    def test_fetch_latest_item_id_task_no_id(self, mock_fetch):
+        mock_fetch.return_value = Mock()
+        mock_fetch.return_value.json.return_value = {"latest_id": None}
+
+        fetch_latest_item_id(self.credentials.id)
+
+        self.credentials.refresh_from_db()
+        assert self.credentials.message == "No crashes found"
+        assert self.credentials.message_type == MessageType.WARNING
+        assert self.credentials.latest_fetched_item_id is None
+
+    @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")
     def test_fetch_latest_item_id_error(self, mock_fetch):
         mock_fetch.return_value = Mock()
         mock_fetch.return_value.json.return_value = {

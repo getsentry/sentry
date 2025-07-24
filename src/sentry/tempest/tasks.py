@@ -65,11 +65,21 @@ def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
         result = response.json()
 
         if "latest_id" in result:
-            credentials.latest_fetched_item_id = result["latest_id"]
-            credentials.message = ""
-            credentials.message_type = MessageType.SUCCESS
-            credentials.save(update_fields=["message", "latest_fetched_item_id", "message_type"])
-            return
+            if result["latest_id"] is None:
+                # If there are no crashes in the CRS we want to communicate that back to the
+                # customer so that they are not surprised about no crashes arriving.
+                credentials.message = "No crashes found"
+                credentials.message_type = MessageType.WARNING
+                credentials.save(update_fields=["message", "message_type"])
+                return
+            else:
+                credentials.latest_fetched_item_id = result["latest_id"]
+                credentials.message = ""
+                credentials.message_type = MessageType.SUCCESS
+                credentials.save(
+                    update_fields=["message", "latest_fetched_item_id", "message_type"]
+                )
+                return
         elif "error" in result:
             if result["error"]["type"] == "invalid_credentials":
                 credentials.message = "Seems like the provided credentials are invalid"
