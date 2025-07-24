@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Sequence
 
 from snuba_sdk import Column, Condition, Function, Op
 

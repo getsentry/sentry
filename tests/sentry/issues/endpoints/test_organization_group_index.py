@@ -1501,7 +1501,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         release_1_g_1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_1.version,
             },
@@ -1509,7 +1509,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         release_1_g_2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "fingerprint": ["group-2"],
                 "release": release_1.version,
             },
@@ -1517,7 +1517,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         release_2_g_1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=5)),
+                "timestamp": before_now(minutes=5).isoformat(),
                 "fingerprint": ["group-5"],
                 "release": release_2.version,
             },
@@ -1525,7 +1525,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         release_2_g_2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=6)),
+                "timestamp": before_now(minutes=6).isoformat(),
                 "fingerprint": ["group-6"],
                 "release": release_2.version,
             },
@@ -1535,7 +1535,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # other events that shouldnt be returned
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=3)),
+                "timestamp": before_now(minutes=3).isoformat(),
                 "fingerprint": ["group-3"],
                 "release": release_3.version,
             },
@@ -1543,7 +1543,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=4)),
+                "timestamp": before_now(minutes=4).isoformat(),
                 "fingerprint": ["group-4"],
                 "release": release_3.version,
             },
