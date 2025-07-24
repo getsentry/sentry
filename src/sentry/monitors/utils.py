@@ -257,8 +257,8 @@ def create_issue_alert_rule(
         environment=data.get("environment"),
         filter_match=data.get("filterMatch"),
         request=request,
+        source=RuleSource.CRON_MONITOR,
     ).run()
-    rule.update(source=RuleSource.CRON_MONITOR)
     RuleActivity.objects.create(
         rule=rule, user_id=request.user.id, type=RuleActivityType.CREATED.value
     )
