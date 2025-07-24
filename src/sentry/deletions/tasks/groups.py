@@ -13,6 +13,7 @@ from sentry.tasks.base import instrumented_task, retry, track_group_async_operat
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import deletion_tasks
 from sentry.taskworker.retry import Retry
+from sentry.utils import metrics
 
 
 @instrumented_task(
@@ -48,6 +49,9 @@ def delete_groups_old(
     if not first_group:
         raise DeleteAborted("delete_groups.no_group_found")
 
+    # This is a no-op on the Snuba side, however, one day it may not be.
+    eventstream_state = eventstream.backend.start_delete_groups(first_group.project_id, object_ids)
+
     # The tags can be used if we want to find errors for when a task fails
     sentry_sdk.set_tags(
         {
@@ -74,13 +78,25 @@ def delete_groups_old(
     )
     has_more = task.chunk()
     if has_more or rest:
-        delete_groups_for_project_task.apply_async(
+        # I want confirmation that this is not happening since the deletion task
+        # uses the same chunking logic.
+        metrics.incr("deletions.groups.delete_groups_old.chunked", 1, sample_rate=1)
+        sentry_sdk.capture_message(
+            "This should not be happening",
+            level="info",
+            # Use this to query the logs
+            tags={"transaction_id": transaction_id},
+        )
+        delete_groups_old.apply_async(
             kwargs={
                 "object_ids": object_ids if has_more else rest,
                 "project_id": first_group.project_id,
                 "transaction_id": transaction_id,
             },
         )
+    else:
+        # This will delete all Snuba events for all deleted groups
+        eventstream.backend.end_delete_groups(eventstream_state)
 
 
 @instrumented_task(
@@ -121,8 +137,6 @@ def delete_groups_for_project_task(
 
     assert project_id is not None, "project_id is required"
 
-    # This is a no-op on the Snuba side, however, one day it may be.
-    eventstream_state = eventstream.backend.start_delete_groups(project_id, object_ids)
     delete_groups_old(
         object_ids=object_ids,
         transaction_id=transaction_id,
@@ -130,5 +144,3 @@ def delete_groups_for_project_task(
         project_id=project_id,
         **kwargs,
     )
-    # This will delete all Snuba events for the groups that were deleted.
-    eventstream.backend.end_delete_groups(eventstream_state)
