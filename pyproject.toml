@@ -434,6 +434,7 @@ module = [
     "sentry.utils.numbers",
     "sentry.utils.otp",
     "sentry.utils.projectflags",
+    "sentry.utils.prompts",
     "sentry.utils.pubsub",
     "sentry.utils.redis",
     "sentry.utils.redis_metrics",
