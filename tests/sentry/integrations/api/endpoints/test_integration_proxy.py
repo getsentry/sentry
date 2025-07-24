@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import Any, TypedDict
 from unittest.mock import MagicMock, Mock, patch
 
 from django.http.request import HttpHeaders
@@ -14,6 +14,7 @@ from sentry.integrations.client import ApiClient
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.metrics.base import Tags
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError
 from sentry.silo.base import SiloMode
@@ -87,7 +88,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         count: int,
         mock_metrics: MagicMock,
         metric_prefix: str = "hybrid_cloud.integration_proxy",
-        kwargs_to_match: dict[str, str | int] | None = None,
+        kwargs_to_match: dict[str, Any] | None = None,
     ):
         metric_name = f"{metric_prefix}.{metric_name}"
         logged_metrics = {call.args[0] for call in mock_metrics.call_args_list}
@@ -116,13 +117,13 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         failure_type: str,
         count: int,
         mock_metrics: MagicMock,
-        kwargs_to_match: dict[str, str | int] | None = None,
+        tags: Tags | None = None,
     ):
         metric_name = "proxy_failure"
-        if kwargs_to_match is None:
-            kwargs_to_match = {}
-
-        kwargs = {"tags": {"failure_type": failure_type}, **kwargs_to_match}
+        kwargs: dict[str, Any] = {
+            "sample_rate": 1.0,
+            "tags": {"failure_type": failure_type, **(tags or {})},
+        }
         self.assert_metric_count(
             metric_name=metric_name,
             count=count,
@@ -200,7 +201,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             metric_name="initialize",
             count=1,
             mock_metrics=mock_metrics,
-            kwargs_to_match={"sample_rate": 1.0},
+            kwargs_to_match={"sample_rate": 1.0, "tags": None},
         )
         self.assert_metric_count(
             metric_name="complete.response_code",
@@ -258,7 +259,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             metric_name="initialize",
             count=1,
             mock_metrics=mock_metrics,
-            kwargs_to_match={"sample_rate": 1.0},
+            kwargs_to_match={"sample_rate": 1.0, "tags": None},
         )
         self.assert_metric_count(
             metric_name="complete.response_code",
@@ -304,7 +305,6 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             failure_type="invalid_request",
             count=1,
             mock_metrics=mock_metrics,
-            kwargs_to_match={"sample_rate": 1.0},
         )
 
     @override_settings(SENTRY_SUBNET_SECRET=secret, SILO_MODE=SiloMode.CONTROL)
@@ -378,7 +378,6 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             failure_type="invalid_client",
             count=1,
             mock_metrics=mock_metrics,
-            kwargs_to_match={"sample_rate": 1.0},
         )
 
     @patch.object(Integration, "get_installation")
@@ -427,13 +426,12 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             metric_name="initialize",
             count=1,
             mock_metrics=mock_metrics,
-            kwargs_to_match={"sample_rate": 1.0},
+            kwargs_to_match={"sample_rate": 1.0, "tags": None},
         )
         self.assert_failure_metric_count(
             failure_type="invalid_identity",
             count=1,
             mock_metrics=mock_metrics,
-            kwargs_to_match={"sample_rate": 1.0},
         )
         self.assert_metric_count(
             metric_name="complete.response_code",
@@ -470,18 +468,18 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             metric_name="initialize",
             count=1,
             mock_metrics=mock_metrics,
-            kwargs_to_match={"sample_rate": 1.0},
+            kwargs_to_match={"sample_rate": 1.0, "tags": None},
         )
         self.assert_failure_metric_count(
             failure_type="host_unreachable_error",
             count=1,
             mock_metrics=mock_metrics,
-            kwargs_to_match={"sample_rate": 1.0},
         )
         self.assert_metric_count(
             metric_name="complete.response_code",
             count=0,
             mock_metrics=mock_metrics,
+            kwargs_to_match={"tags": None},
         )
 
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
@@ -513,13 +511,12 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             metric_name="initialize",
             count=1,
             mock_metrics=mock_metrics,
-            kwargs_to_match={"sample_rate": 1.0},
+            kwargs_to_match={"sample_rate": 1.0, "tags": None},
         )
         self.assert_failure_metric_count(
             failure_type="host_timeout_error",
             count=1,
             mock_metrics=mock_metrics,
-            kwargs_to_match={"sample_rate": 1.0},
         )
         self.assert_metric_count(
             metric_name="complete.response_code",
@@ -553,13 +550,12 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             metric_name="initialize",
             count=1,
             mock_metrics=mock_metrics,
-            kwargs_to_match={"sample_rate": 1.0},
+            kwargs_to_match={"sample_rate": 1.0, "tags": None},
         )
         self.assert_failure_metric_count(
             failure_type="unknown_error",
             count=1,
             mock_metrics=mock_metrics,
-            kwargs_to_match={"sample_rate": 1.0},
         )
         self.assert_metric_count(
             metric_name="complete.response_code",

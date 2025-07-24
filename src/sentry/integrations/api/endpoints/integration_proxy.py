@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urljoin
 
+from django.conf import settings
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from requests import Request, Response
 from rest_framework.request import Request as DRFRequest
@@ -18,6 +19,7 @@ from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.metrics.base import Tags
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
@@ -69,28 +71,29 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         self,
         metric_name: str,
         sample_rate: float | None = None,
-        tags: dict[str, str] | None = None,
+        tags: Tags | None = None,
     ):
-        extras = {"tags": tags} if tags is not None else {}
+        if sample_rate is None:
+            sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
 
         metrics.incr(
             f"{METRIC_PREFIX}.{metric_name}",
             sample_rate=sample_rate,
-            **extras,
+            tags=tags,
         )
 
     def _add_failure_metric(
         self,
         failure_type: str,
-        sample_rate: float | None = None,
         additional_tags: dict[str, str] | None = None,
     ):
         if additional_tags is None:
             additional_tags = {}
         tags = {"failure_type": failure_type, **additional_tags}
+
         self._add_metric(
             metric_name="proxy_failure",
-            sample_rate=sample_rate,
+            sample_rate=1.0,
             tags=tags,
         )
 
@@ -103,7 +106,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         base_url = request.headers.get(PROXY_BASE_URL_HEADER)
         if signature is None or identifier is None or base_url is None:
             logger.info("integration_proxy.invalid_sender_headers", extra=self.log_extra)
-            self._add_failure_metric("invalid_sender_headers", sample_rate=1.0)
+            self._add_failure_metric("invalid_sender_headers")
             return False
         is_valid = verify_subnet_signature(
             base_url=base_url,
@@ -114,7 +117,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         )
         if not is_valid:
             logger.info("integration_proxy.invalid_sender_signature", extra=self.log_extra)
-            self._add_failure_metric("invalid_sender_signature", sample_rate=1.0)
+            self._add_failure_metric("invalid_sender_signature")
 
         return is_valid
 
@@ -171,7 +174,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         self.log_extra["client_type"] = client_class.__name__
         if not issubclass(client_class, IntegrationProxyClient):
             logger.info("integration_proxy.invalid_client", extra=self.log_extra)
-            self._add_failure_metric("invalid_client", sample_rate=1.0)
+            self._add_failure_metric("invalid_client")
             return False
 
         return True
@@ -184,19 +187,19 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         if not is_correct_silo:
             self.log_extra["silo_mode"] = SiloMode.get_current_mode().value
             logger.info("integration_proxy.incorrect_silo_mode", extra=self.log_extra)
-            self._add_failure_metric("invalid_mode", sample_rate=1.0)
+            self._add_failure_metric("invalid_mode")
             return False
 
         is_valid_sender = self._validate_sender(request=request)
         if not is_valid_sender:
             logger.info("integration_proxy.failure.invalid_sender", extra=self.log_extra)
-            self._add_failure_metric("invalid_sender", sample_rate=1.0)
+            self._add_failure_metric("invalid_sender")
             return False
 
         is_valid_request = self._validate_request(request=request)
         if not is_valid_request:
             logger.info("integration_proxy.failure.invalid_request", extra=self.log_extra)
-            self._add_failure_metric("invalid_request", sample_rate=1.0)
+            self._add_failure_metric("invalid_request")
             return False
         return True
 
@@ -264,18 +267,18 @@ class InternalIntegrationProxyEndpoint(Endpoint):
     ) -> DRFResponse:
         if isinstance(exc, IdentityNotValid):
             logger.warning("hybrid_cloud.integration_proxy.invalid_identity", extra=self.log_extra)
-            self._add_failure_metric("invalid_identity", sample_rate=1.0)
+            self._add_failure_metric("invalid_identity")
             return self.respond(status=400)
         elif isinstance(exc, ApiHostError):
             logger.info(
                 "hybrid_cloud.integration_proxy.host_unreachable_error", extra=self.log_extra
             )
-            self._add_failure_metric("host_unreachable_error", sample_rate=1.0)
+            self._add_failure_metric("host_unreachable_error")
             return self.respond(status=exc.code)
         elif isinstance(exc, ApiTimeoutError):
             logger.info("hybrid_cloud.integration_proxy.host_timeout_error", extra=self.log_extra)
-            self._add_failure_metric("host_timeout_error", sample_rate=1.0)
+            self._add_failure_metric("host_timeout_error")
             return self.respond(status=exc.code)
 
-        self._add_failure_metric("unknown_error", sample_rate=1.0)
+        self._add_failure_metric("unknown_error")
         return super().handle_exception_with_details(request, exc, handler_context, scope)
