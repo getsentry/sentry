@@ -117,7 +117,9 @@ class DeleteGroupTest(TestCase):
 
     def test_scheduled_tasks_with_too_many_groups(self) -> None:
         NEW_CHUNK_SIZE = 2
-        group_ids = [123] * (NEW_CHUNK_SIZE + 1)
+        groups = self.create_n_groups_with_hashes(NEW_CHUNK_SIZE + 1, self.project)
+        group_ids = [group.id for group in groups]
+
         with (
             patch("sentry.deletions.tasks.groups.GROUP_CHUNK_SIZE", NEW_CHUNK_SIZE),
             self.tasks(),
