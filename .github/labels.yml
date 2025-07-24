@@ -360,6 +360,9 @@
 - name: wcgw
   color: 'F6F6F8'
   description: ''
+- name: 'system:flakiness'
+  color: 'EDEDED'
+  description: ''
 
 # Github Teams
 - name: 'GitHub Team: alerts-create-issues'
