@@ -95,5 +95,5 @@ class AppPlatformEvent(Generic[T]):
             "Request-ID": request_uuid,
             "Sentry-Hook-Resource": self.resource,
             "Sentry-Hook-Timestamp": str(int(time())),
-            "Sentry-Hook-Signature": self.install.sentry_app.build_signature(json.dumps(self.body)),
+            "Sentry-Hook-Signature": self.install.sentry_app.build_signature(self.body),
         }
