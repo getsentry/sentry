@@ -181,8 +181,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         metrics_enhanced_performance,
                         spans_indexed,
                         spans_metrics,
-                        spans_rpc,
-                        ourlogs,
+                        spans_rpc.Spans,
+                        ourlogs.OurLogs,
                         errors,
                         transactions,
                     ]

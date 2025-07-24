@@ -1638,7 +1638,7 @@ class TestGetLogsForEvent(TestCase):
         self.trace_id = "1234567890abcdef1234567890abcdef"
         self.now = before_now(minutes=0)
 
-    @patch("sentry.snuba.ourlogs.run_table_query")
+    @patch("sentry.snuba.ourlogs.OurLogs.run_table_query")
     def test_merging_consecutive_logs(self, mock_query):
         # Simulate logs with identical message/severity in sequence
         dt = self.now
