@@ -624,7 +624,7 @@ def post_process_group(
                     "is_reprocessed": is_reprocessed,
                     "has_reappeared": bool(not group_state["is_new"]),
                     "has_alert": False,
-                    "has_escalated": False,
+                    "has_escalated": kwargs.get("has_escalated", False),
                 }
             )
             metric_tags["occurrence_type"] = group_event.group.issue_type.slug
@@ -794,7 +794,8 @@ def process_inbox_adds(job: PostProcessJob) -> None:
 
 def process_snoozes(job: PostProcessJob) -> None:
     """
-    Set has_reappeared to True if the group is transitioning from "resolved" to "unresolved",
+    Set has_reappeared to True if the group is transitioning from "resolved" to "unresolved" and
+    set has_escalated to True if the group is transitioning from "archived until escalating" to "unresolved"
     otherwise set to False.
     """
     # we process snoozes before rules as it might create a regression
@@ -833,8 +834,7 @@ def process_snoozes(job: PostProcessJob) -> None:
             manage_issue_states(
                 group, GroupInboxReason.ESCALATING, event, activity_data={"forecast": forecast}
             )
-
-            job["has_reappeared"] = True
+            job["has_escalated"] = True
         return
 
     with metrics.timer("post_process.process_snoozes.duration"):
