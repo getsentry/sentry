@@ -170,6 +170,7 @@ def test_convert_span_links_to_json():
     message = {
         **SPAN_KAFKA_MESSAGE,
         "links": [
+            # A link with all properties
             {
                 "trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b",
                 "span_id": "8873a98879faf06d",
@@ -180,12 +181,14 @@ def test_convert_span_links_to_json():
                     "parent_depth": 17,
                     "confidence": "high",
                 },
-            }
+            },
+            # A link with missing optional properties
+            {"trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b", "span_id": "873a988879faf06d"},
         ],
     }
 
     item = convert_span_to_item(cast(Span, message))
 
     assert item.attributes.get("sentry.links") == AnyValue(
-        string_value='[{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b","span_id":"8873a98879faf06d","sampled":true,"attributes":{"sentry.link.type":"parent","sentry.dropped_attributes_count":4}}]'
+        string_value='[{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b","span_id":"8873a98879faf06d","sampled":true,"attributes":{"sentry.link.type":"parent","sentry.dropped_attributes_count":4}},{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b","span_id":"873a988879faf06d"}]'
     )
