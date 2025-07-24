@@ -5,15 +5,17 @@ from abc import ABC
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING, Any, ClassVar
 
+from django.conf import settings
 from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.urls import ResolverMatch, resolve
 from rest_framework import status
 
+import sentry.options as options
 from sentry.api.base import ONE_DAY
 from sentry.constants import ObjectStatus
-from sentry.hybridcloud.models.webhookpayload import WebhookPayload
+from sentry.hybridcloud.models.webhookpayload import DestinationType, WebhookPayload
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
@@ -176,6 +178,7 @@ class BaseRequestParser(ABC):
         shard_identifier = identifier or self.webhook_identifier.value
         for region in regions:
             WebhookPayload.create_from_request(
+                destination_type=DestinationType.SENTRY_REGION,
                 region=region.name,
                 provider=self.provider,
                 identifier=shard_identifier,
@@ -354,3 +357,42 @@ class BaseRequestParser(ABC):
 
     def get_default_missing_integration_response(self) -> HttpResponse:
         return HttpResponse(status=status.HTTP_400_BAD_REQUEST)
+
+    # Forwarding Helpers
+
+    def forward_to_codecov(
+        self,
+        external_id: str | None = None,
+    ):
+        if not settings.CODECOV_API_BASE_URL:
+            metrics.incr("codecov.forward-webhooks.no-base-url", sample_rate=0.01)
+            return
+
+        rollout_rate = options.get("codecov.forward-webhooks.rollout")
+
+        # we don't want to emit metrics unless we've started to roll this out
+        if not rollout_rate:
+            return
+
+        if not external_id:
+            metrics.incr("codecov.forward-webhooks.missing-external", sample_rate=0.01)
+            return
+
+        try:
+            installation_id = int(external_id)
+        except ValueError:
+            metrics.incr("codecov.forward-webhooks.installation-id-not-integer", sample_rate=0.01)
+            return
+
+        if ((installation_id % 100000) / 100000) < rollout_rate:
+            shard_identifier = f"codecov:{external_id}"
+
+            # create webhookpayloads for each service
+            WebhookPayload.create_from_request(
+                destination_type=DestinationType.CODECOV,
+                region=None,
+                provider=self.provider,
+                identifier=shard_identifier,
+                integration_id=None,
+                request=self.request,
+            )
