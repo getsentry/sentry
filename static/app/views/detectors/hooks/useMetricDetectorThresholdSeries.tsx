@@ -27,17 +27,17 @@ function createThresholdMarkLine(lineColor: string, threshold: number) {
 }
 
 function createThresholdMarkArea(areaColor: string, threshold: number, isAbove: boolean) {
-  // Highlight the "safe" area - opposite of the alert condition
-  const yAxis = isAbove
-    ? [{yAxis: 'min'}, {yAxis: threshold}]
-    : [{yAxis: threshold}, {yAxis: 'max'}];
-
   return MarkArea({
     silent: true,
     itemStyle: {
       color: color(areaColor).alpha(0.1).rgb().string(),
     },
-    data: [yAxis as any],
+    data: [
+      // Highlight the "safe" area - opposite of the alert condition
+      isAbove
+        ? [{yAxis: 'min'}, {yAxis: threshold}]
+        : [{yAxis: threshold}, {yAxis: 'max'}],
+    ],
   });
 }
 
@@ -160,7 +160,7 @@ export function useMetricDetectorThresholdSeries({
           areaStyle: {
             color: lineColor,
             opacity: 0.2,
-            origin: 'end', // Apply area style to the top of the chart
+            origin: isAbove ? 'end' : 'start', // Apply area style in appropriate direction
           },
           itemStyle: {color: lineColor},
           animation: false,
