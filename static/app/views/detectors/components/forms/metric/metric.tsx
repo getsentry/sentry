@@ -90,6 +90,12 @@ function MonitorKind() {
     ],
   ];
 
+  const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
+  // Disable choices for releases dataset, does not support
+  if (dataset === DetectorDataset.RELEASES) {
+    return null;
+  }
+
   return (
     <MonitorKindField
       label={t('\u2026and monitor for changes in the following way:')}
@@ -98,6 +104,7 @@ function MonitorKind() {
       name={METRIC_DETECTOR_FORM_FIELDS.detectionType}
       defaultValue="threshold"
       choices={options}
+      preserveOnUnmount
     />
   );
 }
@@ -331,6 +338,14 @@ function DetectSection() {
                 METRIC_DETECTOR_FORM_FIELDS.aggregateFunction,
                 defaultAggregate
               );
+
+              // Reset detection type to static for releases dataset
+              if (newDataset === DetectorDataset.RELEASES) {
+                formContext.form?.setValue(
+                  METRIC_DETECTOR_FORM_FIELDS.detectionType,
+                  'static'
+                );
+              }
             }}
           />
           <IntervalPicker />
