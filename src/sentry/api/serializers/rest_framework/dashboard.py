@@ -981,6 +981,11 @@ class DashboardSerializer(DashboardDetailsSerializer):
     title = serializers.CharField(
         required=True, max_length=255, help_text="The user defined title for this dashboard."
     )
+    is_favorited = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Favorite the dashboard automatically for the request user",
+    )
 
 
 class DashboardStarredOrderSerializer(serializers.Serializer):
