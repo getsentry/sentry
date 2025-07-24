@@ -12,6 +12,8 @@ from sentry.analytics.events.first_event_sent import (
     FirstEventSentEvent,
     FirstEventSentForProjectEvent,
 )
+from sentry.analytics.events.first_feedback_sent import FirstFeedbackSentEvent
+from sentry.analytics.events.first_flag_sent import FirstFlagSentEvent
 from sentry.analytics.events.first_insight_span_sent import FirstInsightSpanSentEvent
 from sentry.analytics.events.first_profile_sent import FirstProfileSentEvent
 from sentry.analytics.events.first_replay_sent import FirstReplaySentEvent
@@ -232,21 +234,23 @@ def record_first_replay(project, **kwargs):
 @first_flag_received.connect(weak=False, dispatch_uid="onboarding.record_first_flag")
 def record_first_flag(project, **kwargs):
     analytics.record(
-        "first_flag.sent",
-        organization_id=project.organization_id,
-        project_id=project.id,
-        platform=project.platform,
+        FirstFlagSentEvent(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=project.platform,
+        )
     )
 
 
 @first_feedback_received.connect(weak=False, dispatch_uid="onboarding.record_first_feedback")
 def record_first_feedback(project, **kwargs):
     analytics.record(
-        "first_feedback.sent",
-        user_id=get_owner_id(project),
-        organization_id=project.organization_id,
-        project_id=project.id,
-        platform=project.platform,
+        FirstFeedbackSentEvent(
+            user_id=get_owner_id(project),
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=project.platform,
+        )
     )
 
 
