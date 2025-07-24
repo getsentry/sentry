@@ -43,7 +43,7 @@ def get_page_web_vitals_summary(
     ):
         return {"detail": "Feature flag not enabled"}, 400
 
-    cache_key = "ai-page-web-vitals-summary:" + str(traceSlugs)
+    cache_key = "ai-page-web-vitals-summary:" + "-".join(sorted(traceSlugs))
     if cached_summary := cache.get(cache_key):
         return convert_dict_key_case(cached_summary, snake_to_camel_case), 200
 
