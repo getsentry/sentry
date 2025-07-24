@@ -869,6 +869,7 @@ export const enum FixabilityScoreThresholds {
   HIGH = 'high',
   MEDIUM = 'medium',
   LOW = 'low',
+  SUPER_LOW = 'super_low',
 }
 
 // TODO(ts): incomplete
