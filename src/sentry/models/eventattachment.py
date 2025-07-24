@@ -17,7 +17,7 @@ from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, s
 from sentry.db.models.fields.bounded import BoundedIntegerField
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.files.utils import get_size_and_checksum, get_storage
-from sentry.storage.metrics import measure_storage_put
+from sentry.objectstore.metrics import measure_storage_put
 from sentry.utils import metrics
 
 # Attachment file types that are considered a crash report (PII relevant)
