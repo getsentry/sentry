@@ -45,9 +45,9 @@ from sentry.search.events.builder.spans_indexed import (
 )
 from sentry.search.events.constants import TIMEOUT_SPAN_ERROR_MESSAGE
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams, WhereType
+from sentry.snuba import spans_rpc
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
-from sentry.snuba.spans_rpc import Spans
 from sentry.utils.numbers import clip
 from sentry.utils.sdk import set_span_attribute
 from sentry.utils.snuba import bulk_snuba_queries_with_referrers
@@ -325,7 +325,7 @@ class TracesExecutor:
     ):
         trace_ids = [trace["trace"] for trace in traces]
 
-        breakdown_raw_results = Spans.run_table_query(
+        breakdown_raw_results = spans_rpc.run_table_query(
             params=snuba_params,
             query_string=f"is_transaction:1 trace:[{','.join(trace_ids)}]",
             selected_columns=[
@@ -1434,7 +1434,7 @@ def process_rpc_user_queries(
     queries: dict[str, TraceItemFilter] = {}
 
     config = SearchResolverConfig(auto_fields=True)
-    resolver = Spans.get_resolver(snuba_params, config)
+    resolver = spans_rpc.get_resolver(snuba_params, config)
 
     # Filter out empty queries as they do not do anything to change the results.
     user_queries = [user_query for user_query in user_queries if len(user_query) > 0]

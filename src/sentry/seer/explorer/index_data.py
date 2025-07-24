@@ -25,8 +25,8 @@ from sentry.seer.sentry_data_models import (
     Transaction,
     TransactionIssues,
 )
+from sentry.snuba import spans_rpc
 from sentry.snuba.referrer import Referrer
-from sentry.snuba.spans_rpc import Spans
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ def get_transactions_for_project(project_id: int) -> list[Transaction]:
     )
 
     # Query EAP for transactions with volume metrics
-    result = Spans.run_table_query(
+    result = spans_rpc.run_table_query(
         params=snuba_params,
         query_string=f"is_transaction:true project.id:{project_id}",
         selected_columns=[
@@ -134,7 +134,7 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
     )
 
     # Step 1: Get trace IDs with their span counts in a single query
-    traces_result = Spans.run_table_query(
+    traces_result = spans_rpc.run_table_query(
         params=snuba_params,
         query_string=f"transaction:{transaction_name} project.id:{project_id}",
         selected_columns=[
@@ -169,7 +169,7 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
     chosen_trace_id, total_spans = trace_span_counts[median_index]
 
     # Step 2: Get all spans in the chosen trace
-    spans_result = Spans.run_table_query(
+    spans_result = spans_rpc.run_table_query(
         params=snuba_params,
         query_string=f"trace:{chosen_trace_id}",
         selected_columns=[
@@ -273,7 +273,7 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
     )
 
     # Step 1: Find spans in the trace that have profile data
-    profiles_result = Spans.run_table_query(
+    profiles_result = spans_rpc.run_table_query(
         params=snuba_params,
         query_string=f"trace:{trace_id} has:profile.id project.id:{project_id}",
         selected_columns=[

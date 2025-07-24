@@ -27,22 +27,22 @@ DATASET_OPTIONS = {
     "errors": errors,
     "metricsEnhanced": metrics_enhanced_performance,
     "metrics": metrics_performance,
-    "ourlogs": ourlogs.OurLogs,
-    "uptimeChecks": uptime_checks.UptimeChecks,
-    "uptime_results": uptime_results.UptimeResults,
+    "ourlogs": ourlogs,
+    "uptimeChecks": uptime_checks,
+    "uptime_results": uptime_results,
     "profiles": profiles,
     "issuePlatform": issue_platform,
     "profileFunctions": functions,
-    "spans": spans_rpc.Spans,
+    "spans": spans_rpc,
     "spansIndexed": spans_indexed,
     "spansMetrics": spans_metrics,
     "transactions": transactions,
 }
 RPC_DATASETS = {
-    spans_rpc.Spans,
-    ourlogs.OurLogs,
-    uptime_results.UptimeResults,
-    uptime_checks.UptimeChecks,
+    spans_rpc,
+    ourlogs,
+    uptime_results,
+    uptime_checks,
 }
 DATASET_LABELS = {value: key for key, value in DATASET_OPTIONS.items()}
 

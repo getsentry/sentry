@@ -14,7 +14,7 @@ from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
-from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba import ourlogs
 from sentry.snuba.referrer import Referrer
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
@@ -82,15 +82,15 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
             query = f"{base_query} and {additional_query}"
         else:
             query = base_query
-        results = OurLogs.run_table_query(
-            params=snuba_params,
-            query_string=query,
-            selected_columns=selected_columns,
-            orderby=orderby,
-            offset=offset,
-            limit=limit,
-            referrer=Referrer.API_TRACE_VIEW_LOGS.value,
-            config=SearchResolverConfig(use_aggregate_conditions=False),
+        results = ourlogs.run_table_query(
+            snuba_params,
+            query,
+            selected_columns,
+            orderby,
+            offset,
+            limit,
+            Referrer.API_TRACE_VIEW_LOGS.value,
+            SearchResolverConfig(use_aggregate_conditions=False),
         )
         return results
 
