@@ -1,0 +1,298 @@
+---
+title: Text
+description: Text components display text content with various typography options and styling controls.
+source: 'sentry/components/core/text'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/text/text.tsx
+  a11y:
+    WCAG 1.4.3: https://www.w3.org/TR/WCAG22/#contrast-minimum
+    WCAG 1.4.4: https://www.w3.org/TR/WCAG22/#resize-text
+    WCAG 1.4.6: https://www.w3.org/TR/WCAG22/#contrast-enhanced
+    WCAG 1.4.8: https://www.w3.org/TR/WCAG22/#visual-presentation
+    WCAG 1.4.12: https://www.w3.org/TR/WCAG22/#text-spacing
+---
+
+import {Heading, Text} from 'sentry/components/core/text';
+import * as Storybook from 'sentry/stories';
+
+import types from '!!type-loader!sentry/components/core/text/text';
+
+export {types};
+
+To create basic text, wrap content in a `<Text>` component. For semantic headings, use `<Heading>` with the appropriate `as` prop.
+
+```jsx
+<Text>This is basic text content</Text>
+<Heading as="h1">This is a heading</Heading>
+```
+
+### Sizes
+
+Text components support different sizes: `xs`, `sm`, `md` (default), `lg`, `xl`, and `2xl`.
+
+<Storybook.Demo>
+  <Storybook.SideBySide vertical>
+    <Text size="2xl">Extra extra large text</Text>
+    <Text size="xl">Extra large text</Text>
+    <Text size="lg">Large text</Text>
+    <Text size="md">Medium text (default)</Text>
+    <Text size="sm">Small text</Text>
+    <Text size="xs">Extra small text</Text>
+  </Storybook.SideBySide>
+</Storybook.Demo>
+```jsx
+<Text size="2xl">Extra extra large text</Text>
+<Text size="xl">Extra large text</Text>
+<Text size="lg">Large text</Text>
+<Text size="md">Medium text (default)</Text>
+<Text size="sm">Small text</Text>
+<Text size="xs">Extra small text</Text>
+```
+
+### Variants
+
+Text components support various color variants: `primary` (default), `muted`, `accent`, `success`, `warning`, `danger`, and `promotion`.
+
+<Storybook.Demo>
+  <Storybook.SideBySide vertical>
+    <Text variant="primary">Primary text (default)</Text>
+    <Text variant="muted">Muted text</Text>
+    <Text variant="accent">Accent text</Text>
+    <Text variant="success">Success text</Text>
+    <Text variant="warning">Warning text</Text>
+    <Text variant="danger">Danger text</Text>
+    <Text variant="promotion">Promotion text</Text>
+  </Storybook.SideBySide>
+</Storybook.Demo>
+```jsx
+<Text variant="primary">Primary text (default)</Text>
+<Text variant="muted">Muted text</Text>
+<Text variant="accent">Accent text</Text>
+<Text variant="success">Success text</Text>
+<Text variant="warning">Warning text</Text>
+<Text variant="danger">Danger text</Text>
+<Text variant="promotion">Promotion text</Text>
+```
+
+### Custom Elements with `as` Prop
+
+The `<Text>` component can be rendered as different HTML elements using the `as` prop. This allows you to maintain semantic meaning while applying the component's styling.
+
+<Storybook.Demo>
+  <Storybook.SideBySide vertical>
+    <Text as="p">Text rendered as a paragraph element</Text>
+    <Text as="span">Text rendered as a span element</Text>
+    <Text as="div">Text rendered as a div element</Text>
+  </Storybook.SideBySide>
+</Storybook.Demo>
+```jsx
+<Text as="p">Text rendered as a paragraph element</Text>
+<Text as="span">Text rendered as a span element</Text>
+<Text as="div">Text rendered as a div element</Text>
+```
+
+### Headings
+
+The `<Heading>` component creates semantic heading elements with appropriate default sizes. The size of a heading can be overridden with the `size` prop.
+
+<Storybook.Demo>
+  <Storybook.SideBySide vertical>
+    <Heading as="h1">Heading 1 (2xl)</Heading>
+    <Heading as="h2">Heading 2 (xl)</Heading>
+    <Heading as="h3">Heading 3 (lg)</Heading>
+    <Heading as="h4">Heading 4 (md)</Heading>
+    <Heading as="h5">Heading 5 (sm)</Heading>
+    <Heading as="h6">Heading 6 (xs)</Heading>
+  </Storybook.SideBySide>
+</Storybook.Demo>
+```jsx
+<Heading as="h1">Heading 1 (2xl)</Heading>
+<Heading as="h2">Heading 2 (xl)</Heading>
+<Heading as="h3">Heading 3 (lg)</Heading>
+<Heading as="h4">Heading 4 (md)</Heading>
+<Heading as="h5">Heading 5 (sm)</Heading>
+<Heading as="h6">Heading 6 (xs)</Heading>
+```
+
+### Typography Features
+
+Text components support various typography options including bold, italic, underline, and strikethrough.
+
+<Storybook.Demo>
+  <Storybook.SideBySide vertical>
+    <Text bold>Bold text</Text>
+    <Text italic>Italic text</Text>
+    <Text underline>Underlined text</Text>
+    <Text strikethrough>Strikethrough text</Text>
+    <Text bold italic underline>
+      Bold italic underlined text
+    </Text>
+  </Storybook.SideBySide>
+</Storybook.Demo>
+```jsx
+<Text bold>Bold text</Text>
+<Text italic>Italic text</Text>
+<Text underline>Underlined text</Text>
+<Text strikethrough>Strikethrough text</Text>
+<Text bold italic underline>
+  Bold italic underlined text
+</Text>
+```
+
+### Text Alignment
+
+Control text alignment with the `align` prop: `left` (default), `center`, `right`, or `justify`.
+
+<Storybook.Demo>
+  <Storybook.SideBySide vertical>
+    <div style={{width: '200px', border: '1px solid #ccc', padding: '8px'}}>
+      <Text align="left">Left aligned text</Text>
+    </div>
+    <div style={{width: '200px', border: '1px solid #ccc', padding: '8px'}}>
+      <Text align="center">Center aligned text</Text>
+    </div>
+    <div style={{width: '200px', border: '1px solid #ccc', padding: '8px'}}>
+      <Text align="right">Right aligned text</Text>
+    </div>
+    <div style={{width: '200px', border: '1px solid #ccc', padding: '8px'}}>
+      <Text align="justify">
+        Justified text that will wrap to multiple lines and be justified.
+      </Text>
+    </div>
+  </Storybook.SideBySide>
+</Storybook.Demo>
+```jsx
+<Text align="left">Left aligned text</Text>
+<Text align="center">Center aligned text</Text>
+<Text align="right">Right aligned text</Text>
+<Text align="justify">
+  Justified text that will wrap to multiple lines and be justified.
+</Text>
+```
+
+### Density
+
+Control line height with the `density` prop: `compressed` (1.0), default (1.2), or `comfortable` (1.4).
+
+<Storybook.Demo>
+  <Storybook.SideBySide vertical>
+    <div style={{width: '300px', marginBottom: '16px'}}>
+      <Text bold as="p">
+        Compressed density.
+      </Text>
+      <Text density="compressed">
+        {`Compressed density text. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`}
+      </Text>
+    </div>
+    <div style={{width: '300px', marginBottom: '16px'}}>
+      <Text bold as="p">
+        Default density.
+      </Text>
+      <Text>
+        {`Default density text. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`}
+      </Text>
+    </div>
+    <div style={{width: '300px'}}>
+      <Text bold as="p">
+        Comfortable density.
+      </Text>
+      <Text density="comfortable">
+        {`Comfortable density text. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`}
+      </Text>
+    </div>
+  </Storybook.SideBySide>
+</Storybook.Demo>
+```jsx
+<Text density="compressed">Compressed density text...</Text>
+<Text>Default density text...</Text>
+<Text density="comfortable">Comfortable density text...</Text>
+```
+
+### Ellipsis Overflow
+
+Handle text overflow with the `ellipsis` prop to truncate long text with an ellipsis.
+
+<Storybook.Demo>
+  <div style={{width: '200px', border: '1px solid #ccc', padding: '8px'}}>
+    <Text ellipsis>This is a very long text that will be truncated with an ellipsis</Text>
+  </div>
+</Storybook.Demo>
+```jsx
+<div style={{width: '200px'}}>
+  <Text ellipsis>This is a very long text that will be truncated with an ellipsis</Text>
+</div>
+```
+
+### Monospace
+
+Use `monospace` for fixed-width text.
+
+<Storybook.Demo>
+  <Storybook.SideBySide vertical>
+    <div
+      style={{marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '16px'}}
+    >
+      <Text>1234567890</Text>
+      <Text size="sm" variant="muted">
+        Regular
+      </Text>
+    </div>
+    <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
+      <Text monospace>1234567890</Text>
+      <Text size="sm" variant="muted">
+        Monospace
+      </Text>
+    </div>
+  </Storybook.SideBySide>
+</Storybook.Demo>
+```jsx
+<Text>1234567890</Text>
+<Text monospace>1234567890</Text>
+```
+
+### Font Features
+
+Use `tabular` for consistent number alignment and `fraction` for diagonal fraction display.
+
+<Storybook.Demo>
+  <Storybook.SideBySide vertical>
+    <div
+      style={{marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '16px'}}
+    >
+      <Text>1234567890</Text>
+      <Text size="sm" variant="muted">
+        Regular numbers
+      </Text>
+    </div>
+    <div
+      style={{marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '16px'}}
+    >
+      <Text tabular>1234567890</Text>
+      <Text size="sm" variant="muted">
+        Tabular numbers
+      </Text>
+    </div>
+    <div
+      style={{marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '16px'}}
+    >
+      <Text>1/2 3/4 5/8</Text>
+      <Text size="sm" variant="muted">
+        Regular fractions
+      </Text>
+    </div>
+    <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
+      <Text fraction>1/2 3/4 5/8</Text>
+      <Text size="sm" variant="muted">
+        Diagonal fractions
+      </Text>
+    </div>
+  </Storybook.SideBySide>
+</Storybook.Demo>
+```jsx
+<Text tabular>1234567890</Text>
+<Text fraction>1/2 3/4 5/8</Text>
+```
+
+### Accessibility
+
+Text components automatically meet WCAG 2.2 AA compliance for color contrast and text spacing. When using semantic headings, ensure proper heading hierarchy for screen readers.

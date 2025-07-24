@@ -159,7 +159,7 @@ export function ScreensBarChart({
             <ChartActionDropdown
               chartType={ChartType.LINE}
               yAxes={[breakdownMetric]}
-              groupBy={groupBy as any as SpanFields[]} // TODO: this will be fixed when we remove `useInsightsEap`
+              groupBy={[...groupBy]}
               title={title}
               search={search}
               referrer={referrer}
