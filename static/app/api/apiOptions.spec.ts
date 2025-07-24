@@ -3,7 +3,7 @@ import {expectTypeOf} from 'expect-type';
 import type {ApiResult} from 'sentry/api';
 import type {Release} from 'sentry/types/release';
 
-import {apiOptions} from './apiOptions';
+import {apiOptions, getApiUrl} from './apiOptions';
 
 type Promisable<T> = T | Promise<T>;
 type QueryFunctionResult<T> = Promisable<ApiResult<T>>;
@@ -162,6 +162,16 @@ describe('apiOptions', () => {
       expectTypeOf(options.queryFn).returns.toEqualTypeOf<QueryFunctionResult<number>>();
     });
 
+    test('should disallow path if there are no path params', () => {
+      const options = apiOptions.ReturnType<number>()('/foo', {
+        staleTime: 0,
+        // @ts-expect-error Path is not allowed when there are no path params
+        path: {bar: 'baz'},
+      });
+
+      expectTypeOf(options.queryFn).returns.toEqualTypeOf<QueryFunctionResult<number>>();
+    });
+
     test('should have a default select that extracts content', () => {
       const options = apiOptions.ReturnType<number>()('/items/$id/', {
         staleTime: 0,
@@ -170,5 +180,24 @@ describe('apiOptions', () => {
 
       expectTypeOf(options.select).returns.toEqualTypeOf<number>();
     });
+  });
+});
+
+describe('getApiUrl', () => {
+  test('should replace path parameters with their values', () => {
+    const url = getApiUrl('/projects/$orgSlug/$projectSlug/', {
+      path: {
+        orgSlug: 'my-org',
+        projectSlug: 'my-project',
+      },
+    });
+
+    expect(url).toBe('/projects/my-org/my-project/');
+  });
+
+  test('should not require path parameters if none are present', () => {
+    const url = getApiUrl('/projects/');
+
+    expect(url).toBe('/projects/');
   });
 });
