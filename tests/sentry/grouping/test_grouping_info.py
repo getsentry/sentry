@@ -5,7 +5,7 @@ from sentry.testutils.helpers.eventprocessing import save_new_event
 
 
 class GroupingInfoTest(TestCase):
-    def test_get_grouping_info_error_event(self):
+    def test_get_grouping_info_error_event(self) -> None:
         event = save_new_event({"message": "Dogs are great!"}, self.project)
 
         grouping_info = get_grouping_info(DEFAULT_GROUPING_CONFIG, self.project, event)
