@@ -15,6 +15,7 @@ type RepositoryBranchItem = {
 };
 
 interface RepositoryBranches {
+  defaultBranch: string;
   pageInfo: {
     endCursor: string;
     hasNextPage: boolean;
@@ -32,10 +33,8 @@ type Props = {
 };
 
 export function useInfiniteRepositoryBranches({term}: Props) {
-  const {integratedOrg, repository} = useCodecovContext();
+  const {integratedOrgId, repository} = useCodecovContext();
   const organization = useOrganization();
-
-  const isEnabled = Boolean(integratedOrg) && Boolean(repository);
 
   const {data, ...rest} = useInfiniteQuery<
     ApiResult<RepositoryBranches>,
@@ -44,7 +43,7 @@ export function useInfiniteRepositoryBranches({term}: Props) {
     QueryKey
   >({
     queryKey: [
-      `/organizations/${organization.slug}/prevent/owner/${integratedOrg}/repository/${repository}/branches/`,
+      `/organizations/${organization.slug}/prevent/owner/${integratedOrgId}/repository/${repository}/branches/`,
       {query: {term}},
     ],
     queryFn: async ({
@@ -80,7 +79,7 @@ export function useInfiniteRepositoryBranches({term}: Props) {
         : undefined;
     },
     initialPageParam: undefined,
-    enabled: isEnabled,
+    enabled: !!(integratedOrgId && repository),
   });
 
   const memoizedData = useMemo(
@@ -96,7 +95,10 @@ export function useInfiniteRepositoryBranches({term}: Props) {
   );
 
   return {
-    data: memoizedData,
+    data: {
+      branches: memoizedData,
+      defaultBranch: data?.pages?.[0]?.[0]?.defaultBranch,
+    },
     // TODO: only provide the values that we're interested in
     ...rest,
   };

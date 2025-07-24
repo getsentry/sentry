@@ -17,10 +17,9 @@ import {IconBranch} from './iconBranch';
 export function BranchSelector() {
   const {branch, repository, changeContextValue} = useCodecovContext();
   const [searchValue, setSearchValue] = useState<string | undefined>();
-  const {data: branches} = useInfiniteRepositoryBranches({term: searchValue});
-
-  // TODO: create endpoint that exposes repository's default branch
-  const defaultBranch = 'main';
+  const {data} = useInfiniteRepositoryBranches({term: searchValue});
+  const branches = data.branches;
+  const defaultBranch = data.defaultBranch;
 
   const handleChange = useCallback(
     (selectedOption: SelectOption<string>) => {
@@ -80,7 +79,7 @@ export function BranchSelector() {
         </ResetButton>
       );
     },
-    [branch, changeContextValue]
+    [branch, changeContextValue, defaultBranch]
   );
 
   const disabled = !repository;

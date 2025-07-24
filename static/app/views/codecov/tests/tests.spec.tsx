@@ -104,9 +104,10 @@ const mockApiCall = () => {
     },
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/prevent/owner/some-org-name/repository/some-repository/branches/`,
+    url: `/organizations/org-slug/prevent/owner/123/repository/some-repository/branches/`,
     method: 'GET',
     body: {
+      defaultBranch: 'main',
       results: mockBranches,
     },
   });
