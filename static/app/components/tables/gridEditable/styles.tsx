@@ -214,7 +214,7 @@ export const GridRow = styled('tr')`
   }
 `;
 
-export const GridBodyCell = styled('td')<{isPrepended?: boolean}>`
+export const GridBodyCell = styled('td')`
   /* By default, a grid item cannot be smaller than the size of its content.
      We override this by setting min-width to be 0. */
   min-width: 0;
@@ -230,15 +230,16 @@ export const GridBodyCell = styled('td')<{isPrepended?: boolean}>`
 
   font-size: ${p => p.theme.fontSize.md};
 
-  /* Need to select the 2nd child to select the first cell
-     as the first child is the interaction state layer */
-  ${p =>
-    p.isPrepended
-      ? `&:nth-child(2) { padding: ${space(1)} 0 ${space(1)} ${space(3)}; }`
-      : ''}
-
   &:last-child {
     padding: ${space(1)} ${space(2)};
+  }
+`;
+
+export const GridBodyCellStatic = styled(GridBodyCell)`
+  /* Need to select the 2nd child to select the first cell
+     as the first child is the interaction state layer */
+  &:nth-child(2) {
+    padding: ${space(1)} 0 ${space(1)} ${space(3)};
   }
 `;
 

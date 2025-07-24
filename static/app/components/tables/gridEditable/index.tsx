@@ -13,6 +13,7 @@ import {
   Grid,
   GridBody,
   GridBodyCell,
+  GridBodyCellStatic,
   GridBodyCellStatus,
   GridHead,
   GridHeadCell,
@@ -412,9 +413,9 @@ class GridEditable<
         <InteractionStateLayer isHovered={row === highlightedRowKey} as="td" />
 
         {prependColumns?.map((item, i) => (
-          <GridBodyCell data-test-id="grid-body-cell" key={`prepend-${i}`} isPrepended>
+          <GridBodyCellStatic data-test-id="grid-body-cell" key={`prepend-${i}`}>
             {item}
-          </GridBodyCell>
+          </GridBodyCellStatic>
         ))}
         {columnOrder.map((col, i) => (
           <GridBodyCell data-test-id="grid-body-cell" key={`${col.key}${i}`}>
