@@ -282,15 +282,29 @@ function makeCellActions({
   return actions;
 }
 
-type Props = React.PropsWithoutRef<CellActionsOpts>;
+/**
+ * Potentially temporary as design and product need more time to determine how logs table should trigger the dropdown.
+ * Currently, the agreed default for every table should be bold hover. Logs is the only table to use the ellipsis trigger.
+ */
+export enum ActionTriggerType {
+  ELLIPSIS = 'ellipsis',
+  BOLD_HOVER = 'bold_hover',
+}
 
-function CellAction(props: Props) {
+type Props = React.PropsWithoutRef<CellActionsOpts> & {
+  triggerType?: ActionTriggerType;
+};
+
+function CellAction({triggerType = ActionTriggerType.BOLD_HOVER, ...props}: Props) {
   const organization = useOrganization();
   const {children, column} = props;
   const cellActions = makeCellActions(props);
   const align = fieldAlignment(column.key as string, column.type);
 
-  if (organization.features.includes('discover-cell-actions-v2'))
+  if (
+    organization.features.includes('discover-cell-actions-v2') &&
+    triggerType === ActionTriggerType.BOLD_HOVER
+  )
     return (
       <Container
         data-test-id={cellActions === null ? undefined : 'cell-action-container'}

@@ -17,6 +17,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import CellAction, {
   Actions,
+  ActionTriggerType,
   copyToClipboard,
   openExternalLink,
 } from 'sentry/views/discover/table/cellAction';
@@ -320,6 +321,7 @@ export const LogRowContent = memo(function LogRowContent({
                       ? []
                       : ALLOWED_CELL_ACTIONS
                   }
+                  triggerType={ActionTriggerType.ELLIPSIS}
                 >
                   {renderedField}
                 </CellAction>
