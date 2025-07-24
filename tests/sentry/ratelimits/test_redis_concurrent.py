@@ -2,17 +2,22 @@ import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
+from typing import Any
 from unittest import TestCase, mock
 
-from sentry.ratelimits.concurrent import DEFAULT_MAX_TTL_SECONDS, ConcurrentRateLimiter
+from sentry.ratelimits.concurrent import (
+    DEFAULT_MAX_TTL_SECONDS,
+    ConcurrentLimitInfo,
+    ConcurrentRateLimiter,
+)
 from sentry.testutils.helpers.datetime import freeze_time
 
 
 class ConcurrentLimiterTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.backend = ConcurrentRateLimiter()
 
-    def test_add_and_remove(self):
+    def test_add_and_remove(self) -> None:
         """Test the basic adding and removal of requests to the concurrent
         rate limiter, no concurrency testing done here"""
         limit = 8
@@ -34,13 +39,16 @@ class ConcurrentLimiterTest(TestCase):
             self.backend.finish_request("foo", "request_id1")
             assert self.backend.get_concurrent_requests("foo") == limit - 1
 
-    def test_fails_open(self):
+    def test_fails_open(self) -> None:
         class FakeClient:
-            def __init__(self, real_client):
+            def __init__(
+                self,
+                real_client: Any,  # RedisCluster[str] | StrictRedis[str]
+            ) -> None:
                 self._client = real_client
 
-            def __getattr__(self, name):
-                def fail(*args, **kwargs):
+            def __getattr__(self, name: str) -> Any:
+                def fail(*args: Any, **kwargs: Any) -> None:
                     raise Exception("OH NO")
 
                 return fail
@@ -52,7 +60,7 @@ class ConcurrentLimiterTest(TestCase):
             assert failed_request.limit_exceeded is False
             limiter.finish_request("key", "some_uid")
 
-    def test_cleanup_stale(self):
+    def test_cleanup_stale(self) -> None:
         limit = 10
         num_stale = 5
         request_date = datetime(2000, 1, 1)
@@ -70,12 +78,12 @@ class ConcurrentLimiterTest(TestCase):
                 self.backend.start_request("foo", limit, "updated_request").current_executions == 1
             )
 
-    def test_finish_non_existent(self):
+    def test_finish_non_existent(self) -> None:
         # this shouldn't crash
         self.backend.finish_request("fasdlfkdsalfkjlasdkjlasdkjflsakj", "fsdlkajflsdakjsda")
 
-    def test_concurrent(self):
-        def do_request():
+    def test_concurrent(self) -> None:
+        def do_request() -> ConcurrentLimitInfo:
             uid = uuid.uuid4().hex
             meta = self.backend.start_request("foo", 3, uid)
             time.sleep(0.2)
