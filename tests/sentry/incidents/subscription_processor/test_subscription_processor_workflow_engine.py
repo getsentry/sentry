@@ -246,6 +246,32 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         )
         assert mock_process_data_packet.call_count == 0
 
+    @with_feature("organizations:workflow-engine-single-process-metric-issues")
+    @patch("sentry.incidents.subscription_processor.process_data_packet")
+    def test_single_processing_no_trigger(self, mock_process_data_packet):
+        """
+        If an organization is flagged into single processing, then data should not flow through
+        the legacy system.
+        """
+        rule = self.rule
+        trigger = self.trigger
+
+        detector = self.create_detector(name="hojicha", type=MetricIssue.slug)
+        data_source = self.create_data_source(source_id=str(self.sub.id))
+        data_source.detectors.set([detector])
+
+        processor = self.send_update(rule, trigger.alert_threshold + 1)
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+
+        assert mock_process_data_packet.call_count == 1
+        assert (
+            mock_process_data_packet.call_args_list[0][0][1] == DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+        )
+        data_packet = mock_process_data_packet.call_args_list[0][0][0]
+        assert data_packet.source_id == str(self.sub.id)
+        assert data_packet.packet.values == {"value": trigger.alert_threshold + 1}
+
 
 @freeze_time()
 class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetectionTest):
