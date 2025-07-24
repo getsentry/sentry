@@ -158,7 +158,7 @@ def fetch_trace_connected_errors(
         return []
 
 
-def fetch_feedback_details(feedback_id: str | None, project_id):
+def fetch_feedback_details(feedback_id: str | None, project_id) -> EventDict | None:
     """
     Fetch user feedback associated with a specific feedback event ID.
     """
