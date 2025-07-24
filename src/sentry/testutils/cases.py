@@ -417,9 +417,9 @@ class BaseTestCase(Fixtures):
         assert deleted_log.date_created == original_object.date_added
         assert deleted_log.date_deleted >= deleted_log.date_created
 
-    def get_mock_uuid(self):
+    def get_mock_uuid(self, hex_value="abc123"):
         class uuid:
-            hex = "abc123"
+            hex = hex_value
             bytes = b"\x00\x01\x02"
 
         return uuid
