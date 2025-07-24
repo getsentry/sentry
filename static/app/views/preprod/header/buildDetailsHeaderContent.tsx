@@ -4,34 +4,36 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {Heading} from 'sentry/components/core/text';
 import Placeholder from 'sentry/components/placeholder';
 import {IconEllipsis, IconTelescope} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
-type BuildDetailsHeaderError = {error: string; status: 'error'};
-type BuildDetailsHeaderLoading = {status: 'loading'};
-type BuildDetailsHeaderSuccess = {
-  buildDetails: BuildDetailsApiResponse;
-  status: 'success';
-};
-
-export type BuildDetailsHeaderContentProps =
-  | BuildDetailsHeaderError
-  | BuildDetailsHeaderLoading
-  | BuildDetailsHeaderSuccess;
+export interface BuildDetailsHeaderContentProps {
+  buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
+}
 
 export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps) {
-  const {status} = props;
+  const {buildDetailsQuery} = props;
 
-  if (status === 'loading') {
+  const {
+    data: buildDetailsData,
+    isPending: isBuildDetailsPending,
+    isError: isBuildDetailsError,
+    error: buildDetailsError,
+  } = buildDetailsQuery;
+
+  if (isBuildDetailsPending) {
     return (
       <HeaderContainer>
         <Placeholder height="20px" width="200px" style={{marginBottom: space(2)}} />
         <HeaderContent>
-          <Title>
+          <Heading as="h1">
             <Placeholder height="32px" width="300px" />
-          </Title>
+          </Heading>
           <Actions>
             <Placeholder height="32px" width="120px" style={{marginRight: space(1)}} />
             <Placeholder height="32px" width="40px" />
@@ -41,15 +43,21 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     );
   }
 
-  if (status === 'error') {
+  if (!buildDetailsData) {
     return (
       <HeaderContainer>
-        <Alert type="error">{props.error}</Alert>
+        <Alert type="error">No build details found</Alert>
       </HeaderContainer>
     );
   }
 
-  const {buildDetails} = props;
+  if (isBuildDetailsError) {
+    return (
+      <HeaderContainer>
+        <Alert type="error">{buildDetailsError?.message}</Alert>
+      </HeaderContainer>
+    );
+  }
 
   // TODO: Implement proper breadcrumbs once release connection is implemented
   const breadcrumbs: Crumb[] = [
@@ -59,7 +67,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     },
     {
       to: '#',
-      label: buildDetails.app_info.version,
+      label: buildDetailsData.app_info.version,
     },
     {
       label: 'Build Details',
@@ -80,9 +88,9 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     <HeaderContainer>
       <Breadcrumbs crumbs={breadcrumbs} />
       <HeaderContent>
-        <Title>
-          v{buildDetails.app_info.version} ({buildDetails.app_info.build_number})
-        </Title>
+        <Heading as="h1">
+          v{buildDetailsData.app_info.version} ({buildDetailsData.app_info.build_number})
+        </Heading>
         <Actions>
           <Button
             size="sm"
@@ -122,11 +130,4 @@ const Actions = styled('div')`
   align-items: center;
   gap: ${space(1)};
   flex-shrink: 0;
-`;
-
-const Title = styled('h1')`
-  margin: 0;
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.textColor};
 `;

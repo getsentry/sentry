@@ -2,33 +2,46 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {AppSizeTreemap} from 'sentry/views/preprod/main/appSizeTreemap';
 import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
 
-type BuildDetailsMainContentError = {error: string; status: 'error'};
-type BuildDetailsMainContentLoading = {status: 'loading'};
-type BuildDetailsMainContentSuccess = {
-  appSizeData: AppSizeApiResponse;
-  status: 'success';
-};
-
-export type BuildDetailsMainContentProps =
-  | BuildDetailsMainContentError
-  | BuildDetailsMainContentLoading
-  | BuildDetailsMainContentSuccess;
+export interface BuildDetailsMainContentProps {
+  appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError>;
+}
 
 export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
-  const {status} = props;
+  const {
+    data: appSizeData,
+    isPending: isAppSizePending,
+    isError: isAppSizeError,
+    error: appSizeError,
+  } = props.appSizeQuery;
 
-  if (status === 'loading') {
-    return <LoadingIndicator />;
+  if (isAppSizePending) {
+    return (
+      <MainContentContainer>
+        <LoadingIndicator />
+      </MainContentContainer>
+    );
   }
 
-  if (status === 'error') {
-    return <Alert type="error">{props.error}</Alert>;
+  if (!appSizeData) {
+    return (
+      <MainContentContainer>
+        <Alert type="error">No app size data found</Alert>
+      </MainContentContainer>
+    );
   }
 
-  const {appSizeData} = props;
+  if (isAppSizeError) {
+    return (
+      <MainContentContainer>
+        <Alert type="error">{appSizeError?.message}</Alert>
+      </MainContentContainer>
+    );
+  }
 
   return (
     <MainContentContainer>
