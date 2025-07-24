@@ -443,9 +443,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             WeeklyReportSent(
                 user_id=user.id,
                 organization_id=self.organization.id,
-                notification_uuid=mock.ANY,
+                notification_uuid="mock.ANY",
                 user_project_count=1,
             ),
+            exclude_fields=["notification_uuid"],
         )
 
     @mock.patch("sentry.analytics.record")
@@ -523,9 +524,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             WeeklyReportSent(
                 user_id=user.id,
                 organization_id=self.organization.id,
-                notification_uuid=mock.ANY,
+                notification_uuid="mock.ANY",
                 user_project_count=1,
             ),
+            exclude_fields=["notification_uuid"],
         )
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
@@ -687,18 +689,20 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             WeeklyReportSent(
                 user_id=user.id,
                 organization_id=self.organization.id,
-                notification_uuid=mock.ANY,
+                notification_uuid="mock.ANY",
                 user_project_count=1,
             ),
+            exclude_fields=["notification_uuid"],
         )
         assert_any_analytics_event(
             record,
             WeeklyReportSent(
                 user_id=user2.id,
                 organization_id=self.organization.id,
-                notification_uuid=mock.ANY,
+                notification_uuid="mock.ANY",
                 user_project_count=1,
             ),
+            exclude_fields=["notification_uuid"],
         )
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
@@ -931,7 +935,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 WeeklyReportSent(
                     user_id=user.id,
                     organization_id=self.organization.id,
-                    notification_uuid=mock.ANY,
+                    notification_uuid="mock.ANY",
                     user_project_count=1,
                 ),
             )
@@ -1002,7 +1006,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 WeeklyReportSent(
                     user_id=None,
                     organization_id=self.organization.id,
-                    notification_uuid=mock.ANY,
+                    notification_uuid="mock.ANY",
                     user_project_count=1,
                 ),
             )
@@ -1061,7 +1065,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 WeeklyReportSent(
                     user_id=None,
                     organization_id=self.organization.id,
-                    notification_uuid=mock.ANY,
+                    notification_uuid="mock.ANY",
                     user_project_count=1,
                 ),
             )
