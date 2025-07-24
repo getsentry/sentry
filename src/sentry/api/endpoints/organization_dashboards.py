@@ -310,7 +310,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                     "organizations:dashboards-starred-reordering", organization, actor=request.user
                 ):
                     is_favorited = request.data.get("isFavorited", False)
-                    if is_favorited is not False:
+                    if is_favorited:
                         DashboardFavoriteUser.objects.insert_favorite_dashboard(
                             organization=organization,
                             user_id=request.user.id,
