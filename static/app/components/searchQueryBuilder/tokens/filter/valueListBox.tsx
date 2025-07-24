@@ -183,13 +183,11 @@ const SectionedOverlay = styled(Overlay)`
   max-height: 340px;
   width: min-content;
   min-width: 250px;
-  max-width: 450px;
 `;
 
 const StyledListBox = styled(ListBox)`
   width: min-content;
   min-width: 250px;
-  max-width: 450px;
 `;
 
 const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
