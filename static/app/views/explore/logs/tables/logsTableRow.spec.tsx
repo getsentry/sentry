@@ -16,6 +16,7 @@ import {useExploreLogsTableRow} from 'sentry/views/explore/logs/useLogsQuery';
 jest.mock('sentry/views/explore/logs/useLogsQuery', () => ({
   useExploreLogsTableRow: jest.fn(),
   usePrefetchLogTableRowOnHover: jest.fn().mockReturnValue({}),
+  useLogsQueryKeyWithInfinite: jest.fn().mockReturnValue({}),
 }));
 
 jest.mock('sentry/components/events/interfaces/frame/useStacktraceLink', () => ({
@@ -46,7 +47,9 @@ function ProviderWrapper({children}: {children?: React.ReactNode}) {
 }
 
 describe('logsTableRow', () => {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({
+    features: ['ourlogs-enabled', 'ourlogs-infinite-scroll'],
+  });
 
   const projects = [ProjectFixture()];
   ProjectsStore.loadInitialData(projects);
