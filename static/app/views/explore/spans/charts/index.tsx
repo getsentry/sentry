@@ -69,7 +69,7 @@ const EXPLORE_CHART_GROUP = 'explore-charts_group';
 export function ExploreCharts({
   canUsePreviousResults,
   query,
-  timeseriesResult: timeseriesResult,
+  timeseriesResult,
   visualizes,
   setVisualizes,
   hideContextMenu,
