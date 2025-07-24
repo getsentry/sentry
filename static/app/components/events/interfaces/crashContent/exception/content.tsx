@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -13,12 +13,16 @@ import {renderLinksInText} from 'sentry/components/events/interfaces/crashConten
 import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, ExceptionType, ExceptionValue} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {StackType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import useProjects from 'sentry/utils/useProjects';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {
+  FoldSection,
+  SectionDivider,
+} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 import {Mechanism} from './mechanism';
@@ -148,11 +152,9 @@ export function Content({
   }
 
   const project = projects.find(({slug}) => slug === projectSlug);
-  const children = values.map((exc, excIdx) => {
-    const id = defined(exc.mechanism?.exception_id)
-      ? `exception-${exc.mechanism?.exception_id}`
-      : undefined;
+  const hasChainedExceptions = values.length > 1;
 
+  const getInnerContent = ({excIdx, exc}: {exc: ExceptionValue; excIdx: number}) => {
     const frameSourceMapDebuggerData = sourceMapDebuggerData?.exceptions[
       excIdx
     ]!.frames.map(debuggerFrame =>
@@ -167,24 +169,14 @@ export function Content({
       ? renderLinksInText({exceptionText: exc.value})
       : null;
 
-    if (exc.mechanism?.parent_id && collapsedExceptions[exc.mechanism.parent_id]) {
-      return null;
-    }
-
     const platform = getStacktracePlatform(event, exc.stacktrace);
 
     // The banners should appear on the top exception only
     const isTopException = newestFirst ? excIdx === values.length - 1 : excIdx === 0;
 
     return (
-      <div key={excIdx} className="exception" data-test-id="exception-value">
-        {defined(exc?.module) ? (
-          <Tooltip title={tct('from [exceptionModule]', {exceptionModule: exc?.module})}>
-            <Title id={id}>{exc.type}</Title>
-          </Tooltip>
-        ) : (
-          <Title id={id}>{exc.type}</Title>
-        )}
+      <Fragment>
+        {' '}
         <StyledPre>
           {meta?.[excIdx]?.value?.[''] && !exc.value ? (
             <AnnotatedText value={exc.value} meta={meta?.[excIdx]?.value?.['']} />
@@ -228,6 +220,55 @@ export function Content({
           frameSourceMapDebuggerData={frameSourceMapDebuggerData}
           stackType={type}
         />
+      </Fragment>
+    );
+  };
+
+  const children = values.map((exc, excIdx) => {
+    const id = defined(exc.mechanism?.exception_id)
+      ? `exception-${exc.mechanism?.exception_id}`
+      : undefined;
+
+    if (exc.mechanism?.parent_id && collapsedExceptions[exc.mechanism.parent_id]) {
+      return null;
+    }
+
+    if (hasChainedExceptions) {
+      return (
+        <StyledFoldSection
+          key={excIdx}
+          className="exception"
+          data-test-id="exception-value"
+          sectionKey={SectionKey.CHAINED_EXCEPTION}
+          title={
+            defined(exc?.module) ? (
+              <Tooltip
+                title={tct('from [exceptionModule]', {exceptionModule: exc?.module})}
+              >
+                <Title id={id}>{exc.type}</Title>
+              </Tooltip>
+            ) : (
+              <Title id={id}>{exc.type}</Title>
+            )
+          }
+          disableCollapsePersistence
+          initialCollapse={excIdx !== values.length - 1}
+        >
+          {getInnerContent({excIdx, exc})}
+        </StyledFoldSection>
+      );
+    }
+
+    return (
+      <div key={excIdx} className="exception" data-test-id="exception-value">
+        {defined(exc?.module) ? (
+          <Tooltip title={tct('from [exceptionModule]', {exceptionModule: exc?.module})}>
+            <Title id={id}>{exc.type}</Title>
+          </Tooltip>
+        ) : (
+          <Title id={id}>{exc.type}</Title>
+        )}
+        {getInnerContent({excIdx, exc})}
       </div>
     );
   });
@@ -236,7 +277,21 @@ export function Content({
     children.reverse();
   }
 
-  return <div>{children}</div>;
+  return (
+    <div>
+      {hasChainedExceptions && (
+        <Fragment>
+          <p>
+            {tct('There are [numExceptions] chained exceptions in this event.', {
+              numExceptions: values.length,
+            })}
+          </p>
+          <SectionDivider />
+        </Fragment>
+      )}
+      {children}
+    </div>
+  );
 }
 
 const StyledPre = styled('pre')`
@@ -248,7 +303,7 @@ const StyledPre = styled('pre')`
 `;
 
 const Title = styled('h5')`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: 0;
   overflow-wrap: break-word;
   word-wrap: break-word;
   word-break: break-word;
@@ -257,4 +312,13 @@ const Title = styled('h5')`
 const ShowRelatedExceptionsButton = styled(Button)`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
+`;
+
+const StyledFoldSection = styled(FoldSection)`
+  margin-bottom: 0;
+
+  & ~ hr {
+    margin-left: ${p => p.theme.space.xl};
+    margin-right: ${p => p.theme.space.xl};
+  }
 `;
