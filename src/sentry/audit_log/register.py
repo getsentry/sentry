@@ -670,3 +670,11 @@ default_manager.add(
         template="canceled replay deletion job",
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=1158,
+        name="ORG_CONSOLE_PLATFORM_EDIT",
+        api_name="org.console-platform.edit",
+        template="edited console platforms",
+    )
+)
