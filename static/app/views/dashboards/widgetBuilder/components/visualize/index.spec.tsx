@@ -35,14 +35,16 @@ describe('Visualize', () => {
             key: 'span.duration',
             name: 'span.duration',
             kind: FieldKind.MEASUREMENT,
+            secondaryAliases: [],
           },
           'span.self_time': {
             key: 'span.self_time',
             name: 'span.self_time',
             kind: FieldKind.MEASUREMENT,
+            secondaryAliases: [],
           },
         };
-        return {tags, isLoading: false};
+        return {tags, isLoading: false, secondaryAliases: {}};
       }
 
       const tags: TagCollection = {
@@ -60,6 +62,7 @@ describe('Visualize', () => {
 
       return {
         tags,
+        secondaryAliases: {},
         isLoading: false,
       };
     });
@@ -1262,6 +1265,7 @@ describe('Visualize', () => {
                 kind: 'measurement',
               },
             } as TagCollection,
+            secondaryAliases: {},
             isLoading: false,
           };
         }
@@ -1274,6 +1278,7 @@ describe('Visualize', () => {
               kind: 'tag',
             },
           } as TagCollection,
+          secondaryAliases: {},
           isLoading: false,
         };
       });
@@ -1422,12 +1427,14 @@ describe('Visualize', () => {
             tags: {
               'tags[count,number]': {key: 'count', name: 'count', kind: 'measurement'},
             } as TagCollection,
+            secondaryAliases: {},
             isLoading: false,
           };
         }
 
         return {
           tags: {count: {key: 'count', name: 'count', kind: 'tag'}} as TagCollection,
+          secondaryAliases: {},
           isLoading: false,
         };
       });

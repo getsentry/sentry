@@ -117,8 +117,10 @@ function LogsSearchBar({
   const {
     selection: {projects},
   } = usePageFilters();
-  const {attributes: stringAttributes} = useTraceItemAttributes('string');
-  const {attributes: numberAttributes} = useTraceItemAttributes('number');
+  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+    useTraceItemAttributes('string');
+  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+    useTraceItemAttributes('number');
   return (
     <TraceItemSearchQueryBuilder
       initialQuery={widgetQuery.conditions}
@@ -126,6 +128,8 @@ function LogsSearchBar({
       itemType={TraceItemDataset.LOGS}
       numberAttributes={numberAttributes}
       stringAttributes={stringAttributes}
+      numberSecondaryAliases={numberSecondaryAliases}
+      stringSecondaryAliases={stringSecondaryAliases}
       searchSource="dashboards"
       projects={projects}
       portalTarget={portalTarget}
