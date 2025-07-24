@@ -401,6 +401,49 @@ export enum IsFieldValues {
   UNLINKED = 'unlinked',
 }
 
+export enum IsFieldDescriptions {
+  ERROR = 'Error',
+  RESOLVED = 'Issues that have been marked as fixed',
+  UNRESOLVED = 'Issues that are still active and need attention',
+  ARCHIVED = 'Issues that have been archived (previously called ignored)',
+  ESCALATING = 'Issues that are occurring significantly more often than before',
+  NEW = 'Issues that first occurred in the last 7 days',
+  ONGOING = 'Issues that have been active for more than 7 days',
+  REGRESSED = 'Issues that were previously resolved but have reoccurred',
+  ASSIGNED = 'Issues that have been assigned to a team member',
+  UNASSIGNED = 'Issues that have not been assigned to anyone',
+  FOR_REVIEW = 'Issues that are pending review',
+  LINKED = 'Issues that are linked to other issues',
+  UNLINKED = 'Issues that are not linked to other issues',
+}
+
+export const FIELD_VALUE_TO_FIELD_DESCRIPTION = {
+  error: IsFieldDescriptions.ERROR,
+
+  resolved: IsFieldDescriptions.RESOLVED,
+  unresolved: IsFieldDescriptions.UNRESOLVED,
+  archived: IsFieldDescriptions.ARCHIVED,
+  escalating: IsFieldDescriptions.ESCALATING,
+  new: IsFieldDescriptions.NEW,
+  ongoing: IsFieldDescriptions.ONGOING,
+  regressed: IsFieldDescriptions.REGRESSED,
+  assigned: IsFieldDescriptions.ASSIGNED,
+  unassigned: IsFieldDescriptions.UNASSIGNED,
+  for_review: IsFieldDescriptions.FOR_REVIEW,
+  linked: IsFieldDescriptions.LINKED,
+  unlinked: IsFieldDescriptions.UNLINKED,
+};
+
+export function getIsFieldDescriptionFromValue(
+  isFieldValue: string
+): IsFieldDescriptions | undefined {
+  if (isFieldValue in FIELD_VALUE_TO_FIELD_DESCRIPTION) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    return FIELD_VALUE_TO_FIELD_DESCRIPTION[isFieldValue];
+  }
+  return undefined;
+}
+
 type AggregateColumnParameter = {
   /**
    * The types of columns that are valid for this parameter.
@@ -1638,6 +1681,7 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
     defaultValue: 'unresolved',
     allowWildcard: false,
+    values: Object.values(IsFieldValues),
   },
   [FieldKey.ISSUE]: {
     desc: t('The issue identification short code'),
