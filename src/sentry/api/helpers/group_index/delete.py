@@ -179,7 +179,7 @@ def schedule_tasks_to_delete_groups(
     for group in group_list:
         groups_by_project_id[group.project_id].append(group)
 
-    for project in projects:
+    for project in sorted(projects, key=lambda p: p.id):
         delete_group_list(
             request, project, groups_by_project_id.get(project.id, []), delete_type="delete"
         )
