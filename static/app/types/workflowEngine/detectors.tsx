@@ -189,3 +189,7 @@ export interface MetricDetectorUpdatePayload extends BaseDetectorUpdatePayload {
   dataSource: UpdateSnubaDataSourcePayload;
   type: 'metric_issue';
 }
+
+export interface ErrorDetectorUpdatePayload extends BaseDetectorUpdatePayload {
+  type: 'error';
+}
