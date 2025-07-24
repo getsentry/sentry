@@ -6,7 +6,7 @@ from sentry.testutils.helpers.features import with_feature
 
 
 class TestIntegrationRequestNotification(TestCase):
-    def test_get_context(self):
+    def test_get_context(self) -> None:
         owner = self.create_user("owner@example.com")
         org = self.create_organization(owner=owner)
         requester = self.create_user()
@@ -26,7 +26,7 @@ class TestIntegrationRequestNotification(TestCase):
         assert context["organization_name"] == org.name
         assert context["message"] == message
 
-    def test_determine_recipients(self):
+    def test_determine_recipients(self) -> None:
         owner = self.create_user("owner@example.com")
         org = self.create_organization(owner=owner)
         requester = self.create_user()
@@ -46,7 +46,7 @@ class TestIntegrationRequestNotification(TestCase):
         assert recipients[0].id == owner.id
 
     @with_feature("system:multi-region")
-    def test_get_context_customer_domain(self):
+    def test_get_context_customer_domain(self) -> None:
         owner = self.create_user("owner@example.com")
         org = self.create_organization(owner=owner)
         requester = self.create_user()

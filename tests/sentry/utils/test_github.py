@@ -40,28 +40,28 @@ class TestGitHub(TestCase):
 
         verify_signature(self.payload, self.signature, self.key_id, self.subpath)
 
-    def test_verify_signature_success(self):
+    def test_verify_signature_success(self) -> None:
         self._verify()
 
-    def test_verify_signature_missing_key(self):
+    def test_verify_signature_missing_key(self) -> None:
         self.key_id = ""
         with pytest.raises(ValueError) as excinfo:
             self._verify()
         assert "Invalid payload, signature, or key_id" in str(excinfo.value)
 
-    def test_verify_signature_invalid_key(self):
+    def test_verify_signature_invalid_key(self) -> None:
         self.key_id = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
         with pytest.raises(ValueError) as excinfo:
             self._verify()
         assert "No public key found matching key identifier" in str(excinfo.value)
 
-    def test_verify_signature_invalid_signature(self):
+    def test_verify_signature_invalid_signature(self) -> None:
         self.payload = b"[]"
         with pytest.raises(ValueError) as excinfo:
             self._verify()
         assert "Signature does not match payload" in str(excinfo.value)
 
-    def test_verify_signature_invalid_encoding(self):
+    def test_verify_signature_invalid_encoding(self) -> None:
         self.signature = "fakesignature"
         with pytest.raises(ValueError) as excinfo:
             self._verify()

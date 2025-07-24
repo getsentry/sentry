@@ -28,7 +28,7 @@ class TestIssueLinkCreator(TestCase):
         self.install = app_service.get_many(filter=dict(installation_ids=[self.orm_install.id]))[0]
 
     @responses.activate
-    def test_creates_external_issue(self):
+    def test_creates_external_issue(self) -> None:
         fields = {"title": "An Issue", "description": "a bug was found", "assignee": "user-1"}
 
         responses.add(
@@ -59,7 +59,7 @@ class TestIssueLinkCreator(TestCase):
         assert external_issue.web_url == "https://example.com/project/issue-id"
         assert external_issue.display_name == "Projectname#issue-1"
 
-    def test_invalid_action(self):
+    def test_invalid_action(self) -> None:
         with pytest.raises(SentryAppSentryError):
             IssueLinkCreator(
                 install=self.install,

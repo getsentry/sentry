@@ -129,7 +129,7 @@ class IntegrationControlMiddlewareTest(TestCase):
         assert result != response
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_handles_missing_integration(self):
+    def test_handles_missing_integration(self) -> None:
         response = self.middleware(self.factory.post("/extensions/jira/issue-updated/"))
         assert response.status_code == 404
 

@@ -29,7 +29,7 @@ class GroupHashMetadataTest(TestCase):
                 getattr(grouphash.metadata, value_name) == value
             ), f"Incorrect value for {value_name}"
 
-    def test_creates_grouphash_metadata_when_appropriate(self):
+    def test_creates_grouphash_metadata_when_appropriate(self) -> None:
         # The killswitch is obeyed
         with override_options({"grouping.grouphash_metadata.ingestion_writes_enabled": False}):
             event1 = save_new_event({"message": "Dogs are great!"}, self.project)
@@ -80,7 +80,7 @@ class GroupHashMetadataTest(TestCase):
                     # creation date
                     assert grouphash.metadata.date_added is None
 
-    def test_stores_expected_properties(self):
+    def test_stores_expected_properties(self) -> None:
         event = save_new_event({"message": "Dogs are great!", "platform": "python"}, self.project)
         grouphash = GroupHash.objects.filter(
             project=self.project, hash=event.get_primary_hash()
@@ -98,7 +98,7 @@ class GroupHashMetadataTest(TestCase):
         )
 
     @override_options({"grouping.grouphash_metadata.backfill_sample_rate": 1.0})
-    def test_stores_expected_properties_for_secondary_hashes(self):
+    def test_stores_expected_properties_for_secondary_hashes(self) -> None:
         project = self.project
 
         project.update_option("sentry:grouping_config", NO_MSG_PARAM_CONFIG)
@@ -186,7 +186,7 @@ class GroupHashMetadataTest(TestCase):
         )
 
     @override_options({"grouping.grouphash_metadata.backfill_sample_rate": 0.415})
-    def test_updates_obey_sample_rate(self):
+    def test_updates_obey_sample_rate(self) -> None:
         self.project.update_option("sentry:grouping_config", NO_MSG_PARAM_CONFIG)
 
         event1 = save_new_event({"message": "Dogs are great!"}, self.project)

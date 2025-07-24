@@ -126,7 +126,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
             }
 
     @override_options({"totp.disallow-new-enrollment": True})
-    def test_totp_disallow_new_enrollment(self):
+    def test_totp_disallow_new_enrollment(self) -> None:
         self.get_error_response(
             "me",
             "totp",
@@ -190,12 +190,12 @@ class UserAuthenticatorEnrollTest(APITestCase):
     @override_options(
         {"sms.twilio-account": "test-twilio-account", "sms.disallow-new-enrollment": True}
     )
-    def test_sms_disallow_new_enrollment(self):
+    def test_sms_disallow_new_enrollment(self) -> None:
         form_data = {"phone": "+12345678901"}
         self.get_error_response("me", "sms", method="post", status_code=403, **form_data)
 
     @override_options({"sms.twilio-account": "twilio-account"})
-    def test_sms_invalid_otp(self):
+    def test_sms_invalid_otp(self) -> None:
         # OTP as None
         self.get_error_response(
             "me",
@@ -214,7 +214,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
         )
 
     @override_options({"sms.twilio-account": "twilio-account"})
-    def test_sms_no_verified_email(self):
+    def test_sms_no_verified_email(self) -> None:
         user = self.create_user()
         UserEmail.objects.filter(user=user, email=user.email).update(is_verified=False)
 
@@ -293,7 +293,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
         assert_security_email_sent("mfa-added")
 
     @override_options({"u2f.disallow-new-enrollment": True})
-    def test_u2f_disallow_new_enrollment(self):
+    def test_u2f_disallow_new_enrollment(self) -> None:
         self.get_error_response(
             "me",
             "u2f",
@@ -435,7 +435,7 @@ class AcceptOrganizationInviteTest(APITestCase):
             **{"deviceName": "device name", "challenge": "challenge", "response": "response"},
         )
 
-    def test_cannot_accept_invite_pending_invite__2fa_required(self):
+    def test_cannot_accept_invite_pending_invite__2fa_required(self) -> None:
         om = self.get_om_and_init_invite()
 
         with assume_test_silo_mode(SiloMode.REGION):

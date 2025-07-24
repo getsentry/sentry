@@ -13,7 +13,7 @@ pytestmark = [requires_snuba]
 
 
 class DeleteGroupHashTest(TestCase):
-    def test_deleting_group_deletes_grouphash_and_metadata(self):
+    def test_deleting_group_deletes_grouphash_and_metadata(self) -> None:
         event = self.store_event(data={"message": "Dogs are great!"}, project_id=self.project.id)
         assert event.group
         group_id = event.group.id
@@ -31,7 +31,7 @@ class DeleteGroupHashTest(TestCase):
         assert not GroupHash.objects.filter(group_id=group_id).exists()
         assert not GroupHashMetadata.objects.filter(grouphash_id=grouphash.id).exists()
 
-    def test_deleting_grouphash_matched_by_seer(self):
+    def test_deleting_grouphash_matched_by_seer(self) -> None:
         existing_event = self.store_event(
             data={"message": "Dogs are great!"}, project_id=self.project.id
         )
@@ -66,7 +66,7 @@ class DeleteGroupHashTest(TestCase):
         assert not GroupHashMetadata.objects.filter(grouphash_id=existing_grouphash.id).exists()
         assert not GroupHashMetadata.objects.filter(grouphash_id=new_grouphash.id).exists()
 
-    def test_deleting_grouphash_matched_by_seer_after_unmerge(self):
+    def test_deleting_grouphash_matched_by_seer_after_unmerge(self) -> None:
         """
         Ensure that `seer_matched_grouphash` references aren't left dangling (and causing integrity
         errors) when the matched grouphash is deleted.

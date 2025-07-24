@@ -1426,7 +1426,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
             self.continuous_functions.append(stored)
 
     @mock.patch("sentry.tasks.statistical_detectors.FUNCTIONS_PER_PROJECT", 1)
-    def test_functions_query(self):
+    def test_functions_query(self) -> None:
         results = query_functions(self.projects, self.now)
         fingerprint = self.function_fingerprint({"package": "baz", "function": "baz"})
         assert results == [

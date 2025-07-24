@@ -202,7 +202,7 @@ class DiscordSetupTestCase(IntegrationTestCase):
 @control_silo_test
 class DiscordSetupIntegrationTest(DiscordSetupTestCase):
     @responses.activate
-    def test_bot_flow(self):
+    def test_bot_flow(self) -> None:
         with self.tasks():
             self.assert_setup_flow()
 
@@ -218,7 +218,7 @@ class DiscordSetupIntegrationTest(DiscordSetupTestCase):
         )
 
     @responses.activate
-    def test_bot_flow_from_discord(self):
+    def test_bot_flow_from_discord(self) -> None:
         with self.tasks():
             self.assert_setup_flow_from_discord()
 
@@ -234,7 +234,7 @@ class DiscordSetupIntegrationTest(DiscordSetupTestCase):
         )
 
     @responses.activate
-    def test_multiple_integrations(self):
+    def test_multiple_integrations(self) -> None:
         with self.tasks():
             self.assert_setup_flow()
         with self.tasks():
@@ -263,7 +263,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
         self.guild_name = "guild_name"
 
     @responses.activate
-    def test_get_guild_name(self):
+    def test_get_guild_name(self) -> None:
         provider = self.provider()
         responses.add(
             responses.GET,
@@ -295,7 +295,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
         assert result["name"] == self.guild_name
 
     @responses.activate
-    def test_build_integration_no_code_in_state(self):
+    def test_build_integration_no_code_in_state(self) -> None:
         provider = self.provider()
         responses.add(
             responses.GET,
@@ -310,7 +310,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
             provider.build_integration({"guild_id": "guild_id", "code": ""})
 
     @responses.activate
-    def test_get_guild_name_failure(self):
+    def test_get_guild_name_failure(self) -> None:
         provider = self.provider()
 
         (responses.add(responses.GET, f"{DISCORD_BASE_URL}/guilds/guild_name", status=500),)
@@ -334,7 +334,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
         assert result["name"] == self.guild_id
 
     @responses.activate
-    def test_get_user_insufficient_permission(self):
+    def test_get_user_insufficient_permission(self) -> None:
         provider = self.provider()
 
         responses.add(
@@ -367,7 +367,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
             provider.build_integration({"guild_id": self.guild_id, "code": self.user_id})
 
     @responses.activate
-    def test_get_discord_user_id(self):
+    def test_get_discord_user_id(self) -> None:
         provider = self.provider()
 
         responses.add(
@@ -386,14 +386,14 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
         assert result == self.user_id
 
     @responses.activate
-    def test_get_discord_user_id_oauth_failure(self):
+    def test_get_discord_user_id_oauth_failure(self) -> None:
         provider = self.provider()
         responses.add(responses.POST, url=self.token_url, status=500)
         with pytest.raises(IntegrationError):
             provider._get_discord_user_id("auth_code", "1")
 
     @responses.activate
-    def test_get_discord_user_id_oauth_no_token(self):
+    def test_get_discord_user_id_oauth_no_token(self) -> None:
         provider = self.provider()
         responses.add(
             responses.POST,
@@ -404,7 +404,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
             provider._get_discord_user_id("auth_code", "1")
 
     @responses.activate
-    def test_get_discord_user_id_request_fail(self):
+    def test_get_discord_user_id_request_fail(self) -> None:
         provider = self.provider()
         responses.add(
             responses.POST,
@@ -453,7 +453,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
         assert mock_set_application_command.call_count == 0
 
     @responses.activate
-    def test_set_commands_failure(self):
+    def test_set_commands_failure(self) -> None:
         provider = self.provider()
 
         responses.add(
@@ -474,7 +474,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
             )
 
     @responses.activate
-    def test_get_commands_failure(self):
+    def test_get_commands_failure(self) -> None:
         provider = self.provider()
 
         responses.add(
@@ -488,7 +488,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
                 integration=self.integration, organization=self.organization, extra={}
             )
 
-    def test_build_integration_invalid_guild_id(self):
+    def test_build_integration_invalid_guild_id(self) -> None:
         provider = self.provider()
 
         with pytest.raises(

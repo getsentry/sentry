@@ -9,7 +9,7 @@ class BuiltinSymbolSourcesNoSlugTest(APITestCase):
         self.organization = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
 
-    def test_no_slug(self):
+    def test_no_slug(self) -> None:
         resp = self.get_response()
         assert resp.status_code == 200
 
@@ -29,7 +29,7 @@ class BuiltinSymbolSourcesWithSlugTest(APITestCase):
         self.organization = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
 
-    def test_with_slug(self):
+    def test_with_slug(self) -> None:
         resp = self.get_response(self.organization.slug)
         assert resp.status_code == 200
 
