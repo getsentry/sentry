@@ -123,19 +123,39 @@ def delete_groups_for_project_task(
     eventstream_state: Mapping[str, Any] | None = None,  # XXX: We will remove it later
     **kwargs: Any,
 ) -> None:
-    groups = Group.objects.filter(id__in=object_ids).order_by("id")
-    if project_id:
-        if not all(group.project_id == project_id for group in groups):
-            raise DeleteAborted("delete_groups.project_id_mismatch")
-    else:
-        # XXX: We will remove this block later
-        # Select first_group from object_ids to get the project_id
-        first_group = groups.first()
-        if not first_group:
-            raise DeleteAborted("delete_groups.no_group_found")
-        project_id = first_group.project_id
+    """
+    Delete groups belonging to a single project.
 
-    assert project_id is not None, "project_id is required"
+    This is the new interface for group deletion that enforces project-level
+    constraints. It will eventually replace delete_groups_old.
+
+    Args:
+        object_ids:         List of group IDs to delete
+        transaction_id:     Unique identifier for this deletion operation
+        project_id:         Project ID that all groups must belong to. If None,
+                            will be inferred from the first group.
+        eventstream_state:  Snuba eventstream state. If None, will be inferred from the first group.
+        kwargs:             Additional arguments to pass to the task.
+    """
+    if not object_ids:
+        raise DeleteAborted("delete_groups.empty_object_ids")
+
+    groups = Group.objects.filter(id__in=object_ids).select_related("project")
+
+    if not groups.exists():
+        raise DeleteAborted("delete_groups.no_groups_found")
+
+    # Get project_id from first group if not provided
+    if project_id is None:
+        project_id = groups.first().project_id
+
+    # Validate all groups belong to the same project
+    invalid_groups = groups.exclude(project_id=project_id)
+    if invalid_groups.exists():
+        raise DeleteAborted(
+            f"delete_groups.project_id_mismatch: {len(invalid_groups)} groups "
+            f"don't belong to project {project_id}"
+        )
 
     delete_groups_old(
         object_ids=object_ids,
