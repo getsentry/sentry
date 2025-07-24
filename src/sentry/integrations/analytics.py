@@ -22,7 +22,7 @@ class IntegrationDisabledNotified(analytics.Event):
 @analytics.eventclass("integration.issue.created")
 class IntegrationIssueCreatedEvent(analytics.Event):
     provider: str
-    id: str
+    id: int
     organization_id: int
     user_id: int | None = None
     default_user_id: int
@@ -31,7 +31,7 @@ class IntegrationIssueCreatedEvent(analytics.Event):
 @analytics.eventclass("integration.issue.linked")
 class IntegrationIssueLinkedEvent(analytics.Event):
     provider: str
-    id: str
+    id: int
     organization_id: int
     user_id: int | None = None
     default_user_id: int
@@ -54,35 +54,35 @@ class IntegrationIssueAssigneeSyncedEvent(analytics.Event):
 @analytics.eventclass("integration.issue.comments.synced")
 class IntegrationIssueCommentsSyncedEvent(analytics.Event):
     provider: str
-    id: str
+    id: int
     organization_id: int
 
 
 @analytics.eventclass("integration.repo.added")
 class IntegrationRepoAddedEvent(analytics.Event):
     provider: str
-    id: str
+    id: int
     organization_id: int
 
 
 @analytics.eventclass("integration.resolve.commit")
 class IntegrationResolveCommitEvent(analytics.Event):
     provider: str | None
-    id: str
+    id: int
     organization_id: int
 
 
 @analytics.eventclass("integration.resolve.pr")
 class IntegrationResolvePREvent(analytics.Event):
     provider: str | None
-    id: str
+    id: int
     organization_id: int
 
 
 @analytics.eventclass("integration.stacktrace.linked")
 class IntegrationStacktraceLinkEvent(analytics.Event):
     provider: str
-    config_id: str
+    config_id: int
     project_id: int
     organization_id: int
     filepath: str
