@@ -443,17 +443,22 @@ function AutoTriggerFixesButton({
     setIsLoading(true);
 
     try {
-      await Promise.all(
-        projectsWithRepos.map(project =>
-          api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
-            method: 'PUT',
-            data: {
-              autofixAutomationTuning: selectedThreshold,
-              seerScannerAutomation: true,
-            },
-          })
-        )
-      );
+      // Process projects in batches of 15 to avoid concurrency limit
+      const batchSize = 15;
+      for (let i = 0; i < projectsWithRepos.length; i += batchSize) {
+        const batch = projectsWithRepos.slice(i, i + batchSize);
+        await Promise.all(
+          batch.map(project =>
+            api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
+              method: 'PUT',
+              data: {
+                autofixAutomationTuning: selectedThreshold,
+                seerScannerAutomation: true,
+              },
+            })
+          )
+        );
+      }
 
       addSuccessMessage(
         t(
@@ -526,14 +531,19 @@ function EnableIssueScansButton({
     setIsLoading(true);
 
     try {
-      await Promise.all(
-        projectsWithoutRepos.map(project =>
-          api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
-            method: 'PUT',
-            data: {seerScannerAutomation: true},
-          })
-        )
-      );
+      // Process projects in batches of 15 to avoid concurrency limit
+      const batchSize = 15;
+      for (let i = 0; i < projectsWithoutRepos.length; i += batchSize) {
+        const batch = projectsWithoutRepos.slice(i, i + batchSize);
+        await Promise.all(
+          batch.map(project =>
+            api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
+              method: 'PUT',
+              data: {seerScannerAutomation: true},
+            })
+          )
+        );
+      }
 
       addSuccessMessage(
         t('Issue scans enabled for %s remaining project(s)', projectsWithoutRepos.length)
