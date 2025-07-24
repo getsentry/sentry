@@ -15,11 +15,9 @@ from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageB
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
-from sentry.snuba import discover, errors, transactions
+from sentry.snuba import discover, errors, ourlogs, spans_rpc, transactions
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQueryEventType
-from sentry.snuba.ourlogs import OurLogs
-from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -528,7 +526,7 @@ class UnfurlTest(TestCase):
             link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
 
         dataset = mock_get_event_stats_data.mock_calls[0][2]["dataset"]
-        assert dataset == Spans
+        assert dataset == spans_rpc
 
     @patch(
         "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
@@ -577,7 +575,7 @@ class UnfurlTest(TestCase):
             link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
 
         dataset = mock_get_event_stats_data.mock_calls[0][2]["dataset"]
-        assert dataset == OurLogs
+        assert dataset == ourlogs
 
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_metric_alerts_chart_crash_free(self, mock_generate_chart):

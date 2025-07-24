@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import types
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
@@ -23,14 +24,12 @@ from sentry.search.events.builder.metrics import AlertMetricsQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_tag_values
+from sentry.snuba import ourlogs, rpc_dataset_common, spans_rpc
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
-from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
-from sentry.snuba.rpc_dataset_common import RPCBase
-from sentry.snuba.spans_rpc import Spans
 from sentry.utils import metrics
 
 # TODO: If we want to support security events here we'll need a way to
@@ -267,11 +266,11 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
         if environment:
             params["environment"] = environment.name
 
-        dataset_module: type[RPCBase]
+        dataset_module: types.ModuleType
         if self.event_types and self.event_types[0] == SnubaQueryEventType.EventType.TRACE_ITEM_LOG:
-            dataset_module = OurLogs
+            dataset_module = ourlogs
         else:
-            dataset_module = Spans
+            dataset_module = spans_rpc
         now = datetime.now(tz=timezone.utc)
         snuba_params = SnubaParams(
             environments=[environment],
@@ -285,7 +284,7 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             snuba_params, SearchResolverConfig(stable_timestamp_quantization=False)
         )
 
-        rpc_request, _, _ = dataset_module.get_timeseries_query(
+        rpc_request, _, _ = rpc_dataset_common.get_timeseries_query(
             search_resolver=search_resolver,
             params=snuba_params,
             query_string=query,

@@ -23,8 +23,8 @@ from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.snuba import ourlogs
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.autofix import check_autofix_status
 from sentry.users.models.user import User
@@ -58,9 +58,9 @@ def _get_logs_for_event(
         organization=project.organization,
     )
 
-    results: EventsResponse = OurLogs.run_table_query(
-        params=snuba_params,
-        query_string=f"trace:{trace_id}",
+    results: EventsResponse = ourlogs.run_table_query(
+        snuba_params,
+        f"trace:{trace_id}",
         selected_columns=[
             "project.id",
             "timestamp",
