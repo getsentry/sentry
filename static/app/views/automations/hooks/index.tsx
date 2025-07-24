@@ -189,7 +189,7 @@ export function useUpdateAutomation() {
   return useMutation<
     Automation,
     void,
-    Partial<Automation> & {id: Automation['id']; name: Automation['name']}
+    Partial<NewAutomation> & {id: Automation['id']; name: NewAutomation['name']}
   >({
     mutationFn: data =>
       api.requestPromise(`/organizations/${org.slug}/workflows/${data.id}/`, {
