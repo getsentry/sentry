@@ -1,6 +1,8 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
+import {useInfiniteRepositoryBranches} from 'sentry/components/codecov/branchSelector/useInfiniteRepositoryBranches';
 import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
@@ -12,13 +14,12 @@ import {space} from 'sentry/styles/space';
 
 import {IconBranch} from './iconBranch';
 
-const SAMPLE_BRANCH_ITEMS = ['main', 'master'];
-
 export function BranchSelector() {
   const {branch, repository, changeContextValue} = useCodecovContext();
-
-  // TODO: create endpoint that exposes repository's default branch
-  const defaultBranch = 'main';
+  const [searchValue, setSearchValue] = useState<string | undefined>();
+  const {data} = useInfiniteRepositoryBranches({term: searchValue});
+  const branches = data.branches;
+  const defaultBranch = data.defaultBranch;
 
   const handleChange = useCallback(
     (selectedOption: SelectOption<string>) => {
@@ -27,10 +28,18 @@ export function BranchSelector() {
     [changeContextValue]
   );
 
+  const handleOnSearch = useMemo(
+    () =>
+      debounce((value: string) => {
+        setSearchValue(value);
+      }, 500),
+    [setSearchValue]
+  );
+
   const options = useMemo((): Array<SelectOption<string>> => {
     const optionSet = new Set<string>([
       ...(branch ? [branch] : []),
-      ...(SAMPLE_BRANCH_ITEMS.length ? SAMPLE_BRANCH_ITEMS : []),
+      ...(branches.length > 0 ? branches.map(item => item.name) : []),
     ]);
 
     const makeOption = (value: string): SelectOption<string> => {
@@ -42,11 +51,18 @@ export function BranchSelector() {
     };
 
     return [...optionSet].map(makeOption);
-  }, [branch]);
+  }, [branch, branches]);
+
+  useEffect(() => {
+    // Create a use effect to cancel handleOnSearch fn on unmount to avoid memory leaks
+    return () => {
+      handleOnSearch.cancel();
+    };
+  }, [handleOnSearch]);
 
   const branchResetButton = useCallback(
     ({closeOverlay}: any) => {
-      if (!branch || branch === defaultBranch) {
+      if (!defaultBranch || !branch || branch === defaultBranch) {
         return null;
       }
 
@@ -63,7 +79,7 @@ export function BranchSelector() {
         </ResetButton>
       );
     },
-    [branch, changeContextValue]
+    [branch, changeContextValue, defaultBranch]
   );
 
   const disabled = !repository;
@@ -71,6 +87,7 @@ export function BranchSelector() {
   return (
     <CompactSelect
       searchable
+      onSearch={handleOnSearch}
       searchPlaceholder={t('search by branch name')}
       options={options}
       value={branch ?? ''}
