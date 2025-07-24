@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useRef, useState} from 'react';
 import type {Location} from 'history';
 
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
@@ -11,6 +11,7 @@ import {useLogsQueryKeyWithInfinite} from 'sentry/views/explore/logs/useLogsQuer
 export const LOGS_AUTO_REFRESH_KEY = 'live';
 export const LOGS_REFRESH_INTERVAL_KEY = 'refreshEvery';
 const LOGS_REFRESH_INTERVAL_DEFAULT = 5000;
+export const MAX_AUTO_REFRESH_PAUSED_TIME_MS = 60 * 1000; // 60 seconds
 
 export const ABSOLUTE_MAX_AUTO_REFRESH_TIME_MS = 10 * 60 * 1000; // 10 minutes
 export const CONSECUTIVE_PAGES_WITH_MORE_DATA = 5;
@@ -21,12 +22,15 @@ export type AutoRefreshState =
   | 'timeout' // Hit 10 minute limit
   | 'rate_limit' // Too much data during refresh
   | 'error' // Fetch error
+  | 'paused' // Paused for MAX_AUTO_REFRESH_PAUSED_TIME_MS otherwise treated as idle
   | 'idle'; // Default (inactive ) state. Should never appear in query params.
 
 interface LogsAutoRefreshContextValue {
   autoRefresh: AutoRefreshState;
   isTableFrozen: boolean | undefined;
+  pausedAt: number | undefined;
   refreshInterval: number;
+  setPausedAt: (timestamp: number | undefined) => void;
 }
 
 const [_LogsAutoRefreshProvider, useLogsAutoRefresh, LogsAutoRefreshContext] =
@@ -48,14 +52,24 @@ export function LogsAutoRefreshProvider({
   _testContext,
 }: LogsAutoRefreshProviderProps) {
   const location = useLocation();
+  const [pausedAt, setPausedAt] = useState<number | undefined>(undefined);
+  const hasInitialized = useRef(false);
 
-  const autoRefreshRaw = decodeScalar(location.query[LOGS_AUTO_REFRESH_KEY]);
-  const autoRefresh: AutoRefreshState = (
-    autoRefreshRaw &&
-    ['enabled', 'timeout', 'rate_limit', 'error'].includes(autoRefreshRaw)
-      ? autoRefreshRaw
-      : 'idle'
-  ) as AutoRefreshState;
+  const allowedStates: AutoRefreshState[] = ['enabled', 'timeout', 'rate_limit', 'error'];
+  if (hasInitialized.current) {
+    // Paused is not allowed via linking since it requires internal state (pausedAt) to work.
+    allowedStates.push('paused');
+  }
+
+  const rawState = decodeScalar(location.query[LOGS_AUTO_REFRESH_KEY]);
+  const autoRefresh: AutoRefreshState =
+    rawState && allowedStates.includes(rawState as AutoRefreshState)
+      ? (rawState as AutoRefreshState)
+      : 'idle';
+
+  if (autoRefresh !== 'idle') {
+    hasInitialized.current = true;
+  }
 
   const refreshInterval = decodeInteger(
     location.query[LOGS_REFRESH_INTERVAL_KEY],
@@ -68,6 +82,8 @@ export function LogsAutoRefreshProvider({
         autoRefresh,
         refreshInterval,
         isTableFrozen,
+        pausedAt,
+        setPausedAt,
         ..._testContext,
       }}
     >
@@ -86,6 +102,27 @@ export function useLogsAutoRefreshEnabled() {
   return isTableFrozen ? false : autoRefresh === 'enabled';
 }
 
+export function useAutorefreshWithinPauseWindow() {
+  const {autoRefresh, pausedAt} = useLogsAutoRefresh();
+  return withinPauseWindow(autoRefresh, pausedAt);
+}
+
+export function useAutorefreshEnabledOrWithinPauseWindow() {
+  const {autoRefresh, pausedAt} = useLogsAutoRefresh();
+  return (
+    autoRefresh === 'enabled' ||
+    (autoRefresh === 'paused' && withinPauseWindow(autoRefresh, pausedAt))
+  );
+}
+
+function withinPauseWindow(autoRefresh: AutoRefreshState, pausedAt: number | undefined) {
+  return (
+    (autoRefresh === 'paused' || autoRefresh === 'enabled') &&
+    pausedAt &&
+    MAX_AUTO_REFRESH_PAUSED_TIME_MS - (Date.now() - pausedAt) > 0
+  );
+}
+
 export function useSetLogsAutoRefresh() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -94,22 +131,31 @@ export function useSetLogsAutoRefresh() {
     autoRefresh: true,
   });
   const queryClient = useQueryClient();
+  const {setPausedAt, pausedAt: currentPausedAt} = useLogsAutoRefresh();
 
   return useCallback(
     (autoRefresh: AutoRefreshState) => {
-      if (autoRefresh === 'enabled') {
+      if (autoRefresh === 'enabled' && !withinPauseWindow(autoRefresh, currentPausedAt)) {
         queryClient.removeQueries({queryKey});
       }
 
+      const newPausedAt = autoRefresh === 'paused' ? Date.now() : undefined;
       const target: Location = {...location, query: {...location.query}};
+      if (autoRefresh === 'paused') {
+        setPausedAt(newPausedAt);
+      } else if (autoRefresh !== 'enabled') {
+        setPausedAt(undefined);
+      }
+
       if (autoRefresh === 'idle') {
         delete target.query[LOGS_AUTO_REFRESH_KEY];
       } else {
         target.query[LOGS_AUTO_REFRESH_KEY] = autoRefresh;
       }
+
       navigate(target);
     },
-    [navigate, location, queryClient, queryKey]
+    [navigate, location, queryClient, queryKey, setPausedAt, currentPausedAt]
   );
 }
 

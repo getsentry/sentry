@@ -17,6 +17,8 @@ export const MAX_LOG_INGEST_DELAY = 40_000;
 export const QUERY_PAGE_LIMIT = 1000; // If this does not equal the limit with auto-refresh, the query keys will diverge and they will have separate caches. We may want to make this change in the future.
 export const QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH = 1000;
 export const LOG_ATTRIBUTE_LAZY_LOAD_HOVER_TIMEOUT = 150;
+export const DEFAULT_TRACE_ITEM_HOVER_TIMEOUT = 150;
+export const DEFAULT_TRACE_ITEM_HOVER_TIMEOUT_WITH_AUTO_REFRESH = 400; // With autorefresh on, a stationary mouse can prefetch multiple rows since virtual time moves rows constantly.
 
 /**
  * These are required fields are always added to the query when fetching the log table.

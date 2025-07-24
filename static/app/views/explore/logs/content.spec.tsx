@@ -2,6 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 
 import LogsPage from './content';
 
@@ -232,5 +233,112 @@ describe('LogsPage', function () {
       },
       {timeout: 5000}
     );
+  });
+
+  it('pauses auto-refresh when enabled switch is clicked', async function () {
+    const {organization: newOrganization} = initializeOrg({
+      organization: {
+        features: [...BASE_FEATURES, 'ourlogs-infinite-scroll', 'ourlogs-live-refresh'],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${newOrganization.slug}/events/`,
+      method: 'GET',
+      body: {
+        data: [
+          {
+            'sentry.item_id': '1',
+            'project.id': 1,
+            trace: 'trace1',
+            severity_number: 9,
+            severity_text: 'info',
+            timestamp: '2025-04-10T19:21:12+00:00',
+            message: 'some log message',
+            'tags[sentry.timestamp_precise,number]': 100,
+          },
+        ],
+        meta: {fields: {}, units: {}},
+      },
+    });
+
+    const {router} = render(<LogsPage />, {
+      organization: newOrganization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${newOrganization.slug}/explore/logs/`,
+          query: {
+            [LOGS_AUTO_REFRESH_KEY]: 'enabled',
+          },
+        },
+      },
+    });
+    expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('enabled');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('logs-table')).toBeInTheDocument();
+    });
+
+    const switchInput = screen.getByRole('checkbox', {name: /auto-refresh/i});
+    expect(switchInput).toBeChecked();
+
+    await userEvent.click(switchInput);
+
+    await waitFor(() => {
+      expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('paused');
+    });
+    expect(switchInput).not.toBeChecked();
+  });
+
+  it('pauses auto-refresh when row is clicked', async function () {
+    const {organization: newOrganization} = initializeOrg({
+      organization: {
+        features: [...BASE_FEATURES, 'ourlogs-infinite-scroll', 'ourlogs-live-refresh'],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${newOrganization.slug}/events/`,
+      method: 'GET',
+      body: {
+        data: [
+          {
+            'sentry.item_id': '1',
+            'project.id': 1,
+            trace: 'trace1',
+            severity_number: 9,
+            severity_text: 'info',
+            timestamp: '2025-04-10T19:21:12+00:00',
+            message: 'some log message',
+            'tags[sentry.timestamp_precise,number]': 100,
+          },
+        ],
+        meta: {fields: {}, units: {}},
+      },
+    });
+
+    const {router} = render(<LogsPage />, {
+      organization: newOrganization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${newOrganization.slug}/explore/logs/`,
+          query: {
+            [LOGS_AUTO_REFRESH_KEY]: 'enabled',
+          },
+        },
+      },
+    });
+    expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('enabled');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('logs-table')).toBeInTheDocument();
+    });
+
+    const row = screen.getByText('some log message');
+    await userEvent.click(row);
+
+    await waitFor(() => {
+      expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('paused');
+    });
   });
 });
