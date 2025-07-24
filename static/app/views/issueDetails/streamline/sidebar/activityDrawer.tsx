@@ -48,6 +48,8 @@ export function ActivityDrawer({group, project}: ActivityDrawerProps) {
       </EventDrawerHeader>
       <EventNavigator>
         <Header>{t('Activity')}</Header>
+      </EventNavigator>
+      <EventDrawerBody>
         <SegmentedControl
           size="xs"
           aria-label={t('Filter activity')}
@@ -75,8 +77,6 @@ export function ActivityDrawer({group, project}: ActivityDrawerProps) {
           </SegmentedControl.Item>
           <SegmentedControl.Item key="all">{t('All Activity')}</SegmentedControl.Item>
         </SegmentedControl>
-      </EventNavigator>
-      <EventDrawerBody>
         <StreamlinedActivitySection
           group={group}
           isDrawer
