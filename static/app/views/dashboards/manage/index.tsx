@@ -25,7 +25,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconGrid, IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import localStorage from 'sentry/utils/localStorage';
@@ -64,16 +63,6 @@ import {
 } from './settings';
 import TemplateCard from './templateCard';
 
-const SORT_OPTIONS: Array<SelectValue<string>> = [
-  {label: t('My Dashboards'), value: 'mydashboards'},
-  {label: t('Dashboard Name (A-Z)'), value: 'title'},
-  {label: t('Dashboard Name (Z-A)'), value: '-title'},
-  {label: t('Date Created (Newest)'), value: '-dateCreated'},
-  {label: t('Date Created (Oldest)'), value: 'dateCreated'},
-  {label: t('Most Popular'), value: 'mostPopular'},
-  {label: t('Recently Viewed'), value: 'recentlyViewed'},
-];
-
 const SHOW_TEMPLATES_KEY = 'dashboards-show-templates';
 export const LAYOUT_KEY = 'dashboards-overview-layout';
 
@@ -106,16 +95,21 @@ function getSortOptions({
   dashboardsLayout: DashboardsLayout;
   organization: Organization;
 }) {
-  if (
-    organization.features.includes('dashboards-starred-reordering') &&
-    dashboardsLayout === TABLE
-  ) {
-    // The table layout under this feature flag is split by owned and shared dashboards, so the 'mydashboards'
-    // sort option does not apply
-    return SORT_OPTIONS.filter(option => option.value !== 'mydashboards');
-  }
-
-  return SORT_OPTIONS;
+  return [
+    ...(!organization.features.includes('dashboards-starred-reordering') ||
+    dashboardsLayout === GRID
+      ? [{label: t('My Dashboards'), value: 'mydashboards'}]
+      : []),
+    {label: t('Dashboard Name (A-Z)'), value: 'title'},
+    {label: t('Dashboard Name (Z-A)'), value: '-title'},
+    {label: t('Date Created (Newest)'), value: '-dateCreated'},
+    {label: t('Date Created (Oldest)'), value: 'dateCreated'},
+    ...(organization.features.includes('dashboards-starred-reordering')
+      ? [{label: t('Most Favorited'), value: 'mostFavorited'}]
+      : []),
+    {label: t('Most Popular'), value: 'mostPopular'},
+    {label: t('Recently Viewed'), value: 'recentlyViewed'},
+  ];
 }
 
 function getDefaultSort({
