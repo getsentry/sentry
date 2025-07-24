@@ -146,16 +146,16 @@ def delete_groups_for_project(
     eventstream_state = eventstream.backend.start_delete_groups(project_id, object_ids)
 
     # These can be used for debugging
-    extra = {"object_ids": object_ids, "project_id": project_id, "transaction_id": transaction_id}
+    extra = {"project_id": project_id, "transaction_id": transaction_id}
     sentry_sdk.set_tags(extra)
     logger.info("delete_groups.started", extra={"object_ids": object_ids, **extra})
 
-    task = deletions.get(model=Group, query={"id__in": object_ids})
+    task = deletions.get(model=Group, query={"id__in": object_ids}, transaction_id=transaction_id)
     has_more = task.chunk()
 
     # XXX: Delete this block once I'm convince this is not happening
     if has_more:
-        metrics.incr("deletions.groups.delete_groups_old.chunked", 1, sample_rate=1)
+        metrics.incr("deletions.groups.delete_groups_for_project.chunked", 1, sample_rate=1)
         sentry_sdk.capture_message(
             "This should not be happening",
             level="info",
