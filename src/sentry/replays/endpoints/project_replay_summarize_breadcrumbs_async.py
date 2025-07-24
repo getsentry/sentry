@@ -74,7 +74,7 @@ class ProjectReplaySummarizeBreadcrumbsAsyncEndpoint(ProjectEndpoint):
             logger.warning(
                 "Replay: Seer timed out when starting a replay breadcrumbs summary",
             )
-            self.respond(status=504)
+            return self.respond(status=504)
 
         if response.status_code != 200:
             logger.warning(
