@@ -12,7 +12,7 @@ from sentry.utils import json
 
 
 @django_db_all
-def test_get_request_data(default_project: Project) -> None:
+def test_get_summary_logs(default_project: Project) -> None:
     def _faker() -> Generator[tuple[int, memoryview]]:
         yield 0, memoryview(
             json.dumps(
