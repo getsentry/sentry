@@ -104,10 +104,10 @@ function getSortOptions({
     {label: t('Dashboard Name (Z-A)'), value: '-title'},
     {label: t('Date Created (Newest)'), value: '-dateCreated'},
     {label: t('Date Created (Oldest)'), value: 'dateCreated'},
-    ...(organization.features.includes('dashboards-starred-reordering')
-      ? [{label: t('Most Favorited'), value: 'mostFavorited'}]
-      : []),
     {label: t('Most Popular'), value: 'mostPopular'},
+    ...(organization.features.includes('dashboards-starred-reordering')
+      ? [{label: t('Most Starred'), value: 'mostFavorited'}]
+      : []),
     {label: t('Recently Viewed'), value: 'recentlyViewed'},
   ];
 }

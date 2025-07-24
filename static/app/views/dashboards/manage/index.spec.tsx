@@ -311,15 +311,12 @@ describe('Dashboards > Detail', function () {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
-    // mock the view type to table
-    localStorage.setItem(LAYOUT_KEY, `"grid"`);
-
     render(<ManageDashboards />, {
       organization: org,
     });
 
     await selectEvent.openMenu(await screen.findByRole('button', {name: /sort by/i}));
-    await userEvent.click(await screen.findByRole('option', {name: 'Most Favorited'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Most Starred'}));
 
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({query: {sort: 'mostFavorited'}})
