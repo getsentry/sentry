@@ -24,13 +24,13 @@ const TARGET_TYPE_CHOICES = [
 ];
 
 export function AssignedToDetails({condition}: {condition: DataCondition}) {
-  const {target_type, target_identifier} = condition.comparison;
+  const {targetType, targetIdentifier} = condition.comparison;
 
-  if (target_type === TargetType.TEAM) {
-    return <AssignedToTeam teamId={String(target_identifier)} />;
+  if (targetType === TargetType.TEAM) {
+    return <AssignedToTeam teamId={String(targetIdentifier)} />;
   }
-  if (target_type === TargetType.MEMBER) {
-    return <AssignedToMember memberId={target_identifier} />;
+  if (targetType === TargetType.MEMBER) {
+    return <AssignedToMember memberId={targetIdentifier} />;
   }
   return tct('Issue is unassigned', {});
 }
