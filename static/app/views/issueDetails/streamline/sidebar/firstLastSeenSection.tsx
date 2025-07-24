@@ -12,6 +12,7 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useFetchAllEnvsGroupData} from 'sentry/views/issueDetails/groupSidebar';
+import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 interface GroupRelease {
@@ -20,6 +21,11 @@ interface GroupRelease {
 }
 
 export default function FirstLastSeenSection({group}: {group: Group}) {
+  const {data: latestEvent} = useGroupEvent({
+    groupId: group.id,
+    eventId: 'latest',
+    options: {enabled: true},
+  });
   const organization = useOrganization();
   const {project} = group;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
@@ -35,8 +41,8 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
   const environments = useEnvironmentsFromUrl();
 
   const lastSeen = issueTypeConfig.useOpenPeriodChecks
-    ? (group.openPeriods?.[0]?.lastChecked ?? group.lastSeen)
-    : group.lastSeen;
+    ? (group.openPeriods?.[0]?.lastChecked ?? latestEvent?.dateCreated ?? group.lastSeen)
+    : (latestEvent?.dateCreated ?? group.lastSeen);
 
   const shortEnvironmentLabel =
     environments.length > 1
