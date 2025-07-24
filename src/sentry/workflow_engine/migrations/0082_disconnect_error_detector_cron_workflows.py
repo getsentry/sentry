@@ -20,7 +20,7 @@ def disconnect_error_detector_cron_workflows(
     DetectorWorkflow = apps.get_model("workflow_engine", "DetectorWorkflow")
 
     for rule in RangeQuerySetWrapper(Rule.objects.filter(source=1)):
-        arw = AlertRuleWorkflow.objects.filter(rule_id=rule.id).first()
+        arw = AlertRuleWorkflow.objects.filter(rule_id=rule.id).selected_related("workflow").first()
         if not arw:
             logger.info(
                 "No AlertRuleWorkflow found for rule, skipping",
