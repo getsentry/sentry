@@ -81,40 +81,23 @@ def _process_suspect_commits(
                     sorted(owner_scores.items(), reverse=True, key=lambda item: item[1])
                 )[:PREFERRED_GROUP_OWNERS]:
                     try:
-                        # update_or_create but handled this way to preserve other `context` content
-                        try:
-                            go = GroupOwner.objects.get(
-                                group_id=group_id,
-                                type=GroupOwnerType.SUSPECT_COMMIT.value,
-                                user_id=owner_id,
-                                project=project,
-                                organization_id=project.organization_id,
-                            )
-                            # Update existing fields: context and date_added
-                            existing_context = go.context or {}
-                            existing_context.update(
-                                {
-                                    "suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED.value,
-                                }
-                            )
-                            go.context = existing_context
-                            go.date_added = timezone.now()
-                            go.save()
-                            created = False
-                        except GroupOwner.DoesNotExist:
-                            # Create new record
-                            go = GroupOwner.objects.create(
-                                group_id=group_id,
-                                type=GroupOwnerType.SUSPECT_COMMIT.value,
-                                user_id=owner_id,
-                                project=project,
-                                organization_id=project.organization_id,
-                                date_added=timezone.now(),
-                                context={
+                        group_owner, created = (
+                            GroupOwner.objects.update_or_create_and_preserve_context(
+                                lookup_kwargs={
+                                    "group_id": group_id,
+                                    "type": GroupOwnerType.SUSPECT_COMMIT.value,
+                                    "user_id": owner_id,
+                                    "project_id": project.id,
+                                    "organization_id": project.organization_id,
+                                },
+                                defaults={
+                                    "date_added": timezone.now(),
+                                },
+                                context_defaults={
                                     "suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED.value,
                                 },
                             )
-                            created = True
+                        )
                         if created:
                             owner_count += 1
                             if owner_count > PREFERRED_GROUP_OWNERS:
@@ -140,8 +123,8 @@ def _process_suspect_commits(
                                         project_id=project.id,
                                         group_id=group_id,
                                         new_assignment=created,
-                                        user_id=go.user_id,
-                                        group_owner_type=go.type,
+                                        user_id=group_owner.user_id,
+                                        group_owner_type=group_owner.type,
                                         method="release_commit",
                                     )
                                 )
