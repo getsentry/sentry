@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {BroadcastPanelItem} from 'sentry/components/sidebar/broadcastPanelItem';
@@ -131,7 +132,7 @@ export function PrimaryNavigationWhatsNew() {
 
   return (
     <Fragment>
-      <SidebarButton
+      <WhatsNewButton
         analyticsKey="broadcasts"
         label={t("What's New")}
         buttonProps={overlayTriggerProps}
@@ -143,7 +144,7 @@ export function PrimaryNavigationWhatsNew() {
             isMobile={layout === NavLayout.MOBILE}
           />
         )}
-      </SidebarButton>
+      </WhatsNewButton>
       {isOpen && (
         <PrimaryButtonOverlay overlayProps={overlayProps}>
           <WhatsNewContent unseenPostIds={unseenPostIds} />
@@ -152,3 +153,11 @@ export function PrimaryNavigationWhatsNew() {
     </Fragment>
   );
 }
+
+const WhatsNewButton = styled(SidebarButton)`
+  display: none;
+
+  @media (min-height: 800px) {
+    display: flex;
+  }
+`;

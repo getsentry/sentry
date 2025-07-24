@@ -39,22 +39,11 @@ BASE_STRATEGY = create_strategy_configuration_class(
         # This turns on the automatic message trimming and parameter substitution
         # by the message strategy. (Only still configurable so it can be turned off in tests.)
         "normalize_message": True,
-        # Turns on some javascript fuzzing features.
-        "javascript_fuzzing": True,
         # Platforms for which context line should be taken into
         # account when grouping.
         "contextline_platforms": ("javascript", "node", "python", "php", "ruby"),
-        # This detects anonymous classes in PHP code.
-        "php_detect_anonymous_classes": True,
-        # Turns on a bug that was present in some variants
-        "with_context_line_file_origin_bug": False,
-        # Turns on falling back to exception values when there
-        # is no stacktrace.
-        "with_exception_value_fallback": True,
         # Stacktrace is produced in the context of this exception
         "exception_data": None,
-        # replaces generated IDs in Java stack frames related to CGLIB and hibernate
-        "java_cglib_hibernate_logic": True,
     },
 )
 
