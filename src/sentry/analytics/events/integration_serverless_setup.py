@@ -1,16 +1,13 @@
 from sentry import analytics
 
 
+@analytics.eventclass("integrations.serverless_setup")
 class IntegrationServerlessSetup(analytics.Event):
-    type = "integrations.serverless_setup"
-
-    attributes = (
-        analytics.Attribute("user_id"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("integration"),
-        analytics.Attribute("success_count"),
-        analytics.Attribute("failure_count"),
-    )
+    user_id: int | None
+    organization_id: int
+    integration: str
+    success_count: int
+    failure_count: int
 
 
 analytics.register(IntegrationServerlessSetup)

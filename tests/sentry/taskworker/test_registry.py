@@ -12,12 +12,11 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
 )
 
 from sentry.conf.types.kafka_definition import Topic
-from sentry.taskworker.constants import CompressionType
+from sentry.taskworker.constants import MAX_PARAMETER_BYTES_BEFORE_COMPRESSION, CompressionType
 from sentry.taskworker.registry import TaskNamespace, TaskRegistry
 from sentry.taskworker.retry import LastAction, Retry
 from sentry.taskworker.router import DefaultRouter
 from sentry.taskworker.task import Task
-from sentry.testutils.helpers.options import override_options
 
 
 def test_namespace_register_task() -> None:
@@ -150,14 +149,41 @@ def test_namespace_send_task_with_compression() -> None:
     def simple_task_with_compression(param: str) -> None:
         raise NotImplementedError
 
-    with override_options({"taskworker.enable_compression.rollout": 1.0}):
-        activation = simple_task_with_compression.create_activation(
-            args=["test_arg"], kwargs={"test_key": "test_value"}
-        )
+    activation = simple_task_with_compression.create_activation(
+        args=["test_arg"], kwargs={"test_key": "test_value"}
+    )
 
     assert activation.headers.get("compression-type") == CompressionType.ZSTD.value
 
     expected_params = {"args": ["test_arg"], "kwargs": {"test_key": "test_value"}}
+
+    decoded_data = base64.b64decode(activation.parameters.encode("utf-8"))
+    decompressed_data = zstd.decompress(decoded_data)
+    actual_params = orjson.loads(decompressed_data)
+
+    assert actual_params == expected_params
+
+
+@pytest.mark.django_db
+def test_namespace_send_task_with_auto_compression() -> None:
+    namespace = TaskNamespace(
+        name="tests",
+        router=DefaultRouter(),
+        retry=None,
+    )
+
+    @namespace.register(name="test.compression_task")
+    def simple_task_with_compression(param: str) -> None:
+        raise NotImplementedError
+
+    big_args = ["x" * (MAX_PARAMETER_BYTES_BEFORE_COMPRESSION + 1)]
+    activation = simple_task_with_compression.create_activation(
+        args=big_args, kwargs={"test_key": "test_value"}
+    )
+
+    assert activation.headers.get("compression-type") == CompressionType.ZSTD.value
+
+    expected_params = {"args": big_args, "kwargs": {"test_key": "test_value"}}
 
     decoded_data = base64.b64decode(activation.parameters.encode("utf-8"))
     decompressed_data = zstd.decompress(decoded_data)
