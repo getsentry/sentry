@@ -15,6 +15,7 @@ from django.test import override_settings
 from django.utils import timezone
 
 from sentry import buffer
+from sentry.analytics.events.first_flag_sent import FirstFlagSentEvent
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventstream.types import EventStreamEventType
@@ -2232,10 +2233,11 @@ class CheckIfFlagsSentTestMixin(BasePostProgressGroupMixin):
         mock_incr.assert_any_call("feature_flags.event_has_flags_context")
         mock_dist.assert_any_call("feature_flags.num_flags_sent", 2)
         mock_record.assert_called_with(
-            "first_flag.sent",
-            organization_id=self.organization.id,
-            project_id=project.id,
-            platform=project.platform,
+            FirstFlagSentEvent(
+                organization_id=self.organization.id,
+                project_id=project.id,
+                platform=project.platform,
+            ),
         )
 
 
