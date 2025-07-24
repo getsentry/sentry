@@ -60,7 +60,7 @@ class ProjectReplaySummarizeBreadcrumbsAsyncEndpoint(ProjectEndpoint):
 
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
         """Poll for the status of a replay summary task in Seer."""
-        if any(
+        if not all(
             features.has(feature, project.organization, actor=request.user)
             for feature in self.features
         ):
@@ -95,7 +95,7 @@ class ProjectReplaySummarizeBreadcrumbsAsyncEndpoint(ProjectEndpoint):
 
     def post(self, request: Request, project: Project, replay_id: str) -> Response:
         """Start a replay summary task in Seer."""
-        if any(
+        if not all(
             features.has(feature, project.organization, actor=request.user)
             for feature in self.features
         ):
