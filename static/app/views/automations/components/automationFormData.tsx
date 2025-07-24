@@ -9,6 +9,7 @@ import {dataConditionNodesMap} from 'sentry/views/automations/components/dataCon
 
 export interface AutomationFormData {
   detectorIds: string[];
+  enabled: boolean;
   environment: string | null;
   frequency: number | null;
   name: string;
@@ -62,7 +63,7 @@ export function getNewAutomationData(
       frequency: data.frequency ?? undefined,
     },
     detectorIds: data.detectorIds,
-    enabled: true,
+    enabled: data.enabled,
   };
   return result;
 }
@@ -75,6 +76,7 @@ export function getAutomationFormData(
     environment: automation.environment,
     frequency: automation.config.frequency || null,
     name: automation.name,
+    enabled: automation.enabled,
   };
 }
 
