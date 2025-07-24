@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import functools
+from collections import defaultdict
 from collections.abc import Sequence
 from datetime import datetime, timedelta
 from time import sleep
+from typing import Any
 from unittest.mock import MagicMock, Mock, call, patch
 from uuid import uuid4
 
@@ -4294,21 +4296,6 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             org = args[0]
         return super().get_response(org, **kwargs)
 
-    def create_n_groups(self, n: int, type: int | None = None) -> list[Group]:
-        groups = []
-        for _ in range(n):
-            if type:
-                group = self.create_group(
-                    project=self.project, status=GroupStatus.RESOLVED, type=type
-                )
-            else:
-                group = self.create_group(project=self.project, status=GroupStatus.RESOLVED)
-            hash = uuid4().hex
-            GroupHash.objects.create(project=group.project, hash=hash, group=group)
-            groups.append(group)
-
-        return groups
-
     def assert_pending_deletion_groups(self, groups: Sequence[Group]) -> None:
         for group in groups:
             assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
@@ -4418,27 +4405,87 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
 
         self.assert_deleted_groups([group1, group2])
 
-    def test_bulk_delete(self) -> None:
-        groups = self.create_n_groups(20)
+    def test_bulk_delete_for_many_projects(self) -> None:
+        NEW_CHUNK_SIZE = 2
 
-        self.login_as(user=self.user)
-        response = self.get_success_response(qs_params={"query": ""})
-        assert response.status_code == 204
-        self.assert_pending_deletion_groups(groups)
+        with self.feature("organizations:global-views"):
+            project_2 = self.create_project(slug="baz", organization=self.organization)
+            groups_1 = self.create_n_groups_with_hashes(2, project=self.project)
+            groups_2 = self.create_n_groups_with_hashes(5, project=project_2)
 
-        # This is needed to put the groups in the unresolved state before also triggering the task
-        Group.objects.filter(id__in=[group.id for group in groups]).update(
-            status=GroupStatus.UNRESOLVED
-        )
+            with (
+                self.tasks(),
+                patch("sentry.deletions.tasks.groups.GROUP_CHUNK_SIZE", NEW_CHUNK_SIZE),
+                patch("sentry.deletions.tasks.groups.logger") as mock_logger,
+                patch(
+                    "sentry.api.helpers.group_index.delete.uuid4",
+                    side_effect=[self.get_mock_uuid("foo"), self.get_mock_uuid("bar")],
+                ),
+            ):
+                self.login_as(user=self.user)
+                response = self.get_success_response(qs_params={"query": ""})
+                assert response.status_code == 204
+                batch_1 = [g.id for g in groups_2[0:2]]
+                batch_2 = [g.id for g in groups_2[2:4]]
+                batch_3 = [g.id for g in groups_2[4:]]
+                assert batch_1 + batch_2 + batch_3 == [g.id for g in groups_2]
 
-        with self.tasks():
-            response = self.get_success_response(qs_params={"query": ""})
-            assert response.status_code == 204
+                calls_by_project: dict[int, list[tuple[str, dict[str, Any]]]] = defaultdict(list)
+                for log_call in mock_logger.info.call_args_list:
+                    calls_by_project[log_call[1]["extra"]["project_id"]].append(log_call)
 
-        self.assert_deleted_groups(groups)
+                assert len(calls_by_project) == 2
+                assert calls_by_project[self.project.id] == [
+                    call(
+                        "delete_groups.started",
+                        extra={
+                            "object_ids_count": len(groups_1),
+                            "object_ids_current_batch": [g.id for g in groups_1],
+                            "first_id": groups_1[0].id,
+                            "project_id": self.project.id,
+                            "transaction_id": "bar",
+                        },
+                    ),
+                ]
+                assert calls_by_project[project_2.id] == [
+                    call(
+                        "delete_groups.started",
+                        extra={
+                            "object_ids_count": 5,
+                            "object_ids_current_batch": batch_1,
+                            "first_id": batch_1[0],
+                            "project_id": project_2.id,
+                            "transaction_id": "foo",
+                        },
+                    ),
+                    call(
+                        "delete_groups.started",
+                        extra={
+                            "object_ids_count": 3,
+                            "object_ids_current_batch": batch_2,
+                            "first_id": batch_2[0],
+                            "project_id": project_2.id,
+                            "transaction_id": "foo",
+                        },
+                    ),
+                    call(
+                        "delete_groups.started",
+                        extra={
+                            "object_ids_count": 1,
+                            "object_ids_current_batch": batch_3,
+                            "first_id": batch_3[0],
+                            "project_id": project_2.id,
+                            "transaction_id": "foo",
+                        },
+                    ),
+                ]
+
+            self.assert_deleted_groups(groups_1 + groups_2)
 
     def test_bulk_delete_performance_issues(self) -> None:
-        groups = self.create_n_groups(20, PerformanceSlowDBQueryGroupType.type_id)
+        groups = self.create_n_groups_with_hashes(
+            20, self.project, PerformanceSlowDBQueryGroupType.type_id
+        )
 
         self.login_as(user=self.user)
         response = self.get_success_response(qs_params={"query": ""})

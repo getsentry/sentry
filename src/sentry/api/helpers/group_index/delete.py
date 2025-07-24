@@ -140,7 +140,7 @@ def create_audit_entries(
         )
 
 
-def delete_groups(
+def schedule_tasks_to_delete_groups(
     request: Request,
     projects: Sequence[Project],
     organization_id: int,
