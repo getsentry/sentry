@@ -215,7 +215,7 @@ class SentryAppInstallationNotifier:
         send_and_save_webhook_request(self.sentry_app, self.request)
 
     @property
-    def request(self) -> AppPlatformEvent:
+    def request(self) -> AppPlatformEvent[SentryAppInstallationWebhookData]:
         data = serialize(
             self.sentry_app_installation,
             user=self.user,

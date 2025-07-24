@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any, Concatenate, ParamSpec, TypeVar
 
 from requests import RequestException, Response
@@ -32,7 +32,7 @@ logger = logging.getLogger("sentry.sentry_apps.webhooks")
 
 P = ParamSpec("P")
 R = TypeVar("R")
-T = TypeVar("T", bound=dict[str, Any])
+T = TypeVar("T", bound=Mapping[str, Any])
 
 
 def ignore_unpublished_app_errors(
