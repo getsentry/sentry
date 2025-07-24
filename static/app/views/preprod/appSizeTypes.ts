@@ -36,6 +36,7 @@ export enum TreemapType {
   // iOS-specific categories
   FRAMEWORKS = 'frameworks',
   PLISTS = 'plists',
+  EXTENSIONS = 'extensions',
 
   // Android-specific categories
   DEX = 'dex',
@@ -55,6 +56,9 @@ export enum TreemapType {
   FUNCTION_STARTS = 'function_starts',
   CODE_SIGNATURE = 'code_signature',
   EXTERNAL_METHODS = 'external_methods',
+
+  // Binary section categories
+  BINARY = 'binary',
 
   // Generic categories
   OTHER = 'other',

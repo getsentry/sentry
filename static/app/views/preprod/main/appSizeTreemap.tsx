@@ -57,6 +57,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     [TreemapType.METHODS]: COLORS.cyan,
     [TreemapType.STRINGS]: COLORS.cyan,
     [TreemapType.SYMBOLS]: COLORS.cyan,
+    [TreemapType.BINARY]: COLORS.cyan,
     [TreemapType.EXTERNAL_METHODS]: COLORS.cyan,
     [TreemapType.OTHER]: COLORS.purple,
     [TreemapType.UNMAPPED]: COLORS.purple,
