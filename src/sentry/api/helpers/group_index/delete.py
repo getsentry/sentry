@@ -27,6 +27,15 @@ from .validators import ValidationError
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
+# Issue categories that are not allowed to be deleted
+DELETION_RESTRICTED_CATEGORIES = {
+    GroupCategory.CRON,
+    GroupCategory.UPTIME,
+    GroupCategory.METRIC_ALERT,
+    GroupCategory.OUTAGE,
+    GroupCategory.METRIC,
+}
+
 
 def delete_group_list(
     request: Request,
@@ -41,6 +50,39 @@ def delete_group_list(
     :param group_list: The list of groups to delete.
     :param delete_type: The type of deletion to perform. This is used to determine the type of audit log to create.
     """
+    if not group_list:
+        return
+
+    # Check for restricted issue categories and filter them out
+    allowed_groups = []
+    restricted_groups = []
+    
+    for group in group_list:
+        try:
+            if group.issue_category in DELETION_RESTRICTED_CATEGORIES:
+                restricted_groups.append(group)
+            else:
+                allowed_groups.append(group)
+        except Exception:
+            # If we can't determine the issue category, err on the side of caution and allow deletion
+            allowed_groups.append(group)
+    
+    # Log restricted deletions for monitoring
+    if restricted_groups:
+        restricted_ids = [g.id for g in restricted_groups]
+        restricted_categories = [str(g.issue_category) for g in restricted_groups]
+        delete_logger.warning(
+            "deletion.restricted_categories",
+            extra={
+                "restricted_group_ids": restricted_ids,
+                "restricted_categories": restricted_categories,
+                "project_id": project.id,
+                "user_id": getattr(request.user, 'id', None) if hasattr(request, 'user') else None,
+            },
+        )
+    
+    # Only proceed with deletion for allowed groups
+    group_list = allowed_groups
     if not group_list:
         return
 
