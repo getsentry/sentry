@@ -2067,6 +2067,9 @@ register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_
 register(
     "nodestore.set-subkeys.enable-set-cache-item", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
+register(
+    "nodestore.set-subkeys.enable-errors-caching", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
 
 # === Backpressure related runtime options ===
 

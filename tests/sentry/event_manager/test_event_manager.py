@@ -3166,6 +3166,45 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             assert event.group is not None
             assert event.group.times_seen == 1
 
+    @override_options({"nodestore.set-subkeys.enable-errors-caching": True})
+    @mock.patch("sentry.nodestore.base.NodeStorage._set_cache_item")
+    def test_nodestore_cache_on_write_for_error_events(self, mock_set_cache_item):
+        """Test that cache_on_write=True is passed to nodestore for error events when option is enabled."""
+        manager = EventManager(
+            make_event(**{"exception": {"values": [{"type": "Foo", "value": "bar"}]}})
+        )
+        manager.normalize()
+        manager.save(self.project.id)
+
+        # Verify that set_subkeys was called with cache_on_write=True
+        mock_set_cache_item.assert_called_once()
+
+        # Test that cache_on_write=False is passed to nodestore for non-error events
+        manager = EventManager(
+            make_event(
+                **{
+                    "transaction": "wait",
+                    "contexts": {
+                        "trace": {
+                            "parent_span_id": "bce14471e0e9654d",
+                            "op": "foobar",
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "span_id": "bf5be759039ede9a",
+                        }
+                    },
+                    "spans": [],
+                    "timestamp": "2019-06-14T14:01:40Z",
+                    "start_timestamp": "2019-06-14T14:01:40Z",
+                    "type": "transaction",
+                }
+            )
+        )
+        manager.normalize()
+        manager.save(self.project.id)
+
+        mock_set_cache_item.reset_mock()
+        mock_set_cache_item.assert_not_called()
+
 
 class ReleaseIssueTest(TestCase):
     def setUp(self) -> None:

@@ -47,6 +47,7 @@ from sentry.dynamic_sampling import record_latest_release
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventstream.base import GroupState
 from sentry.eventtypes import EventType
+from sentry.eventtypes.error import ErrorEvent
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import (
@@ -1102,7 +1103,11 @@ def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
                 usage_type=UsageUnit.BYTES,
             )
         job["event"].data["nodestore_insert"] = inserted_time
-        job["event"].data.save(subkeys=subkeys)
+        cache_on_write = (
+            options.get("nodestore.set-subkeys.enable-errors-caching")
+            and job["event"].get_event_type() == ErrorEvent.key
+        )
+        job["event"].data.save(subkeys=subkeys, cache_on_write=cache_on_write)
 
 
 def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
