@@ -31,9 +31,7 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
             {
                 "organizations:issue-metric-issue-ingest": True,
                 "organizations:issue-metric-issue-post-process-group": True,
-                "organizations:workflow-engine-metric-alert-processing": True,
-                "organizations:workflow-engine-process-metric-issue-workflows": True,
-                "organizations:workflow-engine-trigger-actions": True,
+                "organizations:workflow-engine-single-process-metric-issues": True,
                 "organizations:issue-open-periods": True,
             }
         ):
