@@ -12,7 +12,10 @@ import {
 import {space} from 'sentry/styles/space';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {openInstallModal} from 'sentry/views/preprod/components/installModal';
-import {type BuildDetailsAppInfo, BuildDetailsState} from 'sentry/views/preprod/types';
+import type {
+  BuildDetailsAppInfo,
+  BuildDetailsState,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
   formatBytes,
   getPlatformIconFromPlatform,

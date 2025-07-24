@@ -1,4 +1,4 @@
-export type Platform = 'ios' | 'android' | 'macos';
+import type {Platform} from './sharedTypes';
 
 export interface BuildDetailsApiResponse {
   app_info: BuildDetailsAppInfo;

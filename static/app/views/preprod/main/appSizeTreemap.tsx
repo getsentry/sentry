@@ -3,7 +3,7 @@ import type {TreemapSeriesOption, VisualMapComponentOption} from 'echarts';
 
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
 import {space} from 'sentry/styles/space';
-import {type TreemapResults, TreemapType} from 'sentry/views/preprod/appSizeTypes';
+import {type TreemapResults, TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
 import {formatBytes} from 'sentry/views/preprod/utils';
 
 export interface AppSizeTreemapProps {

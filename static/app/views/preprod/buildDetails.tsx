@@ -3,7 +3,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import type {AppSizeApiResponse} from 'sentry/views/preprod/appSizeTypes';
 import {
   BuildDetailsHeaderContent,
   type BuildDetailsHeaderContentProps,
@@ -17,7 +16,8 @@ import {
   BuildDetailsSidebarContent,
   type BuildDetailsSidebarContentProps,
 } from './sidebar/buildDetailsSidebarContent';
-import type {BuildDetailsApiResponse} from './types';
+import type {AppSizeApiResponse} from './types/appSizeTypes';
+import type {BuildDetailsApiResponse} from './types/buildDetailsTypes';
 
 export default function BuildDetails() {
   const organization = useOrganization();

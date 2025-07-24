@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import type {AppSizeApiResponse} from 'sentry/views/preprod/appSizeTypes';
 import {AppSizeTreemap} from 'sentry/views/preprod/main/appSizeTreemap';
+import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
 
 type BuildDetailsMainContentError = {error: string; status: 'error'};
 type BuildDetailsMainContentLoading = {status: 'loading'};

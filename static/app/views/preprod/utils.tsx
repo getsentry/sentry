@@ -1,4 +1,7 @@
-import {BuildDetailsArtifactType, type Platform} from 'sentry/views/preprod/types';
+import {
+  BuildDetailsArtifactType,
+  type Platform,
+} from 'sentry/views/preprod/types/installDetailsTypes';
 
 export function formatBytes(bytes: number, isSi = false) {
   if (bytes === 0) return '0 B';
