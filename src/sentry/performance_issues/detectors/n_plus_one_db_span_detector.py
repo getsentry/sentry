@@ -191,7 +191,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         if fingerprint not in self.stored_problems:
             self._metrics_for_extra_matching_spans()
 
-            offender_span_ids = [span.get("span_id", None) for span in self.n_spans]
+            offender_span_ids = [span["span_id"] for span in self.n_spans]
 
             self.stored_problems[fingerprint] = PerformanceProblem(
                 fingerprint=fingerprint,
@@ -199,7 +199,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                 desc=self.n_spans[0].get("description", ""),
                 type=PerformanceNPlusOneGroupType,
                 parent_span_ids=[parent_span_id],
-                cause_span_ids=[self.source_span.get("span_id", None)],
+                cause_span_ids=[self.source_span["span_id"]],
                 offender_span_ids=offender_span_ids,
                 evidence_display=[
                     IssueEvidence(
@@ -234,8 +234,8 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
     def _contains_valid_repeating_query(self, span: Span) -> bool:
         # Make sure we at least have a space, to exclude e.g. MongoDB and
         # Prisma's `rawQuery`.
-        query = span.get("description", None)
-        return bool(query) and " " in query
+        query = span.get("description")
+        return bool(query and " " in query)
 
     def _metrics_for_extra_matching_spans(self) -> None:
         # Checks for any extra spans that match the detected problem but are not part of affected spans.
@@ -244,7 +244,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         all_matching_spans = [
             span
             for span in self._event.get("spans", [])
-            if span.get("span_id", None) == self.n_hash
+            if self.n_hash is not None and span["span_id"] == self.n_hash
         ]
         all_count = len(all_matching_spans)
         if n_count > 0 and n_count != all_count:
@@ -268,8 +268,8 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
 
 def contains_complete_query(span: Span, is_source: bool | None = False) -> bool:
     # Remove the truncation check from the n_plus_one db detector.
-    query = span.get("description", None)
+    query = span.get("description")
     if is_source and query:
         return True
     else:
-        return query and not query.endswith("...")
+        return bool(query and not query.endswith("..."))
