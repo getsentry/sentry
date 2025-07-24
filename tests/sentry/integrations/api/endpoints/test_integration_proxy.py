@@ -82,17 +82,24 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
 
     def assert_metric_count(
         self,
+        *,
         metric_name: str,
         count: int,
         mock_metrics: MagicMock,
         metric_prefix: str = "hybrid_cloud.integration_proxy",
+        kwargs_to_match: dict[str, str | int] | None = None,
     ):
         metric_name = f"{metric_prefix}.{metric_name}"
+
         # Finding matching metric calls with the same name
         matching_mock_calls = [
             call for call in mock_metrics.call_args_list if call.args[0] == metric_name
         ]
         assert len(matching_mock_calls) == count
+
+        if kwargs_to_match is not None:
+            for call in matching_mock_calls:
+                assert call.kwargs == kwargs_to_match
 
     def create_request_headers(
         self,
@@ -160,8 +167,18 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert proxy_response["X-Arbitrary"] == mock_response.headers["X-Arbitrary"]
         assert proxy_response.get(PROXY_SIGNATURE_HEADER) is None
 
-        self.assert_metric_count("initialize", 1, mock_metrics)
-        self.assert_metric_count("complete.response_code", 1, mock_metrics)
+        self.assert_metric_count(
+            metric_name="initialize",
+            count=1,
+            mock_metrics=mock_metrics,
+            kwargs_to_match={"sample_rate": 1.0},
+        )
+        self.assert_metric_count(
+            metric_name="complete.response_code",
+            count=1,
+            mock_metrics=mock_metrics,
+            kwargs_to_match={"sample_rate": 1.0, "tags": {"status": 400}},
+        )
 
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
     @patch.object(ExampleIntegration, "get_client")
@@ -208,8 +225,18 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert proxy_response["X-Arbitrary"] == mock_response.headers["X-Arbitrary"]
         assert proxy_response.get(PROXY_SIGNATURE_HEADER) is None
 
-        self.assert_metric_count("initialize", 1, mock_metrics)
-        self.assert_metric_count("complete.response_code", 1, mock_metrics)
+        self.assert_metric_count(
+            metric_name="initialize",
+            count=1,
+            mock_metrics=mock_metrics,
+            kwargs_to_match={"sample_rate": 1.0},
+        )
+        self.assert_metric_count(
+            metric_name="complete.response_code",
+            count=1,
+            mock_metrics=mock_metrics,
+            kwargs_to_match={"sample_rate": 1.0, "tags": {"status": 400}},
+        )
 
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
     @patch.object(ExampleIntegration, "get_client")
@@ -244,7 +271,12 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert mock_client.request.call_count == 0
         assert proxy_response.get(PROXY_SIGNATURE_HEADER) is None
 
-        self.assert_metric_count("failure.invalid_request", 1, mock_metrics)
+        self.assert_metric_count(
+            metric_name="failure.invalid_request",
+            count=1,
+            mock_metrics=mock_metrics,
+            kwargs_to_match={"sample_rate": 1.0},
+        )
 
     @override_settings(SENTRY_SUBNET_SECRET=secret, SILO_MODE=SiloMode.CONTROL)
     def test__validate_sender(self) -> None:
@@ -355,8 +387,18 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert proxy_response.status_code == 400
         assert proxy_response.data is None
 
-        self.assert_metric_count("initialize", 1, mock_metrics)
-        self.assert_metric_count("complete.response_code", 0, mock_metrics)
+        self.assert_metric_count(
+            metric_name="initialize",
+            count=1,
+            mock_metrics=mock_metrics,
+            kwargs_to_match={"sample_rate": 1.0},
+        )
+        self.assert_metric_count(
+            metric_name="complete.response_code",
+            count=0,
+            mock_metrics=mock_metrics,
+            kwargs_to_match={"sample_rate": 1.0},
+        )
 
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
     @patch.object(ExampleIntegration, "get_client")
@@ -383,8 +425,17 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert proxy_response.status_code == 503
         assert proxy_response.data is None
 
-        self.assert_metric_count("initialize", 1, mock_metrics)
-        self.assert_metric_count("complete.response_code", 0, mock_metrics)
+        self.assert_metric_count(
+            metric_name="initialize",
+            count=1,
+            mock_metrics=mock_metrics,
+            kwargs_to_match={"sample_rate": 1.0},
+        )
+        self.assert_metric_count(
+            metric_name="complete.response_code",
+            count=0,
+            mock_metrics=mock_metrics,
+        )
 
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
     @patch.object(ExampleIntegration, "get_client")
@@ -411,8 +462,17 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert proxy_response.status_code == 504
         assert proxy_response.data is None
 
-        self.assert_metric_count("initialize", 1, mock_metrics)
-        self.assert_metric_count("complete.response_code", 0, mock_metrics)
+        self.assert_metric_count(
+            metric_name="initialize",
+            count=1,
+            mock_metrics=mock_metrics,
+            kwargs_to_match={"sample_rate": 1.0},
+        )
+        self.assert_metric_count(
+            metric_name="complete.response_code",
+            count=0,
+            mock_metrics=mock_metrics,
+        )
 
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
     @patch.object(ExampleIntegration, "get_client")
@@ -436,5 +496,14 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
 
         assert proxy_response.status_code == 500
 
-        self.assert_metric_count("initialize", 1, mock_metrics)
-        self.assert_metric_count("complete.response_code", 0, mock_metrics)
+        self.assert_metric_count(
+            metric_name="initialize",
+            count=1,
+            mock_metrics=mock_metrics,
+            kwargs_to_match={"sample_rate": 1.0},
+        )
+        self.assert_metric_count(
+            metric_name="complete.response_code",
+            count=0,
+            mock_metrics=mock_metrics,
+        )
