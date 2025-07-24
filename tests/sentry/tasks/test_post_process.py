@@ -2234,6 +2234,7 @@ class CheckIfFlagsSentTestMixin(BasePostProgressGroupMixin):
         mock_incr.assert_any_call("feature_flags.event_has_flags_context")
         mock_dist.assert_any_call("feature_flags.num_flags_sent", 2)
         assert_last_analytics_event(
+            mock_record,
             FirstFlagSentEvent(
                 organization_id=self.organization.id,
                 project_id=project.id,
