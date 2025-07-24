@@ -1,8 +1,12 @@
+from typing import Any
+
 from django.middleware.csrf import rotate_token
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -40,7 +44,7 @@ class CsrfTokenEndpoint(AuthV2Endpoint):
         },
     )
     @method_decorator(ensure_csrf_cookie)
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         return self.respond(
             {
                 "detail": "Set CSRF cookie",
@@ -58,7 +62,7 @@ class CsrfTokenEndpoint(AuthV2Endpoint):
         },
     )
     @method_decorator(ensure_csrf_cookie)
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         rotate_token(request)
         return self.respond(
             {
