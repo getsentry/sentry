@@ -221,6 +221,7 @@ function BaseTabList({
         value: key,
         label: item.props.children,
         disabled: item.props.disabled,
+        tooltip: item.props.tooltip,
         textValue: item.textValue,
       };
     });
@@ -243,6 +244,7 @@ function BaseTabList({
             orientation={orientation}
             size={size}
             overflowing={orientation === 'horizontal' && overflowTabs.includes(item.key)}
+            tooltipProps={item.props.tooltip}
             ref={element => {
               tabItemsRef.current[item.key] = element;
             }}

@@ -1,7 +1,10 @@
 import datetime
 from unittest.mock import patch
 
+from sentry.hybridcloud.models.outbox import RegionOutbox
+from sentry.hybridcloud.outbox.category import OutboxScope
 from sentry.models.apitoken import ApiToken
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.replays.models import ReplayDeletionJobModel
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -160,7 +163,7 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
                 "rangeStart": "2023-01-01T00:00:00Z",
                 "rangeEnd": "2023-01-02T00:00:00Z",
                 "environments": ["production"],
-                "query": "test query",
+                "query": None,
             }
         }
 
@@ -173,7 +176,7 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
         job_data = response.data["data"]
         assert job_data["status"] == "pending"
         assert job_data["environments"] == ["production"]
-        assert job_data["query"] == "test query"
+        assert job_data["query"] == ""
         assert job_data["countDeleted"] == 0  # Default offset value
 
         # Verify job was created in database
@@ -183,6 +186,16 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
 
         # Verify task was scheduled
         mock_task.assert_called_once_with(job.id, offset=0)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            RegionOutbox(
+                shard_scope=OutboxScope.AUDIT_LOG_SCOPE, shard_identifier=self.organization.id
+            ).drain_shard()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            entry = AuditLogEntry.objects.get()
+            assert entry is not None
+            assert entry.event == 1156
 
     def test_post_validation_errors(self):
         """Test POST validation errors"""

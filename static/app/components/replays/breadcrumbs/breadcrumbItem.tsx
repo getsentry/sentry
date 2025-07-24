@@ -9,13 +9,13 @@ import {BreadcrumbComparisonButton} from 'sentry/components/replays/breadcrumbs/
 import {BreadcrumbDescription} from 'sentry/components/replays/breadcrumbs/breadcrumbDescription';
 import {BreadcrumbIssueLink} from 'sentry/components/replays/breadcrumbs/breadcrumbIssueLink';
 import {BreadcrumbWebVital} from 'sentry/components/replays/breadcrumbs/breadcrumbWebVital';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {Timeline} from 'sentry/components/timeline';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useExtractDomNodes from 'sentry/utils/replays/hooks/useExtractDomNodes';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {isErrorFrame} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -61,7 +61,7 @@ function BreadcrumbItem({
   const theme = useTheme();
   const {colorGraphicsToken, description, title, icon} = getFrameDetails(frame);
   const colorHex = theme.tokens.graphics[colorGraphicsToken];
-  const {replay} = useReplayContext();
+  const replay = useReplayReader();
   const organization = useOrganization();
   const {data: extraction, isPending} = useExtractDomNodes({
     replay,

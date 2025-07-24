@@ -2,6 +2,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -41,7 +42,7 @@ class ReplayDeletionJobCreateDataSerializer(serializers.Serializer):
     environments = serializers.ListField(
         child=serializers.CharField(allow_null=False, allow_blank=False), required=True
     )
-    query = serializers.CharField(required=True, allow_blank=True)
+    query = serializers.CharField(required=True, allow_blank=True, allow_null=True)
 
     def validate(self, data):
         if data["rangeStart"] >= data["rangeEnd"]:
@@ -97,13 +98,21 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
             environments=data["environments"],
             organization_id=project.organization_id,
             project_id=project.id,
-            query=data["query"],
+            query=data["query"] or "",
             status="pending",
         )
 
         # We always start with an offset of 0 (obviously) but future work doesn't need to obey
         # this. You're free to start from wherever you want.
         run_bulk_replay_delete_job.delay(job.id, offset=0)
+
+        self.create_audit_entry(
+            request,
+            organization=project.organization,
+            target_object=job.id,
+            event=audit_log.get_event_id("REPLAYDELETIONJOBMODEL_START"),
+            data={},
+        )
 
         response_data = serialize(job, request.user, ReplayDeletionJobSerializer())
         response = {"data": response_data}

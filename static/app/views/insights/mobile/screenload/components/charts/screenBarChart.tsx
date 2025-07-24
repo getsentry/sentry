@@ -27,7 +27,7 @@ import {useReleaseSelection} from 'sentry/views/insights/common/queries/useRelea
 import {YAxis, YAXIS_COLUMNS} from 'sentry/views/insights/mobile/screenload/constants';
 import {Referrer} from 'sentry/views/insights/mobile/screenload/referrers';
 import {transformDeviceClassEvents} from 'sentry/views/insights/mobile/screenload/utils';
-import {type EAPSpanProperty, SpanFields} from 'sentry/views/insights/types';
+import {SpanFields, type SpanProperty} from 'sentry/views/insights/types';
 
 export function ScreensBarChart({
   chartHeight,
@@ -47,7 +47,7 @@ export function ScreensBarChart({
     secondaryRelease,
   } = useReleaseSelection();
 
-  const breakdownMetric: EAPSpanProperty =
+  const breakdownMetric: SpanProperty =
     type === 'ttid'
       ? 'avg(measurements.time_to_initial_display)'
       : 'avg(measurements.time_to_full_display)';
@@ -159,7 +159,7 @@ export function ScreensBarChart({
             <ChartActionDropdown
               chartType={ChartType.LINE}
               yAxes={[breakdownMetric]}
-              groupBy={groupBy as any as SpanFields[]} // TODO: this will be fixed when we remove `useInsightsEap`
+              groupBy={[...groupBy]}
               title={title}
               search={search}
               referrer={referrer}

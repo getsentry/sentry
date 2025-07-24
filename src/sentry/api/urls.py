@@ -3,7 +3,6 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
-from sentry.api.endpoints.auth_merge_user_accounts import AuthMergeUserAccountsEndpoint
 from sentry.api.endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
 from sentry.api.endpoints.group_integrations import GroupIntegrationsEndpoint
 from sentry.api.endpoints.organization_auth_token_details import (
@@ -72,6 +71,7 @@ from sentry.codecov.endpoints.TestResults.test_results import TestResultsEndpoin
 from sentry.codecov.endpoints.TestResultsAggregates.test_results_aggregates import (
     TestResultsAggregatesEndpoint,
 )
+from sentry.codecov.endpoints.TestSuites.test_suites import TestSuitesEndpoint
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.discover.endpoints.discover_homepage_query import DiscoverHomepageQueryEndpoint
@@ -935,11 +935,6 @@ AUTH_URLS = [
         AuthValidateEndpoint.as_view(),
         name="sentry-api-0-auth-test",
     ),
-    re_path(
-        r"^merge-accounts/$",
-        AuthMergeUserAccountsEndpoint.as_view(),
-        name="sentry-api-0-auth-merge-accounts",
-    ),
 ]
 
 BROADCAST_URLS = [
@@ -1064,6 +1059,11 @@ PREVENT_URLS = [
         r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-results/$",
         TestResultsEndpoint.as_view(),
         name="sentry-api-0-test-results",
+    ),
+    re_path(
+        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-suites/$",
+        TestSuitesEndpoint.as_view(),
+        name="sentry-api-0-test-suites",
     ),
     re_path(
         r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-results-aggregates/$",

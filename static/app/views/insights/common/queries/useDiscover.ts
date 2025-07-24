@@ -6,7 +6,7 @@ import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
-import type {EAPSpanProperty, EAPSpanResponse} from 'sentry/views/insights/types';
+import type {SpanProperty, SpanResponse} from 'sentry/views/insights/types';
 
 interface UseDiscoverQueryOptions {
   additonalQueryKey?: string[];
@@ -34,15 +34,11 @@ interface UseDiscoverOptions<Fields> {
 // The default sampling mode for eap queries
 export const DEFAULT_SAMPLING_MODE: SamplingMode = 'NORMAL';
 
-export const useSpans = <Fields extends EAPSpanProperty[]>(
+export const useSpans = <Fields extends SpanProperty[]>(
   options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
-  return useDiscover<Fields, EAPSpanResponse>(
-    options,
-    DiscoverDatasets.SPANS_EAP_RPC,
-    referrer
-  );
+  return useDiscover<Fields, SpanResponse>(options, DiscoverDatasets.SPANS, referrer);
 };
 
 const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, ResponseType>(
@@ -64,9 +60,6 @@ const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, Respo
     useQueryOptions,
   } = options;
 
-  // TODO: remove this check with eap
-  const shouldSetSamplingMode = dataset === DiscoverDatasets.SPANS_EAP_RPC;
-
   const pageFilters = usePageFilters();
 
   const eventView = getEventView(
@@ -87,7 +80,7 @@ const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, Respo
     referrer,
     cursor,
     noPagination,
-    samplingMode: shouldSetSamplingMode ? samplingMode : undefined,
+    samplingMode,
     additionalQueryKey: useQueryOptions?.additonalQueryKey,
     keepPreviousData: options.keepPreviousData,
   });
