@@ -85,7 +85,7 @@ describe('SeerComboBox', () => {
     );
 
     const header = await screen.findByRole('heading', {
-      name: "Describe what you're looking for!",
+      name: /Describe what you're looking for!/,
     });
     expect(header).toBeInTheDocument();
   });
