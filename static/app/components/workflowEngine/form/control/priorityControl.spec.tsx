@@ -24,7 +24,6 @@ describe('PriorityControl', function () {
     );
 
     expect(await screen.findByText('Above 0ms')).toBeInTheDocument();
-    expect(screen.getByLabelText('Medium threshold')).toBeInTheDocument();
     expect(screen.getByLabelText('High threshold')).toBeInTheDocument();
   });
 
@@ -40,11 +39,11 @@ describe('PriorityControl', function () {
         <PriorityControl minimumPriority={DetectorPriorityLevel.MEDIUM} />
       </Form>
     );
-    expect(await screen.findByRole('button', {name: 'Low'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Med'})).toBeInTheDocument();
     expect(screen.getByText('Med')).toBeInTheDocument();
     expect(screen.getByText('High')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Low'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Med'}));
     await userEvent.click(await screen.findByRole('option', {name: 'High'}));
     expect(formModel.getValue(METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel)).toBe(
       DetectorPriorityLevel.HIGH
@@ -53,23 +52,22 @@ describe('PriorityControl', function () {
     expect(screen.getAllByRole('button')).toHaveLength(1);
   });
 
-  it('allows configuring medium and high thresholds', async function () {
+  it('allows configuring high thresholds', async function () {
     const formModel = new FormModel({
       initialData: {
         ...DEFAULT_THRESHOLD_METRIC_FORM_DATA,
-        [METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel]: DetectorPriorityLevel.LOW,
+        [METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel]: DetectorPriorityLevel.MEDIUM,
       },
     });
     render(
       <Form model={formModel} hideFooter>
-        <PriorityControl minimumPriority={DetectorPriorityLevel.LOW} />
+        <PriorityControl minimumPriority={DetectorPriorityLevel.MEDIUM} />
       </Form>
     );
 
     const high = screen.getByLabelText('High threshold');
     await userEvent.type(high, '5');
 
-    expect(formModel.getValue(METRIC_DETECTOR_FORM_FIELDS.mediumThreshold)).toBe('4');
     expect(formModel.getValue(METRIC_DETECTOR_FORM_FIELDS.highThreshold)).toBe('5');
   });
 

@@ -22,7 +22,7 @@ import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
-import {getStaticDetectorThresholdSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
+import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 
 const priorities = [
   DetectorPriorityLevel.LOW,
@@ -44,17 +44,13 @@ const conditionKindAndTypeToLabel: Record<
   },
 };
 
-function ThresholdPriority() {
+function ThresholdPriority({thresholdSuffix}: {thresholdSuffix: string}) {
   const conditionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.conditionType
   );
   const conditionValue = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.conditionValue
   );
-  const aggregate = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
-  );
-  const thresholdSuffix = getStaticDetectorThresholdSuffix(aggregate);
 
   return (
     <div>
@@ -65,17 +61,13 @@ function ThresholdPriority() {
   );
 }
 
-function ChangePriority() {
+function ChangePriority({thresholdSuffix}: {thresholdSuffix: string}) {
   const conditionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.conditionType
   );
   const conditionValue = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.conditionValue
   );
-  const aggregate = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
-  );
-  const thresholdSuffix = getStaticDetectorThresholdSuffix(aggregate);
 
   return (
     <div>
@@ -146,7 +138,7 @@ export default function PriorityControl({minimumPriority}: PriorityControlProps)
   const aggregate = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
   );
-  const thresholdSuffix = getStaticDetectorThresholdSuffix(aggregate);
+  const thresholdSuffix = getMetricDetectorSuffix(detectionType, aggregate);
 
   if (detectionType === 'dynamic') {
     return null;
@@ -157,7 +149,11 @@ export default function PriorityControl({minimumPriority}: PriorityControlProps)
       <PrioritizeRow
         left={
           <Flex align="center" direction="column">
-            {detectionType === 'static' ? <ThresholdPriority /> : <ChangePriority />}
+            {detectionType === 'static' ? (
+              <ThresholdPriority thresholdSuffix={thresholdSuffix} />
+            ) : (
+              <ChangePriority thresholdSuffix={thresholdSuffix} />
+            )}
             <SecondaryLabel>({t('issue created')})</SecondaryLabel>
           </Flex>
         }
