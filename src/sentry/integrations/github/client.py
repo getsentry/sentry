@@ -116,7 +116,7 @@ class GithubSetupApiClient(IntegrationProxyClient):
 class GithubProxyClient(IntegrationProxyClient):
     integration: Integration | RpcIntegration  # late init
 
-    class AccessTokenWithMetadata(TypedDict):
+    class AccessTokenData(TypedDict):
         access_token: str
         permissions: dict[str, str] | None
 
@@ -137,7 +137,7 @@ class GithubProxyClient(IntegrationProxyClient):
         return get_jwt()
 
     @control_silo_function
-    def _refresh_access_token(self) -> AccessTokenWithMetadata | None:
+    def _refresh_access_token(self) -> AccessTokenData | None:
         integration = Integration.objects.filter(id=self.integration.id).first()
         if not integration:
             return None
@@ -205,7 +205,7 @@ class GithubProxyClient(IntegrationProxyClient):
         return metadata["access_token"]
 
     @control_silo_function
-    def get_access_token(self) -> AccessTokenWithMetadata | None:
+    def get_access_token(self) -> AccessTokenData | None:
         now = datetime.utcnow()
         access_token: str | None = self.integration.metadata.get("access_token")
         expires_at: str | None = self.integration.metadata.get("expires_at")
@@ -217,10 +217,13 @@ class GithubProxyClient(IntegrationProxyClient):
         if should_refresh:
             return self._refresh_access_token()
 
-        return {
-            "access_token": access_token,
-            "permissions": self.integration.metadata.get("permissions"),
-        }
+        if access_token:
+            return {
+                "access_token": access_token,
+                "permissions": self.integration.metadata.get("permissions"),
+            }
+
+        return None
 
     @control_silo_function
     def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
