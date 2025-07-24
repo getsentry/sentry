@@ -6,10 +6,10 @@ from sentry import analytics
 @analytics.eventclass("sentry_app.schema_validation_error")
 class SentryAppSchemaValidationError(analytics.Event):
     app_schema: str
-    user_id: str
-    sentry_app_id: str | None = None
+    user_id: int
+    sentry_app_id: int | None = None
     sentry_app_name: str
-    organization_id: str
+    organization_id: int
     error_message: str
 
     def serialize(self) -> dict[str, Any]:
