@@ -6,7 +6,7 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     actions: {
       archiveUntilOccurrence: {enabled: false},
-      delete: {enabled: true},
+      delete: {enabled: false},
       deleteAndDiscard: {enabled: false},
       merge: {enabled: false},
       ignore: {enabled: true},
