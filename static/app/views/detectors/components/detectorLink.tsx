@@ -87,7 +87,10 @@ function MetricDetectorConfigDetails({detector}: {detector: MetricDetector}) {
     return null;
   }
 
-  const unit = getMetricDetectorSuffix(detector);
+  const unit = getMetricDetectorSuffix(
+    type,
+    detector.dataSources[0].queryObj?.snubaQuery?.aggregate || 'count()'
+  );
   switch (type) {
     case 'static': {
       const text = conditions
