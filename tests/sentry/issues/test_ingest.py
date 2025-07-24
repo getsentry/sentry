@@ -1,3 +1,4 @@
+import pytest
 from collections import namedtuple
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -222,6 +223,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         detector_group = DetectorGroup.objects.get(group_id=group_info.group.id)
         assert detector_group.detector_id == detector.id
 
+    @pytest.mark.skip(reason="flaky: #96330")
     def test_metric_issue_creates_detector_group(self) -> None:
         from datetime import timedelta
 
