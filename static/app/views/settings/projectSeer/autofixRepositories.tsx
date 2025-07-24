@@ -128,6 +128,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
           external_id: repo.externalId,
           branch_name: settingsToUse[repo.externalId]?.branch || '',
           instructions: settingsToUse[repo.externalId]?.instructions || '',
+          branch_overrides: settingsToUse[repo.externalId]?.branch_overrides || [],
         };
       });
       updateProjectSeerPreferences({
