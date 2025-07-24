@@ -3,7 +3,7 @@ import type {TreemapSeriesOption, VisualMapComponentOption} from 'echarts';
 
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
 import {space} from 'sentry/styles/space';
-import type {TreemapResults} from 'sentry/views/preprod/appSizeTypes';
+import {type TreemapResults, TreemapType} from 'sentry/views/preprod/appSizeTypes';
 import {formatBytes} from 'sentry/views/preprod/utils';
 
 export interface AppSizeTreemapProps {
@@ -32,34 +32,6 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     kiwi: 'hsla(69, 80%, 40%, 0.60)',
     cyan: 'hsla(192, 100%, 50%, 0.5)',
     white: '#FFFFFF',
-  } as const;
-
-  const TreemapType = {
-    FILES: 'files',
-    EXECUTABLES: 'executables',
-    RESOURCES: 'resources',
-    ASSETS: 'assets',
-    MANIFESTS: 'manifests',
-    SIGNATURES: 'signatures',
-    FONTS: 'fonts',
-    FRAMEWORKS: 'frameworks',
-    EXTENSIONS: 'extensions',
-    PLISTS: 'plists',
-    DYLD: 'dyld',
-    MACHO: 'macho',
-    FUNCTION_STARTS: 'function_starts',
-    CODE_SIGNATURE: 'code_signature',
-    DEX: 'dex',
-    NATIVE_LIBRARIES: 'native_libraries',
-    COMPILED_RESOURCES: 'compiled_resources',
-    MODULES: 'modules',
-    CLASSES: 'classes',
-    METHODS: 'methods',
-    STRINGS: 'strings',
-    SYMBOLS: 'symbols',
-    EXTERNAL_METHODS: 'external_methods',
-    OTHER: 'other',
-    UNMAPPED: 'unmapped',
   } as const;
 
   const TYPE_COLORS: Record<string, string> = {
