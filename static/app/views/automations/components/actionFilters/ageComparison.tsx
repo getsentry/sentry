@@ -27,8 +27,8 @@ export function AgeComparisonDetails({condition}: AgeComparisonDetailsProps) {
   return tct('The issue is [comparisonType] [value] [time]', {
     comparisonType:
       AGE_COMPARISON_CHOICES.find(
-        choice => choice.value === condition.comparison.comparison_type
-      )?.label || condition.comparison.comparison_type,
+        choice => choice.value === condition.comparison.comparisonType
+      )?.label || condition.comparison.comparisonType,
     value: condition.comparison.value,
     time:
       TIME_CHOICES.find(choice => choice.value[0] === condition.comparison.time)?.label ||

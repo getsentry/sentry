@@ -118,8 +118,8 @@ export function validateLatestAdoptedReleaseCondition({
   condition,
 }: ValidateDataConditionProps): string | undefined {
   if (
-    !condition.comparison.release_age_type ||
-    !condition.comparison.age_comparison ||
+    !condition.comparison.releaseAgeType ||
+    !condition.comparison.ageComparison ||
     !condition.comparison.environment
   ) {
     return t('Ensure all fields are filled in.');
