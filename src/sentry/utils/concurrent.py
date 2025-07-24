@@ -12,6 +12,7 @@ from time import time
 from typing import Any, NamedTuple
 
 import sentry_sdk
+import sentry_sdk.scope
 
 logger = logging.getLogger(__name__)
 
@@ -201,8 +202,8 @@ class ThreadedExecutor(Executor):
         while True:
             priority, item = queue.get(True)
             thread_isolation_scope, thread_current_scope, function, future = item
-            with sentry_sdk.use_isolation_scope(thread_isolation_scope):
-                with sentry_sdk.use_scope(thread_current_scope):
+            with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope):
+                with sentry_sdk.scope.use_scope(thread_current_scope):
                     if not future.set_running_or_notify_cancel():
                         continue
                     try:

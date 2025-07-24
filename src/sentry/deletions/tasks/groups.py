@@ -1,6 +1,5 @@
 from collections.abc import Mapping, Sequence
 from typing import Any
-from uuid import uuid4
 
 import sentry_sdk
 
@@ -33,7 +32,7 @@ from sentry.taskworker.retry import Retry
 @track_group_async_operation
 def delete_groups(
     object_ids: Sequence[int],
-    transaction_id: str | None = None,
+    transaction_id: str,
     eventstream_state: Mapping[str, Any] | None = None,
     **kwargs: Any,
 ) -> None:
@@ -54,8 +53,6 @@ def delete_groups(
             "transaction_id": transaction_id,
         },
     )
-
-    transaction_id = transaction_id or uuid4().hex
 
     logger.info(
         "delete_groups.started",
