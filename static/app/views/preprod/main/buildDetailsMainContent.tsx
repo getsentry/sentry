@@ -1,9 +1,13 @@
-import type {EChartsOption} from 'echarts';
+import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
+import type {TreemapSeriesOption, VisualMapComponentOption} from 'echarts';
 
-import BaseChart from 'sentry/components/charts/baseChart';
+import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
 import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {space} from 'sentry/styles/space';
 import type {AppSizeApiResponse} from 'sentry/views/preprod/appSizeTypes';
+import {formatBytes} from 'sentry/views/preprod/utils';
 
 type BuildDetailsMainContentError = {error: string; status: 'error'};
 type BuildDetailsMainContentLoading = {status: 'loading'};
@@ -19,6 +23,7 @@ export type BuildDetailsMainContentProps =
 
 export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   const {status} = props;
+  const theme = useTheme();
 
   if (status === 'loading') {
     return <LoadingIndicator />;
@@ -30,7 +35,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
 
   const {appSizeData} = props;
 
-  // --- Color and Type Constants ---
+  // TODO: Use theme colors
   const COLORS = {
     gray900: '#0F0C13',
     gray700: '#1E1825',
@@ -50,33 +55,32 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     white: '#FFFFFF',
   } as const;
 
-  // If you have a TreemapType enum, use it here. Otherwise, fallback to string keys.
   const TreemapType = {
-    FILES: 'FILES',
-    EXECUTABLES: 'EXECUTABLES',
-    RESOURCES: 'RESOURCES',
-    ASSETS: 'ASSETS',
-    MANIFESTS: 'MANIFESTS',
-    SIGNATURES: 'SIGNATURES',
-    FONTS: 'FONTS',
-    FRAMEWORKS: 'FRAMEWORKS',
-    EXTENSIONS: 'EXTENSIONS',
-    PLISTS: 'PLISTS',
-    DYLD: 'DYLD',
-    MACHO: 'MACHO',
-    FUNCTION_STARTS: 'FUNCTION_STARTS',
-    CODE_SIGNATURE: 'CODE_SIGNATURE',
-    DEX: 'DEX',
-    NATIVE_LIBRARIES: 'NATIVE_LIBRARIES',
-    COMPILED_RESOURCES: 'COMPILED_RESOURCES',
-    MODULES: 'MODULES',
-    CLASSES: 'CLASSES',
-    METHODS: 'METHODS',
-    STRINGS: 'STRINGS',
-    SYMBOLS: 'SYMBOLS',
-    EXTERNAL_METHODS: 'EXTERNAL_METHODS',
-    OTHER: 'OTHER',
-    UNMAPPED: 'UNMAPPED',
+    FILES: 'files',
+    EXECUTABLES: 'executables',
+    RESOURCES: 'resources',
+    ASSETS: 'assets',
+    MANIFESTS: 'manifests',
+    SIGNATURES: 'signatures',
+    FONTS: 'fonts',
+    FRAMEWORKS: 'frameworks',
+    EXTENSIONS: 'extensions',
+    PLISTS: 'plists',
+    DYLD: 'dyld',
+    MACHO: 'macho',
+    FUNCTION_STARTS: 'function_starts',
+    CODE_SIGNATURE: 'code_signature',
+    DEX: 'dex',
+    NATIVE_LIBRARIES: 'native_libraries',
+    COMPILED_RESOURCES: 'compiled_resources',
+    MODULES: 'modules',
+    CLASSES: 'classes',
+    METHODS: 'methods',
+    STRINGS: 'strings',
+    SYMBOLS: 'symbols',
+    EXTERNAL_METHODS: 'external_methods',
+    OTHER: 'other',
+    UNMAPPED: 'unmapped',
   } as const;
 
   const TYPE_COLORS: Record<string, string> = {
@@ -107,15 +111,6 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     [TreemapType.UNMAPPED]: COLORS.purple,
   };
 
-  // --- Utility Functions ---
-  function formatBytes(bytes: number, usesSiUnits: boolean): string {
-    if (bytes === 0) return '0 Bytes';
-    const k = usesSiUnits ? 1000 : 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  }
-
   function convertToEChartsData(element: any, sizeMode: 'install' | 'download'): any {
     const size = sizeMode === 'install' ? element.install_size : element.download_size;
     const color = element.element_type
@@ -126,6 +121,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
       name: element.name,
       value: size,
       path: element.path,
+      category: element.element_type,
       itemStyle: {
         color: 'transparent',
         borderColor: color,
@@ -167,142 +163,141 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     return data;
   }
 
-  // --- Data Extraction ---
   const treemapData = appSizeData.treemap;
+  // TODO: Add download size toggling
   const chartData = convertToEChartsData(treemapData.root, 'install');
-  // const totalSize =
-  //   'install' === 'install'
-  //     ? treemapData.total_install_size
-  //     : treemapData.total_download_size;
   const totalSize = treemapData.total_install_size;
 
-  // --- Chart Option ---
-  const option: EChartsOption = {
-    tooltip: {
-      trigger: 'item',
-      borderWidth: 0,
-      backgroundColor: COLORS.white,
-      hideDelay: 0,
-      transitionDuration: 0,
-      padding: 12,
-      extraCssText: 'border-radius: 6px;',
-      textStyle: {
-        color: COLORS.gray500,
-        fontFamily: 'Rubik',
-      },
-      formatter: function (info: {name: string; value: number; data?: any}) {
-        const value = info.value;
-        const percent = ((value / totalSize) * 100).toFixed(2);
-        return `
-              <div>
-                <div style="display: flex; align-items: center; font-size: 12px; font-family: Rubik; font-weight: bold; line-height: 1;">
-                  <div style="width: 8px; height: 8px; border-radius: 50%; background-color: ${info.data?.itemStyle?.borderColor || COLORS.gray300}; margin-right: 4px;"></div>
-                  <span style="color: ${COLORS.gray300}">Category Name</span>
-                </div>
-                <div style="font-family: Rubik; line-height: 1;">
-                  <p style="font-size: 14px; font-weight: bold; margin-bottom: -2px;">${info.name}</p>
-                  <p style="font-size: 12px; margin-bottom: -4px;">${info.data?.path}</p>
-                  <p style="font-size: 12px; margin-bottom: -4px;">Size: ${formatBytes(value, false)}</p>
-                  <p style="font-size: 12px;">Percentage: ${percent}%</p>
-                </div>
-              </div>
-            `;
-      },
-    },
-    series: [
-      {
-        name: 'Size Analysis',
-        type: 'treemap',
-        animationEasing: 'quarticOut',
-        animationDuration: 300,
-        height: `100%`,
-        width: `100%`,
-        top: '22',
-        breadcrumb: {
-          show: true,
-          left: '0',
-          top: '0',
-          emphasis: {
-            itemStyle: {
-              color: COLORS.white,
-              textStyle: {
-                fontSize: 12,
-                fontWeight: 'bold',
-                fontFamily: 'Rubik',
-                color: COLORS.gray500,
-              },
-            },
-          },
+  const series: TreemapSeriesOption[] = [
+    {
+      name: 'Size Analysis',
+      type: 'treemap',
+      animationEasing: 'quarticOut',
+      animationDuration: 300,
+      height: `calc(100% - 22px)`,
+      width: `100%`,
+      top: '22px',
+      breadcrumb: {
+        show: true,
+        left: '0',
+        top: '0',
+        emphasis: {
           itemStyle: {
+            color: theme.surface100,
             textStyle: {
               fontSize: 12,
               fontWeight: 'bold',
               fontFamily: 'Rubik',
-              color: COLORS.white,
+              color: theme.activeText,
             },
           },
         },
-        zoomToNodeRatio: 0.1,
-        visibleMin: 300,
-        levels: [
-          {
-            itemStyle: {
-              gapWidth: 6,
-              borderRadius: 6,
-            },
-            colorSaturation: [0.3, 0.5],
+        itemStyle: {
+          textStyle: {
+            fontSize: 12,
+            fontWeight: 'bold',
+            fontFamily: 'Rubik',
+            color: theme.white,
           },
-          {
-            itemStyle: {
-              borderRadius: 6,
-            },
-            colorSaturation: [0.4, 0.6],
-          },
-          {
-            itemStyle: {
-              borderRadius: 4,
-            },
-            colorSaturation: [0.4, 0.6],
-          },
-          {
-            itemStyle: {
-              borderRadius: 2,
-            },
-            colorSaturation: [0.4, 0.6],
-          },
-          {
-            itemStyle: {
-              borderRadius: 1,
-            },
-            colorSaturation: [0.4, 0.6],
-          },
-        ],
-        data: chartData.children || [chartData],
+        },
       },
-    ],
-    visualMap: {
-      show: false,
-      type: 'continuous',
-      dimension: 1,
-      min: 0,
-      max: 1000,
-      inRange: {
-        colorSaturation: [0.1, 1],
-      },
-      seriesIndex: 0,
+      zoomToNodeRatio: 0.1,
+      visibleMin: 300,
+      levels: [
+        {
+          itemStyle: {
+            gapWidth: 4,
+            borderRadius: 6,
+          },
+          colorSaturation: [0.3, 0.5],
+        },
+        {
+          itemStyle: {
+            borderRadius: 6,
+          },
+          colorSaturation: [0.4, 0.6],
+        },
+        {
+          itemStyle: {
+            borderRadius: 4,
+          },
+          colorSaturation: [0.4, 0.6],
+        },
+        {
+          itemStyle: {
+            borderRadius: 2,
+          },
+          colorSaturation: [0.4, 0.6],
+        },
+        {
+          itemStyle: {
+            borderRadius: 1,
+          },
+          colorSaturation: [0.4, 0.6],
+        },
+      ],
+      data: chartData.children || [chartData],
+    },
+  ];
+
+  const visualMap: VisualMapComponentOption = {
+    show: false,
+    type: 'continuous',
+    dimension: 1,
+    min: 0,
+    max: 1000,
+    inRange: {
+      colorSaturation: [0.1, 1],
+    },
+    seriesIndex: 0,
+  };
+
+  const tooltip: TooltipOption = {
+    trigger: 'item',
+    borderWidth: 0,
+    backgroundColor: COLORS.white,
+    hideDelay: 0,
+    transitionDuration: 0,
+    padding: 12,
+    extraCssText: 'border-radius: 6px;',
+    textStyle: {
+      color: theme.textColor,
+      fontFamily: 'Rubik',
+    },
+    // TODO
+    formatter: function (params: any) {
+      const value = typeof params.value === 'number' ? params.value : 0;
+      const percent = ((value / totalSize) * 100).toFixed(2);
+      return `
+            <div style="font-family: Rubik;">
+              <div style="display: flex; align-items: center; font-size: 12px; font-weight: bold; line-height: 1; margin-bottom: ${space(1)}; gap: ${space(1)}">
+                <div style="flex: initial; width: 8px !important; height: 8px !important; border-radius: 50%; background-color: ${params.data?.itemStyle?.borderColor || theme.border};"></div>
+                <span style="color: ${theme.textColor}">${params.data?.category || 'Other'}</span>
+              </div>
+              <div style="display: flex; flex-direction: column; line-height: 1; gap: ${space(0.5)}">
+                <p style="font-size: 14px; font-weight: bold; margin-bottom: -2px;">${params.name}</p>
+                <p style="font-size: 12px; margin-bottom: -4px;">${params.data?.path}</p>
+                <p style="font-size: 12px; margin-bottom: -4px;">${formatBytes(value, false)} (${percent}%)</p>
+              </div>
+            </div>
+          `;
     },
   };
 
   return (
-    // <div style={{width: '100%', height: '600px'}}>
-    <BaseChart
-      renderer="canvas"
-      // options={option}
-      series={option.series as any}
-      tooltip={option.tooltip as any}
-      visualMap={option.visualMap as any}
-      colors={theme => [theme.purple300, theme.purple200]}
-    />
-    // </div>
+    <MainContentContainer>
+      <BaseChart
+        autoHeightResize
+        renderer="canvas"
+        series={series}
+        visualMap={visualMap}
+        tooltip={tooltip}
+      />
+    </MainContentContainer>
   );
 }
+
+const MainContentContainer = styled('div')`
+  width: 100%;
+  height: 508px;
+`;
