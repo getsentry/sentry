@@ -1789,7 +1789,10 @@ function buildRoutes() {
       index: true,
       component: make(() => import('sentry/views/insights/index')),
     },
-    ...transactionSummaryChildRoutes,
+    {
+      path: 'summary/',
+      children: transactionSummaryChildRoutes,
+    },
     {
       path: `${FRONTEND_LANDING_SUB_PATH}/`,
       children: [
@@ -1799,7 +1802,10 @@ function buildRoutes() {
             () => import('sentry/views/insights/pages/frontend/frontendOverviewPage')
           ),
         },
-        ...transactionSummaryChildRoutes,
+        {
+          path: 'summary/',
+          children: transactionSummaryChildRoutes,
+        },
         traceViewRouteObject,
         ...moduleRoutes,
       ],
@@ -1813,7 +1819,10 @@ function buildRoutes() {
             () => import('sentry/views/insights/pages/backend/backendOverviewPage')
           ),
         },
-        ...transactionSummaryChildRoutes,
+        {
+          path: 'summary/',
+          children: transactionSummaryChildRoutes,
+        },
         traceViewRouteObject,
         ...moduleRoutes,
       ],
@@ -1827,7 +1836,10 @@ function buildRoutes() {
             () => import('sentry/views/insights/pages/mobile/mobileOverviewPage')
           ),
         },
-        ...transactionSummaryChildRoutes,
+        {
+          path: 'summary/',
+          children: transactionSummaryChildRoutes,
+        },
         traceViewRouteObject,
         ...moduleRoutes,
       ],
@@ -1843,7 +1855,10 @@ function buildRoutes() {
           index: true,
           component: make(() => import('sentry/views/insights/pages/agents/redirect')),
         },
-        ...transactionSummaryChildRoutes,
+        {
+          path: 'summary/',
+          children: transactionSummaryChildRoutes,
+        },
         traceViewRouteObject,
         ...moduleRoutes,
       ],
@@ -1898,7 +1913,10 @@ function buildRoutes() {
       index: true,
       component: () => <WorkingRedirect to="/insights/frontend/" replace />,
     },
-    ...transactionSummaryChildRoutes,
+    {
+      path: 'summary/',
+      children: transactionSummaryChildRoutes,
+    },
     {
       path: 'vitaldetail/',
       component: make(() => import('sentry/views/performance/vitalDetail')),
