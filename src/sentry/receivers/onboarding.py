@@ -21,6 +21,7 @@ from sentry.analytics.events.first_transaction_sent import FirstTransactionSentE
 from sentry.analytics.events.member_invited import MemberInvitedEvent
 from sentry.analytics.events.project_transferred import ProjectTransferredEvent
 from sentry.analytics.events.second_platform_added import SecondPlatformAddedEvent
+from sentry.constants import InsightModules
 from sentry.integrations.base import IntegrationDomain, get_integration_types
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.organization import Organization
@@ -306,14 +307,14 @@ def record_first_cron_checkin(project, monitor_id, **kwargs):
 @first_insight_span_received.connect(
     weak=False, dispatch_uid="onboarding.record_first_insight_span"
 )
-def record_first_insight_span(project, module, **kwargs):
+def record_first_insight_span(project, module: InsightModules, **kwargs):
     analytics.record(
         FirstInsightSpanSentEvent(
             user_id=get_owner_id(project),
             organization_id=project.organization_id,
             project_id=project.id,
             platform=project.platform,
-            module=module,
+            module=module.value,
         )
     )
 
