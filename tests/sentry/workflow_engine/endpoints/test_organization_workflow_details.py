@@ -11,6 +11,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.models import Action, DataConditionGroup, Workflow
+from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -68,6 +69,273 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         assert response.status_code == 200
         assert updated_workflow.name == "Updated Workflow"
+
+    def test_update_detectors_add_detector(self):
+        detector1 = self.create_detector(project_id=self.project.id)
+        detector2 = self.create_detector(project_id=self.project.id)
+
+        assert DetectorWorkflow.objects.filter(workflow=self.workflow).count() == 0
+
+        data = {
+            **self.valid_workflow,
+            "detectorIds": [detector1.id, detector2.id],
+        }
+
+        with outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.workflow.id,
+                raw_data=data,
+            )
+
+        assert response.status_code == 200
+
+        detector_workflows = DetectorWorkflow.objects.filter(workflow=self.workflow)
+        assert detector_workflows.count() == 2
+        detector_ids = {dw.detector_id for dw in detector_workflows}
+        assert detector_ids == {detector1.id, detector2.id}
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            audit_entries = AuditLogEntry.objects.filter(
+                event=audit_log.get_event_id("DETECTOR_WORKFLOW_ADD"),
+                actor=self.user,
+            )
+            assert audit_entries.count() == 2
+            assert audit_entries[0].target_object == detector_workflows[0].id
+            assert audit_entries[1].target_object == detector_workflows[1].id
+
+    def test_update_detectors_replace_detectors(self):
+        """Test replacing existing detectors with new ones"""
+        existing_detector = self.create_detector(project_id=self.project.id)
+        new_detector = self.create_detector(project_id=self.project.id)
+
+        existing_detector_workflow = DetectorWorkflow.objects.create(
+            detector=existing_detector, workflow=self.workflow
+        )
+        assert DetectorWorkflow.objects.filter(workflow=self.workflow).count() == 1
+
+        data = {
+            **self.valid_workflow,
+            "detectorIds": [new_detector.id],
+        }
+
+        with outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.workflow.id,
+                raw_data=data,
+            )
+
+        assert response.status_code == 200
+
+        # Verify old detector was removed and new one added
+        detector_workflows = DetectorWorkflow.objects.filter(workflow=self.workflow)
+        assert detector_workflows.count() == 1
+        detector_workflow = detector_workflows.first()
+        assert detector_workflow is not None
+        assert detector_workflow.detector_id == new_detector.id
+
+        # Verify audit log entries for both adding new detector and removing old detector
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert (
+                AuditLogEntry.objects.filter(
+                    event=audit_log.get_event_id("DETECTOR_WORKFLOW_ADD"),
+                    actor=self.user,
+                    target_object=detector_workflow.id,
+                ).count()
+                == 1
+            )
+
+            assert (
+                AuditLogEntry.objects.filter(
+                    event=audit_log.get_event_id("DETECTOR_WORKFLOW_REMOVE"),
+                    actor=self.user,
+                    target_object=existing_detector_workflow.id,
+                ).count()
+                == 1
+            )
+
+    def test_update_detectors_remove_all_detectors(self):
+        """Test removing all detectors by passing empty list"""
+        # Create and connect a detector initially
+        detector = self.create_detector(project_id=self.project.id)
+        detector_workflow = DetectorWorkflow.objects.create(
+            detector=detector, workflow=self.workflow
+        )
+        assert DetectorWorkflow.objects.filter(workflow=self.workflow).count() == 1
+
+        data = {
+            **self.valid_workflow,
+            "detectorIds": [],
+        }
+
+        with outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.workflow.id,
+                raw_data=data,
+            )
+
+        assert response.status_code == 200
+
+        # Verify all detectors were removed
+        assert DetectorWorkflow.objects.filter(workflow=self.workflow).count() == 0
+
+        # Verify audit log entry for removing detector
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert (
+                AuditLogEntry.objects.filter(
+                    event=audit_log.get_event_id("DETECTOR_WORKFLOW_REMOVE"),
+                    actor=self.user,
+                    target_object=detector_workflow.id,
+                ).count()
+                == 1
+            )
+
+    def test_update_detectors_invalid_detector_ids(self):
+        """Test validation failure with non-existent detector IDs"""
+        data = {
+            **self.valid_workflow,
+            "detectorIds": [999999],
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data=data,
+            status_code=400,
+        )
+
+        assert "Some detectors do not exist" in str(response.data)
+
+    def test_update_detectors_from_different_organization(self):
+        """Test validation failure when detectors belong to different organization"""
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        other_detector = self.create_detector(project_id=other_project.id)
+
+        data = {
+            **self.valid_workflow,
+            "detectorIds": [other_detector.id],
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data=data,
+            status_code=400,
+        )
+
+        assert "Some detectors do not exist" in str(response.data)
+
+    def test_update_detectors_transaction_rollback_on_validation_failure(self):
+        """Test that workflow updates are rolled back when detector validation fails"""
+        existing_detector = self.create_detector(project_id=self.project.id)
+        DetectorWorkflow.objects.create(detector=existing_detector, workflow=self.workflow)
+
+        initial_workflow_name = self.workflow.name
+        initial_detector_count = DetectorWorkflow.objects.filter(workflow=self.workflow).count()
+
+        data = {
+            **self.valid_workflow,
+            "name": "Should Not Be Updated",
+            "detectorIds": [999999],
+        }
+
+        with outbox_runner():
+            response = self.get_error_response(
+                self.organization.slug,
+                self.workflow.id,
+                raw_data=data,
+                status_code=400,
+            )
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.name == initial_workflow_name
+        assert (
+            DetectorWorkflow.objects.filter(workflow=self.workflow).count()
+            == initial_detector_count
+        )
+        assert "Some detectors do not exist" in str(response.data)
+
+        # Verify no detector-related audit entries were created
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert (
+                AuditLogEntry.objects.filter(
+                    event=audit_log.get_event_id("DETECTOR_WORKFLOW_ADD"),
+                    actor=self.user,
+                ).count()
+                == 0
+            )
+            assert (
+                AuditLogEntry.objects.filter(
+                    event=audit_log.get_event_id("DETECTOR_WORKFLOW_REMOVE"),
+                    actor=self.user,
+                ).count()
+                == 0
+            )
+
+    def test_update_without_detector_ids(self):
+        """Test that omitting detectorIds doesn't affect existing detector connections"""
+        detector = self.create_detector(project_id=self.project.id)
+        DetectorWorkflow.objects.create(detector=detector, workflow=self.workflow)
+        assert DetectorWorkflow.objects.filter(workflow=self.workflow).count() == 1
+
+        data = {
+            **self.valid_workflow,
+            "name": "Updated Without Detectors",
+        }
+
+        with outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.workflow.id,
+                raw_data=data,
+            )
+
+        assert response.status_code == 200
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.name == "Updated Without Detectors"
+        assert DetectorWorkflow.objects.filter(workflow=self.workflow).count() == 1
+
+    def test_update_detectors_no_changes(self):
+        """Test that passing the same detector IDs doesn't change anything"""
+        detector = self.create_detector(project_id=self.project.id)
+        DetectorWorkflow.objects.create(detector=detector, workflow=self.workflow)
+        assert DetectorWorkflow.objects.filter(workflow=self.workflow).count() == 1
+
+        data = {
+            **self.valid_workflow,
+            "detectorIds": [detector.id],  # Same detector ID that's already connected
+        }
+
+        with outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.workflow.id,
+                raw_data=data,
+            )
+
+        assert response.status_code == 200
+        assert DetectorWorkflow.objects.filter(workflow=self.workflow).count() == 1
+
+        # Verify no detector-related audit entries were created since no changes were made
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert (
+                AuditLogEntry.objects.filter(
+                    event=audit_log.get_event_id("DETECTOR_WORKFLOW_ADD"),
+                    actor=self.user,
+                ).count()
+                == 0
+            )
+            assert (
+                AuditLogEntry.objects.filter(
+                    event=audit_log.get_event_id("DETECTOR_WORKFLOW_REMOVE"),
+                    actor=self.user,
+                ).count()
+                == 0
+            )
 
 
 @region_silo_test
