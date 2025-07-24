@@ -1,10 +1,19 @@
 import time
 import uuid
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
+from typing import Any, NoReturn, Union
 from unittest import TestCase, mock
 
-from sentry.ratelimits.concurrent import DEFAULT_MAX_TTL_SECONDS, ConcurrentRateLimiter
+from redis.client import StrictRedis
+from rediscluster import RedisCluster
+
+from sentry.ratelimits.concurrent import (
+    DEFAULT_MAX_TTL_SECONDS,
+    ConcurrentLimitInfo,
+    ConcurrentRateLimiter,
+)
 from sentry.testutils.helpers.datetime import freeze_time
 
 
@@ -36,11 +45,11 @@ class ConcurrentLimiterTest(TestCase):
 
     def test_fails_open(self) -> None:
         class FakeClient:
-            def __init__(self, real_client):
+            def __init__(self, real_client: Union["RedisCluster[str]", "StrictRedis[str]"]) -> None:
                 self._client = real_client
 
-            def __getattr__(self, name):
-                def fail(*args, **kwargs):
+            def __getattr__(self, name: str) -> Callable[..., NoReturn]:
+                def fail(*args: Any, **kwargs: Any) -> NoReturn:
                     raise Exception("OH NO")
 
                 return fail
@@ -75,7 +84,7 @@ class ConcurrentLimiterTest(TestCase):
         self.backend.finish_request("fasdlfkdsalfkjlasdkjlasdkjflsakj", "fsdlkajflsdakjsda")
 
     def test_concurrent(self) -> None:
-        def do_request():
+        def do_request() -> ConcurrentLimitInfo:
             uid = uuid.uuid4().hex
             meta = self.backend.start_request("foo", 3, uid)
             time.sleep(0.2)

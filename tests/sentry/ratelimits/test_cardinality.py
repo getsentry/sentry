@@ -11,7 +11,7 @@ from sentry.ratelimits.cardinality import (
 
 
 @pytest.fixture
-def limiter():
+def limiter() -> RedisCardinalityLimiter:
     return RedisCardinalityLimiter()
 
 

@@ -548,7 +548,7 @@ module = [
     "tests.sentry.profiling.*",
     "tests.sentry.projects.*",
     "tests.sentry.queue.*",
-    "tests.sentry.ratelimits.test_leaky_bucket",
+    "tests.sentry.ratelimits.*",
     "tests.sentry.receivers.outbox.*",
     "tests.sentry.relay.config.test_metric_extraction",
     "tests.sentry.relay.snapshots.*",

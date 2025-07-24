@@ -9,7 +9,7 @@ class TestRateLimitConfig(TestCase):
         "sentry.ratelimits.config._get_group_defaults",
         return_value={"blz": {RateLimitCategory.ORGANIZATION: RateLimit(limit=420, window=69)}},
     )
-    def test_grouping(self, *m) -> None:
+    def test_grouping(self, *_: mock.MagicMock) -> None:
         config = RateLimitConfig(group="blz")
         assert config.get_rate_limit("GET", RateLimitCategory.ORGANIZATION) == RateLimit(
             limit=420, window=69
