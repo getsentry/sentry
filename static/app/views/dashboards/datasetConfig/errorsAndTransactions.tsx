@@ -1,3 +1,4 @@
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import trimStart from 'lodash/trimStart';
 
@@ -19,12 +20,12 @@ import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
-import type {MetaType} from 'sentry/utils/discover/eventView';
+import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import type {
   FieldFormatterRenderFunctionPartial,
   RenderFunctionBaggage,
 } from 'sentry/utils/discover/fieldRenderers';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {emptyStringValue, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
   errorsAndTransactionsAggregateFunctionOutputType,
@@ -360,12 +361,12 @@ function getSeriesResultType(
 }
 
 export function renderEventIdAsLinkable(
-  data: any,
+  data: EventData,
   {eventView, organization}: RenderFunctionBaggage
 ) {
   const id: string | unknown = data?.id;
   if (!eventView || typeof id !== 'string') {
-    return null;
+    return <Container>{emptyStringValue}</Container>;
   }
 
   const eventSlug = generateEventSlug(data);
@@ -377,22 +378,22 @@ export function renderEventIdAsLinkable(
   });
 
   return (
-    <Tooltip title={t('View Event')}>
+    <StyledTooltip title={t('View Event')}>
       <Link data-test-id="view-event" to={target}>
         <Container>{getShortEventId(id)}</Container>
       </Link>
-    </Tooltip>
+    </StyledTooltip>
   );
 }
 
 export function renderTraceAsLinkable(widget?: Widget) {
   return function (
-    data: any,
+    data: EventData,
     {eventView, organization, location}: RenderFunctionBaggage
   ) {
     const id: string | unknown = data?.trace;
     if (!eventView || typeof id !== 'string') {
-      return null;
+      return <Container>{emptyStringValue}</Container>;
     }
     const dateSelection = eventView.normalizeDateSelection(location);
     const target = getTraceDetailsUrl({
@@ -414,11 +415,11 @@ export function renderTraceAsLinkable(widget?: Widget) {
     });
 
     return (
-      <Tooltip title={t('View Trace')}>
+      <StyledTooltip title={t('View Trace')}>
         <Link data-test-id="view-trace" to={target}>
           <Container>{getShortEventId(id)}</Container>
         </Link>
-      </Tooltip>
+      </StyledTooltip>
     );
   };
 }
@@ -692,3 +693,7 @@ const getQueryExtraForSplittingDiscover = (
 
   return {};
 };
+
+const StyledTooltip = styled(Tooltip)`
+  vertical-align: middle;
+`;

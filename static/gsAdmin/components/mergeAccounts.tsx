@@ -129,7 +129,9 @@ function MergeAccountsModal(props: Props) {
         <Form onSubmit={addUsername} hideFooter>
           {error && (
             <Alert.Container>
-              <Alert type="error">Could not find user(s)</Alert>
+              <Alert type="error" showIcon={false}>
+                Could not find user(s)
+              </Alert>
             </Alert.Container>
           )}
           <TextField

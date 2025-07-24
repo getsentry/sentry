@@ -12,6 +12,14 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {
+  ToolbarFooter,
+  ToolbarFooterButton,
+  ToolbarHeader,
+  ToolbarLabel,
+  ToolbarRow,
+  ToolbarSection,
+} from 'sentry/views/explore/components/toolbar/styles';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {
   useExploreGroupBys,
@@ -21,15 +29,6 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
-
-import {
-  ToolbarFooter,
-  ToolbarFooterButton,
-  ToolbarHeader,
-  ToolbarLabel,
-  ToolbarRow,
-  ToolbarSection,
-} from './styles';
 
 interface ToolbarGroupBy {
   autoSwitchToAggregates: boolean;
@@ -55,7 +54,7 @@ export function ToolbarGroupBy({autoSwitchToAggregates}: ToolbarGroupBy) {
   const options: Array<SelectOption<string>> = useGroupByFields({groupBys, tags});
 
   return (
-    <DragNDropContext columns={groupBys} setColumns={setColumns} defaultColumn={() => ''}>
+    <DragNDropContext columns={groupBys} setColumns={setColumns}>
       {({editableColumns, insertColumn, updateColumnAtIndex, deleteColumnAtIndex}) => {
         return (
           <ToolbarSection data-test-id="section-group-by">
@@ -84,7 +83,7 @@ export function ToolbarGroupBy({autoSwitchToAggregates}: ToolbarGroupBy) {
                 borderless
                 size="zero"
                 icon={<IconAdd />}
-                onClick={() => insertColumn()}
+                onClick={() => insertColumn('')}
                 priority="link"
                 aria-label={t('Add Group')}
               >

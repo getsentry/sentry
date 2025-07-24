@@ -11,7 +11,7 @@ _GIST_EXT = """\
         # would be nice but it doesn't support hints :(
         # django.contrib.postgres.operations.BtreeGistExtension(),
         SafeRunSQL(
-            sql="CREATE EXTENSION btree_gist;",
+            sql="CREATE EXTENSION IF NOT EXISTS btree_gist;",
             reverse_sql="",
             hints={{"tables": [{table!r}]}},
         ),
@@ -194,7 +194,11 @@ class FixupVisitor(ast.NodeVisitor):
                 and kw.value.func.attr == "ExclusionConstraint"
             ):
                 model_name_kw = _get_kw(node.keywords, "model_name")
-                assert model_name_kw is not None and isinstance(model_name_kw.value, ast.Constant)
+                assert (
+                    model_name_kw is not None
+                    and isinstance(model_name_kw.value, ast.Constant)
+                    and isinstance(model_name_kw.value.value, str)
+                )
                 table = _EXCLUSION_TABLES[model_name_kw.value.value]
                 self.first_exclude_constraint = (table, node.lineno)
 

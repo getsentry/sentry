@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -18,6 +18,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import QueryTokens from 'sentry/views/explore/components/queryTokens';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {useTraceExploreAiQuerySetup} from 'sentry/views/explore/hooks/useTraceExploreAiQuerySetup';
 import {formatQueryToNaturalLanguage, getExploreUrl} from 'sentry/views/explore/utils';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
@@ -38,7 +39,13 @@ interface SeerSearchResults {
   queries: SeerSearchQuery[];
 }
 
-function SeerHeader({title, loading = false}: {title: string; loading?: boolean}) {
+function SeerHeader({
+  title,
+  loading = false,
+}: {
+  title: string | React.ReactNode;
+  loading?: boolean;
+}) {
   return (
     <QueryResultsHeader>
       <IconSeer variant={loading ? 'loading' : 'default'} color="purple300" />
@@ -70,20 +77,45 @@ interface SeerSearchProps {
   initialQuery?: string;
 }
 
+const EXAMPLE_QUERIES = [
+  'p95 duration of http client calls',
+  'database calls by transaction',
+  'POST requests slower than 250ms',
+  'failure rate by user in the last week',
+];
+
 export function SeerSearch({initialQuery = ''}: SeerSearchProps) {
   const formattedInitialQuery = formatQueryToNaturalLanguage(initialQuery);
   const {setDisplaySeerResults} = useSearchQueryBuilder();
   const [searchQuery, setSearchQuery] = useState(formattedInitialQuery);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [currentExampleIndex, setCurrentExampleIndex] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
   const openForm = useFeedbackForm();
+  const organization = useOrganization();
+  const areAiFeaturesAllowed =
+    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
 
   const [rawResult, setRawResult] = useState<SeerSearchResults | null>(null);
   const api = useApi();
-  const organization = useOrganization();
   const pageFilters = usePageFilters();
   const {projects} = useProjects();
   const memberProjects = projects.filter(p => p.isMember);
   const navigate = useNavigate();
+
+  useTraceExploreAiQuerySetup({enableAISearch: areAiFeaturesAllowed && isDropdownOpen});
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsAnimating(true);
+      setTimeout(() => {
+        setCurrentExampleIndex(prevIndex => (prevIndex + 1) % EXAMPLE_QUERIES.length);
+        setIsAnimating(false);
+      }, 250);
+    }, 3500);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const {mutate: submitQuery, isPending} = useMutation({
     mutationFn: async (query: string) => {
@@ -127,6 +159,19 @@ export function SeerSearch({initialQuery = ''}: SeerSearchProps) {
       addErrorMessage(t('Failed to process AI query: %(error)s', {error: error.message}));
     },
   });
+
+  const handleExampleClick = useCallback(
+    (example: string) => {
+      setSearchQuery(example);
+      trackAnalytics('trace.explorer.ai_query_example_clicked', {
+        organization,
+        example_query: example,
+      });
+
+      submitQuery(example);
+    },
+    [organization, submitQuery]
+  );
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
@@ -281,7 +326,24 @@ export function SeerSearch({initialQuery = ''}: SeerSearchProps) {
             </QueryResultsSection>
           ) : (
             <SeerContent>
-              <SeerHeader title={t("Describe what you're looking for!")} />
+              <SeerHeader
+                title={
+                  <Fragment>
+                    {t("Describe what you're looking for: ")}
+                    <AnimatedExampleText
+                      isAnimating={isAnimating}
+                      onClick={() => {
+                        const currentExample = EXAMPLE_QUERIES[currentExampleIndex];
+                        if (currentExample) {
+                          handleExampleClick(currentExample);
+                        }
+                      }}
+                    >
+                      {EXAMPLE_QUERIES[currentExampleIndex] || EXAMPLE_QUERIES[0]}
+                    </AnimatedExampleText>
+                  </Fragment>
+                }
+              />
             </SeerContent>
           )}
 
@@ -497,5 +559,28 @@ const SkeletonLine = styled('div')<{width: string}>`
     100% {
       opacity: 1;
     }
+  }
+`;
+
+const AnimatedExampleText = styled('span')<{isAnimating: boolean}>`
+  opacity: ${p => (p.isAnimating ? 0 : 1)};
+  transition:
+    opacity 0.3s ease-in-out,
+    background 0.2s ease-in-out,
+    border-color 0.2s ease-in-out;
+  background: ${p => p.theme.gray200};
+  color: ${p => p.theme.textColor};
+  padding: ${space(0.25)} ${space(0.75)};
+  border-radius: ${p => p.theme.borderRadius};
+  font-family: ${p => p.theme.text.familyMono};
+  white-space: nowrap;
+  display: inline-block;
+  margin: 0 ${space(0.25)};
+  cursor: pointer;
+  border: 1px solid transparent;
+
+  &:hover {
+    background: ${p => p.theme.translucentGray200};
+    border-color: ${p => p.theme.border};
   }
 `;

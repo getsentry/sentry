@@ -30,12 +30,7 @@ import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import {
-  ModuleName,
-  SpanFields,
-  SpanMetricsField,
-  type SpanMetricsResponse,
-} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, type SpanResponse} from 'sentry/views/insights/types';
 
 const {
   RESOURCE_RENDER_BLOCKING_STATUS,
@@ -43,10 +38,10 @@ const {
   HTTP_RESPONSE_CONTENT_LENGTH,
   TRANSACTION,
   USER_GEO_SUBREGION,
-} = SpanMetricsField;
+} = SpanFields;
 
 type Row = Pick<
-  SpanMetricsResponse,
+  SpanResponse,
   | 'avg(http.response_content_length)'
   | 'avg(span.self_time)'
   | 'epm()'

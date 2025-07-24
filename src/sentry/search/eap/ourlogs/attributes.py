@@ -16,6 +16,12 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
     for column in COMMON_COLUMNS
     + [
         ResolvedAttribute(
+            public_alias="id",
+            internal_name="sentry.item_id",
+            search_type="string",
+            validator=is_event_id_or_list,
+        ),
+        ResolvedAttribute(
             public_alias="severity_number",
             internal_name="sentry.severity_number",
             search_type="integer",

@@ -1,4 +1,12 @@
+from typing import TypedDict
+
 from pydantic import BaseModel
+
+
+class BranchOverride(TypedDict):
+    tag_name: str
+    tag_value: str
+    branch_name: str
 
 
 class SummarizeIssueScores(BaseModel):
@@ -19,11 +27,13 @@ class SummarizeIssueResponse(BaseModel):
 
 
 class SeerRepoDefinition(BaseModel):
+    integration_id: str | None = None  # TODO(jianyuan): Make this required
     provider: str
     owner: str
     name: str
     external_id: str
     branch_name: str | None = None
+    branch_overrides: list[BranchOverride] | None = None
     instructions: str | None = None
     base_commit_sha: str | None = None
     provider_raw: str | None = None

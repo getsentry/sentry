@@ -10,7 +10,11 @@ import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {ColumnValueType, Sort} from 'sentry/utils/discover/fields';
-import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {
+  fieldAlignment,
+  isEquation,
+  stripEquationPrefix,
+} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -197,7 +201,8 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
         renderHeadCell: (_tableColumn, columnIndex) => {
           const column = columnOrder[columnIndex]!;
           const align = fieldAlignment(column.key, column.type as ColumnValueType);
-          const name = aliases?.[column.key] || column.key;
+          let name = aliases?.[column.key] || column.key;
+          if (isEquation(column.key)) name = stripEquationPrefix(name);
           const sortColumn = getSortField(column.key) ?? column.key;
 
           let direction = undefined;
@@ -318,4 +323,5 @@ TableWidgetVisualization.LoadingPlaceholder = function ({
 
 const StyledTooltip = styled(Tooltip)`
   display: initial;
+  vertical-align: middle;
 `;

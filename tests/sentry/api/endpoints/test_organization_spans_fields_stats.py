@@ -119,18 +119,18 @@ class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
         response = self.do_request(query={"max_buckets": max_buckets - 1})
 
         assert response.status_code == 200, response.data
-        distributions = response.data["results"][0]["attributeDistributions"]["attributes"][0][
-            "buckets"
-        ]
-        assert len(distributions) == max_buckets - 1
+        distributions = response.data["results"][0]["attributeDistributions"]["attributes"]
+        attribute = next(a for a in distributions if a["attributeName"] == "test_tag")
+        assert attribute
+        assert len(attribute["buckets"]) == max_buckets - 1
 
     def test_distribution_values(self):
         tags = [
-            {"broswer": "chrome", "device": "desktop"},
-            {"broswer": "chrome", "device": "mobile"},
-            {"broswer": "chrome", "device": "desktop"},
-            {"broswer": "safari", "device": "mobile"},
-            {"broswer": "chrome", "device": "desktop"},
+            {"browser": "chrome", "device": "desktop"},
+            {"browser": "chrome", "device": "mobile"},
+            {"browser": "chrome", "device": "desktop"},
+            {"browser": "safari", "device": "mobile"},
+            {"browser": "chrome", "device": "desktop"},
         ]
 
         for tag in tags:
@@ -139,21 +139,23 @@ class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
         response = self.do_request(query={"dataset": "spans"})
         assert response.status_code == 200, response.data
         distributions = response.data["results"][0]["attributeDistributions"]["attributes"]
-        assert distributions[0]["attributeName"] == "broswer"
-        assert distributions[0]["buckets"] == [
+        attribute = next(a for a in distributions if a["attributeName"] == "browser")
+        assert attribute
+        assert attribute["buckets"] == [
             {"label": "chrome", "value": 4.0},
             {"label": "safari", "value": 1.0},
         ]
-        assert distributions[1]["attributeName"] == "device"
-        assert distributions[1]["buckets"] == [
+        attribute = next(a for a in distributions if a["attributeName"] == "device")
+        assert attribute
+        assert attribute["buckets"] == [
             {"label": "desktop", "value": 3.0},
             {"label": "mobile", "value": 2.0},
         ]
 
     def test_filter_query(self):
         tags = [
-            {"broswer": "chrome", "device": "desktop"},
-            {"broswer": "chrome", "device": "mobile"},
+            {"browser": "chrome", "device": "desktop"},
+            {"browser": "chrome", "device": "mobile"},
         ]
 
         for tag in tags:
@@ -162,8 +164,9 @@ class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
         response = self.do_request(query={"query": "device:desktop"})
         assert response.status_code == 200, response.data
         distributions = response.data["results"][0]["attributeDistributions"]["attributes"]
-        assert distributions[0]["attributeName"] == "broswer"
+        attribute = next(a for a in distributions if a["attributeName"] == "browser")
+        assert attribute
         # the second span has a different device value, so it should not be included in the results
-        assert distributions[0]["buckets"] == [
+        assert attribute["buckets"] == [
             {"label": "chrome", "value": 1.0},
         ]

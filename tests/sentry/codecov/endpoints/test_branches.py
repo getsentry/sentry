@@ -4,12 +4,14 @@ from unittest.mock import Mock, patch
 from django.urls import reverse
 
 from sentry.codecov.endpoints.Branches.serializers import BranchNodeSerializer as NodeSerializer
+from sentry.constants import ObjectStatus
 from sentry.testutils.cases import APITestCase
 
 mock_graphql_response_populated: dict[str, Any] = {
     "data": {
         "owner": {
             "repository": {
+                "defaultBranch": "main",
                 "branches": {
                     "edges": [
                         {
@@ -29,7 +31,7 @@ mock_graphql_response_populated: dict[str, Any] = {
                         "hasPreviousPage": False,
                         "startCursor": None,
                     },
-                }
+                },
             }
         }
     }
@@ -39,9 +41,10 @@ mock_graphql_response_empty: dict[str, Any] = {
     "data": {
         "owner": {
             "repository": {
+                "defaultBranch": "main",
                 "branches": {
                     "edges": [],
-                }
+                },
             }
         }
     }
@@ -53,15 +56,23 @@ class BranchesEndpointTest(APITestCase):
 
     def setUp(self):
         super().setUp()
+        self.organization = self.create_organization(owner=self.user)
+        self.integration = self.create_integration(
+            organization=self.organization,
+            external_id="1234",
+            name="testowner",
+            provider="github",
+            status=ObjectStatus.ACTIVE,
+        )
         self.login_as(user=self.user)
 
-    def reverse_url(self, owner="testowner", repository="testrepo"):
+    def reverse_url(self, repository="testrepo"):
         """Custom reverse URL method to handle required URL parameters"""
         return reverse(
             self.endpoint,
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "owner": owner,
+                "owner": self.integration.id,
                 "repository": repository,
             },
         )

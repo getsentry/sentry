@@ -1,9 +1,9 @@
 from collections.abc import Mapping, Sequence
 from typing import Any
-from uuid import uuid4
 
 import sentry_sdk
 
+from sentry.deletions.defaults.group import GROUP_CHUNK_SIZE
 from sentry.deletions.tasks.scheduled import MAX_RETRIES, logger
 from sentry.exceptions import DeleteAborted
 from sentry.silo.base import SiloMode
@@ -32,15 +32,14 @@ from sentry.taskworker.retry import Retry
 @track_group_async_operation
 def delete_groups(
     object_ids: Sequence[int],
-    transaction_id: str | None = None,
+    transaction_id: str,
     eventstream_state: Mapping[str, Any] | None = None,
     **kwargs: Any,
 ) -> None:
     from sentry import deletions, eventstream
     from sentry.models.group import Group
 
-    max_batch_size = 100
-    current_batch, rest = object_ids[:max_batch_size], object_ids[max_batch_size:]
+    current_batch, rest = object_ids[:GROUP_CHUNK_SIZE], object_ids[GROUP_CHUNK_SIZE:]
 
     # Select first_group from current_batch to ensure project_id tag reflects the current batch
     first_group = Group.objects.filter(id__in=current_batch).order_by("id").first()
@@ -54,8 +53,6 @@ def delete_groups(
             "transaction_id": transaction_id,
         },
     )
-
-    transaction_id = transaction_id or uuid4().hex
 
     logger.info(
         "delete_groups.started",

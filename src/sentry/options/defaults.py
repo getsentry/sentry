@@ -504,6 +504,13 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Enables trace-item ingestion.
+register(
+    "replay.recording.ingest-trace-items.allow-list",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Feedback Options
 register(
@@ -2556,6 +2563,32 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# the duration of the first datetime chunk of data queried
+# expressed in hours.
+register(
+    "profiling.flamegraph.query.initial_chunk_delta.hours",
+    type=Int,
+    default=12,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# the max duration of any datetime chunk of data queried
+# expressed in hours.
+register(
+    "profiling.flamegraph.query.max_delta.hours",
+    type=Int,
+    default=48,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# The value by which the current delta is multiplied
+register(
+    "profiling.flamegraph.query.multiplier",
+    type=Int,
+    default=2,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # list of platform names for which we allow using unsampled profiles for the purpose
 # of improving profile (function) metrics
 register(
@@ -2968,6 +3001,19 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "workflow_engine.issue_alert.group.type_id.rollout",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "workflow_engine.issue_alert.group.type_id.ga",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Restrict uptime issue creation for specific host provider identifiers. Items
 # in this list map to the `host_provider_id` column in the UptimeSubscription
@@ -3180,12 +3226,6 @@ register(
 register(
     "taskworker.route.overrides",
     default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.try_compress.profile_metrics.level",
-    default=6,
-    type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -3444,13 +3484,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Taskbroker compression flag
-register(
-    "taskworker.enable_compression.rollout",
-    default=0.0,
-    type=Float,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Orgs for which compression should be disabled in the chunk upload endpoint.
 # This is intended to circumvent sporadic 503 errors reported by some customers.
@@ -3481,10 +3514,28 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enable experimental message parameterization in grouping.
+register(
+    "grouping.experimental_parameterization",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Rollout for inferring project platform from events received
 register(
     "sentry:infer_project_platform",
     type=Float,
     default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enables the new project option set_value implementation that only reloads the cache if the
+# value has changed. This is a temporary option to allow for a smooth transition to the new
+# implementation, and acts as a killswitch.
+register(
+    "sentry.project_option.reload_cache_only_on_value_change",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

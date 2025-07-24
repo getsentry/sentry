@@ -5,7 +5,7 @@ import emptyStateImg from 'sentry-images/spot/profiling-empty-state.svg';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';

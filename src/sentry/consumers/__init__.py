@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections.abc import Mapping, Sequence
+from typing import Any
 
 import click
 from arroyo.backends.abstract import Consumer
@@ -271,6 +272,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "topic": Topic.UPTIME_RESULTS,
         "strategy_factory": "sentry.uptime.consumers.results_consumer.UptimeResultsStrategyFactory",
         "click_options": uptime_options(),
+        "pass_consumer_group": True,
     },
     "billing-metrics-consumer": {
         "topic": Topic.SNUBA_GENERIC_METRICS,
@@ -436,6 +438,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
                 help="Maximum number of processes for the span flusher. Defaults to 1.",
             ),
         ],
+        "pass_kafka_slice_id": True,
     },
     "process-segments": {
         "topic": Topic.BUFFERED_SEGMENTS,
@@ -511,8 +514,16 @@ def get_stream_processor(
         name=consumer_name, params=list(consumer_definition.get("click_options") or ())
     )
     cmd_context = cmd.make_context(consumer_name, list(consumer_args))
+    extra_kwargs: dict[str, Any] = {}
+    if consumer_definition.get("pass_consumer_group", False):
+        extra_kwargs["consumer_group"] = group_id
+    if consumer_definition.get("pass_kafka_slice_id", False):
+        extra_kwargs["kafka_slice_id"] = kafka_slice_id
     strategy_factory = cmd_context.invoke(
-        strategy_factory_cls, **cmd_context.params, **consumer_definition.get("static_args") or {}
+        strategy_factory_cls,
+        **cmd_context.params,
+        **consumer_definition.get("static_args") or {},
+        **extra_kwargs,
     )
 
     def build_consumer_config(group_id: str):

@@ -37,6 +37,7 @@ from sentry.constants import (
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+    ENABLED_CONSOLE_PLATFORMS_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
     GITLAB_COMMENT_BOT_DEFAULT,
@@ -515,6 +516,7 @@ class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResp
     planSampleRate: float
     desiredSampleRate: float
     ingestThroughTrustedRelaysOnly: bool
+    enabledConsolePlatforms: list[str]
 
 
 @extend_schema_serializer(exclude_fields=["availableRoles"])
@@ -570,7 +572,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
         return super().get_attrs(item_list, user)
 
-    def serialize(  # type: ignore[explicit-override, override]
+    def serialize(  # type: ignore[override]
         self,
         obj: Organization,
         attrs: Mapping[str, Any],
@@ -752,6 +754,12 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
             )
 
+        if features.has("organizations:project-creation-games-tab", obj):
+            context["enabledConsolePlatforms"] = obj.get_option(
+                "sentry:enabled_console_platforms",
+                ENABLED_CONSOLE_PLATFORMS_DEFAULT,
+            )
+
         if access.role is not None:
             context["role"] = access.role  # Deprecated
             context["orgRole"] = access.role
@@ -786,6 +794,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "rollbackEnabled",
         "streamlineOnly",
         "ingestThroughTrustedRelaysOnly",
+        "enabledConsolePlatforms",
     ]
 )
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(
@@ -825,7 +834,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
 
         return team_list
 
-    def serialize(  # type: ignore[explicit-override, override]
+    def serialize(  # type: ignore[override]
         self,
         obj: Organization,
         attrs: Mapping[str, Any],

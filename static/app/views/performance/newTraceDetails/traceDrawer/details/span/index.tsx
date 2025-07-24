@@ -45,6 +45,8 @@ import {AIInputSection} from 'sentry/views/performance/newTraceDetails/traceDraw
 import {AIOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import {Attributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
 import {Contexts} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/contexts';
+import {MCPInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/mcpInput';
+import {MCPOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/mcpOutput';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {BreadCrumbs} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/breadCrumbs';
 import ReplayPreview from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/replayPreview';
@@ -60,6 +62,7 @@ import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider'
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
 import {SpanDescription as EAPSpanDescription} from './eapSections/description';
+import {TraceSpanLinks} from './eapSections/traceSpanLinks';
 import Alerts from './sections/alerts';
 import {SpanDescription} from './sections/description';
 import {GeneralInfo} from './sections/generalInfo';
@@ -277,6 +280,8 @@ export function SpanNodeDetails(
                   />
                   <AIInputSection node={node} />
                   <AIOutputSection node={node} />
+                  <MCPInputSection node={node} />
+                  <MCPOutputSection node={node} />
                   <SpanSections
                     node={node}
                     project={project}
@@ -402,6 +407,7 @@ function EAPSpanNodeDetails({
   }
 
   const attributes = traceItemData?.attributes;
+  const links = traceItemData?.links;
   const isTransaction = isEAPTransactionNode(node) && !!eventTransaction;
   const profileMeta = eventTransaction ? getProfileMeta(eventTransaction) || '' : '';
   const profileId =
@@ -454,6 +460,8 @@ function EAPSpanNodeDetails({
                     />
                     <AIInputSection node={node} attributes={attributes} />
                     <AIOutputSection node={node} attributes={attributes} />
+                    <MCPInputSection node={node} attributes={attributes} />
+                    <MCPOutputSection node={node} attributes={attributes} />
                     <Attributes
                       node={node}
                       attributes={attributes}
@@ -466,6 +474,17 @@ function EAPSpanNodeDetails({
                     {isTransaction ? <Contexts event={eventTransaction} /> : null}
 
                     <LogDetails />
+
+                    {organization.features.includes('trace-view-span-links') &&
+                    links?.length ? (
+                      <TraceSpanLinks
+                        node={node}
+                        links={links}
+                        theme={theme}
+                        location={location}
+                        organization={organization}
+                      />
+                    ) : null}
 
                     {eventTransaction && organization.features.includes('profiling') ? (
                       <ProfileDetails

@@ -81,7 +81,6 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
     )
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
@@ -117,7 +116,6 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         assert resp.data == seer_return_value["timeseries"]
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
@@ -158,7 +156,6 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         assert resp.data == seer_return_value["timeseries"]
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
@@ -188,7 +185,6 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         assert resp.data == []
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
@@ -217,7 +213,6 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         assert resp.data == "Unable to get historical anomaly data"
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
@@ -248,7 +243,6 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         assert resp.data == "Unable to get historical anomaly data"
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
@@ -279,7 +273,6 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         assert resp.data == "Unable to get historical anomaly data"
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
@@ -314,7 +307,6 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         assert resp.data == "Unable to get historical anomaly data"
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"

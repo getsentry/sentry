@@ -59,7 +59,7 @@ mock_graphql_response_populated = {
                                     "avgDuration": 0.034125877192982455,
                                     "totalDuration": 1.0,
                                     "lastDuration": 0.034125877192982455,
-                                    "name": "../usr/local/lib/python3.13/site-packages/asgiref/sync.py::GetFinalYamlInteractorTest::test_when_commit_has_yaml",
+                                    "name": "../usr/local-2/lib/python3.13/site-packages/asgiref/sync.py::GetFinalYamlInteractorTest::test_when_commit_has_yaml",
                                     "failureRate": 0.0,
                                     "flakeRate": 0.0,
                                     "commitsFailed": 0,
@@ -90,6 +90,13 @@ class TestResultsEndpointTest(APITestCase):
 
     def setUp(self):
         super().setUp()
+        self.organization = self.create_organization(owner=self.user)
+        self.integration = self.create_integration(
+            organization=self.organization,
+            external_id="1234",
+            name="testowner",
+            provider="github",
+        )
         self.login_as(user=self.user)
 
     def reverse_url(self, owner="testowner", repository="testrepo"):
@@ -98,7 +105,7 @@ class TestResultsEndpointTest(APITestCase):
             self.endpoint,
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "owner": owner,
+                "owner": self.integration.id,
                 "repository": repository,
             },
         )
@@ -172,6 +179,7 @@ class TestResultsEndpointTest(APITestCase):
             "sortBy": "-AVG_DURATION",
             "interval": "INTERVAL_7_DAY",
             "limit": "10",
+            "testSuites": ["../usr/local", "../usr/local-2"],
         }
         response = self.client.get(url, query_params)
 
@@ -185,7 +193,7 @@ class TestResultsEndpointTest(APITestCase):
                 "interval": "INTERVAL_7_DAY",
                 "flags": None,
                 "term": None,
-                "test_suites": None,
+                "test_suites": ["../usr/local", "../usr/local-2"],
             },
             "ordering": {
                 "direction": "DESC",

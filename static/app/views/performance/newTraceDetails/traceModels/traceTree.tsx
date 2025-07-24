@@ -335,6 +335,7 @@ function fetchTrace(
 
 export class TraceTree extends TraceTreeEventDispatcher {
   transactions_count = 0;
+  eap_spans_count = 0;
   projects = new Map<number, TraceTree.Project>();
 
   type: 'loading' | 'empty' | 'error' | 'trace' = 'trace';
@@ -443,6 +444,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       if (isTransactionNode(node) || isEAPTransactionNode(node)) {
         tree.transactions_count++;
+      }
+
+      if (isEAPSpanNode(node)) {
+        tree.eap_spans_count++;
       }
 
       if (isTransactionNode(node)) {
@@ -1493,6 +1498,12 @@ export class TraceTree extends TraceTreeEventDispatcher {
         }
       }
       if (isSpanNode(n) || isEAPSpanNode(n)) {
+        // We still have transaction id links (ex: in discover tables) that link to the
+        // spans only eap trace waterfall.
+        if ('transaction_id' in n.value && n.value.transaction_id === eventId) {
+          return true;
+        }
+
         const spanId = 'span_id' in n.value ? n.value.span_id : n.value.event_id;
 
         if (spanId === eventId) {

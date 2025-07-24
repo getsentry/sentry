@@ -81,7 +81,7 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
             confidence=[any_confidence if val else None for val in event_counts],
         )
         assert timeseries["meta"] == {
-            "valueType": "string",
+            "valueType": "integer",
             "interval": 3_600_000,
         }
 

@@ -11,8 +11,8 @@ import {IconTool} from 'sentry/icons/iconTool';
 import {space} from 'sentry/styles/space';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {LLMCosts} from 'sentry/views/insights/agentMonitoring/components/llmCosts';
+import {getIsAiRunNode} from 'sentry/views/insights/agentMonitoring/utils/aiTraceNodes';
 import {getNodeId} from 'sentry/views/insights/agentMonitoring/utils/getNodeId';
-import {getIsAiRunNode} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
 import {
   AI_AGENT_NAME_ATTRIBUTE,
   AI_COST_ATTRIBUTE,
@@ -143,6 +143,7 @@ const TraceListItem = memo(function TraceListItem({
   onClick: () => void;
   traceBounds: TraceBounds;
 }) {
+  const hasErrors = hasError(node);
   const {icon, title, subtitle, color} = getNodeInfo(node, colors);
   const safeColor = color || colors[0] || '#9ca3af';
   const relativeTiming = calculateRelativeTiming(node, traceBounds);
@@ -150,14 +151,14 @@ const TraceListItem = memo(function TraceListItem({
 
   return (
     <ListItemContainer
-      hasErrors={node.errors.size > 0}
+      hasErrors={hasErrors}
       isSelected={isSelected}
       onClick={onClick}
       indent={indent}
     >
       <ListItemIcon color={safeColor}>{icon} </ListItemIcon>
       <ListItemContent>
-        <ListItemHeader align="center" gap={space(0.5)}>
+        <ListItemHeader align="center" gap="xs">
           <ListItemTitle>{title}</ListItemTitle>
           {subtitle && <ListItemSubtitle>- {subtitle}</ListItemSubtitle>}
           <FlexSpacer />
@@ -303,12 +304,25 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
   }
 
   // Override the color and icon if the node has errors
-  if (node.errors.size > 0) {
+  if (hasError(node)) {
     nodeInfo.icon = <IconFire size="md" color="red300" />;
     nodeInfo.color = colors[6];
   }
 
   return nodeInfo;
+}
+
+function hasError(node: AITraceSpanNode) {
+  if (node.errors.size > 0) {
+    return true;
+  }
+
+  // spans with status unknown are errors
+  if (isEAPSpanNode(node)) {
+    return node.value.additional_attributes?.['span.status'] === 'unknown';
+  }
+
+  return false;
 }
 
 const TraceListContainer = styled('div')`

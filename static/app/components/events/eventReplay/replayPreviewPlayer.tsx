@@ -22,6 +22,9 @@ import {space} from 'sentry/styles/space';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
+import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -57,7 +60,8 @@ export default function ReplayPreviewPlayer({
   const routes = useRoutes();
   const organization = useOrganization();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const {replay, currentTime, isFetching, isFinished, isPlaying, isVideoReplay} =
+  const replay = useReplayReader();
+  const {currentTime, isFetching, isFinished, isPlaying, isVideoReplay} =
     useReplayContext();
 
   const fullscreenRef = useRef<HTMLDivElement | null>(null);
@@ -68,7 +72,7 @@ export default function ReplayPreviewPlayer({
   const startOffsetMs = replay?.getStartOffsetMs() ?? 0;
 
   const referrer = getRouteStringFromRoutes(routes);
-  const fromFeedback = referrer === '/feedback/';
+  const fromFeedback = referrer === '/issues/feedback/';
 
   const {groupId} = useParams<{groupId: string}>();
 
@@ -100,7 +104,7 @@ export default function ReplayPreviewPlayer({
           columnIndex={0}
           showDropdownFilters={false}
         />
-        <LinkButton
+        <ContainedLinkButton
           size="sm"
           to={{
             pathname: makeReplaysPathname({
@@ -117,7 +121,7 @@ export default function ReplayPreviewPlayer({
           {...fullReplayButtonProps}
         >
           {t('See Full Replay')}
-        </LinkButton>
+        </ContainedLinkButton>
       </HeaderWrapper>
       <PreviewPlayerContainer ref={fullscreenRef} isSidebarOpen={isSidebarOpen}>
         <TooltipContext value={{container: fullscreenRef.current}}>
@@ -256,3 +260,12 @@ const HeaderWrapper = styled('div')`
 const StyledAlert = styled(Alert)`
   margin: ${space(1)} 0;
 `;
+
+const ContainedLinkButton = withChonk(
+  LinkButton,
+  chonkStyled(LinkButton)`
+    position: absolute;
+    right: 0;
+    top: 3px;
+  `
+);

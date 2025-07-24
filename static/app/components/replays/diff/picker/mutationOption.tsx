@@ -35,8 +35,8 @@ export default function MutationOption({
 
   return (
     <Label htmlFor={id}>
-      <Flex direction="column" gap={space(0.5)} align="center">
-        <Flex gap={space(0.75)} align="center">
+      <Flex direction="column" gap="xs" align="center">
+        <Flex gap="sm" align="center">
           <IconClock color="gray500" size="sm" />
           <span>{formattedDuration}</span>
         </Flex>

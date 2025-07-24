@@ -53,6 +53,8 @@ interface TestResults {
   pageInfo: {
     endCursor: string;
     hasNextPage: boolean;
+    hasPreviousPage: boolean;
+    startCursor: string;
   };
   results: TestResultItem[];
   totalCount: number;
@@ -60,8 +62,14 @@ interface TestResults {
 
 type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions];
 
-export function useInfiniteTestResults() {
-  const {integratedOrg, repository, branch, codecovPeriod} = useCodecovContext();
+export function useInfiniteTestResults({
+  cursor,
+  navigation,
+}: {
+  cursor?: string | null;
+  navigation?: 'next' | 'prev';
+}) {
+  const {integratedOrgId, repository, branch, codecovPeriod} = useCodecovContext();
   const organization = useOrganization();
   const [searchParams] = useSearchParams();
 
@@ -83,8 +91,18 @@ export function useInfiniteTestResults() {
     QueryKey
   >({
     queryKey: [
-      `/organizations/${organization.slug}/prevent/owner/${integratedOrg}/repository/${repository}/test-results/`,
-      {query: {branch, codecovPeriod, signedSortBy, mappedFilterBy, term}},
+      `/organizations/${organization.slug}/prevent/owner/${integratedOrgId}/repository/${repository}/test-results/`,
+      {
+        query: {
+          branch,
+          codecovPeriod,
+          signedSortBy,
+          mappedFilterBy,
+          term,
+          cursor,
+          navigation,
+        },
+      },
     ],
     queryFn: async ({
       queryKey: [url],
@@ -105,6 +123,8 @@ export function useInfiniteTestResults() {
               branch,
               term,
               ...(mappedFilterBy ? {filterBy: mappedFilterBy} : {}),
+              ...(cursor ? {cursor} : {}),
+              ...(navigation ? {navigation} : {}),
             },
           },
         ],
@@ -117,6 +137,11 @@ export function useInfiniteTestResults() {
     },
     getNextPageParam: ([lastPage]) => {
       return lastPage.pageInfo?.hasNextPage ? lastPage.pageInfo.endCursor : undefined;
+    },
+    getPreviousPageParam: ([firstPage]) => {
+      return firstPage.pageInfo?.hasPreviousPage
+        ? firstPage.pageInfo.startCursor
+        : undefined;
     },
     initialPageParam: null,
   });
@@ -155,6 +180,8 @@ export function useInfiniteTestResults() {
   return {
     data: memoizedData,
     totalCount: data?.pages?.[0]?.[0]?.totalCount ?? 0,
+    startCursor: data?.pages?.[0]?.[0]?.pageInfo?.startCursor,
+    endCursor: data?.pages?.[0]?.[0]?.pageInfo?.endCursor,
     // TODO: only provide the values that we're interested in
     ...rest,
   };

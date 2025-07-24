@@ -26,12 +26,10 @@ from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
-from sentry.snuba.spans_rpc import run_trace_query
+from sentry.snuba.spans_rpc import Spans
 from sentry.utils.numbers import base32_encode
 from sentry.utils.validators import is_event_id
 
-# 1 worker each for spans, errors, performance issues
-_query_thread_pool = ThreadPoolExecutor(max_workers=3)
 # Mostly here for testing
 ERROR_LIMIT = 10_000
 
@@ -335,22 +333,23 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
         errors_query = self.errors_query(snuba_params, trace_id, error_id)
         occurrence_query = self.perf_issues_query(snuba_params, trace_id)
 
-        spans_future = _query_thread_pool.submit(
-            run_trace_query,
-            trace_id,
-            snuba_params,
-            Referrer.API_TRACE_VIEW_GET_EVENTS.value,
-            SearchResolverConfig(),
-            additional_attributes,
-        )
-        errors_future = _query_thread_pool.submit(
-            self.run_errors_query,
-            errors_query,
-        )
-        occurrence_future = _query_thread_pool.submit(
-            self.run_perf_issues_query,
-            occurrence_query,
-        )
+        with ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=3) as query_thread_pool:
+            spans_future = query_thread_pool.submit(
+                Spans.run_trace_query,
+                params=snuba_params,
+                trace_id=trace_id,
+                referrer=Referrer.API_TRACE_VIEW_GET_EVENTS.value,
+                config=SearchResolverConfig(),
+                additional_attributes=additional_attributes,
+            )
+            errors_future = query_thread_pool.submit(
+                self.run_errors_query,
+                errors_query,
+            )
+            occurrence_future = query_thread_pool.submit(
+                self.run_perf_issues_query,
+                occurrence_query,
+            )
 
         spans_data = spans_future.result()
         errors_data = errors_future.result()
@@ -413,8 +412,6 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
 
         additional_attributes = request.GET.getlist("additional_attributes", [])
 
-        update_snuba_params_with_timestamp(request, snuba_params)
-
         error_id = request.GET.get("errorId")
         if error_id is not None and not is_event_id(error_id):
             raise ParseError(f"eventId: {error_id} needs to be a valid uuid")
@@ -422,6 +419,8 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
         def data_fn(offset: int, limit: int) -> list[SerializedEvent]:
             """offset and limit don't mean anything on this endpoint currently"""
             with handle_query_errors():
+                update_snuba_params_with_timestamp(request, snuba_params)
+
                 spans = self.query_trace_data(
                     snuba_params, trace_id, error_id, additional_attributes
                 )

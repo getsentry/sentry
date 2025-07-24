@@ -18,6 +18,7 @@ from sentry.codecov.enums import (
     OrderingDirection,
     OrderingParameter,
 )
+from sentry.integrations.services.integration.model import RpcIntegration
 
 
 @extend_schema(tags=["Prevent"])
@@ -56,10 +57,10 @@ class TestResultsEndpoint(CodecovEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(
-        self, request: Request, organization_id_or_slug: str, owner: str, repository: str, **kwargs
-    ) -> Response:
+    def get(self, request: Request, owner: RpcIntegration, repository: str, **kwargs) -> Response:
         """Retrieves the list of test results for a given repository and owner. Also accepts a number of query parameters to filter the results."""
+
+        owner_slug = owner.name
 
         sort_by = request.query_params.get(
             "sortBy", f"-{OrderingParameter.COMMITS_WHERE_FAIL.value}"
@@ -93,7 +94,7 @@ class TestResultsEndpoint(CodecovEndpoint):
             )
 
         variables = {
-            "owner": owner,
+            "owner": owner_slug,
             "repo": repository,
             "filters": {
                 "branch": request.query_params.get("branch", "main"),
@@ -103,7 +104,9 @@ class TestResultsEndpoint(CodecovEndpoint):
                 ),
                 "flags": None,
                 "term": request.query_params.get("term"),
-                "test_suites": None,
+                "test_suites": (
+                    request.GET.getlist("testSuites") if "testSuites" in request.GET else None
+                ),
             },
             "ordering": {
                 "direction": ordering_direction,
@@ -115,7 +118,7 @@ class TestResultsEndpoint(CodecovEndpoint):
             "after": cursor if cursor and navigation == NavigationParameter.NEXT.value else None,
         }
 
-        client = CodecovApiClient(git_provider_org=owner)
+        client = CodecovApiClient(git_provider_org=owner_slug)
         graphql_response = client.query(query=query, variables=variables)
 
         test_results = TestResultSerializer().to_representation(graphql_response.json())

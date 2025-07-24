@@ -9,20 +9,18 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.endpoints.organization_events_trace import count_performance_issues
-from sentry.api.utils import update_snuba_params_with_timestamp
+from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import SnubaData, SnubaParams
-from sentry.snuba import ourlogs, spans_rpc
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
-from sentry.snuba.rpc_dataset_common import TableQuery, run_bulk_table_queries
-
-# 1 worker for each query
-_query_thread_pool = ThreadPoolExecutor(max_workers=3)
+from sentry.snuba.rpc_dataset_common import RPCBase, TableQuery
+from sentry.snuba.spans_rpc import Spans
 
 
 class SerializedResponse(TypedDict):
@@ -68,9 +66,9 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
         snuba_params: SnubaParams,
     ) -> dict[str, EAPResponse]:
         config = SearchResolverConfig(disable_aggregate_extrapolation=True)
-        spans_resolver = spans_rpc.get_resolver(snuba_params, config)
-        logs_resolver = ourlogs.get_resolver(snuba_params, config)
-        return run_bulk_table_queries(
+        spans_resolver = Spans.get_resolver(snuba_params, config)
+        logs_resolver = OurLogs.get_resolver(snuba_params, config)
+        return RPCBase.run_bulk_table_queries(
             [
                 TableQuery(
                     query_string=f"trace:{trace_id}",
@@ -137,33 +135,40 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
         except NoProjects:
             return Response(status=404)
 
-        update_snuba_params_with_timestamp(request, snuba_params)
+        with handle_query_errors():
+            update_snuba_params_with_timestamp(request, snuba_params)
 
-        # This is a hack, long term EAP will store both errors and performance_issues eventually but is not ready
-        # currently. But we want to move performance data off the old tables immediately. To keep the code simpler I'm
-        # parallelizing the queries here, but ideally this parallelization happens by calling run_bulk_table_queries
-        errors_query = DiscoverQueryBuilder(
-            dataset=Dataset.Events,
-            selected_columns=[
-                "count_if(event.type, notEquals, transaction) as errors",
-            ],
-            params={},
-            snuba_params=snuba_params,
-            query=f"trace:{trace_id}",
-            limit=1,
-        )
-        spans_future = _query_thread_pool.submit(self.query_span_data, trace_id, snuba_params)
-        perf_issues_future = _query_thread_pool.submit(
-            count_performance_issues, trace_id, snuba_params
-        )
-        errors_future = _query_thread_pool.submit(
-            errors_query.run_query, Referrer.API_TRACE_VIEW_GET_EVENTS.value
-        )
+            # This is a hack, long term EAP will store both errors and performance_issues eventually but is not ready
+            # currently. But we want to move performance data off the old tables immediately. To keep the code simpler I'm
+            # parallelizing the queries here, but ideally this parallelization happens by calling run_bulk_table_queries
+            errors_query = DiscoverQueryBuilder(
+                dataset=Dataset.Events,
+                selected_columns=[
+                    "count_if(event.type, notEquals, transaction) as errors",
+                ],
+                params={},
+                snuba_params=snuba_params,
+                query=f"trace:{trace_id}",
+                limit=1,
+            )
+            with ThreadPoolExecutor(
+                thread_name_prefix=__name__,
+                max_workers=3,
+            ) as query_thread_pool:
+                spans_future = query_thread_pool.submit(
+                    self.query_span_data, trace_id, snuba_params
+                )
+                perf_issues_future = query_thread_pool.submit(
+                    count_performance_issues, trace_id, snuba_params
+                )
+                errors_future = query_thread_pool.submit(
+                    errors_query.run_query, Referrer.API_TRACE_VIEW_GET_EVENTS.value
+                )
 
-        results = spans_future.result()
-        perf_issues = perf_issues_future.result()
-        errors = errors_future.result()
-        results["errors"] = errors
+            results = spans_future.result()
+            perf_issues = perf_issues_future.result()
+            errors = errors_future.result()
+            results["errors"] = errors
 
         return Response(self.serialize(results, perf_issues))
 

@@ -624,7 +624,7 @@ def post_process_group(
                     "is_reprocessed": is_reprocessed,
                     "has_reappeared": bool(not group_state["is_new"]),
                     "has_alert": False,
-                    "has_escalated": False,
+                    "has_escalated": kwargs.get("has_escalated", False),
                 }
             )
             metric_tags["occurrence_type"] = group_event.group.issue_type.slug
@@ -723,7 +723,7 @@ def process_event(data: MutableMapping[str, Any], group_id: int | None) -> Event
 
     # Re-bind node data to avoid renormalization. We only want to
     # renormalize when loading old data from the database.
-    event.data = EventDict(event.data, skip_renormalization=True)  # type: ignore[assignment]  # python/mypy#3004
+    event.data = EventDict(event.data, skip_renormalization=True)
     return event
 
 
@@ -794,7 +794,8 @@ def process_inbox_adds(job: PostProcessJob) -> None:
 
 def process_snoozes(job: PostProcessJob) -> None:
     """
-    Set has_reappeared to True if the group is transitioning from "resolved" to "unresolved",
+    Set has_reappeared to True if the group is transitioning from "resolved" to "unresolved" and
+    set has_escalated to True if the group is transitioning from "archived until escalating" to "unresolved"
     otherwise set to False.
     """
     # we process snoozes before rules as it might create a regression
@@ -833,8 +834,7 @@ def process_snoozes(job: PostProcessJob) -> None:
             manage_issue_states(
                 group, GroupInboxReason.ESCALATING, event, activity_data={"forecast": forecast}
             )
-
-            job["has_reappeared"] = True
+            job["has_escalated"] = True
         return
 
     with metrics.timer("post_process.process_snoozes.duration"):
@@ -999,7 +999,10 @@ def process_workflow_engine_metric_issues(job: PostProcessJob) -> None:
         return
 
     org = job["event"].project.organization
-    if not features.has("organizations:workflow-engine-process-metric-issue-workflows", org):
+    if not (
+        features.has("organizations:workflow-engine-process-metric-issue-workflows", org)
+        or features.has("organizations:workflow-engine-single-process-metric-issues", org)
+    ):
         return
 
     process_workflow_engine(job)
@@ -1011,7 +1014,11 @@ def process_rules(job: PostProcessJob) -> None:
 
     org = job["event"].project.organization
 
-    if features.has("organizations:workflow-engine-single-process-workflows", org):
+    if (
+        features.has("organizations:workflow-engine-single-process-workflows", org)
+        and job["event"].group.type
+        in options.get("workflow_engine.issue_alert.group.type_id.rollout")
+    ) or job["event"].group.type in options.get("workflow_engine.issue_alert.group.type_id.ga"):
         # we are only processing through the workflow engine
         return
 
@@ -1413,7 +1420,7 @@ def check_has_high_priority_alerts(job: PostProcessJob) -> None:
 
 def link_event_to_user_report(job: PostProcessJob) -> None:
     from sentry.feedback.lib.utils import FeedbackCreationSource
-    from sentry.feedback.usecases.shim_to_feedback import shim_to_feedback
+    from sentry.feedback.usecases.ingest.shim_to_feedback import shim_to_feedback
     from sentry.models.userreport import UserReport
 
     event = job["event"]

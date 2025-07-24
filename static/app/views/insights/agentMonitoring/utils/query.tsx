@@ -31,7 +31,7 @@ export const AI_GENERATION_OPS = [
 
 // AI Tool Calls - equivalent to OTEL Execute tool span
 // https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/gen-ai-spans.md#execute-tool-span
-const AI_TOOL_CALL_OPS = ['gen_ai.execute_tool'];
+export const AI_TOOL_CALL_OPS = ['gen_ai.execute_tool'];
 
 const AI_HANDOFF_OPS = ['gen_ai.handoff'];
 
@@ -52,6 +52,8 @@ export const AI_TOTAL_TOKENS_ATTRIBUTE = SpanFields.GEN_AI_USAGE_TOTAL_TOKENS;
 export const AI_TOKEN_USAGE_ATTRIBUTE_SUM = `sum(${SpanFields.GEN_AI_USAGE_TOTAL_TOKENS})`;
 export const AI_INPUT_TOKENS_ATTRIBUTE_SUM = `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS})`;
 export const AI_OUTPUT_TOKENS_ATTRIBUTE_SUM = `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS})`;
+export const AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM = `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING})`;
+export const AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM = `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED})`;
 export const AI_COST_ATTRIBUTE_SUM = `sum(${SpanFields.GEN_AI_USAGE_TOTAL_COST})`;
 
 export const legacyAttributeKeys = new Map<string, string[]>([
