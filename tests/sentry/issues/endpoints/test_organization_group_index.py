@@ -12,6 +12,7 @@ from uuid import uuid4
 from django.db.utils import OperationalError
 from django.urls import reverse
 from django.utils import timezone
+from rest_framework.response import Response
 
 from sentry import options
 from sentry.feedback.lib.utils import FeedbackCreationSource
@@ -47,6 +48,7 @@ from sentry.models.groupshare import GroupShare
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import GroupTombstone
+from sentry.models.organization import Organization
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.models.savedsearch import SavedSearch, Visibility
@@ -68,6 +70,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.users.models.user_option import UserOption
 from sentry.utils import json
+from sentry.utils.snuba import SnubaQueryParams
 from tests.sentry.feedback import mock_feedback_event
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -87,7 +90,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             attrs["href"] = url
         return links
 
-    def get_response(self, *args, **kwargs):
+    def get_response(self, *args: Organization, **kwargs: Any) -> Response:
         if not args:
             org = self.project.organization.slug
         else:
@@ -543,7 +546,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["id"] == str(event.group.id)
         assert response.data[0]["matchingEventId"] == event_id
 
-    def test_lookup_by_event_id_incorrect_project_id(self):
+    def test_lookup_by_event_id_incorrect_project_id(self) -> None:
         self.store_event(
             data={"event_id": "a" * 32, "timestamp": self.min_ago.isoformat()},
             project_id=self.project.id,
@@ -684,7 +687,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_success_response(group=[self.group.id, group_2.id])
         assert {g["id"] for g in response.data} == {str(self.group.id), str(group_2.id)}
 
-    def test_lookup_by_group_id_no_perms(self):
+    def test_lookup_by_group_id_no_perms(self) -> None:
         organization = self.create_organization()
         project = self.create_project(organization=organization)
         group = self.create_group(project=project)
@@ -941,7 +944,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # This side_effect is meant to override the `calculate_hits` snuba query specifically.
         # If this test is failing it's because the -last_seen override is being applied to
         # different snuba query.
-        def _my_patched_params(query_params, **kwargs):
+        def _my_patched_params(
+            query_params: SnubaQueryParams, **kwargs: Any
+        ) -> tuple[int, dict[str, Any]]:
             if query_params.aggregations == [
                 ["uniq", "group_id", "total"],
                 ["multiply(toUInt64(max(timestamp)), 1000)", "", "last_seen"],
@@ -1459,7 +1464,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:>1.2.3")
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             release_2_g_1,
             release_2_g_2,
             release_3_g_1,
@@ -1468,7 +1473,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:>=1.2.3")
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             release_1_g_1,
             release_1_g_2,
             release_2_g_1,
@@ -1479,15 +1484,15 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:<1.2.4")
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [release_1_g_1, release_1_g_2]
+        assert [int(r["id"]) for r in response.data] == [release_1_g_1, release_1_g_2]
 
         response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:<1.0")
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == []
+        assert [int(r["id"]) for r in response.data] == []
 
         response = self.get_response(sort_by="date", limit=10, query=f"!{SEMVER_ALIAS}:1.2.4")
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             release_1_g_1,
             release_1_g_2,
             release_3_g_1,
@@ -1553,7 +1558,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             adopted_release_g_1,
             adopted_release_g_2,
         ]
@@ -1565,7 +1570,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             adopted_release_g_1,
             adopted_release_g_2,
             replaced_release_g_1,
@@ -1579,7 +1584,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             adopted_release_g_1,
             adopted_release_g_2,
             replaced_release_g_1,
@@ -1593,7 +1598,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             adopted_release_g_1,
             adopted_release_g_2,
         ]
@@ -1629,7 +1634,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_PACKAGE_ALIAS}:test")
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             release_1_g_1,
             release_1_g_2,
         ]
@@ -1638,7 +1643,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             sort_by="date", limit=10, query=f"{SEMVER_PACKAGE_ALIAS}:test2"
         )
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             release_2_g_1,
         ]
 
@@ -1673,14 +1678,14 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_BUILD_ALIAS}:123")
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             release_1_g_1,
             release_1_g_2,
         ]
 
         response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_BUILD_ALIAS}:124")
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             release_2_g_1,
         ]
 
@@ -2777,11 +2782,11 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         only when it's a statement timeout, and remains a 500 for user cancellation"""
 
         class TimeoutError(OperationalError):
-            def __str__(self):
+            def __str__(self) -> str:
                 return "canceling statement due to statement timeout"
 
         class UserCancelError(OperationalError):
-            def __str__(self):
+            def __str__(self) -> str:
                 return "canceling statement due to user request"
 
         self.login_as(user=self.user)
@@ -2807,7 +2812,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         super().setUp()
         self.min_ago = timezone.now() - timedelta(minutes=1)
 
-    def get_response(self, *args, **kwargs):
+    def get_response(self, *args: Any, **kwargs: Any) -> Response:
         if not args:
             org = self.project.organization.slug
         else:
@@ -4289,7 +4294,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
     method = "delete"
 
-    def get_response(self, *args, **kwargs):
+    def get_response(self, *args: Any, **kwargs: Any) -> Response:
         if not args:
             org = self.project.organization.slug
         else:
@@ -4504,7 +4509,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         self.assert_deleted_groups(groups)
 
     @patch("sentry.api.helpers.group_index.delete.may_schedule_task_to_delete_hashes_from_seer")
-    def test_do_not_mark_as_pending_deletion_if_seer_fails(self, mock_seer_delete: Mock):
+    def test_do_not_mark_as_pending_deletion_if_seer_fails(self, mock_seer_delete: Mock) -> None:
         """
         Test that the issue is not marked as pending deletion if the seer call fails.
         """
