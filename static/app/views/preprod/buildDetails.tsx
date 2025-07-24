@@ -9,10 +9,15 @@ import {
 } from 'sentry/views/preprod/header/buildDetailsHeaderContent';
 
 import {
+  BuildDetailsMainContent,
+  type BuildDetailsMainContentProps,
+} from './main/buildDetailsMainContent';
+import {
   BuildDetailsSidebarContent,
   type BuildDetailsSidebarContentProps,
 } from './sidebar/buildDetailsSidebarContent';
-import type {BuildDetailsApiResponse} from './types';
+import type {AppSizeApiResponse} from './types/appSizeTypes';
+import type {BuildDetailsApiResponse} from './types/buildDetailsTypes';
 
 export default function BuildDetails() {
   const organization = useOrganization();
@@ -22,9 +27,9 @@ export default function BuildDetails() {
 
   const {
     data: buildDetailsData,
-    isPending,
-    isError,
-    error,
+    isPending: isBuildDetailsPending,
+    isError: isBuildDetailsError,
+    error: buildDetailsError,
   } = useApiQuery<BuildDetailsApiResponse>(
     [
       `/projects/${organization.slug}/${projectId}/preprodartifacts/${artifactId}/build-details/`,
@@ -35,18 +40,33 @@ export default function BuildDetails() {
     }
   );
 
+  const {
+    data: appSizeData,
+    isPending: isAppSizePending,
+    isError: isAppSizeError,
+    error: appSizeError,
+  } = useApiQuery<AppSizeApiResponse>(
+    [
+      `/projects/${organization.slug}/${projectId}/files/preprodartifacts/${artifactId}/size-analysis/`,
+    ],
+    {
+      staleTime: 0,
+      enabled: !!projectId && !!artifactId,
+    }
+  );
+
   let sidebarContentProps: BuildDetailsSidebarContentProps;
   let headerContentProps: BuildDetailsHeaderContentProps;
-  if (isError) {
+  if (isBuildDetailsError) {
     sidebarContentProps = {
       status: 'error',
-      error: error?.message || 'Failed to fetch build details data',
+      error: buildDetailsError?.message || 'Failed to fetch build details data',
     };
     headerContentProps = {
       status: 'error',
-      error: error?.message || 'Failed to fetch build details data',
+      error: buildDetailsError?.message || 'Failed to fetch build details data',
     };
-  } else if (isPending) {
+  } else if (isBuildDetailsPending) {
     sidebarContentProps = {status: 'loading'};
     headerContentProps = {status: 'loading'};
   } else if (buildDetailsData) {
@@ -61,6 +81,20 @@ export default function BuildDetails() {
     throw new Error('No build details data');
   }
 
+  let mainContentProps: BuildDetailsMainContentProps;
+  if (isAppSizeError) {
+    mainContentProps = {
+      status: 'error',
+      error: appSizeError?.message || 'Failed to fetch app size data',
+    };
+  } else if (isAppSizePending) {
+    mainContentProps = {status: 'loading'};
+  } else if (appSizeData) {
+    mainContentProps = {status: 'success', appSizeData};
+  } else {
+    throw new Error('No app size data');
+  }
+
   return (
     <SentryDocumentTitle title="Build details">
       <Layout.Page>
@@ -70,8 +104,7 @@ export default function BuildDetails() {
 
         <Layout.Body>
           <Layout.Main>
-            {/* TODO: Main content */}
-            <div>Main</div>
+            <BuildDetailsMainContent {...mainContentProps} />
           </Layout.Main>
 
           <Layout.Side>
