@@ -32,6 +32,7 @@ from sentry.integrations.messaging.metrics import (
 )
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
+from sentry.integrations.slack.message_builder.routing import decode_action_id
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.sdk_client import SlackSdkClient
@@ -390,11 +391,7 @@ class SlackActionEndpoint(Endpoint):
                     lifecycle.record_failure(MessageInteractionFailureReason.MISSING_ACTION)
                     return self.respond()
 
-                lifecycle.add_extra(
-                    "selection",
-                    selection,
-                )
-
+                lifecycle.add_extra("selection", selection)
                 status_action = MessageAction(name="status", value=selection)
 
                 try:
@@ -556,9 +553,12 @@ class SlackActionEndpoint(Endpoint):
 
         action_list = []
         for action_data in action_data:
+
+            routing_data = decode_action_id(action_data["action_id"])
+            action_name = routing_data.action
             if action_data.get("type") in ("static_select", "external_select"):
                 action = BlockKitMessageAction(
-                    name=action_data["action_id"],
+                    name=action_name,
                     label=action_data["selected_option"]["text"]["text"],
                     type=action_data["type"],
                     value=action_data["selected_option"]["value"],
@@ -571,7 +571,7 @@ class SlackActionEndpoint(Endpoint):
                 # TODO: selected_options is kinda ridiculous, I think this is built to handle multi-select?
             else:
                 action = BlockKitMessageAction(
-                    name=action_data["action_id"],
+                    name=action_name,
                     label=action_data["text"]["text"],
                     type=action_data["type"],
                     value=action_data["value"],
@@ -864,7 +864,6 @@ class _ModalDialog(ABC):
         #
         # [1]: https://stackoverflow.com/questions/46629852/update-a-bot-message-after-responding-to-a-slack-dialog#comment80795670_46629852
         org = group.project.organization
-
         callback_id_dict = {
             "issue": group.id,
             "orig_response_url": slack_request.data["response_url"],
