@@ -76,6 +76,8 @@ def delete_group_list(
     # Tell seer to delete grouping records for these groups
     may_schedule_task_to_delete_hashes_from_seer(error_ids)
 
+    eventstream_state = eventstream.backend.start_delete_groups(project.id, group_ids)
+
     Group.objects.filter(id__in=group_ids).exclude(
         status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
     ).update(status=GroupStatus.PENDING_DELETION, substatus=None)
@@ -92,8 +94,6 @@ def delete_group_list(
     # We remove `GroupInbox` rows here so that they don't end up influencing queries for
     # `Group` instances that are pending deletion
     GroupInbox.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
-
-    eventstream_state = eventstream.backend.start_delete_groups(project.id, group_ids)
 
     if options.get("deletions.groups.use-new-task"):
         # Schedule a task per GROUP_CHUNK_SIZE batch of groups
