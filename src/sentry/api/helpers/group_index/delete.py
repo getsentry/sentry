@@ -87,8 +87,6 @@ def delete_group_list(
         status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
     ).update(status=GroupStatus.PENDING_DELETION, substatus=None)
 
-    eventstream_state = eventstream.backend.start_delete_groups(project.id, group_ids)
-
     # The moment groups are marked as pending deletion, we create audit entries
     # so that we can see who requested the deletion. Even if anything after this point
     # fails, we will still have a record of who requested the deletion.
@@ -113,6 +111,7 @@ def delete_group_list(
                 }
             )
     else:
+        eventstream_state = eventstream.backend.start_delete_groups(project.id, group_ids)
         delete_groups_task.apply_async(
             kwargs={
                 "object_ids": group_ids,
