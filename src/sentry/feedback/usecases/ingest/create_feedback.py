@@ -369,7 +369,7 @@ def create_feedback_issue(
         try:
             labels = generate_labels(feedback_message, project.organization_id)
             for idx, label in enumerate(labels):
-                event_fixed["tags"][f"feedback.categorization.label.{idx}"] = label
+                event_fixed["tags"][f"ai_categorization.label.{idx}"] = label
         except Exception:
             logger.exception("Error generating labels", extra={"project_id": project_id})
 

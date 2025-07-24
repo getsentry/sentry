@@ -23,6 +23,7 @@ def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
 
     serialized_request = json.dumps(request)
 
+    # This can timeout (amongst other errors), which is caught in create_feedback_event
     response = requests.post(
         f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/feedback/labels",
         data=serialized_request,
@@ -30,6 +31,7 @@ def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
             "content-type": "application/json;charset=utf-8",
             **sign_with_seer_secret(serialized_request.encode()),
         },
+        timeout=10,
     )
 
     if response.status_code != 200:
