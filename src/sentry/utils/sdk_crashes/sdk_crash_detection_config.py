@@ -132,12 +132,17 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 path_patterns={"Sentry**"},
                 path_replacer=FixedPathReplacer(path="Sentry.framework"),
             ),
-            # [SentrySDK crash] is a testing function causing a crash.
-            # Therefore, we don't want to mark it a as a SDK crash.
             sdk_crash_ignore_matchers={
+                # [SentrySDK crash] is a testing function causing a crash.
+                # Therefore, we don't want to mark it a as a SDK crash.
                 FunctionAndModulePattern(
                     module_pattern="*",
                     function_pattern="**SentrySDK crash**",
+                ),
+                # SentryCrashExceptionApplicationHelper._crashOnException calls abort() intentionally, which would cause false positives.
+                FunctionAndModulePattern(
+                    module_pattern="*",
+                    function_pattern="**SentryCrashExceptionApplicationHelper _crashOnException**",
                 ),
             },
         )

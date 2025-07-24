@@ -620,6 +620,14 @@ class CococaSDKFunctionTestMixin(BaseSDKCrashDetectionMixin):
             mock_sdk_crash_reporter,
         )
 
+    # "SentryCrashExceptionApplicationHelper _crashOnException" calls abort() intentionally, so we must ignore it.
+    def test_sentrycrash_exception_application_helper_not_reported(self, mock_sdk_crash_reporter):
+        self.execute_test(
+            get_crash_event(function="+[SentryCrashExceptionApplicationHelper _crashOnException:]"),
+            False,
+            mock_sdk_crash_reporter,
+        )
+
 
 class SDKCrashDetectionCocoaTest(
     TestCase, CococaSDKFilenameTestMixin, CococaSDKFramesTestMixin, CococaSDKFunctionTestMixin
