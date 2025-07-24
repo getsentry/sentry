@@ -22,6 +22,10 @@ import CellAction, {
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {
+  useLogsAutoRefreshEnabled,
+  useSetLogsAutoRefresh,
+} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {
   useLogsAnalyticsPageSource,
   useLogsBlockRowExpanding,
   useLogsFields,
@@ -116,6 +120,8 @@ export const LogRowContent = memo(function LogRowContent({
   const setLogsSearch = useSetLogsSearch();
   const isTableFrozen = useLogsIsTableFrozen();
   const blockRowExpanding = useLogsBlockRowExpanding();
+  const autorefreshEnabled = useLogsAutoRefreshEnabled();
+  const setAutorefresh = useSetLogsAutoRefresh();
   const measureRef = useRef<HTMLTableRowElement>(null);
   const [shouldRenderHoverElements, _setShouldRenderHoverElements] = useState(
     canDeferRenderElements ? false : true
@@ -150,6 +156,9 @@ export const LogRowContent = memo(function LogRowContent({
         onCollapse?.(String(dataRow[OurLogKnownFieldKey.ID]));
       } else {
         onExpand?.(String(dataRow[OurLogKnownFieldKey.ID]));
+        if (autorefreshEnabled) {
+          setAutorefresh('idle');
+        }
       }
     } else {
       setExpanded(e => !e);
