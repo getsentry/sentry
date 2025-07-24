@@ -1,4 +1,4 @@
-import {createRef} from 'react';
+import React, {createRef} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -41,13 +41,36 @@ describe.each([
       </Component>
     );
     expect(ref.current).toBeInTheDocument();
+    expect(ref.current?.tagName).toBe('OL');
   });
 
   it('respects prop order', () => {
     render(
-      <Component radius="sm" p="md" pb="sm">
-        Hello
-      </Component>
+      <React.Fragment>
+        <Component radius="sm" padding="md" pb="sm">
+          Padding First
+        </Component>
+        <Component radius="sm" pb="sm" padding="md">
+          PaddingBottom First
+        </Component>
+      </React.Fragment>
     );
+
+    const paddingFirst = screen.getByText('Padding First').className;
+    const paddingBottomFirst = screen.getByText('PaddingBottom First').className;
+    expect(paddingFirst).not.toEqual(paddingBottomFirst);
+  });
+});
+
+describe('Flex', () => {
+  it('does not bleed flex attributes to the underlying element', () => {
+    render(
+      <Flex align="center" justify="center">
+        Hello
+      </Flex>
+    );
+
+    expect(screen.getByText('Hello')).not.toHaveAttribute('align');
+    expect(screen.getByText('Hello')).not.toHaveAttribute('justify');
   });
 });

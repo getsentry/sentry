@@ -25,10 +25,6 @@ type Shorthand<T extends string, N extends 4 | 2> = N extends 4
     ? `${T} ${T}` | `${T}`
     : never;
 
-type Spacing = Shorthand<SpacingSize, 4>;
-type SingleSpacing = SpacingSize;
-
-type Radius = Shorthand<RadiusSize, 4>;
 type Responsive<T> = T | Record<Breakpoint, T | undefined>;
 
 /**
@@ -38,16 +34,14 @@ type Responsive<T> = T | Record<Breakpoint, T | undefined>;
  * it can become something like "16px 8px". Separate resolvers are needed for
  * handling the different themes and the implementation of chonk vs non chonk.
  */
-function resolveRadius(sizeComponent: Radius | undefined, theme: Theme) {
+function resolveRadius(sizeComponent: RadiusSize | undefined, theme: Theme) {
   if (sizeComponent === undefined) {
     return undefined;
   }
   if (sizeComponent === '0') {
     return '0px';
   }
-  return isChonkTheme(theme)
-    ? theme.radius[sizeComponent as keyof typeof theme.radius]
-    : theme.borderRadius;
+  return isChonkTheme(theme) ? theme.radius[sizeComponent] : theme.borderRadius;
 }
 
 function resolveSpacing(sizeComponent: SpacingSize, theme: Theme) {
@@ -65,7 +59,7 @@ function isResponsive(prop: unknown): prop is Record<Breakpoint, any> {
   return typeof prop === 'object' && prop !== null;
 }
 
-function getRadius(radius: Radius, theme: Theme) {
+function getRadius(radius: Shorthand<RadiusSize, 4>, theme: Theme) {
   if (radius.length <= 3) {
     // This can only be a single radius value, so we can resolve it directly.
     return resolveRadius(radius as RadiusSize, theme) as string;
@@ -77,7 +71,7 @@ function getRadius(radius: Radius, theme: Theme) {
     .join(' ');
 }
 
-function getSpacing(spacing: Spacing, theme: Theme): string {
+function getSpacing(spacing: Shorthand<SpacingSize, 4>, theme: Theme): string {
   if (spacing.length <= 3) {
     // This can only be a single spacing value, so we can resolve it directly.
     return resolveSpacing(spacing as SpacingSize, theme) as string;
@@ -98,11 +92,11 @@ interface BaseContainerProps {
   >;
 
   // Padding
-  p?: Responsive<Spacing>;
-  pb?: Responsive<SingleSpacing>;
-  pl?: Responsive<SingleSpacing>;
-  pr?: Responsive<SingleSpacing>;
-  pt?: Responsive<SingleSpacing>;
+  padding?: Responsive<Shorthand<SpacingSize, 4>>;
+  pb?: Responsive<SpacingSize>;
+  pl?: Responsive<SpacingSize>;
+  pr?: Responsive<SpacingSize>;
+  pt?: Responsive<SpacingSize>;
 
   // Position
   position?: Responsive<'static' | 'relative' | 'absolute' | 'fixed' | 'sticky'>;
@@ -113,7 +107,7 @@ interface BaseContainerProps {
   overflowY?: Responsive<'visible' | 'hidden' | 'scroll' | 'auto'>;
 
   // Radius
-  radius?: Responsive<Radius>;
+  radius?: Responsive<Shorthand<RadiusSize, 4>>;
 
   // Width
   width?: Responsive<CSSProperties['width']>;
@@ -152,7 +146,7 @@ const omitContainerProps = new Set<keyof ContainerProps<any>>([
   'as',
   'background',
   'display',
-  'p',
+  'padding',
   'pb',
   'pl',
   'pr',
@@ -171,9 +165,9 @@ const omitContainerProps = new Set<keyof ContainerProps<any>>([
 ]);
 
 export const Container = styled(
-  <T extends ContainerElement = 'div'>({children, as, ...rest}: ContainerProps<T>) => {
+  <T extends ContainerElement = 'div'>({as, ...rest}: ContainerProps<T>) => {
     const Component = (as ?? 'div') as T;
-    return <Component {...(rest as any)}>{children}</Component>;
+    return <Component {...(rest as any)} />;
   },
   {
     shouldForwardProp: prop => {
@@ -184,54 +178,53 @@ export const Container = styled(
     },
   }
 )<ContainerProps>`
-  ${p => responsiveCSS('display', p.display, p.theme)};
-  ${p => responsiveCSS('position', p.position, p.theme)};
+  ${p => rc('display', p.display, p.theme)};
+  ${p => rc('position', p.position, p.theme)};
 
-  ${p => responsiveCSS('overflow', p.overflow, p.theme)};
-  ${p => responsiveCSS('overflow-x', p.overflowX, p.theme)};
-  ${p => responsiveCSS('overflow-y', p.overflowY, p.theme)};
+  ${p => rc('overflow', p.overflow, p.theme)};
+  ${p => rc('overflow-x', p.overflowX, p.theme)};
+  ${p => rc('overflow-y', p.overflowY, p.theme)};
 
-  ${p =>
-    responsiveCSS(
-      'background',
-      p.background,
-      p.theme,
-      v => p.theme.tokens.background[v]
-    )};
+  ${p => rc('background', p.background, p.theme, v => p.theme.tokens.background[v])};
 
-  ${p => responsiveCSS('border-radius', p.radius, p.theme, getRadius)};
+  ${p => rc('border-radius', p.radius, p.theme, getRadius)};
 
-  ${p => responsiveCSS('width', p.width, p.theme)};
-  ${p => responsiveCSS('min-width', p.minWidth, p.theme)};
-  ${p => responsiveCSS('max-width', p.maxWidth, p.theme)};
+  ${p => rc('width', p.width, p.theme)};
+  ${p => rc('min-width', p.minWidth, p.theme)};
+  ${p => rc('max-width', p.maxWidth, p.theme)};
 
-  ${p => responsiveCSS('height', p.height, p.theme)};
-  ${p => responsiveCSS('min-height', p.minHeight, p.theme)};
-  ${p => responsiveCSS('max-height', p.maxHeight, p.theme)};
+  ${p => rc('height', p.height, p.theme)};
+  ${p => rc('min-height', p.minHeight, p.theme)};
+  ${p => rc('max-height', p.maxHeight, p.theme)};
 
   /*
   * Serialize order sensitive props last and ensure they are applied in the
   * same order as they are defined in the props object.
   */
   ${p => {
-    const styles = Object.keys(p).map(key => {
+    const styles: Array<SerializedStyles | undefined> = [];
+    for (const key in p) {
       switch (key as keyof BaseContainerProps) {
-        case 'p':
-          return responsiveCSS('padding', p.p, p.theme, getSpacing);
+        case 'padding':
+          styles.push(rc('padding', p.padding, p.theme, getSpacing));
+          break;
         case 'pt':
-          return responsiveCSS('padding-top', p.pt, p.theme, getSpacing);
+          styles.push(rc('padding-top', p.pt, p.theme, getSpacing));
+          break;
         case 'pb':
-          return responsiveCSS('padding-bottom', p.pb, p.theme, getSpacing);
+          styles.push(rc('padding-bottom', p.pb, p.theme, getSpacing));
+          break;
         case 'pl':
-          return responsiveCSS('padding-left', p.pl, p.theme, getSpacing);
+          styles.push(rc('padding-left', p.pl, p.theme, getSpacing));
+          break;
         case 'pr':
-          return responsiveCSS('padding-right', p.pr, p.theme, getSpacing);
+          styles.push(rc('padding-right', p.pr, p.theme, getSpacing));
+          break;
         default:
-          return undefined;
+          break;
       }
-    });
-
-    return styles;
+    }
+    return styles.filter(Boolean);
   }}/**
    * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
    * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.
@@ -241,7 +234,8 @@ export const Container = styled(
   props: ContainerProps<T>
 ) => React.ReactElement;
 
-function responsiveCSS<T>(
+// It is unfortunate, but Emotion seems to use the fn callback name in the classname, so lets keep it short.
+function rc<T>(
   property: string,
   value: Responsive<T> | undefined,
   theme: Theme,
@@ -255,9 +249,8 @@ function responsiveCSS<T>(
   // Most values are unlikely to be responsive, so we can resolve
   // them directly and return early.
   if (!isResponsive(value)) {
-    return css`
-      ${property}: ${resolver ? resolver(value, theme) : value};
-    `;
+    // prettier-ignore
+    return css`${property}: ${resolver ? resolver(value, theme) : value};`;
   }
 
   let first = true;
@@ -288,11 +281,22 @@ function responsiveCSS<T>(
   `;
 }
 
+const omitFlexProps = new Set<keyof FlexProps>([
+  'as',
+  'direction',
+  'flex',
+  'gap',
+  'inline',
+  'align',
+  'justify',
+  'wrap',
+]);
+
 type FlexProps<T extends ContainerElement = 'div'> = Omit<
   ContainerProps<T>,
   'display'
 > & {
-  align?: Responsive<'flex-start' | 'flex-end' | 'center' | 'baseline' | 'stretch'>;
+  align?: Responsive<'start' | 'end' | 'center' | 'baseline' | 'stretch'>;
   direction?: Responsive<'row' | 'row-reverse' | 'column' | 'column-reverse'>;
   flex?: Responsive<CSSProperties['flex']>;
   gap?: Responsive<SpacingSize | `${SpacingSize} ${SpacingSize}`>;
@@ -300,56 +304,58 @@ type FlexProps<T extends ContainerElement = 'div'> = Omit<
    * Determines whether the flex container should be displayed as an inline-flex.
    */
   inline?: Responsive<boolean>;
-  justify?: Responsive<
-    | 'flex-start'
-    | 'flex-end'
-    | 'center'
-    | 'space-between'
-    | 'space-around'
-    | 'space-evenly'
-  >;
+  // @TODO(jonasbadalic): remove the `between` and `around` values and use the `space-between` and `space-around` values instead.
+  justify?: Responsive<'start' | 'end' | 'center' | 'between' | 'around' | 'evenly'>;
   wrap?: Responsive<'nowrap' | 'wrap' | 'wrap-reverse'>;
 };
 
-const omitFlexProps = new Set<keyof FlexProps>([
-  'as',
-  'direction',
-  'flex',
-  'gap',
-  'inline',
-  'justify',
-  'wrap',
-]);
-
 export const Flex = styled(
-  <T extends ContainerElement = 'div'>({children, as, ...rest}: FlexProps<T>) => {
+  <T extends ContainerElement = 'div'>({as, ...rest}: FlexProps<T>) => {
     const Component = (as ?? 'div') as T;
-    return <Component {...(rest as any)}>{children}</Component>;
+    return <Container as={Component} {...(rest as any)} />;
   },
   {
     shouldForwardProp: prop => {
-      if (
-        omitFlexProps.has(prop as unknown as keyof FlexProps) ||
-        omitContainerProps.has(prop as unknown as keyof ContainerProps<any>)
-      ) {
-        return false;
-      }
-      return isPropValid(prop);
+      return !omitFlexProps.has(prop as unknown as keyof FlexProps);
     },
   }
 )<FlexProps<any>>`
+  ${p => rc('display', p.as === 'span' || p.inline ? 'inline-flex' : 'flex', p.theme)};
+  ${p => rc('flex-direction', p.direction, p.theme)};
   ${p =>
-    responsiveCSS(
-      'display',
-      p.as === 'span' || p.inline ? 'inline-flex' : 'flex',
-      p.theme
-    )};
-  ${p => responsiveCSS('flex-direction', p.direction, p.theme)};
-  ${p => responsiveCSS('justify-content', p.justify, p.theme)};
-  ${p => responsiveCSS('align-items', p.align, p.theme)};
-  ${p => responsiveCSS('gap', p.gap, p.theme, getSpacing)};
-  ${p => responsiveCSS('flex-wrap', p.wrap, p.theme)};
-  ${p => responsiveCSS('flex', p.flex, p.theme)};
+    rc('align-items', p.align, p.theme, (value, _theme) => {
+      switch (value) {
+        case 'start':
+          return 'flex-start';
+        case 'end':
+          return 'flex-end';
+        default:
+          return value;
+      }
+    })};
+
+  ${p => rc('gap', p.gap, p.theme, getSpacing)};
+  ${p => rc('flex-wrap', p.wrap, p.theme)};
+  ${p => rc('flex', p.flex, p.theme)};
+  ${p =>
+    rc('justify-content', p.justify, p.theme, (value, _theme) => {
+      switch (value) {
+        case 'start':
+          return 'flex-start';
+        case 'end':
+          return 'flex-end';
+        case 'center':
+          return 'center';
+        case 'between':
+          return 'space-between';
+        case 'around':
+          return 'space-around';
+        case 'evenly':
+          return 'space-evenly';
+        default:
+          return value;
+      }
+    })};
 
   /**
    * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
