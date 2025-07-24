@@ -32,8 +32,8 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ISSUES
-    enforce_rate_limit = True
 
+    enforce_rate_limit = True
     rate_limits = {
         "GET": {
             RateLimitCategory.IP: RateLimit(limit=10, window=1, concurrent_limit=10),
