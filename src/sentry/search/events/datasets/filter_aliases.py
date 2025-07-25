@@ -182,47 +182,80 @@ def semver_filter_converter(
     if builder.params.organization is None:
         raise ValueError("organization is a required param")
     organization_id: int = builder.params.organization.id
-    # We explicitly use `raw_value` here to avoid converting wildcards to shell values
-    version: str = search_filter.value.raw_value
     operator: str = search_filter.operator
 
-    # Note that we sort this such that if we end up fetching more than
-    # MAX_SEMVER_SEARCH_RELEASES, we will return the releases that are closest to
-    # the passed filter.
-    order_by = Release.SEMVER_COLS
-    if operator.startswith("<"):
-        order_by = list(map(_flip_field_sort, order_by))
-    qs = (
-        Release.objects.filter_by_semver(
-            organization_id,
-            parse_semver(version, operator),
-            project_ids=builder.params.project_ids,
-        )
-        .values_list("version", flat=True)
-        .order_by(*order_by)[: constants.MAX_SEARCH_RELEASES]
-    )
-    versions = list(qs)
-    final_operator = Op.IN
-    if len(versions) == constants.MAX_SEARCH_RELEASES:
-        # We want to limit how many versions we pass through to Snuba. If we've hit
-        # the limit, make an extra query and see whether the inverse has fewer ids.
-        # If so, we can do a NOT IN query with these ids instead. Otherwise, we just
-        # do our best.
-        operator = constants.OPERATOR_NEGATION_MAP[operator]
-        # Note that the `order_by` here is important for index usage. Postgres seems
-        # to seq scan with this query if the `order_by` isn't included, so we
-        # include it even though we don't really care about order for this query
-        qs_flipped = (
-            Release.objects.filter_by_semver(organization_id, parse_semver(version, operator))
-            .order_by(*map(_flip_field_sort, order_by))
-            .values_list("version", flat=True)[: constants.MAX_SEARCH_RELEASES]
-        )
+    # Handle IN operator by processing each version separately
+    if operator in ["IN", "NOT IN"]:
+        raw_versions = search_filter.value.raw_value
+        if not isinstance(raw_versions, list):
+            raw_versions = [raw_versions]
 
-        exclude_versions = list(qs_flipped)
-        if exclude_versions and len(exclude_versions) < len(versions):
-            # Do a negative search instead
-            final_operator = Op.NOT_IN
-            versions = exclude_versions
+        all_versions = set()
+        for version in raw_versions:
+            try:
+                if not isinstance(version, str):
+                    continue
+                # For each version in the IN clause, create a separate query using = operator
+                individual_qs = (
+                    Release.objects.filter_by_semver(
+                        organization_id,
+                        parse_semver(version, "="),
+                        project_ids=builder.params.project_ids,
+                    )
+                    .values_list("version", flat=True)
+                    .order_by(*Release.SEMVER_COLS)[: constants.MAX_SEARCH_RELEASES]
+                )
+                all_versions.update(individual_qs)
+            except InvalidSearchQuery:
+                # Skip invalid semver versions in the IN clause
+                continue
+
+        versions = list(all_versions)
+        final_op = Op.IN if operator == "IN" else Op.NOT_IN
+    else:
+        # Original logic for non-IN operators
+        # We explicitly use `raw_value` here to avoid converting wildcards to shell values
+        version: str = search_filter.value.raw_value
+
+        # Note that we sort this such that if we end up fetching more than
+        # MAX_SEMVER_SEARCH_RELEASES, we will return the releases that are closest to
+        # the passed filter.
+        order_by = Release.SEMVER_COLS
+        if operator.startswith("<"):
+            order_by = list(map(_flip_field_sort, order_by))
+        qs = (
+            Release.objects.filter_by_semver(
+                organization_id,
+                parse_semver(version, operator),
+                project_ids=builder.params.project_ids,
+            )
+            .values_list("version", flat=True)
+            .order_by(*order_by)[: constants.MAX_SEARCH_RELEASES]
+        )
+        versions = list(qs)
+        final_op = Op.IN
+
+        # Apply the optimization logic for non-IN operators only
+        if len(versions) == constants.MAX_SEARCH_RELEASES:
+            # We want to limit how many versions we pass through to Snuba. If we've hit
+            # the limit, make an extra query and see whether the inverse has fewer ids.
+            # If so, we can do a NOT IN query with these ids instead. Otherwise, we just
+            # do our best.
+            operator = constants.OPERATOR_NEGATION_MAP[operator]
+            # Note that the `order_by` here is important for index usage. Postgres seems
+            # to seq scan with this query if the `order_by` isn't included, so we
+            # include it even though we don't really care about order for this query
+            qs_flipped = (
+                Release.objects.filter_by_semver(organization_id, parse_semver(version, operator))
+                .order_by(*map(_flip_field_sort, order_by))
+                .values_list("version", flat=True)[: constants.MAX_SEARCH_RELEASES]
+            )
+
+            exclude_versions = list(qs_flipped)
+            if exclude_versions and len(exclude_versions) < len(versions):
+                # Do a negative search instead
+                final_op = Op.NOT_IN
+                versions = exclude_versions
 
     if not validate_snuba_array_parameter(versions):
         raise InvalidSearchQuery(
@@ -233,7 +266,7 @@ def semver_filter_converter(
         # XXX: Just return a filter that will return no results if we have no versions
         versions = [constants.SEMVER_EMPTY_RELEASE]
 
-    return Condition(builder.column("release"), final_operator, versions)
+    return Condition(builder.column("release"), final_op, versions)
 
 
 def semver_package_filter_converter(
@@ -276,22 +309,56 @@ def semver_build_filter_converter(
     """
     if builder.params.organization is None:
         raise ValueError("organization is a required param")
-    build: str = search_filter.value.raw_value
 
-    operator, negated = handle_operator_negation(search_filter.operator)
-    try:
-        django_op = constants.OPERATOR_TO_DJANGO[operator]
-    except KeyError:
-        raise InvalidSearchQuery("Invalid operation 'IN' for semantic version filter.")
-    versions = list(
-        Release.objects.filter_by_semver_build(
-            builder.params.organization.id,
-            django_op,
-            build,
-            project_ids=builder.params.project_ids,
-            negated=negated,
-        ).values_list("version", flat=True)[: constants.MAX_SEARCH_RELEASES]
-    )
+    operator = search_filter.operator
+
+    # Handle IN operator by processing each build separately
+    if operator in ["IN", "NOT IN"]:
+        raw_builds = search_filter.value.raw_value
+        if not isinstance(raw_builds, list):
+            raw_builds = [raw_builds]
+
+        all_versions = set()
+        for build in raw_builds:
+            try:
+                if not isinstance(build, str):
+                    continue
+                # For each build in the IN clause, create a separate query using = operator
+                op, negated = handle_operator_negation("=")
+                django_op = constants.OPERATOR_TO_DJANGO[op]
+                individual_qs = Release.objects.filter_by_semver_build(
+                    builder.params.organization.id,
+                    django_op,
+                    build,
+                    project_ids=builder.params.project_ids,
+                    negated=negated,
+                ).values_list("version", flat=True)[: constants.MAX_SEARCH_RELEASES]
+                all_versions.update(individual_qs)
+            except (InvalidSearchQuery, KeyError):
+                # Skip invalid build values in the IN clause
+                continue
+
+        versions = list(all_versions)
+        final_op = Op.IN if operator == "IN" else Op.NOT_IN
+    else:
+        # Original logic for non-IN operators
+        build: str = search_filter.value.raw_value
+
+        operator, negated = handle_operator_negation(search_filter.operator)
+        try:
+            django_op = constants.OPERATOR_TO_DJANGO[operator]
+        except KeyError:
+            raise InvalidSearchQuery("Invalid operation 'IN' for semantic version filter.")
+        versions = list(
+            Release.objects.filter_by_semver_build(
+                builder.params.organization.id,
+                django_op,
+                build,
+                project_ids=builder.params.project_ids,
+                negated=negated,
+            ).values_list("version", flat=True)[: constants.MAX_SEARCH_RELEASES]
+        )
+        final_op = Op.IN
 
     if not validate_snuba_array_parameter(versions):
         raise InvalidSearchQuery(
@@ -302,7 +369,7 @@ def semver_build_filter_converter(
         # XXX: Just return a filter that will return no results if we have no versions
         versions = [constants.SEMVER_EMPTY_RELEASE]
 
-    return Condition(builder.column("release"), Op.IN, versions)
+    return Condition(builder.column("release"), final_op, versions)
 
 
 def device_class_converter(

@@ -202,6 +202,71 @@ class SemverFilterConverterTest(BaseSemverConverterTest):
         ):
             _semver_filter_converter(filter, key, {"organization_id": self.organization.id})
 
+    def test_in_operator(self) -> None:
+        # Test IN operator with exact versions
+        release_1 = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test@1.2.4")
+        release_3 = self.create_release(version="test@2.0.0")
+        self.create_release(version="test@1.3.0")  # not included
+
+        # Test basic IN functionality
+        self.run_test("IN", ["1.2.3", "1.2.4"], "IN", [release_1.version, release_2.version])
+        self.run_test("IN", ["1.2.3", "2.0.0"], "IN", [release_1.version, release_3.version])
+
+        # Test single item in IN (should work like =)
+        self.run_test("IN", ["1.2.3"], "IN", [release_1.version])
+
+        # Test empty result
+        self.run_test("IN", ["3.0.0"], "IN", [SEMVER_EMPTY_RELEASE])
+
+    def test_in_operator_with_wildcards(self) -> None:
+        # Test IN operator with wildcard versions
+        release_1 = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test@1.2.4")
+        release_3 = self.create_release(version="test@1.3.0")
+        release_4 = self.create_release(version="test@2.0.0")
+
+        # Test wildcards in IN
+        self.run_test(
+            "IN", ["1.2.*", "2.*"], "IN", [release_1.version, release_2.version, release_4.version]
+        )
+        self.run_test(
+            "IN", ["1.*"], "IN", [release_1.version, release_2.version, release_3.version]
+        )
+
+    def test_in_operator_with_packages(self) -> None:
+        # Test IN operator with package names
+        release_1 = self.create_release(version="package1@1.2.3")
+        release_2 = self.create_release(version="package2@1.2.3")
+        release_3 = self.create_release(version="package1@1.2.4")
+
+        # Test package-specific versions in IN
+        self.run_test(
+            "IN", ["package1@1.2.3", "package2@1.2.3"], "IN", [release_1.version, release_2.version]
+        )
+        self.run_test(
+            "IN", ["package1@1.2.3", "package1@1.2.4"], "IN", [release_1.version, release_3.version]
+        )
+
+    def test_in_operator_mixed_valid_invalid(self) -> None:
+        # Test IN operator with mix of valid and invalid versions
+        release_1 = self.create_release(version="test@1.2.3")
+
+        # Should handle valid versions and ignore invalid ones
+        self.run_test("IN", ["1.2.3", "invalid.version"], "IN", [release_1.version])
+
+    def test_in_operator_edge_cases(self) -> None:
+        # Test IN operator with edge cases
+
+        # Test empty IN list
+        self.run_test("IN", [], "IN", [SEMVER_EMPTY_RELEASE])
+
+        # Test IN with all invalid versions
+        self.run_test("IN", ["invalid", "also.invalid"], "IN", [SEMVER_EMPTY_RELEASE])
+
+        # Note: NOT IN operator is more complex for semver as it needs to
+        # query all releases and exclude the specified ones
+
     def test_empty(self) -> None:
         self.run_test(">", "1.2.3", "IN", [SEMVER_EMPTY_RELEASE])
 
@@ -394,15 +459,9 @@ class SemverBuildFilterConverterTest(BaseSemverConverterTest):
         key = SEMVER_BUILD_ALIAS
         filter = SearchFilter(SearchKey(key), "=", SearchValue("sentry"))
         with pytest.raises(ValueError, match="organization_id is a required param"):
-            _semver_filter_converter(filter, key, None)
+            _semver_build_filter_converter(filter, key, None)
         with pytest.raises(ValueError, match="organization_id is a required param"):
-            _semver_filter_converter(filter, key, {"something": 1})  # type: ignore[arg-type]  # intentionally bad data
-
-        filter = SearchFilter(SearchKey(key), "IN", SearchValue("sentry"))
-        with pytest.raises(
-            InvalidSearchQuery, match="Invalid operation 'IN' for semantic version filter."
-        ):
-            _semver_filter_converter(filter, key, {"organization_id": 1})
+            _semver_build_filter_converter(filter, key, {"something": 1})  # type: ignore[arg-type]  # intentionally bad data
 
     def test_empty(self) -> None:
         self.run_test("=", "test", "IN", [SEMVER_EMPTY_RELEASE])
@@ -415,6 +474,47 @@ class SemverBuildFilterConverterTest(BaseSemverConverterTest):
         self.run_test("=", "124", "IN", [release_3.version])
         self.run_test("=", "125", "IN", [SEMVER_EMPTY_RELEASE])
         self.run_test("<", "125", "IN", [release.version, release_2.version, release_3.version])
+
+    def test_in_operator(self) -> None:
+        # Test IN operator with build numbers
+        release_1 = self.create_release(version="test@1.2.3+123")
+        release_2 = self.create_release(version="test@1.2.4+456")
+        release_3 = self.create_release(version="test@1.2.5+789")
+        self.create_release(version="test@1.2.6+999")  # not included
+
+        # Test basic IN functionality with numeric builds
+        self.run_test("IN", ["123", "456"], "IN", [release_1.version, release_2.version])
+        self.run_test("IN", ["123", "789"], "IN", [release_1.version, release_3.version])
+
+        # Test single item in IN
+        self.run_test("IN", ["123"], "IN", [release_1.version])
+
+        # Test empty result
+        self.run_test("IN", ["111"], "IN", [SEMVER_EMPTY_RELEASE])
+
+    def test_in_operator_with_wildcards(self) -> None:
+        # Test IN operator with wildcard builds
+        release_1 = self.create_release(version="test@1.2.3+test123")
+        release_2 = self.create_release(version="test@1.2.4+test456")
+        release_3 = self.create_release(version="test@1.2.5+prod123")
+
+        # Test wildcards in IN with build codes
+        self.run_test(
+            "IN",
+            ["test*", "prod*"],
+            "IN",
+            [release_1.version, release_2.version, release_3.version],
+        )
+        self.run_test("IN", ["test*"], "IN", [release_1.version, release_2.version])
+
+    def test_in_operator_edge_cases(self) -> None:
+        # Test IN operator with edge cases
+
+        # Test empty IN list
+        self.run_test("IN", [], "IN", [SEMVER_EMPTY_RELEASE])
+
+        # Note: NOT IN operator is more complex for semver as it needs to
+        # query all releases and exclude the specified ones
 
 
 class ParseSemverTest(unittest.TestCase):
@@ -433,6 +533,8 @@ class ParseSemverTest(unittest.TestCase):
             match=INVALID_SEMVER_MESSAGE,
         ):
             assert parse_semver("hello", ">") is None
+        # The parse_semver function doesn't handle IN operations directly
+        # IN operations are handled at the converter level by processing each version individually
         with pytest.raises(
             InvalidSearchQuery,
             match="Invalid operation 'IN' for semantic version filter.",
