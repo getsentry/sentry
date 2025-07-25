@@ -2226,14 +2226,20 @@ function buildRoutes() {
     </Route>
   );
 
+  const preprodChildRoutes: SentryRouteObject[] = [
+    {
+      index: true,
+      component: make(() => import('sentry/views/preprod/buildDetails')),
+    },
+  ];
+
   const preprodRoutes = (
     <Route
       path="/preprod/:projectId/:artifactId/"
       component={make(() => import('sentry/views/preprod/index'))}
       withOrgPath
-    >
-      <IndexRoute component={make(() => import('sentry/views/preprod/buildDetails'))} />
-    </Route>
+      newStyleChildren={preprodChildRoutes}
+    />
   );
 
   const feedbackV2ChildRoutes: SentryRouteObject[] = [
