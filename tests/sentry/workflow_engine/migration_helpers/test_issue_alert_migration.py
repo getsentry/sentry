@@ -5,6 +5,7 @@ from jsonschema.exceptions import ValidationError
 
 from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.models.rule import RuleSource
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules.age import AgeComparisonType
 from sentry.rules.conditions.event_frequency import (
@@ -386,6 +387,15 @@ class IssueAlertMigratorTest(TestCase):
         assert DataCondition.objects.all().count() == 1
         dc = DataCondition.objects.get(type=Condition.REGRESSION_EVENT)
         assert dc.condition_group.logic_type == DataConditionGroup.Type.ALL
+
+    def test_run__cron_rule(self):
+        # cron rule should not be connected to the error detector
+        self.issue_alert.source = RuleSource.CRON_MONITOR
+        self.issue_alert.save()
+
+        workflow = IssueAlertMigrator(self.issue_alert, self.user.id).run()
+        assert AlertRuleWorkflow.objects.filter(rule_id=self.issue_alert.id).exists()
+        assert not DetectorWorkflow.objects.filter(workflow=workflow).exists()
 
     def test_dry_run(self):
         IssueAlertMigrator(self.issue_alert, self.user.id, is_dry_run=True).run()
