@@ -223,7 +223,6 @@ export function isEapAlertType(alertType?: AlertType) {
     'eap_metrics',
     'trace_item_throughput',
     'trace_item_duration',
-    'trace_item_apdex',
     'trace_item_failure_rate',
     'trace_item_lcp',
     'trace_item_logs',

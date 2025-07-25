@@ -47,7 +47,6 @@ const alertTypeIdentifiers: Record<
   [Dataset.EVENTS_ANALYTICS_PLATFORM]: {
     trace_item_throughput: 'count(span.duration)',
     trace_item_duration: 'span.duration',
-    trace_item_apdex: 'apdex',
     trace_item_failure_rate: 'failure_rate()',
     trace_item_lcp: 'measurements.lcp',
   },

@@ -48,7 +48,6 @@ export type AlertType =
   | 'eap_metrics'
   | 'trace_item_throughput'
   | 'trace_item_duration'
-  | 'trace_item_apdex'
   | 'trace_item_failure_rate'
   | 'trace_item_lcp'
   | 'trace_item_logs';
@@ -102,7 +101,6 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   uptime_monitor: t('Uptime Monitor'),
   trace_item_throughput: t('Throughput'),
   trace_item_duration: t('Duration'),
-  trace_item_apdex: t('Apdex'),
   trace_item_failure_rate: t('Failure Rate'),
   trace_item_lcp: t('Largest Contentful Paint'),
   eap_metrics: t('Spans'),
@@ -151,7 +149,6 @@ export const getAlertWizardCategories = (org: Organization) => {
     const traceItemAggregationOptions: AlertType[] = [
       'trace_item_throughput',
       'trace_item_duration',
-      'trace_item_apdex',
       'trace_item_failure_rate',
       'trace_item_lcp',
     ];
@@ -276,11 +273,6 @@ export const AlertWizardRuleTemplates: Record<
   },
   trace_item_duration: {
     aggregate: 'p95(span.duration)',
-    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-    eventTypes: EventTypes.TRACE_ITEM_SPAN,
-  },
-  trace_item_apdex: {
-    aggregate: 'apdex(300)',
     dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
     eventTypes: EventTypes.TRACE_ITEM_SPAN,
   },
