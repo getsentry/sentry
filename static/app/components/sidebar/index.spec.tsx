@@ -595,10 +595,10 @@ describe('Sidebar', function () {
       expect(chonkBanner).toBeInTheDocument();
 
       // Find the dismiss button within the chonk UI banner
-      const bannerContainer =
-        chonkBanner.closest('[class*="Panel"]') || chonkBanner.parentElement;
       await userEvent.click(
-        within(bannerContainer! as HTMLElement).getByRole('button', {name: /Dismiss/})
+        within(screen.getByTestId('chonk-opt-in-banner')).getByRole('button', {
+          name: /Dismiss/,
+        })
       );
 
       expect(optionsRequest).not.toHaveBeenCalled();
