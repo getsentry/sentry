@@ -148,13 +148,13 @@ class AuthOAuth2Test(AuthProviderTestCase):
             }
         return resp
 
-    def test_oauth2_flow(self):
+    def test_oauth2_flow(self) -> None:
         auth_data = {"id": "oauth_external_id_1234", "email": self.user.email}
 
         state = self.initiate_oauth_flow()
         self.initiate_callback(state, auth_data)
 
-    def test_oauth2_flow_customer_domain(self):
+    def test_oauth2_flow_customer_domain(self) -> None:
         HTTP_HOST = "albertos-apples.testserver"
         auth_data = {"id": "oauth_external_id_1234", "email": self.user.email}
 
@@ -188,7 +188,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
         assert response.redirect_chain == [("http://albertos-apples.testserver/auth/login/", 302)]
         assert response.context["user"] != self.user
 
-    def test_oauth2_flow_with_2fa(self):
+    def test_oauth2_flow_with_2fa(self) -> None:
         RecoveryCodeInterface().enroll(self.user)
         TotpInterface().enroll(self.user)
 
@@ -197,7 +197,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
         state = self.initiate_oauth_flow()
         self.initiate_callback(state, auth_data, has_2fa=True)
 
-    def test_state_mismatch(self):
+    def test_state_mismatch(self) -> None:
         auth_data = {"id": "oauth_external_id_1234", "email": self.user.email}
 
         self.initiate_oauth_flow()
@@ -208,7 +208,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
         assert str(messages[0]).startswith("Authentication error")
         assert auth_resp.context["user"] != self.user
 
-    def test_response_errors(self):
+    def test_response_errors(self) -> None:
         auth_data = {"error_description": "Mock failure"}
 
         state = self.initiate_oauth_flow()

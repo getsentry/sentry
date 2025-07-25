@@ -28,7 +28,7 @@ class OrganizationSentryAppsTest(APITestCase):
 
 @control_silo_test
 class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
-    def test_gets_all_apps_in_own_org(self):
+    def test_gets_all_apps_in_own_org(self) -> None:
         self.login_as(user=self.user)
         response = self.client.get(self.url, format="json")
 
@@ -69,7 +69,7 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
             ],
         )
 
-    def test_includes_internal_integrations(self):
+    def test_includes_internal_integrations(self) -> None:
         self.create_project(organization=self.org)
         internal_integration = self.create_internal_integration(organization=self.org)
 
@@ -79,14 +79,14 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
         assert response.status_code == 200
         assert internal_integration.uuid in [a["uuid"] for a in response.data]
 
-    def test_cannot_see_apps_in_other_orgs(self):
+    def test_cannot_see_apps_in_other_orgs(self) -> None:
         self.login_as(user=self.user)
         url = reverse("sentry-api-0-organization-sentry-apps", args=[self.super_org.slug])
         response = self.client.get(url, format="json")
 
         assert response.status_code == 403
 
-    def test_filter_for_internal(self):
+    def test_filter_for_internal(self) -> None:
         self.login_as(user=self.user)
         self.create_project(organization=self.org)
         internal_integration = self.create_internal_integration(organization=self.org)

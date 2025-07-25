@@ -58,7 +58,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
     def assert_expected_versions(self, response, expected):
         assert [item["version"] for item in response.data] == [e.version for e in expected]
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org2 = self.create_organization()
@@ -108,7 +108,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         response = self.get_success_response(org.slug)
         self.assert_expected_versions(response, [release4, release1, release3])
 
-    def test_release_list_order_by_date_added(self):
+    def test_release_list_order_by_date_added(self) -> None:
         """
         Test that ensures that by relying on the default date sorting, releases
         will only be sorted according to `Release.date_added`, and
@@ -154,7 +154,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         response = self.get_success_response(org.slug)
         self.assert_expected_versions(response, [release8, release7, release6])
 
-    def test_release_list_order_by_sessions_empty(self):
+    def test_release_list_order_by_sessions_empty(self) -> None:
         self.login_as(user=self.user)
 
         release_1 = self.create_release(version="1")
@@ -169,7 +169,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
             response, [release_5, release_4, release_3, release_2, release_1]
         )
 
-    def test_release_list_order_by_sessions(self):
+    def test_release_list_order_by_sessions(self) -> None:
         self.login_as(user=self.user)
 
         release_1 = self.create_release(version="1")
@@ -235,7 +235,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         )
         self.assert_expected_versions(response, [release_3, release_2])
 
-    def test_release_list_order_by_build_number(self):
+    def test_release_list_order_by_build_number(self) -> None:
         self.login_as(user=self.user)
         release_1 = self.create_release(version="test@1.2+1000")
         release_2 = self.create_release(version="test@1.2+1")
@@ -246,7 +246,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         response = self.get_success_response(self.organization.slug, sort="build")
         self.assert_expected_versions(response, [release_1, release_3, release_2])
 
-    def test_release_list_order_by_semver(self):
+    def test_release_list_order_by_semver(self) -> None:
         self.login_as(user=self.user)
         release_1 = self.create_release(version="test@2.2")
         release_2 = self.create_release(version="test@10.0+122")
@@ -274,7 +274,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
             ],
         )
 
-    def test_query_filter(self):
+    def test_query_filter(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False
@@ -308,7 +308,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         response = self.get_success_response(org.slug, query="baz")
         self.assert_expected_versions(response, [])
 
-    def test_release_filter(self):
+    def test_release_filter(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False
@@ -373,7 +373,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         )
         self.assert_expected_versions(response, [])
 
-    def test_latest_release_filter(self):
+    def test_latest_release_filter(self) -> None:
         self.login_as(user=self.user)
 
         project1 = self.create_project(teams=[self.team], organization=self.organization)
@@ -396,7 +396,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
             ],
         )
 
-    def test_query_filter_suffix(self):
+    def test_query_filter_suffix(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False
@@ -435,7 +435,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         assert len(response.data) == 1
         assert response.data[0]["version"] == release.version
 
-    def test_semver_filter(self):
+    def test_semver_filter(self) -> None:
         self.login_as(user=self.user)
 
         release_1 = self.create_release(version="test@1.2.4+124")
@@ -498,7 +498,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         )
         self.assert_expected_versions(response, [release_4, release_2, release_1])
 
-    def test_release_stage_filter(self):
+    def test_release_stage_filter(self) -> None:
         self.login_as(user=self.user)
 
         response = self.get_success_response(
@@ -652,7 +652,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         )
         assert response.status_code == 400
 
-    def test_project_permissions(self):
+    def test_project_permissions(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
         org.flags.allow_joinleave = False
@@ -697,7 +697,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         response = self.get_success_response(org.slug)
         self.assert_expected_versions(response, [release1, release3])
 
-    def test_project_permissions_open_access(self):
+    def test_project_permissions_open_access(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
         org.flags.allow_joinleave = True
@@ -742,7 +742,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         response = self.get_success_response(org.slug)
         self.assert_expected_versions(response, [release1, release3])
 
-    def test_all_projects_parameter(self):
+    def test_all_projects_parameter(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
         org.flags.allow_joinleave = True
@@ -774,7 +774,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         response = self.get_success_response(org.slug, project=[-1])
         self.assert_expected_versions(response, [release2, release1])
 
-    def test_new_org(self):
+    def test_new_org(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         team = self.create_team(organization=org)
@@ -783,7 +783,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         response = self.get_success_response(org.slug)
         self.assert_expected_versions(response, [])
 
-    def test_archive_release(self):
+    def test_archive_release(self) -> None:
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-organization-releases",
@@ -822,7 +822,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
 
-    def test_disallow_archive_release_when_no_open_membership(self):
+    def test_disallow_archive_release_when_no_open_membership(self) -> None:
         release = self.create_release(project=self.project, version="test@1.0")
 
         # disable Open Membership
@@ -854,7 +854,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         assert response.status_code == 400
         assert b"You do not have permission to one of the projects: bar" in response.content
 
-    def test_disallow_projects_update_for_release_when_no_open_membership(self):
+    def test_disallow_projects_update_for_release_when_no_open_membership(self) -> None:
         team1 = self.create_team(organization=self.organization)
         team2 = self.create_team(organization=self.organization)
 
@@ -904,7 +904,7 @@ class OrganizationReleasesStatsTest(APITestCase):
 
         self.login_as(user=self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         release1 = Release.objects.create(
             organization_id=self.organization.id,
             version="1",
@@ -943,7 +943,7 @@ class OrganizationReleasesStatsTest(APITestCase):
         assert response.data[2]["version"] == release2.version
         assert response.data[2]["date"] == release2.date_added
 
-    def test_release_list_order_by_date_added(self):
+    def test_release_list_order_by_date_added(self) -> None:
         """
         Test that ensures that by relying on the default date sorting, releases
         will only be sorted according to `Release.date_added`, and
@@ -998,7 +998,7 @@ class OrganizationReleasesStatsTest(APITestCase):
         assert response.data[1]["version"] == release7.version
         assert response.data[2]["version"] == release6.version
 
-    def test_with_adoption_stages(self):
+    def test_with_adoption_stages(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.save()
@@ -1028,7 +1028,7 @@ class OrganizationReleasesStatsTest(APITestCase):
         assert len(response.data) == 1
         assert "adoptionStages" in response.data[0]
 
-    def test_semver_filter(self):
+    def test_semver_filter(self) -> None:
         self.login_as(user=self.user)
 
         release_1 = self.create_release(version="test@1.2.4")
@@ -1068,7 +1068,7 @@ class OrganizationReleasesStatsTest(APITestCase):
         )
         assert [r["version"] for r in response.data] == [release_2.version, release_1.version]
 
-    def test_finalized_filter(self):
+    def test_finalized_filter(self) -> None:
         self.login_as(user=self.user)
 
         release_1 = self.create_release(
@@ -1104,7 +1104,7 @@ class OrganizationReleasesStatsTest(APITestCase):
             release_1.version,
         ]
 
-    def test_release_stage_filter(self):
+    def test_release_stage_filter(self) -> None:
         self.login_as(user=self.user)
 
         response = self.get_success_response(
@@ -1188,7 +1188,7 @@ class OrganizationReleasesStatsTest(APITestCase):
         )
         assert response.status_code == 400
 
-    def test_multi_project_release_gets_filtered(self):
+    def test_multi_project_release_gets_filtered(self) -> None:
         multi_project_release = self.create_release(version="multi_project_release")
         single_project_release = self.create_release(version="single_project_release")
         project2 = self.create_project(teams=[self.team], organization=self.organization)
@@ -1232,7 +1232,7 @@ class OrganizationReleasesStatsTest(APITestCase):
             multi_project_release.version,
         ]
 
-    def test_query_filter(self):
+    def test_query_filter(self) -> None:
         self.login_as(user=self.user)
 
         release = self.create_release(
@@ -1269,7 +1269,7 @@ class OrganizationReleasesStatsTest(APITestCase):
 
 
 class OrganizationReleaseCreateTest(APITestCase):
-    def test_empty_release_version(self):
+    def test_empty_release_version(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
         org.flags.allow_joinleave = False
@@ -1291,7 +1291,7 @@ class OrganizationReleaseCreateTest(APITestCase):
 
         assert response.status_code == 400
 
-    def test_minimal(self):
+    def test_minimal(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
         org.flags.allow_joinleave = False
@@ -1326,7 +1326,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert ReleaseProject.objects.filter(release=release, project=project2).exists()
         assert not ReleaseProject.objects.filter(release=release, project=project3).exists()
 
-    def test_minimal_with_id(self):
+    def test_minimal_with_id(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
         org.flags.allow_joinleave = False
@@ -1359,7 +1359,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert ReleaseProject.objects.filter(release=release, project=project).exists()
         assert ReleaseProject.objects.filter(release=release, project=project2).exists()
 
-    def test_minimal_with_slug_and_id(self):
+    def test_minimal_with_slug_and_id(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
         org.flags.allow_joinleave = False
@@ -1392,7 +1392,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert ReleaseProject.objects.filter(release=release, project=project).exists()
         assert ReleaseProject.objects.filter(release=release, project=project2).exists()
 
-    def test_duplicate(self):
+    def test_duplicate(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
         org.flags.allow_joinleave = False
@@ -1485,7 +1485,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         # make sure project was added
         assert ReleaseProject.objects.filter(release=release, project=project).exists()
 
-    def test_activity(self):
+    def test_activity(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
         org.flags.allow_joinleave = False
@@ -1523,7 +1523,7 @@ class OrganizationReleaseCreateTest(APITestCase):
             type=ActivityType.RELEASE.value, project=project2, ident=release.version
         ).exists()
 
-    def test_activity_with_long_release(self):
+    def test_activity_with_long_release(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
         org.flags.allow_joinleave = False
@@ -1561,7 +1561,7 @@ class OrganizationReleaseCreateTest(APITestCase):
             type=ActivityType.RELEASE.value, project=project2, ident=release.version[:64]
         ).exists()
 
-    def test_version_whitespace(self):
+    def test_version_whitespace(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
         org.flags.allow_joinleave = False
@@ -1599,7 +1599,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         release = Release.objects.get(organization_id=org.id, version=response.data["version"])
         assert not release.owner_id
 
-    def test_features(self):
+    def test_features(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
         org.flags.allow_joinleave = False
@@ -1625,7 +1625,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         release = Release.objects.get(organization_id=org.id, version=response.data["version"])
         assert release.owner_id == self.user.id
 
-    def test_commits(self):
+    def test_commits(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
         org.flags.allow_joinleave = False
@@ -1782,7 +1782,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         )
         assert response.status_code == 201
 
-    def test_commits_lock_conflict(self):
+    def test_commits_lock_conflict(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
         org.flags.allow_joinleave = False
@@ -1814,7 +1814,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert response.status_code == 409, (response.status_code, response.content)
         assert "Release commits" in response.data["detail"]
 
-    def test_bad_project_slug(self):
+    def test_bad_project_slug(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
         org.flags.allow_joinleave = False
@@ -1835,7 +1835,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert response.status_code == 400
         assert b"Invalid project ids or slugs" in response.content
 
-    def test_project_permissions(self):
+    def test_project_permissions(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
         org.flags.allow_joinleave = False
@@ -1886,7 +1886,7 @@ class OrganizationReleaseCreateTest(APITestCase):
 
         assert response.status_code == 201, response.content
 
-    def test_api_key(self):
+    def test_api_key(self) -> None:
         org = self.create_organization()
         org.flags.allow_joinleave = False
         org.save()
@@ -1940,7 +1940,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         )
         assert response.status_code == 201, response.content
 
-    def test_org_auth_token(self):
+    def test_org_auth_token(self) -> None:
         org = self.create_organization()
         org.flags.allow_joinleave = False
         org.save()
@@ -2080,7 +2080,7 @@ class OrganizationReleaseCreateTest(APITestCase):
 
         assert response.status_code == 201
 
-    def test_bad_repo_name(self):
+    def test_bad_repo_name(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
         org.flags.allow_joinleave = False
@@ -2354,7 +2354,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         releases_versions = sorted(r.version for r in releases)
         assert response_versions == releases_versions
 
-    def test_environments_filter(self):
+    def test_environments_filter(self) -> None:
         url = reverse(
             "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
         )
@@ -2364,7 +2364,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         response = self.client.get(url + "?environment=" + self.env2.name, format="json")
         self.assert_releases(response, [self.release2, self.release3, self.release5])
 
-    def test_empty_environment(self):
+    def test_empty_environment(self) -> None:
         url = reverse(
             "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
         )
@@ -2375,7 +2375,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         response = self.client.get(url + "?environment=", format="json")
         self.assert_releases(response, [self.release4])
 
-    def test_all_environments(self):
+    def test_all_environments(self) -> None:
         url = reverse(
             "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
         )
@@ -2384,14 +2384,14 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
             response, [self.release1, self.release2, self.release3, self.release4, self.release5]
         )
 
-    def test_invalid_environment(self):
+    def test_invalid_environment(self) -> None:
         url = reverse(
             "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
         )
         response = self.client.get(url + "?environment=" + "invalid_environment", format="json")
         assert response.status_code == 404
 
-    def test_specify_project_ids(self):
+    def test_specify_project_ids(self) -> None:
         url = reverse(
             "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
         )
@@ -2406,7 +2406,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
             response, [self.release1, self.release2, self.release3, self.release4, self.release5]
         )
 
-    def test_date_range(self):
+    def test_date_range(self) -> None:
         url = reverse(
             "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
         )
@@ -2420,7 +2420,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         )
         self.assert_releases(response, [self.release4, self.release5])
 
-    def test_invalid_date_range(self):
+    def test_invalid_date_range(self) -> None:
         url = reverse(
             "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
         )
@@ -2435,7 +2435,7 @@ class OrganizationReleaseCreateCommitPatch(ReleaseCommitPatchTest):
             "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
         )
 
-    def test_commits_with_patch_set(self):
+    def test_commits_with_patch_set(self) -> None:
         response = self.client.post(
             self.url,
             data={
@@ -2541,7 +2541,7 @@ class ReleaseSerializerWithProjectsTest(TestCase):
         ]
         self.projects = ["project_slug", "project2_slug"]
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         serializer = ReleaseSerializerWithProjects(
             data={
                 "version": self.version,
@@ -2585,7 +2585,7 @@ class ReleaseSerializerWithProjectsTest(TestCase):
         assert result["refs"] == self.refs
         assert result["projects"] == self.projects
 
-    def test_fields_not_required(self):
+    def test_fields_not_required(self) -> None:
         serializer = ReleaseSerializerWithProjects(
             data={"version": self.version, "projects": self.projects},
             context={"organization": self.organization},
@@ -2595,28 +2595,28 @@ class ReleaseSerializerWithProjectsTest(TestCase):
         assert result["version"] == self.version
         assert result["projects"] == self.projects
 
-    def test_do_not_allow_null_commits(self):
+    def test_do_not_allow_null_commits(self) -> None:
         serializer = ReleaseSerializerWithProjects(
             data={"version": self.version, "projects": self.projects, "commits": None},
             context={"organization": self.organization},
         )
         assert not serializer.is_valid()
 
-    def test_do_not_allow_null_head_commits(self):
+    def test_do_not_allow_null_head_commits(self) -> None:
         serializer = ReleaseSerializerWithProjects(
             data={"version": self.version, "projects": self.projects, "headCommits": None},
             context={"organization": self.organization},
         )
         assert not serializer.is_valid()
 
-    def test_do_not_allow_null_refs(self):
+    def test_do_not_allow_null_refs(self) -> None:
         serializer = ReleaseSerializerWithProjects(
             data={"version": self.version, "projects": self.projects, "refs": None},
             context={"organization": self.organization},
         )
         assert not serializer.is_valid()
 
-    def test_ref_limited_by_max_version_length(self):
+    def test_ref_limited_by_max_version_length(self) -> None:
         serializer = ReleaseSerializerWithProjects(
             data={
                 "version": self.version,
@@ -2636,7 +2636,7 @@ class ReleaseSerializerWithProjectsTest(TestCase):
         )
         assert not serializer.is_valid()
 
-    def test_version_limited_by_max_version_length(self):
+    def test_version_limited_by_max_version_length(self) -> None:
         serializer = ReleaseSerializerWithProjects(
             data={"version": "a" * MAX_VERSION_LENGTH, "projects": self.projects}
         )
@@ -2647,7 +2647,7 @@ class ReleaseSerializerWithProjectsTest(TestCase):
         )
         assert not serializer.is_valid()
 
-    def test_version_does_not_allow_whitespace(self):
+    def test_version_does_not_allow_whitespace(self) -> None:
         for char in BAD_RELEASE_CHARS:
             serializer = ReleaseSerializerWithProjects(
                 data={"version": char, "projects": self.projects},
@@ -2655,7 +2655,7 @@ class ReleaseSerializerWithProjectsTest(TestCase):
             )
             assert not serializer.is_valid()
 
-    def test_version_does_not_allow_current_dir_path(self):
+    def test_version_does_not_allow_current_dir_path(self) -> None:
         serializer = ReleaseSerializerWithProjects(data={"version": ".", "projects": self.projects})
         assert not serializer.is_valid()
         serializer = ReleaseSerializerWithProjects(
@@ -2664,7 +2664,7 @@ class ReleaseSerializerWithProjectsTest(TestCase):
         )
         assert not serializer.is_valid()
 
-    def test_version_does_not_allow_null_or_empty_value(self):
+    def test_version_does_not_allow_null_or_empty_value(self) -> None:
         serializer = ReleaseSerializerWithProjects(
             data={"version": None, "projects": self.projects},
             context={"organization": self.organization},
@@ -2676,7 +2676,7 @@ class ReleaseSerializerWithProjectsTest(TestCase):
         )
         assert not serializer.is_valid()
 
-    def test_version_cannot_be_latest(self):
+    def test_version_cannot_be_latest(self) -> None:
         serializer = ReleaseSerializerWithProjects(
             data={"version": "Latest", "projects": self.projects},
             context={"organization": self.organization},
@@ -2692,7 +2692,7 @@ class ReleaseHeadCommitSerializerTest(unittest.TestCase):
         self.commit_range = "{}..{}".format("a" * 40, "b" * 40)
         self.prev_commit = "a" * 40
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         serializer = ReleaseHeadCommitSerializer(
             data={
                 "commit": self.commit,
@@ -2710,13 +2710,13 @@ class ReleaseHeadCommitSerializerTest(unittest.TestCase):
         assert result["previousCommit"] == self.prev_commit
         assert result["repository"] == self.repo_name
 
-    def test_prev_commit_not_required(self):
+    def test_prev_commit_not_required(self) -> None:
         serializer = ReleaseHeadCommitSerializer(
             data={"commit": self.commit, "previousCommit": None, "repository": self.repo_name}
         )
         assert serializer.is_valid()
 
-    def test_do_not_allow_null_or_empty_commit_or_repo(self):
+    def test_do_not_allow_null_or_empty_commit_or_repo(self) -> None:
         serializer = ReleaseHeadCommitSerializer(
             data={"commit": None, "previousCommit": self.prev_commit, "repository": self.repo_name}
         )
@@ -2734,7 +2734,7 @@ class ReleaseHeadCommitSerializerTest(unittest.TestCase):
         )
         assert not serializer.is_valid()
 
-    def test_single_commit_limited_by_max_commit_length(self):
+    def test_single_commit_limited_by_max_commit_length(self) -> None:
         serializer = ReleaseHeadCommitSerializer(
             data={"commit": "b" * MAX_COMMIT_LENGTH, "repository": self.repo_name}
         )
@@ -2760,7 +2760,7 @@ class ReleaseHeadCommitSerializerTest(unittest.TestCase):
         )
         assert not serializer.is_valid()
 
-    def test_commit_range_does_not_allow_empty_commits(self):
+    def test_commit_range_does_not_allow_empty_commits(self) -> None:
         serializer = ReleaseHeadCommitSerializer(
             data={
                 "commit": "{}..{}".format("", "b" * MAX_COMMIT_LENGTH),
@@ -2776,7 +2776,7 @@ class ReleaseHeadCommitSerializerTest(unittest.TestCase):
         )
         assert not serializer.is_valid()
 
-    def test_commit_range_limited_by_max_commit_length(self):
+    def test_commit_range_limited_by_max_commit_length(self) -> None:
         serializer = ReleaseHeadCommitSerializer(
             data={
                 "commit": "{}..{}".format("a" * MAX_COMMIT_LENGTH, "b" * MAX_COMMIT_LENGTH),

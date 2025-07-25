@@ -8,7 +8,7 @@ from sentry.users.models.lostpasswordhash import LostPasswordHash
 
 @control_silo_test
 class LostPasswordTest(TestCase):
-    def test_send_recover_mail(self):
+    def test_send_recover_mail(self) -> None:
         password_hash = LostPasswordHash.objects.create(user=self.user)
 
         with self.options({"system.url-prefix": "http://testserver"}), self.tasks():
@@ -24,7 +24,7 @@ class LostPasswordTest(TestCase):
         )
         assert url in msg.body
 
-    def test_send_relocation_mail(self):
+    def test_send_relocation_mail(self) -> None:
         password_hash = LostPasswordHash.objects.create(user=self.user)
 
         with self.options({"system.url-prefix": "http://testserver"}), self.tasks():

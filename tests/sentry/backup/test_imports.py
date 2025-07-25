@@ -102,7 +102,7 @@ class SanitizationTests(ImportTestCase):
     Ensure that potentially damaging data is properly scrubbed at import time.
     """
 
-    def test_users_sanitized_in_user_scope(self):
+    def test_users_sanitized_in_user_scope(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             self.generate_tmp_users_json_file(tmp_path)
@@ -143,7 +143,7 @@ class SanitizationTests(ImportTestCase):
             assert UserRole.objects.count() == 0
             assert UserRoleUser.objects.count() == 0
 
-    def test_users_sanitized_in_organization_scope(self):
+    def test_users_sanitized_in_organization_scope(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             self.generate_tmp_users_json_file(tmp_path)
@@ -184,7 +184,7 @@ class SanitizationTests(ImportTestCase):
             assert UserRole.objects.count() == 0
             assert UserRoleUser.objects.count() == 0
 
-    def test_users_unsanitized_in_config_scope(self):
+    def test_users_unsanitized_in_config_scope(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             self.generate_tmp_users_json_file(tmp_path)
@@ -232,7 +232,7 @@ class SanitizationTests(ImportTestCase):
             assert UserRole.objects.count() == 1
             assert UserRoleUser.objects.count() == 2
 
-    def test_users_unsanitized_in_global_scope(self):
+    def test_users_unsanitized_in_global_scope(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             self.generate_tmp_users_json_file(tmp_path)
@@ -280,7 +280,7 @@ class SanitizationTests(ImportTestCase):
             assert UserRole.objects.count() == 1
             assert UserRoleUser.objects.count() == 2
 
-    def test_generate_suffix_for_already_taken_organization(self):
+    def test_generate_suffix_for_already_taken_organization(self) -> None:
         owner = self.create_user(email="testing@example.com")
         self.create_organization(name="some-org", owner=owner)
 
@@ -336,11 +336,11 @@ class SanitizationTests(ImportTestCase):
                 == imported_organization.id
             )
 
-    def test_generate_suffix_for_already_taken_organization_with_control_option(self):
+    def test_generate_suffix_for_already_taken_organization_with_control_option(self) -> None:
         with override_options({"hybrid_cloud.control-organization-provisioning": True}):
             self.test_generate_suffix_for_already_taken_organization()
 
-    def test_generate_suffix_for_already_taken_username(self):
+    def test_generate_suffix_for_already_taken_username(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             self.create_user("min_user")
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
@@ -366,7 +366,7 @@ class SanitizationTests(ImportTestCase):
                 assert User.objects.filter(username__iexact="min_user").count() == 1
                 assert User.objects.filter(username__icontains="min_user-").count() == 2
 
-    def test_bad_invalid_user(self):
+    def test_bad_invalid_user(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             with open(tmp_path, "wb+") as tmp_file:
@@ -499,7 +499,7 @@ class SanitizationTests(ImportTestCase):
             assert UserIP.objects.filter(country_code="US").count() == 3
             assert UserIP.objects.filter(region_code="CA").count() == 3
 
-    def test_bad_invalid_user_ip(self):
+    def test_bad_invalid_user_ip(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             with open(tmp_path, "wb+") as tmp_file:
@@ -519,7 +519,7 @@ class SanitizationTests(ImportTestCase):
                 assert err.value.context.on.model == "sentry.userip"
 
     # Regression test for getsentry/self-hosted#2571.
-    def test_good_multiple_useremails_per_user_in_user_scope(self):
+    def test_good_multiple_useremails_per_user_in_user_scope(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             with open(tmp_path, "wb+") as tmp_file:
@@ -571,7 +571,7 @@ class SanitizationTests(ImportTestCase):
             assert UserEmail.objects.filter(is_verified=True).count() == 0
 
     # Regression test for getsentry/self-hosted#2571.
-    def test_good_multiple_useremails_per_user_in_global_scope(self):
+    def test_good_multiple_useremails_per_user_in_global_scope(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             with open(tmp_path, "wb+") as tmp_file:
@@ -622,7 +622,7 @@ class SanitizationTests(ImportTestCase):
             assert UserEmail.objects.filter(validation_hash="").count() == 1
             assert UserEmail.objects.filter(is_verified=True).count() == 2
 
-    def test_bad_invalid_user_option(self):
+    def test_bad_invalid_user_option(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             with open(tmp_path, "wb+") as tmp_file:
@@ -653,7 +653,7 @@ class SignalingTests(ImportTestCase):
           is.
     """
 
-    def test_import_signaling_user(self):
+    def test_import_signaling_user(self) -> None:
         self.create_exhaustive_user("user", email="me@example.com")
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -671,7 +671,7 @@ class SignalingTests(ImportTestCase):
             assert Email.objects.count() == 1
             assert Email.objects.filter(email="me@example.com").exists()
 
-    def test_import_signaling_organization(self):
+    def test_import_signaling_organization(self) -> None:
         owner = self.create_exhaustive_user("owner")
         invited = self.create_exhaustive_user("invited")
         member = self.create_exhaustive_user("member")
@@ -710,7 +710,7 @@ class SignalingTests(ImportTestCase):
             ).exists()
             assert OrganizationMemberMapping.objects.count() == 3
 
-    def test_import_signaling_organization_with_control_provisioning_option(self):
+    def test_import_signaling_organization_with_control_provisioning_option(self) -> None:
         with override_options({"hybrid_cloud.control-organization-provisioning": True}):
             self.test_import_signaling_organization()
 
@@ -767,7 +767,7 @@ class ScopingTests(ImportTestCase):
             else:
                 assert model.objects.count() == 0
 
-    def test_user_import_scoping(self):
+    def test_user_import_scoping(self) -> None:
         self.create_exhaustive_instance(is_superadmin=True)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -782,7 +782,7 @@ class ScopingTests(ImportTestCase):
 
         assert ControlImportChunkReplica.objects.values("import_uuid").distinct().count() == 1
 
-    def test_organization_import_scoping(self):
+    def test_organization_import_scoping(self) -> None:
         self.create_exhaustive_instance(is_superadmin=True)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -802,7 +802,7 @@ class ScopingTests(ImportTestCase):
             == RegionImportChunk.objects.values("import_uuid").first()
         )
 
-    def test_config_import_scoping(self):
+    def test_config_import_scoping(self) -> None:
         self.create_exhaustive_instance(is_superadmin=True)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -822,7 +822,7 @@ class ScopingTests(ImportTestCase):
             == RegionImportChunk.objects.values("import_uuid").first()
         )
 
-    def test_global_import_scoping(self):
+    def test_global_import_scoping(self) -> None:
         self.create_exhaustive_instance(is_superadmin=True)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -860,7 +860,7 @@ class DatabaseResetTests(ImportTestCase):
         os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "0",
         reason="only run when in `SENTRY_USE_MONOLITH_DBS=1` env variable is set",
     )
-    def test_clears_existing_models_in_global_scope(self):
+    def test_clears_existing_models_in_global_scope(self) -> None:
         create_default_projects()
         self.import_empty_backup_file(import_in_global_scope)
 
@@ -889,7 +889,7 @@ class DatabaseResetTests(ImportTestCase):
             with open(path) as tmp_file:
                 assert tmp_file.read() == "[]"
 
-    def test_persist_existing_models_in_user_scope(self):
+    def test_persist_existing_models_in_user_scope(self) -> None:
         owner = self.create_exhaustive_user("owner", email="owner@example.com")
         user = self.create_exhaustive_user("user", email="user@example.com")
         self.create_exhaustive_organization("neworg", owner, user, None)
@@ -901,7 +901,7 @@ class DatabaseResetTests(ImportTestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert User.objects.count() == 3
 
-    def test_persist_existing_models_in_config_scope(self):
+    def test_persist_existing_models_in_config_scope(self) -> None:
         owner = self.create_exhaustive_user("owner", email="owner@example.com")
         user = self.create_exhaustive_user("user", email="user@example.com")
         self.create_exhaustive_organization("neworg", owner, user, None)
@@ -913,7 +913,7 @@ class DatabaseResetTests(ImportTestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert User.objects.count() == 3
 
-    def test_persist_existing_models_in_organization_scope(self):
+    def test_persist_existing_models_in_organization_scope(self) -> None:
         owner = self.create_exhaustive_user("owner", email="owner@example.com")
         user = self.create_exhaustive_user("user", email="user@example.com")
         self.create_exhaustive_organization("neworg", owner, user, None)
@@ -979,7 +979,7 @@ class DecryptionTests(ImportTestCase):
 
         return (tmp_tarball_path, tmp_priv_key_path)
 
-    def test_user_import_decryption(self):
+    def test_user_import_decryption(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             (tmp_tarball_path, tmp_priv_key_path) = self.encrypt_json_fixture(tmp_dir)
             with assume_test_silo_mode(SiloMode.CONTROL):
@@ -998,7 +998,7 @@ class DecryptionTests(ImportTestCase):
             with assume_test_silo_mode(SiloMode.CONTROL):
                 assert User.objects.count() > 0
 
-    def test_organization_import_decryption(self):
+    def test_organization_import_decryption(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             (tmp_tarball_path, tmp_priv_key_path) = self.encrypt_json_fixture(tmp_dir)
             assert Organization.objects.count() == 0
@@ -1015,7 +1015,7 @@ class DecryptionTests(ImportTestCase):
 
             assert Organization.objects.count() > 0
 
-    def test_config_import_decryption(self):
+    def test_config_import_decryption(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             (tmp_tarball_path, tmp_priv_key_path) = self.encrypt_json_fixture(tmp_dir)
             with assume_test_silo_mode(SiloMode.CONTROL):
@@ -1034,7 +1034,7 @@ class DecryptionTests(ImportTestCase):
             with assume_test_silo_mode(SiloMode.CONTROL):
                 assert UserRole.objects.count() > 0
 
-    def test_global_import_decryption(self):
+    def test_global_import_decryption(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             (tmp_tarball_path, tmp_priv_key_path) = self.encrypt_json_fixture(tmp_dir)
             assert Organization.objects.count() == 0
@@ -1067,7 +1067,7 @@ class FilterTests(ImportTestCase):
     Ensures that filtering operations include the correct models.
     """
 
-    def test_import_filter_users(self):
+    def test_import_filter_users(self) -> None:
         self.create_exhaustive_user("user_1")
         self.create_exhaustive_user("user_2")
 
@@ -1107,7 +1107,7 @@ class FilterTests(ImportTestCase):
             assert not User.objects.filter(username="user_1").exists()
             assert User.objects.filter(username="user_2").exists()
 
-    def test_import_filter_users_shared_email(self):
+    def test_import_filter_users_shared_email(self) -> None:
         self.create_exhaustive_user("user_1", email="a@example.com")
         self.create_exhaustive_user("user_2", email="b@example.com")
         self.create_exhaustive_user("user_3", email="a@example.com")
@@ -1149,7 +1149,7 @@ class FilterTests(ImportTestCase):
             assert User.objects.filter(username="user_3").exists()
             assert not User.objects.filter(username="user_4").exists()
 
-    def test_import_filter_users_empty(self):
+    def test_import_filter_users_empty(self) -> None:
         self.create_exhaustive_user("user_1")
         self.create_exhaustive_user("user_2")
 
@@ -1163,7 +1163,7 @@ class FilterTests(ImportTestCase):
             assert UserEmail.objects.count() == 0
             assert Email.objects.count() == 0
 
-    def test_import_filter_orgs_single(self):
+    def test_import_filter_orgs_single(self) -> None:
         a = self.create_exhaustive_user("user_a_only", email="shared@example.com")
         b = self.create_exhaustive_user("user_b_only", email="shared@example.com")
         c = self.create_exhaustive_user("user_c_only", email="shared@example.com")
@@ -1205,7 +1205,7 @@ class FilterTests(ImportTestCase):
             assert User.objects.filter(username="user_b_and_c").exists()
             assert User.objects.filter(username="user_all").exists()
 
-    def test_import_filter_orgs_multiple(self):
+    def test_import_filter_orgs_multiple(self) -> None:
         a = self.create_exhaustive_user("user_a_only", email="shared@example.com")
         b = self.create_exhaustive_user("user_b_only", email="shared@example.com")
         c = self.create_exhaustive_user("user_c_only", email="shared@example.com")
@@ -1255,7 +1255,7 @@ class FilterTests(ImportTestCase):
             assert User.objects.filter(username="user_b_and_c").exists()
             assert User.objects.filter(username="user_all").exists()
 
-    def test_import_filter_orgs_empty(self):
+    def test_import_filter_orgs_empty(self) -> None:
         a = self.create_exhaustive_user("user_a_only")
         b = self.create_exhaustive_user("user_b_only")
         c = self.create_exhaustive_user("user_c_only")
@@ -2409,7 +2409,7 @@ class BatchingTests(TestCase):
                     tmp_file, flags=ImportFlags(import_uuid=import_uuid), printer=NOOP_PRINTER
                 )
 
-    def test_exact_multiple_of_batch_size(self):
+    def test_exact_multiple_of_batch_size(self) -> None:
         import_uuid = uuid4().hex
         want_chunks = 2
         n = MAX_BATCH_SIZE * want_chunks
@@ -2454,7 +2454,7 @@ class BatchingTests(TestCase):
             user = User.objects.get(id=user_option.user_id)
             assert user.name == f"user-{target}"
 
-    def test_one_more_than_batch_size(self):
+    def test_one_more_than_batch_size(self) -> None:
         import_uuid = uuid4().hex
         want_chunks = 2
         n = MAX_BATCH_SIZE + 1
@@ -2502,7 +2502,7 @@ class BatchingTests(TestCase):
 
 @pytest.mark.skipif(reason="not legacy")
 class TestLegacyTestSuite:
-    def test_deleteme(self):
+    def test_deleteme(self) -> None:
         """
         The monolith-dbs test suite should only exist until relocation code
         handles monolith- and hybrid-database modes with the same code path,

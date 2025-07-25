@@ -64,12 +64,12 @@ class OrganizationSamplingProjectSpanCountsTest(MetricsEnhancedPerformanceTestCa
                 timestamp=int(fifty_days_ago.timestamp()),
             )
 
-    def test_feature_flag_required(self):
+    def test_feature_flag_required(self) -> None:
         response = self.client.get(self.url)
         assert response.status_code == 404
 
     @django_db_all
-    def test_get_span_counts_without_permission(self):
+    def test_get_span_counts_without_permission(self) -> None:
         user = self.create_user()
         self.login_as(user)
 
@@ -82,7 +82,7 @@ class OrganizationSamplingProjectSpanCountsTest(MetricsEnhancedPerformanceTestCa
         assert response.status_code == 403
 
     @django_db_all
-    def test_get_span_counts_with_ingested_data_24h(self):
+    def test_get_span_counts_with_ingested_data_24h(self) -> None:
         """Test span counts endpoint with actual ingested metrics data"""
         with self.feature("organizations:dynamic-sampling-custom"):
             response = self.client.get(
@@ -110,7 +110,7 @@ class OrganizationSamplingProjectSpanCountsTest(MetricsEnhancedPerformanceTestCa
         assert (data["end"] - data["start"]) == timedelta(days=1)
 
     @django_db_all
-    def test_get_span_counts_with_ingested_data_30d(self):
+    def test_get_span_counts_with_ingested_data_30d(self) -> None:
         with self.feature("organizations:dynamic-sampling-custom"):
             response = self.client.get(
                 self.url,
@@ -137,7 +137,7 @@ class OrganizationSamplingProjectSpanCountsTest(MetricsEnhancedPerformanceTestCa
         assert (data["end"] - data["start"]) == timedelta(days=30)
 
     @django_db_all
-    def test_get_span_counts_with_many_projects(self):
+    def test_get_span_counts_with_many_projects(self) -> None:
         # Create 200 projects with incrementing span counts
         projects = []
         days_ago = self.MOCK_DATETIME - timedelta(days=5)
@@ -185,7 +185,7 @@ class OrganizationSamplingProjectSpanCountsNoMetricsTest(MetricsEnhancedPerforma
         )
 
     @django_db_all
-    def test_get_span_counts_with_ingested_data_30d(self):
+    def test_get_span_counts_with_ingested_data_30d(self) -> None:
         with self.feature("organizations:dynamic-sampling-custom"):
             response = self.client.get(
                 self.url,

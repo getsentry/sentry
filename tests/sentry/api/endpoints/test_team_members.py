@@ -16,7 +16,7 @@ class TeamMembersTest(APITestCase):
             organization=self.org, user=self.create_user("1@example.com"), teams=[self.team]
         )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         response = self.get_response(self.org.slug, self.team.slug)
@@ -24,7 +24,7 @@ class TeamMembersTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(self.team_member.id)
 
-    def test_team_members_list_does_not_include_invite_requests(self):
+    def test_team_members_list_does_not_include_invite_requests(self) -> None:
         pending_invite = self.create_member(
             email="a@example.com", organization=self.org, teams=[self.team]
         )
@@ -50,7 +50,7 @@ class TeamMembersTest(APITestCase):
         assert response.data[1]["id"] == str(self.team_member.id)
         assert response.data[0]["id"] == str(pending_invite.id)
 
-    def test_team_members_list_does_not_include_inactive_users(self):
+    def test_team_members_list_does_not_include_inactive_users(self) -> None:
         inactive_user = self.create_user(email="inactive@example.com")
         inactive_user.is_active = False
         with outbox_runner():
@@ -69,7 +69,7 @@ class TeamMembersTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] != str(inactive_member.id)
 
-    def test_team_members_list_includes_roles(self):
+    def test_team_members_list_includes_roles(self) -> None:
         self.login_as(user=self.user)
 
         response = self.get_response(self.org.slug, self.team.slug)

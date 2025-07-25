@@ -28,7 +28,7 @@ def find_given_child_component[
 
 
 class ComponentTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.contributing_system_frame = {
             "function": "handleRequest",
             "filename": "/node_modules/express/router.js",
@@ -73,7 +73,7 @@ class ComponentTest(TestCase):
             ),
         )
 
-    def test_frame_components_record_in_app(self):
+    def test_frame_components_record_in_app(self) -> None:
         self.event.data["exception"]["values"][0]["stacktrace"] = {
             "frames": [
                 self.contributing_system_frame,
@@ -104,7 +104,7 @@ class ComponentTest(TestCase):
 
             assert [frame_component.in_app for frame_component in frame_components] == [False, True]
 
-    def test_stacktrace_component_tallies_frame_types_simple(self):
+    def test_stacktrace_component_tallies_frame_types_simple(self) -> None:
         self.event.data["exception"]["values"][0]["stacktrace"] = {
             "frames": (
                 [self.non_contributing_system_frame] * 11
@@ -147,7 +147,7 @@ class ComponentTest(TestCase):
             in_app_contributing_frames=31,
         )
 
-    def test_stacktrace_component_tallies_frame_types_not_all_types_present(self):
+    def test_stacktrace_component_tallies_frame_types_not_all_types_present(self) -> None:
         self.event.data["exception"]["values"][0]["stacktrace"] = {
             "frames": (
                 [self.contributing_system_frame] * 20 + [self.contributing_in_app_frame] * 13
@@ -187,7 +187,7 @@ class ComponentTest(TestCase):
             in_app_contributing_frames=13,
         )
 
-    def test_exception_component_uses_stacktrace_frame_counts(self):
+    def test_exception_component_uses_stacktrace_frame_counts(self) -> None:
         self.event.data["exception"]["values"][0]["stacktrace"] = {
             "frames": (
                 [self.non_contributing_system_frame] * 4
@@ -232,7 +232,7 @@ class ComponentTest(TestCase):
         )
         assert app_exception_component.frame_counts == app_stacktrace_component.frame_counts
 
-    def test_threads_component_uses_stacktrace_frame_counts(self):
+    def test_threads_component_uses_stacktrace_frame_counts(self) -> None:
         self.event.data["threads"] = self.event.data.pop("exception")
         self.event.data["threads"]["values"][0]["stacktrace"] = {
             "frames": (
@@ -278,7 +278,7 @@ class ComponentTest(TestCase):
         )
         assert app_threads_component.frame_counts == app_stacktrace_component.frame_counts
 
-    def test_chained_exception_component_sums_stacktrace_frame_counts(self):
+    def test_chained_exception_component_sums_stacktrace_frame_counts(self) -> None:
         self.event.data["exception"]["values"] = [
             {**self.exception_value},
             {**self.exception_value},

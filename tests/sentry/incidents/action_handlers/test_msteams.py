@@ -110,7 +110,7 @@ class MsTeamsActionHandlerTest(FireTest):
         assert_slo_metric(mock_record)
 
     @responses.activate
-    def test_build_incident_attachment(self):
+    def test_build_incident_attachment(self) -> None:
         from sentry.integrations.msteams.card_builder.incident_attachment import (
             build_incident_attachment,
         )
@@ -201,10 +201,10 @@ class MsTeamsActionHandlerTest(FireTest):
             in text_block2["text"]
         )
 
-    def test_fire_metric_alert(self):
+    def test_fire_metric_alert(self) -> None:
         self.run_fire_test()
 
-    def test_resolve_metric_alert(self):
+    def test_resolve_metric_alert(self) -> None:
         self.run_fire_test("resolve")
 
     @patch("sentry.analytics.record")
@@ -222,7 +222,7 @@ class MsTeamsActionHandlerTest(FireTest):
         )
 
     @responses.activate
-    def test_rule_snoozed(self):
+    def test_rule_snoozed(self) -> None:
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
         self.snooze_rule(alert_rule=alert_rule)
