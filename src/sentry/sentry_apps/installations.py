@@ -8,6 +8,13 @@ from django.db import router, transaction
 from django.http.request import HttpRequest
 
 from sentry import analytics, audit_log
+from sentry.analytics.events.sentry_app_installation_token_created import (
+    SentryAppInstallationTokenCreated,
+)
+from sentry.analytics.events.sentry_app_installation_updated import (
+    SentryAppInstallationUpdatedEvent,
+)
+from sentry.analytics.events.sentry_app_installed import SentryAppInstalledEvent
 from sentry.api.serializers import serialize
 from sentry.constants import INTERNAL_INTEGRATION_TOKEN_COUNT_MAX, SentryAppInstallationStatus
 from sentry.exceptions import ApiTokenLimitError
@@ -92,11 +99,12 @@ class SentryAppInstallationTokenCreator:
         from sentry import analytics
 
         analytics.record(
-            "sentry_app_installation_token.created",
-            user_id=user.id,
-            organization_id=self.organization_id,
-            sentry_app_installation_id=self.sentry_app_installation.id,
-            sentry_app=self.sentry_app.slug,
+            SentryAppInstallationTokenCreated(
+                user_id=user.id,
+                organization_id=self.organization_id,
+                sentry_app_installation_id=self.sentry_app_installation.id,
+                sentry_app=self.sentry_app.slug,
+            )
         )
 
     @cached_property
@@ -178,10 +186,11 @@ class SentryAppInstallationCreator:
 
     def record_analytics(self, user: User | RpcUser) -> None:
         analytics.record(
-            "sentry_app.installed",
-            user_id=user.id,
-            organization_id=self.organization_id,
-            sentry_app=self.slug,
+            SentryAppInstalledEvent(
+                user_id=user.id,
+                organization_id=self.organization_id,
+                sentry_app=self.slug,
+            )
         )
         metrics.incr("sentry_apps.installation.success")
 
@@ -249,8 +258,9 @@ class SentryAppInstallationUpdater:
 
     def record_analytics(self):
         analytics.record(
-            "sentry_app_installation.updated",
-            sentry_app_installation_id=self.sentry_app_installation.id,
-            sentry_app_id=self.sentry_app_installation.sentry_app.id,
-            organization_id=self.sentry_app_installation.organization_id,
+            SentryAppInstallationUpdatedEvent(
+                sentry_app_installation_id=self.sentry_app_installation.id,
+                sentry_app_id=self.sentry_app_installation.sentry_app.id,
+                organization_id=self.sentry_app_installation.organization_id,
+            )
         )
