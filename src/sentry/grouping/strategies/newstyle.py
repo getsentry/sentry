@@ -511,7 +511,6 @@ def single_exception(
     type_component = ErrorTypeGroupingComponent(
         values=[exception.type] if exception.type else [],
     )
-    system_type_component = type_component.shallow_copy()
 
     ns_error_component = None
 
@@ -521,9 +520,7 @@ def single_exception(
             # actually carry any meaning with respect to what went wrong. (Synthetic exceptions
             # are dummy excepttions created by the SDK in order to harvest a stacktrace.)
             type_component.update(contributes=False, hint="ignored because exception is synthetic")
-            system_type_component.update(
-                contributes=False, hint="ignored because exception is synthetic"
-            )
+
         if exception.mechanism.meta and "ns_error" in exception.mechanism.meta:
             ns_error_component = NSErrorGroupingComponent(
                 values=[
@@ -553,10 +550,7 @@ def single_exception(
             | ErrorValueGroupingComponent
             | NSErrorGroupingComponent
             | StacktraceGroupingComponent
-        ] = [
-            stacktrace_component,
-            system_type_component if variant_name == "system" else type_component,
-        ]
+        ] = [stacktrace_component, type_component]
 
         if ns_error_component is not None:
             values.append(ns_error_component)
