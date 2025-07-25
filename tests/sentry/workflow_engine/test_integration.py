@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from unittest import mock
+from unittest.mock import patch
 
 import pytest
 from django.utils import timezone
@@ -11,7 +12,6 @@ from sentry.eventstream.types import EventStreamEventType
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-from sentry.issues.ignored import handle_ignored
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.group import Group
 from sentry.rules.match import MatchType
@@ -237,6 +237,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         fingerprint=None,
         level="error",
         tags: list[list[str]] | None = None,
+        group=None,
     ) -> Event:
         if project is None:
             project = self.project
@@ -252,6 +253,9 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             level=level,
             tags=tags,
         )
+        if group:
+            event.group = group
+            event.group_id = group.id
         event_processing_store.store({**event.data, "project": project.id})
         return event
 
@@ -269,6 +273,9 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
 
     @with_feature("organizations:workflow-engine-issue-alert-dual-write")
     def test_default_workflow(self, mock_trigger):
+        from sentry.models.group import GroupStatus
+        from sentry.types.group import GroupSubStatus
+
         project = self.create_project(fire_project_created=True)
         project.flags.has_high_priority_alerts = True
         project.save()
@@ -281,18 +288,36 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         self.post_process_error(high_priority_event, is_new=True)
         mock_trigger.assert_called_once()
 
-        # fires for existing high priority issue (has_reappeared or is_escalating)
+        # fires for existing high priority issue (is_escalating)
+        now = timezone.now()
         mock_trigger.reset_mock()
-        high_priority_event_2 = self.create_error_event(project=project, detector=detector)
-        # ignore the issue to get has_reappeared
-        assert high_priority_event_2.group
-        handle_ignored(
-            group_list=[high_priority_event_2.group],
-            status_details={"ignoreDuration": -1},
-            acting_user=self.user,
-        )
-        self.post_process_error(high_priority_event_2)
-        mock_trigger.assert_called_once()
+
+        with freeze_time(now + timedelta(days=8)):
+            # Create a group that's already in the IGNORED state with substatus UNTIL_ESCALATING
+            ignored_group = self.create_group(
+                project=project,
+                status=GroupStatus.IGNORED,
+                substatus=GroupSubStatus.UNTIL_ESCALATING,
+                first_seen=now - timedelta(days=10),
+            )
+
+            # Create an event that uses this group
+            high_priority_event_2 = self.create_error_event(
+                project=project, detector=detector, group=ignored_group
+            )
+
+            # Verify the group is in the correct state
+            assert high_priority_event_2.group is not None
+            assert high_priority_event_2.group.status == GroupStatus.IGNORED
+            assert high_priority_event_2.group.substatus == GroupSubStatus.UNTIL_ESCALATING
+
+            with patch(
+                "sentry.issues.escalating.escalating.is_escalating", return_value=(True, 1)
+            ) as mock_is_escalating:
+                self.post_process_error(high_priority_event_2)
+                mock_is_escalating.assert_called_once()
+
+            mock_trigger.assert_called_once()
 
         # does not fire for low priority issue
         mock_trigger.reset_mock()
