@@ -14,7 +14,7 @@ from sentry.utils.strings import compress
 
 @django_db_all
 class TestDjangoNodeStorage:
-    def setup_method(self):
+    def setup_method(self) -> None:
         self.ns = DjangoNodeStorage()
 
     @pytest.mark.parametrize(
@@ -28,7 +28,7 @@ class TestDjangoNodeStorage:
             compress(b"(dp0\nS'foo'\np1\nS'bar'\np2\ns."),
         ],
     )
-    def test_get(self, node_data):
+    def test_get(self, node_data: str) -> None:
         node = Node.objects.create(id="d2502ebbd7df41ceba8d3275595cac33", data=node_data)
 
         result = self.ns.get(node.id)
