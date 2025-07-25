@@ -130,7 +130,7 @@
     "jest-fetch-mock": "^3.0.3",
     "js-beautify": "^1.15.1",
     "js-cookie": "3.0.5",
-    "jsonrepair": "^3.8.0",
+    "jsonrepair": "^3.13.0",
     "less": "4.3.0",
     "less-loader": "^12.2.0",
     "lodash": "^4.17.19",
