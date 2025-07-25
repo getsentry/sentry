@@ -1497,7 +1497,7 @@ def test_only_can_filter_operations_can_be_added_to_where(select, where, usecase
 
 
 class QueryDefinitionTestCase(TestCase):
-    def test_valid_latest_release_alias_filter(self):
+    def test_valid_latest_release_alias_filter(self) -> None:
         self.create_release(version="foo", project=self.project, date_added=before_now(days=4))
         self.create_release(
             version="bar", project=self.project, date_added=before_now(days=2)
@@ -1520,7 +1520,7 @@ class QueryDefinitionTestCase(TestCase):
             )
         ]
 
-    def test_single_environment_is_passed_through_to_metrics_query(self):
+    def test_single_environment_is_passed_through_to_metrics_query(self) -> None:
         self.create_environment(name="alpha", project=self.project)
         query_params = MultiValueDict(
             {
@@ -1541,7 +1541,7 @@ class QueryDefinitionTestCase(TestCase):
             )
         ]
 
-    def test_multiple_environments_are_passed_through_to_metrics_query(self):
+    def test_multiple_environments_are_passed_through_to_metrics_query(self) -> None:
         self.create_environment(name="alpha", project=self.project)
         self.create_environment(name="beta", project=self.project)
         query_params = MultiValueDict(
@@ -1569,7 +1569,7 @@ class ResolveTagsTestCase(TestCase):
         self.org_id = ORG_ID
         self.use_case_id = UseCaseID.TRANSACTIONS
 
-    def test_resolve_tags_with_unary_tuple(self):
+    def test_resolve_tags_with_unary_tuple(self) -> None:
         transactions = ["/foo", "/bar"]
 
         for transaction in ["transaction"] + transactions:
@@ -1630,7 +1630,7 @@ class ResolveTagsTestCase(TestCase):
             ),
         )
 
-    def test_resolve_tags_with_binary_tuple(self):
+    def test_resolve_tags_with_binary_tuple(self) -> None:
         tags = [("/foo", "ios"), ("/bar", "android")]
 
         for transaction, platform in [("transaction", "platform")] + tags:
@@ -1705,7 +1705,7 @@ class ResolveTagsTestCase(TestCase):
             ),
         )
 
-    def test_resolve_tags_with_has(self):
+    def test_resolve_tags_with_has(self) -> None:
         tag_key = "transaction"
 
         indexer.record(
@@ -1747,7 +1747,7 @@ class ResolveTagsTestCase(TestCase):
             rhs=1,
         )
 
-    def test_resolve_tags_with_match_and_filterable_tag(self):
+    def test_resolve_tags_with_match_and_filterable_tag(self) -> None:
         indexer.record(
             use_case_id=self.use_case_id,
             org_id=self.org_id,
@@ -1787,7 +1787,7 @@ class ResolveTagsTestCase(TestCase):
             rhs=1,
         )
 
-    def test_resolve_tags_with_match_and_deep_filterable_tag(self):
+    def test_resolve_tags_with_match_and_deep_filterable_tag(self) -> None:
         indexer.record(
             use_case_id=self.use_case_id,
             org_id=self.org_id,
@@ -1832,7 +1832,7 @@ class ResolveTagsTestCase(TestCase):
             rhs=1,
         )
 
-    def test_resolve_tags_with_match_and_non_filterable_tag(self):
+    def test_resolve_tags_with_match_and_non_filterable_tag(self) -> None:
         indexer.record(
             use_case_id=self.use_case_id,
             org_id=self.org_id,
@@ -1863,7 +1863,7 @@ class ResolveTagsTestCase(TestCase):
                 [],
             )
 
-    def test_resolve_tags_with_match_and_deep_non_filterable_tag(self):
+    def test_resolve_tags_with_match_and_deep_non_filterable_tag(self) -> None:
         indexer.record(
             use_case_id=self.use_case_id,
             org_id=self.org_id,

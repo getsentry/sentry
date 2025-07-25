@@ -140,7 +140,7 @@ class PagerDutyClientTest(APITestCase):
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
-    def test_send_trigger_custom_severity(self):
+    def test_send_trigger_custom_severity(self) -> None:
         expected_data = {
             "client": "sentry",
             "client_url": self.group.get_absolute_url(params={"referrer": "pagerduty_integration"}),

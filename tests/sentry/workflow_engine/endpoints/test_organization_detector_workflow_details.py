@@ -46,14 +46,14 @@ class OrganizationDetectorWorkflowAPITestCase(APITestCase):
 
 @region_silo_test
 class OrganizationDetectorWorkflowDetailsGetTest(OrganizationDetectorWorkflowAPITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
             self.detector_workflow.id,
         )
         assert response.data == serialize(self.detector_workflow)
 
-    def test_does_not_exist(self):
+    def test_does_not_exist(self) -> None:
         self.get_error_response(self.organization.slug, 500009, status_code=404)
 
 
@@ -93,7 +93,7 @@ class OrganizationDetectorWorkflowDetailsDeleteTest(OrganizationDetectorWorkflow
             data=self.detector_workflow.get_audit_log_data(),
         )
 
-    def test_does_not_exist(self):
+    def test_does_not_exist(self) -> None:
         with outbox_runner():
             self.get_error_response(self.organization.slug, 50000, status_code=404)
 
@@ -103,7 +103,7 @@ class OrganizationDetectorWorkflowDetailsDeleteTest(OrganizationDetectorWorkflow
             object_id=self.detector_workflow.id,
         ).exists()
 
-    def test_team_admin_can_disconnect_user_detectors(self):
+    def test_team_admin_can_disconnect_user_detectors(self) -> None:
         self.login_as(user=self.team_admin_user)
 
         detector = self.create_detector(
@@ -120,7 +120,7 @@ class OrganizationDetectorWorkflowDetailsDeleteTest(OrganizationDetectorWorkflow
                 detector_workflow.id,
             )
 
-    def test_team_admin_can_disconnect_sentry_detectors(self):
+    def test_team_admin_can_disconnect_sentry_detectors(self) -> None:
         self.login_as(user=self.team_admin_user)
 
         sentry_detector = self.create_detector(
@@ -136,7 +136,7 @@ class OrganizationDetectorWorkflowDetailsDeleteTest(OrganizationDetectorWorkflow
                 detector_workflow.id,
             )
 
-    def test_team_admin_can_disconnect_detectors_for_accessible_projects(self):
+    def test_team_admin_can_disconnect_detectors_for_accessible_projects(self) -> None:
         self.login_as(user=self.team_admin_user)
         self.organization.update_option("sentry:alerts_member_write", False)
 
@@ -154,7 +154,7 @@ class OrganizationDetectorWorkflowDetailsDeleteTest(OrganizationDetectorWorkflow
                 detector_workflow.id,
             )
 
-    def test_team_admin_cannot_disconnect_detectors_for_other_projects(self):
+    def test_team_admin_cannot_disconnect_detectors_for_other_projects(self) -> None:
         self.login_as(user=self.team_admin_user)
         self.organization.update_option("sentry:alerts_member_write", False)
 
@@ -173,7 +173,7 @@ class OrganizationDetectorWorkflowDetailsDeleteTest(OrganizationDetectorWorkflow
                 status_code=403,
             )
 
-    def test_member_can_disconnect_user_detectors(self):
+    def test_member_can_disconnect_user_detectors(self) -> None:
         self.organization.flags.allow_joinleave = False
         self.organization.save()
         self.login_as(user=self.member_user)
@@ -192,7 +192,7 @@ class OrganizationDetectorWorkflowDetailsDeleteTest(OrganizationDetectorWorkflow
                 detector_workflow.id,
             )
 
-    def test_member_cannot_disconnect_detectors_for_other_projects(self):
+    def test_member_cannot_disconnect_detectors_for_other_projects(self) -> None:
         self.organization.flags.allow_joinleave = False
         self.organization.save()
         self.login_as(user=self.member_user)
@@ -212,7 +212,7 @@ class OrganizationDetectorWorkflowDetailsDeleteTest(OrganizationDetectorWorkflow
                 status_code=403,
             )
 
-    def test_member_cannot_disconnect_sentry_detectors(self):
+    def test_member_cannot_disconnect_sentry_detectors(self) -> None:
         self.organization.flags.allow_joinleave = False
         self.organization.save()
         self.login_as(user=self.member_user)
@@ -231,7 +231,7 @@ class OrganizationDetectorWorkflowDetailsDeleteTest(OrganizationDetectorWorkflow
                 status_code=403,
             )
 
-    def test_member_cannot_disconnect_detectors_when_alerts_member_write_disabled(self):
+    def test_member_cannot_disconnect_detectors_when_alerts_member_write_disabled(self) -> None:
         self.organization.update_option("sentry:alerts_member_write", False)
         self.organization.flags.allow_joinleave = True
         self.organization.save()

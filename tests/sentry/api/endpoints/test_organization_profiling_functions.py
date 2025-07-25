@@ -27,11 +27,11 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
         self.url = reverse(self.endpoint, args=(self.organization.slug,))
         self.project  # this is lazily created
 
-    def test_feature_flag_disabled(self):
+    def test_feature_flag_disabled(self) -> None:
         response = self.client.get(self.url)
         assert response.status_code == 404
 
-    def test_no_project(self):
+    def test_no_project(self) -> None:
         org = self.create_organization(name="foo", owner=self.user)
         url = reverse(self.endpoint, args=(org.slug,))
 
@@ -41,7 +41,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
         assert response.status_code == 200
         assert response.json() == {}
 
-    def test_missing_paramse(self):
+    def test_missing_paramse(self) -> None:
         with self.feature(PROFILING_FEATURES):
             response = self.client.get(self.url)
         assert response.status_code == 400
@@ -50,7 +50,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
             "trend": ["This field is required."],
         }
 
-    def test_bad_trend_type(self):
+    def test_bad_trend_type(self) -> None:
         with self.feature(PROFILING_FEATURES):
             response = self.client.get(self.url, {"function": "avg()", "trend": "foo"})
         assert response.status_code == 400

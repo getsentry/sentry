@@ -13,7 +13,7 @@ from sentry.testutils.cases import TestCase
 
 
 class ProcessIncrTest(TestCase):
-    def test_constraints_model_name(self):
+    def test_constraints_model_name(self) -> None:
         with pytest.raises(AssertionError) as err:
             process_incr(model_name="group", columns={"times_seen": 1}, filters={"pk": 1})
         assert "model_name must be in form" in str(err)

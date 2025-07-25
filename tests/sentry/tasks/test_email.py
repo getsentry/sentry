@@ -8,7 +8,7 @@ pytestmark = [requires_snuba]
 
 
 class ProcessInboundEmailTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         group = self.create_group()
 
         process_inbound_email(mailfrom=self.user.email, group_id=group.id, payload="hello world!")
@@ -17,7 +17,7 @@ class ProcessInboundEmailTest(TestCase):
         assert activity.user_id == self.user.id
         assert activity.data["text"] == "hello world!"
 
-    def test_handle_unknown_address(self):
+    def test_handle_unknown_address(self) -> None:
         group = self.create_group()
 
         process_inbound_email(

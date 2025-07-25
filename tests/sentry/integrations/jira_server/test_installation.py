@@ -17,7 +17,7 @@ from . import EXAMPLE_PRIVATE_KEY
 class JiraServerInstallationTest(IntegrationTestCase):
     provider = JiraServerIntegrationProvider
 
-    def test_config_view(self):
+    def test_config_view(self) -> None:
         resp = self.client.get(self.init_path)
         assert resp.status_code == 200
 
@@ -27,7 +27,7 @@ class JiraServerInstallationTest(IntegrationTestCase):
         self.assertContains(resp, "Submit</button>")
 
     @responses.activate
-    def test_validate_url(self):
+    def test_validate_url(self) -> None:
         # Start pipeline and go to setup page.
         self.client.get(self.setup_path)
 
@@ -43,7 +43,7 @@ class JiraServerInstallationTest(IntegrationTestCase):
         self.assertContains(resp, "Enter a valid URL")
 
     @responses.activate
-    def test_validate_private_key(self):
+    def test_validate_private_key(self) -> None:
         responses.add(
             responses.POST,
             "https://jira.example.com/plugins/servlet/oauth/request-token",
@@ -67,7 +67,7 @@ class JiraServerInstallationTest(IntegrationTestCase):
         )
 
     @responses.activate
-    def test_validate_consumer_key_length(self):
+    def test_validate_consumer_key_length(self) -> None:
         # Start pipeline and go to setup page.
         self.client.get(self.setup_path)
 
@@ -83,7 +83,7 @@ class JiraServerInstallationTest(IntegrationTestCase):
         self.assertContains(resp, "Consumer key is limited to 200")
 
     @responses.activate
-    def test_authentication_request_token_timeout(self):
+    def test_authentication_request_token_timeout(self) -> None:
         timeout = ReadTimeout("Read timed out. (read timeout=30)")
         responses.add(
             responses.POST,
@@ -108,7 +108,7 @@ class JiraServerInstallationTest(IntegrationTestCase):
         self.assertContains(resp, "Timed out")
 
     @responses.activate
-    def test_authentication_request_token_fails(self):
+    def test_authentication_request_token_fails(self) -> None:
         responses.add(
             responses.POST,
             "https://jira.example.com/plugins/servlet/oauth/request-token",
@@ -131,7 +131,7 @@ class JiraServerInstallationTest(IntegrationTestCase):
         self.assertContains(resp, "request token from Jira")
 
     @responses.activate
-    def test_authentication_request_token_redirect(self):
+    def test_authentication_request_token_redirect(self) -> None:
         responses.add(
             responses.POST,
             "https://jira.example.com/plugins/servlet/oauth/request-token",
@@ -156,7 +156,7 @@ class JiraServerInstallationTest(IntegrationTestCase):
         assert redirect == resp["Location"]
 
     @responses.activate
-    def test_authentication_access_token_failure(self):
+    def test_authentication_access_token_failure(self) -> None:
         responses.add(
             responses.POST,
             "https://jira.example.com/plugins/servlet/oauth/request-token",
@@ -214,7 +214,7 @@ class JiraServerInstallationTest(IntegrationTestCase):
         return resp
 
     @responses.activate
-    def test_authentication_verifier_expired(self):
+    def test_authentication_verifier_expired(self) -> None:
         responses.add(
             responses.POST,
             "https://jira.example.com/plugins/servlet/oauth/request-token",
@@ -238,7 +238,7 @@ class JiraServerInstallationTest(IntegrationTestCase):
         self.assertContains(resp, "access token from Jira")
 
     @responses.activate
-    def test_authentication_success(self):
+    def test_authentication_success(self) -> None:
         responses.add(
             responses.POST,
             "https://jira.example.com/plugins/servlet/oauth/request-token",
@@ -293,7 +293,7 @@ class JiraServerInstallationTest(IntegrationTestCase):
         assert identity.data["private_key"] == EXAMPLE_PRIVATE_KEY
 
     @responses.activate
-    def test_setup_create_webhook(self):
+    def test_setup_create_webhook(self) -> None:
         responses.add(
             responses.POST,
             "https://jira.example.com/plugins/servlet/oauth/request-token",
@@ -342,7 +342,7 @@ class JiraServerInstallationTest(IntegrationTestCase):
         assert integration.external_id == expected_id
 
     @responses.activate
-    def test_setup_create_webhook_with_new_endpoint(self):
+    def test_setup_create_webhook_with_new_endpoint(self) -> None:
         responses.add(
             responses.POST,
             "https://jira.example.com/plugins/servlet/oauth/request-token",
@@ -391,7 +391,7 @@ class JiraServerInstallationTest(IntegrationTestCase):
         assert integration.external_id == expected_id
 
     @responses.activate
-    def test_setup_external_id_length(self):
+    def test_setup_external_id_length(self) -> None:
         responses.add(
             responses.POST,
             "https://jira.example.com/plugins/servlet/oauth/request-token",
@@ -446,7 +446,7 @@ class JiraServerInstallationTest(IntegrationTestCase):
         )
 
     @responses.activate
-    def test_setup_create_webhook_failure(self):
+    def test_setup_create_webhook_failure(self) -> None:
         responses.add(
             responses.POST,
             "https://jira.example.com/plugins/servlet/oauth/request-token",
@@ -482,7 +482,7 @@ class JiraServerInstallationTest(IntegrationTestCase):
         assert Integration.objects.count() == 0
 
     @responses.activate
-    def test_setup_create_webhook_failure_forbidden(self):
+    def test_setup_create_webhook_failure_forbidden(self) -> None:
         responses.add(
             responses.POST,
             "https://jira.example.com/plugins/servlet/oauth/request-token",

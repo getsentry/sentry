@@ -115,7 +115,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         return resp
 
     @responses.activate
-    def test_basic_flow(self):
+    def test_basic_flow(self) -> None:
         with self.tasks():
             self.assert_setup_flow()
 
@@ -138,7 +138,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         assert services[0]["service_name"] == "Super Cool Service"
 
     @responses.activate
-    def test_add_services_flow(self):
+    def test_add_services_flow(self) -> None:
         with self.tasks():
             self.assert_setup_flow()
 
@@ -173,7 +173,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         ]
 
     @responses.activate
-    def test_update_organization_config(self):
+    def test_update_organization_config(self) -> None:
         with self.tasks():
             self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
@@ -208,7 +208,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         ]
 
     @responses.activate
-    def test_delete_pagerduty_service(self):
+    def test_delete_pagerduty_service(self) -> None:
         with self.tasks():
             self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
@@ -229,7 +229,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         assert services[0]["id"] != service_id
 
     @responses.activate
-    def test_no_name(self):
+    def test_no_name(self) -> None:
         with self.tasks():
             self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
@@ -248,7 +248,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         assert str(error.value) == "Name and key are required"
 
     @responses.activate
-    def test_get_config_data(self):
+    def test_get_config_data(self) -> None:
         with self.tasks():
             self.assert_setup_flow()
 

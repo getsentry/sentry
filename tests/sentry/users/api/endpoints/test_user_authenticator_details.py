@@ -118,7 +118,7 @@ class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
     endpoint = "sentry-api-0-user-authenticator-device-details"
     method = "delete"
 
-    def test_u2f_remove_device(self):
+    def test_u2f_remove_device(self) -> None:
         auth = get_auth(self.user)
 
         with self.tasks():
@@ -148,11 +148,11 @@ class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
         # Only one send.
         assert_security_email_sent("mfa-removed")
 
-    def test_require_2fa__delete_device__ok(self):
+    def test_require_2fa__delete_device__ok(self) -> None:
         self._require_2fa_for_organization()
         self.test_u2f_remove_device()
 
-    def test_rename_device(self):
+    def test_rename_device(self) -> None:
         auth = get_auth(self.user)
         self.get_success_response(
             self.user.id,
@@ -167,7 +167,7 @@ class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
         assert isinstance(authenticator.interface, U2fInterface)
         assert authenticator.interface.get_device_name("devicekeyhandle") == "for testing"
 
-    def test_rename_webauthn_device(self):
+    def test_rename_webauthn_device(self) -> None:
         auth = get_auth_webauthn(self.user)
         self.get_success_response(
             self.user.id,
@@ -182,7 +182,7 @@ class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
         assert isinstance(authenticator.interface, U2fInterface)
         assert authenticator.interface.get_device_name("webauthn") == "for testing"
 
-    def test_rename_device_not_found(self):
+    def test_rename_device_not_found(self) -> None:
         auth = get_auth(self.user)
         self.get_error_response(
             self.user.id,
@@ -197,10 +197,10 @@ class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
 class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
     endpoint = "sentry-api-0-user-authenticator-details"
 
-    def test_wrong_auth_id(self):
+    def test_wrong_auth_id(self) -> None:
         self.get_error_response(self.user.id, "totp", status_code=status.HTTP_404_NOT_FOUND)
 
-    def test_get_authenticator_details(self):
+    def test_get_authenticator_details(self) -> None:
         interface = TotpInterface()
         interface.enroll(self.user)
         assert interface.authenticator is not None
@@ -217,7 +217,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
         assert "form" not in response.data
         assert "qrcode" not in response.data
 
-    def test_get_recovery_codes(self):
+    def test_get_recovery_codes(self) -> None:
         interface = RecoveryCodeInterface()
         interface.enroll(self.user)
         assert interface.authenticator is not None
@@ -231,7 +231,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
 
         assert len(mail.outbox) == 0
 
-    def test_u2f_get_devices(self):
+    def test_u2f_get_devices(self) -> None:
         auth = get_auth(self.user)
 
         response = self.get_success_response(self.user.id, auth.id)
@@ -244,14 +244,14 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
         assert "challenge" not in response.data
         assert "response" not in response.data
 
-    def test_get_device_name(self):
+    def test_get_device_name(self) -> None:
         auth = get_auth(self.user)
 
         assert isinstance(auth.interface, U2fInterface)
         assert auth.interface.get_device_name("devicekeyhandle") == "Amused Beetle"
         assert auth.interface.get_device_name("aowerkoweraowerkkro") == "Sentry"
 
-    def test_sms_get_phone(self):
+    def test_sms_get_phone(self) -> None:
         interface = SmsInterface()
         interface.phone_number = "5551231234"
         interface.enroll(self.user)
@@ -266,7 +266,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
         assert "totp_secret" not in response.data
         assert "form" not in response.data
 
-    def test_recovery_codes_regenerate(self):
+    def test_recovery_codes_regenerate(self) -> None:
         interface = RecoveryCodeInterface()
         interface.enroll(self.user)
 
@@ -290,7 +290,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
 
         assert_security_email_sent("recovery-codes-regenerated")
 
-    def test_delete_superuser(self):
+    def test_delete_superuser(self) -> None:
         user = self.create_user(email="a@example.com", is_superuser=True)
 
         with override_options({"sms.twilio-account": "twilio-account"}):
@@ -309,7 +309,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
 
             assert_security_email_sent("mfa-removed")
 
-    def test_delete_staff(self):
+    def test_delete_staff(self) -> None:
         staff_user = self.create_user(email="a@example.com", is_staff=True)
 
         with override_options({"sms.twilio-account": "twilio-account"}):
@@ -328,7 +328,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
 
             assert_security_email_sent("mfa-removed")
 
-    def test_cannot_delete_without_superuser_or_staff(self):
+    def test_cannot_delete_without_superuser_or_staff(self) -> None:
         user = self.create_user(email="a@example.com", is_superuser=False, is_staff=False)
         auth = Authenticator.objects.create(type=3, user=user, config={})  # u2f
 
@@ -347,7 +347,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
 
         assert len(mail.outbox) == 0
 
-    def test_require_2fa__cannot_delete_last_auth(self):
+    def test_require_2fa__cannot_delete_last_auth(self) -> None:
         self._require_2fa_for_organization()
 
         # enroll in one auth method
@@ -369,7 +369,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
 
         assert len(mail.outbox) == 0
 
-    def test_require_2fa__can_delete_last_auth_superuser(self):
+    def test_require_2fa__can_delete_last_auth_superuser(self) -> None:
         self._require_2fa_for_organization()
 
         superuser = self.create_user(email="a@example.com", is_superuser=True)
@@ -394,7 +394,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
             assert not Authenticator.objects.filter(id=auth.id).exists()
 
     @override_options({"staff.ga-rollout": True})
-    def test_require_2fa__can_delete_last_auth_staff(self):
+    def test_require_2fa__can_delete_last_auth_staff(self) -> None:
         self._require_2fa_for_organization()
 
         staff_user = self.create_user(email="a@example.com", is_staff=True)
@@ -418,7 +418,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
 
             assert not Authenticator.objects.filter(id=auth.id).exists()
 
-    def test_require_2fa__delete_with_multiple_auth__ok(self):
+    def test_require_2fa__delete_with_multiple_auth__ok(self) -> None:
         self._require_2fa_for_organization()
 
         with override_options({"sms.twilio-account": "twilio-account"}):

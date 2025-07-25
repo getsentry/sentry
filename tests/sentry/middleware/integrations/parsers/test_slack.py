@@ -88,7 +88,7 @@ class SlackRequestParserTest(TestCase):
         assert_no_webhook_payloads()
 
     @responses.activate
-    def test_django_view(self):
+    def test_django_view(self) -> None:
         # Retrieve the correct integration
         path = reverse(
             "sentry-integration-slack-link-identity",
@@ -158,7 +158,7 @@ class SlackRequestParserTest(TestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert mock_slack_task.apply_async.call_count == 0
 
-    def test_async_request_payload(self):
+    def test_async_request_payload(self) -> None:
         data = {
             "payload": json.dumps(
                 {
@@ -182,7 +182,7 @@ class SlackRequestParserTest(TestCase):
         assert result["body"] == request.body.decode("utf8")
 
     @override_options({"hybrid_cloud.integration_region_targeting_rate": 1.0})
-    def test_targeting_all_orgs(self):
+    def test_targeting_all_orgs(self) -> None:
         # Install the integration on two organizations
         other_organization = self.create_organization()
         self.integration.add_organization(other_organization)
@@ -208,7 +208,7 @@ class SlackRequestParserTest(TestCase):
             assert other_organization.id in organization_ids
 
     @override_options({"hybrid_cloud.integration_region_targeting_rate": 1.0})
-    def test_targeting_specific_org(self):
+    def test_targeting_specific_org(self) -> None:
         # Install the integration on two organizations
         other_organization = self.create_organization()
         self.integration.add_organization(other_organization)
@@ -233,7 +233,7 @@ class SlackRequestParserTest(TestCase):
             assert organizations[0].id == other_organization.id
 
     @override_options({"hybrid_cloud.integration_region_targeting_rate": 1.0})
-    def test_targeting_irrelevant_org(self):
+    def test_targeting_irrelevant_org(self) -> None:
         # Install the integration on two organizations
         other_organization = self.create_organization()
         self.integration.add_organization(other_organization)

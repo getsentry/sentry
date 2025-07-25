@@ -12,7 +12,7 @@ class TestTempestCredentialsDetails(APITestCase):
         super().setUp()
         self.tempest_credentials = self.create_tempest_credentials(self.project)
 
-    def test_cant_access_endpoint_if_feature_flag_is_disabled(self):
+    def test_cant_access_endpoint_if_feature_flag_is_disabled(self) -> None:
         self.login_as(self.user)
         response = self.get_response(
             self.project.organization.slug,
@@ -22,7 +22,7 @@ class TestTempestCredentialsDetails(APITestCase):
         )
         assert response.status_code == 404
 
-    def test_cant_access_endpoint_if_user_is_not_authenticated(self):
+    def test_cant_access_endpoint_if_user_is_not_authenticated(self) -> None:
         response = self.get_response(
             self.project.organization.slug,
             self.project.slug,
@@ -48,7 +48,7 @@ class TestTempestCredentialsDetails(APITestCase):
         assert not TempestCredentials.objects.filter(id=self.tempest_credentials.id).exists()
         create_audit_entry.assert_called()
 
-    def test_non_admin_cant_delete_credentials(self):
+    def test_non_admin_cant_delete_credentials(self) -> None:
         non_admin_user = self.create_user()
         self.create_member(
             user=non_admin_user, organization=self.project.organization, role="member"

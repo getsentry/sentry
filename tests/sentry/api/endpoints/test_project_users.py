@@ -97,7 +97,7 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
 
         self._assert_simple_response(response, mock_record)
 
-    def test_empty_search_query(self):
+    def test_empty_search_query(self) -> None:
         self.login_as(user=self.user)
 
         response = self.get_success_response(
@@ -106,7 +106,7 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
 
         assert len(response.data) == 0
 
-    def test_username_search(self):
+    def test_username_search(self) -> None:
         self.login_as(user=self.user)
 
         response = self.get_success_response(
@@ -125,7 +125,7 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
 
         assert len(response.data) == 0
 
-    def test_email_search(self):
+    def test_email_search(self) -> None:
         self.login_as(user=self.user)
 
         response = self.get_success_response(
@@ -147,7 +147,7 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
 
         assert len(response.data) == 0
 
-    def test_id_search(self):
+    def test_id_search(self) -> None:
         self.login_as(user=self.user)
 
         response = self.get_success_response(
@@ -166,7 +166,7 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
 
         assert len(response.data) == 0
 
-    def test_ip_search(self):
+    def test_ip_search(self) -> None:
         self.login_as(user=self.user)
 
         response = self.get_success_response(

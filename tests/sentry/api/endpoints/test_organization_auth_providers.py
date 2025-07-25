@@ -11,11 +11,11 @@ class OrganizationAuthProvidersPermissionTest(PermissionTestCase):
             "sentry-api-0-organization-auth-providers", args=[self.organization.slug]
         )
 
-    def test_owner_can_load(self):
+    def test_owner_can_load(self) -> None:
         with self.feature("organizations:sso-basic"):
             self.assert_owner_can_access(self.path)
 
-    def test_member_can_get(self):
+    def test_member_can_get(self) -> None:
         with self.feature("organizations:sso-basic"):
             self.assert_member_can_access(self.path)
 
@@ -27,7 +27,7 @@ class OrganizationAuthProviders(APITestCase):
         super().setUp()
         self.login_as(self.user)
 
-    def test_get_list_of_auth_providers(self):
+    def test_get_list_of_auth_providers(self) -> None:
         with self.feature("organizations:sso-basic"):
             response = self.get_success_response(self.organization.slug)
         providers = {d["key"] for d in response.data}

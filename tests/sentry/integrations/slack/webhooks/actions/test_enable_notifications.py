@@ -18,7 +18,7 @@ class EnableNotificationsActionTest(BaseEventTest):
         self.slack_id = "UXXXXXXX1"
         self.team_id = "TXXXXXXX1"
 
-    def test_enable_all_slack_no_identity(self):
+    def test_enable_all_slack_no_identity(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             Identity.objects.delete_identity(
                 user=self.user,
@@ -32,7 +32,7 @@ class EnableNotificationsActionTest(BaseEventTest):
         assert response.status_code == 200, response.content
         assert response.data["text"] == NO_IDENTITY_MESSAGE
 
-    def test_enable_all_slack_already_enabled(self):
+    def test_enable_all_slack_already_enabled(self) -> None:
         provider = self.create_notification_settings_provider(
             user_id=self.user.id,
             scope_type="user",
@@ -51,7 +51,7 @@ class EnableNotificationsActionTest(BaseEventTest):
         provider.refresh_from_db()
         assert provider.value == "always"
 
-    def test_enable_all_slack(self):
+    def test_enable_all_slack(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert not NotificationSettingProvider.objects.all().exists()
 
@@ -72,7 +72,7 @@ class EnableNotificationsActionTest(BaseEventTest):
             )
             assert provider.value == "always"
 
-    def test_enable_all_slack_block_kit(self):
+    def test_enable_all_slack_block_kit(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert not NotificationSettingProvider.objects.all().exists()
         original_message = {
