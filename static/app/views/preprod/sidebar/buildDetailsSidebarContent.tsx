@@ -104,7 +104,7 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
         artifactId={props.artifactId}
       />
 
-      {/* TODO: VCS info */}
+      {/* VCS info */}
       <KeyValueData.Card title="Git details" contentItems={vcsInfoContentItems} />
     </SidebarContainer>
   );
