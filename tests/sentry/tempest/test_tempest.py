@@ -34,7 +34,7 @@ class TempestTasksTest(TestCase):
 
         self.credentials.refresh_from_db()
         assert self.credentials.message == "No crashes found"
-        assert self.credentials.message_type == MessageType.WARNING
+        assert self.credentials.message_type == MessageType.ERROR
         assert self.credentials.latest_fetched_item_id is None
 
     @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")
