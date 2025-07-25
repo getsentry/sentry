@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -10,11 +12,14 @@ from sentry.preprod.analytics import PreprodArtifactApiGetBuildDetailsEvent
 from sentry.preprod.api.models.project_preprod_build_details_models import (
     BuildDetailsApiResponse,
     BuildDetailsAppInfo,
+    BuildDetailsSizeInfo,
     BuildDetailsVcsInfo,
     platform_from_artifact_type,
 )
 from sentry.preprod.build_distribution_utils import is_installable_artifact
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
+
+logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
@@ -61,6 +66,49 @@ class ProjectPreprodBuildDetailsEndpoint(ProjectEndpoint):
         except PreprodArtifact.DoesNotExist:
             return Response({"error": f"Preprod artifact {artifact_id} not found"}, status=404)
 
+        try:
+            size_metrics_qs = PreprodArtifactSizeMetrics.objects.select_related(
+                "preprod_artifact"
+            ).filter(
+                preprod_artifact__project=project,
+                preprod_artifact__id=artifact_id,
+            )
+            size_metrics_count = size_metrics_qs.count()
+            if size_metrics_count == 0:
+                logger.info("No size analysis results found for preprod artifact %s", artifact_id)
+                size_info = None
+            elif size_metrics_count > 1:
+                logger.info(
+                    "Multiple size analysis results found for preprod artifact %s", artifact_id
+                )
+                size_info = None
+            else:
+                size_metrics = size_metrics_qs.first()
+                logger.info(
+                    "Size analysis results found for preprod artifact %s: %s, %s, %s, %s",
+                    artifact_id,
+                    size_metrics.min_install_size,
+                    size_metrics.min_download_size,
+                    size_metrics.max_install_size,
+                    size_metrics.max_download_size,
+                )
+                if size_metrics.min_install_size is None or size_metrics.min_download_size is None:
+                    logger.info(
+                        "Size analysis results found for preprod artifact %s but no min install or download size",
+                        artifact_id,
+                    )
+                    size_info = None
+                else:
+                    size_info = BuildDetailsSizeInfo(
+                        install_size_bytes=size_metrics.min_install_size,
+                        download_size_bytes=size_metrics.min_download_size,
+                    )
+        except Exception:
+            return Response(
+                {"error": "Failed to retrieve size analysis results"},
+                status=500,
+            )
+
         app_info = BuildDetailsAppInfo(
             app_id=preprod_artifact.app_id,
             name=preprod_artifact.app_name,
@@ -92,6 +140,7 @@ class ProjectPreprodBuildDetailsEndpoint(ProjectEndpoint):
             state=preprod_artifact.state,
             app_info=app_info,
             vcs_info=vcs_info,
+            size_info=size_info,
         )
 
         return Response(api_response.dict())
