@@ -18,4 +18,8 @@ export const DetectorReleasesConfig: DetectorDatasetConfig<ReleasesSeriesRespons
   transformSeriesQueryData: (data, aggregate) => {
     return [transformMetricsResponseToSeries(data, aggregate)];
   },
+  transformComparisonSeriesData: () => {
+    // Releases cannot have a comparison series currently
+    return [];
+  },
 };
