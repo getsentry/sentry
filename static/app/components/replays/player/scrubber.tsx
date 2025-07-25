@@ -1,19 +1,14 @@
-import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import SliderAndInputWrapper from 'sentry/components/forms/controls/rangeSlider/sliderAndInputWrapper';
-import TimelineTooltip from 'sentry/components/replays/breadcrumbs/replayTimelineTooltip';
 import ZoomTriangles from 'sentry/components/replays/player/zoomTrianges';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {getFormattedDate, shouldUse24Hours} from 'sentry/utils/dates';
-import formatDuration from 'sentry/utils/duration/formatDuration';
 import divide from 'sentry/utils/number/divide';
 import toPercent from 'sentry/utils/number/toPercent';
-import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 
@@ -25,11 +20,9 @@ type Props = {
 function Scrubber({className, showZoomIndicators = false}: Props) {
   const replay = useReplayReader();
   const {currentTime, setCurrentTime} = useReplayContext();
-  const [prefs] = useReplayPrefs();
-  const timestampType = prefs.timestampType;
+
   const [currentHoverTime] = useCurrentHoverTime();
 
-  const startTimestamp = replay?.getStartTimestampMs() ?? 0;
   const durationMs = replay?.getDurationMs() ?? 0;
   const percentComplete = divide(currentTime, durationMs);
   const hoverPlace = divide(currentHoverTime || 0, durationMs);
@@ -38,36 +31,9 @@ function Scrubber({className, showZoomIndicators = false}: Props) {
     <Wrapper className={className}>
       <Meter>
         {currentHoverTime ? (
-          <Fragment>
-            <TimelineTooltip
-              labelText={
-                timestampType === 'absolute'
-                  ? getFormattedDate(
-                      startTimestamp + currentHoverTime,
-                      shouldUse24Hours() ? 'HH:mm:ss.SSS' : 'hh:mm:ss.SSS',
-                      {
-                        local: true,
-                      }
-                    )
-                  : formatDuration({
-                      duration: [currentHoverTime, 'ms'],
-                      precision: 'ms',
-                      style: 'hh:mm:ss.sss',
-                    })
-              }
-            />
-            <MouseTrackingValue
-              style={{
-                width: toPercent(hoverPlace),
-              }}
-            />
-          </Fragment>
+          <MouseTrackingValue style={{width: toPercent(hoverPlace)}} />
         ) : null}
-        <PlaybackTimeValue
-          style={{
-            width: toPercent(percentComplete),
-          }}
-        />
+        <PlaybackTimeValue style={{width: toPercent(percentComplete)}} />
       </Meter>
       {showZoomIndicators ? <ZoomTriangles /> : null}
       <RangeWrapper>

@@ -7,6 +7,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration/duration';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
+import TimelineTooltip from 'sentry/components/replays/breadcrumbs/replayTimelineTooltip';
 import ReplayCurrentTime from 'sentry/components/replays/player/replayCurrentTime';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import useTimelineMouseTracking from 'sentry/components/replays/player/useTimelineMouseTracking';
@@ -99,7 +100,7 @@ export default function TimeAndScrubberGrid({
   });
 
   return (
-    <Grid id="replay-timeline-player" isCompact={isCompact}>
+    <Grid id="replay-timeline-tooltip-container" isCompact={isCompact}>
       <Padded style={{gridArea: 'currentTime'}}>
         <ReplayCurrentTime />
       </Padded>
@@ -124,6 +125,10 @@ export default function TimeAndScrubberGrid({
         {...scrubberMouseTrackingProps}
       >
         <PlayerScrubber showZoomIndicators={showZoom} />
+
+        {scrubberElemRef.current ? (
+          <TimelineTooltip container={scrubberElemRef.current} />
+        ) : null}
       </ScrubberWrapper>
 
       <Padded style={{gridArea: 'duration'}}>
@@ -172,6 +177,7 @@ const TimelineWrapper = styled('div')`
 `;
 
 const ScrubberWrapper = styled('div')`
+  position: relative;
   height: 32px;
   display: flex;
   align-items: center;
