@@ -811,6 +811,22 @@ def test_as_trace_item_context_click_event():
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
+def test_as_trace_item_context_click_event_missing_node():
+    event = {
+        "data": {
+            "payload": {
+                "timestamp": 1674298825.403,
+                "message": "div#hello.hello.world",
+                "data": {},
+                "url": "https://example.com/form",
+            }
+        }
+    }
+
+    result = as_trace_item_context(EventType.CLICK, event)
+    assert result is None
+
+
 def test_as_trace_item_context_dead_click_event():
     event = {
         "data": {
@@ -866,7 +882,6 @@ def test_as_trace_item_context_navigation_event():
         "data": {
             "payload": {
                 "timestamp": 1674298825.0,
-                "description": "https://sentry.io/",
                 "data": {"from": "/old-page", "to": "/new-page"},
             }
         }
@@ -886,7 +901,6 @@ def test_as_trace_item_context_navigation_event_missing_optional_fields():
         "data": {
             "payload": {
                 "timestamp": 1674298825.0,
-                "description": "https://sentry.io/",
                 "data": {},
             }
         }
@@ -1034,7 +1048,8 @@ def test_as_trace_item_context_lcp_event():
     event = {
         "data": {
             "payload": {
-                "timestamp": 1674298825.0,
+                "startTimestamp": 1674298825.0,
+                "endTimestamp": 1674298825.0,
                 "data": {"rating": "good", "size": 1024, "value": 1500},
             }
         }
@@ -1044,6 +1059,7 @@ def test_as_trace_item_context_lcp_event():
     assert result is not None
     assert result["timestamp"] == 1674298825.0
     assert result["attributes"]["category"] == "web-vital.lcp"
+    assert result["attributes"]["duration"] == 0
     assert result["attributes"]["rating"] == "good"
     assert result["attributes"]["size"] == 1024
     assert result["attributes"]["value"] == 1500
@@ -1054,7 +1070,8 @@ def test_as_trace_item_context_fcp_event():
     event = {
         "data": {
             "payload": {
-                "timestamp": 1674298825.0,
+                "startTimestamp": 1674298825.0,
+                "endTimestamp": 1674298825.0,
                 "data": {"rating": "needs-improvement", "size": 512, "value": 2000},
             }
         }
@@ -1063,9 +1080,43 @@ def test_as_trace_item_context_fcp_event():
     result = as_trace_item_context(EventType.FCP, event)
     assert result is not None
     assert result["attributes"]["category"] == "web-vital.fcp"
+    assert result["attributes"]["duration"] == 0
     assert result["attributes"]["rating"] == "needs-improvement"
     assert result["attributes"]["size"] == 512
     assert result["attributes"]["value"] == 2000
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
+def test_as_trace_item_context_cls_event():
+    event = {
+        "type": 5,
+        "timestamp": 1753467516.4146557,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "web-vital",
+                "description": "cumulative-layout-shift",
+                "startTimestamp": 1753467516.4146557,
+                "endTimestamp": 1753467516.4146557,
+                "data": {
+                    "value": 0.6558277147341711,
+                    "size": 0.6558277147341711,
+                    "rating": "poor",
+                    "nodeIds": [1239, 1072, 1244, 1243, 891],
+                    "attributions": [
+                        {"value": 0.6558277147341711, "nodeIds": [1239, 1072, 1244, 1243, 891]}
+                    ],
+                },
+            },
+        },
+    }
+    result = as_trace_item_context(EventType.CLS, event)
+    assert result is not None
+    assert result["attributes"]["category"] == "web-vital.cls"
+    assert result["attributes"]["duration"] == 0
+    assert result["attributes"]["rating"] == "poor"
+    assert result["attributes"]["size"] == 0.6558277147341711
+    assert result["attributes"]["value"] == 0.6558277147341711
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
@@ -1137,27 +1188,34 @@ def test_as_trace_item_context_options():
 
 def test_as_trace_item_context_memory():
     event = {
+        "type": 5,
+        "timestamp": 1753467523.594,
         "data": {
+            "tag": "performanceSpan",
             "payload": {
-                "startTimestamp": 1674298825.0,
-                "endTimestamp": 1674298826.5,
+                "op": "memory",
+                "description": "memory",
+                "startTimestamp": 1753467523.594,
+                "endTimestamp": 1753467523.594,
                 "data": {
-                    "jsHeapSizeLimit": 4294705152,
-                    "totalJSHeapSize": 50331648,
-                    "usedJSHeapSize": 30000000,
+                    "memory": {
+                        "jsHeapSizeLimit": 4294705152,
+                        "totalJSHeapSize": 111507602,
+                        "usedJSHeapSize": 69487254,
+                    }
                 },
-            }
-        }
+            },
+        },
     }
 
     result = as_trace_item_context(EventType.MEMORY, event)
     assert result is not None
-    assert result["timestamp"] == 1674298825.0
+    assert result["timestamp"] == 1753467523.594
     assert result["attributes"]["category"] == "memory"
     assert result["attributes"]["jsHeapSizeLimit"] == 4294705152
-    assert result["attributes"]["totalJSHeapSize"] == 50331648
-    assert result["attributes"]["usedJSHeapSize"] == 30000000
-    assert result["attributes"]["endTimestamp"] == 1674298826.5
+    assert result["attributes"]["totalJSHeapSize"] == 111507602
+    assert result["attributes"]["usedJSHeapSize"] == 69487254
+    assert result["attributes"]["endTimestamp"] == 1753467523.594
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 

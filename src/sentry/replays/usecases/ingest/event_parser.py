@@ -110,6 +110,7 @@ class EventType(Enum):
     UI_BLUR = 18
     UI_FOCUS = 19
     UNKNOWN = 20
+    CLS = 21
 
 
 def which(event: dict[str, Any]) -> EventType:
@@ -189,6 +190,8 @@ def which(event: dict[str, Any]) -> EventType:
                         return EventType.LCP
                     elif payload["description"] == "first-contentful-paint":
                         return EventType.FCP
+                    elif payload["description"] == "cumulative-layout-shift":
+                        return EventType.CLS
                     else:
                         return EventType.UNKNOWN
                 elif op == "memory":
@@ -311,6 +314,10 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
         case EventType.CLICK | EventType.DEAD_CLICK | EventType.RAGE_CLICK | EventType.SLOW_CLICK:
             payload = event["data"]["payload"]
 
+            # If the node wasn't provided we're forced to skip the event.
+            if "node" not in payload["data"]:
+                return None
+
             node = payload["data"]["node"]
             node_attributes = node.get("attributes", {})
             click_attributes = {
@@ -352,10 +359,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             payload = event["data"]["payload"]
             payload_data = payload["data"]
 
-            navigation_attributes = {
-                "category": "navigation",
-                "url": as_string_strict(event["data"]["payload"]["description"]),
-            }
+            navigation_attributes = {"category": "navigation"}
             if "from" in payload_data:
                 navigation_attributes["from"] = as_string_strict(payload_data["from"])
             if "to" in payload_data:
@@ -424,17 +428,27 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                 "event_hash": uuid.uuid4().bytes,
                 "timestamp": float(event["data"]["payload"]["startTimestamp"]),
             }
-        case EventType.LCP | EventType.FCP:
+        case EventType.LCP | EventType.FCP | EventType.CLS:
             payload = event["data"]["payload"]
+
+            if event_type == EventType.CLS:
+                category = "web-vital.cls"
+            elif event_type == EventType.FCP:
+                category = "web-vital.fcp"
+            else:
+                category = "web-vital.lcp"
+
             return {
                 "attributes": {
-                    "category": "web-vital.fcp" if event_type == EventType.FCP else "web-vital.lcp",
+                    "category": category,
+                    "duration": float(event["data"]["payload"]["endTimestamp"])
+                    - float(event["data"]["payload"]["startTimestamp"]),
                     "rating": as_string_strict(payload["data"]["rating"]),
-                    "size": int(payload["data"]["size"]),
-                    "value": int(payload["data"]["value"]),
+                    "size": float(payload["data"]["size"]),
+                    "value": float(payload["data"]["value"]),
                 },
                 "event_hash": uuid.uuid4().bytes,
-                "timestamp": float(payload["timestamp"]),
+                "timestamp": float(payload["startTimestamp"]),
             }
         case EventType.HYDRATION_ERROR:
             payload = event["data"]["payload"]
@@ -488,9 +502,9 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             return {
                 "attributes": {
                     "category": "memory",
-                    "jsHeapSizeLimit": int(payload["data"]["jsHeapSizeLimit"]),
-                    "totalJSHeapSize": int(payload["data"]["totalJSHeapSize"]),
-                    "usedJSHeapSize": int(payload["data"]["usedJSHeapSize"]),
+                    "jsHeapSizeLimit": int(payload["data"]["memory"]["jsHeapSizeLimit"]),
+                    "totalJSHeapSize": int(payload["data"]["memory"]["totalJSHeapSize"]),
+                    "usedJSHeapSize": int(payload["data"]["memory"]["usedJSHeapSize"]),
                     "endTimestamp": float(payload["endTimestamp"]),
                     "duration": float(event["data"]["payload"]["endTimestamp"])
                     - float(event["data"]["payload"]["startTimestamp"]),
