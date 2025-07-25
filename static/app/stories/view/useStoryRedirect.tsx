@@ -42,13 +42,13 @@ export function useStoryRedirect() {
   }, [location, params, navigate, stories]);
 
   useLayoutEffect(() => {
-    setTimeout(() => scrollToHash(), 100);
+    requestAnimationFrame(() => scrollToHash());
   }, [location.hash]);
 }
 
 function scrollToHash() {
   if (window.location.hash) {
-    const [, hash] = window.location.hash.split('#');
+    const hash = window.location.hash.replace(/\^#/, '');
 
     try {
       const element = document.querySelector(`#${hash}`);
