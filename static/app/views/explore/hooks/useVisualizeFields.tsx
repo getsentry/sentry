@@ -19,6 +19,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 interface UseVisualizeFieldsProps {
   numberTags: TagCollection;
   stringTags: TagCollection;
+  traceItemType: TraceItemDataset;
   parsedFunction?: ParsedFunction | null;
 }
 
@@ -26,34 +27,16 @@ export function useVisualizeFields({
   parsedFunction,
   numberTags,
   stringTags,
+  traceItemType,
 }: UseVisualizeFieldsProps) {
   const [kind, tags]: [FieldKind, TagCollection] = useMemo(() => {
-    if (parsedFunction?.name === AggregationKey.COUNT) {
-      const countTags: TagCollection = {
-        [SpanFields.SPAN_DURATION]: {
-          name: t('spans'),
-          key: SpanFields.SPAN_DURATION,
-        },
-      };
-      return [FieldKind.MEASUREMENT, countTags];
-    }
-
-    if (NO_ARGUMENT_SPAN_AGGREGATES.includes(parsedFunction?.name as AggregationKey)) {
-      const countTags: TagCollection = {
-        '': {
-          name: t('spans'),
-          key: '',
-        },
-      };
-      return [FieldKind.MEASUREMENT, countTags];
-    }
-
-    if (parsedFunction?.name === AggregationKey.COUNT_UNIQUE) {
-      return [FieldKind.TAG, stringTags];
-    }
-
-    return [FieldKind.MEASUREMENT, numberTags];
-  }, [parsedFunction?.name, numberTags, stringTags]);
+    return getSupportedAttributes({
+      functionName: parsedFunction?.name || '',
+      numberTags,
+      stringTags,
+      traceItemType,
+    });
+  }, [parsedFunction, numberTags, stringTags, traceItemType]);
 
   const unknownField = parsedFunction?.arguments[0];
 
@@ -76,7 +59,7 @@ export function useVisualizeFields({
               column={option}
               kind={kind}
               label={label}
-              traceItemType={TraceItemDataset.SPANS}
+              traceItemType={traceItemType}
             />
           ),
         };
@@ -93,7 +76,7 @@ export function useVisualizeFields({
               column={tag.key}
               kind={kind}
               label={tag.name}
-              traceItemType={TraceItemDataset.SPANS}
+              traceItemType={traceItemType}
             />
           ),
         };
@@ -113,7 +96,49 @@ export function useVisualizeFields({
     });
 
     return options;
-  }, [kind, tags, unknownField]);
+  }, [kind, tags, unknownField, traceItemType]);
 
   return fieldOptions;
+}
+
+function getSupportedAttributes({
+  functionName,
+  numberTags,
+  stringTags,
+  traceItemType,
+}: {
+  numberTags: TagCollection;
+  stringTags: TagCollection;
+  traceItemType: TraceItemDataset;
+  functionName?: string;
+}): [FieldKind, TagCollection] {
+  if (traceItemType === TraceItemDataset.SPANS) {
+    if (functionName === AggregationKey.COUNT) {
+      const countTags: TagCollection = {
+        [SpanFields.SPAN_DURATION]: {
+          name: t('spans'),
+          key: SpanFields.SPAN_DURATION,
+        },
+      };
+      return [FieldKind.MEASUREMENT, countTags];
+    }
+
+    if (NO_ARGUMENT_SPAN_AGGREGATES.includes(functionName as AggregationKey)) {
+      const countTags: TagCollection = {
+        '': {
+          name: t('spans'),
+          key: '',
+        },
+      };
+      return [FieldKind.MEASUREMENT, countTags];
+    }
+
+    if (functionName === AggregationKey.COUNT_UNIQUE) {
+      return [FieldKind.TAG, stringTags];
+    }
+
+    return [FieldKind.MEASUREMENT, numberTags];
+  }
+
+  throw new Error('Cannot get support attributes for unknown trace item type');
 }

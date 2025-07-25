@@ -55,6 +55,7 @@ export function ExploreToolbar({extras, width}: ExploreToolbarProps) {
       <ToolbarVisualize
         visualizes={visualizes}
         setVisualizes={setVisualizes}
+        traceItemType={TraceItemDataset.SPANS}
         allowEquations={extras?.includes('equations') || false}
       />
       <ToolbarGroupBy
