@@ -129,11 +129,23 @@ function buildRoutes() {
   //   next to the routes they redirect to, and place 'legacy route' redirects
   //   for routes that have completely changed in this tree.
 
+  const experimentalSpaChildRoutes: SentryRouteObject[] = [
+    {
+      index: true,
+      component: make(() => import('sentry/views/auth/login')),
+    },
+    {
+      path: ':orgId/',
+      component: make(() => import('sentry/views/auth/login')),
+    },
+  ];
+
   const experimentalSpaRoutes = EXPERIMENTAL_SPA ? (
-    <Route path="/auth/login/" component={errorHandler(AuthLayout)}>
-      <IndexRoute component={make(() => import('sentry/views/auth/login'))} />
-      <Route path=":orgId/" component={make(() => import('sentry/views/auth/login'))} />
-    </Route>
+    <Route
+      path="/auth/login/"
+      component={errorHandler(AuthLayout)}
+      newStyleChildren={experimentalSpaChildRoutes}
+    />
   ) : null;
 
   const traceViewRouteObject: SentryRouteObject = {
