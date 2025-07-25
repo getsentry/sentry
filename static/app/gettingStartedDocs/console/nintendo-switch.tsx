@@ -19,7 +19,7 @@ const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Our [sentrySwitchLink:Sentry Switch SDK] extends the core [sentryNativeLink:sentry-native] library with Nintendo Switch specific implementations and is designed to work across standalone engines and proprietary game engines.',
+            'Our [sentrySwitchLink:Sentry Switch SDK] extends the core [sentryNativeLink:sentry-native] library with Nintendo Switch-specific implementations and is designed to work across standalone engines and proprietary game engines.',
             {
               code: <code />,
               sentrySwitchLink: (
