@@ -161,7 +161,7 @@ sentry_capture_event(sentry_value_new_message_event(
         {
           type: 'text',
           text: tct(
-            "Alternatively, if you're using [code:Unreal] or [code:Unity], refer to the engine-specific PlayStation instructions in the [privateRepositoryLink:private repository] for details on how to trigger and verify events",
+            "Alternatively, if you're using [code:Unreal] or [code:Unity], use that specific project type. Instructions for PlayStation support specific for those game engines will be displayed there.",
             {
               code: <code />,
               privateRepositoryLink: (
