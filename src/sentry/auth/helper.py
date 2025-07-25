@@ -505,7 +505,7 @@ class AuthIdentityHandler:
                 },
             )
 
-        has_verified_email = cache.get(f"{SSO_VERIFICATION_KEY}:{self.user.id}")
+        has_verified_email = self.user.id and cache.get(f"{SSO_VERIFICATION_KEY}:{self.user.id}")
         if has_verified_email and not verification_key:
             logger.info(
                 "sso.login-pipeline.verified-email-missing-session-key",
