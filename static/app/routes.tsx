@@ -1136,16 +1136,27 @@ function buildRoutes() {
     </Route>
   );
 
+  const legacySettingsRedirectsChildRoutes: SentryRouteObject[] = [
+    {
+      path: ':projectId/',
+      redirectTo: 'projects/:projectId/',
+    },
+    {
+      path: ':projectId/alerts/',
+      redirectTo: 'projects/:projectId/alerts/',
+    },
+    {
+      path: ':projectId/alerts/rules/',
+      redirectTo: 'projects/:projectId/alerts/rules/',
+    },
+    {
+      path: ':projectId/alerts/rules/:ruleId/',
+      redirectTo: 'projects/:projectId/alerts/rules/:ruleId/',
+    },
+  ];
+
   const legacySettingsRedirects = (
-    <Fragment>
-      <Redirect from=":projectId/" to="projects/:projectId/" />
-      <Redirect from=":projectId/alerts/" to="projects/:projectId/alerts/" />
-      <Redirect from=":projectId/alerts/rules/" to="projects/:projectId/alerts/rules/" />
-      <Redirect
-        from=":projectId/alerts/rules/:ruleId/"
-        to="projects/:projectId/alerts/rules/:ruleId/"
-      />
-    </Fragment>
+    <Route newStyleChildren={legacySettingsRedirectsChildRoutes} />
   );
 
   const settingsRoutes = (
