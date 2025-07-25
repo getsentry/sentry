@@ -126,12 +126,9 @@ const onboarding: OnboardingConfig = {
 int main(void) {
   sentry_options_t *options = sentry_options_new();
   sentry_options_set_dsn(options, "${params.dsn.public}");
-  sentry_options_set_database_path(options, "/your/cache/path");
-  sentry_options_set_network_connect_func(options, &SubmitNetworkRequestThreadSafe);
-
-  // Initialize network access (platform-specific)
-  // See private repository for Nintendo Switch specific implementation
-
+  // Example of Nintendo Switch-specific configuration options
+  // (including database path) are available in
+  // the sample folder of the private repository
   sentry_init(options);
 }
 `,
