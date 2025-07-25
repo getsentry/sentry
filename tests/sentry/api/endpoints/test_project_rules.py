@@ -120,6 +120,21 @@ class GetMaxAlertsTest(ProjectRuleBaseTestCase):
         assert result == 1
 
 
+class GetProjectRulesTest(ProjectRuleBaseTestCase):
+    method = "get"
+
+    def test_simple(self):
+        # attaches lastTriggered by default
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+        assert len(response.data) == Rule.objects.filter(project=self.project).count()
+        for rule in response.data:
+            assert "lastTriggered" in rule
+
+
 class CreateProjectRuleTest(ProjectRuleBaseTestCase):
     method = "post"
 
