@@ -40,6 +40,7 @@ class SnubaRateLimitedEndpoint(Endpoint):
     def get(self, request):
         raise RateLimitExceeded(
             "Query on could not be run due to allocation policies, ... 'rejection_threshold': 40, 'quota_used': 41, ...",
+            error_type="rejected_by",
             quota_used=41,
             rejection_threshold=40,
             suggestion="A customer is sending too many queries to snuba. The customer may be abusing an API or the queries may be inefficient",
@@ -145,6 +146,7 @@ access_log_fields = (
     "reset_time",
     "limit",
     "remaining",
+    "snuba_error_type",
     "snuba_quota_used",
     "snuba_rejection_threshold",
     "snuba_suggestion",
@@ -194,6 +196,7 @@ class TestAccessLogSnubaRateLimited(LogCaptureAPITestCase):
         assert self.captured_logs[0].reset_time == "None"
 
         # Snuba rate limit specific fields should be set
+        assert self.captured_logs[0].snuba_error_type == "rejected_by"
         assert self.captured_logs[0].snuba_quota_used == "41"
         assert self.captured_logs[0].snuba_rejection_threshold == "40"
         assert (
