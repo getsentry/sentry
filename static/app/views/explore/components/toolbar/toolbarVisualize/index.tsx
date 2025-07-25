@@ -19,15 +19,18 @@ import {
   MAX_VISUALIZES,
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface ToolbarVisualizeProps {
   setVisualizes: (visualizes: BaseVisualize[]) => void;
+  traceItemType: TraceItemDataset;
   visualizes: Visualize[];
   allowEquations?: boolean;
 }
 
 export function ToolbarVisualize({
   setVisualizes,
+  traceItemType,
   visualizes,
   allowEquations = false,
 }: ToolbarVisualizeProps) {
@@ -100,6 +103,7 @@ export function ToolbarVisualize({
             onDelete={() => onDelete(group)}
             onReplace={newVisualize => replaceOverlay(group, newVisualize)}
             visualize={visualize}
+            traceItemType={traceItemType}
           />
         );
       })}

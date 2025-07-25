@@ -16,11 +16,13 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface VisualizeDropdownProps {
   canDelete: boolean;
   onDelete: () => void;
   onReplace: (visualize: BaseVisualize) => void;
+  traceItemType: TraceItemDataset;
   visualize: Visualize;
 }
 
@@ -29,6 +31,7 @@ export function VisualizeDropdown({
   onDelete,
   onReplace,
   visualize,
+  traceItemType,
 }: VisualizeDropdownProps) {
   const {tags: stringTags} = useTraceItemTags('string');
   const {tags: numberTags} = useTraceItemTags('number');
@@ -49,6 +52,7 @@ export function VisualizeDropdown({
     numberTags,
     stringTags,
     parsedFunction,
+    traceItemType,
   });
 
   const setYAxis = useCallback(
