@@ -471,7 +471,9 @@ function EAPSpanNodeDetails({
                       project={project}
                     />
 
-                    {isTransaction ? <Contexts event={eventTransaction} /> : null}
+                    {isTransaction ? (
+                      <Contexts event={eventTransaction} project={project} />
+                    ) : null}
 
                     <LogDetails />
 
