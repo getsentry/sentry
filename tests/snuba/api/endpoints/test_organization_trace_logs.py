@@ -248,7 +248,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
             self.url,
             data={
                 "traceId": trace_id,
-                "per_page": 9999,
+                "per_page": "9999",
             },
             format="json",
         )
@@ -260,7 +260,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
             self.url,
             data={
                 "traceId": trace_id,
-                "per_page": 10000,
+                "per_page": "10000",
             },
             format="json",
         )
