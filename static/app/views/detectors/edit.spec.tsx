@@ -267,7 +267,7 @@ describe('DetectorEdit | Metric Detector', () => {
     const updateBody = updateRequest.mock.calls[0][1];
     expect(updateBody.data.conditionGroup.conditions[0]).toEqual({
       comparison: Number(newThresholdValue),
-      conditionResult: 50,
+      conditionResult: 75,
       type: 'gt',
     });
   });
