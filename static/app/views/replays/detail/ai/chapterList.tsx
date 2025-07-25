@@ -17,10 +17,9 @@ import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurr
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {SummaryResponse} from 'sentry/views/replays/detail/ai/utils';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
-
-import type {SummaryResponse} from './useFetchReplaySummary';
 
 interface Props {
   summaryData: SummaryResponse;
@@ -39,7 +38,7 @@ export function ChapterList({summaryData}: Props) {
 
   const chapterData = useMemo(
     () =>
-      summaryData?.data.time_ranges
+      summaryData?.data?.time_ranges
         .map(({period_title, period_start, period_end, error, feedback}) => ({
           title: period_title,
           start: period_start,
@@ -59,7 +58,7 @@ export function ChapterList({summaryData}: Props) {
     [summaryData, replay]
   );
 
-  if (!chapterData.length) {
+  if (!chapterData?.length) {
     return (
       <EmptyContainer>
         <Alert type="info" showIcon={false}>
