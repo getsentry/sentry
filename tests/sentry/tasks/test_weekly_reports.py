@@ -9,6 +9,7 @@ from django.db import router
 from django.db.models import F
 from django.utils import timezone
 
+from sentry.analytics.events.weekly_report import WeeklyReportSent
 from sentry.constants import DataCategory
 from sentry.issues.grouptype import MonitorIncidentType, PerformanceNPlusOneGroupType
 from sentry.models.group import GroupStatus
@@ -38,6 +39,7 @@ from sentry.tasks.summaries.weekly_reports import (
 from sentry.testutils.cases import OutcomesSnubaTest, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
@@ -436,12 +438,15 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
             assert isinstance(context["notification_uuid"], str)
 
-        record.assert_any_call(
-            "weekly_report.sent",
-            user_id=user.id,
-            organization_id=self.organization.id,
-            notification_uuid=mock.ANY,
-            user_project_count=1,
+        assert_any_analytics_event(
+            record,
+            WeeklyReportSent(
+                user_id=user.id,
+                organization_id=self.organization.id,
+                notification_uuid="mock.ANY",
+                user_project_count=1,
+            ),
+            exclude_fields=["notification_uuid"],
         )
 
     @mock.patch("sentry.analytics.record")
@@ -514,12 +519,15 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
             assert isinstance(context["notification_uuid"], str)
 
-        record.assert_any_call(
-            "weekly_report.sent",
-            user_id=user.id,
-            organization_id=self.organization.id,
-            notification_uuid=mock.ANY,
-            user_project_count=1,
+        assert_any_analytics_event(
+            record,
+            WeeklyReportSent(
+                user_id=user.id,
+                organization_id=self.organization.id,
+                notification_uuid="mock.ANY",
+                user_project_count=1,
+            ),
+            exclude_fields=["notification_uuid"],
         )
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
@@ -676,19 +684,25 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
             assert isinstance(context["notification_uuid"], str)
 
-        record.assert_any_call(
-            "weekly_report.sent",
-            user_id=user.id,
-            organization_id=self.organization.id,
-            notification_uuid=mock.ANY,
-            user_project_count=1,
+        assert_any_analytics_event(
+            record,
+            WeeklyReportSent(
+                user_id=user.id,
+                organization_id=self.organization.id,
+                notification_uuid="mock.ANY",
+                user_project_count=1,
+            ),
+            exclude_fields=["notification_uuid"],
         )
-        record.assert_any_call(
-            "weekly_report.sent",
-            user_id=user2.id,
-            organization_id=self.organization.id,
-            notification_uuid=mock.ANY,
-            user_project_count=1,
+        assert_any_analytics_event(
+            record,
+            WeeklyReportSent(
+                user_id=user2.id,
+                organization_id=self.organization.id,
+                notification_uuid="mock.ANY",
+                user_project_count=1,
+            ),
+            exclude_fields=["notification_uuid"],
         )
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
@@ -916,12 +930,14 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             assert f"Weekly Report for {self.organization.name}" in message_params["subject"]
 
         with pytest.raises(AssertionError):
-            record.assert_any_call(
-                "weekly_report.sent",
-                user_id=user.id,
-                organization_id=self.organization.id,
-                notification_uuid=mock.ANY,
-                user_project_count=1,
+            assert_any_analytics_event(
+                record,
+                WeeklyReportSent(
+                    user_id=user.id,
+                    organization_id=self.organization.id,
+                    notification_uuid="mock.ANY",
+                    user_project_count=1,
+                ),
             )
 
         message_builder.return_value.send.assert_called_with(to=("joseph@speedwagon.org",))
@@ -985,12 +1001,14 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             assert context["user_project_count"] == 3
 
         with pytest.raises(AssertionError):
-            record.assert_any_call(
-                "weekly_report.sent",
-                user_id=None,
-                organization_id=self.organization.id,
-                notification_uuid=mock.ANY,
-                user_project_count=1,
+            assert_any_analytics_event(
+                record,
+                WeeklyReportSent(
+                    user_id=None,
+                    organization_id=self.organization.id,
+                    notification_uuid="mock.ANY",
+                    user_project_count=1,
+                ),
             )
 
             message_builder.return_value.send.assert_called_with(to=("jonathan@speedwagon.org",))
@@ -1042,12 +1060,14 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         )
 
         with pytest.raises(AssertionError):
-            record.assert_any_call(
-                "weekly_report.sent",
-                user_id=None,
-                organization_id=self.organization.id,
-                notification_uuid=mock.ANY,
-                user_project_count=1,
+            assert_any_analytics_event(
+                record,
+                WeeklyReportSent(
+                    user_id=None,
+                    organization_id=self.organization.id,
+                    notification_uuid="mock.ANY",
+                    user_project_count=1,
+                ),
             )
 
         message_builder.return_value.send.assert_not_called()
