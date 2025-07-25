@@ -16,36 +16,35 @@ logger = logging.getLogger(__name__)
 
 def broadcast_webhooks_for_organization(
     *,
-    event_type: str,
+    resource_name: str,
+    event_name: str,
     organization_id: int,
     payload: dict[str, Any],
-) -> dict[str, Any]:
+) -> None:
     """
     Send a webhook event to all relevant installations for an organization.
 
     Args:
-        event_type: The type of event (e.g., "seer.issue.root_cause_started")
+        resource_name: The resource name (e.g., "seer", "issue", "error")
+        event_name: The event name (e.g., "root_cause_started", "created")
         organization_id: The ID of the organization to send webhooks for
         payload: The webhook payload data
-        event_category: Optional event category to filter installations by.
-                       If provided, only installations subscribed to this category will receive the webhook.
-                       If None, the category is inferred from the event_type prefix.
 
     Returns:
         dict: Status of the webhook sending operation including success status,
               message, and error details if applicable
     """
-    # Validate event type by checking if it's a valid SentryAppEventType
-    valid_events = [member.value for member in SentryAppEventType]
-    if event_type not in valid_events:
-        logger.error("Webhook received invalid event type: %s", event_type)
-        return {
-            "success": False,
-            "error": f"Invalid event type: {event_type}",
-        }
+    # Construct full event type for validation
+    event_type = f"{resource_name}.{event_name}"
 
-    # Determine event category from event_type
-    event_category = event_type.split(".", 1)[0] if "." in event_type else event_type
+    # Validate event type by checking if it's a valid SentryAppEventType
+    try:
+        SentryAppEventType(event_type)
+    except ValueError:
+        logger.exception("Webhook received invalid event type: %s", event_type)
+        raise SentryAppSentryError(
+            message=f"Invalid event type: {event_type}",
+        )
 
     # Get installations for this organization
     installations = app_service.installations_for_organization(organization_id=organization_id)
@@ -54,23 +53,19 @@ def broadcast_webhooks_for_organization(
     relevant_installations = [
         installation
         for installation in installations
-        if event_category in consolidate_events(installation.sentry_app.events)
+        if resource_name in consolidate_events(installation.sentry_app.events)
     ]
 
     if not relevant_installations:
         logger.info(
             "No installations subscribed to '%s' events for organization %s",
-            event_category,
+            resource_name,
             organization_id,
         )
-        return {
-            "success": True,
-            "message": f"No installations subscribed to {event_category} events",
-        }
+        return
 
     # Send the webhook to each relevant installation
-    for installation_id in relevant_installations:
-        installation = app_service.installation_by_id(id=installation_id)
+    for installation in relevant_installations:
         if not installation:
             raise SentryAppSentryError(
                 message=f"{SentryAppWebhookFailureReason.MISSING_INSTALLATION}"
