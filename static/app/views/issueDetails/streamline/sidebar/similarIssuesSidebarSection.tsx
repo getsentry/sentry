@@ -11,7 +11,7 @@ export function SimilarIssuesSidebarSection() {
   const location = useLocation();
 
   return (
-    <Flex justify="space-between" align="center">
+    <Flex justify="between" align="center">
       <SidebarSectionTitle style={{margin: 0}}>{t('Similar Issues')}</SidebarSectionTitle>
       <ViewButton
         aria-label={t('View Similar Issues')}

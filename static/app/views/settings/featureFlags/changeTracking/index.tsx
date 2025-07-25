@@ -162,7 +162,7 @@ function OrganizationFeatureFlagsChangeTracking() {
         )}
       </TextBlock>
 
-      <Flex justify="space-between">
+      <Flex justify="between">
         <h5>{t('Providers')}</h5>
         {addNewProvider(hasAccess)}
       </Flex>

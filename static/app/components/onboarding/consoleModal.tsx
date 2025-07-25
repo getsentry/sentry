@@ -8,7 +8,6 @@ import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 
 const consoleConfig = {
@@ -149,7 +148,7 @@ export function ConsoleModal({
   return (
     <Fragment>
       <Header closeButton>
-        <Flex align="center" gap={space(2)}>
+        <Flex align="center" gap="xl">
           <PlatformIcon size={32} format="lg" platform={selectedPlatform.key} />
           <h4>{t('Request Access for %s', selectedPlatform.name)}</h4>
         </Flex>

@@ -34,7 +34,7 @@ export function StoryHeader() {
     <HeaderGrid>
       <Link to="/stories">
         <Heading as="h1" variant="accent">
-          <Flex align="center" gap={space(1)}>
+          <Flex align="center" gap="md">
             <StyledSentryUiLogo />
             UI
           </Flex>

@@ -376,7 +376,7 @@ function TourProvider({
           {...tourProviderProps}
         >
           <Flex gap="xl" align="center">
-            <Flex gap="xl" justify="space-between" direction="column" align="flex-start">
+            <Flex gap="xl" justify="between" direction="column" align="start">
               <StartTourButton />
               {children}
             </Flex>

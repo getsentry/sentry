@@ -39,7 +39,7 @@ export function CredentialRow({
         {credential.createdByEmail ? credential.createdByEmail : '\u2014'}
       </Flex>
 
-      <Flex align="center" justify="flex-end">
+      <Flex align="center" justify="end">
         <Tooltip
           title={t('You must be an organization admin to remove credentials.')}
           disabled={!!removeCredential}

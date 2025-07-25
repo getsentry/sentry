@@ -117,7 +117,7 @@ export function EditDetectorLayout({
         </Layout.Body>
       </Layout.Page>
       <StickyFooter>
-        <Flex gap="md" flex={1} justify="flex-end">
+        <Flex gap="md" flex={1} justify="end">
           <LinkButton
             priority="default"
             to={makeMonitorDetailsPathname(organization.slug, detector.id)}

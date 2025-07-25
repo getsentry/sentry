@@ -153,7 +153,7 @@ function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
   return (
     <Wrapper>
       {hasStreamlinedUI ? (
-        <Flex justify="space-between">
+        <Flex justify="between">
           <Flex align="center" gap="md">
             <IconFilter size="xs" />
             {t('Results are filtered by the selections above.')}
