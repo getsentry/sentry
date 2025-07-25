@@ -89,18 +89,18 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
 
 /** Will not poll when the replay summary is in an error state or has completed */
 const isPolling = (summaryData: SummaryResponse | undefined, runStarted: boolean) => {
-  if (!summaryData && !runStarted) {
-    return false;
-  }
-
-  if (!summaryData?.data || summaryData.status === ReplaySummaryStatus.NOT_STARTED) {
+  // Poll if we have no data but a run was started
+  if (!summaryData && runStarted) {
     return true;
   }
 
-  return (
-    !summaryData ||
-    ![ReplaySummaryStatus.ERROR, ReplaySummaryStatus.COMPLETED].includes(
+  // Poll if we have data but it's not in a final state
+  if (summaryData) {
+    return ![ReplaySummaryStatus.ERROR, ReplaySummaryStatus.COMPLETED].includes(
       summaryData.status
-    )
-  );
+    );
+  }
+
+  // Don't poll if there's no data and no run started (initial state)
+  return false;
 };

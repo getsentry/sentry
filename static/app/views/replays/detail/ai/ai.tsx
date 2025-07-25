@@ -58,7 +58,8 @@ export default function Ai() {
   useEffect(() => {
     if (
       (segmentsIncreased || summaryIsOld || needsInitialGeneration) &&
-      !(isPending || isPolling) &&
+      !isPending &&
+      !isPolling &&
       !isError
     ) {
       triggerSummary();
