@@ -463,6 +463,7 @@ module = [
     "sentry.workflow_engine.typings.*",
     "sentry.workflow_engine.utils.*",
     "sentry_plugins.base",
+    "social_auth.admin",
     "social_auth.migrations.*",
     "sudo.*",
     "tests.sentry.api.endpoints.issues.test_organization_derive_code_mappings",
