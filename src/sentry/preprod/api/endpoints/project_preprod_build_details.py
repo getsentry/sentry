@@ -81,9 +81,17 @@ class ProjectPreprodBuildDetailsEndpoint(ProjectEndpoint):
                 size_info = None
             else:
                 size_metrics = main_artifact_size_metrics.first()
-                if size_metrics.max_install_size is None or size_metrics.max_download_size is None:
-                    logger.info(
-                        "Size analysis results found for preprod artifact %s but no min install or download size",
+
+                if size_metrics is None:
+                    logger.error(
+                        "No size analysis results found for preprod artifact %s", artifact_id
+                    )
+                    size_info = None
+                elif (
+                    size_metrics.max_install_size is None or size_metrics.max_download_size is None
+                ):
+                    logger.error(
+                        "Size analysis results found for preprod artifact %s but no max install or download size",
                         artifact_id,
                     )
                     size_info = None
