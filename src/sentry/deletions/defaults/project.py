@@ -109,6 +109,13 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
             )
         )
         relations.append(ModelRelation(Detector, {"project_id": instance.id}))
+        # The `ProjectUptimeSubscription` should be removed when deleting the related `Detector`,
+        # but keep there here as a fallback
+        relations.append(
+            ModelRelation(
+                ProjectUptimeSubscription, {"project_id": instance.id}, BulkModelDeletionTask
+            )
+        )
 
         # Release needs to handle deletes after Group is cleaned up as the foreign
         # key is protected
