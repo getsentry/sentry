@@ -13,7 +13,8 @@ from sentry.models.grouprelease import GroupRelease
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.snuba.dataset import Dataset
-from sentry.testutils.cases import TestCase, override_options
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import override_options
 from sentry.utils import json
 from sentry.utils.snuba import (
     ROUND_UP,
