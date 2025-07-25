@@ -229,10 +229,6 @@ export const GridBodyCell = styled('td')`
   justify-content: center;
 
   font-size: ${p => p.theme.fontSize.md};
-
-  &:last-child {
-    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  }
 `;
 
 export const GridBodyCellStatic = styled(GridBodyCell)`
