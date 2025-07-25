@@ -10,9 +10,9 @@ from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, R
 from sentry.apidocs.parameters import GlobalParams, PreventParams
 from sentry.codecov.base import CodecovEndpoint
 from sentry.codecov.client import CodecovApiClient
-from sentry.codecov.endpoints.Branches.query import query
-from sentry.codecov.endpoints.Branches.serializers import BranchesSerializer
-from sentry.codecov.enums import NavigationParameter
+from sentry.codecov.endpoints.repositories.query import query
+from sentry.codecov.endpoints.repositories.serializers import RepositoriesSerializer
+from sentry.codecov.enums import NavigationParameter, OrderingDirection
 from sentry.integrations.services.integration.model import RpcIntegration
 
 MAX_RESULTS_PER_PAGE = 50
@@ -20,18 +20,17 @@ MAX_RESULTS_PER_PAGE = 50
 
 @extend_schema(tags=["Prevent"])
 @region_silo_endpoint
-class RepositoryBranchesEndpoint(CodecovEndpoint):
+class RepositoriesEndpoint(CodecovEndpoint):
     owner = ApiOwner.CODECOV
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
 
     @extend_schema(
-        operation_id="Retrieves list of branches for a given owner and repository",
+        operation_id="Retrieves list of repositories for a given owner",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             PreventParams.OWNER,
-            PreventParams.REPOSITORY,
             PreventParams.LIMIT,
             PreventParams.NAVIGATION,
             PreventParams.CURSOR,
@@ -39,15 +38,15 @@ class RepositoryBranchesEndpoint(CodecovEndpoint):
         ],
         request=None,
         responses={
-            200: BranchesSerializer,
+            200: RepositoriesSerializer,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, owner: RpcIntegration, repository: str, **kwargs) -> Response:
+    def get(self, request: Request, owner: RpcIntegration, **kwargs) -> Response:
         """
-        Retrieves branch data for a given owner and repository.
+        Retrieves repository data for a given owner.
         """
 
         navigation = request.query_params.get("navigation", NavigationParameter.NEXT.value)
@@ -76,8 +75,9 @@ class RepositoryBranchesEndpoint(CodecovEndpoint):
 
         variables = {
             "owner": owner_slug,
-            "repo": repository,
-            "filters": {"searchValue": request.query_params.get("term")},
+            "filters": {"term": request.query_params.get("term")},
+            "direction": OrderingDirection.DESC.value,
+            "ordering": "COMMIT_DATE",
             "first": limit if navigation != NavigationParameter.PREV.value else None,
             "last": limit if navigation == NavigationParameter.PREV.value else None,
             "before": cursor if cursor and navigation == NavigationParameter.PREV.value else None,
@@ -86,6 +86,6 @@ class RepositoryBranchesEndpoint(CodecovEndpoint):
 
         client = CodecovApiClient(git_provider_org=owner_slug)
         graphql_response = client.query(query=query, variables=variables)
-        branches = BranchesSerializer().to_representation(graphql_response.json())
+        repositories = RepositoriesSerializer().to_representation(graphql_response.json())
 
-        return Response(branches)
+        return Response(repositories)

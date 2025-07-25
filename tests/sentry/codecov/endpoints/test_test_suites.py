@@ -46,7 +46,7 @@ class TestSuitesEndpointTest(APITestCase):
             },
         )
 
-    @patch("sentry.codecov.endpoints.TestSuites.test_suites.CodecovApiClient")
+    @patch("sentry.codecov.endpoints.test_suites.test_suites.CodecovApiClient")
     def test_get_returns_mock_response(self, mock_codecov_client_class):
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
@@ -64,7 +64,7 @@ class TestSuitesEndpointTest(APITestCase):
 
         assert response.data["testSuites"] == ["suite-1", "another-2", "suite-3"]
 
-    @patch("sentry.codecov.endpoints.TestSuites.test_suites.CodecovApiClient")
+    @patch("sentry.codecov.endpoints.test_suites.test_suites.CodecovApiClient")
     def test_get_with_interval_query_param(self, mock_codecov_client_class):
         mock_codecov_client_instance = Mock()
         mock_response = Mock()

@@ -9,17 +9,14 @@ from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, R
 from sentry.apidocs.parameters import GlobalParams, PreventParams
 from sentry.codecov.base import CodecovEndpoint
 from sentry.codecov.client import CodecovApiClient
-from sentry.codecov.endpoints.TestResultsAggregates.query import query
-from sentry.codecov.endpoints.TestResultsAggregates.serializers import (
-    TestResultAggregatesSerializer,
-)
-from sentry.codecov.enums import MeasurementInterval
+from sentry.codecov.endpoints.test_suites.query import query
+from sentry.codecov.endpoints.test_suites.serializers import TestSuiteSerializer
 from sentry.integrations.services.integration.model import RpcIntegration
 
 
 @extend_schema(tags=["Prevent"])
 @region_silo_endpoint
-class TestResultsAggregatesEndpoint(CodecovEndpoint):
+class TestSuitesEndpoint(CodecovEndpoint):
     __test__ = False
 
     owner = ApiOwner.CODECOV
@@ -28,16 +25,16 @@ class TestResultsAggregatesEndpoint(CodecovEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve aggregated test result metrics for repository, owner, and organization",
+        operation_id="Retrieve test suites belonging to a repository's test results",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             PreventParams.OWNER,
             PreventParams.REPOSITORY,
-            PreventParams.INTERVAL,
+            PreventParams.TERM,
         ],
         request=None,
         responses={
-            200: TestResultAggregatesSerializer,
+            200: TestSuiteSerializer,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -45,8 +42,8 @@ class TestResultsAggregatesEndpoint(CodecovEndpoint):
     )
     def get(self, request: Request, owner: RpcIntegration, repository: str, **kwargs) -> Response:
         """
-        Retrieves aggregated test result metrics for a given repository and owner.
-        Also accepts a query parameter to specify the time period for the metrics.
+        Retrieves test suites belonging to a repository's test results.
+        It accepts a list of test suites as a query parameter to specify individual test suites.
         """
 
         owner_slug = owner.name
@@ -54,13 +51,11 @@ class TestResultsAggregatesEndpoint(CodecovEndpoint):
         variables = {
             "owner": owner_slug,
             "repo": repository,
-            "interval": request.query_params.get(
-                "interval", MeasurementInterval.INTERVAL_30_DAY.value
-            ),
+            "term": request.query_params.get("term", ""),
         }
 
         client = CodecovApiClient(git_provider_org=owner_slug)
         graphql_response = client.query(query=query, variables=variables)
-        test_results = TestResultAggregatesSerializer().to_representation(graphql_response.json())
+        test_suites = TestSuiteSerializer().to_representation(graphql_response.json())
 
-        return Response(test_results)
+        return Response(test_suites)
