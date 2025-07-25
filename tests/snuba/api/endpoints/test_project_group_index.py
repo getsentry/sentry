@@ -1532,6 +1532,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
     @patch("sentry.utils.audit.log_service.record_audit_log")
     def test_delete_by_id(self, mock_record_audit_log: MagicMock) -> None:
         group1, group2 = self.create_n_groups_with_hashes(2, self.project)
+        groups_to_deleted = [group1, group2]
         group3 = self.create_n_groups_with_hashes(1, project=self.create_project(slug="foo"))[0]
 
         self.login_as(user=self.user)
@@ -1542,9 +1543,8 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             response = self.client.delete(url, format="json")
             assert response.status_code == 204
 
-        self.assert_audit_log_entry([group1], mock_record_audit_log)
-
-        self.assert_groups_are_gone([group1, group2])
+        self.assert_audit_log_entry(groups_to_deleted, mock_record_audit_log)
+        self.assert_groups_are_gone(groups_to_deleted)
         self.assert_groups_not_deleted([group3])
 
     @patch("sentry.eventstream.backend")
