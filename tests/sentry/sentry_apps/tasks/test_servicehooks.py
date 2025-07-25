@@ -99,7 +99,7 @@ class TestServiceHooks(TestCase):
         }
 
     @responses.activate
-    def test_v0_payload(self):
+    def test_v0_payload(self) -> None:
         responses.add(responses.POST, "https://example.com/sentry/webhook")
 
         event = self.store_event(

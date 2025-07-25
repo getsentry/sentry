@@ -127,7 +127,7 @@ class TestGetActiveOrgs(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     def now(self):
         return MOCK_DATETIME
 
-    def test_get_active_orgs_no_max_projects(self):
+    def test_get_active_orgs_no_max_projects(self) -> None:
         total_orgs = 0
         for idx, orgs in enumerate(GetActiveOrgs(3)):
             num_orgs = len(orgs)
@@ -138,7 +138,7 @@ class TestGetActiveOrgs(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
                 assert num_orgs == 1  # second should contain the remaining 3
         assert total_orgs == 10
 
-    def test_get_active_orgs_with_max_projects(self):
+    def test_get_active_orgs_with_max_projects(self) -> None:
         total_orgs = 0
         for orgs in GetActiveOrgs(3, 18):
             # we ask for max 18 proj (that's 2 org per request since one org has 10 )
@@ -249,7 +249,7 @@ class TestGetActiveOrgsVolumes(BaseMetricsLayerTestCase, TestCase, SnubaTestCase
     def now(self):
         return MOCK_DATETIME
 
-    def test_get_active_orgs_volumes_exact_batch_match(self):
+    def test_get_active_orgs_volumes_exact_batch_match(self) -> None:
         """
         gets active org volumes, with a batch size multiple of
         number of elements
@@ -264,7 +264,7 @@ class TestGetActiveOrgsVolumes(BaseMetricsLayerTestCase, TestCase, SnubaTestCase
                 assert org.indexed == 1
         assert total_orgs == 12
 
-    def test_get_active_orgs_volumes(self):
+    def test_get_active_orgs_volumes(self) -> None:
         """
         gets active org volumes, with a batch size that is not a multiple
         of the number of elements in the DB
@@ -285,7 +285,7 @@ class TestGetActiveOrgsVolumes(BaseMetricsLayerTestCase, TestCase, SnubaTestCase
 
         assert total_orgs == 12
 
-    def test_get_organization_volume_existing_org(self):
+    def test_get_organization_volume_existing_org(self) -> None:
         """
         gets the volume of one existing organization
         """
@@ -293,7 +293,7 @@ class TestGetActiveOrgsVolumes(BaseMetricsLayerTestCase, TestCase, SnubaTestCase
         org_volume = get_organization_volume(org.id)
         assert org_volume == OrganizationDataVolume(org_id=org.id, total=3, indexed=1)
 
-    def test_get_organization_volume_missing_org(self):
+    def test_get_organization_volume_missing_org(self) -> None:
         """
         calls get_organization_volume for a missing org (should return None)
         """

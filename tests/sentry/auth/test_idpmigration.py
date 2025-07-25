@@ -23,7 +23,7 @@ class IDPMigrationTests(TestCase):
 
     IDENTITY_ID = "drgUQCLzOyfHxmTyVs0G"
 
-    def test_send_one_time_account_confirm_link(self):
+    def test_send_one_time_account_confirm_link(self) -> None:
         with assume_test_silo_mode(SiloMode.REGION):
             om = OrganizationMember.objects.create(organization=self.org, user_id=self.user.id)
         link = idpmigration.send_one_time_account_confirm_link(
@@ -39,7 +39,7 @@ class IDPMigrationTests(TestCase):
         assert value["identity_id"] == self.IDENTITY_ID
         assert value["provider"] == "dummy"
 
-    def test_send_without_org_membership(self):
+    def test_send_without_org_membership(self) -> None:
         link = idpmigration.send_one_time_account_confirm_link(
             self.user, self.org, self.provider, self.email, self.IDENTITY_ID
         )
@@ -52,7 +52,7 @@ class IDPMigrationTests(TestCase):
         assert value["identity_id"] == self.IDENTITY_ID
         assert value["provider"] == "dummy"
 
-    def test_verify_account(self):
+    def test_verify_account(self) -> None:
         link = idpmigration.send_one_time_account_confirm_link(
             self.user, self.org, self.provider, self.email, self.IDENTITY_ID
         )
@@ -66,7 +66,7 @@ class IDPMigrationTests(TestCase):
         assert response.status_code == 200
         assert response.templates[0].name == "sentry/idp_account_verified.html"
 
-    def test_verify_account_wrong_key(self):
+    def test_verify_account_wrong_key(self) -> None:
         idpmigration.send_one_time_account_confirm_link(
             self.user, self.org, self.provider, self.email, self.IDENTITY_ID
         )

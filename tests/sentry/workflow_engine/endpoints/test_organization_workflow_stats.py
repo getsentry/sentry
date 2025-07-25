@@ -54,7 +54,7 @@ class WorkflowStatsEndpointTest(APITestCase):
 
         self.login_as(self.user)
 
-    def test(self):
+    def test(self) -> None:
         resp = self.get_success_response(
             self.organization.slug,
             self.workflow.id,

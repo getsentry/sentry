@@ -8,7 +8,7 @@ from sentry.utils.outcomes import Outcome
 
 @freeze_time(before_now(days=1).replace(minute=10))
 class ProjectStatsTest(APITestCase, OutcomesSnubaTest):
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         project1 = self.create_project(name="foo")
@@ -58,7 +58,7 @@ class ProjectStatsTest(APITestCase, OutcomesSnubaTest):
             assert point[1] == 0
         assert len(response.data) == 24
 
-    def test_get_error_message_stats(self):
+    def test_get_error_message_stats(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project(name="foo")

@@ -25,7 +25,7 @@ class TestIssuePriorityCondition(ConditionTestCase):
         self.rpc_user = user_service.get_user(user_id=self.user.id)
         migrate_alert_rule(self.metric_alert, self.rpc_user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         data_condition_warning_tuple = migrate_metric_data_conditions(
             self.alert_rule_trigger_warning
         )

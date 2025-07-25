@@ -14,7 +14,7 @@ class TestProcessDataPacket(BaseWorkflowTest):
 
         self.data_source, self.data_packet = self.create_test_query_data_source(self.detector)
 
-    def test_single_data_packet(self):
+    def test_single_data_packet(self) -> None:
         results = process_data_packet(self.data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
         assert len(results) == 1
 

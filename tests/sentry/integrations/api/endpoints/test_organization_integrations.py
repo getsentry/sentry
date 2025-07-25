@@ -34,19 +34,19 @@ class OrganizationIntegrationsListTest(APITestCase):
             external_id="slack:1",
         )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         response = self.get_success_response(self.organization.slug)
 
         assert len(response.data) == 4
         assert response.data[0]["id"] == str(self.integration.id)
         assert "configOrganization" in response.data[0]
 
-    def test_no_config(self):
+    def test_no_config(self) -> None:
         response = self.get_success_response(self.organization.slug, qs_params={"includeConfig": 0})
 
         assert "configOrganization" not in response.data[0]
 
-    def test_feature_filters(self):
+    def test_feature_filters(self) -> None:
         response = self.get_success_response(
             self.organization.slug, qs_params={"features": "issue_basic"}
         )
@@ -56,7 +56,7 @@ class OrganizationIntegrationsListTest(APITestCase):
         )
         assert response.data == []
 
-    def test_provider_key(self):
+    def test_provider_key(self) -> None:
         response = self.get_success_response(
             self.organization.slug, qs_params={"providerKey": "example"}
         )
@@ -70,7 +70,7 @@ class OrganizationIntegrationsListTest(APITestCase):
         )
         assert response.data == []
 
-    def test_integration_type(self):
+    def test_integration_type(self) -> None:
         response = self.get_success_response(
             self.organization.slug, qs_params={"integrationType": "messaging"}
         )
@@ -88,7 +88,7 @@ class OrganizationIntegrationsListTest(APITestCase):
         assert response.data == {"detail": "Invalid integration type"}
         assert response.status_code == 400
 
-    def test_provider_key_and_integration_type(self):
+    def test_provider_key_and_integration_type(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
             qs_params={"providerKey": "slack", "integrationType": "messaging"},

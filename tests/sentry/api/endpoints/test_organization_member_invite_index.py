@@ -33,7 +33,7 @@ class OrganizationMemberInviteListTest(APITestCase):
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
         )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(self.user)
 
         response = self.get_success_response(self.organization.slug)
@@ -170,28 +170,28 @@ class OrganizationMemberInvitePermissionRoleTest(APITestCase):
             status_code=201,
         )
 
-    def test_owner_invites(self):
+    def test_owner_invites(self) -> None:
         self.invite_all_helper("owner")
 
-    def test_manager_invites(self):
+    def test_manager_invites(self) -> None:
         self.invite_all_helper("manager")
 
-    def test_admin_invites(self):
+    def test_admin_invites(self) -> None:
         self.invite_all_helper("admin")
         self.invite_to_other_team_helper("admin")
 
-    def test_member_invites(self):
+    def test_member_invites(self) -> None:
         self.invite_all_helper("member")
         self.invite_to_other_team_helper("member")
 
-    def test_respects_feature_flag(self):
+    def test_respects_feature_flag(self) -> None:
         user = self.create_user("baz@example.com")
 
         with Feature({"organizations:invite-members": False}):
             data = {"email": user.email, "orgRole": "member", "teams": [self.team.slug]}
             self.get_error_response(self.organization.slug, **data, status_code=403)
 
-    def test_no_team_invites(self):
+    def test_no_team_invites(self) -> None:
         data = {"email": "eric@localhost", "orgRole": "owner", "teams": []}
         response = self.get_success_response(self.organization.slug, **data)
         assert response.data["email"] == "eric@localhost"
@@ -205,7 +205,7 @@ class OrganizationMemberInvitePostTest(APITestCase):
     def setUp(self):
         self.login_as(self.user)
 
-    def test_forbid_qq(self):
+    def test_forbid_qq(self) -> None:
         data = {"email": "1234@qq.com", "orgRole": "member", "teams": [self.team.slug]}
         response = self.get_error_response(self.organization.slug, **data, status_code=400)
         assert response.data["email"][0] == "Enter a valid email address."
@@ -225,7 +225,7 @@ class OrganizationMemberInvitePostTest(APITestCase):
 
         mock_send_invite_email.assert_called_once()
 
-    def test_no_teams(self):
+    def test_no_teams(self) -> None:
         data = {"email": "mifu@email.com", "orgRole": "member", "teams": []}
         response = self.get_success_response(self.organization.slug, **data)
 

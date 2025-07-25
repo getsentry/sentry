@@ -196,7 +196,7 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
 class VstsIntegrationProviderTest(VstsIntegrationTestCase):
     # Test data setup in ``VstsIntegrationTestCase``
 
-    def test_basic_flow(self):
+    def test_basic_flow(self) -> None:
         self.assert_installation()
 
         integration = Integration.objects.get(provider="vsts")
@@ -214,7 +214,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         assert metadata["subscription"]["id"] == CREATE_SUBSCRIPTION["id"]
         assert metadata["domain_name"] == self.vsts_base_url
 
-    def test_migrate_repositories(self):
+    def test_migrate_repositories(self) -> None:
         with assume_test_silo_mode(SiloMode.REGION):
             accessible_repo = Repository.objects.create(
                 organization_id=self.organization.id,
@@ -321,7 +321,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         assert subscription["id"] is not None and subscription["secret"] is not None
 
     @responses.activate
-    def test_source_url_matches(self):
+    def test_source_url_matches(self) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
 
@@ -352,7 +352,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             assert installation.source_url_matches(source_url) == matches
 
     @responses.activate
-    def test_extract_branch_from_source_url(self):
+    def test_extract_branch_from_source_url(self) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
 
@@ -375,7 +375,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             assert installation.extract_branch_from_source_url(repo, source_url) == "master"
 
     @responses.activate
-    def test_extract_source_path_from_source_url(self):
+    def test_extract_source_path_from_source_url(self) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
 
@@ -505,7 +505,7 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
 
 @control_silo_test
 class VstsIntegrationTest(VstsIntegrationTestCase):
-    def test_get_organization_config(self):
+    def test_get_organization_config(self) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
 
@@ -519,7 +519,7 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
             "sync_reverse_assignment",
         ]
 
-    def test_get_organization_config_failure(self):
+    def test_get_organization_config_failure(self) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
 
@@ -539,7 +539,7 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         fields = installation.get_organization_config()
         assert fields[0]["disabled"], "Fields should be disabled"
 
-    def test_update_organization_config_remove_all(self):
+    def test_update_organization_config_remove_all(self) -> None:
         self.assert_installation()
 
         model = Integration.objects.get(provider="vsts")
@@ -582,7 +582,7 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
 
         assert config == {"sync_status_forward": False, "other_option": "hello"}
 
-    def test_update_organization_config(self):
+    def test_update_organization_config(self) -> None:
         self.assert_installation()
 
         org_integration = OrganizationIntegration.objects.get(organization_id=self.organization.id)
@@ -647,7 +647,7 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
 
         assert config == {"sync_status_forward": True, "other_option": "hello"}
 
-    def test_update_domain_name(self):
+    def test_update_domain_name(self) -> None:
         account_name = "MyVSTSAccount.visualstudio.com"
         account_uri = "https://MyVSTSAccount.visualstudio.com/"
 
@@ -666,7 +666,7 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         assert domain_name == account_uri
         assert model.metadata["domain_name"] == account_uri
 
-    def test_get_repositories(self):
+    def test_get_repositories(self) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
 
@@ -674,7 +674,7 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         assert len(result) == 1
         assert {"name": "ProjectA/cool-service", "identifier": self.repo_id} == result[0]
 
-    def test_get_repositories_identity_error(self):
+    def test_get_repositories_identity_error(self) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
 
@@ -694,7 +694,7 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         with pytest.raises(IntegrationError):
             installation.get_repositories()
 
-    def test_format_source_url_with_spaces(self):
+    def test_format_source_url_with_spaces(self) -> None:
         """Test that format_source_url correctly handles project names with spaces."""
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
@@ -735,7 +735,7 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
 @control_silo_test
 @with_feature("organizations:migrate-azure-devops-integration")
 class NewVstsIntegrationTest(VstsIntegrationTestCase):
-    def test_get_organization_config(self):
+    def test_get_organization_config(self) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
 
@@ -749,7 +749,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
             "sync_reverse_assignment",
         ]
 
-    def test_get_organization_config_failure(self):
+    def test_get_organization_config_failure(self) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
 
@@ -769,7 +769,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         fields = installation.get_organization_config()
         assert fields[0]["disabled"], "Fields should be disabled"
 
-    def test_update_organization_config_remove_all(self):
+    def test_update_organization_config_remove_all(self) -> None:
         self.assert_installation()
 
         model = Integration.objects.get(provider="vsts")
@@ -812,7 +812,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
 
         assert config == {"sync_status_forward": False, "other_option": "hello"}
 
-    def test_update_organization_config(self):
+    def test_update_organization_config(self) -> None:
         self.assert_installation()
 
         org_integration = OrganizationIntegration.objects.get(organization_id=self.organization.id)
@@ -877,7 +877,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
 
         assert config == {"sync_status_forward": True, "other_option": "hello"}
 
-    def test_update_domain_name(self):
+    def test_update_domain_name(self) -> None:
         account_name = "MyVSTSAccount.visualstudio.com"
         account_uri = "https://MyVSTSAccount.visualstudio.com/"
 
@@ -894,7 +894,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         assert domain_name == account_uri
         assert Integration.objects.get(provider="vsts").metadata["domain_name"] == account_uri
 
-    def test_get_repositories(self):
+    def test_get_repositories(self) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
 
@@ -902,7 +902,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         assert len(result) == 1
         assert {"name": "ProjectA/cool-service", "identifier": self.repo_id} == result[0]
 
-    def test_get_repositories_identity_error(self):
+    def test_get_repositories_identity_error(self) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
 
@@ -946,7 +946,7 @@ class RegionVstsIntegrationTest(VstsIntegrationTestCase):
             == "Sentry Admin wrote:\n\n<blockquote>%s</blockquote>" % comment_text
         )
 
-    def test_update_comment(self):
+    def test_update_comment(self) -> None:
         group_note = Mock()
         comment = "hello world\nThis is a comment.\n\n\n    I've changed it"
         group_note.data = {"text": comment, "external_id": "123"}

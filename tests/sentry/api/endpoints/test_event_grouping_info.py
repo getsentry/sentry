@@ -25,7 +25,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
             organization=self.organization, teams=[self.team], slug="bengal"
         )
 
-    def test_error_event(self):
+    def test_error_event(self) -> None:
         data = load_data(platform="javascript")
         event = self.store_event(data=data, project_id=self.project.id)
 
@@ -44,7 +44,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
         assert response.status_code == 200
         assert content["system"]["type"] == "component"
 
-    def test_transaction_event(self):
+    def test_transaction_event(self) -> None:
         data = load_data(platform="transaction")
         event = self.store_event(data=data, project_id=self.project.id)
 
@@ -64,7 +64,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
         assert content == {}
 
     @pytest.mark.skip("We no longer return perf issue info from the grouping info endpoint")
-    def test_transaction_event_with_problem(self):
+    def test_transaction_event_with_problem(self) -> None:
         event = self.create_performance_issue()
         url = reverse(
             "sentry-api-0-event-grouping-info",
@@ -96,7 +96,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
             "d74ed7012596c3fb",
         ]
 
-    def test_no_event(self):
+    def test_no_event(self) -> None:
         url = reverse(
             "sentry-api-0-event-grouping-info",
             kwargs={
@@ -112,7 +112,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
         assert response.status_code == 404
         assert response.status_text == "Not Found"
 
-    def test_get_grouping_info_unkown_grouping_config(self):
+    def test_get_grouping_info_unkown_grouping_config(self) -> None:
         data = load_data(platform="javascript")
         event = self.store_event(data=data, project_id=self.project.id)
 
@@ -148,7 +148,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
             extra={"project_id": self.project.id, "event_id": javascript_event.event_id},
         )
 
-    def test_variant_keys_and_types_use_dashes_not_underscores(self):
+    def test_variant_keys_and_types_use_dashes_not_underscores(self) -> None:
         """
         Test to make sure switching to using underscores on the BE doesn't change what we send
         to the FE.

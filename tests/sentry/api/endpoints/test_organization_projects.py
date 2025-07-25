@@ -19,7 +19,7 @@ class OrganizationProjectsTestBase(APITestCase):
             int(project_resp["id"]) for project_resp in response.data
         ]
 
-    def test_api_key(self):
+    def test_api_key(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             key = ApiKey.objects.create(
                 organization_id=self.organization.id, scope_list=["org:read"]
@@ -40,14 +40,14 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         super().setUp()
         self.login_as(user=self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project(teams=[self.team])
 
         response = self.get_success_response(self.organization.slug)
         self.check_valid_response(response, [project])
         assert self.client.session["activeorg"] == self.organization.slug
 
-    def test_superuser(self):
+    def test_superuser(self) -> None:
         superuser = self.create_user(is_superuser=True)
         self.login_as(user=superuser, superuser=True)
         project = self.create_project(teams=[self.team])
@@ -55,7 +55,7 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         response = self.get_success_response(self.organization.slug)
         self.check_valid_response(response, [project])
 
-    def test_staff(self):
+    def test_staff(self) -> None:
         staff_user = self.create_user(is_staff=True)
         self.login_as(user=staff_user, staff=True)
         project = self.create_project(teams=[self.team])
@@ -63,7 +63,7 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         response = self.get_success_response(self.organization.slug)
         self.check_valid_response(response, [project])
 
-    def test_with_stats(self):
+    def test_with_stats(self) -> None:
         projects = [self.create_project(teams=[self.team])]
 
         response = self.get_success_response(
@@ -86,7 +86,7 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
             self.organization.slug, qs_params={"statsPeriod": "48h"}, status_code=400
         )
 
-    def test_staff_with_stats(self):
+    def test_staff_with_stats(self) -> None:
         projects = [self.create_project(teams=[self.team])]
 
         # disable Open Membership
@@ -106,7 +106,7 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         assert "transactionStats" in response.data[0]
         assert "sessionStats" in response.data[0]
 
-    def test_superuser_with_stats(self):
+    def test_superuser_with_stats(self) -> None:
         projects = [self.create_project(teams=[self.team])]
 
         # disable Open Membership
@@ -126,7 +126,7 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         assert "transactionStats" in response.data[0]
         assert "sessionStats" in response.data[0]
 
-    def test_no_stats_if_no_project_access(self):
+    def test_no_stats_if_no_project_access(self) -> None:
         projects = [self.create_project(teams=[self.team])]
 
         # disable Open Membership
@@ -150,7 +150,7 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         assert "transactionStats" not in response.data[0]
         assert "sessionStats" not in response.data[0]
 
-    def test_search(self):
+    def test_search(self) -> None:
         project = self.create_project(teams=[self.team], name="bar", slug="bar")
 
         response = self.get_success_response(self.organization.slug, qs_params={"query": "bar"})
@@ -159,7 +159,7 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         response = self.get_success_response(self.organization.slug, qs_params={"query": "baz"})
         self.check_valid_response(response, [])
 
-    def test_search_by_ids(self):
+    def test_search_by_ids(self) -> None:
         project_bar = self.create_project(teams=[self.team], name="bar", slug="bar")
         project_foo = self.create_project(teams=[self.team], name="foo", slug="foo")
         self.create_project(teams=[self.team], name="baz", slug="baz")
@@ -174,14 +174,14 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         )
         self.check_valid_response(response, [project_bar, project_foo])
 
-    def test_search_by_ids_invalid(self):
+    def test_search_by_ids_invalid(self) -> None:
         response = self.get_error_response(self.organization.slug, qs_params={"query": "id:"})
         assert response.status_code == 400
 
         response = self.get_error_response(self.organization.slug, qs_params={"query": "id:bababa"})
         assert response.status_code == 400
 
-    def test_search_by_slugs(self):
+    def test_search_by_slugs(self) -> None:
         project_bar = self.create_project(teams=[self.team], name="bar", slug="bar")
         project_foo = self.create_project(teams=[self.team], name="foo", slug="foo")
         self.create_project(teams=[self.team], name="baz", slug="baz")
@@ -197,7 +197,7 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         )
         self.check_valid_response(response, [project_bar, project_foo])
 
-    def test_bookmarks_appear_first_across_pages(self):
+    def test_bookmarks_appear_first_across_pages(self) -> None:
         projects = [
             self.create_project(teams=[self.team], name=i, slug=f"project-{i}") for i in range(3)
         ]
@@ -225,7 +225,7 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         response = self.get_success_response(self.organization.slug)
         self.check_valid_response(response, [project for project in projects])
 
-    def test_team_filter(self):
+    def test_team_filter(self) -> None:
         other_team = self.create_team(organization=self.organization)
 
         project_bar = self.create_project(teams=[self.team], name="bar", slug="bar")
@@ -242,7 +242,7 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         )
         self.check_valid_response(response, [project_baz, project_foo])
 
-    def test_all_projects(self):
+    def test_all_projects(self) -> None:
         other_team = self.create_team(organization=self.organization)
 
         project_bar = self.create_project(teams=[self.team], name="bar", slug="bar")
@@ -256,7 +256,7 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         # Verify all projects in the org are returned in sorted order
         self.check_valid_response(response, sorted_projects)
 
-    def test_all_projects_collapse(self):
+    def test_all_projects_collapse(self) -> None:
         project_bar = self.create_project(teams=[self.team], name="bar", slug="bar")
         sorted_projects = [project_bar]
 
@@ -267,7 +267,7 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         self.check_valid_response(response, sorted_projects)
         assert "latestDeploy" not in response.data[0]
 
-    def test_user_projects(self):
+    def test_user_projects(self) -> None:
         self.foo_user = self.create_user("foo@example.com")
         self.login_as(user=self.foo_user)
 
@@ -288,7 +288,7 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         # Verify projects that were returned were foo_users projects
         self.check_valid_response(response, foo_user_projects)
 
-    def test_expand_context_options(self):
+    def test_expand_context_options(self) -> None:
         self.project1 = self.create_project(slug="project-1", name="project 1", teams=[self.team])
         self.project2 = self.create_project(slug="project-2", name="project 2", teams=[self.team])
         self.project1.update_option("quotas:spike-protection-disabled", True)
@@ -321,7 +321,7 @@ class OrganizationProjectsCountTest(APITestCase):
         self.foo_user = self.create_user("foo@example.com")
         self.login_as(user=self.foo_user)
 
-    def test_project_count(self):
+    def test_project_count(self) -> None:
         other_team = self.create_team(organization=self.organization)
 
         self.create_project(teams=[self.team], name="bar", slug="bar")

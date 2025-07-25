@@ -29,27 +29,27 @@ class EmailAuthBackendTest(TestCase):
     def backend(self):
         return EmailAuthBackend()
 
-    def test_can_authenticate_with_username(self):
+    def test_can_authenticate_with_username(self) -> None:
         result = self.backend.authenticate(HttpRequest(), username="foo", password="bar")
         self.assertEqual(result, self.user)
 
-    def test_can_authenticate_with_username_case_insensitive(self):
+    def test_can_authenticate_with_username_case_insensitive(self) -> None:
         result = self.backend.authenticate(HttpRequest(), username="FOO", password="bar")
         self.assertEqual(result, self.user)
 
-    def test_can_authenticate_with_email(self):
+    def test_can_authenticate_with_email(self) -> None:
         result = self.backend.authenticate(
             HttpRequest(), username="baz@example.com", password="bar"
         )
         self.assertEqual(result, self.user)
 
-    def test_can_authenticate_with_email_case_insensitive(self):
+    def test_can_authenticate_with_email_case_insensitive(self) -> None:
         result = self.backend.authenticate(
             HttpRequest(), username="BAZ@example.com", password="bar"
         )
         self.assertEqual(result, self.user)
 
-    def test_does_not_authenticate_with_invalid_password(self):
+    def test_does_not_authenticate_with_invalid_password(self) -> None:
         result = self.backend.authenticate(HttpRequest(), username="foo", password="pizza")
         self.assertEqual(result, None)
 
@@ -66,14 +66,14 @@ class GetLoginRedirectTest(TestCase):
             request.session["_next"] = next
         return request
 
-    def test_schema_uses_default(self):
+    def test_schema_uses_default(self) -> None:
         result = get_login_redirect(self._make_request("http://example.com"))
         assert result == reverse("sentry-login")
 
         result = get_login_redirect(self._make_request("ftp://testserver"))
         assert result == reverse("sentry-login")
 
-    def test_next(self):
+    def test_next(self) -> None:
         result = get_login_redirect(self._make_request("http://testserver/foobar/"))
         assert result == "http://testserver/foobar/"
 
@@ -95,7 +95,7 @@ class GetLoginRedirectTest(TestCase):
         result = get_login_redirect(request)
         assert result == f"http://orgslug.testserver{reverse('sentry-login')}"
 
-    def test_after_2fa(self):
+    def test_after_2fa(self) -> None:
         request = self._make_request()
         request.session["_after_2fa"] = "http://testserver/foobar/"
         result = get_login_redirect(request)
@@ -107,7 +107,7 @@ class GetLoginRedirectTest(TestCase):
         result = get_login_redirect(request)
         assert result == "http://orgslug.testserver/foobar/"
 
-    def test_pending_2fa(self):
+    def test_pending_2fa(self) -> None:
         request = self._make_request()
         request.session["_pending_2fa"] = [1234, 1234, 1234]
         result = get_login_redirect(request)
@@ -119,11 +119,11 @@ class GetLoginRedirectTest(TestCase):
         result = get_login_redirect(request)
         assert result == f"http://orgslug.testserver{reverse('sentry-2fa-dialog')}"
 
-    def test_login_uses_default(self):
+    def test_login_uses_default(self) -> None:
         result = get_login_redirect(self._make_request(reverse("sentry-login")))
         assert result == reverse("sentry-login")
 
-    def test_no_value_uses_default(self):
+    def test_no_value_uses_default(self) -> None:
         result = get_login_redirect(self._make_request())
         assert result == reverse("sentry-login")
 
@@ -142,20 +142,20 @@ class LoginTest(TestCase):
         request.user = AnonymousUser()
         return request
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         request = self._make_request()
         assert login(request, self.user)
         assert request.user == self.user
         assert "_nonce" not in request.session
 
-    def test_with_organization(self):
+    def test_with_organization(self) -> None:
         org = self.create_organization(name="foo", owner=self.user)
         request = self._make_request()
         assert login(request, self.user, organization_id=org.id)
         assert request.user == self.user
         assert f"{SsoSession.SSO_SESSION_KEY}:{org.id}" in request.session
 
-    def test_with_nonce(self):
+    def test_with_nonce(self) -> None:
         self.user.refresh_session_nonce()
         self.user.save()
         assert self.user.session_nonce is not None

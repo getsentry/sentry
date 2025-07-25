@@ -1,6 +1,7 @@
 import datetime
 import time
 import uuid
+from typing import Any
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 
@@ -61,7 +62,14 @@ class OrganizationGroupSuspectTagsTestCase(APITestCase, SnubaTestCase):
             response = self.client.get("/api/0/issues/22/suspect/tags/")
             assert response.status_code == 404
 
-    def _mock_event(self, ts, hash="a" * 32, group_id=None, project_id=1, tags=None):
+    def _mock_event(
+        self,
+        ts: datetime.datetime,
+        hash: str,
+        tags: dict[str, Any],
+        group_id: int,
+        project_id: int,
+    ) -> None:
         self.snuba_insert(
             (
                 2,
