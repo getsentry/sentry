@@ -149,9 +149,6 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
           profileDurationUI: 0,
           logBytes: 0,
         },
-        attachmentSpendUsed: 0,
-        errorSpendUsed: 0,
-        transactionSpendUsed: 0,
         usedSpends: {
           errors: 0,
           transactions: 0,
@@ -321,9 +318,6 @@ describe('getTotalBudget', function () {
         enabled: true,
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
         budgets: {errors: 100, transactions: 200, attachments: 300, uptime: 400},
-        attachmentSpendUsed: 0,
-        errorSpendUsed: 0,
-        transactionSpendUsed: 0,
         usedSpends: {errors: 0, transactions: 0, attachments: 0, replays: 0},
       },
     });
