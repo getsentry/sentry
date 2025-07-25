@@ -424,6 +424,7 @@ module = [
     "sentry.utils.iterators",
     "sentry.utils.javascript",
     "sentry.utils.kafka",
+    "sentry.utils.kafka_config",
     "sentry.utils.kvstore.*",
     "sentry.utils.lazy_service_wrapper",
     "sentry.utils.linksign",
