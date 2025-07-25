@@ -590,13 +590,13 @@ def as_highlighted_event(
         return {"mutations": [MutationEvent(event["data"]["payload"])]}
     elif event_type == EventType.CLICK or event_type == EventType.SLOW_CLICK:
         click = parse_click_event(event["data"]["payload"], is_dead=False, is_rage=False)
-        return {"clicks": [click]}
+        return {"clicks": [click]} if click else {}
     elif event_type == EventType.DEAD_CLICK:
         click = parse_click_event(event["data"]["payload"], is_dead=True, is_rage=False)
-        return {"clicks": [click]}
+        return {"clicks": [click]} if click else {}
     elif event_type == EventType.RAGE_CLICK:
         click = parse_click_event(event["data"]["payload"], is_dead=True, is_rage=True)
-        return {"clicks": [click]}
+        return {"clicks": [click]} if click else {}
     elif event_type == EventType.RESOURCE_FETCH or event_type == EventType.RESOURCE_XHR:
         lengths = parse_network_content_lengths(event)
         if lengths != (None, None):
@@ -639,10 +639,11 @@ def parse_network_content_lengths(event: dict[str, Any]) -> tuple[int | None, in
     return request_size, response_size
 
 
-def parse_click_event(payload: dict[str, Any], is_dead: bool, is_rage: bool) -> ClickEvent:
-    node = payload["data"]["node"]
-    assert node is not None
-    assert node["id"] >= 0
+def parse_click_event(payload: dict[str, Any], is_dead: bool, is_rage: bool) -> ClickEvent | None:
+    node = payload["data"].get("node")
+
+    if not isinstance(node, dict) or node["id"] < 0:
+        return None
 
     attributes = node.get("attributes", {})
 

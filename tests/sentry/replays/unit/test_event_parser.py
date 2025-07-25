@@ -313,6 +313,27 @@ def test_parse_highlighted_events_click_events():
     assert user_actions.click_events[0].timestamp == 1674298825
 
 
+def test_parse_highlighted_events_click_events_missing_node():
+    event = {
+        "type": 5,
+        "timestamp": 1674298825,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1674298825.403,
+                "type": "default",
+                "category": "ui.click",
+                "message": "div#hello.hello.world",
+                "data": {"nodeId": 1},
+            },
+        },
+    }
+
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=False)
+    assert len(builder.result.click_events) == 0
+
+
 def test_parse_highlighted_events_click_event_str_payload():
     event = {"type": 5, "data": {"tag": "breadcrumb", "payload": "hello world"}}
     builder = HighlightedEventsBuilder()
