@@ -9,6 +9,7 @@ import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Link} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Duration from 'sentry/components/duration/duration';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -31,7 +32,9 @@ import useProjectFromId from 'sentry/utils/useProjectFromId';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 interface Props {
-  queryOptions: QueryKeyEndpointOptions | undefined;
+  queryOptions:
+    | QueryKeyEndpointOptions<unknown, Record<string, string>, unknown>
+    | undefined;
   replays: ReplayListRecord[];
   selectedIds: 'all' | string[];
 }
@@ -151,6 +154,9 @@ function ReplayQueryPreview({
         {t('Replays matching the following query will be deleted')}
       </Title>
       <KeyValueData.Card contentItems={contentItems} />
+      <Text size="sm" color="subText">
+        All dates and times are in UTC.
+      </Text>
     </Fragment>
   );
 }

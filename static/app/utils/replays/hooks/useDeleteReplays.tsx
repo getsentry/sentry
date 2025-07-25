@@ -1,7 +1,12 @@
 import {useCallback} from 'react';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {
+  getUtcValue,
+  normalizeDateTimeParams,
+} from 'sentry/components/organizations/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
+import {getDateFromTimestamp, getDateWithTimezoneInUtc} from 'sentry/utils/dates';
 import {
   fetchMutation,
   type QueryKeyEndpointOptions,
@@ -15,10 +20,10 @@ interface Props {
 }
 
 export type ReplayBulkDeletePayload = {
-  environments: string[];
+  environments: string | string[] | undefined;
   query: string;
-  rangeEnd: string;
-  rangeStart: string;
+  rangeEnd: string | undefined;
+  rangeStart: string | undefined;
 };
 
 type Vars = [ReplayBulkDeletePayload];
@@ -52,11 +57,20 @@ export default function useDeleteReplays({projectSlug}: Props) {
   });
 
   const queryOptionsToPayload = useCallback(
-    (selectedIds: 'all' | string[], queryOptions: QueryKeyEndpointOptions) => {
+    (
+      selectedIds: 'all' | string[],
+      queryOptions: QueryKeyEndpointOptions<unknown, Record<string, string>, unknown>
+    ): ReplayBulkDeletePayload => {
       const environments = queryOptions?.query?.environment ?? [];
-      const {start, end} = queryOptions?.query?.statsPeriod
-        ? parseStatsPeriod(queryOptions?.query?.statsPeriod)
-        : (queryOptions?.query ?? {start: undefined, end: undefined});
+
+      const query = queryOptions?.query ?? {};
+      const normalizedQuery = normalizeDateTimeParams(query);
+
+      // normalizeDateTimeParams will prefer statsPeriod, so if we find that
+      // then we still need to parse out start & end
+      const {start, end} = normalizedQuery.statsPeriod
+        ? parseStatsPeriod(normalizedQuery.statsPeriod)
+        : normalizedQuery;
 
       return {
         environments: environments.length === 0 ? project?.environments : environments,
@@ -64,8 +78,14 @@ export default function useDeleteReplays({projectSlug}: Props) {
           selectedIds === 'all'
             ? (queryOptions?.query?.query ?? '')
             : `id:[${selectedIds.join(',')}]`,
-        rangeEnd: end,
-        rangeStart: start,
+        rangeStart: getDateWithTimezoneInUtc(
+          getDateFromTimestamp(start) ?? new Date(),
+          getUtcValue(normalizedQuery.utc) === 'true'
+        ).toISOString(),
+        rangeEnd: getDateWithTimezoneInUtc(
+          getDateFromTimestamp(end) ?? new Date(),
+          getUtcValue(normalizedQuery.utc) === 'true'
+        ).toISOString(),
       };
     },
     [project?.environments]
