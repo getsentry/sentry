@@ -6,7 +6,7 @@
       "key": "sentry:option-with-unzeroed-millis",
       "last_updated": "2023-06-22T00:00:00.000Z",
       "last_updated_by": "unknown",
-      "value": "\"23.6.1\""
+      "value": "23.6.1"
     }
   },
   {
@@ -16,7 +16,7 @@
       "key": "sentry:option-with-zeroed-millis",
       "last_updated": "2023-06-22T00:00:00Z",
       "last_updated_by": "unknown",
-      "value": "\"23.6.1\""
+      "value": "23.6.1"
     }
   }
 ]
