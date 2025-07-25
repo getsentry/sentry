@@ -21,7 +21,7 @@ from sentry.testutils.cases import TestCase
 
 
 class MarkOkTestCase(TestCase):
-    def test_mark_ok_simple(self):
+    def test_mark_ok_simple(self) -> None:
         now = timezone.now().replace(second=0, microsecond=0)
 
         monitor = Monitor.objects.create(
@@ -63,7 +63,7 @@ class MarkOkTestCase(TestCase):
         assert monitor_environment.next_checkin_latest == now + timedelta(minutes=2)
         assert monitor_environment.last_checkin == now
 
-    def test_muted_ok(self):
+    def test_muted_ok(self) -> None:
         now = timezone.now().replace(second=0, microsecond=0)
 
         monitor = Monitor.objects.create(

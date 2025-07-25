@@ -36,7 +36,7 @@ class DifAssembleEndpoint(APITestCase):
             "sentry-api-0-assemble-dif-files", args=[self.organization.slug, self.project.slug]
         )
 
-    def test_assemble_json_schema(self):
+    def test_assemble_json_schema(self) -> None:
         response = self.client.post(
             self.url, data={"lol": "test"}, HTTP_AUTHORIZATION=f"Bearer {self.token.token}"
         )
@@ -63,7 +63,7 @@ class DifAssembleEndpoint(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data[checksum]["state"] == ChunkFileState.NOT_FOUND
 
-    def test_assemble_check(self):
+    def test_assemble_check(self) -> None:
         content = b"foo bar"
         fileobj = ContentFile(content)
         file1 = File.objects.create(name="baz.dSYM", type="default", size=7)
@@ -209,7 +209,7 @@ class DifAssembleEndpoint(APITestCase):
         file_blob_index = FileBlobIndex.objects.all()
         assert len(file_blob_index) == 3
 
-    def test_dif_response(self):
+    def test_dif_response(self) -> None:
         sym_file = self.load_fixture("crash.sym")
         blob1 = FileBlob.from_file_with_organization(ContentFile(sym_file), self.organization)
         total_checksum = sha1(sym_file).hexdigest()
@@ -232,7 +232,7 @@ class DifAssembleEndpoint(APITestCase):
             response.data[total_checksum]["dif"]["uuid"] == "67e9247c-814e-392b-a027-dbde6748fcbf"
         )
 
-    def test_dif_error_response(self):
+    def test_dif_error_response(self) -> None:
         sym_file = b"fail"
         blob1 = FileBlob.from_file_with_organization(ContentFile(sym_file), self.organization)
         total_checksum = sha1(sym_file).hexdigest()

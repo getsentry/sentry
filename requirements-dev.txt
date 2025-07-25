@@ -39,8 +39,8 @@ isort==5.10.1
 sentry-forked-django-stubs==5.2.1.post3
 sentry-forked-djangorestframework-stubs==3.16.0.post1
 lxml-stubs
-msgpack-types==0.2.0
-mypy==1.15
+msgpack-types>=0.2.0
+mypy>=1.17
 types-beautifulsoup4
 types-cachetools
 types-docker

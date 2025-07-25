@@ -12,13 +12,13 @@ class OrganizationUptimeAlertIndexEndpointTest(OrganizationUptimeAlertIndexBaseE
     def check_valid_response(self, response, expected_alerts):
         assert [serialize(uptime_alert) for uptime_alert in expected_alerts] == response.data
 
-    def test(self):
+    def test(self) -> None:
         alert_1 = self.create_project_uptime_subscription(name="test1")
         alert_2 = self.create_project_uptime_subscription(name="test2")
         resp = self.get_success_response(self.organization.slug)
         self.check_valid_response(resp, [alert_1, alert_2])
 
-    def test_search_by_url(self):
+    def test_search_by_url(self) -> None:
         self.create_project_uptime_subscription()
         santry_monitor = self.create_project_uptime_subscription(
             uptime_subscription=self.create_uptime_subscription(url="https://santry.com")
@@ -27,7 +27,7 @@ class OrganizationUptimeAlertIndexEndpointTest(OrganizationUptimeAlertIndexBaseE
         response = self.get_success_response(self.organization.slug, query="santry")
         self.check_valid_response(response, [santry_monitor])
 
-    def test_environment_filter(self):
+    def test_environment_filter(self) -> None:
         env = self.create_environment()
         self.create_project_uptime_subscription()
         env_monitor = self.create_project_uptime_subscription(env=env)
@@ -35,7 +35,7 @@ class OrganizationUptimeAlertIndexEndpointTest(OrganizationUptimeAlertIndexBaseE
         response = self.get_success_response(self.organization.slug, environment=[env.name])
         self.check_valid_response(response, [env_monitor])
 
-    def test_owner_filter(self):
+    def test_owner_filter(self) -> None:
         user_1 = self.create_user()
         user_2 = self.create_user()
         team_1 = self.create_team()

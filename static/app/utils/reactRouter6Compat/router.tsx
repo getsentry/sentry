@@ -117,7 +117,15 @@ function getElement(Component: React.ComponentType<any> | undefined) {
  * Converts a SentryRouteObject tree into a react-router RouteObject tree.
  */
 function translateSentryRoute(tree: SentryRouteObject): RouteObject {
-  const {name, path, withOrgPath, component} = tree;
+  const {name, path, withOrgPath, redirectTo, customerDomainOnlyRoute, component} = tree;
+
+  if (customerDomainOnlyRoute && !USING_CUSTOMER_DOMAIN) {
+    return {};
+  }
+
+  if (redirectTo !== undefined) {
+    return {index: tree.index, path, element: <Redirect to={redirectTo} replace />};
+  }
 
   // XXX(epurkhiser)
   //

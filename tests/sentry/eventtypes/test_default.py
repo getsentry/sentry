@@ -3,7 +3,7 @@ from sentry.testutils.cases import TestCase
 
 
 class DefaultEventTest(TestCase):
-    def test_get_metadata(self):
+    def test_get_metadata(self) -> None:
         inst = DefaultEvent()
         assert inst.get_metadata({}) == {"title": "<unlabeled event>"}
 

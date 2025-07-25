@@ -29,7 +29,7 @@ class GitHubEnterpriseRepositoryTest(TestCase):
         return GitHubEnterpriseRepositoryProvider("integrations:github_enterprise")
 
     @responses.activate
-    def test_build_repository_config(self):
+    def test_build_repository_config(self) -> None:
         organization = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.add_organization(organization, self.user)

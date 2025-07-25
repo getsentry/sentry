@@ -36,7 +36,7 @@ from sentry.users.models.user_option import UserOption
 
 
 class OrganizationTest(TestCase, HybridCloudTestMixin):
-    def test_slugify_on_new_orgs(self):
+    def test_slugify_on_new_orgs(self) -> None:
         org = Organization.objects.create(name="name", slug="---downtown_canada---")
         assert org.slug == "downtown-canada"
 
@@ -49,7 +49,7 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         org = Organization.objects.create(name="---foo_bar---")
         assert org.slug == "foo-bar"
 
-    def test_slugify_long_org_names(self):
+    def test_slugify_long_org_names(self) -> None:
         # Org name is longer than allowed org slug, and should be trimmed when slugified.
         org = Organization.objects.create(name="Stove, Electrical, and Catering Stuff")
         assert org.slug == "stove-electrical-and-catering"
@@ -60,17 +60,17 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         assert len(org2.slug) > len("stove-electrical-and-cateri-")
         assert org.slug != org2.slug
 
-    def test_get_default_owner(self):
+    def test_get_default_owner(self) -> None:
         user = self.create_user("foo@example.com")
         org = self.create_organization(owner=user)
         assert org.get_default_owner().id == user.id
 
-    def test_default_owner_id(self):
+    def test_default_owner_id(self) -> None:
         user = self.create_user("foo@example.com")
         org = self.create_organization(owner=user)
         assert org.default_owner_id == user.id
 
-    def test_default_owner_id_no_owner(self):
+    def test_default_owner_id_no_owner(self) -> None:
         org = self.create_organization()
         assert org.default_owner_id is None
 
@@ -88,7 +88,7 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         assert org.default_owner_id == user.id
         assert mock_get_owners.call_count == 1
 
-    def test_flags_have_changed(self):
+    def test_flags_have_changed(self) -> None:
         org = self.create_organization()
         update_tracked_data(org)
         org.flags.allow_joinleave = True  # Only flag that defaults to True
@@ -106,7 +106,7 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         assert flag_has_changed(org, "prevent_superuser_access")
         assert flag_has_changed(org, "disable_member_invite")
 
-    def test_has_changed(self):
+    def test_has_changed(self) -> None:
         org = self.create_organization()
         update_tracked_data(org)
 
@@ -159,19 +159,19 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         p.value = 10
         assert has_changed(p, "value") is True
 
-    def test_name_hasnt_changed_on_init(self):
+    def test_name_hasnt_changed_on_init(self) -> None:
         inst = Organization(id=1, name="bar")
         update_tracked_data(inst)
         self.assertFalse(has_changed(inst, "name"))
 
-    def test_name_has_changes_before_save(self):
+    def test_name_has_changes_before_save(self) -> None:
         inst = Organization(id=1, name="bar")
         update_tracked_data(inst)
         inst.name = "baz"
         self.assertTrue(has_changed(inst, "name"))
         self.assertEqual(old_value(inst, "name"), "bar")
 
-    def test_name_hasnt_changed_after_save(self):
+    def test_name_hasnt_changed_after_save(self) -> None:
         inst = Organization(id=1, name="bar")
         update_tracked_data(inst)
         inst.name = "baz"
@@ -226,7 +226,7 @@ class Require2fa(TestCase, HybridCloudTestMixin):
             assert member.token is None
             assert member.token_expires_at is None
 
-    def test_handle_2fa_required__compliant_and_non_compliant_members(self):
+    def test_handle_2fa_required__compliant_and_non_compliant_members(self) -> None:
         compliant_user, compliant_member = self._create_user_and_member(has_2fa=True)
         non_compliant_user, non_compliant_member = self._create_user_and_member()
 
@@ -259,7 +259,7 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         assert audit_logs[0].data["email"] == non_compliant_user.email
         assert audit_logs[0].target_user_id == non_compliant_user.id
 
-    def test_handle_2fa_required__compliant_members(self):
+    def test_handle_2fa_required__compliant_members(self) -> None:
         compliant = []
         for num in range(0, 4):
             user, member = self._create_user_and_member(has_2fa=True)
@@ -280,7 +280,7 @@ class Require2fa(TestCase, HybridCloudTestMixin):
                 actor=self.owner,
             ).exists()
 
-    def test_handle_2fa_required__non_compliant_members(self):
+    def test_handle_2fa_required__non_compliant_members(self) -> None:
         non_compliant = []
         for num in range(0, 4):
             user, member = self._create_user_and_member()
@@ -306,7 +306,7 @@ class Require2fa(TestCase, HybridCloudTestMixin):
                 actor=self.owner,
             ).count() == len(non_compliant)
 
-    def test_handle_2fa_required__pending_member__ok(self):
+    def test_handle_2fa_required__pending_member__ok(self) -> None:
         member = self.create_member(organization=self.org, email="bob@zombo.com")
         assert not member.user_id
 
@@ -409,12 +409,12 @@ class Require2fa(TestCase, HybridCloudTestMixin):
                 == 1
             )
 
-    def test_get_audit_log_data(self):
+    def test_get_audit_log_data(self) -> None:
         org = self.create_organization()
         result = org.get_audit_log_data()
         assert result["flags"] == int(org.flags)
 
-    def test_absolute_url_no_customer_domain(self):
+    def test_absolute_url_no_customer_domain(self) -> None:
         org = self.create_organization(owner=self.user, slug="acme")
         url = org.absolute_url("/organizations/acme/restore/")
         assert url == "http://testserver/organizations/acme/restore/"
@@ -423,7 +423,7 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         assert url == "http://testserver/organizations/acme/issues/?project=123#ref"
 
     @with_feature("system:multi-region")
-    def test_absolute_url_with_customer_domain(self):
+    def test_absolute_url_with_customer_domain(self) -> None:
         org = self.create_organization(owner=self.user, slug="acme")
         url = org.absolute_url("/organizations/acme/restore/")
         assert url == "http://acme.testserver/restore/"
@@ -434,7 +434,7 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         url = org.absolute_url("/organizations/acme/issues/", query="?project=123", fragment="#ref")
         assert url == "http://acme.testserver/issues/?project=123#ref"
 
-    def test_absolute_api_url(self):
+    def test_absolute_api_url(self) -> None:
         org = self.create_organization(owner=self.user, slug="acme")
         url = org.absolute_api_url("/restore/")
         assert url == "http://testserver/api/0/organizations/acme/restore/"
@@ -442,7 +442,7 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         url = org.absolute_api_url("/issues/", query="project=123", fragment="ref")
         assert url == "http://testserver/api/0/organizations/acme/issues/?project=123#ref"
 
-    def test_absolute_api_url_mising_slashes(self):
+    def test_absolute_api_url_mising_slashes(self) -> None:
         org = self.create_organization(owner=self.user, slug="acme")
         url = org.absolute_api_url("restore")
         assert url == "http://testserver/api/0/organizations/acme/restore/"
@@ -453,7 +453,7 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         url = org.absolute_api_url("issues/", query="project=123", fragment="ref")
         assert url == "http://testserver/api/0/organizations/acme/issues/?project=123#ref"
 
-    def test_absolute_api_url_extraneous_slashes(self):
+    def test_absolute_api_url_extraneous_slashes(self) -> None:
         org = self.create_organization(owner=self.user, slug="acme")
         url = org.absolute_api_url("/////restore/////")
         assert url == "http://testserver/api/0/organizations/acme/restore/"
@@ -464,7 +464,7 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         url = org.absolute_api_url("issues////", query="project=123", fragment="ref")
         assert url == "http://testserver/api/0/organizations/acme/issues/?project=123#ref"
 
-    def test_get_bulk_owner_profiles(self):
+    def test_get_bulk_owner_profiles(self) -> None:
         u1, u2, u3 = (self.create_user() for _ in range(3))
         o1, o2, o3 = (self.create_organization(owner=u) for u in (u1, u2, u3))
         o2.get_default_owner()  # populate _default_owner
@@ -492,7 +492,7 @@ class OrganizationDeletionTest(TestCase):
             NotificationSettingOption.objects.create(**args)
             NotificationSettingProvider.objects.create(**args, provider="slack")
 
-    def test_hybrid_cloud_deletion(self):
+    def test_hybrid_cloud_deletion(self) -> None:
         org = self.create_organization()
         user = self.create_user()
         with assume_test_silo_mode(SiloMode.CONTROL):

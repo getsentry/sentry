@@ -23,27 +23,27 @@ class UpdateCodeOwnersSchemaTest(TestCase):
         with mock.patch.object(ProjectCodeOwners, "update_schema") as self.mock_update:
             yield
 
-    def test_no_op(self):
+    def test_no_op(self) -> None:
         with self.feature("organizations:integrations-codeowners"):
             update_code_owners_schema(self.organization.id)
         self.mock_update.assert_not_called()
 
-    def test_with_project(self):
+    def test_with_project(self) -> None:
         with self.feature("organizations:integrations-codeowners"):
             update_code_owners_schema(self.organization.id, projects=[self.project.id])
         self.mock_update.assert_called_with(organization=self.organization)
 
-    def test_with_project_id(self):
+    def test_with_project_id(self) -> None:
         with self.feature("organizations:integrations-codeowners"):
             update_code_owners_schema(self.organization.id, projects=[self.project.id])
         self.mock_update.assert_called_with(organization=self.organization)
 
-    def test_with_integration(self):
+    def test_with_integration(self) -> None:
         with self.feature("organizations:integrations-codeowners"):
             update_code_owners_schema(self.organization.id, integration=self.integration.id)
         self.mock_update.assert_called_with(organization=self.organization)
 
-    def test_with_integration_id(self):
+    def test_with_integration_id(self) -> None:
         with self.feature("organizations:integrations-codeowners"):
             update_code_owners_schema(self.organization.id, integration=self.integration.id)
         self.mock_update.assert_called_with(organization=self.organization)

@@ -19,7 +19,7 @@ class DummyNotificationPlugin(CorePluginMixin, NotificationPlugin):
 
 
 class NotifyPluginTest(TestCase):
-    def test_notify_failure(self):
+    def test_notify_failure(self) -> None:
         errors = (
             ApiError("The server is sad"),
             SSLError("[SSL: UNKNOWN_PROTOCOL] unknown protocol (_ssl.c:590)"),
@@ -36,7 +36,7 @@ class NotifyPluginTest(TestCase):
             with mock.patch.object(DummyNotificationPlugin, "notify_users", side_effect=err):
                 n.notify(notification)  # does not raise!
 
-    def test_test_configuration_and_get_test_results(self):
+    def test_test_configuration_and_get_test_results(self) -> None:
         errors = (
             ApiError("The server is sad"),
             ApiHostError("host error"),
@@ -65,5 +65,5 @@ class DummyNotificationPluginTest(TestCase):
         self.group = self.event.group
         self.plugin = DummyNotificationPlugin()
 
-    def test_should_notify(self):
+    def test_should_notify(self) -> None:
         assert self.plugin.should_notify(self.group, self.event)

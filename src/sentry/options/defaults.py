@@ -504,6 +504,13 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Enables trace-item ingestion.
+register(
+    "replay.recording.ingest-trace-items.allow-list",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Feedback Options
 register(
@@ -849,6 +856,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "deletions.groups.use-new-task",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "issues.severity.first-event-severity-calculation-projects-allowlist",
     type=Sequence,

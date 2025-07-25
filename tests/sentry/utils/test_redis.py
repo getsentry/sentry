@@ -31,7 +31,7 @@ class ClusterManagerTestCase(TestCase):
     def setUp(self):
         imports._cache.clear()
 
-    def test_get(self):
+    def test_get(self) -> None:
         manager = RBClusterManager(_options_manager())
         assert manager.get("foo") is manager.get("foo")
         assert manager.get("foo") is not manager.get("bar")

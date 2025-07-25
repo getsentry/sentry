@@ -1,9 +1,11 @@
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
+import type {ButtonProps} from 'sentry/components/core/button';
 import type {SelectKey} from 'sentry/components/core/compactSelect';
 import type {FormPanelProps} from 'sentry/components/forms/formPanel';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
+import type {SentryRouteObject} from 'sentry/components/route';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
@@ -56,8 +58,8 @@ export type HookName = keyof Hooks;
  * Route hooks.
  */
 type RouteHooks = {
-  'routes:legacy-organization-redirects': RoutesHook;
-  'routes:root': RoutesHook;
+  'routes:legacy-organization-redirects': RouteObjectHook;
+  'routes:root': RouteObjectHook;
   'routes:settings': RoutesHook;
 };
 
@@ -314,6 +316,7 @@ type ReactHooks = {
   'react-hook:route-activated': (
     props: RouteContextInterface
   ) => React.ContextType<typeof RouteAnalyticsContext>;
+  'react-hook:use-button-tracking': (props: ButtonProps) => () => void;
   'react-hook:use-get-max-retention-days': () => number | undefined;
 };
 
@@ -336,6 +339,11 @@ type GenericComponentHook = () => React.ReactNode;
  * A route hook provides an injection point for a list of routes.
  */
 type RoutesHook = () => Route[];
+
+/**
+ * A route hook provides an injection point for a list of routes.
+ */
+type RouteObjectHook = () => SentryRouteObject;
 
 /**
  * Receives an organization object and should return a React node.

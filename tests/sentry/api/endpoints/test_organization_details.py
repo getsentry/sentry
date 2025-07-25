@@ -90,7 +90,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
     def now(self):
         return datetime.now().replace(microsecond=0)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         response = self.get_success_response(
             self.organization.slug, qs_params={"include_feature_flags": 1}
         )
@@ -106,7 +106,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         assert len(response.data["teams"]) == 0
         assert len(response.data["projects"]) == 0
 
-    def test_include_feature_flag_query_param(self):
+    def test_include_feature_flag_query_param(self) -> None:
         response = self.get_success_response(
             self.organization.slug, qs_params={"include_feature_flags": 1}
         )
@@ -115,7 +115,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         response = self.get_success_response(self.organization.slug)
         assert "features" not in response.data
 
-    def test_simple_customer_domain(self):
+    def test_simple_customer_domain(self) -> None:
         HTTP_HOST = f"{self.organization.slug}.testserver"
         response = self.get_success_response(
             self.organization.slug,
@@ -142,13 +142,13 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
                 qs_params={"include_feature_flags": 1},
             )
 
-    def test_org_mismatch_customer_domain(self):
+    def test_org_mismatch_customer_domain(self) -> None:
         HTTP_HOST = f"{self.organization.slug}-apples.testserver"
         self.get_error_response(
             self.organization.slug, status_code=404, extra_headers={"HTTP_HOST": HTTP_HOST}
         )
 
-    def test_with_projects(self):
+    def test_with_projects(self) -> None:
         # Create non-member team to test response shape
         self.create_team(name="no-member", organization=self.organization)
 
@@ -193,7 +193,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         assert len(team_slugs) == 2
         assert "deleted" not in team_slugs
 
-    def test_details_no_projects_or_teams(self):
+    def test_details_no_projects_or_teams(self) -> None:
         # Create non-member team to test response shape
         self.create_team(name="no-member", organization=self.organization)
 
@@ -205,7 +205,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         assert "projects" not in response.data
         assert "teams" not in response.data
 
-    def test_as_no_org_read_user(self):
+    def test_as_no_org_read_user(self) -> None:
         with patch("sentry.auth.access.Access.has_scope", MockAccess().has_scope):
             response = self.get_success_response(self.organization.slug)
 
@@ -214,7 +214,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
             assert "teams" not in response.data
             assert "orgRoleList" not in response.data
 
-    def test_as_superuser(self):
+    def test_as_superuser(self) -> None:
         self.superuser = self.create_user(is_superuser=True)
         team = self.create_team(name="appy", organization=self.organization)
 
@@ -229,7 +229,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
     def get_onboard_tasks(self, tasks, task_type):
         return [task for task in tasks if task["task"] == task_type]
 
-    def test_onboarding_tasks(self):
+    def test_onboarding_tasks(self) -> None:
         response = self.get_success_response(self.organization.slug)
         assert not self.get_onboard_tasks(response.data["onboardingTasks"], "create_project")
         assert response.data["id"] == str(self.organization.id)
@@ -240,7 +240,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         response = self.get_success_response(self.organization.slug)
         assert self.get_onboard_tasks(response.data["onboardingTasks"], "create_project")
 
-    def test_trusted_relays_info(self):
+    def test_trusted_relays_info(self) -> None:
         with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
@@ -281,7 +281,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
             created = datetime.fromisoformat(response_data[i]["created"])
             assert start_time < created < end_time
 
-    def test_has_auth_provider(self):
+    def test_has_auth_provider(self) -> None:
         response = self.get_success_response(self.organization.slug)
         assert response.data["hasAuthProvider"] is False
 
@@ -291,7 +291,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         response = self.get_success_response(self.organization.slug)
         assert response.data["hasAuthProvider"] is True
 
-    def test_is_dynamically_sampled(self):
+    def test_is_dynamically_sampled(self) -> None:
         with self.feature({"organizations:dynamic-sampling": True}):
             with patch(
                 "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
@@ -328,7 +328,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
                 assert not response.data["isDynamicallySampled"]
                 assert "planSampleRate" not in response.data
 
-    def test_is_dynamically_sampled_no_org_option(self):
+    def test_is_dynamically_sampled_no_org_option(self) -> None:
         with self.feature({"organizations:dynamic-sampling-custom": True}):
             with patch(
                 "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
@@ -337,7 +337,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
                 response = self.get_success_response(self.organization.slug)
                 assert response.data["isDynamicallySampled"]
 
-    def test_is_dynamically_sampled_org_option(self):
+    def test_is_dynamically_sampled_org_option(self) -> None:
         self.organization.update_option(
             "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
         )
@@ -356,7 +356,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
             response = self.get_success_response(self.organization.slug)
             assert not response.data["isDynamicallySampled"]
 
-    def test_is_dynamically_sampled_proj_option(self):
+    def test_is_dynamically_sampled_proj_option(self) -> None:
         proj_1 = self.create_project(organization=self.organization)
         proj_2 = self.create_project(organization=self.organization)
 
@@ -374,7 +374,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
             assert "planSampleRate" not in response.data
             assert "desiredSampleRate" not in response.data
 
-    def test_dynamic_sampling_custom_target_sample_rate(self):
+    def test_dynamic_sampling_custom_target_sample_rate(self) -> None:
         with self.feature({"organizations:dynamic-sampling-custom": True}):
             response = self.get_success_response(self.organization.slug)
             assert response.data["targetSampleRate"] == 1.0
@@ -383,7 +383,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
             response = self.get_success_response(self.organization.slug)
             assert "targetSampleRate" not in response.data
 
-    def test_dynamic_sampling_custom_sampling_mode(self):
+    def test_dynamic_sampling_custom_sampling_mode(self) -> None:
         with self.feature({"organizations:dynamic-sampling-custom": True}):
             response = self.get_success_response(self.organization.slug)
             assert response.data["samplingMode"] == "organization"
@@ -393,7 +393,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
             assert "samplingMode" not in response.data
 
     @django_db_all
-    def test_sampling_mode_project_to_org(self):
+    def test_sampling_mode_project_to_org(self) -> None:
         """
         Test changing sampling mode from project-level to organization-level:
         - Should set org-level target sample rate to the blended rate
@@ -427,7 +427,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         )
 
     @django_db_all
-    def test_sampling_mode_retains_target_sample_rate(self):
+    def test_sampling_mode_retains_target_sample_rate(self) -> None:
         """
         Test that changing sampling mode while not providing a new targetSampleRate
         retains the previous targetSampleRate value
@@ -446,7 +446,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         assert self.organization.get_option("sentry:target_sample_rate") == 0.4
 
     @django_db_all
-    def test_cannot_set_target_sample_rate_in_project_mode(self):
+    def test_cannot_set_target_sample_rate_in_project_mode(self) -> None:
         """
         Test that setting targetSampleRate while in project sampling mode raises an error
         """
@@ -463,7 +463,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         }
 
     @django_db_all
-    def test_sampling_mode_default_when_not_set(self):
+    def test_sampling_mode_default_when_not_set(self) -> None:
         """
         Test that when sentry:sampling_mode is not set, it uses SAMPLING_MODE_DEFAULT
         when validating targetSampleRate
@@ -479,7 +479,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         assert self.organization.get_option("sentry:target_sample_rate") == 0.5
 
     @django_db_all
-    def test_sampling_mode_org_to_project(self):
+    def test_sampling_mode_org_to_project(self) -> None:
         """
         Test changing sampling mode from organization-level to project-level:
         - Should preserve existing project rates
@@ -514,7 +514,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         assert not self.organization.get_option("sentry:target_sample_rate")
 
     @django_db_all
-    def test_change_just_org_target_sample_rate(self):
+    def test_change_just_org_target_sample_rate(self) -> None:
         self.organization.update_option(
             "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
         )
@@ -542,7 +542,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         assert self.organization.get_option("sentry:target_sample_rate") == 0.1
 
     @django_db_all
-    def test_sampling_mode_change_requires_write_scope(self):
+    def test_sampling_mode_change_requires_write_scope(self) -> None:
         """
         Test that changing sampling mode requires org:write scope
         """
@@ -565,7 +565,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
 
     @django_db_all
     @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
-    def test_sampling_mode_change_with_deleted_projects_that_had_metrics(self):
+    def test_sampling_mode_change_with_deleted_projects_that_had_metrics(self) -> None:
         project_1 = self.create_project(organization=self.organization)
         project_2 = self.create_project(organization=self.organization)
 
@@ -611,12 +611,12 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
             project_id=project_2.id, key="sentry:target_sample_rate"
         )
 
-    def test_sensitive_fields_too_long(self):
+    def test_sensitive_fields_too_long(self) -> None:
         value = 1000 * ["0123456789"] + ["1"]
         resp = self.get_response(self.organization.slug, method="put", sensitiveFields=value)
         assert resp.status_code == 400
 
-    def test_with_avatar_image(self):
+    def test_with_avatar_image(self) -> None:
         organization = self.organization
         OrganizationAvatar.objects.create(
             organization_id=organization.id,
@@ -634,7 +634,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
             == generate_region_url() + "/organization-avatar/abc123/"
         )
 
-    def test_old_orgs_with_options_do_not_get_onboarding_feature_flag(self):
+    def test_old_orgs_with_options_do_not_get_onboarding_feature_flag(self) -> None:
         with self.feature("organizations:onboarding"):
             old_date = datetime(2023, 12, 31, tzinfo=UTC)
             old_org = self.create_organization(name="old-org", date_added=old_date, owner=self.user)
@@ -647,7 +647,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
             )
             assert "onboarding" not in response.data["features"]
 
-    def test_new_orgs_with_options_get_onboarding_feature_flag(self):
+    def test_new_orgs_with_options_get_onboarding_feature_flag(self) -> None:
         with self.feature("organizations:onboarding"):
             newer_date = datetime(2024, 12, 31, tzinfo=UTC)
             new_org = self.create_organization(date_added=newer_date, owner=self.user)
@@ -660,7 +660,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
             )
             assert "onboarding" in response.data["features"]
 
-    def test_new_orgs_with_options_do_not_get_onboarding_feature_flag(self):
+    def test_new_orgs_with_options_do_not_get_onboarding_feature_flag(self) -> None:
         with self.feature("organizations:onboarding"):
             newer_date = datetime(2024, 12, 31, tzinfo=UTC)
             new_org = self.create_organization(date_added=newer_date, owner=self.user)
@@ -679,14 +679,14 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
 class OrganizationUpdateTest(OrganizationDetailsTestBase):
     method = "put"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.get_success_response(self.organization.slug, name="hello world", slug="foobar")
 
         org = Organization.objects.get(id=self.organization.id)
         assert org.name == "hello world"
         assert org.slug == "foobar"
 
-    def test_include_feature_flag_query_param(self):
+    def test_include_feature_flag_query_param(self) -> None:
         response = self.get_success_response(
             self.organization.slug, qs_params={"include_feature_flags": 1}
         )
@@ -695,25 +695,25 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         response = self.get_success_response(self.organization.slug)
         assert "features" not in response.data
 
-    def test_dupe_slug(self):
+    def test_dupe_slug(self) -> None:
         org = self.create_organization(owner=self.user, slug="duplicate")
 
         self.get_error_response(self.organization.slug, slug=org.slug, status_code=400)
 
-    def test_short_slug(self):
+    def test_short_slug(self) -> None:
         self.get_error_response(self.organization.slug, slug="a", status_code=400)
 
-    def test_reserved_slug(self):
+    def test_reserved_slug(self) -> None:
         illegal_slug = list(RESERVED_ORGANIZATION_SLUGS)[0]
         self.get_error_response(self.organization.slug, slug=illegal_slug, status_code=400)
 
-    def test_valid_slugs(self):
+    def test_valid_slugs(self) -> None:
         valid_slugs = ["santry", "downtown-canada", "1234-foo"]
         for slug in valid_slugs:
             self.organization.refresh_from_db()
             self.get_success_response(self.organization.slug, slug=slug)
 
-    def test_invalid_slugs(self):
+    def test_invalid_slugs(self) -> None:
         self.get_error_response(self.organization.slug, slug=" i have whitespace ", status_code=400)
         self.get_error_response(self.organization.slug, slug="foo-bar ", status_code=400)
         self.get_error_response(self.organization.slug, slug="bird-company!", status_code=400)
@@ -724,7 +724,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_error_response(self.organization.slug, slug="1234", status_code=400)
         self.get_error_response(self.organization.slug, slug="I-contain-UPPERCASE", status_code=400)
 
-    def test_upload_avatar(self):
+    def test_upload_avatar(self) -> None:
         data = {
             "avatarType": "upload",
             "avatar": b64encode(self.load_fixture("avatar.jpg")),
@@ -880,11 +880,11 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {"codecovAccess": True}
         self.get_error_response(self.organization.slug, status_code=400, **data)
 
-    def test_setting_codecov_without_paid_plan_forbidden(self):
+    def test_setting_codecov_without_paid_plan_forbidden(self) -> None:
         data = {"codecovAccess": True}
         self.get_error_response(self.organization.slug, status_code=403, **data)
 
-    def test_setting_trusted_relays_forbidden(self):
+    def test_setting_trusted_relays_forbidden(self) -> None:
         data = {
             "trustedRelays": [
                 {"publicKey": _VALID_RELAY_KEYS[0], "name": "name1"},
@@ -897,7 +897,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         assert b"feature" in response.content
 
-    def test_setting_duplicate_trusted_keys(self):
+    def test_setting_duplicate_trusted_keys(self) -> None:
         """
         Test that you cannot set duplicated keys
 
@@ -935,7 +935,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         # check that we have the duplicate key specified somewhere in the error message
         assert resp_str.find(_VALID_RELAY_KEYS[0]) >= 0
 
-    def test_creating_trusted_relays(self):
+    def test_creating_trusted_relays(self) -> None:
         with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
@@ -991,7 +991,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert trusted_relays[0]["publicKey"] in trusted_relay_log
         assert trusted_relays[1]["publicKey"] in trusted_relay_log
 
-    def test_modifying_trusted_relays(self):
+    def test_modifying_trusted_relays(self) -> None:
         with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
@@ -1091,7 +1091,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         for i in range(len(modified_trusted_relays)):
             assert modified_trusted_relays[i]["publicKey"] in modif_log
 
-    def test_deleting_trusted_relays(self):
+    def test_deleting_trusted_relays(self) -> None:
         with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
@@ -1116,7 +1116,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert len(actual) == 0
         assert len(response_data) == 0
 
-    def test_setting_legacy_rate_limits(self):
+    def test_setting_legacy_rate_limits(self) -> None:
         data = {"accountRateLimit": 1000}
         self.get_error_response(self.organization.slug, status_code=400, **data)
 
@@ -1141,7 +1141,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             == 50
         )
 
-    def test_safe_fields_as_string_regression(self):
+    def test_safe_fields_as_string_regression(self) -> None:
         data = {"safeFields": "email"}
         self.get_error_response(self.organization.slug, status_code=400, **data)
         org = Organization.objects.get(id=self.organization.id)
@@ -1150,7 +1150,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         assert not options.get("sentry:safe_fields")
 
-    def test_manager_cannot_set_default_role(self):
+    def test_manager_cannot_set_default_role(self) -> None:
         org = self.create_organization(owner=self.user)
         user = self.create_user("baz@example.com")
         self.create_member(organization=org, user=user, role="manager")
@@ -1161,7 +1161,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         assert org.default_role == "member"
 
-    def test_empty_string_in_array_safe_fields(self):
+    def test_empty_string_in_array_safe_fields(self) -> None:
         self.get_error_response(self.organization.slug, status_code=400, **{"safeFields": [""]})
         org = Organization.objects.get(id=self.organization.id)
 
@@ -1169,7 +1169,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         assert not options.get("sentry:safe_fields")
 
-    def test_empty_string_in_array_sensitive_fields(self):
+    def test_empty_string_in_array_sensitive_fields(self) -> None:
         OrganizationOption.objects.set_value(
             self.organization, "sentry:sensitive_fields", ["foobar"]
         )
@@ -1183,7 +1183,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         assert options.get("sentry:sensitive_fields") == ["foobar"]
 
-    def test_empty_sensitive_fields(self):
+    def test_empty_sensitive_fields(self) -> None:
         OrganizationOption.objects.set_value(
             self.organization, "sentry:sensitive_fields", ["foobar"]
         )
@@ -1195,7 +1195,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         assert not options.get("sentry:sensitive_fields")
 
-    def test_cancel_delete(self):
+    def test_cancel_delete(self) -> None:
         org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
         RegionScheduledDeletion.schedule(org, days=1)
 
@@ -1207,14 +1207,14 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             model_name="Organization", object_id=org.id
         ).exists()
 
-    def test_relay_pii_config(self):
+    def test_relay_pii_config(self) -> None:
         value = '{"applications": {"freeform": []}}'
         response = self.get_success_response(self.organization.slug, **{"relayPiiConfig": value})
 
         assert self.organization.get_option("sentry:relay_pii_config") == value
         assert response.data["relayPiiConfig"] == value
 
-    def test_store_crash_reports_exceeded(self):
+    def test_store_crash_reports_exceeded(self) -> None:
         # Uses a hard-coded number of MAX + 1 for regression testing.
         #
         # DO NOT INCREASE this number without checking the logic in event
@@ -1226,7 +1226,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert self.organization.get_option("sentry:store_crash_reports") is None
         assert b"storeCrashReports" in resp.content
 
-    def test_update_name_with_mapping_and_slug_reservation(self):
+    def test_update_name_with_mapping_and_slug_reservation(self) -> None:
         response = self.get_success_response(self.organization.slug, name="SaNtRy")
 
         organization_id = response.data["id"]
@@ -1238,7 +1238,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                 organization_id=organization_id, name="SaNtRy"
             ).exists()
 
-    def test_update_slug(self):
+    def test_update_slug(self) -> None:
         with outbox_runner():
             pass
 
@@ -1262,11 +1262,11 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         org_slug_res.refresh_from_db()
         assert org_slug_res.slug == desired_slug
 
-    def test_org_mapping_already_taken(self):
+    def test_org_mapping_already_taken(self) -> None:
         self.create_organization(slug="taken")
         self.get_error_response(self.organization.slug, slug="taken", status_code=400)
 
-    def test_target_sample_rate_feature(self):
+    def test_target_sample_rate_feature(self) -> None:
         with self.feature("organizations:dynamic-sampling-custom"):
             data = {"targetSampleRate": 0.1}
             self.get_success_response(self.organization.slug, **data)
@@ -1275,7 +1275,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             data = {"targetSampleRate": 0.1}
             self.get_error_response(self.organization.slug, status_code=400, **data)
 
-    def test_ingest_through_trusted_relays_only_option(self):
+    def test_ingest_through_trusted_relays_only_option(self) -> None:
         # by default option is not set
         assert self.organization.get_option("sentry:ingest-through-trusted-relays-only") is None
 
@@ -1296,16 +1296,16 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             self.get_error_response(self.organization.slug, status_code=400, **data)
 
     @with_feature("organizations:ingest-through-trusted-relays-only")
-    def test_get_ingest_through_trusted_relays_only_option(self):
+    def test_get_ingest_through_trusted_relays_only_option(self) -> None:
         response = self.get_success_response(self.organization.slug)
         assert response.data["ingestThroughTrustedRelaysOnly"] == "disabled"
 
-    def test_get_ingest_through_trusted_relays_only_option_without_feature(self):
+    def test_get_ingest_through_trusted_relays_only_option_without_feature(self) -> None:
         response = self.get_success_response(self.organization.slug)
         assert "ingestThroughTrustedRelaysOnly" not in response.data
 
     @with_feature("organizations:dynamic-sampling-custom")
-    def test_target_sample_rate_range(self):
+    def test_target_sample_rate_range(self) -> None:
         # low, within and high
         data = {"targetSampleRate": 0.0}
         self.get_success_response(self.organization.slug, **data)
@@ -1324,7 +1324,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {"targetSampleRate": 1.1}
         self.get_error_response(self.organization.slug, status_code=400, **data)
 
-    def test_sampling_mode_feature(self):
+    def test_sampling_mode_feature(self) -> None:
         with self.feature("organizations:dynamic-sampling-custom"):
             data = {"samplingMode": "project"}
             self.get_success_response(self.organization.slug, **data)
@@ -1334,7 +1334,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             self.get_error_response(self.organization.slug, status_code=400, **data)
 
     @with_feature("organizations:dynamic-sampling-custom")
-    def test_sampling_mode_values(self):
+    def test_sampling_mode_values(self) -> None:
         # project
         data = {"samplingMode": "project"}
         self.get_success_response(self.organization.slug, **data)
@@ -1348,13 +1348,13 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_error_response(self.organization.slug, status_code=400, **data)
 
     @with_feature("organizations:trigger-autofix-on-issue-summary")
-    def test_default_autofix_automation_tuning_feature_enabled(self):
+    def test_default_autofix_automation_tuning_feature_enabled(self) -> None:
         data = {"defaultAutofixAutomationTuning": "high"}
         self.get_success_response(self.organization.slug, **data)
         assert self.organization.get_option("sentry:default_autofix_automation_tuning") == "high"
 
     @with_feature({"organizations:trigger-autofix-on-issue-summary": False})
-    def test_default_autofix_automation_tuning_feature_disabled(self):
+    def test_default_autofix_automation_tuning_feature_disabled(self) -> None:
         data = {"defaultAutofixAutomationTuning": "high"}
         response = self.get_error_response(self.organization.slug, status_code=400, **data)
         assert response.data["defaultAutofixAutomationTuning"] == [
@@ -1363,7 +1363,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert self.organization.get_option("sentry:default_autofix_automation_tuning") is None
 
     @with_feature({"organizations:trigger-autofix-on-issue-summary": False})
-    def test_default_seer_scanner_automation_feature_disabled(self):
+    def test_default_seer_scanner_automation_feature_disabled(self) -> None:
         data = {"defaultSeerScannerAutomation": True}
         response = self.get_error_response(self.organization.slug, status_code=400, **data)
         assert response.data["defaultSeerScannerAutomation"] == [
@@ -1371,13 +1371,13 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         ]
 
     @with_feature({"organizations:trigger-autofix-on-issue-summary": True})
-    def test_default_seer_scanner_automation_feature_enabled(self):
+    def test_default_seer_scanner_automation_feature_enabled(self) -> None:
         data = {"defaultSeerScannerAutomation": True}
         self.get_success_response(self.organization.slug, **data)
         assert self.organization.get_option("sentry:default_seer_scanner_automation") is True
 
     @with_feature({"organizations:project-creation-games-tab": False})
-    def test_enabled_console_platforms_feature_not_enabled(self):
+    def test_enabled_console_platforms_feature_not_enabled(self) -> None:
         staff_user = self.create_user(is_staff=True)
         self.create_member(organization=self.organization, user=staff_user, role="owner")
         self.login_as(user=staff_user, staff=True)
@@ -1392,13 +1392,13 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "enabledConsolePlatforms" not in response.data
 
     @with_feature({"organizations:project-creation-games-tab": True})
-    def test_enabled_console_platforms_feature_enabled(self):
+    def test_enabled_console_platforms_feature_enabled(self) -> None:
         response = self.get_success_response(self.organization.slug)
         assert "enabledConsolePlatforms" in response.data
         assert response.data["enabledConsolePlatforms"] == []
 
     @with_feature({"organizations:project-creation-games-tab": False})
-    def test_enabled_console_platforms_no_staff_member(self):
+    def test_enabled_console_platforms_no_staff_member(self) -> None:
         data = {"enabledConsolePlatforms": ["playstation", "xbox"]}
         response = self.get_error_response(self.organization.slug, status_code=400, **data)
         assert response.data["enabledConsolePlatforms"] == [
@@ -1406,7 +1406,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         ]
 
     @with_feature({"organizations:project-creation-games-tab": True})
-    def test_enabled_console_platforms_multiple_platforms_parameter(self):
+    def test_enabled_console_platforms_multiple_platforms_parameter(self) -> None:
         staff_user = self.create_user(is_staff=True)
         self.create_member(organization=self.organization, user=staff_user, role="owner")
         self.login_as(user=staff_user, staff=True)
@@ -1416,19 +1416,53 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         enabled_platforms = self.organization.get_option("sentry:enabled_console_platforms")
         assert len(enabled_platforms) == 2 and set(enabled_platforms) == {"playstation", "xbox"}
 
+        with outbox_runner():
+            pass
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            audit_entry = AuditLogEntry.objects.get(
+                event=audit_log.get_event_id("ORG_CONSOLE_PLATFORM_EDIT")
+            )
+            audit_log_event = audit_log.get(audit_entry.event)
+            assert audit_log_event.render(audit_entry) == "Enabled platforms: PlayStation, Xbox"
+
+            # Verify console platforms are NOT in the main ORG_EDIT audit log
+            # (Since this test only changes console platforms, there should be no ORG_EDIT log)
+            org_edit_logs = AuditLogEntry.objects.filter(
+                organization_id=self.organization.id, event=audit_log.get_event_id("ORG_EDIT")
+            )
+            assert org_edit_logs.count() == 0
+
     @with_feature({"organizations:project-creation-games-tab": True})
-    def test_enabled_console_platforms_empty_platforms_parameter(self):
+    def test_enabled_console_platforms_empty_platforms_parameter(self) -> None:
         staff_user = self.create_user(is_staff=True)
         self.create_member(organization=self.organization, user=staff_user, role="owner")
         self.login_as(user=staff_user, staff=True)
+
+        self.organization.update_option(
+            "sentry:enabled_console_platforms", ["playstation", "nintendo-switch"]
+        )
 
         data: dict[str, list[str]] = {"enabledConsolePlatforms": []}
         self.get_success_response(self.organization.slug, **data)
         enabled_platforms = self.organization.get_option("sentry:enabled_console_platforms")
         assert enabled_platforms == []
 
+        with outbox_runner():
+            pass
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            audit_entry = AuditLogEntry.objects.get(
+                event=audit_log.get_event_id("ORG_CONSOLE_PLATFORM_EDIT")
+            )
+            audit_log_event = audit_log.get(audit_entry.event)
+            assert (
+                audit_log_event.render(audit_entry)
+                == "Disabled platforms: Nintendo Switch, PlayStation"
+            )
+
     @with_feature({"organizations:project-creation-games-tab": True})
-    def test_enabled_console_platforms_duplicate_platform_parameter(self):
+    def test_enabled_console_platforms_duplicate_platform_parameter(self) -> None:
         staff_user = self.create_user(is_staff=True)
         self.create_member(organization=self.organization, user=staff_user, role="owner")
         self.login_as(user=staff_user, staff=True)
@@ -1438,17 +1472,53 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         enabled_platforms = self.organization.get_option("sentry:enabled_console_platforms")
         assert enabled_platforms == ["playstation"]
 
-    def test_enable_pr_review_test_generation_default_true(self):
+        with outbox_runner():
+            pass
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            audit_entry = AuditLogEntry.objects.get(
+                event=audit_log.get_event_id("ORG_CONSOLE_PLATFORM_EDIT")
+            )
+            audit_log_event = audit_log.get(audit_entry.event)
+            assert audit_log_event.render(audit_entry) == "Enabled platforms: PlayStation"
+
+    @with_feature({"organizations:project-creation-games-tab": True})
+    def test_enabled_and_disabled_console_platforms(self) -> None:
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=staff_user, role="owner")
+        self.login_as(user=staff_user, staff=True)
+
+        self.organization.update_option("sentry:enabled_console_platforms", ["nintendo-switch"])
+
+        data = {"enabledConsolePlatforms": ["playstation", "xbox"]}
+        self.get_success_response(self.organization.slug, **data)
+        enabled_platforms = self.organization.get_option("sentry:enabled_console_platforms")
+        assert set(enabled_platforms) == {"playstation", "xbox"}
+
+        with outbox_runner():
+            pass
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            audit_entry = AuditLogEntry.objects.get(
+                event=audit_log.get_event_id("ORG_CONSOLE_PLATFORM_EDIT")
+            )
+            audit_log_event = audit_log.get(audit_entry.event)
+            assert (
+                audit_log_event.render(audit_entry)
+                == "Enabled platforms: PlayStation, Xbox; Disabled platforms: Nintendo Switch"
+            )
+
+    def test_enable_pr_review_test_generation_default_true(self) -> None:
         response = self.get_success_response(self.organization.slug)
         assert response.data["enablePrReviewTestGeneration"] is True
 
-    def test_enable_pr_review_test_generation_can_be_disabled(self):
+    def test_enable_pr_review_test_generation_can_be_disabled(self) -> None:
         data = {"enablePrReviewTestGeneration": False}
         self.get_success_response(self.organization.slug, **data)
 
         assert self.organization.get_option("sentry:enable_pr_review_test_generation") is False
 
-    def test_enable_pr_review_test_generation_can_be_enabled(self):
+    def test_enable_pr_review_test_generation_can_be_enabled(self) -> None:
         # First disable it
         self.organization.update_option("sentry:enable_pr_review_test_generation", False)
 
@@ -1461,7 +1531,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 class OrganizationDeleteTest(OrganizationDetailsTestBase):
     method = "delete"
 
-    def test_can_remove_as_owner(self):
+    def test_can_remove_as_owner(self) -> None:
         owners = self.organization.get_owners()
         assert len(owners) > 0
 
@@ -1500,7 +1570,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
                 organization_id=self.organization.id, actor=self.user.id
             ).exists()
 
-    def test_cannot_remove_as_admin(self):
+    def test_cannot_remove_as_admin(self) -> None:
         org = self.create_organization(owner=self.user)
         user = self.create_user(email="foo@example.com", is_superuser=False)
         self.create_member(organization=org, user=user, role="admin")
@@ -1509,7 +1579,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
 
         self.get_error_response(org.slug, status_code=403)
 
-    def test_cannot_remove_default(self):
+    def test_cannot_remove_default(self) -> None:
         with unguarded_write(using=router.db_for_write(Organization)):
             Organization.objects.all().delete()
         org = self.create_organization(owner=self.user)
@@ -1517,7 +1587,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         with self.settings(SENTRY_SINGLE_ORGANIZATION=True):
             self.get_error_response(org.slug, status_code=400)
 
-    def test_redo_deletion(self):
+    def test_redo_deletion(self) -> None:
         # Orgs can delete, undelete, delete within a day
         org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
         RegionScheduledDeletion.schedule(org, days=1)
@@ -1533,7 +1603,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         assert scheduled_deletions.exists()
         assert scheduled_deletions.count() == 1
 
-    def test_update_org_mapping_on_deletion(self):
+    def test_update_org_mapping_on_deletion(self) -> None:
         with assume_test_silo_mode_of(OrganizationMapping):
             org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
         assert org_mapping.status == OrganizationStatus.ACTIVE
@@ -1549,13 +1619,13 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         org_mapping.refresh_from_db()
         assert org_mapping.status == OrganizationStatus.PENDING_DELETION
 
-    def test_organization_does_not_exist(self):
+    def test_organization_does_not_exist(self) -> None:
         with unguarded_write(using=router.db_for_write(Organization)):
             Organization.objects.all().delete()
 
         self.get_error_response("nonexistent-slug", status_code=404)
 
-    def test_published_sentry_app(self):
+    def test_published_sentry_app(self) -> None:
         """Test that we do not allow an organization who has a published sentry app to be deleted"""
         org = self.create_organization(name="test", owner=self.user)
         self.create_sentry_app(
@@ -1630,7 +1700,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         assert audit_log_entry.data
         assert audit_log_entry.ip_address == "127.0.0.1"
 
-    def test_cannot_enforce_2fa_without_2fa_enabled(self):
+    def test_cannot_enforce_2fa_without_2fa_enabled(self) -> None:
         with assume_test_silo_mode_of(Authenticator):
             assert not self.owner.has_2fa()
         self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400, ERR_NO_2FA)
@@ -1641,7 +1711,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
             assert not self.owner.has_2fa()
         self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400, ERR_NO_2FA)
 
-    def test_cannot_enforce_2fa_with_sso_enabled(self):
+    def test_cannot_enforce_2fa_with_sso_enabled(self) -> None:
         with assume_test_silo_mode_of(AuthProvider):
             auth_provider = AuthProvider.objects.create(
                 provider="github", organization_id=self.organization.id
@@ -1653,7 +1723,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
 
         self.assert_cannot_enable_org_2fa(self.organization, self.has_2fa, 400, ERR_SSO_ENABLED)
 
-    def test_cannot_enforce_2fa_with_saml_enabled(self):
+    def test_cannot_enforce_2fa_with_saml_enabled(self) -> None:
         with assume_test_silo_mode_of(AuthProvider):
             auth_provider = AuthProvider.objects.create(
                 provider="saml2", organization_id=self.organization.id
@@ -1665,7 +1735,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
 
         self.assert_cannot_enable_org_2fa(self.organization, self.has_2fa, 400, ERR_SSO_ENABLED)
 
-    def test_owner_can_set_2fa_single_member(self):
+    def test_owner_can_set_2fa_single_member(self) -> None:
         org = self.create_organization(owner=self.owner)
         with assume_test_silo_mode_of(Authenticator):
             TotpInterface().enroll(self.owner)
@@ -1673,7 +1743,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
             self.assert_can_enable_org_2fa(org, self.owner)
         assert len(mail.outbox) == 0
 
-    def test_manager_can_set_2fa(self):
+    def test_manager_can_set_2fa(self) -> None:
         org = self.create_organization(owner=self.owner)
         self.create_member(organization=org, user=self.manager, role="manager")
 
@@ -1688,13 +1758,13 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
             acting_user=self.manager, target_user=self.owner, organization=org
         )
 
-    def test_members_cannot_set_2fa(self):
+    def test_members_cannot_set_2fa(self) -> None:
         self.assert_cannot_enable_org_2fa(self.organization, self.org_user, 403)
         with assume_test_silo_mode_of(Authenticator):
             TotpInterface().enroll(self.org_user)
         self.assert_cannot_enable_org_2fa(self.organization, self.org_user, 403)
 
-    def test_owner_can_set_org_2fa(self):
+    def test_owner_can_set_org_2fa(self) -> None:
         org = self.create_organization(owner=self.owner)
         with assume_test_silo_mode_of(Authenticator):
             TotpInterface().enroll(self.owner)
@@ -1720,7 +1790,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         assert not Organization.objects.get(id=org.id).flags.require_2fa
         assert len(mail.outbox) == 0
 
-    def test_preexisting_members_must_enable_2fa(self):
+    def test_preexisting_members_must_enable_2fa(self) -> None:
         self.login_as(self.no_2fa_user)
         self.get_error_response(self.org_2fa.slug, status_code=401)
 
@@ -1728,7 +1798,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
             TotpInterface().enroll(self.no_2fa_user)
         self.get_success_response(self.org_2fa.slug)
 
-    def test_new_member_must_enable_2fa(self):
+    def test_new_member_must_enable_2fa(self) -> None:
         new_user = self.create_user()
         self.create_member(organization=self.org_2fa, user=new_user, role="member")
         self.login_as(new_user)
@@ -1738,7 +1808,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
             TotpInterface().enroll(new_user)
         self.get_success_response(self.org_2fa.slug)
 
-    def test_member_disable_all_2fa_blocked(self):
+    def test_member_disable_all_2fa_blocked(self) -> None:
         with assume_test_silo_mode_of(Authenticator):
             TotpInterface().enroll(self.no_2fa_user)
         self.login_as(self.no_2fa_user)
@@ -1749,7 +1819,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
             Authenticator.objects.get(user=self.no_2fa_user).delete()
         self.get_error_response(self.org_2fa.slug, status_code=401)
 
-    def test_superuser_can_access_org_details(self):
+    def test_superuser_can_access_org_details(self) -> None:
         superuser = self.create_user(is_superuser=True)
         self.login_as(superuser, superuser=True)
         self.get_success_response(self.org_2fa.slug)

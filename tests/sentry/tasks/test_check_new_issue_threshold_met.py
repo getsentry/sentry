@@ -49,10 +49,10 @@ class CheckNewIssueThresholdMetTest(TestCase):
 
 
 class CalculateThresholdMetTest(TestCase):
-    def test_threshold_not_met(self):
+    def test_threshold_not_met(self) -> None:
         assert not calculate_threshold_met(self.project.id)
 
-    def test_threshold_met_condition_1(self):
+    def test_threshold_met_condition_1(self) -> None:
         for weeks in range(3):
             for i in range(NEW_ISSUE_WEEKLY_THRESHOLD):
                 self.store_event(
@@ -65,7 +65,7 @@ class CalculateThresholdMetTest(TestCase):
 
         assert calculate_threshold_met(self.project.id)
 
-    def test_threshold_met_condition_2(self):
+    def test_threshold_met_condition_2(self) -> None:
         for weeks in range(2):
             for i in range(2 * NEW_ISSUE_WEEKLY_THRESHOLD):
                 self.store_event(
