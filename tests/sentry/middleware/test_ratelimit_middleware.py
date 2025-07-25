@@ -76,7 +76,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             default_rate_limit_mock.return_value = RateLimit(limit=0, window=100)
             self.middleware.process_view(request, self._test_endpoint, [], {})
 
-    def test_process_response_fails_open(self):
+    def test_process_response_fails_open(self) -> None:
         request = self.factory.get("/")
         bad_response = sentinel.response
         assert self.middleware.process_response(request, bad_response) is bad_response
@@ -189,7 +189,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             self.middleware.process_view(request, self._test_endpoint, [], {})
             assert not request.will_be_rate_limited
 
-    def test_rate_limit_category(self):
+    def test_rate_limit_category(self) -> None:
         request = self.factory.get("/")
         request.META["REMOTE_ADDR"] = None
         self.middleware.process_view(request, self._test_endpoint, [], {})
@@ -212,7 +212,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         self.middleware.process_view(request, self._test_endpoint, [], {})
         assert request.rate_limit_category == RateLimitCategory.ORGANIZATION
 
-    def test_enforce_rate_limit_is_false(self):
+    def test_enforce_rate_limit_is_false(self) -> None:
         request = self.factory.get("/")
         self.middleware.process_view(request, self._test_endpoint_no_rate_limits, [], {})
         assert request.will_be_rate_limited is False
@@ -223,7 +223,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
 
 @override_settings(SENTRY_SELF_HOSTED=False)
 class TestGetRateLimitValue(TestCase):
-    def test_default_rate_limit_values(self):
+    def test_default_rate_limit_values(self) -> None:
         """Ensure that the default rate limits are called for endpoints without overrides"""
 
         class TestEndpoint(Endpoint):
@@ -242,7 +242,7 @@ class TestGetRateLimitValue(TestCase):
             "DELETE", RateLimitCategory.USER, rate_limit_config
         ) == get_default_rate_limits_for_group("default", RateLimitCategory.USER)
 
-    def test_override_rate_limit(self):
+    def test_override_rate_limit(self) -> None:
         """Override one or more of the default rate limits"""
 
         class TestEndpoint(Endpoint):
@@ -353,7 +353,7 @@ urlpatterns = [
 class TestRatelimitHeader(APITestCase):
     endpoint = "ratelimit-header-endpoint"
 
-    def test_header_counts(self):
+    def test_header_counts(self) -> None:
         """Ensure that the header remainder counts decrease properly"""
         with freeze_time("2000-01-01"):
             expected_reset_time = int(time() + 100)
@@ -392,7 +392,7 @@ class TestRatelimitHeader(APITestCase):
         assert not response.has_header("X-Sentry-Rate-Limit-Limit")
         assert not response.has_header("X-Sentry-Rate-Limit-Reset")
 
-    def test_header_race_condition(self):
+    def test_header_race_condition(self) -> None:
         """Make sure concurrent requests don't affect each other's rate limit"""
 
         def parallel_request(*args, **kwargs):
@@ -413,7 +413,7 @@ class TestRatelimitHeader(APITestCase):
 class TestConcurrentRateLimiter(APITestCase):
     endpoint = "concurrent-endpoint"
 
-    def test_request_finishes(self):
+    def test_request_finishes(self) -> None:
         # the endpoint in question has a concurrent rate limit of 3
         # since it is called one after the other, the remaining concurrent
         # requests should stay the same
@@ -428,7 +428,7 @@ class TestConcurrentRateLimiter(APITestCase):
             )
             assert int(response["X-Sentry-Rate-Limit-ConcurrentLimit"]) == CONCURRENT_RATE_LIMIT
 
-    def test_concurrent_request_rate_limiting(self):
+    def test_concurrent_request_rate_limiting(self) -> None:
         """test the concurrent rate limiter end to-end"""
         with ThreadPoolExecutor(max_workers=4) as executor:
             futures = []
@@ -463,7 +463,7 @@ class TestConcurrentRateLimiter(APITestCase):
 class TestCallableRateLimitConfig(APITestCase):
     endpoint = "callable-config-endpoint"
 
-    def test_request_finishes(self):
+    def test_request_finishes(self) -> None:
         response = self.get_success_response()
         assert int(response["X-Sentry-Rate-Limit-Remaining"]) == 19
         assert int(response["X-Sentry-Rate-Limit-Limit"]) == 20

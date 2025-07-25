@@ -11,7 +11,7 @@ class OrganizationUptimeAlertCountTest(UptimeAlertBaseEndpointTest):
         super().setUp()
         self.login_as(self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.create_detector(
             name="Active Alert 1",
             type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
@@ -41,7 +41,7 @@ class OrganizationUptimeAlertCountTest(UptimeAlertBaseEndpointTest):
             },
         }
 
-    def test_filtered_by_environment(self):
+    def test_filtered_by_environment(self) -> None:
         env1 = self.create_environment(name="production")
         env2 = self.create_environment(name="staging")
 

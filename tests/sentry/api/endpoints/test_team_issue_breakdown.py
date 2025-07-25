@@ -12,7 +12,7 @@ from sentry.utils.dates import floor_to_utc_day
 class TeamIssueBreakdownTest(APITestCase):
     endpoint = "sentry-api-0-team-issue-breakdown"
 
-    def test_status_format(self):
+    def test_status_format(self) -> None:
         project1 = self.create_project(teams=[self.team], slug="foo")
         project2 = self.create_project(teams=[self.team], slug="bar")
         group1 = self.create_group(project=project1)
@@ -87,7 +87,7 @@ class TeamIssueBreakdownTest(APITestCase):
         compare_response(statuses, response.data[project2.id][yesterday])
         compare_response(statuses, response.data[project2.id][two_days_ago])
 
-    def test_filter_by_environment(self):
+    def test_filter_by_environment(self) -> None:
         project1 = self.create_project(teams=[self.team], slug="foo")
         group1 = self.create_group(project=project1)
         env1 = self.create_environment(name="prod", project=project1)
@@ -135,7 +135,7 @@ class TeamIssueBreakdownTest(APITestCase):
         )
         compare_response(statuses, response.data[project1.id][today])
 
-    def test_old_format(self):
+    def test_old_format(self) -> None:
         project1 = self.create_project(teams=[self.team], slug="foo")
         project2 = self.create_project(teams=[self.team], slug="bar")
         group1 = self.create_group(project=project1, times_seen=10)

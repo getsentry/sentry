@@ -490,7 +490,7 @@ class MergeGroupsTest(TestCase):
         assert call_args[1] == {project.id: project}
         assert call_args[2] == self.user
 
-    def test_metrics(self):
+    def test_metrics(self) -> None:
         for referer, expected_referer_tag in [
             ("https://sentry.io/organizations/dogsaregreat/issues/", "issue stream"),
             ("https://dogsaregreat.sentry.io/issues/", "issue stream"),
@@ -1155,7 +1155,7 @@ class TestHandleAssignedTo(TestCase):
             ),
         )
 
-    def test_user_in_reassigned_team(self):
+    def test_user_in_reassigned_team(self) -> None:
         """Test that the correct participants are present when re-assigning from user to team and vice versa"""
         user1 = self.create_user("foo@example.com")
         user2 = self.create_user("bar@example.com")

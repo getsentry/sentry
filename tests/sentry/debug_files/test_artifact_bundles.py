@@ -92,7 +92,7 @@ class ArtifactLookupTest(TestCase):
         redis_client = get_redis_cluster_for_artifact_bundles()
         redis_client.flushall()
 
-    def test_indexing_artifacts(self):
+    def test_indexing_artifacts(self) -> None:
         self.clear_cache()
 
         bundle = make_compressed_zip_file(
@@ -217,7 +217,7 @@ class GetArtifactBundlesContainingUrlTest(TestCase):
     def assert_results(self, results: set[tuple[int, datetime]], expected_bundle_ids: set[int]):
         assert {bundle_id for bundle_id, _ in results} == expected_bundle_ids
 
-    def test_get_artifact_bundles_containing_url_exact_match(self):
+    def test_get_artifact_bundles_containing_url_exact_match(self) -> None:
         """Test retrieving a bundle with an exact URL match."""
         bundle = self.create_bundle()
         url = "http://example.com/file.js"
@@ -235,7 +235,7 @@ class GetArtifactBundlesContainingUrlTest(TestCase):
             {bundle.id},
         )
 
-    def test_get_artifact_bundles_containing_url_suffix_match(self):
+    def test_get_artifact_bundles_containing_url_suffix_match(self) -> None:
         """Test retrieving a bundle with a URL suffix match."""
         bundle = self.create_bundle()
         full_url = "http://example.com/path/to/file.js"
@@ -254,7 +254,7 @@ class GetArtifactBundlesContainingUrlTest(TestCase):
             {bundle.id},
         )
 
-    def test_get_artifact_bundles_containing_url_no_match(self):
+    def test_get_artifact_bundles_containing_url_no_match(self) -> None:
         """Test retrieving bundles when none match the URL."""
         bundle = self.create_bundle()
         url = "http://example.com/file.js"
@@ -274,7 +274,7 @@ class GetArtifactBundlesContainingUrlTest(TestCase):
             set(),
         )
 
-    def test_get_artifact_bundles_containing_url_multiple_matches(self):
+    def test_get_artifact_bundles_containing_url_multiple_matches(self) -> None:
         """Test retrieving multiple bundles with the same URL."""
         # Create bundles with different timestamps
         bundle1 = self.create_bundle(
@@ -305,7 +305,7 @@ class GetArtifactBundlesContainingUrlTest(TestCase):
             {bundle3.id, bundle2.id, bundle1.id},
         )
 
-    def test_get_artifact_bundles_containing_url_different_project(self):
+    def test_get_artifact_bundles_containing_url_different_project(self) -> None:
         """Test that bundles from a different project are not returned."""
         bundle = self.create_bundle()
         url = "http://example.com/file.js"
@@ -323,7 +323,7 @@ class GetArtifactBundlesContainingUrlTest(TestCase):
             set(),
         )
 
-    def test_get_artifact_bundles_containing_url_different_release(self):
+    def test_get_artifact_bundles_containing_url_different_release(self) -> None:
         """Test that bundles from a different release are not returned."""
         bundle = self.create_bundle()
         url = "http://example.com/file.js"
@@ -338,7 +338,7 @@ class GetArtifactBundlesContainingUrlTest(TestCase):
             set(),
         )
 
-    def test_contains(self):
+    def test_contains(self) -> None:
         """
         Test that demonstrates why we use reversed_url__istartswith instead of contains.
         A 'contains' query would match parts of filenames anywhere, but we want to match
@@ -379,7 +379,7 @@ class GetArtifactBundlesContainingUrlTest(TestCase):
             {bundle.id, bundle2.id},
         )
 
-    def test_case_insensitive_url_matching(self):
+    def test_case_insensitive_url_matching(self) -> None:
         """Test that URLs with different casing match properly."""
         bundle = self.create_bundle()
         url = "http://example.com/path/to/CamelCaseFile.js"
@@ -409,7 +409,7 @@ class GetArtifactBundlesContainingUrlTest(TestCase):
             {bundle.id},
         )
 
-    def test_multiple_bundles_with_different_urls(self):
+    def test_multiple_bundles_with_different_urls(self) -> None:
         """Test that when we have multiple bundles with different URLs, we match to only one."""
         bundle1 = self.create_bundle()
         bundle2 = self.create_bundle()

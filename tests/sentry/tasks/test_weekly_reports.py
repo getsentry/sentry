@@ -84,7 +84,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         )
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
-    def test_integration(self):
+    def test_integration(self) -> None:
         with unguarded_write(using=router.db_for_write(Project)):
             Project.objects.all().delete()
         project = self.create_project(
@@ -108,7 +108,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             assert self.organization.name in message.subject
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
-    def test_with_empty_string_user_option(self):
+    def test_with_empty_string_user_option(self) -> None:
         project = self.create_project(
             organization=self.organization,
             teams=[self.team],
@@ -131,7 +131,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
     @with_feature("system:multi-region")
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
-    def test_message_links_customer_domains(self):
+    def test_message_links_customer_domains(self) -> None:
         with unguarded_write(using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
@@ -268,7 +268,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
     @with_feature("organizations:escalating-issues")
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
-    def test_organization_project_issue_substatus_summaries(self):
+    def test_organization_project_issue_substatus_summaries(self) -> None:
         self.login_as(user=self.user)
         min_ago = (self.now - timedelta(minutes=1)).isoformat()
         event1 = self.store_event(
@@ -314,7 +314,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         assert project_ctx.total_substatus_count == 2
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
-    def test_organization_project_issue_status(self):
+    def test_organization_project_issue_status(self) -> None:
         self.login_as(user=self.user)
         self.project.first_event = self.now - timedelta(days=3)
         min_ago = (self.now - timedelta(minutes=1)).isoformat()
@@ -884,7 +884,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             "transaction_count": 0,
         }
 
-    def test_group_status_to_color_obj_correct_length(self):
+    def test_group_status_to_color_obj_correct_length(self) -> None:
         # We want to check for the values because GroupHistoryStatus.UNRESOLVED and GroupHistoryStatus.ONGOING have the same value
         enum_values = set()
         for attr_name in dir(GroupHistoryStatus):

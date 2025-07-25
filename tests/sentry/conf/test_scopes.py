@@ -3,7 +3,7 @@ from sentry.testutils.cases import TestCase
 
 
 class ScopesTest(TestCase):
-    def test_scope_hierarchy_maintained(self):
+    def test_scope_hierarchy_maintained(self) -> None:
         assert "org:superuser" not in SENTRY_SCOPES
         for scope in SENTRY_SCOPES:
             assert scope in SENTRY_SCOPE_HIERARCHY_MAPPING
@@ -25,7 +25,7 @@ class ScopesTest(TestCase):
                 assert resource + ":read" in SENTRY_SCOPE_HIERARCHY_MAPPING[scope]
                 assert resource + ":write" in SENTRY_SCOPE_HIERARCHY_MAPPING[scope]
 
-    def test_readonly_scopes(self):
+    def test_readonly_scopes(self) -> None:
         for scope in SENTRY_SCOPES:
             if ":read" in scope:
                 assert scope in SENTRY_READONLY_SCOPES

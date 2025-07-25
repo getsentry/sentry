@@ -31,7 +31,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
         self.one_day_later = self.start_time + timedelta(days=1)
         self.day_before_start_time = self.start_time - timedelta(days=1)
 
-    def test_organization_outcomes(self):
+    def test_organization_outcomes(self) -> None:
         other_organization = self.create_organization()
 
         for outcome in [Outcome.ACCEPTED, Outcome.RATE_LIMITED, Outcome.FILTERED]:
@@ -182,7 +182,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 if time not in [floor_func(self.start_time), floor_func(self.one_day_later)]:
                     assert count == 0
 
-    def test_project_outcomes(self):
+    def test_project_outcomes(self) -> None:
         other_project = self.create_project(organization=self.organization)
 
         for outcome in [Outcome.ACCEPTED, Outcome.RATE_LIMITED, Outcome.FILTERED]:
@@ -331,7 +331,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 if time not in [floor_func(self.start_time), floor_func(self.one_day_later)]:
                     assert count == 0
 
-    def test_key_outcomes(self):
+    def test_key_outcomes(self) -> None:
         project_key = self.create_project_key(project=self.project)
         other_project = self.create_project(organization=self.organization)
         other_project_key = self.create_project_key(project=other_project)
@@ -471,7 +471,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 if time not in [floor_func(self.start_time), floor_func(self.one_day_later)]:
                     assert count == 0
 
-    def test_all_tsdb_models_have_an_entry_in_model_query_settings(self):
+    def test_all_tsdb_models_have_an_entry_in_model_query_settings(self) -> None:
         # Ensure that the models we expect to be using Snuba are using Snuba
         exceptions = [
             TSDBModel.project_total_forwarded  # this is not outcomes and will be moved separately

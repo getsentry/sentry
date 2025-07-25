@@ -55,7 +55,7 @@ class GitlabRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    def test_missing_x_gitlab_token(self):
+    def test_missing_x_gitlab_token(self) -> None:
         self.get_integration()
         request = self.factory.post(
             self.path,
@@ -71,7 +71,7 @@ class GitlabRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    def test_invalid_token(self):
+    def test_invalid_token(self) -> None:
         self.get_integration()
         request = self.factory.post(
             self.path,
@@ -88,7 +88,7 @@ class GitlabRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     @responses.activate
-    def test_routing_webhook_properly_no_regions(self):
+    def test_routing_webhook_properly_no_regions(self) -> None:
         request = self.factory.post(
             self.path,
             data=PUSH_EVENT,
@@ -113,7 +113,7 @@ class GitlabRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     @responses.activate
-    def test_routing_webhook_properly_with_regions(self):
+    def test_routing_webhook_properly_with_regions(self) -> None:
         integration = self.get_integration()
         request = self.factory.post(
             self.path,
@@ -138,7 +138,7 @@ class GitlabRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     @responses.activate
-    def test_routing_webhook_properly_with_multiple_orgs(self):
+    def test_routing_webhook_properly_with_multiple_orgs(self) -> None:
         integration = self.get_integration()
         other_org = self.create_organization(owner=self.user)
         integration.add_organization(other_org)
@@ -166,7 +166,7 @@ class GitlabRequestParserTest(TestCase):
     @override_regions(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @responses.activate
-    def test_routing_webhook_with_mailbox_buckets(self):
+    def test_routing_webhook_with_mailbox_buckets(self) -> None:
         integration = self.get_integration()
         request = self.factory.post(
             self.path,
@@ -195,7 +195,7 @@ class GitlabRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     @responses.activate
-    def test_routing_search_properly(self):
+    def test_routing_search_properly(self) -> None:
         self.get_integration()
         path = reverse(
             "sentry-extensions-gitlab-search",
@@ -216,7 +216,7 @@ class GitlabRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    def test_get_integration_from_request(self):
+    def test_get_integration_from_request(self) -> None:
         integration = self.get_integration()
         request = self.factory.post(
             self.path,
@@ -233,7 +233,7 @@ class GitlabRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     @responses.activate
-    def test_webhook_outbox_creation(self):
+    def test_webhook_outbox_creation(self) -> None:
         request = self.factory.post(
             self.path,
             data=PUSH_EVENT,

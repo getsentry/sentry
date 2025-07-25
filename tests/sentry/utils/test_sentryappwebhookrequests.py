@@ -11,7 +11,7 @@ class TestSentryAppWebhookRequests(TestCase):
 
         self.buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
 
-    def test_only_100_entries_in_buffer(self):
+    def test_only_100_entries_in_buffer(self) -> None:
         for i in range(100):
             self.buffer.add_request(200, i, "issue.assigned", "https://example.com/hook")
 
@@ -29,7 +29,7 @@ class TestSentryAppWebhookRequests(TestCase):
         assert requests[99]["organization_id"] == 1
         assert requests[99]["response_code"] == 200
 
-    def test_error_added(self):
+    def test_error_added(self) -> None:
         self.buffer.add_request(
             200,
             1,
@@ -43,7 +43,7 @@ class TestSentryAppWebhookRequests(TestCase):
         assert requests[0]["error_id"] == "d5111da2c28645c5889d072017e3445d"
         assert requests[0]["project_id"] == 1
 
-    def test_error_not_added_if_project_id_missing(self):
+    def test_error_not_added_if_project_id_missing(self) -> None:
         self.buffer.add_request(
             200,
             1,
@@ -56,7 +56,7 @@ class TestSentryAppWebhookRequests(TestCase):
         assert "error_id" not in requests[0]
         assert "project_id" not in requests[0]
 
-    def test_error_not_added_if_error_id_missing(self):
+    def test_error_not_added_if_error_id_missing(self) -> None:
         self.buffer.add_request(200, 1, "issue.assigned", "https://example.com/hook", project_id=1)
         requests = self.buffer.get_requests()
         assert len(requests) == 1

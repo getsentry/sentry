@@ -473,13 +473,13 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         # We do not fire off any tasks
         assert mock_produce_task.call_count == 0
 
-    def test_missing_checkin_but_disabled(self):
+    def test_missing_checkin_but_disabled(self) -> None:
         self.assert_state_does_not_change_for_status(ObjectStatus.DISABLED)
 
-    def test_missing_checkin_but_pending_deletion(self):
+    def test_missing_checkin_but_pending_deletion(self) -> None:
         self.assert_state_does_not_change_for_status(ObjectStatus.PENDING_DELETION)
 
-    def test_missing_checkin_but_deletion_in_progress(self):
+    def test_missing_checkin_but_deletion_in_progress(self) -> None:
         self.assert_state_does_not_change_for_status(ObjectStatus.DELETION_IN_PROGRESS)
 
     @mock.patch("sentry.monitors.clock_tasks.check_missed.produce_task")
@@ -709,7 +709,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         ).count()
         assert missed_count == 1
 
-    def test_status_updated_before_task_execution(self):
+    def test_status_updated_before_task_execution(self) -> None:
         """
         Test that if we queue a test when a monitor is not disabled, but then
         later disable it before the task executes, we do not create a missed.

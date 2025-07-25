@@ -116,7 +116,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
         super().tearDown()
         self.registry_patcher.stop()
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         response = self.get_success_response(self.organization.slug, status_code=200)
         assert response.data == [
             MetricIssue.slug,

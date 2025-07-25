@@ -12,7 +12,7 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 
 
 class DeleteArtifactBundleTest(TransactionTestCase, HybridCloudTestMixin):
-    def test_simple(self):
+    def test_simple(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         release = self.create_release(version="1.0", project=project)

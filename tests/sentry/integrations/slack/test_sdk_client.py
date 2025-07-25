@@ -23,18 +23,18 @@ class SlackClientTest(TestCase):
             metadata={"access_token": self.access_token},
         )
 
-    def test_no_integration_found_error(self):
+    def test_no_integration_found_error(self) -> None:
         with pytest.raises(ValueError):
             SlackSdkClient(integration_id=2)
 
-    def test_inactive_integration_error(self):
+    def test_inactive_integration_error(self) -> None:
         with assume_test_silo_mode_of(Integration):
             self.integration.update(status=ObjectStatus.DISABLED)
 
         with pytest.raises(ValueError):
             SlackSdkClient(self.integration.id)
 
-    def test_no_access_token_error(self):
+    def test_no_access_token_error(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.update(metadata={})
 

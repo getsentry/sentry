@@ -48,11 +48,11 @@ class OrganizationCodeOwnersAssociationsEndpointTest(APITestCase):
         }
         self.login_as(user=self.user_1)
 
-    def test_no_codeowners(self):
+    def test_no_codeowners(self) -> None:
         response = self.get_success_response(self.organization.slug, status=status.HTTP_200_OK)
         assert response.data == {}
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         """
         Tests that all the ProjectCodeOwners are serialized in the response
         """
@@ -73,7 +73,7 @@ class OrganizationCodeOwnersAssociationsEndpointTest(APITestCase):
             assert "errors" in response.data[code_owner.project.slug].keys()
             assert response.data[code_owner.project.slug]["errors"] == errors
 
-    def test_response_data_is_correct(self):
+    def test_response_data_is_correct(self) -> None:
         """
         Tests that response has the correct associations and errors per ProjectCodeOwners object
         """
@@ -104,7 +104,7 @@ class OrganizationCodeOwnersAssociationsEndpointTest(APITestCase):
             in response.data[self.project_2.slug]["errors"]["teams_without_access"]
         )
 
-    def test_member_can_access(self):
+    def test_member_can_access(self) -> None:
         """
         Tests that users without the 'org:read' scope (i.e. Members) can access this endpoint.
         """
@@ -113,7 +113,7 @@ class OrganizationCodeOwnersAssociationsEndpointTest(APITestCase):
         self.login_as(member)
         self.get_success_response(self.organization.slug)
 
-    def test_query_by_provider(self):
+    def test_query_by_provider(self) -> None:
         """
         Tests that the provider query parameter filters the returned associations appropriately.
         """

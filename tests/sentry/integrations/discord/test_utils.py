@@ -13,7 +13,7 @@ from sentry.testutils.cases import TestCase
 
 
 class AuthTest(TestCase):
-    def test_verify_signature_valid(self):
+    def test_verify_signature_valid(self) -> None:
         public_key_string = "3AC1A3E56E967E1C61E3D17B37FA1865CB20CD6C54418631F4E8AE4D1E83EE0E"
         signature = "DBC99471F8DD30BA0F488912CF9BA7AC1E938047782BB72FF9A6873D452A1A75DC9F8A07182B8EB7FC67A3771C2271D568DCDC2AB2A5D927A42A4F0FC233C506"
         timestamp = "1688960024"
@@ -21,7 +21,7 @@ class AuthTest(TestCase):
 
         verify_signature(public_key_string, signature, timestamp, body)
 
-    def test_verify_signature_invalid(self):
+    def test_verify_signature_invalid(self) -> None:
         public_key_string = "3AC1A3E56E967E1C61E3D17B37FA1865CB20CD6C54418631F4E8AE4D1E83EE0E"
         signature = "0123456789abcdef"
         timestamp = "1688960024"
@@ -95,46 +95,46 @@ class ValidateChannelTest(TestCase):
 class GetChannelIdFromUrl(TestCase):
     channel_id = "12345678910"
 
-    def test_happy_path(self):
+    def test_happy_path(self) -> None:
         channel = get_channel_id_from_url(
             f"https://discord.com/channels/guild-id/{self.channel_id}"
         )
         assert channel == self.channel_id
 
-    def test_happy_path_with_extra_slash(self):
+    def test_happy_path_with_extra_slash(self) -> None:
         channel = get_channel_id_from_url(
             f"https://discord.com/channels/guild-id/{self.channel_id}"
         )
         assert channel == self.channel_id
 
-    def test_missing_channel_id_with_slash(self):
+    def test_missing_channel_id_with_slash(self) -> None:
         with raises(ValidationError):
             get_channel_id_from_url("https://discord.com/channels/guild-id/")
 
-    def test_missing_channel_id_no_slash(self):
+    def test_missing_channel_id_no_slash(self) -> None:
         with raises(ValidationError):
             get_channel_id_from_url("https://discord.com/channels/guild-id")
 
-    def test_missing_guild_and_channel_with_slash(self):
+    def test_missing_guild_and_channel_with_slash(self) -> None:
         with raises(ValidationError):
             get_channel_id_from_url("https://discord.com/channels/")
 
-    def test_missing_guild_and_channel_no_slash(self):
+    def test_missing_guild_and_channel_no_slash(self) -> None:
         with raises(ValidationError):
             get_channel_id_from_url("https://discord.com/channels")
 
-    def test_different_link(self):
+    def test_different_link(self) -> None:
         with raises(ValidationError):
             get_channel_id_from_url("https://different.com")
 
-    def test_just_channel_id(self):
+    def test_just_channel_id(self) -> None:
         channel = get_channel_id_from_url(self.channel_id)
         assert channel == self.channel_id
 
-    def test_no_channel_at_all(self):
+    def test_no_channel_at_all(self) -> None:
         with raises(ValidationError):
             get_channel_id_from_url("")
 
-    def test_non_integer_channel(self):
+    def test_non_integer_channel(self) -> None:
         with raises(ValidationError):
             get_channel_id_from_url("channel-id")

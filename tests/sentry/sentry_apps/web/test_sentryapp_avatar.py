@@ -11,7 +11,7 @@ from sentry.web.frontend.generic import FOREVER_CACHE
 
 @control_silo_test
 class SentryAppAvatarTest(APITestCase):
-    def test_headers_control_file(self):
+    def test_headers_control_file(self) -> None:
         sentry_app = self.create_sentry_app(name="Meow", organization=self.organization)
         photo = ControlFile.objects.create(name="test.png", type="avatar.file")
         photo.putfile(BytesIO(b"test"))

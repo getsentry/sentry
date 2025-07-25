@@ -61,7 +61,7 @@ class OrganizationDataConditionAPITestCase(APITestCase):
 
 @region_silo_test
 class OrganizationDataConditionIndexBaseTest(OrganizationDataConditionAPITestCase):
-    def test_group_filter(self):
+    def test_group_filter(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
             group=DataConditionHandler.Group.WORKFLOW_TRIGGER,
@@ -92,8 +92,8 @@ class OrganizationDataConditionIndexBaseTest(OrganizationDataConditionAPITestCas
             },
         }
 
-    def test_invalid_group(self):
+    def test_invalid_group(self) -> None:
         self.get_error_response(self.organization.slug, group="invalid", status_code=400)
 
-    def test_no_group(self):
+    def test_no_group(self) -> None:
         self.get_error_response(self.organization.slug, status_code=400)

@@ -70,13 +70,13 @@ class RedisQuotaTest(TestCase):
     def quota(self):
         return RedisQuota()
 
-    def test_redis_quota_serialize(self):
+    def test_redis_quota_serialize(self) -> None:
         assert QuotaScope.ORGANIZATION.api_name() == "organization"
         assert QuotaScope.PROJECT.api_name() == "project"
         assert QuotaScope.KEY.api_name() == "key"
         assert QuotaScope.GLOBAL.api_name() == "global"
 
-    def test_abuse_quotas(self):
+    def test_abuse_quotas(self) -> None:
         # These legacy options need to be set, otherwise we'll run into
         # AssertionError: reject-all quotas cannot be tracked
         self.get_project_quota.return_value = (100, 10)
@@ -267,7 +267,7 @@ class RedisQuotaTest(TestCase):
         assert quotas[0].window == 20
         assert quotas[0].reason_code == "project_abuse_limit"
 
-    def test_legacy_transaction_quota(self):
+    def test_legacy_transaction_quota(self) -> None:
         # These legacy options need to be set, otherwise we'll run into
         # AssertionError: reject-all quotas cannot be tracked
         self.get_project_quota.return_value = (100, 10)
@@ -313,7 +313,7 @@ class RedisQuotaTest(TestCase):
         ) as self.get_monitor_quota:
             yield
 
-    def test_uses_defined_quotas(self):
+    def test_uses_defined_quotas(self) -> None:
         self.get_project_quota.return_value = (200, 60)
         self.get_organization_quota.return_value = (300, 60)
         self.get_monitor_quota.return_value = (15, 60)
@@ -404,7 +404,7 @@ class RedisQuotaTest(TestCase):
 
         assert self.quota.is_rate_limited(self.project).is_limited
 
-    def test_get_usage(self):
+    def test_get_usage(self) -> None:
         timestamp = time.time()
 
         self.get_project_quota.return_value = (200, 60)
@@ -529,7 +529,7 @@ class RedisQuotaTest(TestCase):
         for key in attachment_keys:
             assert client.get(key) == b"100"
 
-    def test_get_usage_uses_refund(self):
+    def test_get_usage_uses_refund(self) -> None:
         timestamp = time.time()
 
         self.get_project_quota.return_value = (200, 60)

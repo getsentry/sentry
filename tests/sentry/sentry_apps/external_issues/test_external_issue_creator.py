@@ -22,7 +22,7 @@ class TextExternalIssueCreator(TestCase):
         )
         self.install = app_service.get_many(filter=dict(installation_ids=[self.orm_install.id]))[0]
 
-    def test_creates_platform_external_issue(self):
+    def test_creates_platform_external_issue(self) -> None:
         result = ExternalIssueCreator(
             install=self.install,
             group=self.group,
@@ -39,7 +39,7 @@ class TextExternalIssueCreator(TestCase):
         assert external_issue.display_name == "Projectname#issue-1"
         assert external_issue.service_type == self.sentry_app.slug
 
-    def test_updates_platform_external_issue(self):
+    def test_updates_platform_external_issue(self) -> None:
         result1 = ExternalIssueCreator(
             install=self.install,
             group=self.group,

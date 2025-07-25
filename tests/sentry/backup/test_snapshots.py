@@ -50,7 +50,7 @@ class SnapshotTests(BackupTransactionTestCase):
 
         return actual
 
-    def test_date_with_and_without_zeroed_millis(self):
+    def test_date_with_and_without_zeroed_millis(self) -> None:
         with TemporaryDirectory() as tmp_dir, pytest.raises(ValidationError) as execinfo:
             tmp_out_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             self.import_export_fixture_then_validate(
@@ -66,7 +66,7 @@ class SnapshotTests(BackupTransactionTestCase):
         assert """-  "last_updated": "2023-06-22T00:00:00Z",""" in findings[0].reason
         assert """+  "last_updated": "2023-06-22T00:00:00.000Z",""" in findings[0].reason
 
-    def test_app_user_with_empty_email(self):
+    def test_app_user_with_empty_email(self) -> None:
         with TemporaryDirectory() as tmp_dir:
             tmp_out_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             self.import_export_fixture_then_validate(

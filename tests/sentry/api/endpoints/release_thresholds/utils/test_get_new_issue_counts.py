@@ -77,7 +77,7 @@ class GetNewIssueCountTest(TestCase):
             first_seen=self.now - timedelta(minutes=30),
         )
 
-    def test_success_fetches_new_issue_counts(self):
+    def test_success_fetches_new_issue_counts(self) -> None:
         # standard threshold
         t1: EnrichedThreshold = {
             "id": "1",

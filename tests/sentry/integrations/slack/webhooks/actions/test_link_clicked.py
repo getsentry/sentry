@@ -41,7 +41,7 @@ class LinkClickedActionTest(BaseEventTest):
             ]
         }
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         resp = self.post_webhook(
             action_data=[{"name": "some_action", "value": "link_clicked"}],
             original_message=self.original_message,

@@ -60,7 +60,7 @@ class ResolvedInCommitTest(TestCase):
 
     # TODO(dcramer): pull out short ID matching and expand regexp tests
     @receivers_raise_on_send()
-    def test_simple_no_author(self):
+    def test_simple_no_author(self) -> None:
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
 
@@ -76,7 +76,7 @@ class ResolvedInCommitTest(TestCase):
         self.assertResolvedFromCommit(group, commit)
 
     @receivers_raise_on_send()
-    def test_updating_commit(self):
+    def test_updating_commit(self) -> None:
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
 
@@ -96,7 +96,7 @@ class ResolvedInCommitTest(TestCase):
         self.assertResolvedFromCommit(group, commit)
 
     @receivers_raise_on_send()
-    def test_updating_commit_with_existing_grouplink(self):
+    def test_updating_commit_with_existing_grouplink(self) -> None:
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
 
@@ -117,7 +117,7 @@ class ResolvedInCommitTest(TestCase):
         self.assertResolvedFromCommit(group, commit)
 
     @receivers_raise_on_send()
-    def test_removes_group_link_when_message_changes(self):
+    def test_removes_group_link_when_message_changes(self) -> None:
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
 
@@ -139,7 +139,7 @@ class ResolvedInCommitTest(TestCase):
         self.assertNotResolvedFromCommit(group, commit)
 
     @receivers_raise_on_send()
-    def test_no_matching_group(self):
+    def test_no_matching_group(self) -> None:
         repo = Repository.objects.create(name="example", organization_id=self.organization.id)
 
         commit = Commit.objects.create(
@@ -154,7 +154,7 @@ class ResolvedInCommitTest(TestCase):
         ).exists()
 
     @receivers_raise_on_send()
-    def test_matching_author_with_assignment(self):
+    def test_matching_author_with_assignment(self) -> None:
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
         user = self.create_user(name="Foo Bar", email="foo@example.com", is_active=True)
@@ -197,7 +197,7 @@ class ResolvedInCommitTest(TestCase):
         assert GroupSubscription.objects.filter(group=group, user_id=user.id).exists()
 
     @receivers_raise_on_send()
-    def test_matching_author_without_assignment(self):
+    def test_matching_author_without_assignment(self) -> None:
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
         user = self.create_user(name="Foo Bar", email="foo@example.com", is_active=True)
@@ -231,7 +231,7 @@ class ResolvedInCommitTest(TestCase):
 
 class ProjectHasReleasesReceiverTest(TestCase):
     @receivers_raise_on_send()
-    def test(self):
+    def test(self) -> None:
         buffer = Buffer()
         rp = ReleaseProject.objects.get_or_create(release=self.release, project=self.project)[0]
         self.project.flags.has_releases = False
@@ -245,7 +245,7 @@ class ProjectHasReleasesReceiverTest(TestCase):
         assert self.project.flags.has_releases
 
     @receivers_raise_on_send()
-    def test_deleted_release_project(self):
+    def test_deleted_release_project(self) -> None:
         # Should just not raise an error here if the `ReleaseProject` does not exist
         buffer_incr_complete.send_robust(
             model=ReleaseProject,

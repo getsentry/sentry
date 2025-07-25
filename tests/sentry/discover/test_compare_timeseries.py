@@ -156,7 +156,7 @@ class CompareAlertsTimeseriesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSp
                 )
         assert result["mismatches"] == {}
 
-    def test_compare_mri_alert(self):
+    def test_compare_mri_alert(self) -> None:
         snuba_query = SnubaQuery.objects.create(
             type=SnubaQuery.Type.PERFORMANCE.value,
             dataset=Dataset.PerformanceMetrics.value,

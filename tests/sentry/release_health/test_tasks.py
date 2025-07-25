@@ -117,7 +117,7 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
     def tearDown(self):
         self.backend.__exit__(None, None, None)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.bulk_store_sessions([self.build_session(project_id=self.project1) for _ in range(11)])
         self.bulk_store_sessions(
             [
@@ -181,7 +181,7 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
             adopted__gte=now,
         ).exists()
 
-    def test_simple_no_sessions(self):
+    def test_simple_no_sessions(self) -> None:
         now = timezone.now()
         assert ReleaseProjectEnvironment.objects.filter(
             project_id=self.project1.id,
@@ -241,7 +241,7 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
             adopted__gte=now,
         ).exists()
 
-    def test_release_is_unadopted_with_sessions(self):
+    def test_release_is_unadopted_with_sessions(self) -> None:
         # Releases that are returned with sessions but no longer meet the threshold get unadopted
         self.bulk_store_sessions([self.build_session(project_id=self.project1) for _ in range(1)])
         self.bulk_store_sessions(
@@ -311,7 +311,7 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
             unadopted=None,
         ).exists()
 
-    def test_release_is_unadopted_without_sessions(self):
+    def test_release_is_unadopted_without_sessions(self) -> None:
         # This test should verify that releases that have no sessions (i.e. no result from snuba)
         # get marked as unadopted
         now = timezone.now()
@@ -339,7 +339,7 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
             unadopted__gte=now,
         ).exists()
 
-    def test_multi_proj_env_release_counter(self):
+    def test_multi_proj_env_release_counter(self) -> None:
         self.bulk_store_sessions(
             [
                 self.build_session(
@@ -413,7 +413,7 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
             adopted__gte=now,
         ).exists()
 
-    def test_monitor_release_adoption(self):
+    def test_monitor_release_adoption(self) -> None:
         now = timezone.now()
         self.org2 = self.create_organization(
             name="Yet Another Test Org",
@@ -474,7 +474,7 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
             unadopted=None,
         ).exists()
 
-    def test_missing_rpe_is_created(self):
+    def test_missing_rpe_is_created(self) -> None:
         self.bulk_store_sessions(
             [
                 self.build_session(
@@ -521,7 +521,7 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
             environment__name="",
         ).exists()
 
-    def test_has_releases_is_set(self):
+    def test_has_releases_is_set(self) -> None:
         no_release_project = self.create_project()
         assert not no_release_project.flags.has_releases
 
@@ -536,7 +536,7 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
         no_release_project.refresh_from_db()
         assert no_release_project.flags.has_releases
 
-    def test_no_env(self):
+    def test_no_env(self) -> None:
         no_env_project = self.create_project()
         assert not no_env_project.flags.has_releases
 

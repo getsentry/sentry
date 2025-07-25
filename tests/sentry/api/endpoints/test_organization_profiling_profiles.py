@@ -73,15 +73,15 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
 
         return data
 
-    def test_no_feature(self):
+    def test_no_feature(self) -> None:
         response = self.do_request({}, features=[])
         assert response.status_code == 404, response.data
 
-    def test_no_project(self):
+    def test_no_project(self) -> None:
         response = self.do_request({})
         assert response.status_code == 404, response.data
 
-    def test_invalid_params(self):
+    def test_invalid_params(self) -> None:
         response = self.do_request(
             {
                 "project": [self.project.id],
@@ -100,7 +100,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
             ],
         }
 
-    def test_discover_dataset_with_fingerprint_invalid(self):
+    def test_discover_dataset_with_fingerprint_invalid(self) -> None:
         response = self.do_request(
             {
                 "project": [self.project.id],
@@ -116,7 +116,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
             ),
         }
 
-    def test_invalid_expand(self):
+    def test_invalid_expand(self) -> None:
         response = self.do_request(
             {
                 "project": [self.project.id],
@@ -128,7 +128,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
             "expand": [ErrorDetail('"foo" is not a valid choice.', code="invalid_choice")],
         }
 
-    def test_expands_metrics(self):
+    def test_expands_metrics(self) -> None:
         with (
             patch(
                 "sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service"
@@ -162,7 +162,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
             },
         )
 
-    def test_queries_profile_candidates_from_functions(self):
+    def test_queries_profile_candidates_from_functions(self) -> None:
         fingerprint = int(uuid4().hex[:8], 16)
 
         for query in [
@@ -210,7 +210,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
                     Condition(Column("transaction_name"), Op.EQ, "foo") in snql_request.query.where
                 )
 
-    def test_queries_profile_candidates_from_transactions(self):
+    def test_queries_profile_candidates_from_transactions(self) -> None:
         for query in [
             {
                 "project": [self.project.id],
@@ -266,7 +266,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
                 )
                 assert Condition(Column("transaction"), Op.EQ, "foo") in snql_request.query.where
 
-    def test_queries_profile_candidates_from_profiles(self):
+    def test_queries_profile_candidates_from_profiles(self) -> None:
         with (
             patch(
                 "sentry.profiles.flamegraph.bulk_snuba_queries",
@@ -930,7 +930,7 @@ class OrganizationProfilingChunksTest(APITestCase):
         self.login_as(user=self.user)
         self.url = reverse(self.endpoint, args=(self.organization.slug,))
 
-    def test_forbids_multiple_projects(self):
+    def test_forbids_multiple_projects(self) -> None:
         projects = [self.create_project() for _ in range(3)]
 
         with self.feature(self.features):
@@ -941,7 +941,7 @@ class OrganizationProfilingChunksTest(APITestCase):
             "detail": ErrorDetail(string="one project_id must be specified.", code="parse_error")
         }
 
-    def test_requires_profiler_id(self):
+    def test_requires_profiler_id(self) -> None:
         with self.feature(self.features):
             response = self.client.get(self.url, {"project": [self.project.id]})
 

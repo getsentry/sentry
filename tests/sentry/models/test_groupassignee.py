@@ -18,7 +18,7 @@ pytestmark = requires_snuba
 
 
 class GroupAssigneeTestCase(TestCase):
-    def test_constraints(self):
+    def test_constraints(self) -> None:
         # Can't both be assigned
         with pytest.raises(AssertionError):
             GroupAssignee.objects.create(
@@ -31,7 +31,7 @@ class GroupAssigneeTestCase(TestCase):
                 group=self.group, project=self.group.project, user_id=None, team=None
             )
 
-    def test_assign_user(self):
+    def test_assign_user(self) -> None:
         GroupAssignee.objects.assign(self.group, self.user)
 
         assert GroupAssignee.objects.filter(
@@ -47,7 +47,7 @@ class GroupAssigneeTestCase(TestCase):
         assert activity.data["assigneeName"] == self.user.name
         assert activity.data["assigneeType"] == "user"
 
-    def test_assign_team(self):
+    def test_assign_team(self) -> None:
         GroupAssignee.objects.assign(self.group, self.team)
 
         assert GroupAssignee.objects.filter(
@@ -63,7 +63,7 @@ class GroupAssigneeTestCase(TestCase):
         assert activity.data["assigneeName"] == self.team.name
         assert activity.data["assigneeType"] == "team"
 
-    def test_create_only(self):
+    def test_create_only(self) -> None:
         result = GroupAssignee.objects.assign(self.group, self.user)
         assert result == {"new_assignment": True, "updated_assignment": False}
 
@@ -94,7 +94,7 @@ class GroupAssigneeTestCase(TestCase):
         assert activity.data["assigneeName"] == self.user.name
         assert activity.data["assigneeType"] == "user"
 
-    def test_reassign_user_to_team(self):
+    def test_reassign_user_to_team(self) -> None:
         GroupAssignee.objects.assign(self.group, self.user)
 
         assert GroupAssignee.objects.filter(
@@ -294,7 +294,7 @@ class GroupAssigneeTestCase(TestCase):
                     project=self.group.project, group=self.group, type=ActivityType.UNASSIGNED.value
                 ).exists()
 
-    def test_assignee_sync_inbound_assign(self):
+    def test_assignee_sync_inbound_assign(self) -> None:
         group = self.group
         user_no_access = self.create_user()
         user_w_access = self.user
@@ -354,7 +354,7 @@ class GroupAssigneeTestCase(TestCase):
                 project=group.project, group=group, user_id=user_w_access.id, team__isnull=True
             ).exists()
 
-    def test_assignee_sync_inbound_deassign(self):
+    def test_assignee_sync_inbound_deassign(self) -> None:
         group = self.group
         integration = self.create_integration(
             organization=group.organization,

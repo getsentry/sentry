@@ -15,12 +15,12 @@ class TestIssueResolutionChangeCondition(ConditionTestCase):
             condition_result=True,
         )
 
-    def test_evaluate_value(self):
+    def test_evaluate_value(self) -> None:
         self.group_event.group.status = 1
         result = self.dc.evaluate_value(self.event_data)
         assert result is self.dc.get_condition_result()
 
-    def test_evaluate_value__not_matching_comparison(self):
+    def test_evaluate_value__not_matching_comparison(self) -> None:
         self.group_event.group.status = 2
         result = self.dc.evaluate_value(self.event_data)
         assert result is None

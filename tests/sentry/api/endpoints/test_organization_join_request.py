@@ -29,20 +29,20 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
     def owner(self):
         return OrganizationMember.objects.get(user_id=self.user.id, organization=self.organization)
 
-    def test_invalid_org_slug(self):
+    def test_invalid_org_slug(self) -> None:
         self.get_error_response("invalid-slug", email=self.email, status_code=404)
 
-    def test_email_required(self):
+    def test_email_required(self) -> None:
         response = self.get_error_response(self.organization.slug, status_code=400)
         assert response.data["email"][0] == "This field is required."
 
-    def test_invalid_email(self):
+    def test_invalid_email(self) -> None:
         response = self.get_error_response(
             self.organization.slug, email="invalid-email", status_code=400
         )
         assert response.data["email"][0] == "Enter a valid email address."
 
-    def test_organization_setting_disabled(self):
+    def test_organization_setting_disabled(self) -> None:
         OrganizationOption.objects.create(
             organization_id=self.organization.id, key="sentry:join_requests", value=False
         )
@@ -153,7 +153,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
             assert mail.outbox[i].subject == expected_subject
 
     @with_feature("system:multi-region")
-    def test_request_to_join_email_customer_domains(self):
+    def test_request_to_join_email_customer_domains(self) -> None:
         manager = self.create_user(email="manager@localhost")
         self.create_member(organization=self.organization, user=manager, role="manager")
 
@@ -172,7 +172,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
         assert mail.outbox[0].subject == f"Access request to {self.organization.name}"
         assert self.organization.absolute_url("/settings/members/") in mail.outbox[0].body
 
-    def test_request_to_join_slack(self):
+    def test_request_to_join_slack(self) -> None:
         with self.tasks():
             self.get_success_response(self.organization.slug, email=self.email, status_code=204)
 

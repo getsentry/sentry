@@ -23,7 +23,7 @@ class MsTeamsExtensionConfigurationTest(TestCase):
         path = "/extensions/msteams/configure/"
         return self.client.get(path, params)
 
-    def test_map_params(self):
+    def test_map_params(self) -> None:
         config_view = MsTeamsExtensionConfigurationView()
         data = {"my_param": "test"}
         signed_data = sign(salt=SALT, **data)
@@ -37,7 +37,7 @@ class MsTeamsExtensionConfigurationTest(TestCase):
             resp = self.hit_configure({"signed_params": "test"})
             assert b"Installation link expired" in resp.content
 
-    def test_no_team_plan_feature_flag(self):
+    def test_no_team_plan_feature_flag(self) -> None:
         with self.feature(
             {
                 "organizations:integrations-alert-rule": False,

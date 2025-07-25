@@ -10,7 +10,7 @@ class OrganizationAuthProviderPermissionTest(PermissionTestCase):
             "sentry-api-0-organization-auth-provider", args=[self.organization.slug]
         )
 
-    def test_member_can_get(self):
+    def test_member_can_get(self) -> None:
         with self.feature("organizations:sso-basic"):
             self.assert_member_can_access(self.path)
 
@@ -23,7 +23,7 @@ class OrganizationAuthProviderTest(SCIMTestCase, APITestCase):
             "sentry-api-0-organization-auth-provider", args=[self.organization.slug]
         )
 
-    def test_no_auth_provider(self):
+    def test_no_auth_provider(self) -> None:
         with self.feature("organizations:sso-basic"):
             user = self.create_user()
             organization = self.create_organization(owner=user)
@@ -35,7 +35,7 @@ class OrganizationAuthProviderTest(SCIMTestCase, APITestCase):
             assert response.status_code == 204
             assert response.data is None
 
-    def test_with_auth_provider(self):
+    def test_with_auth_provider(self) -> None:
         with self.feature("organizations:sso-basic"):
             response = self.client.get(self.path)
             assert response.status_code == 200
@@ -49,7 +49,7 @@ class OrganizationAuthProviderTest(SCIMTestCase, APITestCase):
                 "scim_enabled": True,
             }
 
-    def test_with_auth_provider_and_customer_domain(self):
+    def test_with_auth_provider_and_customer_domain(self) -> None:
         with self.feature(["organizations:sso-basic", "system:multi-region"]):
             response = self.client.get(self.path)
             assert response.status_code == 200

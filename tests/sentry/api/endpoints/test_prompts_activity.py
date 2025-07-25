@@ -14,7 +14,7 @@ class PromptsActivityTest(APITestCase):
         )
         self.path = reverse("sentry-api-0-organization-prompts-activity", args=[self.org.slug])
 
-    def test_invalid_feature(self):
+    def test_invalid_feature(self) -> None:
         # Invalid feature prompt name
         resp = self.client.put(
             self.path,
@@ -28,7 +28,7 @@ class PromptsActivityTest(APITestCase):
 
         assert resp.status_code == 400
 
-    def test_batched_invalid_feature(self):
+    def test_batched_invalid_feature(self) -> None:
         # Invalid feature prompt name
         resp = self.client.put(
             self.path,
@@ -42,7 +42,7 @@ class PromptsActivityTest(APITestCase):
 
         assert resp.status_code == 400
 
-    def test_invalid_project(self):
+    def test_invalid_project(self) -> None:
         # Invalid project id
         data = {
             "organization_id": self.org.id,
@@ -64,7 +64,7 @@ class PromptsActivityTest(APITestCase):
         )
         assert resp.status_code == 400
 
-    def test_dismiss(self):
+    def test_dismiss(self) -> None:
         data = {
             "organization_id": self.org.id,
             "project_id": self.project.id,
@@ -89,11 +89,11 @@ class PromptsActivityTest(APITestCase):
         assert "data" in resp.data
         assert "dismissed_ts" in resp.data["data"]
 
-    def test_dismiss_legacy_path(self):
+    def test_dismiss_legacy_path(self) -> None:
         self.path = reverse("sentry-api-0-prompts-activity")
         self.test_dismiss()
 
-    def test_snooze(self):
+    def test_snooze(self) -> None:
         data = {
             "organization_id": self.org.id,
             "project_id": self.project.id,
@@ -119,11 +119,11 @@ class PromptsActivityTest(APITestCase):
         assert "data" in resp.data
         assert "snoozed_ts" in resp.data["data"]
 
-    def test_snooze_legacy_path(self):
+    def test_snooze_legacy_path(self) -> None:
         self.path = reverse("sentry-api-0-prompts-activity")
         self.test_snooze()
 
-    def test_visible(self):
+    def test_visible(self) -> None:
         data = {
             "organization_id": self.org.id,
             "project_id": self.project.id,
@@ -149,11 +149,11 @@ class PromptsActivityTest(APITestCase):
         assert resp.data["data"].get("dismissed_ts") is None
         assert resp.data["data"].get("snoozed_ts") is None
 
-    def test_visible_legacy_path(self):
+    def test_visible_legacy_path(self) -> None:
         self.path = reverse("sentry-api-0-prompts-activity")
         self.test_visible()
 
-    def test_visible_after_dismiss(self):
+    def test_visible_after_dismiss(self) -> None:
         data = {
             "organization_id": self.org.id,
             "project_id": self.project.id,
@@ -189,7 +189,7 @@ class PromptsActivityTest(APITestCase):
         assert resp.data["data"].get("dismissed_ts") is None
         assert resp.data["data"].get("snoozed_ts") is None
 
-    def test_batched(self):
+    def test_batched(self) -> None:
         data = {
             "organization_id": self.org.id,
             "project_id": self.project.id,

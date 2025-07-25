@@ -33,7 +33,7 @@ def test_audit_log_item_generation():
 class AuditLogPresenterFunctionalTestCase(APITestCase):
     endpoint = "sentry-api-0-flag-hooks"
 
-    def test_audit_log_presenter_flush(self):
+    def test_audit_log_presenter_flush(self) -> None:
         with self.options(
             {
                 "flags:options-audit-log-is-enabled": True,
@@ -54,7 +54,7 @@ class AuditLogPresenterFunctionalTestCase(APITestCase):
         assert flag.organization_id == self.organization.id
         assert flag.tags == {"value": True}
 
-    def test_audit_log_presenter_flush_dry_run(self):
+    def test_audit_log_presenter_flush_dry_run(self) -> None:
         with self.options(
             {
                 "flags:options-audit-log-is-enabled": True,

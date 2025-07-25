@@ -121,7 +121,7 @@ class MSTeamsMessageBuilderTest(TestCase):
             Rule.objects.create(label="rule2", project=self.project1),
         ]
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         card = MSTeamsMessageBuilder().build(
             title=create_text_block("title"),
             text="text",
@@ -140,7 +140,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert card["actions"][0]["type"] == ActionType.OPEN_URL
         assert card["actions"][0]["title"] == "button"
 
-    def test_special_chars(self):
+    def test_special_chars(self) -> None:
         card = MSTeamsMessageBuilder().build(
             text="in __init__.py ... return 1 < 2",
         )
@@ -148,7 +148,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert _is_text_block(card["body"][0])
         assert "in \\_\\_init\\_\\_.py ... return 1 &lt; 2" == card["body"][0]["text"]
 
-    def test_columns(self):
+    def test_columns(self) -> None:
         card = MSTeamsMessageBuilder().build(
             text=create_column_set_block(
                 create_column_block("column1"),
@@ -167,7 +167,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert _is_text_block(column["items"][0])
         assert "column1" == column["items"][0]["text"]
 
-    def test_help_messages(self):
+    def test_help_messages(self) -> None:
         help_card = build_help_command_card()
 
         assert 2 == len(help_card["body"])
@@ -179,7 +179,7 @@ class MSTeamsMessageBuilderTest(TestCase):
             [command in actual_available_commands for command in expected_available_commands]
         )
 
-    def test_unrecognized_command(self):
+    def test_unrecognized_command(self) -> None:
         invalid_command = "xyz"
         unrecognized_command_card = build_unrecognized_command_card(invalid_command)
 
@@ -188,7 +188,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert _is_text_block(unrecognized_command_card["body"][0])
         assert invalid_command in unrecognized_command_card["body"][0]["text"]
 
-    def test_mentioned_message(self):
+    def test_mentioned_message(self) -> None:
         mentioned_card = build_mentioned_card()
 
         assert 2 == len(mentioned_card["body"])
@@ -196,7 +196,7 @@ class MSTeamsMessageBuilderTest(TestCase):
 
         assert "Docs" in mentioned_card["actions"][0]["title"]
 
-    def test_insallation_confirmation_message(self):
+    def test_insallation_confirmation_message(self) -> None:
         organization = Organization(name="test-org", slug="test-org")
         confirmation_card = build_team_installation_confirmation_message(organization)
 
@@ -211,7 +211,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert "test-org" in url
         assert url.startswith("http")
 
-    def test_personal_installation_message(self):
+    def test_personal_installation_message(self) -> None:
         signed_params = "signed_params"
         personal_installation_card = build_personal_installation_message(signed_params)
 
@@ -229,7 +229,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert "signed_params" in url
         assert url.startswith("http")
 
-    def test_team_installation_message(self):
+    def test_team_installation_message(self) -> None:
         signed_params = "signed_params"
         team_installation_card = build_team_installation_message(signed_params)
 
@@ -248,21 +248,21 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert "signed_params" in url
         assert url.startswith("http")
 
-    def test_already_linked_message(self):
+    def test_already_linked_message(self) -> None:
         already_linked_card = build_already_linked_identity_command_card()
 
         assert 1 == len(already_linked_card["body"])
         assert _is_text_block(already_linked_card["body"][0])
         assert "already linked" in already_linked_card["body"][0]["text"]
 
-    def test_link_command_message(self):
+    def test_link_command_message(self) -> None:
         link_command_card = build_link_identity_command_card()
 
         assert 1 == len(link_command_card["body"])
         assert _is_text_block(link_command_card["body"][0])
         assert "interact with alerts" in link_command_card["body"][0]["text"]
 
-    def test_linked_message(self):
+    def test_linked_message(self) -> None:
         linked_card = build_linked_card()
 
         assert 1 == len(linked_card["body"])
@@ -271,7 +271,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert "Image" == columns[0]["items"][0]["type"]
         assert ImageSize.LARGE == columns[0]["items"][0]["size"]
 
-    def test_link_identity_message(self):
+    def test_link_identity_message(self) -> None:
         url = "test-url"
         link_identity_card = build_linking_card(url)
 
@@ -281,14 +281,14 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert _is_open_url_action(link_identity_card["actions"][0])
         assert "test-url" == link_identity_card["actions"][0]["url"]
 
-    def test_unlinked_message(self):
+    def test_unlinked_message(self) -> None:
         unlinked_card = build_unlinked_card()
 
         assert 1 == len(unlinked_card["body"])
         assert _is_text_block(unlinked_card["body"][0])
         assert "unlinked" in unlinked_card["body"][0]["text"]
 
-    def test_unlink_indentity_message(self):
+    def test_unlink_indentity_message(self) -> None:
         url = "test-url"
         unlink_identity_card = build_unlink_identity_card(url)
 
@@ -297,7 +297,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert _is_open_url_action(unlink_identity_card["actions"][0])
         assert "test-url" == unlink_identity_card["actions"][0]["url"]
 
-    def test_issue_message_builder(self):
+    def test_issue_message_builder(self) -> None:
         self.event1.data["metadata"].update({"value": "some error"})
         self.group1.data["metadata"].update({"value": "some error"})
         self.event1.data["type"] = self.group1.data["type"] = "error"
@@ -391,14 +391,14 @@ class MSTeamsMessageBuilderTest(TestCase):
         card_json = orjson.dumps(issue_card).decode()
         assert card_json[0] == "{" and card_json[-1] == "}"
 
-    def test_issue_without_description(self):
+    def test_issue_without_description(self) -> None:
         issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
         ).build_group_card()
 
         assert 3 == len(issue_card["body"])
 
-    def test_issue_with_only_one_rule(self):
+    def test_issue_with_only_one_rule(self) -> None:
         one_rule = self.rules[:1]
         issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=one_rule, integration=self.integration
@@ -411,7 +411,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert "rule1" in issue_id_and_rule["text"]
         assert "+1 other" not in issue_id_and_rule["text"]
 
-    def test_resolved_issue_message(self):
+    def test_resolved_issue_message(self) -> None:
         self.group1.status = GroupStatus.RESOLVED
         self.group1.substatus = None
         self.group1.save()
@@ -428,7 +428,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert ActionType.SUBMIT == resolve_action["type"]
         assert "Unresolve" == resolve_action["title"]
 
-    def test_archived_issue_message(self):
+    def test_archived_issue_message(self) -> None:
         self.group1.status = GroupStatus.IGNORED
         self.group1.substatus = None
 
@@ -444,7 +444,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert ActionType.SUBMIT == archive_action["type"]
         assert "Unarchive" == archive_action["title"]
 
-    def test_assigned_issue_message(self):
+    def test_assigned_issue_message(self) -> None:
         GroupAssignee.objects.assign(self.group1, self.user)
 
         issue_card = MSTeamsIssueMessageBuilder(
@@ -481,7 +481,7 @@ class MSTeamsNotificationMessageBuilderTest(TestCase):
         self.context = {"some_field": "some_value"}
         self.recipient = owner
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         notification_card = MSTeamsNotificationsMessageBuilder(
             self.notification,
             self.context,
@@ -514,7 +514,7 @@ class MSTeamsNotificationMessageBuilderTest(TestCase):
         assert "Notification Footer" in footer_text["text"]
         assert TextSize.SMALL == footer_text["size"]
 
-    def test_without_footer(self):
+    def test_without_footer(self) -> None:
         dummy_notification = DummyNotification(self.org)
         dummy_notification.group = self.group1
 

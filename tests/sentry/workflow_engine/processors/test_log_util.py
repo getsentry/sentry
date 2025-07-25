@@ -23,7 +23,7 @@ class TestBatchPerformanceTracker(unittest.TestCase):
             extra={"my_key": 4},
         )
 
-    def test_basic_tracking(self):
+    def test_basic_tracking(self) -> None:
         """Test basic tracking functionality without exceeding threshold."""
         with self.tracker.track("item1"):
             self.time_func.return_value = 1  # Fast enough.
@@ -31,7 +31,7 @@ class TestBatchPerformanceTracker(unittest.TestCase):
         self.tracker.finalize()
         self.logger.info.assert_not_called()
 
-    def test_exceeds_threshold(self):
+    def test_exceeds_threshold(self) -> None:
         """Test that logging occurs when total time exceeds threshold."""
         with self.tracker.track("item1"):
             self.time_func.return_value = 200  # Slow operation.
@@ -43,7 +43,7 @@ class TestBatchPerformanceTracker(unittest.TestCase):
         assert call_args["extra"]["durations"]["item1"] == 200
         assert call_args["extra"]["my_key"] == 4
 
-    def test_multiple_items(self):
+    def test_multiple_items(self) -> None:
         """Test tracking multiple items and their cumulative duration."""
         with self.tracker.track("item1"):
             self.time_func.return_value = 50  # First item takes half the threshold.
@@ -62,7 +62,7 @@ class TestBatchPerformanceTracker(unittest.TestCase):
         assert extra["durations"]["item2"] == 50
         assert extra["total_duration"] == 100
 
-    def test_key_collisions(self):
+    def test_key_collisions(self) -> None:
         """Test that durations are summed when the same key is used multiple times."""
         # First operation with key "item1"
         with self.tracker.track("item1"):
@@ -82,7 +82,7 @@ class TestBatchPerformanceTracker(unittest.TestCase):
         assert call_args["extra"]["durations"]["item1"] == 100  # 30 + 40 + 30
         assert call_args["extra"]["total_duration"] == 100
 
-    def test_exception_handling(self):
+    def test_exception_handling(self) -> None:
         """Test that exceptions are logged if duration exceeds threshold."""
         # First do a fast operation
         with self.tracker.track("item1"):
@@ -103,7 +103,7 @@ class TestBatchPerformanceTracker(unittest.TestCase):
         assert call_args["extra"]["durations"]["item1"] == 1
         assert call_args["extra"]["durations"]["item2"] == 199
 
-    def test_durations_truncated(self):
+    def test_durations_truncated(self) -> None:
         """Test that durations_truncated is set correctly when there are too many iterations."""
         for i in range(_MAX_ITERATIONS_LOGGED + 100):
             with self.tracker.track(f"item_{i}"):

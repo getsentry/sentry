@@ -45,7 +45,7 @@ class CustomRuleNotificationsTest(TestCase, SnubaTestCase):
             created_by_id=self.user.id,
         )
 
-    def test_get_num_samples(self):
+    def test_get_num_samples(self) -> None:
         """
         Tests that the num_samples function returns the correct number of samples
         """
@@ -81,7 +81,7 @@ class CustomRuleNotificationsTest(TestCase, SnubaTestCase):
         self.rule.refresh_from_db()
         assert self.rule.notification_sent
 
-    def test_clean_custom_rule_notifications(self):
+    def test_clean_custom_rule_notifications(self) -> None:
         """
         Tests that expired rules are deactivated
         """

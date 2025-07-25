@@ -29,12 +29,12 @@ class AuthenticationMiddlewareTestCase(TestCase):
         rv.session = self.session
         return rv
 
-    def test_process_request_anon(self):
+    def test_process_request_anon(self) -> None:
         self.middleware.process_request(self.request)
         assert self.request.user.is_anonymous
         assert self.request.auth is None
 
-    def test_process_request_user(self):
+    def test_process_request_user(self) -> None:
         request = self.request
         with assume_test_silo_mode(SiloMode.MONOLITH):
             assert login(request, self.user)
@@ -51,7 +51,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         self.assert_user_equals(request)
         assert "_nonce" not in request.session
 
-    def test_process_request_good_nonce(self):
+    def test_process_request_good_nonce(self) -> None:
         request = self.request
         user = self.user
         user.session_nonce = "xxx"
@@ -63,7 +63,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         self.assert_user_equals(request)
         assert request.session["_nonce"] == "xxx"
 
-    def test_process_request_missing_nonce(self):
+    def test_process_request_missing_nonce(self) -> None:
         request = self.request
         user = self.user
         user.session_nonce = "xxx"
@@ -74,7 +74,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         self.middleware.process_request(request)
         assert request.user.is_anonymous
 
-    def test_process_request_bad_nonce(self):
+    def test_process_request_bad_nonce(self) -> None:
         request = self.request
         user = self.user
         user.session_nonce = "xxx"
@@ -85,7 +85,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         self.middleware.process_request(request)
         assert request.user.is_anonymous
 
-    def test_process_request_valid_authtoken(self):
+    def test_process_request_valid_authtoken(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
         request = self.make_request(method="GET")
@@ -97,7 +97,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
                 token
             )
 
-    def test_process_request_invalid_authtoken(self):
+    def test_process_request_invalid_authtoken(self) -> None:
         request = self.make_request(method="GET")
         request.META["HTTP_AUTHORIZATION"] = "Bearer absadadafdf"
         self.middleware.process_request(request)
@@ -105,7 +105,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         assert request.user.is_anonymous
         assert request.auth is None
 
-    def test_process_request_valid_apikey(self):
+    def test_process_request_valid_apikey(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             apikey = ApiKey.objects.create(
                 organization_id=self.organization.id, allowed_origins="*"
@@ -118,7 +118,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         assert request.user.is_anonymous
         assert AuthenticatedToken.from_token(request.auth) == AuthenticatedToken.from_token(apikey)
 
-    def test_process_request_invalid_apikey(self):
+    def test_process_request_invalid_apikey(self) -> None:
         request = self.make_request(method="GET")
         request.META["HTTP_AUTHORIZATION"] = b"Basic adfasdfasdfsadfsaf"
 
@@ -127,7 +127,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         assert request.user.is_anonymous
         assert request.auth is None
 
-    def test_process_request_rpc_path_ignored(self):
+    def test_process_request_rpc_path_ignored(self) -> None:
         request = self.make_request(
             method="GET", path="/api/0/internal/rpc/organization/get_organization_by_id"
         )

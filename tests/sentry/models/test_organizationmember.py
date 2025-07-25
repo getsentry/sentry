@@ -56,12 +56,12 @@ class MockOrganizationRoles:
 
 
 class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
-    def test_legacy_token_generation(self):
+    def test_legacy_token_generation(self) -> None:
         member = OrganizationMember(id=1, organization_id=1, email="foo@example.com")
         with self.settings(SECRET_KEY="a"):
             assert member.legacy_token == "f3f2aa3e57f4b936dfd4f42c38db003e"
 
-    def test_legacy_token_generation_no_email(self):
+    def test_legacy_token_generation_no_email(self) -> None:
         """
         We include membership tokens in RPC memberships so it needs to not error
         for accepted invites.
@@ -69,7 +69,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         member = OrganizationMember(organization_id=1, user_id=self.user.id)
         assert member.legacy_token
 
-    def test_legacy_token_generation_unicode_key(self):
+    def test_legacy_token_generation_unicode_key(self) -> None:
         member = OrganizationMember(id=1, organization_id=1, email="foo@example.com")
         with self.settings(
             SECRET_KEY=(
@@ -79,13 +79,13 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         ):
             assert member.legacy_token == "df41d9dfd4ba25d745321e654e15b5d0"
 
-    def test_get_invite_link_with_referrer(self):
+    def test_get_invite_link_with_referrer(self) -> None:
         member = OrganizationMember(id=1, organization=self.organization, email="foo@example.com")
 
         link = member.get_invite_link(referrer="test_referrer")
         assert "?referrer=test_referrer" in link
 
-    def test_send_invite_email(self):
+    def test_send_invite_email(self) -> None:
         member = OrganizationMember(id=1, organization=self.organization, email="foo@example.com")
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             member.send_invite_email()
@@ -96,14 +96,14 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert msg.to == ["foo@example.com"]
 
     @with_feature("system:multi-region")
-    def test_send_invite_email_customer_domains(self):
+    def test_send_invite_email_customer_domains(self) -> None:
         member = OrganizationMember(id=1, organization=self.organization, email="admin@example.com")
         with self.tasks():
             member.send_invite_email()
         assert len(mail.outbox) == 1
         assert self.organization.absolute_url("/accept/") in mail.outbox[0].body
 
-    def test_send_sso_link_email(self):
+    def test_send_sso_link_email(self) -> None:
         organization = self.create_organization()
         member = OrganizationMember(id=1, organization=organization, email="foo@example.com")
         provider = manager.get("dummy")
@@ -161,7 +161,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert not context["has_password"]
         assert "set_password_url" in context
 
-    def test_token_expires_at_set_on_save(self):
+    def test_token_expires_at_set_on_save(self) -> None:
         with outbox_runner():
             member = OrganizationMember(organization=self.organization, email="foo@example.com")
             member.token = member.generate_token()
@@ -172,7 +172,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert member.token_expires_at
         assert member.token_expires_at.date() == expires_at.date()
 
-    def test_token_expiration(self):
+    def test_token_expiration(self) -> None:
         with outbox_runner():
             member = OrganizationMember(organization=self.organization, email="foo@example.com")
             member.token = member.generate_token()
@@ -185,7 +185,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         member.token_expires_at = timezone.now() - timedelta(minutes=1)
         assert member.token_expired
 
-    def test_set_user(self):
+    def test_set_user(self) -> None:
         with outbox_runner():
             member = OrganizationMember(organization=self.organization, email="foo@example.com")
             member.token = member.generate_token()
@@ -205,7 +205,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         member.refresh_from_db()
         self.assert_org_member_mapping(org_member=member)
 
-    def test_regenerate_token(self):
+    def test_regenerate_token(self) -> None:
         member = OrganizationMember(organization=self.organization, email="foo@example.com")
         assert (member.token, member.token_expires_at) == (None, None)
 
@@ -215,7 +215,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         expires_at = timezone.now() + timedelta(days=INVITE_DAYS_VALID)
         assert member.token_expires_at.date() == expires_at.date()
 
-    def test_delete_expired_clear(self):
+    def test_delete_expired_clear(self) -> None:
         ninety_one_days = timezone.now() - timedelta(days=1)
         member = self.create_member(
             organization=self.organization,
@@ -229,7 +229,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert OrganizationMember.objects.filter(id=member.id).first() is None
         self.assert_org_member_mapping_not_exists(org_member=member)
 
-    def test_delete_identities(self):
+    def test_delete_identities(self) -> None:
         org = self.create_organization()
         user = self.create_user()
         member = self.create_member(user_id=user.id, organization_id=org.id)
@@ -257,7 +257,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             assert not qs.exists()
             self.assert_org_member_mapping_not_exists(org_member=member)
 
-    def test_delete_expired_SCIM_enabled(self):
+    def test_delete_expired_SCIM_enabled(self) -> None:
         organization = self.create_organization()
         org3 = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -292,7 +292,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert not OrganizationMember.objects.filter(id=member2.id).exists()
         self.assert_org_member_mapping_not_exists(org_member=member2)
 
-    def test_delete_expired_miss(self):
+    def test_delete_expired_miss(self) -> None:
         tomorrow = timezone.now() + timedelta(days=1)
         member = self.create_member(
             organization=self.organization,
@@ -306,7 +306,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert OrganizationMember.objects.filter(id=member.id).exists()
         self.assert_org_member_mapping(org_member=member)
 
-    def test_delete_expired_leave_claimed(self):
+    def test_delete_expired_leave_claimed(self) -> None:
         user = self.create_user()
         member = self.create_member(
             organization=self.organization,
@@ -320,7 +320,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert OrganizationMember.objects.filter(id=member.id).exists()
         self.assert_org_member_mapping(org_member=member)
 
-    def test_delete_expired_leave_null_expires(self):
+    def test_delete_expired_leave_null_expires(self) -> None:
         member = self.create_member(
             organization=self.organization,
             role="member",
@@ -333,7 +333,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert OrganizationMember.objects.get(id=member.id)
         self.assert_org_member_mapping(org_member=member)
 
-    def test_approve_invite(self):
+    def test_approve_invite(self) -> None:
         member = self.create_member(
             organization=self.organization,
             role="member",
@@ -350,7 +350,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert member.invite_status == InviteStatus.APPROVED.value
         self.assert_org_member_mapping(org_member=member)
 
-    def test_scopes_with_member_admin_config(self):
+    def test_scopes_with_member_admin_config(self) -> None:
         member = OrganizationMember.objects.create(
             organization=self.organization,
             role="member",
@@ -367,7 +367,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
 
         assert "event:admin" not in member.get_scopes()
 
-    def test_scopes_with_member_alert_write(self):
+    def test_scopes_with_member_alert_write(self) -> None:
         member = OrganizationMember.objects.create(
             organization=self.organization,
             role="member",
@@ -392,7 +392,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert "alerts:write" not in member.get_scopes()
         assert "alerts:write" in admin.get_scopes()
 
-    def test_get_contactable_members_for_org(self):
+    def test_get_contactable_members_for_org(self) -> None:
         organization = self.create_organization()
         user1 = self.create_user()
         user2 = self.create_user()
@@ -410,7 +410,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert results.count() == 1
         assert results[0].user_id == member.user_id
 
-    def test_validate_invitation_success(self):
+    def test_validate_invitation_success(self) -> None:
         member = self.create_member(
             organization=self.organization,
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
@@ -421,7 +421,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert member.validate_invitation(user, [roles.get("member")])
 
     @with_feature({"organizations:invite-members": False})
-    def test_validate_invitation_lack_feature(self):
+    def test_validate_invitation_lack_feature(self) -> None:
         member = self.create_member(
             organization=self.organization,
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
@@ -435,7 +435,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         ):
             member.validate_invitation(user, [roles.get("member")])
 
-    def test_validate_invitation_no_join_requests(self):
+    def test_validate_invitation_no_join_requests(self) -> None:
         OrganizationOption.objects.create(
             organization_id=self.organization.id, key="sentry:join_requests", value=False
         )
@@ -453,7 +453,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         ):
             member.validate_invitation(user, [roles.get("member")])
 
-    def test_validate_invitation_outside_allowed_role(self):
+    def test_validate_invitation_outside_allowed_role(self) -> None:
         member = self.create_member(
             organization=self.organization,
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
@@ -467,7 +467,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         ):
             member.validate_invitation(user, [roles.get("member")])
 
-    def test_approve_member_invitation(self):
+    def test_approve_member_invitation(self) -> None:
         member = self.create_member(
             organization=self.organization,
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
@@ -479,7 +479,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         self.assert_org_member_mapping(org_member=member)
         assert member.invite_status == InviteStatus.APPROVED.value
 
-    def test_reject_member_invitation(self):
+    def test_reject_member_invitation(self) -> None:
         member = self.create_member(
             organization=self.organization,
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
@@ -491,7 +491,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert not OrganizationMember.objects.filter(id=member.id).exists()
         self.assert_org_member_mapping_not_exists(org_member=member)
 
-    def test_invalid_reject_member_invitation(self):
+    def test_invalid_reject_member_invitation(self) -> None:
         user = self.create_user(email="hello@sentry.io")
         member = self.create_member(
             organization=self.organization,
@@ -504,7 +504,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         self.assert_org_member_mapping(org_member=member)
         assert OrganizationMember.objects.filter(id=member.id).exists()
 
-    def test_get_allowed_org_roles_to_invite(self):
+    def test_get_allowed_org_roles_to_invite(self) -> None:
         member = OrganizationMember.objects.get(
             user_id=self.user.id, organization=self.organization
         )
@@ -516,7 +516,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             roles.get("manager"),
         ]
 
-    def test_get_allowed_org_roles_to_invite_subset_logic(self):
+    def test_get_allowed_org_roles_to_invite_subset_logic(self) -> None:
         mock_org_roles = MockOrganizationRoles()
         with (
             patch("sentry.roles.organization_roles.get", mock_org_roles.get),
@@ -545,7 +545,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
                 roles.get("carol"),
             ]
 
-    def test_cannot_demote_last_owner(self):
+    def test_cannot_demote_last_owner(self) -> None:
         org = self.create_organization()
 
         with pytest.raises(ValidationError):
@@ -554,7 +554,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             member.role = "manager"
             member.save()
 
-    def test_cannot_edit_placeholder_org_member(self):
+    def test_cannot_edit_placeholder_org_member(self) -> None:
         omi = self.create_member_invite()
         placeholder_om = omi.organization_member
 

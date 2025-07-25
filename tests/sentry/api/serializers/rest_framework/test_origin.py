@@ -9,13 +9,13 @@ class DummySerializer(serializers.Serializer):
 
 
 class OriginFieldTest(TestCase):
-    def test_valid_origin(self):
+    def test_valid_origin(self) -> None:
         urls = ["https://www.foo.com", "*", "*.domain.com", "*:80", "localhost:8080"]
         for url in urls:
             serializer = DummySerializer(data={"origin_field": url})
             assert serializer.is_valid()
 
-    def test_invalid_origin(self):
+    def test_invalid_origin(self) -> None:
         urls = ["https://www.foo.com:*", "localhost:*"]
         for url in urls:
             serializer = DummySerializer(data={"origin_field": url})

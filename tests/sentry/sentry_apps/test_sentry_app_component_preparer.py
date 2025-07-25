@@ -31,7 +31,7 @@ class TestPreparerIssueLink(TestCase):
         )
 
     @responses.activate
-    def test_prepares_components_requiring_requests(self):
+    def test_prepares_components_requiring_requests(self) -> None:
 
         # the webhook uris that we'll contact to get field options
         uris = ["sentry/foo", "sentry/beep", "sentry/bar"]
@@ -111,7 +111,7 @@ class TestPreparerStacktraceLink(TestCase):
             component=self.component, install=self.install, project_slug=self.project.slug
         )
 
-    def test_prepares_components_url(self):
+    def test_prepares_components_url(self) -> None:
         self.component.schema = {"uri": "/redirection"}
 
         self.preparer.run()
@@ -179,7 +179,7 @@ class TestPreparerAlertRuleAction(TestCase):
             ).project_set.first()
 
     @responses.activate
-    def test_prepares_components_requiring_requests(self):
+    def test_prepares_components_requiring_requests(self) -> None:
 
         # these get passed as query params in the url as dependentData
         dependent_data: list[Mapping[str, str]] = [

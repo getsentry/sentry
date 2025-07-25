@@ -4,7 +4,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class GroupTagDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         for i in range(3):
             self.store_event(
                 data={
@@ -25,7 +25,7 @@ class GroupTagDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert response.data["key"] == "foo"
         assert response.data["totalValues"] == 3
 
-    def test_simple_perf(self):
+    def test_simple_perf(self) -> None:
         event = self.create_performance_issue(
             tags=[["foo", "bar"], ["biz", "baz"], ["sentry:release", "releaseme"]],
             fingerprint="group1",

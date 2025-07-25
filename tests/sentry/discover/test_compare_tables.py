@@ -276,14 +276,14 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
             seconds_before_now=seconds_before_now,
         )
 
-    def test_compare_successful_tables(self):
+    def test_compare_successful_tables(self) -> None:
         comparison_result = compare_tables_for_dashboard_widget_queries(
             self.successful_widget_query
         )
         assert comparison_result["passed"]
         assert comparison_result["mismatches"] == []
 
-    def test_compare_empty_field_tables(self):
+    def test_compare_empty_field_tables(self) -> None:
         # testing with failure_rate() field, which is not supported in EAP
         comparison_result = compare_tables_for_dashboard_widget_queries(
             self.empty_field_widget_query
@@ -295,7 +295,7 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
             and "failure_rate()" in comparison_result["mismatches"]
         )
 
-    def test_compare_non_existent_field_tables(self):
+    def test_compare_non_existent_field_tables(self) -> None:
         comparison_result = compare_tables_for_dashboard_widget_queries(
             self.non_existent_field_widget_query
         )
@@ -306,7 +306,7 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
             and "non_existent_field" in comparison_result["mismatches"]
         )
 
-    def test_compare_non_existent_fields_tables_2(self):
+    def test_compare_non_existent_fields_tables_2(self) -> None:
         comparison_result = compare_tables_for_dashboard_widget_queries(
             self.non_existent_field_widget_query_2
         )
@@ -314,7 +314,7 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
         assert comparison_result["reason"] == CompareTableResult.NO_DATA
         assert comparison_result["mismatches"] is not None and [] == comparison_result["mismatches"]
 
-    def test_compare_non_existent_eap_widget_query(self):
+    def test_compare_non_existent_eap_widget_query(self) -> None:
         comparison_result = compare_tables_for_dashboard_widget_queries(
             self.non_existent_eap_widget_query
         )
@@ -322,14 +322,14 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
         assert comparison_result["reason"] == CompareTableResult.QUERY_FAILED
         assert comparison_result["mismatches"] is not None and [] == comparison_result["mismatches"]
 
-    def test_compare_widget_query_with_no_project(self):
+    def test_compare_widget_query_with_no_project(self) -> None:
         comparison_result = compare_tables_for_dashboard_widget_queries(
             self.successful_widget_query_2
         )
         assert comparison_result["passed"] is True
         assert comparison_result["mismatches"] == []
 
-    def test_compare_widget_query_that_errors_out(self):
+    def test_compare_widget_query_that_errors_out(self) -> None:
         comparison_result = compare_tables_for_dashboard_widget_queries(
             self.widget_with_environment_filter_query
         )
@@ -337,7 +337,7 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
         # assert that both queries don't fail due to the environment filter
         assert comparison_result["reason"] != CompareTableResult.BOTH_FAILED
 
-    def test_compare_widget_query_with_no_metrics_data(self):
+    def test_compare_widget_query_with_no_metrics_data(self) -> None:
         widget = DashboardWidget.objects.create(
             dashboard=self.dashboard_2,
             title="Test No Metrics Data Widget",

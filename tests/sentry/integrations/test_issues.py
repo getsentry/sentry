@@ -25,7 +25,7 @@ from tests.sentry.sentry_apps.tasks.test_sentry_apps import MockResponseInstance
 
 class IssueSyncIntegration(TestCase):
     @with_feature("organizations:issue-open-periods")
-    def test_status_sync_inbound_resolve(self):
+    def test_status_sync_inbound_resolve(self) -> None:
         group = self.group
         assert group.status == GroupStatus.UNRESOLVED
         open_period = GroupOpenPeriod.objects.get(group=group)
@@ -80,7 +80,7 @@ class IssueSyncIntegration(TestCase):
             open_period.refresh_from_db()
             assert open_period.date_ended is not None
 
-    def test_sync_status_resolve_in_next_release_no_releases(self):
+    def test_sync_status_resolve_in_next_release_no_releases(self) -> None:
         group = self.group
         assert group.status == GroupStatus.UNRESOLVED
 
@@ -133,7 +133,7 @@ class IssueSyncIntegration(TestCase):
                 "provider_key": integration.get_provider().key,
             }
 
-    def test_sync_status_resolve_in_next_release_with_releases(self):
+    def test_sync_status_resolve_in_next_release_with_releases(self) -> None:
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release2 = Release.objects.create(organization_id=self.project.organization_id, version="b")
         release.add_project(self.project)
@@ -205,7 +205,7 @@ class IssueSyncIntegration(TestCase):
                 "version": release2.version,
             }
 
-    def test_sync_status_does_not_override_existing_recent_group_resolution(self):
+    def test_sync_status_does_not_override_existing_recent_group_resolution(self) -> None:
         """
         Test that the sync_status_inbound does not override the existing group resolution
         if the group was recently resolved
@@ -280,7 +280,7 @@ class IssueSyncIntegration(TestCase):
             activity.refresh_from_db()
             assert activity.data["version"] == release.version
 
-    def test_sync_status_resolve_in_next_release_with_semver(self):
+    def test_sync_status_resolve_in_next_release_with_semver(self) -> None:
         release = Release.objects.create(
             organization_id=self.project.organization_id, version="app@1.2.4"
         )
@@ -355,7 +355,7 @@ class IssueSyncIntegration(TestCase):
                 "current_release_version": "app@1.2.4",
             }
 
-    def test_sync_status_resolve_in_current_release_with_releases(self):
+    def test_sync_status_resolve_in_current_release_with_releases(self) -> None:
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
         group = self.create_group(status=GroupStatus.UNRESOLVED)
@@ -422,7 +422,7 @@ class IssueSyncIntegration(TestCase):
             }
 
     @with_feature("organizations:issue-open-periods")
-    def test_status_sync_inbound_unresolve(self):
+    def test_status_sync_inbound_unresolve(self) -> None:
         group = self.group
         group.status = GroupStatus.RESOLVED
         group.substatus = None
@@ -634,18 +634,18 @@ class IssueDefaultTest(TestCase):
         assert isinstance(installation, ExampleIntegration)
         self.installation = installation
 
-    def test_get_repository_choices(self):
+    def test_get_repository_choices(self) -> None:
         default_repo, repo_choice = self.installation.get_repository_choices(self.group, {})
         assert default_repo == "user/repo"
         assert repo_choice == [("user/repo", "repo")]
 
-    def test_get_repository_choices_no_repos(self):
+    def test_get_repository_choices_no_repos(self) -> None:
         with mock.patch.object(self.installation, "get_repositories", return_value=[]):
             default_repo, repo_choice = self.installation.get_repository_choices(self.group, {})
             assert default_repo == ""
             assert repo_choice == []
 
-    def test_get_repository_choices_default_repo(self):
+    def test_get_repository_choices_default_repo(self) -> None:
         assert self.installation.org_integration is not None
         org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
@@ -665,7 +665,7 @@ class IssueDefaultTest(TestCase):
             assert default_repo == "user/repo2"
             assert repo_choice == [("user/repo1", "repo1"), ("user/repo2", "repo2")]
 
-    def test_store_issue_last_defaults_partial_update(self):
+    def test_store_issue_last_defaults_partial_update(self) -> None:
         assert "project" in self.installation.get_persisted_default_config_fields()
         assert "issueType" in self.installation.get_persisted_default_config_fields()
         assert "assignedTo" in self.installation.get_persisted_user_default_config_fields()
@@ -688,7 +688,7 @@ class IssueDefaultTest(TestCase):
             "reportedBy": "userB",
         }
 
-    def test_store_issue_last_defaults_multiple_projects(self):
+    def test_store_issue_last_defaults_multiple_projects(self) -> None:
         assert "project" in self.installation.get_persisted_default_config_fields()
         other_project = self.create_project(name="Foo", slug="foo", teams=[self.team])
         self.installation.store_issue_last_defaults(
@@ -706,7 +706,7 @@ class IssueDefaultTest(TestCase):
             "reportedBy": "userB",
         }
 
-    def test_store_issue_last_defaults_for_user_multiple_providers(self):
+    def test_store_issue_last_defaults_for_user_multiple_providers(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             other_integration = self.create_provider_integration(
                 provider=AliasedIntegrationProvider.key
@@ -730,7 +730,7 @@ class IssueDefaultTest(TestCase):
             "reportedBy": "userB",
         }
 
-    def test_annotations(self):
+    def test_annotations(self) -> None:
         label = self.installation.get_issue_display_name(self.external_issue)
         link = self.installation.get_issue_url(self.external_issue.key)
 

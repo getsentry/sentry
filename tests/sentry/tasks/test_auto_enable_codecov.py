@@ -76,7 +76,7 @@ class AutoEnableCodecovTest(TestCase):
         assert not org.flags.codecov_access
 
     @responses.activate
-    def test_disables_codecov(self):
+    def test_disables_codecov(self) -> None:
         with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.all().delete()
         self.organization.flags.codecov_access = True

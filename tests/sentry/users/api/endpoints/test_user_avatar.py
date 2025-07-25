@@ -13,7 +13,7 @@ from sentry.users.models.user_avatar import UserAvatar, UserAvatarType
 
 @control_silo_test
 class UserAvatarTest(APITestCase):
-    def test_get_letter_avatar(self):
+    def test_get_letter_avatar(self) -> None:
         user = self.create_user(email="a@example.com")
 
         self.login_as(user=user)
@@ -26,7 +26,7 @@ class UserAvatarTest(APITestCase):
         assert response.data["avatar"]["avatarType"] == "letter_avatar"
         assert response.data["avatar"]["avatarUuid"] is None
 
-    def test_get_gravatar(self):
+    def test_get_gravatar(self) -> None:
         user = self.create_user(email="a@example.com")
         UserAvatar.objects.create(user=user, avatar_type=UserAvatarType.GRAVATAR)
 
@@ -40,7 +40,7 @@ class UserAvatarTest(APITestCase):
         assert response.data["avatar"]["avatarType"] == "gravatar"
         assert response.data["avatar"]["avatarUuid"] is None
 
-    def test_get_upload_control_file(self):
+    def test_get_upload_control_file(self) -> None:
         user = self.create_user(email="a@example.com")
 
         photo = ControlFile.objects.create(name="test.png", type="avatar.file")
@@ -59,7 +59,7 @@ class UserAvatarTest(APITestCase):
         assert response.data["avatar"]["avatarType"] == "upload"
         assert response.data["avatar"]["avatarUuid"]
 
-    def test_get_upload_file(self):
+    def test_get_upload_file(self) -> None:
         user = self.create_user(email="a@example.com")
 
         with assume_test_silo_mode(SiloMode.REGION):
@@ -79,7 +79,7 @@ class UserAvatarTest(APITestCase):
         assert response.data["avatar"]["avatarType"] == "upload"
         assert response.data["avatar"]["avatarUuid"]
 
-    def test_get_prefers_control_file(self):
+    def test_get_prefers_control_file(self) -> None:
         user = self.create_user(email="a@example.com")
         with assume_test_silo_mode(SiloMode.REGION):
             photo = File.objects.create(name="test.png", type="avatar.file")
@@ -104,7 +104,7 @@ class UserAvatarTest(APITestCase):
         assert response.data["avatar"]["avatarUuid"]
         assert isinstance(avatar.get_file(), ControlFile)
 
-    def test_put_gravatar(self):
+    def test_put_gravatar(self) -> None:
         user = self.create_user(email="a@example.com")
 
         self.login_as(user=user)
@@ -116,7 +116,7 @@ class UserAvatarTest(APITestCase):
         assert response.status_code == 200, response.content
         assert avatar.get_avatar_type_display() == "gravatar"
 
-    def test_put_upload(self):
+    def test_put_upload(self) -> None:
         user = self.create_user(email="a@example.com")
 
         self.login_as(user=user)
@@ -138,7 +138,7 @@ class UserAvatarTest(APITestCase):
         assert avatar.control_file_id, "new files are control files"
         assert ControlFile.objects.filter(id=avatar.control_file_id).exists()
 
-    def test_put_upload_saves_to_control_file(self):
+    def test_put_upload_saves_to_control_file(self) -> None:
         user = self.create_user(email="a@example.com")
 
         self.login_as(user=user)
@@ -161,7 +161,7 @@ class UserAvatarTest(APITestCase):
         assert isinstance(avatar.get_file(), ControlFile)
         assert ControlFile.objects.filter(id=avatar.control_file_id).exists()
 
-    def test_put_upload_saves_to_control_file_with_separate_storage(self):
+    def test_put_upload_saves_to_control_file_with_separate_storage(self) -> None:
         with self.options(
             {
                 "filestore.control.backend": options_store.get("filestore.backend"),
@@ -188,7 +188,7 @@ class UserAvatarTest(APITestCase):
             assert isinstance(avatar.get_file(), ControlFile)
             assert ControlFile.objects.filter(id=avatar.control_file_id).exists()
 
-    def test_put_bad(self):
+    def test_put_bad(self) -> None:
         user = self.create_user(email="a@example.com")
         UserAvatar.objects.create(user=user)
 
@@ -205,7 +205,7 @@ class UserAvatarTest(APITestCase):
         assert response.status_code == 400
         assert avatar.get_avatar_type_display() == "letter_avatar"
 
-    def test_put_forbidden(self):
+    def test_put_forbidden(self) -> None:
         user = self.create_user(email="a@example.com")
         user2 = self.create_user(email="b@example.com")
 

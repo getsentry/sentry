@@ -31,7 +31,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
 
         mock_eventstream.end_merge.assert_called_once_with(eventstream_state)
 
-    def test_merge_group_environments(self):
+    def test_merge_group_environments(self) -> None:
         group1 = self.create_group(self.project)
 
         GroupEnvironment.objects.create(group_id=group1.id, environment_id=1)
@@ -51,7 +51,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
             .values_list("environment_id", flat=True)
         ) == [1, 2]
 
-    def test_merge_with_event_integrity(self):
+    def test_merge_with_event_integrity(self) -> None:
         project = self.create_project()
         event1 = self.store_event(
             data={
@@ -91,7 +91,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         assert event2.group_id == group2.id
         assert event2.data["extra"]["foo"] == "baz"
 
-    def test_merge_creates_redirect(self):
+    def test_merge_creates_redirect(self) -> None:
         groups = [self.create_group() for _ in range(0, 3)]
 
         with self.tasks():
@@ -111,7 +111,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         assert not Group.objects.filter(id=groups[1].id).exists()
         assert GroupRedirect.objects.filter(group_id=groups[2].id).count() == 2
 
-    def test_merge_updates_tag_values_seen(self):
+    def test_merge_updates_tag_values_seen(self) -> None:
         project = self.create_project()
         event1 = self.store_event(
             data={
@@ -141,7 +141,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
 
         assert not Group.objects.filter(id=other.id).exists()
 
-    def test_merge_with_group_meta(self):
+    def test_merge_with_group_meta(self) -> None:
         project1 = self.create_project()
         event1 = self.store_event(data={}, project_id=project1.id)
         group1 = event1.group
@@ -176,7 +176,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         assert GroupMeta.objects.get_value(group2, "github:tid") == "134"
         assert GroupMeta.objects.get_value(group2, "other:tid") == "abc"
 
-    def test_user_report_merge(self):
+    def test_user_report_merge(self) -> None:
         project1 = self.create_project()
         event1 = self.store_event(data={}, project_id=project1.id)
         group1 = event1.group

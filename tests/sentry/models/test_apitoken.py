@@ -19,7 +19,7 @@ from sentry.types.token import AuthTokenType
 
 @control_silo_test
 class ApiTokenTest(TestCase):
-    def test_is_expired(self):
+    def test_is_expired(self) -> None:
         token = ApiToken(expires_at=None)
         assert not token.is_expired()
 
@@ -29,7 +29,7 @@ class ApiTokenTest(TestCase):
         token = ApiToken(expires_at=timezone.now() - timedelta(days=1))
         assert token.is_expired()
 
-    def test_get_scopes(self):
+    def test_get_scopes(self) -> None:
         token = ApiToken(scopes=1)
         assert token.get_scopes() == ["project:read"]
 
@@ -39,7 +39,7 @@ class ApiTokenTest(TestCase):
         token = ApiToken(scope_list=["project:read"])
         assert token.get_scopes() == ["project:read"]
 
-    def test_enforces_scope_hierarchy(self):
+    def test_enforces_scope_hierarchy(self) -> None:
         user = self.create_user()
 
         # Ensure hierarchy is enforced for all tokens
@@ -50,7 +50,7 @@ class ApiTokenTest(TestCase):
             )
             assert set(token.get_scopes()) == SENTRY_SCOPE_HIERARCHY_MAPPING[scope]
 
-    def test_organization_id_for_non_internal(self):
+    def test_organization_id_for_non_internal(self) -> None:
         install = self.create_sentry_app_installation()
         token = install.api_token
         org_id = token.organization_id
@@ -65,25 +65,25 @@ class ApiTokenTest(TestCase):
             assert ApiTokenReplica.objects.get(apitoken_id=token.id).organization_id is None
         assert token.organization_id is None
 
-    def test_last_chars_are_set(self):
+    def test_last_chars_are_set(self) -> None:
         user = self.create_user()
         token = ApiToken.objects.create(user_id=user.id)
         assert token.token_last_characters == token.token[-4:]
 
-    def test_hash_exists_on_token(self):
+    def test_hash_exists_on_token(self) -> None:
         user = self.create_user()
         token = ApiToken.objects.create(user_id=user.id)
         assert token.hashed_token is not None
         assert token.hashed_refresh_token is not None
 
-    def test_hash_exists_on_user_token(self):
+    def test_hash_exists_on_user_token(self) -> None:
         user = self.create_user()
         token = ApiToken.objects.create(user_id=user.id, token_type=AuthTokenType.USER)
         assert token.hashed_token is not None
         assert len(token.hashed_token) == 64  # sha256 hash
         assert token.hashed_refresh_token is None  # user auth tokens don't have refresh tokens
 
-    def test_plaintext_values_only_available_immediately_after_create(self):
+    def test_plaintext_values_only_available_immediately_after_create(self) -> None:
         user = self.create_user()
         token = ApiToken.objects.create(user_id=user.id)
         assert token.plaintext_token is not None
@@ -97,27 +97,27 @@ class ApiTokenTest(TestCase):
         with pytest.raises(PlaintextSecretAlreadyRead):
             _ = token.plaintext_refresh_token
 
-    def test_error_when_accessing_refresh_token_on_user_token(self):
+    def test_error_when_accessing_refresh_token_on_user_token(self) -> None:
         user = self.create_user()
         token = ApiToken.objects.create(user_id=user.id, token_type=AuthTokenType.USER)
 
         with pytest.raises(NotSupported):
             assert token.plaintext_refresh_token is not None
 
-    def test_user_auth_token_refresh_raises_error(self):
+    def test_user_auth_token_refresh_raises_error(self) -> None:
         user = self.create_user()
         token = ApiToken.objects.create(user_id=user.id, token_type=AuthTokenType.USER)
 
         with pytest.raises(NotSupported):
             token.refresh()
 
-    def test_user_auth_token_sha256_hash(self):
+    def test_user_auth_token_sha256_hash(self) -> None:
         user = self.create_user()
         token = ApiToken.objects.create(user_id=user.id, token_type=AuthTokenType.USER)
         expected_hash = hashlib.sha256(token.plaintext_token.encode()).hexdigest()
         assert expected_hash == token.hashed_token
 
-    def test_hash_updated_when_calling_update(self):
+    def test_hash_updated_when_calling_update(self) -> None:
         user = self.create_user()
         token = ApiToken.objects.create(user_id=user.id)
         initial_expected_hash = hashlib.sha256(token.plaintext_token.encode()).hexdigest()
@@ -135,13 +135,13 @@ class ApiTokenTest(TestCase):
         assert token.token_last_characters == "1234"
         assert token.hashed_token == new_token_expected_hash
 
-    def test_default_string_serialization(self):
+    def test_default_string_serialization(self) -> None:
         user = self.create_user()
         token = ApiToken.objects.create(user_id=user.id)
 
         assert f"{token} is cool" == f"token_id={token.id} is cool"
 
-    def test_replica_string_serialization(self):
+    def test_replica_string_serialization(self) -> None:
         user = self.create_user()
         token = ApiToken.objects.create(user_id=user.id)
         with assume_test_silo_mode(SiloMode.REGION):
@@ -151,7 +151,7 @@ class ApiTokenTest(TestCase):
                 == f"replica_token_id={replica.id}, token_id={token.id} is swug"
             )
 
-    def test_delete_token_removes_replica(self):
+    def test_delete_token_removes_replica(self) -> None:
         user = self.create_user()
 
         with outbox_runner():
@@ -199,7 +199,7 @@ class ApiTokenInternalIntegrationTest(TestCase):
         )
         self.install = SentryAppInstallation.objects.get(sentry_app=self.internal_app)
 
-    def test_multiple_tokens_have_correct_organization_id(self):
+    def test_multiple_tokens_have_correct_organization_id(self) -> None:
         # First token is no longer created automatically with the application, so we must manually
         # create multiple tokens that aren't directly linked from the SentryAppInstallation model.
         token_1 = self.create_internal_integration_token(install=self.install, user=self.user)

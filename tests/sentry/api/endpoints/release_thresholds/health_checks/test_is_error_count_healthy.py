@@ -34,7 +34,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         # add_project get_or_creates a ReleaseProject
         self.release2.add_project(self.project1)
 
-    def test_threshold_within_timeseries(self):
+    def test_threshold_within_timeseries(self) -> None:
         """
         construct a timeseries with:
         - a single release
@@ -194,7 +194,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         )
         assert is_healthy
 
-    def test_multiple_releases_within_timeseries(self):
+    def test_multiple_releases_within_timeseries(self) -> None:
         now = timezone.now()
         timeseries = [
             {
@@ -303,7 +303,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         )
         assert not is_healthy
 
-    def test_multiple_projects_within_timeseries(self):
+    def test_multiple_projects_within_timeseries(self) -> None:
         now = timezone.now()
         timeseries = [
             {
@@ -413,7 +413,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         )
         assert not is_healthy
 
-    def test_multiple_environments_within_timeseries(self):
+    def test_multiple_environments_within_timeseries(self) -> None:
         now = timezone.now()
         timeseries = [
             {
@@ -522,7 +522,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         )
         assert not is_healthy
 
-    def test_unordered_timeseries(self):
+    def test_unordered_timeseries(self) -> None:
         """
         construct a timeseries with:
         - a single release

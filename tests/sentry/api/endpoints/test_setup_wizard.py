@@ -6,7 +6,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class SetupWizardTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.create_project(name="foo")
 
         url = reverse("sentry-api-0-project-wizard-new")
@@ -17,7 +17,7 @@ class SetupWizardTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["hash"]
 
-    def test_anonymous(self):
+    def test_anonymous(self) -> None:
         self.create_project(name="foo")
 
         url = reverse("sentry-api-0-project-wizard-new")
@@ -25,7 +25,7 @@ class SetupWizardTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 200, response.content
 
-    def test_fill_and_read(self):
+    def test_fill_and_read(self) -> None:
         self.create_project(name="foo")
 
         url = reverse("sentry-api-0-project-wizard-new")

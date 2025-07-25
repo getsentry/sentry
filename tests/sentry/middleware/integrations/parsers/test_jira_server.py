@@ -40,7 +40,7 @@ class JiraServerRequestParserTest(TestCase):
         )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_routing_endpoint_no_integration(self):
+    def test_routing_endpoint_no_integration(self) -> None:
         route = reverse("sentry-extensions-jiraserver-issue-updated", kwargs={"token": "TOKEN"})
         request = self.factory.post(route)
         parser = JiraServerRequestParser(request=request, response_handler=self.get_response)
@@ -60,7 +60,7 @@ class JiraServerRequestParserTest(TestCase):
     @override_regions(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @responses.activate
-    def test_routing_endpoint_with_integration(self):
+    def test_routing_endpoint_with_integration(self) -> None:
         route = reverse("sentry-extensions-jiraserver-issue-updated", kwargs={"token": "TOKEN"})
 
         request = self.factory.post(
@@ -86,7 +86,7 @@ class JiraServerRequestParserTest(TestCase):
     @override_regions(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @responses.activate
-    def test_routing_endpoint_with_integration_no_organization_integration(self):
+    def test_routing_endpoint_with_integration_no_organization_integration(self) -> None:
         integration = self.create_provider_integration(
             provider="jira_server",
             external_id="jira_server:2",
@@ -112,7 +112,7 @@ class JiraServerRequestParserTest(TestCase):
     @override_regions(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @responses.activate
-    def test_routing_webhook_with_mailbox_buckets_low_volume(self):
+    def test_routing_webhook_with_mailbox_buckets_low_volume(self) -> None:
         route = reverse("sentry-extensions-jiraserver-issue-updated", kwargs={"token": "TOKEN"})
 
         request = self.factory.post(
@@ -138,7 +138,7 @@ class JiraServerRequestParserTest(TestCase):
     @override_regions(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @responses.activate
-    def test_routing_webhook_with_mailbox_buckets_high_volume(self):
+    def test_routing_webhook_with_mailbox_buckets_high_volume(self) -> None:
         route = reverse("sentry-extensions-jiraserver-issue-updated", kwargs={"token": "TOKEN"})
 
         request = self.factory.post(
@@ -171,7 +171,7 @@ class JiraServerRequestParserTest(TestCase):
     @override_regions(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @responses.activate
-    def test_routing_webhook_with_mailbox_bucket_mode_active(self):
+    def test_routing_webhook_with_mailbox_bucket_mode_active(self) -> None:
         route = reverse("sentry-extensions-jiraserver-issue-updated", kwargs={"token": "TOKEN"})
 
         request = self.factory.post(
@@ -203,7 +203,7 @@ class JiraServerRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     @responses.activate
-    def test_drop_request_without_changelog(self):
+    def test_drop_request_without_changelog(self) -> None:
         route = reverse("sentry-extensions-jiraserver-issue-updated", kwargs={"token": "TOKEN"})
         request = self.factory.post(route, data=no_changelog, content_type="application/json")
         parser = JiraServerRequestParser(request=request, response_handler=self.get_response)
@@ -221,7 +221,7 @@ class JiraServerRequestParserTest(TestCase):
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_routing_search_endpoint(self):
+    def test_routing_search_endpoint(self) -> None:
         route = reverse(
             "sentry-extensions-jiraserver-search",
             kwargs={

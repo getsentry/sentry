@@ -3,7 +3,7 @@ from sentry.testutils.cases import TestCase
 
 
 class GroupSearchViewTestCase(TestCase):
-    def test_create_views(self):
+    def test_create_views(self) -> None:
         user = self.create_user("foo@example.com")
         org = self.create_organization()
 

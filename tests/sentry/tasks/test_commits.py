@@ -307,7 +307,7 @@ class FetchCommitsTest(TestCase):
 
 @control_silo_test
 class HandleInvalidIdentityTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         usa = UserSocialAuth.objects.create(user=self.user, provider="dummy")
 
         with self.tasks():
@@ -319,7 +319,7 @@ class HandleInvalidIdentityTest(TestCase):
         assert msg.subject == "Action Required"
         assert msg.to == [self.user.email]
 
-    def test_commit_failure(self):
+    def test_commit_failure(self) -> None:
         usa = UserSocialAuth.objects.create(user=self.user, provider="dummy")
 
         with self.tasks():

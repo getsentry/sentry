@@ -76,13 +76,13 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
         ) as self.mock_post:
             yield
 
-    def test_identifying_channel_correctly(self):
+    def test_identifying_channel_correctly(self) -> None:
         event_data = orjson.loads(MESSAGE_IM_EVENT)
         self.post_webhook(event_data=event_data)
         data = self.mock_post.call_args[1]
         assert data.get("channel") == event_data["channel"]
 
-    def test_user_message_im_notification_platform(self):
+    def test_user_message_im_notification_platform(self) -> None:
         resp = self.post_webhook(event_data=orjson.loads(MESSAGE_IM_EVENT))
         assert resp.status_code == 200, resp.content
 
@@ -110,7 +110,7 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
 
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
-    def test_user_message_already_linked_sdk(self):
+    def test_user_message_already_linked_sdk(self) -> None:
         """
         Test that when a user who has already linked their identity types in
         "link" to the DM we reply with the correct response.
@@ -131,7 +131,7 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
         data = self.mock_post.call_args[1]
         assert "You are already linked" in get_response_text(data)
 
-    def test_user_message_unlink(self):
+    def test_user_message_unlink(self) -> None:
         """
         Test that when a user types in "unlink" to the DM we reply with the correct response.
         """
@@ -151,7 +151,7 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
         data = self.mock_post.call_args[1]
         assert "Click here to unlink your identity" in get_response_text(data)
 
-    def test_user_message_already_unlinked(self):
+    def test_user_message_already_unlinked(self) -> None:
         """
         Test that when a user without an Identity types in "unlink" to the DM we
         reply with the correct response.
@@ -165,11 +165,11 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
         data = self.mock_post.call_args[1]
         assert "You do not have a linked identity to unlink" in get_response_text(data)
 
-    def test_bot_message_im(self):
+    def test_bot_message_im(self) -> None:
         resp = self.post_webhook(event_data=orjson.loads(MESSAGE_IM_BOT_EVENT))
         assert resp.status_code == 200, resp.content
 
-    def test_user_message_im_no_text(self):
+    def test_user_message_im_no_text(self) -> None:
         resp = self.post_webhook(event_data=orjson.loads(MESSAGE_IM_EVENT_NO_TEXT))
         assert resp.status_code == 200, resp.content
         assert not self.mock_post.called

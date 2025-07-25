@@ -28,7 +28,7 @@ class SlackResolvedInReleaseNotificationTest(
             )
         )
 
-    def test_resolved_in_release_block(self):
+    def test_resolved_in_release_block(self) -> None:
         notification = self.create_notification(self.group)
         with self.tasks():
             notification.send()
@@ -115,7 +115,7 @@ class SlackResolvedInReleaseNotificationTest(
             "resolved_in_release_activity-slack",
         )
 
-    def test_resolved_in_release_parsed_version_block(self):
+    def test_resolved_in_release_parsed_version_block(self) -> None:
         """
         Test that the release version is formatted to the short version when block kit is enabled.
         """

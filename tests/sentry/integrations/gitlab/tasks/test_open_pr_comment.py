@@ -97,7 +97,7 @@ class TestSafeForComment(GitlabCommentTestCase):
         self.addCleanup(mock_integration_metrics_patcher.stop)
 
     @responses.activate
-    def test_simple(self):
+    def test_simple(self) -> None:
         data = [
             {
                 "diff": DIFFS["pure_addition"],
@@ -184,7 +184,7 @@ class TestSafeForComment(GitlabCommentTestCase):
         ]
 
     @responses.activate
-    def test_too_many_files(self):
+    def test_too_many_files(self) -> None:
         files = OPEN_PR_MAX_FILES_CHANGED + 1
 
         data = [
@@ -217,7 +217,7 @@ class TestSafeForComment(GitlabCommentTestCase):
         )
 
     @responses.activate
-    def test_too_many_lines(self):
+    def test_too_many_lines(self) -> None:
         lines = OPEN_PR_MAX_LINES_CHANGED + 1
 
         diff = f"""diff --git a/test.py b/test.py
@@ -260,7 +260,7 @@ index 0000001..0000002 100644
         )
 
     @responses.activate
-    def test_error__missing_pr(self):
+    def test_error__missing_pr(self) -> None:
         responses.add(
             responses.GET,
             f"https://example.gitlab.com/api/v4/projects/{self.repo.config['project_id']}/merge_requests/{self.pr.key}/diffs?unidiff=true",
@@ -272,7 +272,7 @@ index 0000001..0000002 100644
         assert pr_files == []
 
     @responses.activate
-    def test_error__unknown_api_error(self):
+    def test_error__unknown_api_error(self) -> None:
         responses.add(
             responses.GET,
             f"https://example.gitlab.com/api/v4/projects/{self.repo.config['project_id']}/merge_requests/{self.pr.key}/diffs?unidiff=true",

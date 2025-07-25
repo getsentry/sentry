@@ -14,13 +14,13 @@ class ExternalTeamDetailsTest(APITestCase):
             self.team, external_name="@getsentry/ecosystem"
         )
 
-    def test_basic_delete(self):
+    def test_basic_delete(self) -> None:
         self.get_success_response(
             self.organization.slug, self.team.slug, self.external_team.id, method="delete"
         )
         assert not ExternalActor.objects.filter(id=str(self.external_team.id)).exists()
 
-    def test_basic_update(self):
+    def test_basic_update(self) -> None:
         with self.feature({"organizations:integrations-codeowners": True}):
             data = {"externalName": "@getsentry/growth"}
             response = self.get_success_response(
@@ -30,7 +30,7 @@ class ExternalTeamDetailsTest(APITestCase):
         assert response.data["id"] == str(self.external_team.id)
         assert response.data["externalName"] == "@getsentry/growth"
 
-    def test_ignore_camelcase_teamid(self):
+    def test_ignore_camelcase_teamid(self) -> None:
         other_team = self.create_team(organization=self.organization)
         data = {
             "externalName": "@getsentry/growth",
@@ -42,7 +42,7 @@ class ExternalTeamDetailsTest(APITestCase):
             )
         assert not ExternalActor.objects.filter(team_id=other_team.id).exists()
 
-    def test_invalid_provider_update(self):
+    def test_invalid_provider_update(self) -> None:
         data = {"provider": "git"}
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.get_error_response(
@@ -54,7 +54,7 @@ class ExternalTeamDetailsTest(APITestCase):
             )
         assert response.data == {"provider": ['"git" is not a valid choice.']}
 
-    def test_delete_another_orgs_external_team(self):
+    def test_delete_another_orgs_external_team(self) -> None:
         invalid_user = self.create_user()
         invalid_organization = self.create_organization(owner=invalid_user)
         self.login_as(user=invalid_user)

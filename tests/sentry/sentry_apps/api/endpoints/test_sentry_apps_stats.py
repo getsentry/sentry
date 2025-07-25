@@ -44,23 +44,23 @@ class SentryAppsStatsTest(APITestCase):
             "avatars": [serialize(self.app_one_avatar)],
         } in orjson.loads(response.content)
 
-    def test_superuser_has_access(self):
+    def test_superuser_has_access(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(status_code=200)
         self._check_response(response)
 
     @override_options({"staff.ga-rollout": True})
-    def test_staff_has_access(self):
+    def test_staff_has_access(self) -> None:
         staff_user = self.create_user(is_staff=True)
         self.login_as(user=staff_user, staff=True)
         response = self.get_success_response(status_code=200)
         self._check_response(response)
 
-    def test_nonsuperusers_have_no_access(self):
+    def test_nonsuperusers_have_no_access(self) -> None:
         self.login_as(user=self.user)
         self.get_error_response(status_code=403)
 
-    def test_per_page(self):
+    def test_per_page(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
 
         self.create_sentry_app_installation(

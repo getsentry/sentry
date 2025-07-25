@@ -29,7 +29,7 @@ class ExploreSavedQueryStarredTest(APITestCase, SnubaTestCase):
             "sentry-api-0-explore-saved-query-starred", args=[self.org.slug, self.query_id]
         )
 
-    def test_post(self):
+    def test_post(self) -> None:
         with self.feature(self.feature_name):
             assert not ExploreSavedQuery.objects.filter(
                 id__in=ExploreSavedQueryStarred.objects.filter(

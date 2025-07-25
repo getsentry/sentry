@@ -41,7 +41,7 @@ class TestNotificationUtilities(TestCase):
     ):
         assert actual == {Actor.from_orm_user(k): v for (k, v) in expected.items()}
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         integrations_by_channel_by_recipient = get_integrations_by_channel_by_recipient(
             self.notification.organization,
             [Actor.from_object(self.user)],
@@ -53,7 +53,7 @@ class TestNotificationUtilities(TestCase):
             {self.user: {self.external_user_id_1: self.api_integration}},
         )
 
-    def test_matching_idp_and_identity_external_id(self):
+    def test_matching_idp_and_identity_external_id(self) -> None:
         """
         Test that rows where identity.external_id is equal to idp.external_id are excluded.
         """
@@ -65,7 +65,7 @@ class TestNotificationUtilities(TestCase):
 
         self._assert_integrations_are(integrations_by_channel_by_recipient, {self.user_2: {}})
 
-    def test_multiple(self):
+    def test_multiple(self) -> None:
         integrations_by_channel_by_recipient = get_integrations_by_channel_by_recipient(
             self.notification.organization,
             [Actor.from_object(self.user), Actor.from_object(self.user_2)],

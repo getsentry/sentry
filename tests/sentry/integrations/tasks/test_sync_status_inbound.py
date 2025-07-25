@@ -162,7 +162,7 @@ class TestSyncStatusInbound(TestCase):
         self.group.refresh_from_db()
         assert self.group.status == original_status
 
-    def test_integration_not_found(self):
+    def test_integration_not_found(self) -> None:
         with pytest.raises(Integration.DoesNotExist):
             sync_status_inbound(
                 integration_id=99999,
@@ -171,7 +171,7 @@ class TestSyncStatusInbound(TestCase):
                 data=fake_data,
             )
 
-    def test_integration_inactive(self):
+    def test_integration_inactive(self) -> None:
         integration = self.create_integration(
             organization=self.organization,
             provider="example",
@@ -187,7 +187,7 @@ class TestSyncStatusInbound(TestCase):
         )
         self._assert_group_unresolved(self.group.id)
 
-    def test_organization_not_found(self):
+    def test_organization_not_found(self) -> None:
         sync_status_inbound(
             integration_id=self.integration.id,
             organization_id=99999,
@@ -197,7 +197,7 @@ class TestSyncStatusInbound(TestCase):
         self.group.refresh_from_db()
         assert self.group.status == GroupStatus.UNRESOLVED
 
-    def test_no_affected_groups(self):
+    def test_no_affected_groups(self) -> None:
         sync_status_inbound(
             integration_id=self.integration.id,
             organization_id=self.organization.id,

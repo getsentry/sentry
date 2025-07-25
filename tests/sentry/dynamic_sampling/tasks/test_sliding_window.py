@@ -18,7 +18,7 @@ class SlidingWindowOrgSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, SnubaTe
     def now(self):
         return MOCK_DATETIME
 
-    def test_query_with_one_org_and_multiple_projects(self):
+    def test_query_with_one_org_and_multiple_projects(self) -> None:
         org_1 = self.create_organization("test-org")
         project_1 = self.create_project(organization=org_1)
         project_2 = self.create_project(organization=org_1)
@@ -52,7 +52,7 @@ class SlidingWindowOrgSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, SnubaTe
         results = fetch_orgs_with_total_root_transactions_count(org_ids=[org_1.id], window_size=24)
         assert results[org_1.id] == 350
 
-    def test_query_with_multiple_orgs_and_multiple_projects(self):
+    def test_query_with_multiple_orgs_and_multiple_projects(self) -> None:
         org_1 = self.create_organization("test-org-1")
         project_1 = self.create_project(organization=org_1)
         project_2 = self.create_project(organization=org_1)
@@ -93,7 +93,7 @@ class SlidingWindowOrgSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, SnubaTe
         assert results[org_1.id] == 300
         assert results[org_2.id] == 300
 
-    def test_query_with_different_time_windows(self):
+    def test_query_with_different_time_windows(self) -> None:
         org_1 = self.create_organization("test-org-1")
         project_1 = self.create_project(organization=org_1)
 

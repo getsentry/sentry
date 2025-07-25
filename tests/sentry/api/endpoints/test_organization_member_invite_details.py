@@ -30,7 +30,7 @@ class OrganizationMemberInviteTestBase(APITestCase):
 
 @apply_feature_flag_on_cls("organizations:new-organization-member-invite")
 class GetOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         invited_member = self.create_member_invite(
             organization=self.organization, email="matcha@latte.com"
         )
@@ -38,7 +38,7 @@ class GetOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         assert response.data["id"] == str(invited_member.id)
         assert response.data["email"] == "matcha@latte.com"
 
-    def test_invite_request(self):
+    def test_invite_request(self) -> None:
         # users can also hit this endpoint to view pending invite requests
         invited_member = self.create_member_invite(
             organization=self.organization,
@@ -50,7 +50,7 @@ class GetOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         assert response.data["email"] == "matcha@latte.com"
         assert response.data["inviteStatus"] == "requested_to_be_invited"
 
-    def test_get_by_garbage(self):
+    def test_get_by_garbage(self) -> None:
         self.get_error_response(self.organization.slug, "-1", status_code=404)
 
 
@@ -86,14 +86,14 @@ class UpdateOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
             inviter_id=self.regular_user.id,
         )
 
-    def test_update_org_role(self):
+    def test_update_org_role(self) -> None:
         self.get_success_response(
             self.organization.slug, self.approved_invite.id, orgRole="manager"
         )
         self.approved_invite.refresh_from_db()
         assert self.approved_invite.role == "manager"
 
-    def test_cannot_update_with_invalid_role(self):
+    def test_cannot_update_with_invalid_role(self) -> None:
         invalid_invite = self.create_member_invite(
             organization=self.organization, email="chocolate@croissant.com"
         )
@@ -102,7 +102,7 @@ class UpdateOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         )
 
     @with_feature("organizations:team-roles")
-    def test_can_update_from_retired_role_with_flag(self):
+    def test_can_update_from_retired_role_with_flag(self) -> None:
         invite = self.create_member_invite(
             organization=self.organization,
             email="pistachio@croissant.com",
@@ -114,7 +114,7 @@ class UpdateOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         assert invite.role == "member"
 
     @with_feature({"organizations:team-roles": False})
-    def test_can_update_from_retired_role_without_flag(self):
+    def test_can_update_from_retired_role_without_flag(self) -> None:
         invite = self.create_member_invite(
             organization=self.organization,
             email="pistachio@croissant.com",
@@ -126,7 +126,7 @@ class UpdateOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         assert invite.role == "member"
 
     @with_feature({"organizations:team-roles": False})
-    def test_can_update_to_retired_role_without_flag(self):
+    def test_can_update_to_retired_role_without_flag(self) -> None:
         invite = self.create_member_invite(
             organization=self.organization,
             email="pistachio@croissant.com",
@@ -138,7 +138,7 @@ class UpdateOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         assert invite.role == "admin"
 
     @with_feature("organizations:team-roles")
-    def test_cannot_update_to_retired_role_with_flag(self):
+    def test_cannot_update_to_retired_role_with_flag(self) -> None:
         invite = self.create_member_invite(
             organization=self.organization,
             email="pistachio@croissant.com",
@@ -147,7 +147,7 @@ class UpdateOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
 
         self.get_error_response(self.organization.slug, invite.id, orgRole="admin", status_code=400)
 
-    def test_update_teams(self):
+    def test_update_teams(self) -> None:
         team = self.create_team(organization=self.organization, name="cool-team")
         self.get_success_response(
             self.organization.slug, self.approved_invite.id, teams=[team.slug]
@@ -200,12 +200,12 @@ class UpdateOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
             == "The 'member' role cannot be set on an invited user with team assignments."
         )
 
-    def test_approve_invite(self):
+    def test_approve_invite(self) -> None:
         self.get_success_response(self.organization.slug, self.invite_request.id, approve=True)
         self.invite_request.refresh_from_db()
         assert self.invite_request.invite_approved
 
-    def test_cannot_approve_invite_above_self(self):
+    def test_cannot_approve_invite_above_self(self) -> None:
         user = self.create_user("manager-mifu@email.com")
         self.create_member(organization=self.organization, role="manager", user=user)
         self.login_as(user)
@@ -223,13 +223,13 @@ class UpdateOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         )
 
     @with_feature({"organizations:invite-members": False})
-    def test_cannot_approve_if_invite_requests_disabled(self):
+    def test_cannot_approve_if_invite_requests_disabled(self) -> None:
         response = self.get_error_response(
             self.organization.slug, self.invite_request.id, approve=1
         )
         assert response.data["approve"][0] == "Your organization is not allowed to invite members."
 
-    def test_cannot_modify_partnership_managed_invite(self):
+    def test_cannot_modify_partnership_managed_invite(self) -> None:
         invite = self.create_member_invite(
             organization=self.organization,
             email="partnership-mifu@email.com",

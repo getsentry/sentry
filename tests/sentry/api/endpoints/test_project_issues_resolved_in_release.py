@@ -61,7 +61,7 @@ class ProjectIssuesResolvedInReleaseEndpointTest(APITestCase):
         expected = set(map(str, [g.id for g in expected_groups]))
         assert {item["id"] for item in response.data} == expected
 
-    def test_shows_issues_from_groupresolution(self):
+    def test_shows_issues_from_groupresolution(self) -> None:
         """
         tests that the endpoint will correctly retrieve issues resolved
         in a release from the GroupResolution model
@@ -69,7 +69,7 @@ class ProjectIssuesResolvedInReleaseEndpointTest(APITestCase):
         self.build_group_resolution()
         self.run_test([self.group])
 
-    def test_shows_issues_from_grouplink(self):
+    def test_shows_issues_from_grouplink(self) -> None:
         """
         tests that the endpoint will correctly retrieve issues resolved
         in a release from the GroupLink model
@@ -77,7 +77,7 @@ class ProjectIssuesResolvedInReleaseEndpointTest(APITestCase):
         self.build_grouplink()
         self.run_test([self.group])
 
-    def test_does_not_return_duplicate_groups(self):
+    def test_does_not_return_duplicate_groups(self) -> None:
         """
         tests that the endpoint will correctly retrieve issues resolved
         in a release from the GroupLink and GroupResolution model
@@ -87,7 +87,7 @@ class ProjectIssuesResolvedInReleaseEndpointTest(APITestCase):
         self.build_group_resolution()
         self.run_test([self.group])
 
-    def test_return_groups_from_both_types(self):
+    def test_return_groups_from_both_types(self) -> None:
         """
         tests that the endpoint will correctly retrieve issues resolved
         in a release from both the GroupLink and GroupResolution model

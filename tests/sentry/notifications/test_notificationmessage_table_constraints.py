@@ -31,7 +31,7 @@ class TestUpdateNotificationMessageConstraintsForActionGroupOpenPeriod(TestCase)
 
         self.action = self.create_action()
 
-    def test_constraint_enforces_uniqueness_for_issue_alerts(self):
+    def test_constraint_enforces_uniqueness_for_issue_alerts(self) -> None:
         """Test that the constraint prevents duplicate issue alerts without open_period_start but allows them with different open_period_start"""
 
         # Create first notification without open_period_start
@@ -51,7 +51,7 @@ class TestUpdateNotificationMessageConstraintsForActionGroupOpenPeriod(TestCase)
                 parent_notification_message=None,
             )
 
-    def test_constraint_allows_action_group_with_open_period_start(self):
+    def test_constraint_allows_action_group_with_open_period_start(self) -> None:
         """Test that the new constraint allows action group notifications"""
 
         # Creating notifications with different open_period_start should succeed
@@ -77,7 +77,7 @@ class TestUpdateNotificationMessageConstraintsForActionGroupOpenPeriod(TestCase)
         assert notification1.open_period_start == open_period_1
         assert notification2.open_period_start == open_period_2
 
-    def test_constraint_allows_issue_alert_with_open_period_start(self):
+    def test_constraint_allows_issue_alert_with_open_period_start(self) -> None:
         """Test that the new constraint allows issue alert notifications"""
 
         group = self.create_group(project=self.project)
@@ -106,7 +106,7 @@ class TestUpdateNotificationMessageConstraintsForActionGroupOpenPeriod(TestCase)
         assert notification1.open_period_start == open_period_1
         assert notification2.open_period_start == open_period_2
 
-    def test_constraint_allows_different_action_group_combinations(self):
+    def test_constraint_allows_different_action_group_combinations(self) -> None:
         """Test that different action/group combinations are allowed"""
 
         group1 = self.create_group(project=self.project)

@@ -13,14 +13,14 @@ class OrganizationIntegrationRequestTest(APITestCase):
         self.create_member(user=self.member, organization=self.organization, role="member")
         self.login_as(user=self.member)
 
-    def test_integration_request(self):
+    def test_integration_request(self) -> None:
         self.get_success_response(
             self.organization.slug,
             providerSlug="github",
             providerType="first_party",
         )
 
-    def test_integration_request_with_invalid_plugin(self):
+    def test_integration_request_with_invalid_plugin(self) -> None:
         self.get_error_response(
             self.organization.slug,
             providerSlug="ERROR",
@@ -28,7 +28,7 @@ class OrganizationIntegrationRequestTest(APITestCase):
             status_code=400,
         )
 
-    def test_integration_request_with_invalid_sentryapp(self):
+    def test_integration_request_with_invalid_sentryapp(self) -> None:
         self.get_error_response(
             self.organization.slug,
             providerSlug="ERROR",
@@ -36,7 +36,7 @@ class OrganizationIntegrationRequestTest(APITestCase):
             status_code=400,
         )
 
-    def test_integration_request_with_invalid_integration(self):
+    def test_integration_request_with_invalid_integration(self) -> None:
         self.get_error_response(
             self.organization.slug,
             providerSlug="ERROR",
@@ -44,7 +44,7 @@ class OrganizationIntegrationRequestTest(APITestCase):
             status_code=400,
         )
 
-    def test_integration_request_as_owner(self):
+    def test_integration_request_as_owner(self) -> None:
         self.login_as(user=self.owner)
         response = self.get_success_response(
             self.organization.slug,
@@ -53,7 +53,7 @@ class OrganizationIntegrationRequestTest(APITestCase):
         )
         assert response.data["detail"] == "User can install integration"
 
-    def test_integration_request_without_permissions(self):
+    def test_integration_request_without_permissions(self) -> None:
         self.login_as(user=self.create_user(email="nonmember@example.com"))
         self.get_error_response(
             self.organization.slug,

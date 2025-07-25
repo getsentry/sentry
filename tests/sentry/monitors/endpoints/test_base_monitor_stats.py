@@ -64,7 +64,7 @@ class BaseMonitorStatsTest(MonitorTestCase):
             status=CheckInStatus.TIMEOUT,
         )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         resp = self.get_success_response(
             self.organization.slug,
             self.monitor.slug,
@@ -91,7 +91,7 @@ class BaseMonitorStatsTest(MonitorTestCase):
         assert hour_two["timeout"] == 2
         assert hour_two["unknown"] == 0
 
-    def test_simple_environment(self):
+    def test_simple_environment(self) -> None:
         resp = self.get_success_response(
             self.organization.slug,
             self.monitor.slug,
@@ -118,7 +118,7 @@ class BaseMonitorStatsTest(MonitorTestCase):
         assert hour_two["timeout"] == 1
         assert hour_two["unknown"] == 0
 
-    def test_multiple_environment(self):
+    def test_multiple_environment(self) -> None:
         resp = self.get_success_response(
             self.organization.slug,
             self.monitor.slug,
@@ -145,7 +145,7 @@ class BaseMonitorStatsTest(MonitorTestCase):
         assert hour_two["timeout"] == 2
         assert hour_two["unknown"] == 0
 
-    def test_bad_monitorenvironment(self):
+    def test_bad_monitorenvironment(self) -> None:
         self.create_environment(name="empty", project=self.project)
         resp = self.get_success_response(
             self.organization.slug,

@@ -72,7 +72,7 @@ class VstsSubscriptionCheckTest(TestCase):
         )
 
     @responses.activate
-    def test_kickoff_subscription(self):
+    def test_kickoff_subscription(self) -> None:
         integration3_check_time = time()
         integration1 = self.create_provider_integration(
             provider=PROVIDER,
@@ -110,7 +110,7 @@ class VstsSubscriptionCheckTest(TestCase):
         assert_subscription("vsts3", "subscription3", check_time=integration3_check_time)
 
     @responses.activate
-    def test_kickoff_subscription_no_default_identity(self):
+    def test_kickoff_subscription_no_default_identity(self) -> None:
         integration = self.create_provider_integration(
             provider=PROVIDER,
             name="vsts1",

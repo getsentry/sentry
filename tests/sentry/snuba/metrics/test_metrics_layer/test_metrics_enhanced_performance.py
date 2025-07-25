@@ -55,7 +55,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
     def now(self):
         return BaseMetricsLayerTestCase.MOCK_DATETIME
 
-    def test_valid_filter_include_meta_derived_metrics(self):
+    def test_valid_filter_include_meta_derived_metrics(self) -> None:
         query_params = MultiValueDict(
             {
                 "field": [
@@ -86,7 +86,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_apdex_transaction_threshold(self):
+    def test_apdex_transaction_threshold(self) -> None:
         ProjectTransactionThresholdOverride.objects.create(
             transaction="foo_transaction",
             project=self.project,
@@ -152,7 +152,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_apdex_project_threshold(self):
+    def test_apdex_project_threshold(self) -> None:
         ProjectTransactionThreshold.objects.create(
             project=self.project,
             organization=self.project.organization,
@@ -210,7 +210,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_alias_on_different_metrics_expression(self):
+    def test_alias_on_different_metrics_expression(self) -> None:
         for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
             for value in [123.4] * count:
                 self.store_performance_metric(
@@ -287,7 +287,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_alias_on_same_metrics_expression_but_different_aliases(self):
+    def test_alias_on_same_metrics_expression_but_different_aliases(self) -> None:
         for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
             for value in [123.4] * count:
                 self.store_performance_metric(
@@ -365,7 +365,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_custom_measurement_query_with_valid_mri(self):
+    def test_custom_measurement_query_with_valid_mri(self) -> None:
         transactions_speed_mri = "d:transactions/measurements.speed@millisecond"
 
         for value in (100, 200, 300):
@@ -412,7 +412,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_query_with_order_by_valid_str_field(self):
+    def test_query_with_order_by_valid_str_field(self) -> None:
         project_2 = self.create_project()
         project_3 = self.create_project()
 
@@ -485,7 +485,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_query_with_order_by_invalid_str_field(self):
+    def test_query_with_order_by_invalid_str_field(self) -> None:
         for value in (0, 1, 2):
             self.store_performance_metric(
                 name=TransactionMRI.DURATION.value,
@@ -521,7 +521,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 use_case_id=UseCaseID.TRANSACTIONS,
             )
 
-    def test_query_with_order_by_str_field_not_in_group_by(self):
+    def test_query_with_order_by_str_field_not_in_group_by(self) -> None:
         for value in (0, 1, 2):
             self.store_performance_metric(
                 name=TransactionMRI.DURATION.value,
@@ -551,7 +551,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 include_series=False,
             )
 
-    def test_query_with_sum_if_column(self):
+    def test_query_with_sum_if_column(self) -> None:
         for value, transaction in ((10, "/foo"), (20, "/bar"), (30, "/lorem")):
             self.store_performance_metric(
                 name=TransactionMRI.DURATION.value,
@@ -598,7 +598,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_query_with_uniq_if_column(self):
+    def test_query_with_uniq_if_column(self) -> None:
         for value, transaction in ((10, "/foo"), (20, "/foo"), (30, "/lorem")):
             self.store_performance_metric(
                 name=TransactionMRI.USER.value,
@@ -645,7 +645,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_query_with_tuple_condition(self):
+    def test_query_with_tuple_condition(self) -> None:
         for value, transaction in ((10, "/foo"), (20, "/bar"), (30, "/lorem")):
             self.store_performance_metric(
                 name=TransactionMRI.DURATION.value,
@@ -707,7 +707,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_query_with_has_condition(self):
+    def test_query_with_has_condition(self) -> None:
         for value, transaction in ((10, "/foo"), (20, "/bar"), (30, "/lorem")):
             self.store_performance_metric(
                 name=TransactionMRI.DURATION.value,
@@ -774,7 +774,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_count_transaction_with_valid_condition(self):
+    def test_count_transaction_with_valid_condition(self) -> None:
         for transaction, values in (
             ("<< unparameterized >>", [1]),
             ("", [2, 3]),
@@ -846,7 +846,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_count_transaction_with_invalid_condition(self):
+    def test_count_transaction_with_invalid_condition(self) -> None:
         for transaction, values in (
             ("<< unparameterized >>", [1]),
             ("", [2]),
@@ -895,7 +895,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 use_case_id=UseCaseID.TRANSACTIONS,
             )
 
-    def test_alias_on_single_entity_derived_metrics(self):
+    def test_alias_on_single_entity_derived_metrics(self) -> None:
         for value, tag_value in (
             (3.4, TransactionStatusTagValue.OK.value),
             (0.3, TransactionStatusTagValue.CANCELLED.value),
@@ -936,7 +936,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         assert group["totals"] == {"failure_rate_alias": 0.25}
         assert data["meta"] == [{"name": "failure_rate_alias", "type": "Float64"}]
 
-    def test_groupby_aliasing_with_multiple_groups_and_orderby(self):
+    def test_groupby_aliasing_with_multiple_groups_and_orderby(self) -> None:
         for tag, value, numbers in (
             ("transaction", "/foo/", [10, 11, 12]),
             ("transaction", "/bar/", [4, 5, 6]),
@@ -1035,7 +1035,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_histogram_transaction_duration(self):
+    def test_histogram_transaction_duration(self) -> None:
         for tag, value, numbers in (
             ("tag1", "value1", [1, 2, 3]),
             ("tag1", "value2", [10, 100, 1000]),
@@ -1094,7 +1094,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             }
         ]
 
-    def test_rate_epm_hour_rollup(self):
+    def test_rate_epm_hour_rollup(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
         for hour, count in enumerate(event_counts):
             for _ in range(count):
@@ -1146,7 +1146,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             }
         ]
 
-    def test_rate_epm_day_rollup(self):
+    def test_rate_epm_day_rollup(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
         for hour, count in enumerate(event_counts):
             for minute in range(count):
@@ -1197,7 +1197,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             }
         ]
 
-    def test_throughput_epm_hour_rollup_offset_of_hour(self):
+    def test_throughput_epm_hour_rollup_offset_of_hour(self) -> None:
         # Each of these denotes how many events to create in each hour
         day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
 
@@ -1280,7 +1280,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             ],
         }
 
-    def test_throughput_eps_minute_rollup(self):
+    def test_throughput_eps_minute_rollup(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
         for minute, count in enumerate(event_counts):
             for _ in range(count):
@@ -1338,7 +1338,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             }
         ]
 
-    def test_rate_with_missing_numerator_value(self):
+    def test_rate_with_missing_numerator_value(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
         for minute, count in enumerate(event_counts):
             for _ in range(count):
@@ -1375,7 +1375,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 use_case_id=UseCaseID.TRANSACTIONS,
             )
 
-    def test_measurement_rating(self):
+    def test_measurement_rating(self) -> None:
         for tags, metric, metric_mri, value in (
             (
                 {"measurement_rating": "good", "transaction": "foo_transaction"},
@@ -1486,7 +1486,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_team_key_transactions_my_teams(self):
+    def test_team_key_transactions_my_teams(self) -> None:
         for transaction, value in (
             ("foo_transaction", 1),
             ("bar_transaction", 1),
@@ -1590,7 +1590,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_unparameterized_transactions_in_where(self):
+    def test_unparameterized_transactions_in_where(self) -> None:
         for transaction, value in (
             (None, 0),
             ("<< unparameterized >>", 0),
@@ -1645,7 +1645,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_unparameterized_transactions_in_groupby(self):
+    def test_unparameterized_transactions_in_groupby(self) -> None:
         for transaction, value in (
             (None, 0),
             ("<< unparameterized >>", 0),
@@ -1705,7 +1705,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_wildcard_match_with_filterable_tags(self):
+    def test_wildcard_match_with_filterable_tags(self) -> None:
         for transaction, value in (
             ("/foo/bar/transaction", 0),
             ("/foo/bar", 1),
@@ -1798,7 +1798,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     key=lambda elem: elem["name"],
                 )
 
-    def test_wildcard_match_with_non_filterable_tags(self):
+    def test_wildcard_match_with_non_filterable_tags(self) -> None:
         with pytest.raises(InvalidParams):
             metrics_query = self.build_metrics_query(
                 before_now="1h",
@@ -1834,7 +1834,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 use_case_id=UseCaseID.TRANSACTIONS,
             )
 
-    def test_team_key_transaction_as_condition(self):
+    def test_team_key_transaction_as_condition(self) -> None:
         now = timezone.now()
 
         for minutes, (transaction, value) in enumerate(
@@ -1942,7 +1942,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             },
         ]
 
-    def test_limit_when_not_passed_and_interval_is_provided(self):
+    def test_limit_when_not_passed_and_interval_is_provided(self) -> None:
         day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
         metrics_query = DeprecatingMetricsQuery(
             org_id=self.organization.id,
@@ -1971,7 +1971,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         assert metrics_query.limit is not None
         assert metrics_query.limit.limit == EXPECTED_DEFAULT_LIMIT
 
-    def test_high_limit_provided_not_raise_exception_when_high_interval_provided(self):
+    def test_high_limit_provided_not_raise_exception_when_high_interval_provided(self) -> None:
         # Each of these denotes how many events to create in each hour
         day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
 
@@ -2014,7 +2014,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
         super().setUp()
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         something_custom_metric = "d:transactions/measurements.something_custom@millisecond"
         self.store_transaction_metric(
             1,
@@ -2058,7 +2058,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
             }
         ]
 
-    def test_metric_outside_query_daterange(self):
+    def test_metric_outside_query_daterange(self) -> None:
         something_custom_metric = "d:transactions/measurements.something_custom@millisecond"
         something_else_metric = "d:transactions/measurements.something_else@byte"
         self.store_transaction_metric(

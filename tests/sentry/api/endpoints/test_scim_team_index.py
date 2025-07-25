@@ -9,7 +9,7 @@ from sentry.testutils.silo import create_test_regions, region_silo_test
 
 
 class SCIMIndexListTest(SCIMTestCase):
-    def test_group_index_empty(self):
+    def test_group_index_empty(self) -> None:
         url = reverse("sentry-api-0-organization-scim-team-index", args=[self.organization.slug])
         response = self.client.get(f"{url}?startIndex=1&count=100")
         correct_get_data = {
@@ -22,7 +22,7 @@ class SCIMIndexListTest(SCIMTestCase):
         assert response.status_code == 200, response.content
         assert response.data == correct_get_data
 
-    def test_scim_team_index_populated(self):
+    def test_scim_team_index_populated(self) -> None:
         team = self.create_team(organization=self.organization)
 
         # test team index GET
@@ -46,7 +46,7 @@ class SCIMIndexListTest(SCIMTestCase):
             ],
         }
 
-    def test_scim_team_index_basic(self):
+    def test_scim_team_index_basic(self) -> None:
         # test index route returns with members
         team = self.create_team(organization=self.organization)
         member1 = self.create_member(
@@ -85,7 +85,7 @@ class SCIMIndexListTest(SCIMTestCase):
         assert response.status_code == 200, response.content
         assert response.data == correct_get_data
 
-    def test_team_filter(self):
+    def test_team_filter(self) -> None:
         url = reverse("sentry-api-0-organization-scim-team-index", args=[self.organization.slug])
         response = self.client.get(
             f"{url}?startIndex=1&count=100&filter=displayName eq %22{self.team.name}%22"
@@ -108,7 +108,7 @@ class SCIMIndexListTest(SCIMTestCase):
             ],
         }
 
-    def test_team_filter_with_space(self):
+    def test_team_filter_with_space(self) -> None:
         url = reverse("sentry-api-0-organization-scim-team-index", args=[self.organization.slug])
         team = self.create_team(organization=self.organization, name="Name WithASpace")
         response = self.client.get(
@@ -130,7 +130,7 @@ class SCIMIndexListTest(SCIMTestCase):
             ],
         }
 
-    def test_team_filter_case_insensitive(self):
+    def test_team_filter_case_insensitive(self) -> None:
         url = reverse("sentry-api-0-organization-scim-team-index", args=[self.organization.slug])
         team = self.create_team(organization=self.organization, name="Name WithASpace")
         response = self.client.get(
@@ -152,7 +152,7 @@ class SCIMIndexListTest(SCIMTestCase):
             ],
         }
 
-    def test_team_exclude_members_param(self):
+    def test_team_exclude_members_param(self) -> None:
         url = reverse("sentry-api-0-organization-scim-team-index", args=[self.organization.slug])
         response = self.client.get(
             f"{url}?startIndex=1&count=100&filter=displayName eq %22{self.team.name}%22&excludedAttributes=members"
@@ -172,7 +172,7 @@ class SCIMIndexListTest(SCIMTestCase):
             ],
         }
 
-    def test_scim_invalid_filter(self):
+    def test_scim_invalid_filter(self) -> None:
         url = reverse("sentry-api-0-organization-scim-team-index", args=[self.organization.slug])
         response = self.client.get(f"{url}?startIndex=1&count=1&filter=bad filter eq 23")
         assert response.status_code == 400, response.data
@@ -181,7 +181,7 @@ class SCIMIndexListTest(SCIMTestCase):
             "scimType": "invalidFilter",
         }
 
-    def test_scim_invalid_startIndex(self):
+    def test_scim_invalid_startIndex(self) -> None:
         url = reverse("sentry-api-0-organization-scim-team-index", args=[self.organization.slug])
         response = self.client.get(f"{url}?startIndex=0")
         assert response.status_code == 400, response.data
@@ -225,14 +225,14 @@ class SCIMIndexCreateTest(SCIMTestCase):
             "sentry.scim.team.provision",
         )
 
-    def test_scim_team_no_duplicate_names(self):
+    def test_scim_team_no_duplicate_names(self) -> None:
         self.create_team(organization=self.organization, name=self.post_data["displayName"])
         response = self.get_error_response(
             self.organization.slug, **self.post_data, status_code=409
         )
         assert response.data["detail"] == "A team with this slug already exists."
 
-    def test_scim_team_invalid_numeric_slug(self):
+    def test_scim_team_invalid_numeric_slug(self) -> None:
         invalid_post_data = {**self.post_data, "displayName": "1234"}
         response = self.get_error_response(
             self.organization.slug, **invalid_post_data, status_code=400

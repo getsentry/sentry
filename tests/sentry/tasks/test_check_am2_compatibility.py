@@ -13,7 +13,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class CheckAM2CompatibilityTest(TestCase):
-    def test_check_with_success(self):
+    def test_check_with_success(self) -> None:
         with self.tasks():
             run_compatibility_check_async(org_id=self.organization.id)
             assert get_check_status(self.organization.id) == CheckStatus.DONE

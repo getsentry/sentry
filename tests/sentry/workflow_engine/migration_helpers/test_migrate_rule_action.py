@@ -258,7 +258,7 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         )
 
-    def test_slack_action_migration_simple(self):
+    def test_slack_action_migration_simple(self) -> None:
         action_data = [
             {
                 "workspace": "1",
@@ -352,7 +352,7 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         )
 
-    def test_discord_action_migration(self):
+    def test_discord_action_migration(self) -> None:
         action_data = [
             {
                 "server": "1",
@@ -405,7 +405,7 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         )
 
-    def test_msteams_action_migration(self):
+    def test_msteams_action_migration(self) -> None:
         action_data = [
             # MsTeams Action will  always include, channel and channel_id
             # It won't store anything in the data blob
@@ -462,7 +462,7 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         )
 
-    def test_pagerduty_action_migration(self):
+    def test_pagerduty_action_migration(self) -> None:
         action_data = [
             {
                 "account": "123456",
@@ -497,7 +497,7 @@ class TestNotificationActionMigrationUtils(TestCase):
 
         self.assert_actions_migrated_correctly(actions, action_data, "account", "service", None)
 
-    def test_pagerduty_action_migration_malformed(self):
+    def test_pagerduty_action_migration_malformed(self) -> None:
         action_data = [
             # Missing required fields
             {
@@ -516,7 +516,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         with pytest.raises(ValueError):
             build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
-    def test_opsgenie_action_migration(self):
+    def test_opsgenie_action_migration(self) -> None:
         action_data = [
             {
                 "account": "11111",
@@ -551,7 +551,7 @@ class TestNotificationActionMigrationUtils(TestCase):
 
         self.assert_actions_migrated_correctly(actions, action_data, "account", "team", None)
 
-    def test_opsgenie_action_migration_malformed(self):
+    def test_opsgenie_action_migration_malformed(self) -> None:
         action_data = [
             # Missing required fields
             {
@@ -570,7 +570,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         with pytest.raises(ValueError):
             build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
-    def test_github_action_migration(self):
+    def test_github_action_migration(self) -> None:
         # Includes both, Github and Github Enterprise. We currently don't have any rules configured for Github Enterprise.
         # The Github Enterprise action should have the same shape as the Github action.
         action_data = GITHUB_ACTION_DATA_BLOBS
@@ -579,7 +579,7 @@ class TestNotificationActionMigrationUtils(TestCase):
 
         self.assert_actions_migrated_correctly(actions, action_data, "integration", None, None)
 
-    def test_github_action_migration_malformed(self):
+    def test_github_action_migration_malformed(self) -> None:
         action_data = [
             # Missing required fields
             {
@@ -591,12 +591,12 @@ class TestNotificationActionMigrationUtils(TestCase):
         with pytest.raises(ValueError):
             build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
-    def test_azure_devops_migration(self):
+    def test_azure_devops_migration(self) -> None:
         action_data = AZURE_DEVOPS_ACTION_DATA_BLOBS
         actions = build_notification_actions_from_rule_data_actions(action_data)
         self.assert_actions_migrated_correctly(actions, action_data, "integration", None, None)
 
-    def test_azure_devops_migration_malformed(self):
+    def test_azure_devops_migration_malformed(self) -> None:
         action_data = [
             # Missing required fields
             {
@@ -608,7 +608,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         with pytest.raises(ValueError):
             build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
-    def test_email_migration(self):
+    def test_email_migration(self) -> None:
         action_data = EMAIL_ACTION_DATA_BLOBS
 
         actions = build_notification_actions_from_rule_data_actions(action_data)
@@ -616,7 +616,7 @@ class TestNotificationActionMigrationUtils(TestCase):
             actions, action_data, None, "targetIdentifier", None, "targetType"
         )
 
-    def test_email_migration_malformed(self):
+    def test_email_migration_malformed(self) -> None:
         action_data = [
             {
                 "uuid": "12345678-90ab-cdef-0123-456789abcdef",
@@ -639,7 +639,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         with pytest.raises(ValueError):
             build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
-    def test_plugin_action_migration(self):
+    def test_plugin_action_migration(self) -> None:
         action_data = [
             {
                 "id": "sentry.rules.actions.notify_event.NotifyEventAction",
@@ -674,12 +674,12 @@ class TestNotificationActionMigrationUtils(TestCase):
         actions = build_notification_actions_from_rule_data_actions(action_data)
         self.assert_actions_migrated_correctly(actions, action_data, None, None, None)
 
-    def test_webhook_action_migration(self):
+    def test_webhook_action_migration(self) -> None:
         action_data = WEBHOOK_ACTION_DATA_BLOBS
         actions = build_notification_actions_from_rule_data_actions(action_data)
         self.assert_actions_migrated_correctly(actions, action_data, None, "service", None)
 
-    def test_webhook_action_migration_to_sentry_app(self):
+    def test_webhook_action_migration_to_sentry_app(self) -> None:
         app = self.create_sentry_app(
             organization=self.organization,
             name="Test Application",
@@ -701,7 +701,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         assert actions[0].config.get("target_type") is None
         assert actions[0].data == {}
 
-    def test_webhook_action_migration_malformed(self):
+    def test_webhook_action_migration_malformed(self) -> None:
         action_data = [
             {
                 "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
@@ -712,7 +712,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         with pytest.raises(ValueError):
             build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
-    def test_action_types(self):
+    def test_action_types(self) -> None:
         """Test that all registered action translators have the correct action type set."""
         test_cases = [
             (
@@ -770,7 +770,7 @@ class TestNotificationActionMigrationUtils(TestCase):
                 f"Expected {expected_type}, got {translator.action_type}"
             )
 
-    def test_action_type_in_migration(self):
+    def test_action_type_in_migration(self) -> None:
         """Test that action types are correctly set during migration."""
         test_cases = [
             # Slack
@@ -888,12 +888,12 @@ class TestNotificationActionMigrationUtils(TestCase):
                 f"Expected {expected_type}, got {actions[0].type}"
             )
 
-    def test_jira_action_migration(self):
+    def test_jira_action_migration(self) -> None:
         action_data = JIRA_ACTION_DATA_BLOBS
         actions = build_notification_actions_from_rule_data_actions(action_data)
         self.assert_actions_migrated_correctly(actions, action_data, "integration", None, None)
 
-    def test_jira_action_migration_malformed(self):
+    def test_jira_action_migration_malformed(self) -> None:
         action_data: list[dict[str, Any]] = [
             # Missing required fields
             {
@@ -919,12 +919,12 @@ class TestNotificationActionMigrationUtils(TestCase):
         with pytest.raises(ValueError):
             build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
-    def test_jira_server_action_migration(self):
+    def test_jira_server_action_migration(self) -> None:
         action_data = JIRA_SERVER_ACTION_DATA_BLOBS
         actions = build_notification_actions_from_rule_data_actions(action_data)
         self.assert_actions_migrated_correctly(actions, action_data, "integration", None, None)
 
-    def test_jira_server_action_migration_malformed(self):
+    def test_jira_server_action_migration_malformed(self) -> None:
         action_data: list[dict[str, Any]] = [
             # Missing required fields
             {
@@ -948,7 +948,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         with pytest.raises(ValueError):
             build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
-    def test_sentry_app_action_migration(self):
+    def test_sentry_app_action_migration(self) -> None:
         self.create_sentry_app(
             organization=self.organization,
             name="Test Application",
@@ -1105,7 +1105,7 @@ class TestNotificationActionMigrationUtils(TestCase):
                 == SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID
             )
 
-    def test_dry_run_flag(self):
+    def test_dry_run_flag(self) -> None:
         """Test that the dry_run flag prevents database writes."""
         action_data = [
             {
@@ -1132,7 +1132,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         assert action.config.get("target_display") == "#test-channel"
         assert action.config.get("target_identifier") == "C123456"
 
-    def test_skip_failures_flag(self):
+    def test_skip_failures_flag(self) -> None:
         """Test that the skip_failures flag skips invalid actions."""
         action_data: list[dict[str, str | Any]] = [
             # Invalid action type, should skip

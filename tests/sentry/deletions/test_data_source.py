@@ -14,7 +14,7 @@ class DeleteDataSourceTest(BaseWorkflowTest, HybridCloudTestMixin):
             organization=self.organization, source_id=self.subscription.id
         )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.ScheduledDeletion.schedule(instance=self.data_source, days=0)
 
         with self.tasks():

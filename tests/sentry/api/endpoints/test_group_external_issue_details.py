@@ -16,20 +16,20 @@ class GroupExternalIssueDetailsEndpointTest(APITestCase):
 
         self.url = f"/api/0/issues/{self.group.id}/external-issues/{self.external_issue.id}/"
 
-    def test_deletes_external_issue(self):
+    def test_deletes_external_issue(self) -> None:
         response = self.client.delete(self.url, format="json")
 
         assert response.status_code == 204, response.content
         assert not PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
 
-    def test_handles_non_existing_external_issue(self):
+    def test_handles_non_existing_external_issue(self) -> None:
         url = f"/api/0/issues/{self.group.id}/external-issues/99999/"
 
         response = self.client.delete(url, format="json")
 
         assert response.status_code == 404, response.content
 
-    def test_forbids_deleting_an_inaccessible_issue(self):
+    def test_forbids_deleting_an_inaccessible_issue(self) -> None:
         group = self.create_group(
             project=self.create_project(
                 organization=self.create_organization(

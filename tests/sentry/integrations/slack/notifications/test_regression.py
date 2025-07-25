@@ -24,7 +24,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
             )
         )
 
-    def test_regression_block(self):
+    def test_regression_block(self) -> None:
         """
         Test that a Slack message is sent with the expected payload when an issue regresses
         and block kit is enabled.
@@ -50,7 +50,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
             f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
 
-    def test_regression_with_release_block(self):
+    def test_regression_with_release_block(self) -> None:
         """
         Test that a Slack message is sent with the expected payload when an issue regresses
         and block kit is enabled.

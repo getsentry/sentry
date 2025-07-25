@@ -25,7 +25,7 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
             )
         )
 
-    def test_multiple_identities(self):
+    def test_multiple_identities(self) -> None:
         """
         Test that we notify a user with multiple Identities in each place
         """
@@ -61,7 +61,7 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         channel = data["channel"]
         assert channel == identity2.external_id
 
-    def test_multiple_orgs(self):
+    def test_multiple_orgs(self) -> None:
         """
         Test that if a user is in 2 orgs with Slack and has an Identity linked in each,
         we're only going to notify them for the relevant org
@@ -87,7 +87,7 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         assert self.mock_post.call_count == 1
         assert self.mock_post.call_args.kwargs["channel"] == self.identity.external_id
 
-    def test_assignment_block(self):
+    def test_assignment_block(self) -> None:
         """
         Test that a Slack message is sent with the expected payload when an issue is assigned
         and block kit is enabled.
@@ -170,7 +170,7 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
             "assigned_activity-slack",
         )
 
-    def test_automatic_assignment(self):
+    def test_automatic_assignment(self) -> None:
         notification = AssignedActivityNotification(
             Activity(
                 project=self.project,

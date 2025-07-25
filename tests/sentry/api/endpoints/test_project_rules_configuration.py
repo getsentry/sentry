@@ -26,7 +26,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         team = self.create_team()
         project1 = self.create_project(teams=[team], name="foo")
         self.create_project(teams=[team], name="baz")
@@ -62,10 +62,10 @@ class ProjectRuleConfigurationTest(APITestCase):
             assert len(response.data["actions"]) == expected_actions
             assert len(response.data["conditions"]) == 0
 
-    def test_filter_show_notify_email_action(self):
+    def test_filter_show_notify_email_action(self) -> None:
         self.run_mock_rules_test(1, {})
 
-    def test_show_notify_event_service_action(self):
+    def test_show_notify_event_service_action(self) -> None:
         rules = RuleRegistry()
         rule = Mock()
         rule.id = APP_ACTION
@@ -80,7 +80,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         rules.add(rule)
         self.run_mock_rules_test(1, {}, rules=rules)
 
-    def test_hide_empty_notify_event_service_action(self):
+    def test_hide_empty_notify_event_service_action(self) -> None:
         rules = RuleRegistry()
         rule = Mock()
         rule.id = APP_ACTION
@@ -95,7 +95,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         rules.add(rule)
         self.run_mock_rules_test(0, {}, rules=rules)
 
-    def test_available_actions(self):
+    def test_available_actions(self) -> None:
         response = self.get_success_response(self.organization.slug, self.project.slug)
 
         action_ids = [action["id"] for action in response.data["actions"]]
@@ -103,7 +103,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         for action in TICKET_ACTIONS:
             assert action in action_ids
 
-    def test_ticket_rules_not_in_available_actions(self):
+    def test_ticket_rules_not_in_available_actions(self) -> None:
         with self.feature({"organizations:integrations-ticket-rules": False}):
             response = self.get_success_response(
                 self.organization.slug, self.project.slug, includeAllTickets=True
@@ -116,14 +116,14 @@ class ProjectRuleConfigurationTest(APITestCase):
             assert "disabledTicketActions" not in response.data
 
     @patch("sentry.api.endpoints.project_rules_configuration.rules", new=[])
-    def test_show_disabled_ticket_actions(self):
+    def test_show_disabled_ticket_actions(self) -> None:
         response = self.get_success_response(
             self.organization.slug, self.project.slug, includeAllTickets=True
         )
         disabled_ticket_actions = response.data["disabledTicketActions"]
         assert set(disabled_ticket_actions) == TICKET_ACTIONS
 
-    def test_sentry_app_alertable_webhook(self):
+    def test_sentry_app_alertable_webhook(self) -> None:
         team = self.create_team()
         project1 = self.create_project(teams=[team], name="foo")
         self.create_project(teams=[team], name="baz")
@@ -182,7 +182,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         assert len(response.data["conditions"]) == 9
         assert len(response.data["filters"]) == 9
 
-    def test_issue_type_and_category_filter_feature(self):
+    def test_issue_type_and_category_filter_feature(self) -> None:
         response = self.get_success_response(self.organization.slug, self.project.slug)
         assert len(response.data["actions"]) == 12
         assert len(response.data["conditions"]) == 9
@@ -205,7 +205,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         assert MatchType.NOT_IN in filter_list
 
     @with_feature("organizations:event-unique-user-frequency-condition-with-conditions")
-    def test_issue_type_and_category_filter_feature_with_conditions(self):
+    def test_issue_type_and_category_filter_feature_with_conditions(self) -> None:
         response = self.get_success_response(self.organization.slug, self.project.slug)
         assert len(response.data["actions"]) == 12
 

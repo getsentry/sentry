@@ -61,7 +61,7 @@ class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         )[0]
 
     @responses.activate()
-    def test_ticket_rules(self):
+    def test_ticket_rules(self) -> None:
         project = "10000"
         issueType = "1"
         key = "external_issue_key"
@@ -206,7 +206,7 @@ class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         # assert new ticket NOT created in DB
         assert ExternalIssue.objects.count() == external_issue_count
 
-    def test_fails_validation(self):
+    def test_fails_validation(self) -> None:
         """
         Test that the absence of dynamic_form_fields in the action fails validation
         """

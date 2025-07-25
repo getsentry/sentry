@@ -44,7 +44,7 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
         self.detector.status = ObjectStatus.PENDING_DELETION
         self.detector.save()
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.ScheduledDeletion.schedule(instance=self.detector, days=0)
 
         with self.tasks():
@@ -59,7 +59,7 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
         assert not QuerySubscription.objects.filter(id=self.subscription.id).exists()
         assert not SnubaQuery.objects.filter(id=self.snuba_query.id).exists()
 
-    def test_multiple_data_sources(self):
+    def test_multiple_data_sources(self) -> None:
         snuba_query_2 = self.create_snuba_query()
         subscription_2 = QuerySubscription.objects.create(
             project=self.project,
@@ -95,7 +95,7 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
             id__in=[self.snuba_query.id, snuba_query_2.id]
         ).exists()
 
-    def test_data_source_not_deleted(self):
+    def test_data_source_not_deleted(self) -> None:
         """
         Test that we do not delete a DataSource that is connected to another Detector
         """

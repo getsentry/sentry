@@ -74,7 +74,7 @@ class GitHubEnterpriseApiClientTest(TestCase):
         self.gh_client = self.install.get_client()
 
     @responses.activate
-    def test_check_file(self):
+    def test_check_file(self) -> None:
         path = "src/sentry/integrations/github/client.py"
         version = "master"
         url = f"{self.base_url}/repos/{self.repo.name}/contents/{path}?ref={version}"
@@ -89,7 +89,7 @@ class GitHubEnterpriseApiClientTest(TestCase):
         assert resp.status_code == 200
 
     @responses.activate
-    def test_check_no_file(self):
+    def test_check_no_file(self) -> None:
         path = "src/santry/integrations/github/client.py"
         version = "master"
         url = f"{self.base_url}/repos/{self.repo.name}/contents/{path}?ref={version}"
@@ -102,7 +102,7 @@ class GitHubEnterpriseApiClientTest(TestCase):
         assert responses.calls[0].response.status_code == 404
 
     @responses.activate
-    def test_get_stacktrace_link(self):
+    def test_get_stacktrace_link(self) -> None:
         path = "/src/sentry/integrations/github/client.py"
         version = "master"
         url = f"{self.base_url}/repos/{self.repo.name}/contents/{path.lstrip('/')}?ref={version}"
@@ -120,7 +120,7 @@ class GitHubEnterpriseApiClientTest(TestCase):
         )
 
     @responses.activate
-    def test_get_codeowner_file(self):
+    def test_get_codeowner_file(self) -> None:
         self.config = self.create_code_mapping(
             repo=self.repo,
             project=self.project,

@@ -19,7 +19,7 @@ class OrganizationPluginsTest(APITestCase):
 
         self.login_as(user=self.user)
 
-    def test_no_configs(self):
+    def test_no_configs(self) -> None:
         response = self.client.get(self.url)
         assert response.status_code == 200, (response.status_code, response.content)
         # test needs to be updated if plugins are removed
@@ -48,18 +48,18 @@ class OrganizationPluginsTest(APITestCase):
         for plugin in expected_plugins:
             assert filter(lambda x: x["slug"] == plugin, response.data)
 
-    def test_only_configuable_plugins(self):
+    def test_only_configuable_plugins(self) -> None:
         response = self.client.get(self.url)
         assert [x for x in response.data if not x["hasConfiguration"]] == []
 
-    def test_enabled_not_configured(self):
+    def test_enabled_not_configured(self) -> None:
         plugins.get("webhooks").enable(self.projectA)
         response = self.client.get(self.url)
         assert (
             list(filter(lambda x: x["slug"] == "webhooks", response.data))[0]["projectList"] == []
         )
 
-    def test_configured_not_enabled(self):
+    def test_configured_not_enabled(self) -> None:
         plugins.get("trello").disable(self.projectA)
         plugins.get("trello").set_option("key", "some_value", self.projectA)
         response = self.client.get(self.url)
@@ -74,7 +74,7 @@ class OrganizationPluginsTest(APITestCase):
             }
         ]
 
-    def test_configured_and_enabled(self):
+    def test_configured_and_enabled(self) -> None:
         plugins.get("trello").enable(self.projectA)
         plugins.get("trello").set_option("key", "some_value", self.projectA)
         response = self.client.get(self.url)
@@ -89,7 +89,7 @@ class OrganizationPluginsTest(APITestCase):
             }
         ]
 
-    def test_disabled_project(self):
+    def test_disabled_project(self) -> None:
         plugins.get("trello").enable(self.projectA)
         plugins.get("trello").set_option("key", "some_value", self.projectA)
         self.projectA.status = 1
@@ -97,7 +97,7 @@ class OrganizationPluginsTest(APITestCase):
         response = self.client.get(self.url)
         assert list(filter(lambda x: x["slug"] == "trello", response.data))[0]["projectList"] == []
 
-    def test_configured_multiple_projects(self):
+    def test_configured_multiple_projects(self) -> None:
         plugins.get("trello").set_option("key", "some_value", self.projectA)
         plugins.get("trello").set_option("key", "another_value", self.projectB)
         response = self.client.get(self.url)
@@ -119,19 +119,19 @@ class OrganizationPluginsTest(APITestCase):
             "projectPlatform": "react",
         }
 
-    def test_query_parameter(self):
+    def test_query_parameter(self) -> None:
         url = self.url + "?plugins=trello"
         response = self.client.get(url)
         assert len(response.data) == 1
         assert response.data[0]["id"] == "trello"
 
-    def test_query_parameter_bad_slug(self):
+    def test_query_parameter_bad_slug(self) -> None:
         url = self.url + "?plugins=bad_plugin"
         response = self.client.get(url)
         assert response.status_code == 404
         assert response.data["detail"] == "Plugin bad_plugin not found"
 
-    def test_sort_by_slug(self):
+    def test_sort_by_slug(self) -> None:
         another = self.create_project(slug="another")
         plugins.get("trello").set_option("key", "some_value", self.projectA)
         plugins.get("trello").set_option("key", "some_value", self.projectB)

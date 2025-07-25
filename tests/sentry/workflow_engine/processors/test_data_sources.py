@@ -53,10 +53,10 @@ class TestProcessDataSources(BaseWorkflowTest):
             source_id_2, {"source_id": source_id_2, "foo": "baz"}
         )
 
-    def test_single_data_packet(self):
+    def test_single_data_packet(self) -> None:
         assert process_data_source(self.packet, "test") == (self.packet, [self.detector_one])
 
-    def test_disabled_detector(self):
+    def test_disabled_detector(self) -> None:
         self.detector_one.enabled = False
         self.detector_one.save()
 
@@ -65,7 +65,7 @@ class TestProcessDataSources(BaseWorkflowTest):
             [self.detector_two],
         )
 
-    def test_multiple_detectors(self):
+    def test_multiple_detectors(self) -> None:
         self.detector_three = self.create_detector(name="test_detector3")
         self.detector_four = self.create_detector(name="test_detector4")
 
@@ -77,17 +77,17 @@ class TestProcessDataSources(BaseWorkflowTest):
             [self.detector_one, self.detector_two, self.detector_three, self.detector_four],
         )
 
-    def test_no_results(self):
+    def test_no_results(self) -> None:
         self.ds2.detectors.clear()
         assert process_data_source(self.two_detector_packet, "test") == (
             self.two_detector_packet,
             [],
         )
 
-    def test_different_data_packet_type__no_results(self):
+    def test_different_data_packet_type__no_results(self) -> None:
         assert process_data_source(self.packet, "test2") == (self.packet, [])
 
-    def test_metrics_are_sent_for_data_sources(self):
+    def test_metrics_are_sent_for_data_sources(self) -> None:
         with mock.patch("sentry.utils.metrics.incr") as mock_incr:
             process_data_source(self.packet, "test")
 
@@ -95,7 +95,7 @@ class TestProcessDataSources(BaseWorkflowTest):
                 "workflow_engine.process_data_sources", tags={"query_type": "test"}
             )
 
-    def test_metrics_are_sent_for_no_detectors(self):
+    def test_metrics_are_sent_for_no_detectors(self) -> None:
         with mock.patch("sentry.utils.metrics.incr") as mock_incr:
             process_data_source(self.packet, "test3")
             mock_incr.assert_any_call(
@@ -103,7 +103,7 @@ class TestProcessDataSources(BaseWorkflowTest):
                 tags={"query_type": "test3"},
             )
 
-    def test_metrics_for_many_detectors(self):
+    def test_metrics_for_many_detectors(self) -> None:
         self.detector_three = self.create_detector(name="test_detector3")
         self.ds1.detectors.add(self.detector_three)
 
@@ -116,7 +116,7 @@ class TestProcessDataSources(BaseWorkflowTest):
                 tags={"query_type": "test"},
             )
 
-    def test_sql_cascades(self):
+    def test_sql_cascades(self) -> None:
         with self.assertNumQueries(2):
             """
             There should be 2 total SQL queries for `bulk_fetch_enabled_detectors`:

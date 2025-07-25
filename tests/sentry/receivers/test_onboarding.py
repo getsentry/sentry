@@ -63,7 +63,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             external_id=external_id,
         )
 
-    def test_existing_complete_task(self):
+    def test_existing_complete_task(self) -> None:
         now = timezone.now()
         project = self.create_project(first_event=now)
         task = OrganizationOnboardingTask.objects.create(
@@ -80,7 +80,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert not task.project_id
 
     # Tests on the receivers
-    def test_event_processed(self):
+    def test_event_processed(self) -> None:
         now = timezone.now()
         project = self.create_project(first_event=now)
         event = self.store_event(
@@ -129,7 +129,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-    def test_project_created(self):
+    def test_project_created(self) -> None:
         now = timezone.now()
         project = self.create_project(first_event=now)
         project_created.send(project=project, user=self.user, sender=None)
@@ -151,7 +151,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-    def test_project_created__default_rule(self):
+    def test_project_created__default_rule(self) -> None:
         project = self.create_project()
         project_created.send(project=project, user=self.user, sender=None)
 
@@ -159,7 +159,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert not Workflow.objects.filter(organization=project.organization).exists()
 
     @with_feature("organizations:workflow-engine-issue-alert-dual-write")
-    def test_project_created__default_workflow(self):
+    def test_project_created__default_workflow(self) -> None:
         project = self.create_project()
         project_created.send(project=project, user=self.user, sender=None)
 
@@ -285,7 +285,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         ]
         assert len(first_event_sent_calls) == 1
 
-    def test_first_transaction_received(self):
+    def test_first_transaction_received(self) -> None:
         project = self.create_project()
 
         event_data = load_data("transaction")
@@ -305,7 +305,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         assert task is not None
 
-    def test_member_invited(self):
+    def test_member_invited(self) -> None:
         user = self.create_user(email="test@example.org")
         member = self.create_member(
             organization=self.organization, teams=[self.team], email=user.email
@@ -319,7 +319,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-    def test_alert_added(self):
+    def test_alert_added(self) -> None:
         alert_rule_created.send(
             rule_id=Rule(id=1).id,
             project=self.project,
@@ -335,7 +335,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-    def test_integration_added(self):
+    def test_integration_added(self) -> None:
         integration_added.send(
             integration_id=self._create_integration("slack", 1234).id,
             organization_id=self.organization.id,
@@ -800,7 +800,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             ),
         )
 
-    def test_second_platform_complete(self):
+    def test_second_platform_complete(self) -> None:
         now = timezone.now()
         project = self.create_project(first_event=now)
         second_project = self.create_project(first_event=now)
@@ -815,7 +815,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-    def test_release_received_through_transaction_event(self):
+    def test_release_received_through_transaction_event(self) -> None:
         project = self.create_project()
 
         event_data = load_data("transaction")
@@ -831,7 +831,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-    def test_issue_alert_received_through_project_creation(self):
+    def test_issue_alert_received_through_project_creation(self) -> None:
         now = timezone.now()
 
         first_organization = self.create_organization(owner=self.user, slug="first-org")

@@ -29,7 +29,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         """Clean up assembly status to prevent test pollution"""
         super().tearDown()
 
-    def test_assemble_preprod_artifact_success(self):
+    def test_assemble_preprod_artifact_success(self) -> None:
         content = b"test preprod artifact content"
         fileobj = ContentFile(content)
         total_checksum = sha1(content).hexdigest()
@@ -70,7 +70,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
 
         delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
 
-    def test_assemble_preprod_artifact_without_build_configuration(self):
+    def test_assemble_preprod_artifact_without_build_configuration(self) -> None:
         content = b"test preprod artifact without build config"
         fileobj = ContentFile(content)
         total_checksum = sha1(content).hexdigest()
@@ -96,7 +96,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
 
         delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
 
-    def test_assemble_preprod_artifact_generates_filename(self):
+    def test_assemble_preprod_artifact_generates_filename(self) -> None:
         content = b"test preprod artifact with generated filename"
         fileobj = ContentFile(content)
         total_checksum = sha1(content).hexdigest()
@@ -121,7 +121,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
 
         delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
 
-    def test_assemble_preprod_artifact_checksum_mismatch(self):
+    def test_assemble_preprod_artifact_checksum_mismatch(self) -> None:
         content = b"test content for checksum mismatch"
         fileobj = ContentFile(content)
         wrong_checksum = "a" * 40
@@ -143,7 +143,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
 
         delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, wrong_checksum)
 
-    def test_assemble_preprod_artifact_missing_chunks(self):
+    def test_assemble_preprod_artifact_missing_chunks(self) -> None:
         missing_checksum = "nonexistent" + "0" * 32
         total_checksum = sha1(b"test for missing chunks").hexdigest()
 
@@ -162,7 +162,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
 
         delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
 
-    def test_assemble_preprod_artifact_nonexistent_organization(self):
+    def test_assemble_preprod_artifact_nonexistent_organization(self) -> None:
         content = b"test content for nonexistent org"
         fileobj = ContentFile(content)
         total_checksum = sha1(content).hexdigest()
@@ -185,7 +185,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
 
         delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
 
-    def test_assemble_preprod_artifact_nonexistent_project(self):
+    def test_assemble_preprod_artifact_nonexistent_project(self) -> None:
         content = b"test content for nonexistent project"
         fileobj = ContentFile(content)
         total_checksum = sha1(content).hexdigest()
@@ -212,7 +212,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             AssembleTask.PREPROD_ARTIFACT, nonexistent_project_id, total_checksum
         )
 
-    def test_assemble_preprod_artifact_reuses_build_configuration(self):
+    def test_assemble_preprod_artifact_reuses_build_configuration(self) -> None:
         existing_config, _ = PreprodBuildConfiguration.objects.get_or_create(
             project=self.project, name="debug"
         )
@@ -246,7 +246,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
 
         delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
 
-    def test_assemble_preprod_artifact_transaction_rollback(self):
+    def test_assemble_preprod_artifact_transaction_rollback(self) -> None:
         """Test that if PreprodArtifact creation fails, PreprodBuildConfiguration is also rolled back"""
         content = b"test transaction rollback"
         fileobj = ContentFile(content)
@@ -325,7 +325,7 @@ class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
         )
         return status, details
 
-    def test_assemble_preprod_artifact_installable_app_success(self):
+    def test_assemble_preprod_artifact_installable_app_success(self) -> None:
         status, details = self._run_task_and_verify_status(b"test installable app content")
 
         assert status == ChunkFileState.OK
@@ -340,7 +340,7 @@ class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
         self.preprod_artifact.refresh_from_db()
         assert self.preprod_artifact.installable_app_file_id == installable_files[0].id
 
-    def test_assemble_preprod_artifact_installable_app_error_cases(self):
+    def test_assemble_preprod_artifact_installable_app_error_cases(self) -> None:
         # Test nonexistent artifact
         status, details = self._run_task_and_verify_status(
             b"nonexistent artifact", artifact_id=99999
@@ -402,7 +402,7 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
         )
         return status, details
 
-    def test_assemble_preprod_artifact_size_analysis_success(self):
+    def test_assemble_preprod_artifact_size_analysis_success(self) -> None:
         status, details = self._run_task_and_verify_status(b"test size analysis content")
 
         assert status == ChunkFileState.OK
@@ -425,7 +425,7 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
             == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
         )
 
-    def test_assemble_preprod_artifact_size_analysis_update_existing(self):
+    def test_assemble_preprod_artifact_size_analysis_update_existing(self) -> None:
         # Create an existing size metrics record
         existing_size_metrics = PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=self.preprod_artifact,
@@ -451,7 +451,7 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
         assert size_metrics[0].analysis_file_id == size_files[0].id
         assert size_metrics[0].state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
 
-    def test_assemble_preprod_artifact_size_analysis_error_cases(self):
+    def test_assemble_preprod_artifact_size_analysis_error_cases(self) -> None:
         # Test nonexistent artifact
         status, details = self._run_task_and_verify_status(
             b"nonexistent artifact", artifact_id=99999

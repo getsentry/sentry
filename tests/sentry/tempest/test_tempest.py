@@ -178,7 +178,7 @@ class TempestTasksTest(TestCase):
         )
         mock_fetch_latest.apply_async.assert_not_called()
 
-    def test_tempest_project_key(self):
+    def test_tempest_project_key(self) -> None:
         project = self.create_project()
         project_key_1, created = ProjectKey.objects.get_or_create(
             use_case=UseCase.TEMPEST, project=project
@@ -193,7 +193,7 @@ class TempestTasksTest(TestCase):
         assert project_key_2.use_case == "UseCase.TEMPEST"
         assert project_key_1.id == project_key_2.id
 
-    def test_tempest_screenshot_option(self):
+    def test_tempest_screenshot_option(self) -> None:
         # Default should be False
         assert self.project.get_option("sentry:tempest_fetch_screenshots") is False
 
@@ -203,7 +203,7 @@ class TempestTasksTest(TestCase):
         self.project.update_option("sentry:tempest_fetch_screenshots", False)
         assert self.project.get_option("sentry:tempest_fetch_screenshots") is False
 
-    def test_tempest_dump_option(self):
+    def test_tempest_dump_option(self) -> None:
         # Default should be False
         assert self.project.get_option("sentry:tempest_fetch_dumps") is False
 

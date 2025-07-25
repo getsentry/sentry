@@ -7,7 +7,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class ProjectPluginsTest(APITestCase):
-    def test_get(self):
+    def test_get(self) -> None:
         project = self.create_project()
 
         issues = plugins.get("issuetrackingplugin2")

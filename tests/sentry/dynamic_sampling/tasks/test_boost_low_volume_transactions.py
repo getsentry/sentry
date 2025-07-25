@@ -76,14 +76,14 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         """
         return 1 + 100 + 1000 + 2000 + 3000 + idx * 5, 5
 
-    def test_get_orgs_with_transactions_respects_max_orgs(self):
+    def test_get_orgs_with_transactions_respects_max_orgs(self) -> None:
         actual = list(GetActiveOrgs(2, 20))
 
         orgs = self.org_ids
         # we should return groups of 2 orgs at a time
         assert actual == [[orgs[0], orgs[1]], [orgs[2]]]
 
-    def test_get_orgs_with_transactions_respects_max_projs(self):
+    def test_get_orgs_with_transactions_respects_max_projs(self) -> None:
         actual = list(GetActiveOrgs(10, 5))
 
         orgs = [org["org_id"] for org in self.orgs_info]
@@ -91,7 +91,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         # we should return 2 orgs at a time
         assert actual == [[orgs[0], orgs[1]], [orgs[2]]]
 
-    def test_fetch_transactions_with_total_volumes_large(self):
+    def test_fetch_transactions_with_total_volumes_large(self) -> None:
         """
         Create some transactions in some orgs and project and verify
         that they are correctly returned by fetch_transactions_with_total_volumes
@@ -108,7 +108,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
                     assert name in expected_names
                     assert count == self.get_count_for_transaction(idx, name)
 
-    def test_fetch_transactions_with_total_volumes_small(self):
+    def test_fetch_transactions_with_total_volumes_small(self) -> None:
         """
         Create some transactions in some orgs and project and verify
         that they are correctly returned by fetch_transactions_with_total_volumes
@@ -125,7 +125,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
                     assert name in expected_names
                     assert count == self.get_count_for_transaction(idx, name)
 
-    def test_fetch_transactions_with_total_volumes(self):
+    def test_fetch_transactions_with_total_volumes(self) -> None:
         """
         Create some transactions in some orgs and project and verify
         that the total counts and total transaction types per project are

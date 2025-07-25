@@ -10,7 +10,7 @@ class SplitConditionsBySpeedTest(TestCase):
             "value": 7,
         }
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         conditions = [
             self.create_data_condition(type=Condition.EQUAL),  # fast
             self.create_data_condition(type=Condition.EQUAL),  # fast
@@ -24,7 +24,7 @@ class SplitConditionsBySpeedTest(TestCase):
         assert fast_conditions == [conditions[0], conditions[1]]
         assert slow_conditions == [conditions[2]]
 
-    def test_only_fast_conditions(self):
+    def test_only_fast_conditions(self) -> None:
         conditions = [
             self.create_data_condition(type=Condition.EQUAL),  # fast
             self.create_data_condition(type=Condition.EQUAL),  # fast
@@ -35,7 +35,7 @@ class SplitConditionsBySpeedTest(TestCase):
         assert fast_conditions == [conditions[0], conditions[1]]
         assert slow_conditions == []
 
-    def test_only_slow_conditions(self):
+    def test_only_slow_conditions(self) -> None:
         conditions = [
             self.create_data_condition(
                 type=Condition.EVENT_FREQUENCY_COUNT, comparison=self.slow_config
@@ -50,7 +50,7 @@ class SplitConditionsBySpeedTest(TestCase):
         assert slow_conditions == [conditions[0], conditions[1]]
         assert fast_conditions == []
 
-    def test_no_conditions(self):
+    def test_no_conditions(self) -> None:
         conditions: list[DataCondition] = []
         fast_conditions, slow_conditions = split_conditions_by_speed(conditions)
         assert fast_conditions == []

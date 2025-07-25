@@ -236,10 +236,10 @@ class SlackActionHandlerTest(FireTest):
         assert send_notification_start.args[0] == EventLifecycleOutcome.STARTED
         assert send_notification_success.args[0] == EventLifecycleOutcome.SUCCESS
 
-    def test_fire_metric_alert_with_chart(self):
+    def test_fire_metric_alert_with_chart(self) -> None:
         self.run_fire_test(chart_url="chart-url")
 
-    def test_fire_metric_alert_with_missing_integration(self):
+    def test_fire_metric_alert_with_missing_integration(self) -> None:
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
         integration = self.create_integration(

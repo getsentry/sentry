@@ -33,7 +33,7 @@ def must_parse_datetime(s: str) -> datetime.datetime:
 
 class IncidentDateRangeTest(TestCase):
     @freeze_time(frozen_time)
-    def test_use_current_date_for_active_incident(self):
+    def test_use_current_date_for_active_incident(self) -> None:
         incident = Incident(
             date_started=must_parse_datetime("2022-05-16T18:55:00Z"), date_closed=None
         )
@@ -43,7 +43,7 @@ class IncidentDateRangeTest(TestCase):
         }
 
     @freeze_time(frozen_time)
-    def test_use_current_date_for_recently_closed_alert(self):
+    def test_use_current_date_for_recently_closed_alert(self) -> None:
         incident = Incident(
             date_started=must_parse_datetime("2022-05-16T18:55:00Z"),
             date_closed=must_parse_datetime("2022-05-16T18:57:00Z"),
@@ -54,7 +54,7 @@ class IncidentDateRangeTest(TestCase):
         }
 
     @freeze_time(frozen_time)
-    def test_use_a_past_date_for_an_older_alert(self):
+    def test_use_a_past_date_for_an_older_alert(self) -> None:
         #  Incident is from over a week ago
         incident = Incident(
             date_started=must_parse_datetime("2022-05-04T18:55:00Z"),
@@ -66,7 +66,7 @@ class IncidentDateRangeTest(TestCase):
         }
 
     @freeze_time(frozen_time)
-    def test_large_time_windows(self):
+    def test_large_time_windows(self) -> None:
         incident = Incident(
             date_started=must_parse_datetime("2022-04-20T20:28:00Z"),
             date_closed=None,

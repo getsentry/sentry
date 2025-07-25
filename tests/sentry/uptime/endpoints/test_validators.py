@@ -3,7 +3,7 @@ from sentry.uptime.endpoints.validators import compute_http_request_size
 
 
 class ComputeHttpRequestSizeTest(UptimeTestCase):
-    def test(self):
+    def test(self) -> None:
         assert (
             compute_http_request_size(
                 "GET",

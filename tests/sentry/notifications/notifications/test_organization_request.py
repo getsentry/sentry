@@ -25,7 +25,7 @@ class GetParticipantsTest(TestCase):
         self.create_member(user=self.user2, organization=self.organization)
         self.user_actors = {Actor.from_orm_user(user) for user in (self.user, self.user2)}
 
-    def test_default_to_slack(self):
+    def test_default_to_slack(self) -> None:
         notification = DummyRequestNotification(self.organization, self.user)
 
         assert notification.get_participants() == {
@@ -33,7 +33,7 @@ class GetParticipantsTest(TestCase):
             ExternalProviders.SLACK: self.user_actors,
         }
 
-    def test_turn_off_settings(self):
+    def test_turn_off_settings(self) -> None:
         notification = DummyRequestNotification(self.organization, self.user)
 
         assert notification.get_participants() == {

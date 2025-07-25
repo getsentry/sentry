@@ -26,7 +26,7 @@ class DiscordIntegrationLinkIdentityTestBase(TestCase):
 
 @control_silo_test
 class DiscordIntegrationLinkIdentityTest(DiscordIntegrationLinkIdentityTestBase):
-    def test_basic_flow(self):
+    def test_basic_flow(self) -> None:
         url = build_linking_url(self.discord_integration, self.discord_user_id)  # type: ignore[arg-type]
         response = self.client.get(url)
         assert response.status_code == 200
@@ -57,7 +57,7 @@ class DiscordIntegrationUnlinkIdentityTest(DiscordIntegrationLinkIdentityTestBas
         super().setUp()
         self.identity = self.create_identity(self.user, self.provider, self.discord_user_id)
 
-    def test_basic_flow(self):
+    def test_basic_flow(self) -> None:
         url = build_unlinking_url(self.discord_integration, self.discord_user_id)  # type: ignore[arg-type]
         response = self.client.get(url)
         assert response.status_code == 200

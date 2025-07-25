@@ -11,7 +11,7 @@ class SentryAppSerializerTest(TestCase):
         self.sentry_app = self.create_sentry_app(organization=self.organization)
         self.avatar = self.create_sentry_app_avatar(sentry_app=self.sentry_app)
 
-    def test_avatar(self):
+    def test_avatar(self) -> None:
         serial_avatar = serialize(self.avatar, None)
         assert serial_avatar["avatarType"] == self.avatar.get_avatar_type_display()
         assert serial_avatar["avatarUuid"] == self.avatar.ident
@@ -19,7 +19,7 @@ class SentryAppSerializerTest(TestCase):
         assert serial_avatar["color"] == self.avatar.color
         assert serial_avatar["photoType"] == self.avatar.get_avatar_photo_type().value
 
-    def test_rpc_avatar(self):
+    def test_rpc_avatar(self) -> None:
         rpc_avatar = serialize_sentry_app_avatar(self.avatar)
         serial_rpc_avatar = serialize(rpc_avatar, None, SentryAppAvatarSerializer())
         assert serial_rpc_avatar["avatarType"] == self.avatar.get_avatar_type_display()

@@ -3,7 +3,7 @@ from sentry.testutils.cases import UptimeTestCase
 
 
 class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
-    def test(self):
+    def test(self) -> None:
         uptime_monitor = self.create_project_uptime_subscription()
         result = serialize(uptime_monitor)
 
@@ -25,7 +25,7 @@ class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
             "traceSampling": False,
         }
 
-    def test_default_name(self):
+    def test_default_name(self) -> None:
         """
         Right now no monitors have names. Once we name everything we can remove this
         """
@@ -50,7 +50,7 @@ class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
             "traceSampling": False,
         }
 
-    def test_owner(self):
+    def test_owner(self) -> None:
         uptime_monitor = self.create_project_uptime_subscription(owner=self.user)
         result = serialize(uptime_monitor)
 
@@ -77,7 +77,7 @@ class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
             "traceSampling": False,
         }
 
-    def test_trace_sampling(self):
+    def test_trace_sampling(self) -> None:
         subscription = self.create_uptime_subscription(trace_sampling=True)
         uptime_monitor = self.create_project_uptime_subscription(uptime_subscription=subscription)
         result = serialize(uptime_monitor)

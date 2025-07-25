@@ -21,7 +21,7 @@ class GetOrCreateTest(TestCase):
             organization_id=self.project.organization_id, name="prod"
         )
 
-    def test_create(self):
+    def test_create(self) -> None:
         release_project_env = ReleaseProjectEnvironment.get_or_create(
             project=self.project,
             release=self.release,
@@ -36,7 +36,7 @@ class GetOrCreateTest(TestCase):
         assert release_project_env.last_seen == self.datetime_now
         assert release_project_env.new_issues_count == 0
 
-    def test_updates_last_seen(self):
+    def test_updates_last_seen(self) -> None:
         release_project_env = ReleaseProjectEnvironment.get_or_create(
             project=self.project,
             release=self.release,
@@ -58,7 +58,7 @@ class GetOrCreateTest(TestCase):
         assert release_project_env.first_seen == self.datetime_now
         assert release_project_env.last_seen == datetime_next
 
-    def test_no_update_too_close(self):
+    def test_no_update_too_close(self) -> None:
         """
         Test ensures that ReleaseProjectEnvironment's last_seen is not updated if the next time
         it is seen is too close to the last time it was seen.

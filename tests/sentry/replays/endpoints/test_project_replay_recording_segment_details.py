@@ -45,7 +45,7 @@ class EnvironmentBase(APITestCase):
             ),
         )
 
-    def test_get_replay_recording_segment(self):
+    def test_get_replay_recording_segment(self) -> None:
         self.login_as(user=self.user)
 
         with self.feature("organizations:session-replay"):
@@ -57,7 +57,7 @@ class EnvironmentBase(APITestCase):
             assert response.data["data"]["projectId"] == str(self.project.id)
             assert "dateAdded" in response.data["data"]
 
-    def test_get_replay_recording_segment_download(self):
+    def test_get_replay_recording_segment_download(self) -> None:
         self.login_as(user=self.user)
 
         with self.feature("organizations:session-replay"):

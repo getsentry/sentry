@@ -71,7 +71,7 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         )[0]
 
     @responses.activate()
-    def test_ticket_rules(self):
+    def test_ticket_rules(self) -> None:
         title = "sample title"
         sample_description = "sample bug report"
         html_url = f"https://github.com/foo/bar/issues/{self.issue_num}"
@@ -156,7 +156,7 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         assert ExternalIssue.objects.count() == external_issue_count
 
     @responses.activate()
-    def test_fails_validation(self):
+    def test_fails_validation(self) -> None:
         """
         Test that the absence of dynamic_form_fields in the action fails validation
         """

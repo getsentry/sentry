@@ -187,7 +187,7 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
         assert mock_create_issue.call_count == 1
         assert response.data == {"actions": ["An unexpected error occurred. Error ID: 'abc-1234'"]}
 
-    def test_no_projects_available(self):
+    def test_no_projects_available(self) -> None:
         """Test behavior when no projects are available for the organization"""
         Project.objects.filter(organization=self.organization).delete()
 

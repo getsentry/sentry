@@ -13,12 +13,12 @@ class OrganizationIntegrationSetupPermissionTest(PermissionTestCase):
 
     # this currently redirects the user
     @pytest.mark.xfail
-    def test_manager_can_load(self):
+    def test_manager_can_load(self) -> None:
         self.assert_role_can_access(self.path, "manager")
 
     # this currently redirects the user
     @pytest.mark.xfail
-    def test_owner_can_load(self):
+    def test_owner_can_load(self) -> None:
         self.assert_owner_can_access(self.path)
 
 
@@ -30,7 +30,7 @@ class OrganizationIntegrationSetupTest(TestCase):
         self.login_as(self.user)
         self.path = f"/organizations/{self.organization.slug}/integrations/example/setup/"
 
-    def test_basic_flow(self):
+    def test_basic_flow(self) -> None:
         resp = self.client.get(self.path)
         assert resp.status_code == 200
 
@@ -47,7 +47,7 @@ class OrganizationIntegrationSetupTest(TestCase):
             "organizations:integrations-stacktrace-link": True,
         }
     )
-    def test_allow_integration_with_all_features_enabled(self):
+    def test_allow_integration_with_all_features_enabled(self) -> None:
         self.test_basic_flow()
 
     @with_feature(
@@ -56,7 +56,7 @@ class OrganizationIntegrationSetupTest(TestCase):
             "organizations:integrations-stacktrace-link": False,
         }
     )
-    def test_allow_integration_with_one_feature_enabled(self):
+    def test_allow_integration_with_one_feature_enabled(self) -> None:
         self.test_basic_flow()
 
     @with_feature(
@@ -65,7 +65,7 @@ class OrganizationIntegrationSetupTest(TestCase):
             "organizations:integrations-stacktrace-link": False,
         }
     )
-    def test_allow_integration_with_all_features_disabled_but_one_unregistered(self):
+    def test_allow_integration_with_all_features_disabled_but_one_unregistered(self) -> None:
         # `example`` integration also has "organizations:integrations-commits" feature
         # but it is not registered in the SENTRY_FEATURES so we allow the integration.
         self.test_basic_flow()
@@ -76,7 +76,7 @@ class OrganizationIntegrationSetupTest(TestCase):
             "organizations:integrations-chat-unfurl": False,
         }
     )
-    def test_disallow_integration_with_all_features_disabled(self):
+    def test_disallow_integration_with_all_features_disabled(self) -> None:
         self.path = f"/organizations/{self.organization.slug}/integrations/slack/setup/"
         resp = self.client.get(self.path)
         assert resp.status_code == 200

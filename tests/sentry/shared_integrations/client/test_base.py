@@ -55,7 +55,7 @@ class BaseApiClientTest(TestCase):
         assert put_response.call_count == 1
 
     @responses.activate
-    def test__request_prepared_request(self):
+    def test__request_prepared_request(self) -> None:
         put_response = responses.add(responses.PUT, "https://example.com/put", json={})
         prepared_request = Request(method="PUT", url="https://example.com/put").prepare()
         # Client should use prepared request instead of using other params

@@ -53,7 +53,7 @@ class GroupTagExportTest(TestCase, SnubaTestCase):
                 assert bits[2] == self.last_seen
                 assert bits[3] == self.first_seen
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         url = reverse(
             "sentry-group-tag-export",
             kwargs={
@@ -68,7 +68,7 @@ class GroupTagExportTest(TestCase, SnubaTestCase):
         response = self.client.get(self.url)
         self.verify_test(response)
 
-    def test_simple_customer_domain(self):
+    def test_simple_customer_domain(self) -> None:
         url = reverse(
             "sentry-customer-domain-sentry-group-tag-export",
             kwargs={
@@ -84,7 +84,7 @@ class GroupTagExportTest(TestCase, SnubaTestCase):
         )
         self.verify_test(response)
 
-    def test_region_subdomain_no_conflict_with_slug(self):
+    def test_region_subdomain_no_conflict_with_slug(self) -> None:
         # When a request to a web view contains both
         # a region subdomain and org slug, we shouldn't conflate
         # the subdomain as being an org slug.
@@ -103,7 +103,7 @@ class GroupTagExportTest(TestCase, SnubaTestCase):
         assert "Location" not in resp
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_rate_limit(self):
+    def test_rate_limit(self) -> None:
         url = reverse(
             "sentry-group-tag-export",
             kwargs={

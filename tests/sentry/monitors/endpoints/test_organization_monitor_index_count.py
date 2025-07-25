@@ -11,7 +11,7 @@ class OrganizationMonitorsCountTest(MonitorTestCase):
         super().setUp()
         self.login_as(self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self._create_monitor(name="Active Monitor 1")
         self._create_monitor(name="Active Monitor 2")
         self._create_monitor(name="Disabled Monitor", status=ObjectStatus.DISABLED)
@@ -29,7 +29,7 @@ class OrganizationMonitorsCountTest(MonitorTestCase):
             },
         }
 
-    def test_filtered_by_environment(self):
+    def test_filtered_by_environment(self) -> None:
         # Create monitors with different environments
         monitor1 = self._create_monitor(name="Monitor 1")
         monitor2 = self._create_monitor(name="Monitor 2")

@@ -76,19 +76,19 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
             om.save()
         return user
 
-    def test_teamless_admin_cannot_load(self):
+    def test_teamless_admin_cannot_load(self) -> None:
         with self.feature("organizations:sso-basic"):
             self.assert_teamless_admin_cannot_access(self.path)
 
-    def test_team_admin_cannot_load(self):
+    def test_team_admin_cannot_load(self) -> None:
         with self.feature("organizations:sso-basic"):
             self.assert_team_admin_cannot_access(self.path)
 
-    def test_manager_cannot_load(self):
+    def test_manager_cannot_load(self) -> None:
         with self.feature("organizations:sso-basic"):
             self.assert_role_cannot_access(self.path, "manager")
 
-    def test_manager_can_load(self):
+    def test_manager_can_load(self) -> None:
         manager = self.create_manager_and_attach_identity()
 
         self.login_as(manager, organization_id=self.organization.id)
@@ -96,7 +96,7 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
 
-    def test_owner_can_load(self):
+    def test_owner_can_load(self) -> None:
         owner = self.create_owner_and_attach_identity()
 
         self.login_as(owner, organization_id=self.organization.id)
@@ -104,7 +104,7 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
 
-    def test_load_if_already_set_up(self):
+    def test_load_if_already_set_up(self) -> None:
         owner = self.create_owner_and_attach_identity()
 
         # can load without feature since already set up
@@ -186,7 +186,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             om.save()
         return om
 
-    def test_can_start_auth_flow(self):
+    def test_can_start_auth_flow(self) -> None:
         organization = self.create_organization(name="foo", owner=self.user)
 
         path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
@@ -199,7 +199,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert resp.status_code == 200
         assert resp.content.decode("utf-8") == PLACEHOLDER_TEMPLATE
 
-    def test_cannot_start_auth_flow_feature_missing(self):
+    def test_cannot_start_auth_flow_feature_missing(self) -> None:
         organization = self.create_organization(name="foo", owner=self.user)
 
         path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
@@ -264,7 +264,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         self.assert_basic_flow(user, organization)
         self.assert_require_2fa_disabled(user, organization, logger)
 
-    def test_disable_provider(self):
+    def test_disable_provider(self) -> None:
         organization, auth_provider = self.create_org_and_auth_provider()
         om = self.create_om_and_link_sso(organization)
         path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
@@ -299,7 +299,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert "Action Required" in message.subject
         assert "Single Sign-On has been disabled" in message.body
 
-    def test_reinvite_provider(self):
+    def test_reinvite_provider(self) -> None:
         organization, auth_provider = self.create_org_and_auth_provider()
         self.create_om_and_link_sso(organization)
         # Create an unlinked member
@@ -322,7 +322,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert message.to == [user_two.email]
 
     @with_feature("organizations:sso-basic")
-    def test_disable_partner_provider(self):
+    def test_disable_partner_provider(self) -> None:
         organization, auth_provider = self.create_org_and_auth_provider("fly")
         self.create_om_and_link_sso(organization)
         path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
@@ -349,7 +349,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert disable_audit_log
         assert disable_audit_log.data["provider"] == "fly"
 
-    def test_disable__scim_missing(self):
+    def test_disable__scim_missing(self) -> None:
         organization, auth_provider = self.create_org_and_auth_provider()
         auth_provider.flags.scim_enabled = True
         auth_provider.save()
@@ -384,7 +384,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             team.refresh_from_db()
             assert not team.idp_provisioned, "team should not be idp controlled now"
 
-    def test_superuser_disable_provider(self):
+    def test_superuser_disable_provider(self) -> None:
         organization, auth_provider = self.create_org_and_auth_provider()
         with self.feature("organizations:sso-scim"), assume_test_silo_mode(SiloMode.CONTROL):
             auth_provider.enable_scim(self.user)
@@ -418,7 +418,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
                 organization_id=self.organization.id, provider="dummy_scim"
             )
 
-    def test_edit_sso_settings(self):
+    def test_edit_sso_settings(self) -> None:
         # EDITING SSO SETTINGS
         organization, auth_provider = self.create_org_and_auth_provider()
         self.create_om_and_link_sso(organization)
@@ -451,7 +451,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         assert result.data == {"require_link": "to False", "default_role": "to owner"}
 
-    def test_edit_sso_settings__sso_required(self):
+    def test_edit_sso_settings__sso_required(self) -> None:
         organization, auth_provider = self.create_org_and_auth_provider()
         self.create_om_and_link_sso(organization)
         path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
@@ -482,7 +482,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         assert result.data == {"require_link": "to False"}
 
-    def test_edit_sso_settings__default_role(self):
+    def test_edit_sso_settings__default_role(self) -> None:
         organization, auth_provider = self.create_org_and_auth_provider()
         self.create_om_and_link_sso(organization)
         path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
@@ -512,7 +512,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         ).get()
         assert result.data == {"default_role": "to owner"}
 
-    def test_edit_sso_settings__no_change(self):
+    def test_edit_sso_settings__no_change(self) -> None:
         organization, auth_provider = self.create_org_and_auth_provider()
         self.create_om_and_link_sso(organization)
         path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
@@ -538,7 +538,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             organization_id=organization.id, event=audit_log.get_event_id("SSO_EDIT")
         ).exists()
 
-    def test_edit_sso_settings__scim(self):
+    def test_edit_sso_settings__scim(self) -> None:
         organization, auth_provider = self.create_org_and_auth_provider()
         self.create_om_and_link_sso(organization)
         path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
@@ -658,7 +658,7 @@ class OrganizationAuthSettingsSAML2Test(AuthProviderTestCase):
             om.save()
         return om
 
-    def test_edit_sso_settings(self):
+    def test_edit_sso_settings(self) -> None:
         organization, auth_provider = self.create_org_and_auth_provider()
         self.create_om_and_link_sso(organization)
         path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
@@ -738,7 +738,7 @@ class OrganizationAuthSettingsGenericSAML2Test(AuthProviderTestCase):
             organization_id=self.organization.id,
         )
 
-    def test_update_generic_saml2_config(self):
+    def test_update_generic_saml2_config(self) -> None:
         self.login_as(self.user, organization_id=self.organization.id)
 
         expected_provider_config = {

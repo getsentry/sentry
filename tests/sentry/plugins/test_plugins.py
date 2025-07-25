@@ -52,13 +52,13 @@ sentry_app_names = [
 
 
 class TestPluginsInstalled(TestCase):
-    def test_plugin_slugs(self):
+    def test_plugin_slugs(self) -> None:
         all_plugins = sorted(plugin.slug for plugin in plugins.all(version=None))
         # issuetrackingplugin2 is a test plugin from sentry pytest utils
         all_plugins.remove("issuetrackingplugin2")
         assert all_plugins == plugin_slugs
 
-    def test_sentry_apps(self):
+    def test_sentry_apps(self) -> None:
         install_plugin_apps("sentry.apps", settings)
 
         normalized_apps = set(

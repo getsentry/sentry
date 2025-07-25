@@ -46,7 +46,7 @@ class ExternalIssueManagerTest(TestCase):
             group=self.event1.group, integration=self.integration2, key="GHI-789"
         )
 
-    def test_get_for_integration(self):
+    def test_get_for_integration(self) -> None:
         # Base case
         result = ExternalIssue.objects.get_for_integration(integration=self.api_integration1)
         assert len(result) == 2
@@ -62,7 +62,7 @@ class ExternalIssueManagerTest(TestCase):
         assert len(result) == 1
         assert self.external_issue2 in result
 
-    def test_get_linked_issues(self):
+    def test_get_linked_issues(self) -> None:
         # Base case
         result = ExternalIssue.objects.get_linked_issues(
             event=self.group_event1, integration=self.api_integration1
@@ -84,7 +84,7 @@ class ExternalIssueManagerTest(TestCase):
         )
         assert len(result) == 0
 
-    def test_has_linked_issue(self):
+    def test_has_linked_issue(self) -> None:
         # Base case
         result = ExternalIssue.objects.has_linked_issue(
             event=self.group_event1, integration=self.api_integration1

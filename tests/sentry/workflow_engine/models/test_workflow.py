@@ -17,7 +17,7 @@ class WorkflowTest(BaseWorkflowTest):
         self.group, self.event, self.group_event = self.create_group_event()
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
 
-    def test_queryset(self):
+    def test_queryset(self) -> None:
         """
         Test that we filter out objects with statuses other than 'active'
         """
@@ -30,25 +30,25 @@ class WorkflowTest(BaseWorkflowTest):
         self.workflow.save()
         assert not Workflow.objects.filter(id=self.workflow.id).exists()
 
-    def test_evaluate_trigger_conditions__condition_new_event__True(self):
+    def test_evaluate_trigger_conditions__condition_new_event__True(self) -> None:
         evaluation, _ = self.workflow.evaluate_trigger_conditions(self.event_data)
         assert evaluation is True
 
-    def test_evaluate_trigger_conditions__condition_new_event__False(self):
+    def test_evaluate_trigger_conditions__condition_new_event__False(self) -> None:
         # Update event to have been seen before
         self.group_event.group.times_seen = 5
 
         evaluation, _ = self.workflow.evaluate_trigger_conditions(self.event_data)
         assert evaluation is False
 
-    def test_evaluate_trigger_conditions__no_conditions(self):
+    def test_evaluate_trigger_conditions__no_conditions(self) -> None:
         self.workflow.when_condition_group = None
         self.workflow.save()
 
         evaluation, _ = self.workflow.evaluate_trigger_conditions(self.event_data)
         assert evaluation is True
 
-    def test_evaluate_trigger_conditions__slow_condition(self):
+    def test_evaluate_trigger_conditions__slow_condition(self) -> None:
         # Update group to _all_, since the fast condition is met
         self.data_condition_group.update(logic_type="all")
 
@@ -63,7 +63,7 @@ class WorkflowTest(BaseWorkflowTest):
         assert evaluation is True
         assert remaining_conditions == [slow_condition]
 
-    def test_full_clean__success(self):
+    def test_full_clean__success(self) -> None:
         self.create_workflow(
             organization_id=self.organization.id,
             name="test",
@@ -87,7 +87,7 @@ class WorkflowTest(BaseWorkflowTest):
         )
         workflow2.full_clean()
 
-    def test_full_clean__fail(self):
+    def test_full_clean__fail(self) -> None:
         workflow2 = Workflow(
             organization_id=self.organization.id,
             name="test2",
@@ -103,7 +103,7 @@ class WorkflowTest(BaseWorkflowTest):
         with pytest.raises(ValidationError):
             workflow2.full_clean()
 
-    def test_duplicate_name(self):
+    def test_duplicate_name(self) -> None:
         name = "my-dupe-name"
         self.create_workflow(
             organization_id=self.organization.id,

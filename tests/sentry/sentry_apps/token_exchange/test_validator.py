@@ -21,10 +21,10 @@ class TestValidator(TestCase):
             user=self.user,
         )
 
-    def test_happy_path(self):
+    def test_happy_path(self) -> None:
         assert self.validator.run()
 
-    def test_request_must_be_made_by_sentry_app(self):
+    def test_request_must_be_made_by_sentry_app(self) -> None:
         self.validator.user = self.create_user()
 
         with pytest.raises(SentryAppIntegratorError) as e:
@@ -35,7 +35,7 @@ class TestValidator(TestCase):
         }
         assert e.value.public_context == {}
 
-    def test_request_user_must_own_sentry_app(self):
+    def test_request_user_must_own_sentry_app(self) -> None:
         self.validator.user = self.create_user(is_sentry_app=True)
 
         with pytest.raises(SentryAppIntegratorError) as e:
@@ -49,7 +49,7 @@ class TestValidator(TestCase):
         }
         assert e.value.public_context == {}
 
-    def test_installation_belongs_to_sentry_app_with_client_id(self):
+    def test_installation_belongs_to_sentry_app_with_client_id(self) -> None:
         self.validator.install = self.create_sentry_app_installation()
 
         with pytest.raises(SentryAppIntegratorError) as e:
@@ -71,7 +71,7 @@ class TestValidator(TestCase):
         assert e.value.webhook_context == {"application_id": self.install.sentry_app.application.id}
         assert e.value.public_context == {}
 
-    def test_raises_with_invalid_client_id(self):
+    def test_raises_with_invalid_client_id(self) -> None:
         self.validator.client_id = "123"
 
         with pytest.raises(SentryAppSentryError) as e:

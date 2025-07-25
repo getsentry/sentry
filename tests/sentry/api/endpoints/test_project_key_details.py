@@ -13,7 +13,7 @@ class UpdateProjectKeyTest(APITestCase):
         self.user = self.create_user(is_superuser=False)
         self.superuser = self.create_user(is_superuser=True)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project()
         key = ProjectKey.objects.get_or_create(project=project)[0]
         self.login_as(user=self.user)
@@ -30,7 +30,7 @@ class UpdateProjectKeyTest(APITestCase):
         key = ProjectKey.objects.get(id=key.id)
         assert key.label == "hello world"
 
-    def test_no_rate_limit(self):
+    def test_no_rate_limit(self) -> None:
         project = self.create_project()
         key = ProjectKey.objects.create(project=project, rate_limit_window=60, rate_limit_count=1)
         self.login_as(user=self.user)
@@ -48,7 +48,7 @@ class UpdateProjectKeyTest(APITestCase):
         assert key.rate_limit_count is None
         assert key.rate_limit_window is None
 
-    def test_unset_rate_limit(self):
+    def test_unset_rate_limit(self) -> None:
         project = self.create_project()
         key = ProjectKey.objects.create(project=project, rate_limit_window=60, rate_limit_count=1)
         self.login_as(user=self.user)
@@ -66,7 +66,7 @@ class UpdateProjectKeyTest(APITestCase):
         assert key.rate_limit_count == 1
         assert key.rate_limit_window == 60
 
-    def test_remove_rate_limit(self):
+    def test_remove_rate_limit(self) -> None:
         project = self.create_project()
         key = ProjectKey.objects.create(project=project, rate_limit_window=60, rate_limit_count=1)
         self.login_as(user=self.user)
@@ -84,7 +84,7 @@ class UpdateProjectKeyTest(APITestCase):
         assert key.rate_limit_count is None
         assert key.rate_limit_window is None
 
-    def test_simple_rate_limit(self):
+    def test_simple_rate_limit(self) -> None:
         project = self.create_project()
         key = ProjectKey.objects.create(
             project=project, rate_limit_window=None, rate_limit_count=None
@@ -130,7 +130,7 @@ class UpdateProjectKeyTest(APITestCase):
         assert mock_create_audit_entry.call_args[-1]["data"]["rate_limit_count"] == 1
         assert mock_create_audit_entry.call_args[-1]["data"]["rate_limit_window"] == 60
 
-    def test_deactivate(self):
+    def test_deactivate(self) -> None:
         project = self.create_project()
         key = ProjectKey.objects.get_or_create(project=project)[0]
         self.login_as(user=self.user)
@@ -148,7 +148,7 @@ class UpdateProjectKeyTest(APITestCase):
         assert key.label == "hello world"
         assert key.status == ProjectKeyStatus.INACTIVE
 
-    def test_default_browser_sdk_version(self):
+    def test_default_browser_sdk_version(self) -> None:
         project = self.create_project()
         key = ProjectKey.objects.get_or_create(project=project)[0]
         self.login_as(user=self.user)
@@ -165,7 +165,7 @@ class UpdateProjectKeyTest(APITestCase):
         key = ProjectKey.objects.get(id=key.id)
         assert key.data["browserSdkVersion"] == get_default_sdk_version_for_project(project)
 
-    def test_set_browser_sdk_version(self):
+    def test_set_browser_sdk_version(self) -> None:
         project = self.create_project()
         key = ProjectKey.objects.get_or_create(project=project)[0]
         self.login_as(user=self.user)
@@ -182,7 +182,7 @@ class UpdateProjectKeyTest(APITestCase):
         key = ProjectKey.objects.get(id=key.id)
         assert key.data["browserSdkVersion"] == "5.x"
 
-    def test_default_dynamic_sdk_loader_options(self):
+    def test_default_dynamic_sdk_loader_options(self) -> None:
         project = self.create_project()
         key = ProjectKey.objects.get_or_create(project=project)[0]
         self.login_as(user=self.user)
@@ -203,7 +203,7 @@ class UpdateProjectKeyTest(APITestCase):
             "hasReplay": True,
         }
 
-    def test_dynamic_sdk_loader_options(self):
+    def test_dynamic_sdk_loader_options(self) -> None:
         project = self.create_project()
         key = ProjectKey.objects.get_or_create(project=project)[0]
         self.login_as(user=self.user)
@@ -300,7 +300,7 @@ class UpdateProjectKeyTest(APITestCase):
             "hasDebug": False,
         }
 
-    def test_use_case(self):
+    def test_use_case(self) -> None:
         """Regular user cannot update an internal DSN"""
         project = self.create_project()
         key = ProjectKey.objects.get_or_create(use_case=UseCase.PROFILING.value, project=project)[0]
@@ -321,7 +321,7 @@ class UpdateProjectKeyTest(APITestCase):
         response = self.client.put(url, {"name": "hello world"})
         assert response.status_code == 200
 
-    def test_cannot_upgrade_to_internal(self):
+    def test_cannot_upgrade_to_internal(self) -> None:
         """PUT request ignores use case field"""
         project = self.create_project()
         key = ProjectKey.objects.get_or_create(use_case=UseCase.USER.value, project=project)[0]
@@ -346,7 +346,7 @@ class DeleteProjectKeyTest(APITestCase):
         self.user = self.create_user(is_superuser=False)
         self.superuser = self.create_user(is_superuser=True)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project()
         self.login_as(user=self.user)
         key = ProjectKey.objects.get_or_create(project=project)[0]
@@ -362,7 +362,7 @@ class DeleteProjectKeyTest(APITestCase):
         assert resp.status_code == 204, resp.content
         assert not ProjectKey.objects.filter(id=key.id).exists()
 
-    def test_use_case(self):
+    def test_use_case(self) -> None:
         """Regular user cannot delete an internal DSN"""
         project = self.create_project()
         self.login_as(user=self.user)

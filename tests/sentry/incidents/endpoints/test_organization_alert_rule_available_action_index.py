@@ -56,19 +56,19 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         )
         return installation
 
-    def test_build_action_response_email(self):
+    def test_build_action_response_email(self) -> None:
         data = build_action_response(self.email)
 
         assert data["type"] == "email"
         assert sorted(data["allowedTargetTypes"]) == ["team", "user"]
 
-    def test_build_action_response_slack(self):
+    def test_build_action_response_slack(self) -> None:
         data = build_action_response(self.slack)
 
         assert data["type"] == "slack"
         assert data["allowedTargetTypes"] == ["specific"]
 
-    def test_build_action_response_opsgenie(self):
+    def test_build_action_response_opsgenie(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(
                 provider="opsgenie", name="test-app", external_id="test-app", metadata=METADATA
@@ -93,7 +93,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         assert data["allowedTargetTypes"] == ["specific"]
         assert data["options"] == [{"value": "123-id", "label": "cool-team"}]
 
-    def test_build_action_response_pagerduty(self):
+    def test_build_action_response_pagerduty(self) -> None:
         service_name = SERVICES[0]["service_name"]
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(
@@ -120,7 +120,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         assert data["allowedTargetTypes"] == ["specific"]
         assert data["options"] == [{"value": service["id"], "label": service_name}]
 
-    def test_build_action_response_sentry_app(self):
+    def test_build_action_response_sentry_app(self) -> None:
         installation = self.install_new_sentry_app("foo")
 
         data = build_action_response(
@@ -131,7 +131,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         assert data["allowedTargetTypes"] == ["sentry_app"]
         assert data["status"] == SentryAppStatus.UNPUBLISHED_STR
 
-    def test_build_action_response_sentry_app_with_component(self):
+    def test_build_action_response_sentry_app_with_component(self) -> None:
         installation = self.install_new_sentry_app("foo")
         test_settings: Mapping[str, Any] = {"test-settings": []}
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -147,13 +147,13 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
 
         assert data["settings"] == test_settings
 
-    def test_no_integrations(self):
+    def test_no_integrations(self) -> None:
         with self.feature("organizations:incidents"):
             response = self.get_success_response(self.organization.slug)
 
         assert response.data == [build_action_response(self.email)]
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(external_id="1", provider="slack")
             integration.add_organization(self.organization)
@@ -172,7 +172,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
             in response.data
         )
 
-    def test_duplicate_integrations(self):
+    def test_duplicate_integrations(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(
                 external_id="1", provider="slack", name="slack 1"
@@ -205,11 +205,11 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
             in response.data
         )
 
-    def test_no_feature(self):
+    def test_no_feature(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.get_error_response(self.organization.slug, status_code=404)
 
-    def test_sentry_apps(self):
+    def test_sentry_apps(self) -> None:
         installation = self.install_new_sentry_app("foo")
 
         with self.feature("organizations:incidents"):
@@ -225,7 +225,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
             in response.data
         )
 
-    def test_published_sentry_apps(self):
+    def test_published_sentry_apps(self) -> None:
         # Should show up in available actions.
         installation = self.install_new_sentry_app("published", published=True)
 
@@ -241,7 +241,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
             in response.data
         )
 
-    def test_no_ticket_actions(self):
+    def test_no_ticket_actions(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(external_id="1", provider="jira")
             integration.add_organization(self.organization)
@@ -253,7 +253,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         assert len(response.data) == 1
         assert build_action_response(self.email) in response.data
 
-    def test_integration_disabled(self):
+    def test_integration_disabled(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(
                 external_id="1", provider="slack", status=ObjectStatus.DISABLED
@@ -266,7 +266,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         assert len(response.data) == 1
         assert build_action_response(self.email) in response.data
 
-    def test_org_integration_disabled(self):
+    def test_org_integration_disabled(self) -> None:
         integration, org_integration = self.create_provider_integration_for(
             self.organization, user=None, external_id="1", provider="slack"
         )

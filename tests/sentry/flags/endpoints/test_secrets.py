@@ -22,7 +22,7 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
     def features(self):
         return {}
 
-    def test_browse(self):
+    def test_browse(self) -> None:
         org = self.create_organization()
         FlagWebHookSigningSecretModel.objects.create(
             created_by=self.user.id,
@@ -49,7 +49,7 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
                 ]
             }
 
-    def test_post_launchdarkly(self):
+    def test_post_launchdarkly(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -61,7 +61,7 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
         assert len(models) == 1
         assert models[0].secret == "41271af8b9804cd99a4c787a28274991"
 
-    def test_post_generic(self):
+    def test_post_generic(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -73,7 +73,7 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
         assert len(models) == 1
         assert models[0].secret == "41271af8b9804cd99a4c787a28274991"
 
-    def test_post_unleash(self):
+    def test_post_unleash(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -85,7 +85,7 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
         assert len(models) == 1
         assert models[0].secret == "41271af8b9804cd99a4c787a28274991"
 
-    def test_post_statsig(self):
+    def test_post_statsig(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -100,7 +100,7 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
         assert len(models) == 1
         assert models[0].secret == "webhook-Xk9pL8NQaR5Ym2cx7vHnWtBj4M3f6qyZdC12mnspk8"
 
-    def test_post_invalid_provider(self):
+    def test_post_invalid_provider(self) -> None:
         with self.feature(self.features):
             url = reverse(self.endpoint, args=(self.organization.id,))
             response = self.client.post(url, data={"secret": "123", "provider": "other"})
@@ -108,7 +108,7 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
             assert response.json()["provider"] == ['"other" is not a valid choice.']
             assert response.json()["secret"] == ["Ensure this field has at least 32 characters."]
 
-    def test_post_invalid_secret(self):
+    def test_post_invalid_secret(self) -> None:
         with self.feature(self.features):
             for provider in ["launchdarkly", "unleash"]:
                 response = self.client.post(
@@ -165,14 +165,14 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
                 "Ensure this field has no more than 64 characters."
             ], "statsig"
 
-    def test_post_empty_request(self):
+    def test_post_empty_request(self) -> None:
         with self.feature(self.features):
             response = self.client.post(self.url, data={})
             assert response.status_code == 400, response.content
             assert response.json()["provider"] == ["This field is required."]
             assert response.json()["secret"] == ["This field is required."]
 
-    def test_post_other_organization(self):
+    def test_post_other_organization(self) -> None:
         org = self.create_organization()
         url = reverse(self.endpoint, args=(org.id,))
 
@@ -180,7 +180,7 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
             response = self.client.post(url, data={})
             assert response.status_code == 403, response.content
 
-    def test_update_same_creator(self):
+    def test_update_same_creator(self) -> None:
         new_user = self.create_user("test@test.com")
         member = self.create_member(organization=self.organization, user=new_user)
         self.login_as(user=member)
@@ -208,7 +208,7 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
         assert len(models) == 1
         assert models[0].secret == "31271af8b9804cd99a4c787a28274993"
 
-    def test_update_no_access(self):
+    def test_update_no_access(self) -> None:
         FlagWebHookSigningSecretModel.objects.create(
             created_by="12314124",
             organization=self.organization,
@@ -239,7 +239,7 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
         assert len(models) == 1
         assert models[0].secret == "41271af8b9804cd99a4c787a28274991"
 
-    def test_update_has_scope(self):
+    def test_update_has_scope(self) -> None:
         FlagWebHookSigningSecretModel.objects.create(
             created_by="12314124",
             organization=self.organization,
@@ -289,12 +289,12 @@ class OrganizationFlagsWebHookSigningSecretEndpointTestCase(APITestCase):
     def features(self):
         return {}
 
-    def test_delete(self):
+    def test_delete(self) -> None:
         with self.feature(self.features):
             response = self.client.delete(self.url)
             assert response.status_code == 204
 
-    def test_delete_other_organization(self):
+    def test_delete_other_organization(self) -> None:
         """Attempt to delete a secret outside your organization."""
         org = self.create_organization()
         obj = FlagWebHookSigningSecretModel.objects.create(

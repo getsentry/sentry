@@ -24,7 +24,7 @@ class UpdateUserReportTest(TestCase):
         )
         return event, report
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         now = timezone.now()
         project = self.create_project()
         event1, _ = self.create_event_and_report(project.id)
@@ -44,7 +44,7 @@ class UpdateUserReportTest(TestCase):
         assert report3.group_id is None
         assert report3.environment_id is None
 
-    def test_report_timerange(self):
+    def test_report_timerange(self) -> None:
         # The task should only update UserReports added in the given time range.
         now = timezone.now()
         start = now - timedelta(days=3)
@@ -80,7 +80,7 @@ class UpdateUserReportTest(TestCase):
         assert report4.group_id is None
         assert report4.environment_id is None
 
-    def test_event_timerange(self):
+    def test_event_timerange(self) -> None:
         # The task should only query associated events from the given time range, or up to 1 day older.
         event_lookback = timedelta(days=1)
 

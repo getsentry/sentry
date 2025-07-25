@@ -131,7 +131,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         assert seer_request["organization_id"] == self.organization.id
         assert seer_request["replay_id"] == self.replay_id
 
-    def test_get_feature_flag_disabled(self):
+    def test_get_feature_flag_disabled(self) -> None:
         self.save_recording_segment(0, json.dumps([]).encode())
 
         features = [

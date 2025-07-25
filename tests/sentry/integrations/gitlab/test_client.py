@@ -121,7 +121,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         self.assert_data(data, self.original_identity_data)
 
     @responses.activate
-    def test_refresh_auth_flow(self):
+    def test_refresh_auth_flow(self) -> None:
         # Fail first then succeed
         self.add_get_user_response(success=False)
         self.add_get_user_response(success=True)
@@ -134,7 +134,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         self.assert_identity_was_refreshed()
 
     @responses.activate
-    def test_refresh_auth_fails_gracefully(self):
+    def test_refresh_auth_fails_gracefully(self) -> None:
         self.add_get_user_response(success=False)
         self.add_refresh_auth(success=False)
 
@@ -145,7 +145,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         self.assert_identity_was_not_refreshed()
 
     @responses.activate
-    def test_no_refresh_when_api_call_successful(self):
+    def test_no_refresh_when_api_call_successful(self) -> None:
         self.add_get_user_response(success=True)
         resp = self.make_users_request()
 
@@ -156,7 +156,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         self.assert_identity_was_not_refreshed()
 
     @responses.activate
-    def test_check_file(self):
+    def test_check_file(self) -> None:
         path = "src/file.py"
         ref = "537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3"
         responses.add(
@@ -170,7 +170,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         assert resp  # this is None on error
 
     @responses.activate
-    def test_check_no_file(self):
+    def test_check_no_file(self) -> None:
         path = "src/file.py"
         ref = "537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3"
         responses.add(
@@ -262,7 +262,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         assert mock_record.mock_calls[1].args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
-    def test_get_commit(self):
+    def test_get_commit(self) -> None:
         commit = "a" * 40
         responses.add(
             method=responses.GET,
@@ -274,7 +274,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         assert resp == orjson.loads(GET_COMMIT_RESPONSE)
 
     @responses.activate
-    def test_get_rate_limit_info_from_response(self):
+    def test_get_rate_limit_info_from_response(self) -> None:
         """
         When rate limit headers present, parse them and return a GitLabRateLimitInfo object
         """
@@ -303,7 +303,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         assert rate_limit_info.next_window() == "17:47:53"
 
     @responses.activate
-    def test_get_rate_limit_info_from_response_invalid(self):
+    def test_get_rate_limit_info_from_response_invalid(self) -> None:
         """
         When rate limit headers are not present, handle gracefully and return None
         """
@@ -426,14 +426,14 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         ]
 
     @responses.activate
-    def test_success_single_file(self):
+    def test_success_single_file(self) -> None:
         self.set_up_success_responses()
         resp = self.gitlab_client.get_blame_for_files(files=[self.file_1], extra={})
 
         assert resp == [self.blame_1]
 
     @responses.activate
-    def test_success_single_file_cached(self):
+    def test_success_single_file_cached(self) -> None:
         self.set_up_success_responses()
         assert cache.get(self.cache_key) is None
         resp = self.gitlab_client.get_blame_for_files(files=[self.file_1], extra={})
@@ -450,7 +450,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         assert cache.get(self.cache_key) == self.make_blame_response(id="1")
 
     @responses.activate
-    def test_success_multiple_files(self):
+    def test_success_multiple_files(self) -> None:
         self.set_up_success_responses()
         resp = self.gitlab_client.get_blame_for_files(
             files=[self.file_1, self.file_2, self.file_3], extra={}
@@ -458,7 +458,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         assert resp == [self.blame_1, self.blame_2, self.blame_3]
 
     @responses.activate
-    def test_success_multiple_files_cached(self):
+    def test_success_multiple_files_cached(self) -> None:
         self.set_up_success_responses()
         assert cache.get(self.cache_key) is None
         resp = self.gitlab_client.get_blame_for_files(
@@ -517,7 +517,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         )
 
     @responses.activate
-    def test_failure_response_type(self):
+    def test_failure_response_type(self) -> None:
         responses.add(responses.GET, self.make_blame_request(self.file_1), json={}, status=200)
 
         with pytest.raises(ApiError):
@@ -600,7 +600,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         )
 
     @responses.activate
-    def test_failure_partial_fatal(self):
+    def test_failure_partial_fatal(self) -> None:
         """
         Tests that the function is aborted when a fatal response is returned
         """
@@ -611,7 +611,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
             self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2], extra={})
 
     @responses.activate
-    def test_invalid_commits(self):
+    def test_invalid_commits(self) -> None:
         """
         Tests that commits lacking required data are thrown out
         """
@@ -649,7 +649,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
 @control_silo_test
 class GitLabGetMergeCommitShaFromCommitTest(GitLabClientTest):
     @responses.activate
-    def test_merge_commit_sha(self):
+    def test_merge_commit_sha(self) -> None:
         merge_commit_sha = "123"
         commit_sha = "123"
         responses.add(
@@ -669,7 +669,7 @@ class GitLabGetMergeCommitShaFromCommitTest(GitLabClientTest):
         assert sha == merge_commit_sha
 
     @responses.activate
-    def test_squash_commit_sha(self):
+    def test_squash_commit_sha(self) -> None:
         squash_commit_sha = "123"
         commit_sha = "123"
         responses.add(
@@ -689,7 +689,7 @@ class GitLabGetMergeCommitShaFromCommitTest(GitLabClientTest):
         assert sha == squash_commit_sha
 
     @responses.activate
-    def test_no_merge_requests(self):
+    def test_no_merge_requests(self) -> None:
         commit_sha = "123"
         responses.add(
             responses.GET,
@@ -702,7 +702,7 @@ class GitLabGetMergeCommitShaFromCommitTest(GitLabClientTest):
         assert sha is None
 
     @responses.activate
-    def test_open_merge_request(self):
+    def test_open_merge_request(self) -> None:
         commit_sha = "123"
         responses.add(
             responses.GET,
@@ -715,7 +715,7 @@ class GitLabGetMergeCommitShaFromCommitTest(GitLabClientTest):
         assert sha is None
 
     @responses.activate
-    def test_multiple_merged_requests(self):
+    def test_multiple_merged_requests(self) -> None:
         commit_sha = "123"
         responses.add(
             responses.GET,

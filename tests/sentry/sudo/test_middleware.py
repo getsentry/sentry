@@ -15,20 +15,20 @@ class SudoMiddlewareTestCase(BaseTestCase):
         value, _, _ = v1.split(":")
         return self.assertEqual(value, v2, reason)
 
-    def test_process_request_raises_without_session(self):
+    def test_process_request_raises_without_session(self) -> None:
         del self.request.session
         with pytest.raises(AssertionError):
             self.middleware.process_request(self.request)
 
-    def test_process_request_adds_is_sudo(self):
+    def test_process_request_adds_is_sudo(self) -> None:
         self.middleware.process_request(self.request)
         self.assertFalse(self.request.is_sudo())
 
-    def test_process_response_noop(self):
+    def test_process_response_noop(self) -> None:
         response = self.middleware.process_response(self.request, HttpResponse())
         self.assertEqual(len(response.cookies.items()), 0)
 
-    def test_process_response_with_sudo_sets_cookie(self):
+    def test_process_response_with_sudo_sets_cookie(self) -> None:
         self.login()
         self.middleware.process_request(self.request)
         grant_sudo_privileges(self.request)
@@ -47,7 +47,7 @@ class SudoMiddlewareTestCase(BaseTestCase):
         self.assertFalse(self.request.is_secure())
         self.assertFalse(sudo["secure"])  # insecure request
 
-    def test_process_response_sets_secure_cookie(self):
+    def test_process_response_sets_secure_cookie(self) -> None:
         self.login()
         self.request.is_secure = lambda: True
 
@@ -66,7 +66,7 @@ class SudoMiddlewareTestCase(BaseTestCase):
         #      into the middleware's process_response rather than at module level.
         # self.assertTrue(sudo["secure"])
 
-    def test_process_response_sudo_revoked_removes_cookie(self):
+    def test_process_response_sudo_revoked_removes_cookie(self) -> None:
         self.login()
         self.middleware.process_request(self.request)
         grant_sudo_privileges(self.request)
@@ -84,7 +84,7 @@ class SudoMiddlewareTestCase(BaseTestCase):
         self.assertFalse(sudo.value)
         self.assertEqual(sudo["max-age"], 0)
 
-    def test_process_response_sudo_revoked_without_cookie(self):
+    def test_process_response_sudo_revoked_without_cookie(self) -> None:
         self.login()
         self.middleware.process_request(self.request)
         grant_sudo_privileges(self.request)

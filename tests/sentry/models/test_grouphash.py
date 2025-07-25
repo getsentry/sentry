@@ -10,7 +10,7 @@ from sentry.utils import json
 
 
 class GetAssociatedFingerprintTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         raw_fingerprint = ["maisey", "charlie", "{{ message }}"]
         resolved_fingerprint = ["maisey", "charlie", "Dogs are great!"]
 
@@ -26,7 +26,7 @@ class GetAssociatedFingerprintTest(TestCase):
 
         assert grouphash.get_associated_fingerprint() == resolved_fingerprint
 
-    def test_hybrid_fingerprint(self):
+    def test_hybrid_fingerprint(self) -> None:
         """
         Test that it works for events grouped on things other than fingerprint.
         """
@@ -48,7 +48,7 @@ class GetAssociatedFingerprintTest(TestCase):
 
         assert grouphash.get_associated_fingerprint() == resolved_fingerprint
 
-    def test_stringified_fingerprint(self):
+    def test_stringified_fingerprint(self) -> None:
         """
         Test handling of fingerprint metadata from back when we were stringifying rather than
         jsonifying the fingerprint value.
@@ -68,20 +68,20 @@ class GetAssociatedFingerprintTest(TestCase):
 
         assert grouphash.get_associated_fingerprint() is None
 
-    def test_no_metadata(self):
+    def test_no_metadata(self) -> None:
         grouphash = GroupHash.objects.create(hash="yay dogs", project_id=self.project.id)
 
         assert grouphash.metadata is None
         assert grouphash.get_associated_fingerprint() is None
 
-    def test_no_hashing_metadata(self):
+    def test_no_hashing_metadata(self) -> None:
         grouphash = GroupHash.objects.create(hash="yay dogs", project_id=self.project.id)
         GroupHashMetadata.objects.create(grouphash=grouphash)
 
         assert grouphash.metadata and grouphash.metadata.hashing_metadata is None
         assert grouphash.get_associated_fingerprint() is None
 
-    def test_no_fingerprint(self):
+    def test_no_fingerprint(self) -> None:
         hashing_metadata: StacktraceHashingMetadata = {
             "stacktrace_type": "in-app",
             "stacktrace_location": "exception",

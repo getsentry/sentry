@@ -9,23 +9,23 @@ from sentry.utils import json
 
 
 class JSONSerializationTest(TestCase):
-    def test_uuid(self):
+    def test_uuid(self) -> None:
         res = uuid.uuid4()
         self.assertEqual(json.dumps(res), '"%s"' % res.hex)
 
-    def test_datetime(self):
+    def test_datetime(self) -> None:
         res = datetime.datetime(day=1, month=1, year=2011, hour=1, minute=1, second=1)
         self.assertEqual(json.dumps(res), '"2011-01-01T01:01:01.000000Z"')
 
-    def test_set(self):
+    def test_set(self) -> None:
         res = {"foo"}
         self.assertEqual(json.dumps(res), '["foo"]')
 
-    def test_frozenset(self):
+    def test_frozenset(self) -> None:
         res = frozenset(["foo"])
         self.assertEqual(json.dumps(res), '["foo"]')
 
-    def test_escape(self):
+    def test_escape(self) -> None:
         res = "<script>alert('&');</script>"
         assert json.dumps(res) == "\"<script>alert('&');</script>\""
         assert (
@@ -37,21 +37,21 @@ class JSONSerializationTest(TestCase):
             == b'"\\u003cscript\\u003ealert(\\u0027\\u0026\\u0027);\\u003c/script\\u003e"'
         )
 
-    def test_inf(self):
+    def test_inf(self) -> None:
         res = float("inf")
         self.assertEqual(json.dumps(res), "null")
 
-    def test_enum(self):
+    def test_enum(self) -> None:
         EnumFoo = Enum("EnumFoo", "a b c")
         res = EnumFoo.a
         self.assertEqual(json.dumps(res), "1")
 
-    def test_translation(self):
+    def test_translation(self) -> None:
         self.assertEqual(json.dumps(_("word")), '"word"')
 
 
 class JSONHelpersTest(TestCase):
-    def test_prune_empty_keys_simple(self):
+    def test_prune_empty_keys_simple(self) -> None:
         assert json.prune_empty_keys(
             {
                 "dogs_are_great": True,
@@ -63,7 +63,7 @@ class JSONHelpersTest(TestCase):
             "good_dogs": "all",
         }
 
-    def test_prune_empty_keys_keeps_falsy_values(self):
+    def test_prune_empty_keys_keeps_falsy_values(self) -> None:
         assert json.prune_empty_keys(
             {
                 "empty_string": "",
@@ -87,5 +87,5 @@ class JSONHelpersTest(TestCase):
             "zero_point_zero": 0.0,
         }
 
-    def test_prune_empty_keys_none_input(self):
+    def test_prune_empty_keys_none_input(self) -> None:
         assert json.prune_empty_keys(None) is None

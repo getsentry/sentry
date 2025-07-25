@@ -14,7 +14,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitMeta, RateLimitType
 class RatelimitMiddlewareTest(TestCase):
     group = RateLimitConfig().group
 
-    def test_above_rate_limit_check(self):
+    def test_above_rate_limit_check(self) -> None:
         with freeze_time("2000-01-01"):
             expected_reset_time = int(time() + 100)
             return_val = above_rate_limit_check(
@@ -66,7 +66,7 @@ class RatelimitMiddlewareTest(TestCase):
                 concurrent_requests=9,
             )
 
-    def test_concurrent(self):
+    def test_concurrent(self) -> None:
         def do_request():
             uid = uuid.uuid4().hex
             meta = above_rate_limit_check(
@@ -85,7 +85,7 @@ class RatelimitMiddlewareTest(TestCase):
                 results.append(f.result())
             assert len([r for r in results if r.concurrent_remaining == 0]) == 2
 
-    def test_window_and_concurrent_limit(self):
+    def test_window_and_concurrent_limit(self) -> None:
         """Test that if there is a window limit and a concurrent limit, the
         FIXED_WINDOW limit takes precedence"""
         return_val = above_rate_limit_check(

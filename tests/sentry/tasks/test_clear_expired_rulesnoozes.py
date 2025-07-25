@@ -17,10 +17,10 @@ class ClearExpiredRuleSnoozesTest(APITestCase):
         self.until = datetime.now(timezone.utc) - timedelta(minutes=1)
         self.login_as(user=self.user)
 
-    def test_task_persistent_name(self):
+    def test_task_persistent_name(self) -> None:
         assert clear_expired_rulesnoozes.name == "sentry.tasks.clear_expired_rulesnoozes"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         """Test that expired rulesnoozes are deleted, and ones that still have time left are left alone"""
         issue_alert_rule_snooze = self.snooze_rule(
             user_id=self.user.id,
@@ -56,7 +56,7 @@ class ClearExpiredRuleSnoozesTest(APITestCase):
         assert not RuleSnooze.objects.filter(id=metric_alert_rule_snooze.id).exists()
         assert RuleSnooze.objects.filter(id=metric_alert_rule_snooze2.id).exists()
 
-    def test_snooze_forever(self):
+    def test_snooze_forever(self) -> None:
         """Test that if an issue alert rule is snoozed forever, the task doesn't remove it."""
         issue_alert_rule_snooze = self.snooze_rule(
             user_id=self.user.id,

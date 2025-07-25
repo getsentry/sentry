@@ -16,7 +16,7 @@ class FlyOAuth2ProviderTest(TestCase):
         )
         super().setUp()
 
-    def test_refresh_identity_without_refresh_token(self):
+    def test_refresh_identity_without_refresh_token(self) -> None:
         auth_identity = AuthIdentity.objects.create(
             auth_provider=self.auth_provider, user=self.user, data={"access_token": "access_token"}
         )
@@ -26,14 +26,14 @@ class FlyOAuth2ProviderTest(TestCase):
         with pytest.raises(IdentityNotValid):
             provider.refresh_identity(auth_identity)
 
-    def test_build_config(self):
+    def test_build_config(self) -> None:
         provider = self.auth_provider.get_provider()
         resource = {"id": "nathans-org", "role": "member"}
         result = provider.build_config(resource=resource)
         assert result == {"org": {"id": "nathans-org"}}
         assert provider.is_partner == (self.auth_provider.provider == ChannelName.FLY_IO.value)
 
-    def test_build_identity(self):
+    def test_build_identity(self) -> None:
         provider = self.auth_provider.get_provider()
         data = {
             "access_token": "fo1_6xgeCrB8ew8vFQ86vdaakBSFTVDGCzOUvebUbvgPGhI",
@@ -72,7 +72,7 @@ class FlyOAuth2ProviderTest(TestCase):
             "email_verified": False,
         }
 
-    def test_audit_log_data(self):
+    def test_audit_log_data(self) -> None:
         audit_log_data = self.auth_provider.get_audit_log_data()
         assert audit_log_data["provider"] == "fly"
         assert audit_log_data["config"] == {}

@@ -73,7 +73,7 @@ class GetRelocationArtifactsGoodTest(GetRelocationArtifactsTest):
         self.relocation_storage.save(f"{dir}/out/baseline-config.tar", StringIO("1234567890abcd"))
         self.relocation_storage.save(f"{dir}/out/colliding-users.tar", StringIO("1234567890abcde"))
 
-    def test_good_with_superuser(self):
+    def test_good_with_superuser(self) -> None:
         self.add_user_permission(self.superuser, RELOCATION_ADMIN_PERMISSION)
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(str(self.relocation.uuid))
@@ -85,7 +85,7 @@ class GetRelocationArtifactsGoodTest(GetRelocationArtifactsTest):
             assert self.relocation_storage.size(file_name) == file_size
 
     @override_options({"staff.ga-rollout": True})
-    def test_good_with_staff(self):
+    def test_good_with_staff(self) -> None:
         self.add_user_permission(self.staff_user, RELOCATION_ADMIN_PERMISSION)
         self.login_as(user=self.staff_user, staff=True)
         self.get_success_response(str(self.relocation.uuid))
@@ -100,7 +100,7 @@ class GetRelocationArtifactsGoodTest(GetRelocationArtifactsTest):
 
 class GetRelocationArtifactsBadTest(GetRelocationArtifactsTest):
     @override_options({"staff.ga-rollout": True})
-    def test_bad_unprivileged_user(self):
+    def test_bad_unprivileged_user(self) -> None:
         self.login_as(user=self.owner, superuser=False, staff=False)
 
         # Ensures we don't reveal existence info to improperly authenticated users.
@@ -108,7 +108,7 @@ class GetRelocationArtifactsBadTest(GetRelocationArtifactsTest):
         self.get_error_response(str(does_not_exist_uuid), status_code=403)
         self.get_error_response(str(self.relocation.uuid), status_code=403)
 
-    def test_bad_superuser_disabled(self):
+    def test_bad_superuser_disabled(self) -> None:
         self.add_user_permission(self.superuser, RELOCATION_ADMIN_PERMISSION)
         self.login_as(user=self.superuser, superuser=False)
 
@@ -118,7 +118,7 @@ class GetRelocationArtifactsBadTest(GetRelocationArtifactsTest):
         self.get_error_response(str(self.relocation.uuid), status_code=403)
 
     @override_options({"staff.ga-rollout": True})
-    def test_bad_staff_disabled(self):
+    def test_bad_staff_disabled(self) -> None:
         self.add_user_permission(self.staff_user, RELOCATION_ADMIN_PERMISSION)
         self.login_as(user=self.staff_user, staff=False)
 
@@ -127,7 +127,7 @@ class GetRelocationArtifactsBadTest(GetRelocationArtifactsTest):
         self.get_error_response(str(does_not_exist_uuid), status_code=403)
         self.get_error_response(str(self.relocation.uuid), status_code=403)
 
-    def test_bad_has_superuser_but_no_relocation_admin_permission(self):
+    def test_bad_has_superuser_but_no_relocation_admin_permission(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
 
         # Ensures we don't reveal existence info to improperly authenticated users.
@@ -141,7 +141,7 @@ class GetRelocationArtifactsBadTest(GetRelocationArtifactsTest):
         assert response.data.get("detail") == ERR_NEED_RELOCATION_ADMIN
 
     @override_options({"staff.ga-rollout": True})
-    def test_bad_has_staff_but_no_relocation_admin_permission(self):
+    def test_bad_has_staff_but_no_relocation_admin_permission(self) -> None:
         self.login_as(user=self.staff_user, staff=True)
 
         # Ensures we don't reveal existence info to improperly authenticated users.
@@ -155,7 +155,7 @@ class GetRelocationArtifactsBadTest(GetRelocationArtifactsTest):
         assert response.data.get("detail") == ERR_NEED_RELOCATION_ADMIN
 
     @override_options({"staff.ga-rollout": True})
-    def test_bad_relocation_not_found(self):
+    def test_bad_relocation_not_found(self) -> None:
         self.add_user_permission(self.staff_user, RELOCATION_ADMIN_PERMISSION)
         self.login_as(user=self.staff_user, staff=True)
         does_not_exist_uuid = uuid4().hex

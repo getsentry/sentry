@@ -17,14 +17,14 @@ class OAuthTokenTest(TestCase):
     def path(self):
         return "/oauth/token/"
 
-    def test_no_get(self):
+    def test_no_get(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.get(self.path)
 
         assert resp.status_code == 405
 
-    def test_missing_grant_type(self):
+    def test_missing_grant_type(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.post(self.path, {"client_id": "abcd", "client_secret": "abcd"})
@@ -32,7 +32,7 @@ class OAuthTokenTest(TestCase):
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "unsupported_grant_type"}
 
-    def test_invalid_grant_type(self):
+    def test_invalid_grant_type(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.post(
@@ -59,7 +59,7 @@ class OAuthTokenCodeTest(TestCase):
             user=self.user, application=self.application, redirect_uri="https://example.com"
         )
 
-    def test_missing_client_id(self):
+    def test_missing_client_id(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.post(
@@ -75,7 +75,7 @@ class OAuthTokenCodeTest(TestCase):
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "missing_client_id"}
 
-    def test_invalid_client_id(self):
+    def test_invalid_client_id(self) -> None:
         self.login_as(self.user)
         resp = self.client.post(
             self.path,
@@ -90,7 +90,7 @@ class OAuthTokenCodeTest(TestCase):
         assert resp.status_code == 401
         assert json.loads(resp.content) == {"error": "invalid_credentials"}
 
-    def test_missing_client_secret(self):
+    def test_missing_client_secret(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.post(
@@ -106,7 +106,7 @@ class OAuthTokenCodeTest(TestCase):
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "missing_client_secret"}
 
-    def test_invalid_client_secret(self):
+    def test_invalid_client_secret(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.post(
@@ -123,7 +123,7 @@ class OAuthTokenCodeTest(TestCase):
         assert resp.status_code == 401
         assert json.loads(resp.content) == {"error": "invalid_credentials"}
 
-    def test_missing_code(self):
+    def test_missing_code(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.post(
@@ -139,7 +139,7 @@ class OAuthTokenCodeTest(TestCase):
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "invalid_grant"}
 
-    def test_invalid_code(self):
+    def test_invalid_code(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.post(
@@ -156,7 +156,7 @@ class OAuthTokenCodeTest(TestCase):
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "invalid_grant"}
 
-    def test_expired_grant(self):
+    def test_expired_grant(self) -> None:
         self.login_as(self.user)
         expired_grant = ApiGrant.objects.create(
             user=self.user,
@@ -177,7 +177,7 @@ class OAuthTokenCodeTest(TestCase):
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "invalid_grant"}
 
-    def test_one_time_use_grant(self):
+    def test_one_time_use_grant(self) -> None:
         self.login_as(self.user)
         resp = self.client.post(
             self.path,
@@ -204,7 +204,7 @@ class OAuthTokenCodeTest(TestCase):
         )
         assert resp.status_code == 400
 
-    def test_grant_lock(self):
+    def test_grant_lock(self) -> None:
         self.login_as(self.user)
 
         # Simulate a concurrent request by using an existing grant
@@ -226,7 +226,7 @@ class OAuthTokenCodeTest(TestCase):
         assert resp.status_code == 400
         assert resp.json() == {"error": "invalid_grant"}
 
-    def test_invalid_redirect_uri(self):
+    def test_invalid_redirect_uri(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.post(
@@ -242,7 +242,7 @@ class OAuthTokenCodeTest(TestCase):
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "invalid_grant"}
 
-    def test_no_open_id_token(self):
+    def test_no_open_id_token(self) -> None:
         """
         Checks that the OIDC token is not returned unless the right scope is approved.
         """
@@ -262,7 +262,7 @@ class OAuthTokenCodeTest(TestCase):
         data = json.loads(resp.content)
         assert "id_token" not in data
 
-    def test_valid_no_redirect_uri(self):
+    def test_valid_no_redirect_uri(self) -> None:
         """
         Checks that we get the correct redirect URI if we don't pass one in
         """
@@ -292,7 +292,7 @@ class OAuthTokenCodeTest(TestCase):
         assert data["token_type"] == "bearer"
         assert data["user"]["id"] == str(token.user_id)
 
-    def test_valid_params(self):
+    def test_valid_params(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.post(
@@ -320,7 +320,7 @@ class OAuthTokenCodeTest(TestCase):
         assert data["token_type"] == "bearer"
         assert data["user"]["id"] == str(token.user_id)
 
-    def test_valid_params_id_token(self):
+    def test_valid_params_id_token(self) -> None:
         self.login_as(self.user)
         open_id_grant = ApiGrant.objects.create(
             user=self.user,
@@ -353,7 +353,7 @@ class OAuthTokenCodeTest(TestCase):
 
             assert data["id_token"].count(".") == 2
 
-    def test_valid_params_id_token_additional_scopes(self):
+    def test_valid_params_id_token_additional_scopes(self) -> None:
         self.login_as(self.user)
         open_id_grant = ApiGrant.objects.create(
             user=self.user,
@@ -407,7 +407,7 @@ class OAuthTokenRefreshTokenTest(TestCase):
             application=self.application, user=self.user, expires_at=timezone.now()
         )
 
-    def test_missing_client_id(self):
+    def test_missing_client_id(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.post(
@@ -422,7 +422,7 @@ class OAuthTokenRefreshTokenTest(TestCase):
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "missing_client_id"}
 
-    def test_invalid_client_id(self):
+    def test_invalid_client_id(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.post(
@@ -438,7 +438,7 @@ class OAuthTokenRefreshTokenTest(TestCase):
         assert resp.status_code == 401
         assert json.loads(resp.content) == {"error": "invalid_credentials"}
 
-    def test_missing_refresh_token(self):
+    def test_missing_refresh_token(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.post(
@@ -453,7 +453,7 @@ class OAuthTokenRefreshTokenTest(TestCase):
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "invalid_request"}
 
-    def test_invalid_refresh_token(self):
+    def test_invalid_refresh_token(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.post(
@@ -469,7 +469,7 @@ class OAuthTokenRefreshTokenTest(TestCase):
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "invalid_grant"}
 
-    def test_valid_params(self):
+    def test_valid_params(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.post(
@@ -519,7 +519,7 @@ class OAuthTokenOrganizationScopedTest(TestCase):
             organization_id=self.organization.id,
         )
 
-    def test_valid_params(self):
+    def test_valid_params(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.post(

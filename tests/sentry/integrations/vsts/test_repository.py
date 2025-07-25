@@ -25,7 +25,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
         return VstsRepositoryProvider("integrations:vsts")
 
     @responses.activate
-    def test_compare_commits(self):
+    def test_compare_commits(self) -> None:
         responses.add(
             responses.POST,
             "https://visualstudio.com/_apis/git/repositories/None/commitsBatch",
@@ -84,7 +84,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
         ]
 
     @responses.activate
-    def test_build_repository_config(self):
+    def test_build_repository_config(self) -> None:
         organization = self.create_organization()
         integration = self.create_provider_integration(
             provider="vsts",
@@ -114,7 +114,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
             "integration_id": integration.id,
         }
 
-    def test_repository_external_slug(self):
+    def test_repository_external_slug(self) -> None:
         repo = Repository(
             name="MyFirstProject",
             url="https://mbittker.visualstudio.com/_git/MyFirstProject/",
@@ -198,17 +198,17 @@ class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
         }
 
     @responses.activate
-    def test_create_repository(self):
+    def test_create_repository(self) -> None:
         response = self.create_repository(self.default_repository_config, self.integration.id)
         assert response.status_code == 201
         self.assert_repository(self.default_repository_config)
 
-    def test_data_has_no_installation_id(self):
+    def test_data_has_no_installation_id(self) -> None:
         response = self.create_repository(self.default_repository_config, None)
         assert response.status_code == 400
         self.assert_error_message(response, "validation", "requires an integration id")
 
-    def test_data_integration_does_not_exist(self):
+    def test_data_integration_does_not_exist(self) -> None:
         integration_id = self.integration.id
         self.integration.delete()
 
@@ -218,7 +218,7 @@ class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
             response, "not found", "Integration matching query does not exist."
         )
 
-    def test_org_given_has_no_installation(self):
+    def test_org_given_has_no_installation(self) -> None:
         organization = self.create_organization(owner=self.user)
         response = self.create_repository(
             self.default_repository_config, self.integration.id, organization.slug
@@ -226,7 +226,7 @@ class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
         assert response.status_code == 404
 
     @responses.activate
-    def test_get_repo_request_fails(self):
+    def test_get_repo_request_fails(self) -> None:
         responses.add(
             responses.GET,
             "https://visualstudio.com/_apis/git/repositories/123",

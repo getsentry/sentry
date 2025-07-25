@@ -70,7 +70,7 @@ class TestCreatorExternal(TestCreatorBase):
             slug=self.sentry_app.slug, organization_id=self.org.id
         ).run(user=self.user, request=None)
 
-    def test_create_token(self):
+    def test_create_token(self) -> None:
         today = datetime.now(UTC)
         api_token = SentryAppInstallationTokenCreator(
             sentry_app_installation=self.sentry_app_installation, expires_at=today

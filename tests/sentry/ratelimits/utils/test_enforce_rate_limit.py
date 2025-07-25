@@ -38,7 +38,7 @@ class EnforceRateLimitTest(APITestCase):
     endpoint = "enforced-endpoint"
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_enforced_rate_limit(self):
+    def test_enforced_rate_limit(self) -> None:
         """Endpoints with enforce_rate_limit enabled should result in 429s"""
         with freeze_time("2000-01-01"):
             self.get_success_response()
@@ -49,7 +49,7 @@ class EnforceRateLimitTest(APITestCase):
 class UnEnforceRateLimitTest(APITestCase):
     endpoint = "unenforced-endpoint"
 
-    def test_unenforced_rate_limit(self):
+    def test_unenforced_rate_limit(self) -> None:
         """Endpoints with enforce_rate_limit disabled shouldn't reject requests"""
         with freeze_time("2000-01-01"):
             self.get_success_response()

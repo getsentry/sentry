@@ -54,7 +54,7 @@ class BitbucketIssueTest(APITestCase):
         return "/extensions/bitbucket/search/baz/%d/" % self.integration.id
 
     @responses.activate
-    def test_link_issue(self):
+    def test_link_issue(self) -> None:
         issue_id = 3
         repo = "myaccount/myrepo"
         responses.add(
@@ -75,7 +75,7 @@ class BitbucketIssueTest(APITestCase):
         }
 
     @responses.activate
-    def test_after_link_issue(self):
+    def test_after_link_issue(self) -> None:
         issue_id = 3
         repo = "myaccount/myrepo"
         comment = {"comment": "hello I'm a comment"}
@@ -102,7 +102,7 @@ class BitbucketIssueTest(APITestCase):
         assert payload == {"content": {"raw": comment["comment"]}}
 
     @responses.activate
-    def test_default_repo_link_fields(self):
+    def test_default_repo_link_fields(self) -> None:
         responses.add(
             responses.GET,
             "https://api.bitbucket.org/2.0/repositories/myaccount",
@@ -126,7 +126,7 @@ class BitbucketIssueTest(APITestCase):
         assert repo_field["default"] == "myaccount/repo1"
 
     @responses.activate
-    def test_default_repo_create_fields(self):
+    def test_default_repo_create_fields(self) -> None:
         responses.add(
             responses.GET,
             "https://api.bitbucket.org/2.0/repositories/myaccount",
@@ -153,7 +153,7 @@ class BitbucketIssueTest(APITestCase):
         assert repo_field["default"] == "myaccount/repo1"
 
     @responses.activate
-    def test_default_repo_link_fields_no_repos(self):
+    def test_default_repo_link_fields_no_repos(self) -> None:
         responses.add(
             responses.GET,
             "https://api.bitbucket.org/2.0/repositories/myaccount",
@@ -170,7 +170,7 @@ class BitbucketIssueTest(APITestCase):
         assert repo_field["choices"] == []
 
     @responses.activate
-    def test_default_repo_create_fields_no_repos(self):
+    def test_default_repo_create_fields_no_repos(self) -> None:
         responses.add(
             responses.GET,
             "https://api.bitbucket.org/2.0/repositories/myaccount",
@@ -187,7 +187,7 @@ class BitbucketIssueTest(APITestCase):
         assert repo_field["choices"] == []
 
     @responses.activate
-    def test_get_create_issue_config(self):
+    def test_get_create_issue_config(self) -> None:
         responses.add(
             responses.GET,
             "https://api.bitbucket.org/2.0/repositories/myaccount",
@@ -240,7 +240,7 @@ class BitbucketIssueTest(APITestCase):
         ]
 
     @responses.activate
-    def test_get_create_issue_config_with_long_title(self):
+    def test_get_create_issue_config_with_long_title(self) -> None:
         responses.add(
             responses.GET,
             "https://api.bitbucket.org/2.0/repositories/myaccount",
@@ -262,7 +262,7 @@ class BitbucketIssueTest(APITestCase):
         assert title_field["maxLength"] == BITBUCKET_MAX_TITLE_LENGTH
 
     @responses.activate
-    def test_get_create_issue_config_without_group(self):
+    def test_get_create_issue_config_without_group(self) -> None:
         responses.add(
             responses.GET,
             "https://api.bitbucket.org/2.0/repositories/myaccount",
@@ -294,7 +294,7 @@ class BitbucketIssueTest(APITestCase):
         assert label_field["label"] == "Priority"
 
     @responses.activate
-    def test_get_link_issue_config(self):
+    def test_get_link_issue_config(self) -> None:
         responses.add(
             responses.GET,
             "https://api.bitbucket.org/2.0/repositories/myaccount",
@@ -333,7 +333,7 @@ class BitbucketIssueTest(APITestCase):
         ]
 
     @responses.activate
-    def test_create_issue(self):
+    def test_create_issue(self) -> None:
         repo = "myaccount/repo1"
         id = "112"
         title = "hello"

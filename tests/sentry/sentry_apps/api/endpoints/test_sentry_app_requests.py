@@ -35,7 +35,7 @@ class SentryAppRequestsGetTest(APITestCase):
             name="Internal app", organization=self.org
         )
 
-    def test_superuser_sees_unowned_published_requests(self):
+    def test_superuser_sees_unowned_published_requests(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
 
         buffer = SentryAppWebhookRequestsBuffer(self.unowned_published_app)
@@ -60,7 +60,7 @@ class SentryAppRequestsGetTest(APITestCase):
         assert response.data[0]["sentryAppSlug"] == self.unowned_published_app.slug
         assert response.data[0]["responseCode"] == 500
 
-    def test_superuser_sees_unpublished_stats(self):
+    def test_superuser_sees_unpublished_stats(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
 
         buffer = SentryAppWebhookRequestsBuffer(self.unowned_unpublished_app)
@@ -77,7 +77,7 @@ class SentryAppRequestsGetTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["sentryAppSlug"] == self.unowned_unpublished_app.slug
 
-    def test_user_sees_owned_published_requests(self):
+    def test_user_sees_owned_published_requests(self) -> None:
         self.login_as(user=self.user)
 
         buffer = SentryAppWebhookRequestsBuffer(self.published_app)
@@ -96,7 +96,7 @@ class SentryAppRequestsGetTest(APITestCase):
         assert response.data[0]["sentryAppSlug"] == self.published_app.slug
         assert response.data[0]["responseCode"] == 200
 
-    def test_user_does_not_see_unowned_published_requests(self):
+    def test_user_does_not_see_unowned_published_requests(self) -> None:
         self.login_as(user=self.user)
 
         buffer = SentryAppWebhookRequestsBuffer(self.unowned_published_app)
@@ -112,7 +112,7 @@ class SentryAppRequestsGetTest(APITestCase):
         assert response.status_code == 403
         assert response.data["detail"] == "You do not have permission to perform this action."
 
-    def test_user_sees_owned_unpublished_requests(self):
+    def test_user_sees_owned_unpublished_requests(self) -> None:
         self.login_as(user=self.user)
 
         buffer = SentryAppWebhookRequestsBuffer(self.unpublished_app)
@@ -128,7 +128,7 @@ class SentryAppRequestsGetTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
 
-    def test_internal_app_requests_does_not_have_organization_field(self):
+    def test_internal_app_requests_does_not_have_organization_field(self) -> None:
         self.login_as(user=self.user)
         buffer = SentryAppWebhookRequestsBuffer(self.internal_app)
         buffer.add_request(
@@ -146,7 +146,7 @@ class SentryAppRequestsGetTest(APITestCase):
         assert response.data[0]["sentryAppSlug"] == self.internal_app.slug
         assert response.data[0]["responseCode"] == 200
 
-    def test_event_type_filter(self):
+    def test_event_type_filter(self) -> None:
         self.login_as(user=self.user)
         buffer = SentryAppWebhookRequestsBuffer(self.published_app)
         buffer.add_request(
@@ -165,7 +165,7 @@ class SentryAppRequestsGetTest(APITestCase):
         assert response2.status_code == 200
         assert len(response2.data) == 1
 
-    def test_invalid_event_type(self):
+    def test_invalid_event_type(self) -> None:
         self.login_as(user=self.user)
 
         url = reverse("sentry-api-0-sentry-app-requests", args=[self.published_app.slug])
@@ -173,7 +173,7 @@ class SentryAppRequestsGetTest(APITestCase):
 
         assert response.status_code == 400
 
-    def test_errors_only_filter(self):
+    def test_errors_only_filter(self) -> None:
         self.login_as(user=self.user)
         buffer = SentryAppWebhookRequestsBuffer(self.published_app)
         buffer.add_request(
@@ -198,7 +198,7 @@ class SentryAppRequestsGetTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 2
 
-    def test_linked_error_id_converts_to_url(self):
+    def test_linked_error_id_converts_to_url(self) -> None:
         self.login_as(user=self.user)
 
         event = self.store_event(
@@ -226,7 +226,7 @@ class SentryAppRequestsGetTest(APITestCase):
             "sentry-organization-event-detail", args=[self.org.slug, event.group_id, event.event_id]
         )
 
-    def test_linked_error_not_returned_if_project_does_not_exist(self):
+    def test_linked_error_not_returned_if_project_does_not_exist(self) -> None:
         self.login_as(user=self.user)
 
         self.store_event(
@@ -252,7 +252,7 @@ class SentryAppRequestsGetTest(APITestCase):
         assert response.data[0]["sentryAppSlug"] == self.published_app.slug
         assert "errorUrl" not in response.data[0]
 
-    def test_linked_error_not_returned_if_event_does_not_exist(self):
+    def test_linked_error_not_returned_if_event_does_not_exist(self) -> None:
         self.login_as(user=self.user)
 
         # event_id doesn't correspond to an existing event because we didn't call store_event
@@ -275,7 +275,7 @@ class SentryAppRequestsGetTest(APITestCase):
         assert response.data[0]["sentryAppSlug"] == self.published_app.slug
         assert "errorUrl" not in response.data[0]
 
-    def test_linked_error_not_returned_if_project_doesnt_belong_to_org(self):
+    def test_linked_error_not_returned_if_project_doesnt_belong_to_org(self) -> None:
         self.login_as(user=self.user)
         unowned_project = self.create_project(organization=self.create_organization())
 
@@ -297,7 +297,7 @@ class SentryAppRequestsGetTest(APITestCase):
         assert response.data[0]["sentryAppSlug"] == self.published_app.slug
         assert "errorUrl" not in response.data[0]
 
-    def test_org_slug_filter(self):
+    def test_org_slug_filter(self) -> None:
         """Test that filtering by the qparam organizationSlug properly filters results"""
         self.login_as(user=self.user)
         buffer = SentryAppWebhookRequestsBuffer(self.published_app)
@@ -327,7 +327,7 @@ class SentryAppRequestsGetTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 2
 
-    def test_date_filter(self):
+    def test_date_filter(self) -> None:
         """Test that filtering by the qparams start and end properly filters results"""
         self.login_as(user=self.user)
         buffer = SentryAppWebhookRequestsBuffer(self.published_app)

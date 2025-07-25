@@ -16,7 +16,7 @@ class RedisBackendTestCase(TestCase):
         rule = self.event.project.rule_set.all()[0]
         return Notification(self.event, (rule.id,), str(uuid.uuid4()))
 
-    def test_basic(self):
+    def test_basic(self) -> None:
         backend = RedisBackend()
 
         # The first item should return "true", indicating that this timeline
@@ -46,7 +46,7 @@ class RedisBackendTestCase(TestCase):
         # longer exist at this point.
         assert set(backend.schedule(time.time())) == set()
 
-    def test_truncation(self):
+    def test_truncation(self) -> None:
         backend = RedisBackend(capacity=2, truncation_chance=1.0)
 
         records = [Record(f"record:{i}", self.notification, time.time()) for i in range(4)]
@@ -56,7 +56,7 @@ class RedisBackendTestCase(TestCase):
         with backend.digest("timeline", 0) as records:
             assert {record.key for record in records} == {"record:2", "record:3"}
 
-    def test_maintenance_failure_recovery(self):
+    def test_maintenance_failure_recovery(self) -> None:
         backend = RedisBackend()
 
         record_1 = Record("record:1", self.notification, time.time())
@@ -87,7 +87,7 @@ class RedisBackendTestCase(TestCase):
         with backend.digest("timeline", 0) as records:
             assert {record.key for record in records} == {"record:1", "record:2"}
 
-    def test_maintenance_failure_recovery_with_capacity(self):
+    def test_maintenance_failure_recovery_with_capacity(self) -> None:
         backend = RedisBackend(capacity=10, truncation_chance=0.0)
 
         t = time.time()
@@ -121,7 +121,7 @@ class RedisBackendTestCase(TestCase):
             expected_keys = {f"record:{i}" for i in range(10, 20)}
             assert {record.key for record in records} == expected_keys
 
-    def test_delete(self):
+    def test_delete(self) -> None:
         backend = RedisBackend()
         backend.add("timeline", Record("record:1", self.notification, time.time()))
         backend.delete("timeline")
@@ -133,7 +133,7 @@ class RedisBackendTestCase(TestCase):
         assert set(backend.schedule(time.time())) == set()
         assert len(backend._get_connection("timeline").keys("d:*")) == 0
 
-    def test_missing_record_contents(self):
+    def test_missing_record_contents(self) -> None:
         backend = RedisBackend()
 
         record_1 = Record("record:1", self.notification, time.time())
@@ -148,7 +148,7 @@ class RedisBackendTestCase(TestCase):
         with backend.digest("timeline", 0) as records:
             assert {record.key for record in records} == {"record:2"}
 
-    def test_large_digest(self):
+    def test_large_digest(self) -> None:
         backend = RedisBackend()
 
         n = 8192

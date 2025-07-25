@@ -14,12 +14,12 @@ from sudo.views import redirect_to_sudo, sudo
     ]
 )
 class SudoViewTestCase(BaseTestCase):
-    def test_enforces_logged_in(self):
+    def test_enforces_logged_in(self) -> None:
         response = sudo(self.request)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response["Location"], "/auth/login/?next=/foo")
 
-    def test_returns_template_response(self):
+    def test_returns_template_response(self) -> None:
         self.login()
         self.request.is_sudo = lambda: False
         response = sudo(self.request)
@@ -31,7 +31,7 @@ class SudoViewTestCase(BaseTestCase):
         assert isinstance(form, SudoForm)
         self.assertEqual(form.user, self.user)
 
-    def test_returns_template_response_with_next(self):
+    def test_returns_template_response_with_next(self) -> None:
         self.login()
         self.request.GET = {REDIRECT_FIELD_NAME: "/lol"}
         self.request.is_sudo = lambda: False
@@ -40,14 +40,14 @@ class SudoViewTestCase(BaseTestCase):
         assert response.context_data is not None
         self.assertEqual(response.context_data[REDIRECT_FIELD_NAME], "/lol")  # default
 
-    def test_returns_template_response_override_template(self):
+    def test_returns_template_response_override_template(self) -> None:
         self.login()
         self.request.is_sudo = lambda: False
         response = sudo(self.request, template_name="foo.html")
         assert isinstance(response, TemplateResponse)
         self.assertEqual(response.template_name, "foo.html")
 
-    def test_returns_template_response_override_extra_context(self):
+    def test_returns_template_response_override_extra_context(self) -> None:
         self.login()
         self.request.is_sudo = lambda: False
         response = sudo(self.request, extra_context={"foo": "bar"})
@@ -55,14 +55,14 @@ class SudoViewTestCase(BaseTestCase):
         assert response.context_data is not None
         self.assertEqual(response.context_data["foo"], "bar")
 
-    def test_redirect_if_already_sudo(self):
+    def test_redirect_if_already_sudo(self) -> None:
         self.login()
         self.request.is_sudo = lambda: True
         response = sudo(self.request)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response["Location"], REDIRECT_URL)
 
-    def test_redirect_fix_bad_url(self):
+    def test_redirect_fix_bad_url(self) -> None:
         self.login()
         self.request.is_sudo = lambda: True
         self.request.GET = {REDIRECT_FIELD_NAME: "http://mattrobenolt.com/lol"}
@@ -74,7 +74,7 @@ class SudoViewTestCase(BaseTestCase):
         response = sudo(self.request)
         self.assertEqual(response["Location"], REDIRECT_URL)
 
-    def test_redirect_if_already_sudo_with_next(self):
+    def test_redirect_if_already_sudo_with_next(self) -> None:
         self.login()
         self.request.GET = {REDIRECT_FIELD_NAME: "/lol"}
         self.request.is_sudo = lambda: True
@@ -82,7 +82,7 @@ class SudoViewTestCase(BaseTestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response["Location"], "/lol")
 
-    def test_redirect_after_successful_post(self):
+    def test_redirect_after_successful_post(self) -> None:
         self.login()
         self.request.is_sudo = lambda: False
         self.request.method = "POST"
@@ -92,7 +92,7 @@ class SudoViewTestCase(BaseTestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response["Location"], REDIRECT_URL)
 
-    def test_session_based_redirect(self):
+    def test_session_based_redirect(self) -> None:
         self.login()
         self.request.is_sudo = lambda: False
         self.request.method = "GET"
@@ -111,7 +111,7 @@ class SudoViewTestCase(BaseTestCase):
         self.assertNotEqual(response["Location"], REDIRECT_URL)
         self.assertFalse("redirect_to" in self.request.session)
 
-    def test_session_based_redirect_bad_url(self):
+    def test_session_based_redirect_bad_url(self) -> None:
         self.login()
         self.request.is_sudo = lambda: False
         self.request.method = "POST"
@@ -128,7 +128,7 @@ class SudoViewTestCase(BaseTestCase):
         response = sudo(self.request)
         self.assertEqual(response["Location"], REDIRECT_URL)
 
-    def test_render_form_with_bad_password(self):
+    def test_render_form_with_bad_password(self) -> None:
         self.login()
         self.request.is_sudo = lambda: False
         self.request.method = "POST"
@@ -143,12 +143,12 @@ class SudoViewTestCase(BaseTestCase):
 
 
 class RedirectToSudoTestCase(BaseTestCase):
-    def test_redirect_to_sudo_simple(self):
+    def test_redirect_to_sudo_simple(self) -> None:
         response = redirect_to_sudo("/foo")
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response["Location"], "/account/sudo/?next=/foo")
 
-    def test_redirect_to_sudo_with_querystring(self):
+    def test_redirect_to_sudo_with_querystring(self) -> None:
         response = redirect_to_sudo("/foo?foo=bar")
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response["Location"], "/account/sudo/?next=/foo%3Ffoo%3Dbar")

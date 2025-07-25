@@ -36,7 +36,7 @@ class AsyncSlackResponseTest(TestCase):
 
     @responses.activate
     @override_regions(region_config)
-    def test_convert_to_async_slack_response_all_success(self):
+    def test_convert_to_async_slack_response_all_success(self) -> None:
         responses.add(
             responses.POST,
             "https://us.testserver/extensions/slack/action/",
@@ -63,7 +63,7 @@ class AsyncSlackResponseTest(TestCase):
 
     @responses.activate
     @override_regions(region_config)
-    def test_convert_to_async_slack_response_mixed_success(self):
+    def test_convert_to_async_slack_response_mixed_success(self) -> None:
         responses.add(
             responses.POST,
             "https://us.testserver/extensions/slack/action/",
@@ -92,7 +92,7 @@ class AsyncSlackResponseTest(TestCase):
 
     @responses.activate
     @override_regions(region_config)
-    def test_convert_to_async_slack_response_no_success(self):
+    def test_convert_to_async_slack_response_no_success(self) -> None:
         responses.add(
             responses.POST,
             "https://us.testserver/extensions/slack/action/",
@@ -176,7 +176,7 @@ class AsyncDiscordResponseTest(TestCase):
 
     @responses.activate
     @override_regions(region_config)
-    def test_convert_to_async_discord_response_all_success(self):
+    def test_convert_to_async_discord_response_all_success(self) -> None:
         responses.add(
             responses.POST,
             "https://us.testserver/extensions/discord/interactions/",
@@ -203,7 +203,7 @@ class AsyncDiscordResponseTest(TestCase):
 
     @responses.activate
     @override_regions(region_config)
-    def test_convert_to_async_discord_response_mixed_success(self):
+    def test_convert_to_async_discord_response_mixed_success(self) -> None:
         responses.add(
             responses.POST,
             "https://us.testserver/extensions/discord/interactions/",
@@ -232,7 +232,7 @@ class AsyncDiscordResponseTest(TestCase):
 
     @responses.activate
     @override_regions(region_config)
-    def test_convert_to_async_discord_response_no_success(self):
+    def test_convert_to_async_discord_response_no_success(self) -> None:
         responses.add(
             responses.POST,
             "https://us.testserver/extensions/discord/interactions/",

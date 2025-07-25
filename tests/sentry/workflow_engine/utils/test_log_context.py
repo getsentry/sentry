@@ -11,11 +11,11 @@ class LogContextTest(TestCase):
         super().setUp()
         self.logger: log_context._Adapter = log_context.get_logger(__name__)  # type: ignore[assignment]
 
-    def test_get_logger(self):
+    def test_get_logger(self) -> None:
         logger: Any = log_context.get_logger("test")
         assert isinstance(logger, log_context._Adapter)
 
-    def test_root_decorator(self):
+    def test_root_decorator(self) -> None:
 
         @log_context.root()
         def test_func():
@@ -25,7 +25,7 @@ class LogContextTest(TestCase):
 
         test_func()
 
-    def test_set_verbose(self):
+    def test_set_verbose(self) -> None:
         """Test that set_verbose promotes DEBUG logs to INFO."""
 
         @log_context.root(add_context_id=False)
@@ -46,7 +46,7 @@ class LogContextTest(TestCase):
 
         test_func()
 
-    def test_add_extras(self):
+    def test_add_extras(self) -> None:
         """Test that add_extras adds data to the log context."""
 
         @log_context.root()
@@ -63,7 +63,7 @@ class LogContextTest(TestCase):
 
         test_func()
 
-    def test_logged_extras_override_context(self):
+    def test_logged_extras_override_context(self) -> None:
         """Test that extras passed to log calls override context extras."""
 
         @log_context.root(add_context_id=False)
@@ -79,7 +79,7 @@ class LogContextTest(TestCase):
 
         test_func()
 
-    def test_new_context(self):
+    def test_new_context(self) -> None:
         """Test that new_context creates a sub-context with inherited and new data."""
 
         @log_context.root()
@@ -92,7 +92,7 @@ class LogContextTest(TestCase):
 
         test_func()
 
-    def test_new_context_verbose_inheritance(self):
+    def test_new_context_verbose_inheritance(self) -> None:
         """Test that new_context inherits verbose setting unless specified."""
 
         @log_context.root()
@@ -108,7 +108,7 @@ class LogContextTest(TestCase):
 
         test_func()
 
-    def test_context_isolation(self):
+    def test_context_isolation(self) -> None:
         """Test that contexts are isolated between different root contexts."""
         context_ids = set()
 

@@ -27,12 +27,12 @@ class PluginWithoutFields(IssueTrackingPlugin2):
 
 
 class IssueTrackingPlugin2Test(TestCase):
-    def test_issue_label_legacy(self):
+    def test_issue_label_legacy(self) -> None:
         plugin = PluginWithoutFields()
         result = plugin.get_issue_label(mock.Mock(), "1")
         assert result == "#1"
 
-    def test_issue_field_map_with_fields(self):
+    def test_issue_field_map_with_fields(self) -> None:
         plugin = PluginWithFields()
         result = plugin.get_issue_field_map()
         assert result == {
@@ -41,7 +41,7 @@ class IssueTrackingPlugin2Test(TestCase):
             "url": "test-plugin-with-fields:issue_url",
         }
 
-    def test_issue_field_map_without_fields(self):
+    def test_issue_field_map_without_fields(self) -> None:
         plugin = PluginWithoutFields()
         result = plugin.get_issue_field_map()
         assert result == {"id": "test-plugin-without-fields:tid"}
@@ -53,18 +53,18 @@ class GetAuthForUserTest(TestCase):
         user.is_authenticated = False
         return user
 
-    def test_requires_auth_provider(self):
+    def test_requires_auth_provider(self) -> None:
         user = self._get_mock_user()
         p = IssueTrackingPlugin2()
         pytest.raises(AssertionError, p.get_auth_for_user, user)
 
-    def test_returns_none_on_missing_identity(self):
+    def test_returns_none_on_missing_identity(self) -> None:
         user = self._get_mock_user()
         p = IssueTrackingPlugin2()
         p.auth_provider = "test"
         self.assertEqual(p.get_auth_for_user(user), None)
 
-    def test_returns_identity(self):
+    def test_returns_identity(self) -> None:
         user = self.create_user(username="test", email="test@example.com")
         auth = self.create_usersocialauth(user=user, provider="test")
         p = IssueTrackingPlugin2()

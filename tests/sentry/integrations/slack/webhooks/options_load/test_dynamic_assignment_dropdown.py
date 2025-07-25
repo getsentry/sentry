@@ -63,7 +63,7 @@ class DynamicAssignmentDropdownTest(BaseEventTest):
         }
 
     @freeze_time("2021-01-14T12:27:28.303Z")
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.team1 = self.create_team(name="aaaa", slug="aaaa")
         self.team2 = self.create_team(name="aaab", slug="eeee")
         self.team3 = self.create_team(name="xyz", slug="aaac")
@@ -102,7 +102,7 @@ class DynamicAssignmentDropdownTest(BaseEventTest):
         assert len(resp.data["option_groups"][1]["options"]) == 3
 
     @freeze_time("2021-01-14T12:27:28.303Z")
-    def test_escapes_special_characters(self):
+    def test_escapes_special_characters(self) -> None:
         self.team1 = self.create_team(name="aaaa", slug="aaaa")
         self.project = self.create_project(teams=[self.team1])
         self.group = self.create_group(project=self.project)
@@ -120,14 +120,14 @@ class DynamicAssignmentDropdownTest(BaseEventTest):
         assert resp.status_code == 200
         assert len(resp.data["option_groups"]) == 0
 
-    def test_non_existent_group(self):
+    def test_non_existent_group(self) -> None:
         self.original_message["blocks"][0]["block_id"] = orjson.dumps({"issue": 1}).decode()
         resp = self.post_webhook(substring="bbb", original_message=self.original_message)
 
         assert resp.status_code == 400
 
     @freeze_time("2021-01-14T12:27:28.303Z")
-    def test_escapes_characters_in_substring_but_not_string(self):
+    def test_escapes_characters_in_substring_but_not_string(self) -> None:
         self.team1 = self.create_team(name="aaaa", slug="aaaa")
         self.project = self.create_project(teams=[self.team1])
         self.group = self.create_group(project=self.project)

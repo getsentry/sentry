@@ -165,7 +165,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         self.assertDialogSuccess(resp)
 
     @responses.activate
-    def test_basic_flow(self):
+    def test_basic_flow(self) -> None:
         self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
@@ -202,7 +202,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         assert identity.data == {"access_token": "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"}
 
     @responses.activate
-    def test_basic_flow__public_link(self):
+    def test_basic_flow__public_link(self) -> None:
         public_link = "https://github.example.org/github/apps/test-app"
         self.config["public_link"] = public_link
         self.assert_setup_flow(public_link=public_link)
@@ -447,7 +447,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         ]
 
     @responses.activate
-    def test_source_url_matches(self):
+    def test_source_url_matches(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
         installation = get_installation_of_type(
@@ -465,7 +465,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             assert installation.source_url_matches(url) == expected
 
     @responses.activate
-    def test_extract_branch_from_source_url(self):
+    def test_extract_branch_from_source_url(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
         with assume_test_silo_mode(SiloMode.REGION):
@@ -487,7 +487,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         assert installation.extract_branch_from_source_url(repo, source_url) == "master"
 
     @responses.activate
-    def test_extract_source_path_from_source_url(self):
+    def test_extract_source_path_from_source_url(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
         with assume_test_silo_mode(SiloMode.REGION):

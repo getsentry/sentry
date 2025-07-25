@@ -14,7 +14,7 @@ class SkipOnboardingTaskTest(APITestCase):
         super().setUp()
         self.login_as(self.user)
 
-    def test_skip_skippable_tasks(self):
+    def test_skip_skippable_tasks(self) -> None:
         """
         Test if the tasks marked as skippable in the new quick start are skipped
         """

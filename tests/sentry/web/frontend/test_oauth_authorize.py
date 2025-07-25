@@ -21,7 +21,7 @@ class OAuthAuthorizeCodeTest(TestCase):
             owner=self.user, redirect_uris="https://example.com"
         )
 
-    def test_missing_response_type(self):
+    def test_missing_response_type(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.get(
@@ -32,7 +32,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-error.html")
         assert resp.context["error"] == "Missing or invalid <em>client_id</em> parameter."
 
-    def test_invalid_response_type(self):
+    def test_invalid_response_type(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.get(
@@ -43,7 +43,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-error.html")
         assert resp.context["error"] == "Missing or invalid <em>client_id</em> parameter."
 
-    def test_missing_client_id(self):
+    def test_missing_client_id(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.get(f"{self.path}?response_type=code&redirect_uri=https://example.com")
@@ -52,7 +52,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-error.html")
         assert resp.context["error"] == "Missing or invalid <em>client_id</em> parameter."
 
-    def test_invalid_scope(self):
+    def test_invalid_scope(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.get(
@@ -62,7 +62,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         assert resp.status_code == 302
         assert resp["Location"] == "https://example.com?error=invalid_scope"
 
-    def test_invalid_redirect_uri(self):
+    def test_invalid_redirect_uri(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.get(
@@ -73,7 +73,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-error.html")
         assert resp.context["error"] == "Missing or invalid <em>redirect_uri</em> parameter."
 
-    def test_minimal_params_approve_flow(self):
+    def test_minimal_params_approve_flow(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.get(
@@ -97,7 +97,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         authorization = ApiAuthorization.objects.get(user=self.user, application=self.application)
         assert authorization.get_scopes() == grant.get_scopes()
 
-    def test_minimal_params_deny_flow(self):
+    def test_minimal_params_deny_flow(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.get(
@@ -116,7 +116,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         assert not ApiGrant.objects.filter(user=self.user).exists()
         assert not ApiToken.objects.filter(user=self.user).exists()
 
-    def test_rich_params(self):
+    def test_rich_params(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.get(
@@ -144,7 +144,7 @@ class OAuthAuthorizeCodeTest(TestCase):
 
         assert not ApiToken.objects.filter(user=self.user).exists()
 
-    def test_approve_flow_bypass_prompt(self):
+    def test_approve_flow_bypass_prompt(self) -> None:
         self.login_as(self.user)
 
         ApiAuthorization.objects.create(user=self.user, application=self.application)
@@ -161,7 +161,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         assert resp.status_code == 302
         assert resp["Location"] == f"https://example.com?code={grant.code}"
 
-    def test_approve_flow_force_prompt(self):
+    def test_approve_flow_force_prompt(self) -> None:
         self.login_as(self.user)
 
         ApiAuthorization.objects.create(user=self.user, application=self.application)
@@ -174,7 +174,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-authorize.html")
         assert resp.context["application"] == self.application
 
-    def test_approve_flow_requires_prompt_new_scope(self):
+    def test_approve_flow_requires_prompt_new_scope(self) -> None:
         self.login_as(self.user)
 
         authorization = ApiAuthorization.objects.create(
@@ -194,7 +194,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         authorization = ApiAuthorization.objects.get(id=authorization.id)
         assert sorted(authorization.get_scopes()) == ["org:read", "org:write"]
 
-    def test_approve_flow_non_scope_set(self):
+    def test_approve_flow_non_scope_set(self) -> None:
         self.login_as(self.user)
 
         ApiAuthorization.objects.create(user=self.user, application=self.application)
@@ -211,7 +211,7 @@ class OAuthAuthorizeCodeTest(TestCase):
             "Read, write, and admin access to organization members."
         ]
 
-    def test_unauthenticated_basic_auth(self):
+    def test_unauthenticated_basic_auth(self) -> None:
         full_path = f"{self.path}?response_type=code&client_id={self.application.client_id}"
 
         resp = self.client.get(full_path)
@@ -255,7 +255,7 @@ class OAuthAuthorizeTokenTest(TestCase):
             owner=self.user, redirect_uris="https://example.com"
         )
 
-    def test_missing_response_type(self):
+    def test_missing_response_type(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.get(
@@ -266,7 +266,7 @@ class OAuthAuthorizeTokenTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-error.html")
         assert resp.context["error"] == "Missing or invalid <em>client_id</em> parameter."
 
-    def test_invalid_response_type(self):
+    def test_invalid_response_type(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.get(
@@ -277,7 +277,7 @@ class OAuthAuthorizeTokenTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-error.html")
         assert resp.context["error"] == "Missing or invalid <em>client_id</em> parameter."
 
-    def test_missing_client_id(self):
+    def test_missing_client_id(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.get(f"{self.path}?response_type=token&redirect_uri=https://example.com")
@@ -286,7 +286,7 @@ class OAuthAuthorizeTokenTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-error.html")
         assert resp.context["error"] == "Missing or invalid <em>client_id</em> parameter."
 
-    def test_invalid_scope(self):
+    def test_invalid_scope(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.get(
@@ -296,7 +296,7 @@ class OAuthAuthorizeTokenTest(TestCase):
         assert resp.status_code == 302
         assert resp["Location"] == "https://example.com#error=invalid_scope"
 
-    def test_minimal_params_approve_flow(self):
+    def test_minimal_params_approve_flow(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.get(
@@ -326,7 +326,7 @@ class OAuthAuthorizeTokenTest(TestCase):
         assert fragment_d["expires_in"]
         assert fragment_d["token_type"] == ["bearer"]
 
-    def test_minimal_params_code_deny_flow(self):
+    def test_minimal_params_code_deny_flow(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.get(
@@ -366,7 +366,7 @@ class OAuthAuthorizeOrgScopedTest(TestCase):
             scopes=["org:read", "project:read"],
         )
 
-    def test_no_orgs(self):
+    def test_no_orgs(self) -> None:
         # If the user has no organizations, this oauth flow should not be possible
         user = self.create_user(email="user1@test.com")
         self.login_as(user)
@@ -380,7 +380,7 @@ class OAuthAuthorizeOrgScopedTest(TestCase):
             == "This authorization flow is only available for users who are members of an organization."
         )
 
-    def test_rich_params(self):
+    def test_rich_params(self) -> None:
         self.login_as(self.owner)
 
         resp = self.client.get(
@@ -411,7 +411,7 @@ class OAuthAuthorizeOrgScopedTest(TestCase):
 
         assert not ApiToken.objects.filter(user=self.owner).exists()
 
-    def test_exceed_scope(self):
+    def test_exceed_scope(self) -> None:
         self.login_as(self.owner)
 
         resp = self.client.get(
@@ -421,7 +421,7 @@ class OAuthAuthorizeOrgScopedTest(TestCase):
         assert resp.status_code == 302
         assert resp["Location"] == "https://example.com?error=invalid_scope&state=foo"
 
-    def test_second_time(self):
+    def test_second_time(self) -> None:
         self.login_as(self.owner)
 
         # before hitting the authorize endpoint we expect that ApiAuthorization does not exist

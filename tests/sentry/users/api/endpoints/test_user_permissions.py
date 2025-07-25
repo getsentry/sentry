@@ -14,7 +14,7 @@ class UserPermissionsTest(APITestCase):
 class UserPermissionsGetTest(UserPermissionsTest):
     method = "GET"
 
-    def test_superuser_lookup_self(self):
+    def test_superuser_lookup_self(self) -> None:
         self.superuser = self.create_user(is_superuser=True)
         self.login_as(user=self.superuser, superuser=True)
 

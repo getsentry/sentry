@@ -176,7 +176,7 @@ class TestIgnoredSourcesFiltering:
 
     # Explicitly empty list of sources
     @django_db_all
-    def test_sources_included_and_ignored_empty(self):
+    def test_sources_included_and_ignored_empty(self) -> None:
         with override_options({"symbolicator.ignored_sources": []}):
             sources = filter_ignored_sources([])
 

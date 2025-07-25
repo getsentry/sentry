@@ -158,7 +158,7 @@ class IncidentOccurrenceTestCase(TestCase):
             },
         ) == dict(event)
 
-    def test_failure_reason(self):
+    def test_failure_reason(self) -> None:
         monitor = self.create_monitor()
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,

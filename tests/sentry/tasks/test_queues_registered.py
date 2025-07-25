@@ -5,7 +5,7 @@ from sentry.testutils.cases import TestCase
 
 
 class CeleryQueueRegisteredTest(TestCase):
-    def test(self):
+    def test(self) -> None:
         queue_names = {q.name for q in settings.CELERY_QUEUES}
         missing_queue_tasks = []
         for task in current_app.tasks.values():

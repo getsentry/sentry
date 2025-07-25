@@ -104,9 +104,9 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
                 self.assert_personal_installation_post_install()
 
     @responses.activate
-    def test_team_installation(self):
+    def test_team_installation(self) -> None:
         self.assert_setup_flow(installation_type="team")
 
     @responses.activate
-    def test_personal_installation(self):
+    def test_personal_installation(self) -> None:
         self.assert_setup_flow(installation_type="tenant")

@@ -39,7 +39,7 @@ class MigratorTest(TestCase):
             organization=serialize_rpc_organization(self.organization),
         )
 
-    def test_all_repos_migrated(self):
+    def test_all_repos_migrated(self) -> None:
         Repository.objects.create(
             organization_id=self.organization.id,
             provider=self.integration.provider,
@@ -48,7 +48,7 @@ class MigratorTest(TestCase):
 
         assert self.migrator.all_repos_migrated(self.integration.provider)
 
-    def test_disable_for_all_projects(self):
+    def test_disable_for_all_projects(self) -> None:
         plugin = plugins.get("example")
         plugin.enable(self.project)
 
@@ -58,7 +58,7 @@ class MigratorTest(TestCase):
 
         assert plugin not in plugins.for_project(self.project)
 
-    def test_only_disable_enabled_plugins(self):
+    def test_only_disable_enabled_plugins(self) -> None:
         plugin = plugins.get("example")
         plugin_2 = plugins.get("webhooks")
         plugin.enable(self.project)
@@ -82,21 +82,21 @@ class MigratorTest(TestCase):
 
         assert plugin not in plugins.for_project(self.project)
 
-    def test_call(self):
+    def test_call(self) -> None:
         plugin = plugins.get("example")
         plugin.enable(self.project)
 
         self.migrator.run()
         assert plugin not in plugins.for_project(self.project)
 
-    def test_does_not_disable_any_plugin(self):
+    def test_does_not_disable_any_plugin(self) -> None:
         plugin = plugins.get("webhooks")
         plugin.enable(self.project)
 
         self.migrator.run()
         assert plugin in plugins.for_project(self.project)
 
-    def test_logs(self):
+    def test_logs(self) -> None:
         Migrator(
             integration=serialize_integration(self.integration),
             organization=serialize_rpc_organization(self.organization),

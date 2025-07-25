@@ -16,7 +16,7 @@ class OrganizationUserTeamsTest(APITestCase):
         self.create_member(organization=self.org, user=self.foo, teams=[self.team1, self.team2])
         self.create_member(organization=self.org, user=self.bar, teams=[self.team2])
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.foo)
 
         response = self.get_success_response(self.org.slug)
@@ -34,7 +34,7 @@ class OrganizationUserTeamsTest(APITestCase):
         assert response.data[1]["isMember"]
         assert response.data[1]["projects"][0]["id"] == str(self.project2.id)
 
-    def test_super_user(self):
+    def test_super_user(self) -> None:
         self.login_as(user=self.bar, superuser=True)
 
         response = self.get_success_response(self.org.slug)

@@ -61,7 +61,7 @@ class MsTeamsClientTest(TestCase):
         self.msteams_client = MsTeamsClient(self.integration)
 
     @responses.activate
-    def test_token_refreshes(self):
+    def test_token_refreshes(self) -> None:
         with patch("time.time") as mock_time:
             mock_time.return_value = self.expires_at
             # accessing the property should refresh the token
@@ -84,7 +84,7 @@ class MsTeamsClientTest(TestCase):
             }
 
     @responses.activate
-    def test_token_refreshes_with_integration_not_found(self):
+    def test_token_refreshes_with_integration_not_found(self) -> None:
         self.integration.delete()
         with patch("time.time") as mock_time:
             mock_time.return_value = self.expires_at
@@ -93,7 +93,7 @@ class MsTeamsClientTest(TestCase):
                 self.msteams_client.access_token
 
     @responses.activate
-    def test_no_token_refresh(self):
+    def test_no_token_refresh(self) -> None:
         with patch("time.time") as mock_time:
             mock_time.return_value = self.expires_at - 100
             # accessing the property should refresh the token
@@ -108,7 +108,7 @@ class MsTeamsClientTest(TestCase):
             }
 
     @responses.activate
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.msteams_client.get_channel_list("foobar")
         assert len(responses.calls) == 2
         token_request = responses.calls[0].request
@@ -142,7 +142,7 @@ class MsTeamsClientTest(TestCase):
         assert self.metrics.incr.mock_calls == calls
 
     @responses.activate
-    def test_api_client_from_integration_installation(self):
+    def test_api_client_from_integration_installation(self) -> None:
         installation = self.integration.get_installation(organization_id=self.organization.id)
         client = installation.get_client()
         assert isinstance(client, MsTeamsClient)
@@ -227,7 +227,7 @@ class MsTeamsProxyApiClientTest(TestCase):
         )
 
     @responses.activate
-    def test_integration_proxy_is_active(self):
+    def test_integration_proxy_is_active(self) -> None:
         class MsTeamsProxyApiTestClient(MsTeamsClient):
             _use_proxy_url_for_tests = True
 

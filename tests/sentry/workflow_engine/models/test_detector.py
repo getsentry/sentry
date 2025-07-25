@@ -7,7 +7,7 @@ class DetectorTest(BaseWorkflowTest):
     def setUp(self):
         self.detector = self.create_detector()
 
-    def test_queryset(self):
+    def test_queryset(self) -> None:
         """
         Test that we filter out objects with statuses other than 'active'
         """

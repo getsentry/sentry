@@ -74,7 +74,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
         update_suggestions = response.data
         assert len(update_suggestions) == 0
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         org = self.create_organization()
         self.create_member(user=self.user, organization=org)
 
@@ -87,7 +87,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
             response = self.client.get(url)
         assert len(response.data) == 0
 
-    def test_filtered_project(self):
+    def test_filtered_project(self) -> None:
         min_ago = before_now(minutes=1).isoformat()
         self.store_event(
             data={

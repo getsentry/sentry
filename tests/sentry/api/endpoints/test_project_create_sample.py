@@ -13,7 +13,7 @@ class ProjectCreateSampleTest(APITestCase):
         self.login_as(user=self.user)
         self.team = self.create_team()
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project(teams=[self.team], name="foo")
 
         url = reverse(
@@ -29,7 +29,7 @@ class ProjectCreateSampleTest(APITestCase):
         assert "groupID" in orjson.loads(response.content)
         assert GroupInbox.objects.filter(group=response.data["groupID"]).exists()
 
-    def test_project_platform(self):
+    def test_project_platform(self) -> None:
         project = self.create_project(teams=[self.team], name="foo", platform="javascript-react")
 
         url = reverse(
@@ -44,7 +44,7 @@ class ProjectCreateSampleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert "groupID" in orjson.loads(response.content)
 
-    def test_cocoa(self):
+    def test_cocoa(self) -> None:
         project = self.create_project(teams=[self.team], name="foo", platform="cocoa")
 
         url = reverse(
@@ -59,7 +59,7 @@ class ProjectCreateSampleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert "groupID" in orjson.loads(response.content)
 
-    def test_java(self):
+    def test_java(self) -> None:
         project = self.create_project(teams=[self.team], name="foo", platform="java")
 
         url = reverse(
@@ -74,7 +74,7 @@ class ProjectCreateSampleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert "groupID" in orjson.loads(response.content)
 
-    def test_javascript(self):
+    def test_javascript(self) -> None:
         project = self.create_project(teams=[self.team], name="foo", platform="javascript")
 
         url = reverse(
@@ -89,7 +89,7 @@ class ProjectCreateSampleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert "groupID" in orjson.loads(response.content)
 
-    def test_php(self):
+    def test_php(self) -> None:
         project = self.create_project(teams=[self.team], name="foo", platform="php")
 
         url = reverse(
@@ -104,7 +104,7 @@ class ProjectCreateSampleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert "groupID" in orjson.loads(response.content)
 
-    def test_python(self):
+    def test_python(self) -> None:
         project = self.create_project(teams=[self.team], name="foo", platform="python")
 
         url = reverse(
@@ -119,7 +119,7 @@ class ProjectCreateSampleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert "groupID" in orjson.loads(response.content)
 
-    def test_reactnative(self):
+    def test_reactnative(self) -> None:
         project = self.create_project(teams=[self.team], name="foo", platform="react-native")
 
         url = reverse(
@@ -134,7 +134,7 @@ class ProjectCreateSampleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert "groupID" in orjson.loads(response.content)
 
-    def test_ruby(self):
+    def test_ruby(self) -> None:
         project = self.create_project(teams=[self.team], name="foo", platform="ruby")
 
         url = reverse(
@@ -149,7 +149,7 @@ class ProjectCreateSampleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert "groupID" in orjson.loads(response.content)
 
-    def test_attempted_path_traversal_returns_400(self):
+    def test_attempted_path_traversal_returns_400(self) -> None:
         project = self.create_project(teams=[self.team], name="foo", platform="../../../etc/passwd")
 
         url = reverse(

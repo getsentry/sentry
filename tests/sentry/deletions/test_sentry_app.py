@@ -20,24 +20,24 @@ class TestSentryAppDeletionTask(TestCase):
             name="blah", organization=self.org, scopes=("project:read",)
         )
 
-    def test_deletes_app_installations(self):
+    def test_deletes_app_installations(self) -> None:
         install = self.create_sentry_app_installation(
             organization=self.org, slug=self.sentry_app.slug, user=self.user
         )
         deletions.exec_sync(self.sentry_app)
         assert not SentryAppInstallation.objects.filter(pk=install.id).exists()
 
-    def test_deletes_api_application(self):
+    def test_deletes_api_application(self) -> None:
         application = self.sentry_app.application
         deletions.exec_sync(self.sentry_app)
         assert not ApiApplication.objects.filter(pk=application.id).exists()
 
-    def test_deletes_proxy_user(self):
+    def test_deletes_proxy_user(self) -> None:
         proxy_user = self.sentry_app.proxy_user
         deletions.exec_sync(self.sentry_app)
         assert not User.objects.filter(pk=proxy_user.id).exists()
 
-    def test_soft_deletes_sentry_app(self):
+    def test_soft_deletes_sentry_app(self) -> None:
         deletions.exec_sync(self.sentry_app)
 
         with pytest.raises(SentryApp.DoesNotExist):

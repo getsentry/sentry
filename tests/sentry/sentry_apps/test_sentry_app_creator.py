@@ -32,26 +32,26 @@ class TestCreator(TestCase):
             is_internal=False,
         )
 
-    def test_slug(self):
+    def test_slug(self) -> None:
         app = self.creator.run(user=self.user)
         assert app.slug == "nulldb"
 
-    def test_default_popularity(self):
+    def test_default_popularity(self) -> None:
         app = self.creator.run(user=self.user)
         assert app.popularity == SentryApp._meta.get_field("popularity").default
 
-    def test_popularity(self):
+    def test_popularity(self) -> None:
         popularity = 27
         self.creator.popularity = popularity
         app = self.creator.run(user=self.user)
         assert app.popularity == popularity
 
-    def test_creates_proxy_user(self):
+    def test_creates_proxy_user(self) -> None:
         self.creator.run(user=self.user)
 
         assert User.objects.get(username__contains="nulldb", is_sentry_app=True)
 
-    def test_creates_api_application(self):
+    def test_creates_api_application(self) -> None:
         self.creator.run(user=self.user)
         proxy = User.objects.get(username__contains="nulldb")
 
@@ -85,7 +85,7 @@ class TestCreator(TestCase):
             mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
         )
 
-    def test_creator_label_no_email(self):
+    def test_creator_label_no_email(self) -> None:
         self.user.email = ""
         self.user.save()
         sentry_app = self.creator.run(user=self.user)
@@ -93,7 +93,7 @@ class TestCreator(TestCase):
         assert sentry_app.creator_user == self.user
         assert sentry_app.creator_label == "scuba_steve"
 
-    def test_expands_rolled_up_events(self):
+    def test_expands_rolled_up_events(self) -> None:
         self.creator.events = ["issue"]
         app = self.creator.run(user=self.user)
 
@@ -101,7 +101,7 @@ class TestCreator(TestCase):
 
         assert "issue.created" in sentry_app.events
 
-    def test_creates_ui_components(self):
+    def test_creates_ui_components(self) -> None:
         self.creator.schema = {
             "elements": [self.create_issue_link_schema(), self.create_alert_rule_action_schema()]
         }
@@ -114,7 +114,7 @@ class TestCreator(TestCase):
             sentry_app_id=app.id, type="alert-rule-action"
         ).exists()
 
-    def test_creates_integration_feature(self):
+    def test_creates_integration_feature(self) -> None:
         app = self.creator.run(user=self.user)
         assert IntegrationFeature.objects.filter(
             target_id=app.id, target_type=IntegrationTypes.SENTRY_APP.value
@@ -125,7 +125,7 @@ class TestCreator(TestCase):
         mock_create.side_effect = IntegrityError()
         self.creator.run(user=self.user)
 
-    def test_creates_audit_log_entry(self):
+    def test_creates_audit_log_entry(self) -> None:
         request = self.make_request(user=self.user, method="GET")
         SentryAppCreator(
             name="nulldb",
@@ -140,11 +140,11 @@ class TestCreator(TestCase):
         ).run(user=self.user, request=request)
         assert AuditLogEntry.objects.filter(event=audit_log.get_event_id("SENTRY_APP_ADD")).exists()
 
-    def test_blank_schema(self):
+    def test_blank_schema(self) -> None:
         self.creator.schema = {}
         assert self.creator.run(user=self.user)
 
-    def test_schema_with_no_elements(self):
+    def test_schema_with_no_elements(self) -> None:
         self.creator.schema = {"elements": []}
         assert self.creator.run(user=self.user)
 
@@ -168,7 +168,7 @@ class TestCreator(TestCase):
             created_alert_rule_ui_component=False,
         )
 
-    def test_allows_name_that_exists_as_username_already(self):
+    def test_allows_name_that_exists_as_username_already(self) -> None:
         self.create_user(username="nulldb")
         assert self.creator.run(user=self.user)
 
@@ -195,25 +195,25 @@ class TestInternalCreator(TestCase):
             **kwargs,
         ).run(user=self.user, request=kwargs.pop("request", None))
 
-    def test_slug(self):
+    def test_slug(self) -> None:
         sentry_app = self.run_creator()
         # test slug is the name + a UUID
         assert sentry_app.slug[:7] == "nulldb-"
         assert len(sentry_app.slug) == 13
 
-    def test_creates_internal_sentry_app(self):
+    def test_creates_internal_sentry_app(self) -> None:
         sentry_app = self.run_creator()
         assert sentry_app.author == self.org.name
         assert SentryApp.objects.filter(slug=sentry_app.slug).exists()
 
-    def test_installs_to_org(self):
+    def test_installs_to_org(self) -> None:
         sentry_app = self.run_creator()
 
         assert SentryAppInstallation.objects.filter(
             organization_id=self.org.id, sentry_app=sentry_app
         ).exists()
 
-    def test_author(self):
+    def test_author(self) -> None:
         sentry_app = self.run_creator(author="custom")
         assert sentry_app.author == "custom"
 
@@ -222,7 +222,7 @@ class TestInternalCreator(TestCase):
         self.run_creator()
         assert not len(delay.mock_calls)
 
-    def test_creates_access_token(self):
+    def test_creates_access_token(self) -> None:
         sentry_app = self.run_creator()
 
         install = SentryAppInstallation.objects.get(

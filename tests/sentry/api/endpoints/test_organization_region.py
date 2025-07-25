@@ -46,7 +46,7 @@ class OrganizationRegionTest(APITestCase):
             },
         )
 
-    def test_org_member_has_access(self):
+    def test_org_member_has_access(self) -> None:
         self.login_as(self.org_owner)
         response = self.get_response(self.org.slug)
 
@@ -54,13 +54,13 @@ class OrganizationRegionTest(APITestCase):
         us_region = get_region_by_name("us")
         assert response.data == {"url": us_region.to_url(""), "name": us_region.name}
 
-    def test_non_org_member_has_no_access(self):
+    def test_non_org_member_has_no_access(self) -> None:
         non_member_user = self.create_user()
         self.login_as(non_member_user)
         response = self.get_response(self.org.slug)
         assert response.status_code == 403
 
-    def test_org_auth_token_access_with_org_read(self):
+    def test_org_auth_token_access_with_org_read(self) -> None:
         us_region = get_region_by_name("us")
         org_auth_token_str = self.create_auth_token_for_org(
             region=us_region, org=self.org, scopes=["org:ci"]
@@ -71,7 +71,7 @@ class OrganizationRegionTest(APITestCase):
         assert response.data == {"url": us_region.to_url(""), "name": us_region.name}
         assert response.status_code == 200
 
-    def test_org_auth_token_access_with_incorrect_scopes(self):
+    def test_org_auth_token_access_with_incorrect_scopes(self) -> None:
         us_region = get_region_by_name("us")
         org_auth_token_str = self.create_auth_token_for_org(
             region=us_region, org=self.org, scopes=[]
@@ -80,7 +80,7 @@ class OrganizationRegionTest(APITestCase):
 
         assert response.status_code == 403
 
-    def test_org_auth_token_access_for_different_organization(self):
+    def test_org_auth_token_access_for_different_organization(self) -> None:
         us_region = get_region_by_name("us")
 
         other_user = self.create_user()
@@ -91,7 +91,7 @@ class OrganizationRegionTest(APITestCase):
 
         assert response.status_code == 403
 
-    def test_integration_token_access(self):
+    def test_integration_token_access(self) -> None:
         integration, token = self.create_internal_integration_for_org(
             self.org, self.org_owner, ["project:read"]
         )
@@ -102,7 +102,7 @@ class OrganizationRegionTest(APITestCase):
         us_region = get_region_by_name("us")
         assert response.data == {"name": us_region.name, "url": us_region.to_url("")}
 
-    def test_integration_token_with_invalid_scopes(self):
+    def test_integration_token_with_invalid_scopes(self) -> None:
         integration, token = self.create_internal_integration_for_org(self.org, self.org_owner, [])
 
         response = self.get_response(
@@ -113,7 +113,7 @@ class OrganizationRegionTest(APITestCase):
         )
         assert response.status_code == 403
 
-    def test_integration_for_different_organization(self):
+    def test_integration_for_different_organization(self) -> None:
         other_user = self.create_user()
         integration, token = self.create_internal_integration_for_org(
             self.create_organization(owner=other_user), other_user, ["project:read"]
@@ -122,7 +122,7 @@ class OrganizationRegionTest(APITestCase):
         response = self.send_get_request_with_auth(self.org.slug, token.token)
         assert response.status_code == 403
 
-    def test_user_auth_token_for_owner(self):
+    def test_user_auth_token_for_owner(self) -> None:
         user_auth_token = self.create_user_auth_token(user=self.org_owner, scope_list=["org:read"])
         response = self.send_get_request_with_auth(self.org.slug, user_auth_token.token)
 
@@ -130,7 +130,7 @@ class OrganizationRegionTest(APITestCase):
         us_region = get_region_by_name("us")
         assert response.data == {"url": us_region.to_url(""), "name": us_region.name}
 
-    def test_user_auth_token_for_member(self):
+    def test_user_auth_token_for_member(self) -> None:
         org_user = self.create_user()
         with assume_test_silo_mode_of(OrganizationMember):
             OrganizationMember.objects.create(
@@ -144,14 +144,14 @@ class OrganizationRegionTest(APITestCase):
         us_region = get_region_by_name("us")
         assert response.data == {"url": us_region.to_url(""), "name": us_region.name}
 
-    def test_user_auth_token_for_non_member(self):
+    def test_user_auth_token_for_non_member(self) -> None:
         user_auth_token = self.create_user_auth_token(
             user=self.create_user(), scope_list=["org:read"]
         )
         response = self.send_get_request_with_auth(self.org.slug, user_auth_token.token)
         assert response.status_code == 403
 
-    def test_user_auth_token_with_invalid_scopes(self):
+    def test_user_auth_token_with_invalid_scopes(self) -> None:
         user_auth_token = self.create_user_auth_token(user=self.org_owner, scope_list=[])
         response = self.send_get_request_with_auth(self.org.slug, user_auth_token.token)
 

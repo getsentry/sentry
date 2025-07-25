@@ -58,7 +58,7 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
                 self.event_data, self.action, self.detector
             )
 
-    def test_handle_activity_update(self):
+    def test_handle_activity_update(self) -> None:
         self.event_data = WorkflowEventData(event=self.activity, group=self.group)
 
         with mock.patch.object(self.activity, "send_notification"):
