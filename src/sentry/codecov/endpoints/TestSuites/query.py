@@ -7,7 +7,6 @@ query = """query GetTestResultsTestSuites(
         repository: repository(name: $repo) {
             __typename
             ... on Repository {
-                defaultBranch
                 testAnalytics {
                     testSuites(term: $term)
                 }

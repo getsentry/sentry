@@ -36,6 +36,7 @@ class TestResultSerializer(serializers.Serializer):
 
     __test__ = False
 
+    defaultBranch = serializers.CharField()
     results = TestResultNodeSerializer(many=True)
     pageInfo = PageInfoSerializer()
     totalCount = serializers.IntegerField()
@@ -45,9 +46,8 @@ class TestResultSerializer(serializers.Serializer):
         Transform the GraphQL response to the serialized format
         """
         try:
-            test_results_data = graphql_response["data"]["owner"]["repository"]["testAnalytics"][
-                "testResults"
-            ]
+            repository_data = graphql_response["data"]["owner"]["repository"]
+            test_results_data = repository_data["testAnalytics"]["testResults"]
             test_results = test_results_data["edges"]
 
             nodes = []
@@ -56,6 +56,7 @@ class TestResultSerializer(serializers.Serializer):
                 nodes.append(node)
 
             response_data = {
+                "defaultBranch": repository_data["defaultBranch"],
                 "results": nodes,
                 "pageInfo": test_results_data.get(
                     "pageInfo",

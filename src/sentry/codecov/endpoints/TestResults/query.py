@@ -12,6 +12,7 @@ query = """query GetTestResults(
     repository: repository(name: $repo) {
       __typename
       ... on Repository {
+        defaultBranch
         testAnalytics {
           testResults(
             filters: $filters
