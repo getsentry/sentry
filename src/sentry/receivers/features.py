@@ -4,6 +4,7 @@ from django.db.models.signals import post_save
 
 from sentry import analytics
 from sentry.adoption import manager
+from sentry.analytics.events.issue_resolved import IssueResolvedEvent
 from sentry.integrations.analytics import (
     IntegrationAddedEvent,
     IntegrationIssueCreatedEvent,
@@ -237,15 +238,16 @@ def record_issue_resolved(organization_id, project, group, user, resolution_type
         default_user_id = project.organization.default_owner_id or UNKNOWN_DEFAULT_USER_ID
 
     analytics.record(
-        "issue.resolved",
-        user_id=user_id,
-        project_id=project.id,
-        default_user_id=default_user_id,
-        organization_id=organization_id,
-        group_id=group.id,
-        resolution_type=resolution_type,
-        issue_type=group.issue_type.slug,
-        issue_category=group.issue_category.name.lower(),
+        IssueResolvedEvent(
+            user_id=user_id,
+            project_id=project.id,
+            default_user_id=default_user_id,
+            organization_id=organization_id,
+            group_id=group.id,
+            resolution_type=resolution_type,
+            issue_type=group.issue_type.slug,
+            issue_category=group.issue_category.name.lower(),
+        )
     )
 
 
