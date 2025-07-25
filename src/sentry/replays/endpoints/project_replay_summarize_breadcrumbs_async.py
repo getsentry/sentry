@@ -39,6 +39,13 @@ class SeerRequest(TypedDict):
 
 MAX_SEGMENTS_TO_SUMMARIZE = 100
 
+SEER_START_TASK_URL = (
+    f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/replay/breadcrumbs/start"
+)
+SEER_POLL_STATE_URL = (
+    f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/replay/breadcrumbs/state"
+)
+
 
 @region_silo_endpoint
 @extend_schema(tags=["Replays"])
@@ -61,6 +68,7 @@ class ProjectReplaySummarizeBreadcrumbsAsyncEndpoint(ProjectEndpoint):
     def make_seer_request(self, url: str, post_body: dict[str, Any]) -> Response:
         """Make a POST request to a Seer endpoint. Raises HTTPError and logs non-200 status codes."""
         data = json.dumps(post_body)
+
         try:
             response = requests.post(
                 url,
@@ -70,23 +78,42 @@ class ProjectReplaySummarizeBreadcrumbsAsyncEndpoint(ProjectEndpoint):
                     **sign_with_seer_secret(data.encode()),
                 },
             )
-        except requests.exceptions.Timeout:
-            logger.warning(
-                "Replay: Seer timed out when starting a replay breadcrumbs summary",
-            )
-            return self.respond(status=504)
+            response.raise_for_status()  # Raises HTTPError for 4xx and 5xx.
 
-        if response.status_code != 200:
-            logger.warning(
+        except requests.exceptions.HTTPError as e:
+            logger.exception(
                 "Seer returned error during replay breadcrumbs summary",
                 extra={
                     "url": url,
-                    "status_code": response.status_code,
-                    "response": response.text,
-                    "content": response.content,
+                    "status_code": e.response.status_code if e.response is not None else None,
+                    "response": e.response.text if e.response is not None else None,
+                    "content": e.response.content if e.response is not None else None,
                 },
             )
-        response.raise_for_status()
+            return self.respond(status=e.response.status_code if e.response is not None else 503)
+
+        except requests.exceptions.Timeout:
+            logger.exception(
+                "Seer timed out when starting a replay breadcrumbs summary",
+                extra={"url": url},
+            )
+            return self.respond(status=504)
+
+        except requests.exceptions.ConnectionError:
+            logger.exception(
+                "Seer connection error when starting a replay breadcrumbs summary",
+                extra={"url": url},
+            )
+            return self.respond(status=502)
+
+        except requests.exceptions.RequestException:
+            logger.exception(
+                "Error requesting from Seer when starting a replay breadcrumbs summary",
+                extra={"url": url},
+            )
+            return self.respond(status=503)
+
+        # Note any headers in the Seer response aren't returned.
         return Response(data=response.json(), status=response.status_code)
 
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
@@ -98,13 +125,11 @@ class ProjectReplaySummarizeBreadcrumbsAsyncEndpoint(ProjectEndpoint):
             return self.respond(status=404)
 
         # Request Seer for the state of the summary task.
-        seer_request = {
-            "replay_id": replay_id,
-        }
-
         return self.make_seer_request(
-            f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/replay/breadcrumbs/state",
-            seer_request,
+            SEER_POLL_STATE_URL,
+            {
+                "replay_id": replay_id,
+            },
         )
 
     def post(self, request: Request, project: Project, replay_id: str) -> Response:
@@ -155,7 +180,7 @@ class ProjectReplaySummarizeBreadcrumbsAsyncEndpoint(ProjectEndpoint):
         # XXX: Request isn't streaming. Limitation of Seer authentication. Would be much faster if we
         # could stream the request data since the GCS download will (likely) dominate latency.
         return self.make_seer_request(
-            f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/replay/breadcrumbs/start",
+            SEER_START_TASK_URL,
             {
                 "logs": logs,
                 "num_segments": len(segment_md),
