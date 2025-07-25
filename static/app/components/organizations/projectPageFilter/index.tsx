@@ -282,6 +282,7 @@ export function ProjectPageFilter({
               size="zero"
               icon={<IconOpen />}
               title={t('Project Details')}
+              aria-label={t('Project Details')}
               to={
                 makeProjectsPathname({
                   path: `/${project.slug}/`,
@@ -295,6 +296,7 @@ export function ProjectPageFilter({
               size="zero"
               icon={<IconSettings />}
               title={t('Project Settings')}
+              aria-label={t('Project Settings')}
               to={`/settings/${organization.slug}/projects/${project.slug}/`}
               visible={isFocused}
             />
