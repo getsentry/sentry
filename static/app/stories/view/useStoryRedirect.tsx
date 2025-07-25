@@ -36,14 +36,14 @@ export function useStoryRedirect() {
     }
     const {state, ...to} = story.location;
     navigate(
-      {pathname: location.pathname, ...to},
+      {pathname: location.pathname, hash: location.hash, ...to},
       {replace: true, state: {...location.state, ...state}}
     );
   }, [location, params, navigate, stories]);
 
   useLayoutEffect(() => {
     setTimeout(() => scrollToHash(), 100);
-  }, []);
+  }, [location.hash]);
 }
 
 function scrollToHash() {
