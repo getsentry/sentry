@@ -1,5 +1,4 @@
 import type {
-  IndexRedirectProps,
   IndexRouteProps,
   RedirectProps,
   RouteProps,
@@ -92,9 +91,3 @@ export function Redirect(_props: RedirectProps) {
   return null;
 }
 Redirect.displayName = 'Redirect';
-
-export function IndexRedirect(_props: IndexRedirectProps) {
-  // XXX: These routes are NEVER rendered
-  return null;
-}
-IndexRedirect.displayName = 'IndexRedirect';
