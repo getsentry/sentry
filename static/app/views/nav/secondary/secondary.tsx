@@ -372,7 +372,7 @@ const ChonkItem = chonkStyled(Link)<ItemProps>`
   position: relative;
   color: ${p => p.theme.tokens.component.link.muted.default};
   padding: ${p => (p.layout === NavLayout.MOBILE ? `${space(0.75)} ${space(1.5)} ${space(0.75)} 48px` : `${space(0.75)} ${space(1.5)}`)};
-  border-radius: ${p => p.theme.radius[p.layout === NavLayout.MOBILE ? 'none' : 'md']};
+  border-radius: ${p => p.theme.radius[p.layout === NavLayout.MOBILE ? '0' : 'md']};
 
   /* Disable interaction state layer */
   > [data-isl] {

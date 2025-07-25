@@ -247,5 +247,5 @@ const ButtonWrapper = styled(Flex)`
 `;
 
 const PaginationWithoutMargin = styled(Pagination)`
-  margin: ${p => p.theme.space.none};
+  margin: ${p => p.theme.space['0']};
 `;

@@ -329,7 +329,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
                 }
               )}
               action={
-                <ButtonBar gap="none">
+                <ButtonBar gap="0">
                   <StyledLearnMoreButton
                     organization={organization}
                     source="allocations-upsell"
