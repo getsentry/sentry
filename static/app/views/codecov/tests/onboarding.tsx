@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {AddScriptToYaml} from 'sentry/views/codecov/tests/onboardingSteps/addScriptToYaml';
 import {AddUploadToken} from 'sentry/views/codecov/tests/onboardingSteps/addUploadToken';
 import type {UploadPermission} from 'sentry/views/codecov/tests/onboardingSteps/chooseUploadPermission';
@@ -73,19 +72,19 @@ export default function TestsOnboardingPage() {
 
 const LayoutGap = styled('div')`
   display: grid;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const OnboardingContainer = styled('div')`
-  padding: ${space(1.5)} ${space(4)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space['3xl']};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  max-width: 800px;
+  max-width: 1000px;
 `;
 
 const IntroContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
-  padding-bottom: ${space(3)};
+  padding-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const GetStartedHeader = styled('h2')`
@@ -102,9 +101,9 @@ const TAValueText = styled('p')`
 const SelectOptionHeader = styled('h5')`
   font-size: ${p => p.theme.fontSize.xl};
   color: ${p => p.theme.tokens.content.primary};
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space['2xl']};
 `;
 
 const StepsContainer = styled('div')`
-  padding: ${space(3)} ${space(4)};
+  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space['3xl']};
 `;
