@@ -3,7 +3,7 @@ from typing import Any
 
 import sentry_sdk
 
-from sentry import deletions, eventstream
+from sentry import deletions
 from sentry.deletions.defaults.group import GROUP_CHUNK_SIZE
 from sentry.deletions.tasks.scheduled import MAX_RETRIES, logger
 from sentry.exceptions import DeleteAborted
@@ -73,9 +73,6 @@ def delete_groups_for_project(
             f"is greater than GROUP_CHUNK_SIZE"
         )
 
-    # This is a no-op on the Snuba side, however, one day it may not be.
-    eventstream_state = eventstream.backend.start_delete_groups(project_id, object_ids)
-
     # These can be used for debugging
     extra = {"project_id": project_id, "transaction_id": transaction_id}
     sentry_sdk.set_tags(extra)
@@ -93,6 +90,3 @@ def delete_groups_for_project(
             # Use this to query the logs
             tags={"transaction_id": transaction_id},
         )
-
-    # This will delete all Snuba events for all deleted groups
-    eventstream.backend.end_delete_groups(eventstream_state)
