@@ -39,10 +39,9 @@ export function remarkUnwrapMdxParagraphs() {
       if (!isMdxJsxNode(node)) {
         return;
       }
-      if(node.children.length === 1 && isParagraph(node.children[0]){
+      if (node.children.length === 1 && isParagraph(node.children[0])) {
         node.children = node.children[0].children;
-        return child.children.length - 1;
-      }
+        return node.children.length;
       }
       return;
     });
