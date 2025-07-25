@@ -32,8 +32,15 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     TraceItemStatsRequest,
 )
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, StrArray
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeKey,
+    AttributeValue,
+    StrArray,
+)
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    ComparisonFilter,
+    TraceItemFilter,
+)
 
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
@@ -47,19 +54,27 @@ from sentry.constants import (
     ObjectStatus,
 )
 from sentry.exceptions import InvalidSearchQuery
-from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
+from sentry.hybridcloud.rpc.service import (
+    RpcAuthenticationSetupException,
+    RpcResolutionException,
+)
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
-from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
+from sentry.integrations.github_enterprise.integration import (
+    GitHubEnterpriseIntegration,
+)
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.models.organization import Organization
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.repository import Repository
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import can_expose_attribute
 from sentry.search.events.types import SnubaParams
-from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
+from sentry.seer.autofix.autofix_tools import (
+    get_error_event_details,
+    get_profile_details,
+)
 from sentry.seer.explorer.index_data import (
     rpc_get_issues_for_transaction,
     rpc_get_profiles_for_trace,
@@ -603,28 +618,36 @@ def get_github_enterprise_integration_config(
     }
 
 
-def send_seer_webhook(*, event_type: str, organization_id: int, payload: dict) -> dict:
+def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -> dict:
     """
     Send a seer webhook event for an organization.
 
     Args:
-        event_type: The type of seer event (e.g., "seer.issue.root_cause_started")
+        event_name: The sub-name of seer event (e.g., "root_cause_started")
         organization_id: The ID of the organization to send the webhook for
         payload: The webhook payload data
 
     Returns:
         dict: Status of the webhook sending operation
     """
-    organization = Organization.objects.get(id=organization_id)
+    organization = Organization.objects.get(id=organization_id, status=OrganizationStatus.ACTIVE)
+
+    if not organization:
+        logger.error(
+            "Seer webhook trying to send to organization %s not found or not active",
+            organization_id,
+        )
+        return {"success": False, "error": "Organization not found or not active"}
+
     if not features.has("organizations:seer-webhooks", organization):
         return {"success": False, "error": "Seer webhooks are not enabled for this organization"}
 
     try:
         broadcast_webhooks_for_organization(
-            event_type=event_type,
+            resource_name="seer",
+            event_name=event_name,
             organization_id=organization_id,
             payload=payload,
-            event_category="seer",
         )
         return {"success": True}
     except Exception as e:
