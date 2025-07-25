@@ -18,9 +18,9 @@ from google.api_core.exceptions import TooManyRequests
 from sentry import options
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_storage
+from sentry.objectstore.metrics import measure_storage_put
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.utils import metrics
-from sentry.utils.storage import measure_storage_put
 
 logger = logging.getLogger()
 
