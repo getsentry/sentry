@@ -39,13 +39,10 @@ export function remarkUnwrapMdxParagraphs() {
       if (!isMdxJsxNode(node)) {
         return;
       }
-      const [child, ...rest] = node.children;
-      // only child is a paragraph
-      if (rest.length === 0 && isParagraph(child)) {
-        // replace paragraph with its children
-        node.children.splice(0, 1, ...child.children);
-        // return new index
+      if(node.children.length === 1 && isParagraph(node.children[0]){
+        node.children = node.children[0].children;
         return child.children.length - 1;
+      }
       }
       return;
     });
