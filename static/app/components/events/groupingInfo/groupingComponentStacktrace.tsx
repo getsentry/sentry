@@ -20,10 +20,8 @@ type Props = {
 function GroupingComponentStacktrace({component, showNonContributing}: Props) {
   const getFrameGroups = () => {
     const frameGroups: FrameGroup[] = [];
-
-    const frames = isStacktraceNewestFirst()
-      ? component.values.reverse()
-      : component.values;
+    const valuesCopy = component.values.slice();
+    const frames = isStacktraceNewestFirst() ? valuesCopy.reverse() : valuesCopy;
     (frames as EventGroupComponent[])
       .filter(value => groupingComponentFilter(value, showNonContributing))
       .forEach(value => {
