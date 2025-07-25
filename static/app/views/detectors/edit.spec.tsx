@@ -100,7 +100,7 @@ describe('DetectorEdit | Metric Detector', () => {
     await userEvent.click(screen.getByText('All Environments'));
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'production'}));
 
-    await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     const snubaQuery = mockDetector.dataSources[0].queryObj!.snubaQuery;
     await waitFor(() => {
