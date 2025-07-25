@@ -45,11 +45,6 @@ function getConfiguration({organization}: ConfigParams): NavigationSection[] {
           ),
         },
         {
-          path: `${pathPrefix}/merge-accounts/`,
-          title: t('Merge Accounts'),
-          description: t('Merge user accounts that share your primary email address'),
-        },
-        {
           path: `${pathPrefix}/subscriptions/`,
           title: t('Subscriptions'),
           description: t(
