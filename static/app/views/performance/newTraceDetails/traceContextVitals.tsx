@@ -140,74 +140,56 @@ function VitalPill({vital, vitalDetails}: VitalPillProps) {
   const acronym = vitalDetails.acronym ?? vitalDetails.name;
   return (
     <VitalPillContainer>
-      <Tooltip title={toolTipTitle}>
-        <VitalPillName status={status}>{`${acronym}`}</VitalPillName>
-      </Tooltip>
+      <VitalPillName status={status}>
+        <Tooltip title={toolTipTitle}>{`${acronym}`}</Tooltip>
+      </VitalPillName>
       <VitalPillValue>{formattedMeterValueText}</VitalPillValue>
     </VitalPillContainer>
   );
 }
 
+const VitalMetersContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
 const VitalPillContainer = styled('div')`
   display: flex;
-  flex-direction: row;
-  max-width: 'auto';
-  height: 28px;
 `;
 
 const VitalPillName = styled('div')<{status: PerformanceScore}>`
   display: flex;
   align-items: center;
-  position: relative;
-  width: max-content;
-
-  height: 100%;
-  padding: 0 ${space(1)};
+  justify-content: center;
   border: solid 1px
     ${p =>
       p.status === 'none'
         ? p.theme.border
         : makePerformanceScoreColors(p.theme)[p.status].border};
   border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
-
   background-color: ${p => makePerformanceScoreColors(p.theme)[p.status].light};
   color: ${p => makePerformanceScoreColors(p.theme)[p.status].normal};
-
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.bold};
   text-decoration: underline;
   text-decoration-style: dotted;
   text-underline-offset: ${space(0.25)};
   text-decoration-thickness: 1px;
-
-  cursor: pointer;
+  padding: 0 ${space(1)};
 `;
 
 const VitalPillValue = styled('div')`
   display: flex;
-  flex: 1;
   align-items: center;
-  justify-content: flex-end;
-
-  height: 100%;
-  padding: 0 ${space(0.5)};
+  justify-content: center;
   border: 1px solid ${p => p.theme.border};
   border-left: none;
   border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
-
   background: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
-
   font-size: ${p => p.theme.fontSize.lg};
-`;
-
-const VitalMetersContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: ${space(1)};
-  width: 'auto';
+  padding: 0 ${space(1)};
 `;
 
 const SecondaryVitalsCount = styled('span')`
