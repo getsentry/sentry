@@ -10,7 +10,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from sentry import analytics
-from sentry.api.endpoints.codeowners.analytics import CodeOwnersMaxLengthExceeded
+from sentry.analytics.events.codeowners_max_length_exceeded import CodeOwnersMaxLengthExceeded
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_model, sane_repr
 from sentry.issues.ownership.grammar import (
