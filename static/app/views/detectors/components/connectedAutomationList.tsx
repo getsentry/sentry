@@ -123,7 +123,7 @@ export function ConnectedAutomationsList({
           automations.map(automation => (
             <SimpleTable.Row
               key={automation.id}
-              variant={automation.disabled ? 'faded' : 'default'}
+              variant={automation.enabled ? 'default' : 'faded'}
             >
               <SimpleTable.RowCell>
                 <AutomationTitleCell automation={automation} />

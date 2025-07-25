@@ -1,6 +1,6 @@
-/* eslint-disable no-alert */
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -28,7 +28,7 @@ import useUserFromId from 'sentry/utils/useUserFromId';
 import AutomationHistoryList from 'sentry/views/automations/components/automationHistoryList';
 import ConditionsPanel from 'sentry/views/automations/components/conditionsPanel';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
-import {useAutomationQuery} from 'sentry/views/automations/hooks';
+import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/hooks';
 import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 
@@ -74,7 +74,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
             <DetailLayout.Title title={automation.name} />
           </DetailLayout.HeaderContent>
           <DetailLayout.Actions>
-            <Actions />
+            <Actions automation={automation} />
           </DetailLayout.Actions>
         </DetailLayout.Header>
         <DetailLayout.Body>
@@ -184,14 +184,31 @@ export default function AutomationDetail() {
   return <AutomationDetailContent automation={automation} />;
 }
 
-function Actions() {
-  const disable = () => {
-    window.alert('disable');
-  };
+function Actions({automation}: {automation: Automation}) {
+  const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
+
+  const toggleDisabled = useCallback(() => {
+    const newEnabled = !automation.enabled;
+    updateAutomation(
+      {
+        id: automation.id,
+        name: automation.name,
+        enabled: newEnabled,
+      },
+      {
+        onSuccess: () => {
+          addSuccessMessage(
+            newEnabled ? t('Automation enabled') : t('Automation disabled')
+          );
+        },
+      }
+    );
+  }, [updateAutomation, automation]);
+
   return (
     <Fragment>
-      <Button onClick={disable} size="sm">
-        {t('Disable')}
+      <Button priority="default" size="sm" onClick={toggleDisabled} busy={isUpdating}>
+        {automation.enabled ? t('Disable') : t('Enable')}
       </Button>
       <LinkButton to="edit" priority="primary" icon={<IconEdit />} size="sm">
         {t('Edit')}
