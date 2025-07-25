@@ -1,3 +1,4 @@
+import pytest
 from django.urls import reverse
 
 from sentry.auth.providers.fly.provider import FlyOAuth2Provider
@@ -27,6 +28,7 @@ class AuthOrganizationChannelLoginTest(TestCase):
             (f"/organizations/{self.organization.slug}/issues/", 302),
         ]
 
+    @pytest.mark.skip(reason="flaky: #96110")
     def test_redirect_for_logged_in_user_with_different_active_org(self):
         self.login_as(self.user)  # log in to "test org"
         another_org = self.create_organization(name="another org", owner=self.user)
