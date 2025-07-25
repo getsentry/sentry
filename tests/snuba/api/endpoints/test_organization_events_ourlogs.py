@@ -300,3 +300,33 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         assert response.status_code == 200, response.content
         assert response.data["data"] == [{"message": "foo", "count()": 1}]
         assert response.data["meta"]["fields"]["count()"] == "integer"
+
+    def test_pagelimit(self):
+        log = self.create_ourlog(
+            {"body": "test"},
+            timestamp=self.ten_mins_ago,
+        )
+        self.store_ourlogs([log])
+
+        response = self.do_request(
+            {
+                "field": ["message"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "per_page": 9999,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["message"] == "test"
+
+        response = self.do_request(
+            {
+                "field": ["message"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "per_page": 10000,
+            }
+        )
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid per_page value. Must be between 1 and 9999."
