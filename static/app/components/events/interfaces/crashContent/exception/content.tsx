@@ -42,19 +42,18 @@ type Props = {
   threadId?: number;
 } & Pick<React.ComponentProps<typeof StackTrace>, 'groupingCurrentLevel'>;
 
-type CollapsedExceptionMap = Record<number, boolean>;
+type ExceptionRenderStateMap = Record<number, boolean>;
 
-const useCollapsedExceptions = (values?: ExceptionValue[]) => {
-  const [collapsedExceptions, setCollapsedSections] = useState<CollapsedExceptionMap>(
+const useHiddenExceptions = (values?: ExceptionValue[]) => {
+  // map of parent exceptions and whether their children are hidden
+  const [hiddenExceptions, setHiddenExceptions] = useState<ExceptionRenderStateMap>(
     () => {
       if (!values) {
         return {};
       }
 
       return values
-        .filter(
-          ({mechanism}) => mechanism?.is_exception_group && defined(mechanism.parent_id)
-        )
+        .filter(({mechanism}) => mechanism?.is_exception_group)
         .reduce(
           (acc, next) => ({...acc, [next.mechanism?.exception_id ?? -1]: true}),
           {}
@@ -62,8 +61,8 @@ const useCollapsedExceptions = (values?: ExceptionValue[]) => {
     }
   );
 
-  const toggleException = (exceptionId: number) => {
-    setCollapsedSections(old => {
+  const toggleRelatedExceptions = (exceptionId: number) => {
+    setHiddenExceptions(old => {
       if (!defined(old[exceptionId])) {
         return old;
       }
@@ -73,13 +72,12 @@ const useCollapsedExceptions = (values?: ExceptionValue[]) => {
   };
 
   const expandException = (exceptionId: number) => {
-    setCollapsedSections(old => {
+    setHiddenExceptions(old => {
       const exceptionValue = values?.find(
         value => value.mechanism?.exception_id === exceptionId
       );
       const exceptionGroupId = exceptionValue?.mechanism?.parent_id;
-
-      if (!exceptionGroupId || !defined(old[exceptionGroupId])) {
+      if (exceptionGroupId === undefined || !defined(old[exceptionGroupId])) {
         return old;
       }
 
@@ -87,27 +85,31 @@ const useCollapsedExceptions = (values?: ExceptionValue[]) => {
     });
   };
 
-  return {toggleException, collapsedExceptions, expandException};
+  return {
+    toggleRelatedExceptions,
+    hiddenExceptions,
+    expandException,
+  };
 };
 
 function ToggleExceptionButton({
   values,
   exception,
-  toggleException,
-  collapsedExceptions,
+  toggleRelatedExceptions,
+  hiddenExceptions,
 }: {
-  collapsedExceptions: CollapsedExceptionMap;
   exception: ExceptionValue;
-  toggleException: (exceptionId: number) => void;
+  hiddenExceptions: ExceptionRenderStateMap;
+  toggleRelatedExceptions: (exceptionId: number) => void;
   values: ExceptionValue[];
 }) {
   const exceptionId = exception.mechanism?.exception_id;
 
-  if (!exceptionId || !defined(collapsedExceptions[exceptionId])) {
+  if (exceptionId === undefined || !defined(hiddenExceptions[exceptionId])) {
     return null;
   }
 
-  const collapsed = collapsedExceptions[exceptionId];
+  const collapsed = hiddenExceptions[exceptionId];
   const numChildren = values.filter(
     ({mechanism}) => mechanism?.parent_id === exceptionId
   ).length;
@@ -115,7 +117,9 @@ function ToggleExceptionButton({
   return (
     <ShowRelatedExceptionsButton
       priority="link"
-      onClick={() => toggleException(exceptionId)}
+      onClick={() => {
+        toggleRelatedExceptions(exceptionId);
+      }}
     >
       {collapsed
         ? tn('Show %s related exceptions', 'Show %s related exceptions', numChildren)
@@ -137,8 +141,8 @@ export function Content({
 }: Props) {
   const {projects} = useProjects({slugs: [projectSlug]});
 
-  const {collapsedExceptions, toggleException, expandException} =
-    useCollapsedExceptions(values);
+  const {hiddenExceptions, toggleRelatedExceptions, expandException} =
+    useHiddenExceptions(values);
 
   const sourceMapDebuggerData = useSourceMapDebuggerData(event, projectSlug);
 
@@ -185,7 +189,7 @@ export function Content({
           )}
         </StyledPre>
         <ToggleExceptionButton
-          {...{collapsedExceptions, toggleException, values, exception: exc}}
+          {...{hiddenExceptions, toggleRelatedExceptions, values, exception: exc}}
         />
         {exc.mechanism && (
           <Mechanism data={exc.mechanism} meta={meta?.[excIdx]?.mechanism} />
@@ -213,7 +217,7 @@ export function Content({
           platform={platform}
           newestFirst={newestFirst}
           event={event}
-          chainedException={values.length > 1}
+          chainedException={hasChainedExceptions}
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta?.[excIdx]?.stacktrace}
           threadId={threadId}
@@ -229,7 +233,12 @@ export function Content({
       ? `exception-${exc.mechanism?.exception_id}`
       : undefined;
 
-    if (exc.mechanism?.parent_id && collapsedExceptions[exc.mechanism.parent_id]) {
+    if (
+      exc.mechanism?.parent_id !== undefined &&
+      hiddenExceptions[exc.mechanism.parent_id]
+    ) {
+      // hide all child exceptions when the parent
+      // does not have related exceptions toggled to show
       return null;
     }
 
