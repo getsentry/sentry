@@ -175,10 +175,9 @@ environments = ["sys_platform == 'darwin' or sys_platform == 'linux'"]
 url = "https://pypi.devinfra.sentry.io/simple"
 default = true
 
-# TODO: uv_build 0.8.2 needed on pypi
-#[build-system]
-#requires = ["uv_build==0.8.2"]
-#build-backend = "uv_build"
+[build-system]
+requires = ["uv_build==0.8.2"]
+build-backend = "uv_build"
 
 [project.scripts]
 sentry = "sentry.__main__:main"
@@ -254,6 +253,7 @@ dev = [
     "black==24.10.0",
     "covdefaults==2.3.0",
     "devservices==1.2.1",
+    "docker>=7.1.0",
     "ephemeral-port-reserve==1.1.4",
     "flake8==7.3",
     "flake8-bugbear>=22.10",
@@ -261,8 +261,8 @@ dev = [
     "honcho==2",
     "isort==5.10.1",
     "lxml-stubs>=0.4.0",
-    "msgpack-types==0.2.0",
-    "mypy==1.15",
+    "msgpack-types>=0.2.0",
+    "mypy>=1.17",
     "openapi-core==0.18.2",
     "openapi-pydantic==0.4.0",
     "pre-commit==4.2",

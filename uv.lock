@@ -1107,17 +1107,18 @@ wheels = [
 
 [[package]]
 name = "mypy"
-version = "1.15.0"
+version = "1.17.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "mypy-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "pathspec", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.15.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:93faf3fdb04768d44bf28693293f3904bbb555d076b781ad2530214ee53e3445" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.15.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:811aeccadfb730024c5d3e326b2fbe9249bb7413553f15499a4050f7c30e801d" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.15.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:98b7b9b9aedb65fe628c62a6dc57f6d5088ef2dfca37903a7d9ee374d03acca5" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.15.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:c43a7682e24b4f576d93072216bf56eeff70d9140241f9edec0c104d0c515036" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.17.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:2c41aa59211e49d717d92b3bb1238c06d387c9325d3122085113c79118bebb06" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.17.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:0e69db1fb65b3114f98c753e3930a00514f5b68794ba80590eb02090d54a5d4a" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.17.0-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:03ba330b76710f83d6ac500053f7727270b6b8553b0423348ffb3af6f2f7b889" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.17.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:037bc0f0b124ce46bfde955c647f3e395c6174476a968c0f22c95a8d2f589bba" },
 ]
 
 [[package]]
@@ -1874,7 +1875,7 @@ wheels = [
 [[package]]
 name = "sentry"
 version = "0.0.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "amqp", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "anyio", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2045,6 +2046,7 @@ dev = [
     { name = "black", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "covdefaults", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "devservices", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "docker", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "ephemeral-port-reserve", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "flake8", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "flake8-bugbear", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2263,6 +2265,7 @@ dev = [
     { name = "black", specifier = "==24.10.0" },
     { name = "covdefaults", specifier = "==2.3.0" },
     { name = "devservices", specifier = "==1.2.1" },
+    { name = "docker", specifier = ">=7.1.0" },
     { name = "ephemeral-port-reserve", specifier = "==1.1.4" },
     { name = "flake8", specifier = "==7.3" },
     { name = "flake8-bugbear", specifier = ">=22.10" },
@@ -2270,8 +2273,8 @@ dev = [
     { name = "honcho", specifier = "==2" },
     { name = "isort", specifier = "==5.10.1" },
     { name = "lxml-stubs", specifier = ">=0.4.0" },
-    { name = "msgpack-types", specifier = "==0.2.0" },
-    { name = "mypy", specifier = "==1.15" },
+    { name = "msgpack-types", specifier = ">=0.2.0" },
+    { name = "mypy", specifier = ">=1.17" },
     { name = "openapi-core", specifier = "==0.18.2" },
     { name = "openapi-pydantic", specifier = "==0.4.0" },
     { name = "pre-commit", specifier = "==4.2" },
