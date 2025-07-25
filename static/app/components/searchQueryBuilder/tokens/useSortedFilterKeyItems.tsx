@@ -5,7 +5,6 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import type {
   KeySectionItem,
   RawSearchFilterHasValueItem,
-  RawSearchFilterIsValueItem,
   SearchKeyItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {
@@ -221,7 +220,15 @@ export function useSortedFilterKeyItems({
         (!keyItems.length || inputValue.trim().includes(' ')) &&
         (!replaceRawSearchKeys?.length || !hasRawSearchReplacement);
 
-      const options: Array<RawSearchFilterIsValueItem | RawSearchFilterHasValueItem> =
+      let rawSearchFilterHasValueItems: RawSearchFilterHasValueItem[] = [];
+      if (hasWildcardSearch) {
+        rawSearchFilterHasValueItems =
+          replaceRawSearchKeys?.map(key => {
+            return createRawSearchFilterHasValueItem(key, inputValue);
+          }) ?? [];
+      }
+
+      const rawSearchFilterIsValueItems =
         replaceRawSearchKeys?.map(key => {
           const value = inputValue?.includes(' ')
             ? `"${inputValue.replace(/"/g, '')}"`
@@ -230,19 +237,11 @@ export function useSortedFilterKeyItems({
           return createRawSearchFilterIsValueItem(key, value);
         }) ?? [];
 
-      if (hasWildcardSearch) {
-        options.push(
-          ...(replaceRawSearchKeys?.map(key => {
-            return createRawSearchFilterHasValueItem(key, inputValue);
-          }) ?? [])
-        );
-      }
-
       const rawSearchReplacements: KeySectionItem = {
         key: 'raw-search-filter-values',
         value: 'raw-search-filter-values',
         label: '',
-        options,
+        options: [...rawSearchFilterHasValueItems, ...rawSearchFilterIsValueItems],
         type: 'section',
       };
 
