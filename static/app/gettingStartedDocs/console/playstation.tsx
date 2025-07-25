@@ -1,4 +1,3 @@
-import {openPrivateGamingSdkAccessModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
 import {
@@ -10,7 +9,7 @@ import {IconLock} from 'sentry/icons/iconLock';
 import {t, tct} from 'sentry/locale';
 
 const onboarding: OnboardingConfig = {
-  install: params => [
+  install: () => [
     {
       type: StepType.INSTALL,
       content: [
@@ -44,18 +43,7 @@ const onboarding: OnboardingConfig = {
           ),
           showIcon: true,
           trailingItems: (
-            <Button
-              size="sm"
-              priority="primary"
-              onClick={() => {
-                openPrivateGamingSdkAccessModal({
-                  organization: params.organization,
-                  projectSlug: params.projectSlug,
-                  sdkName: 'PlayStation',
-                  gamingPlatform: 'playstation',
-                });
-              }}
-            >
+            <Button size="sm" priority="primary">
               {t('Request Access')}
             </Button>
           ),
