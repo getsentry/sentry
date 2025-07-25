@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from sentry.utils.options import sample_modulo
+
 
 @dataclass
 class SlackRoutingData:
@@ -15,8 +17,13 @@ class SlackRoutingData:
     project_slug: str | None = None
 
 
-def encode_action_id(*, action: str, organization_slug: str, project_slug: str) -> str:
+def encode_action_id(
+    *, action: str, organization_slug: str, project_slug: str, integration_id: int
+) -> str:
     """Used to encode routing data into the outbound action_id for a Slack block."""
+    if not sample_modulo("hybrid_cloud.integration_region_targeting_rate", integration_id):
+        return action
+
     return f"{action}::{organization_slug}::{project_slug}"
 
 
