@@ -30,9 +30,7 @@ from sentry.integrations.utils.identities import get_identity_or_404
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.notifications.notificationcontroller import NotificationController
-from sentry.notifications.notifications.integration_nudge import (
-    IntegrationNudgeNotification,
-)
+from sentry.notifications.notifications.integration_nudge import IntegrationNudgeNotification
 from sentry.notifications.services import notifications_service
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.organizations.services.organization import RpcOrganization
