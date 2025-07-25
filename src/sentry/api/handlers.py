@@ -17,6 +17,7 @@ def custom_exception_handler(exc, context):
             request.snuba_rate_limit_metadata = SnubaRateLimitMeta(
                 quota_used=exc.quota_used,
                 rejection_threshold=exc.rejection_threshold,
+                suggestion=exc.suggestion,
             )
 
         # capture the rate limited exception so we can see it in Sentry

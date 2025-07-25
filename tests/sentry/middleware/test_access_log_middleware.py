@@ -195,6 +195,10 @@ class TestAccessLogSnubaRateLimited(LogCaptureAPITestCase):
         # Snuba rate limit specific fields should be set
         assert self.captured_logs[0].snuba_quota_used == "41"
         assert self.captured_logs[0].snuba_rejection_threshold == "40"
+        assert (
+            self.captured_logs[0].snuba_suggestion
+            == "A customer is sending too many queries to snuba. The customer may be abusing an API or the queries may be inefficient"
+        )
 
 
 @all_silo_test

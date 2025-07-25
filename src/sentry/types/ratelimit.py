@@ -74,3 +74,4 @@ class SnubaRateLimitMeta:
 
     quota_used: int | None
     rejection_threshold: int | None
+    suggestion: str | None
