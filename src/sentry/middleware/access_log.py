@@ -70,7 +70,6 @@ def _get_rate_limit_stats_dict(request: Request) -> dict[str, str]:
         "remaining": str(getattr(rate_limit_metadata, "remaining", None)),
         # We prefix the snuba fields with snuba_ to avoid confusion with the standard rate limit metadata
         "snuba_policy": str(getattr(snuba_rate_limit_metadata, "policy", None)),
-        "snuba_error_type": str(getattr(snuba_rate_limit_metadata, "error_type", None)),
         "snuba_quota_unit": str(getattr(snuba_rate_limit_metadata, "quota_unit", None)),
         "snuba_quota_used": str(getattr(snuba_rate_limit_metadata, "quota_used", None)),
         "snuba_rejection_threshold": str(

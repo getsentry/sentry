@@ -492,9 +492,11 @@ class SnubaQueryRateLimitTest(TestCase):
                             "details": {
                                 "summary": {
                                     "rejected_by": {
+                                        "policy": "ConcurrentRateLimitAllocationPolicy",
                                         "quota_used": 1000,
                                         "rejection_threshold": 100,
-                                        "suggestion": "A customer is sending too many queries to snuba. The customer may be abusing an API or the queries may be inefficient",
+                                        "quota_unit": "no_units",
+                                        "storage_key": "test_storage_key",
                                     },
                                     "throttled_by": {},
                                 }

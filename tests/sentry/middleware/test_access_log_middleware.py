@@ -152,7 +152,6 @@ access_log_fields = (
     "snuba_storage_key",
     "snuba_quota_used",
     "snuba_rejection_threshold",
-    "snuba_error_type",
 )
 
 
