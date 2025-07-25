@@ -355,7 +355,7 @@ def _semver_filter_converter(
     else:
         # Original logic for non-IN operators
         # We explicitly use `raw_value` here to avoid converting wildcards to shell values
-        version: str = search_filter.value.raw_value
+        version_str: str = search_filter.value.raw_value
 
         # Note that we sort this such that if we end up fetching more than
         # MAX_SEMVER_SEARCH_RELEASES, we will return the releases that are closest to
@@ -366,7 +366,7 @@ def _semver_filter_converter(
         qs = (
             Release.objects.filter_by_semver(
                 organization_id,
-                parse_semver(version, operator),
+                parse_semver(version_str, operator),
                 project_ids=project_ids,
             )
             .values_list("version", flat=True)
@@ -386,7 +386,9 @@ def _semver_filter_converter(
             # to seq scan with this query if the `order_by` isn't included, so we
             # include it even though we don't really care about order for this query
             qs_flipped = (
-                Release.objects.filter_by_semver(organization_id, parse_semver(version, operator))
+                Release.objects.filter_by_semver(
+                    organization_id, parse_semver(version_str, operator)
+                )
                 .order_by(*map(_flip_field_sort, order_by))
                 .values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
             )
@@ -478,7 +480,7 @@ def _semver_build_filter_converter(
         final_operator = "IN" if operator == "IN" else "NOT IN"
     else:
         # Original logic for non-IN operators
-        build: str = search_filter.value.raw_value
+        build_str: str = search_filter.value.raw_value
         operator, negated = handle_operator_negation(search_filter.operator)
         try:
             django_op = OPERATOR_TO_DJANGO[operator]
@@ -489,7 +491,7 @@ def _semver_build_filter_converter(
             Release.objects.filter_by_semver_build(
                 organization_id,
                 django_op,
-                build,
+                build_str,
                 project_ids=project_ids,
                 negated=negated,
             ).values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
