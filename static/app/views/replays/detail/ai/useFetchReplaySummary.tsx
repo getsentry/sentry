@@ -7,30 +7,10 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
-
-enum ReplaySummaryStatus {
-  PROCESSING = 'processing',
-  COMPLETED = 'completed',
-  ERROR = 'error',
-  NOT_STARTED = 'not_started',
-}
-
-export interface SummaryResponse {
-  created_at: string | null;
-  data: {
-    summary: string;
-    time_ranges: Array<{
-      error: boolean;
-      feedback: boolean;
-      period_end: number;
-      period_start: number;
-      period_title: string;
-    }>;
-    title: string;
-  } | null;
-  num_segments: number | null;
-  status: ReplaySummaryStatus;
-}
+import {
+  ReplaySummaryStatus,
+  type SummaryResponse,
+} from 'sentry/views/replays/detail/ai/utils';
 
 const POLL_INTERVAL = 500;
 

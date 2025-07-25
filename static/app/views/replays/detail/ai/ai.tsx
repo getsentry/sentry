@@ -18,7 +18,10 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {ChapterList} from 'sentry/views/replays/detail/ai/chapterList';
-import {NO_REPLAY_SUMMARY_MESSAGES} from 'sentry/views/replays/detail/ai/utils';
+import {
+  NO_REPLAY_SUMMARY_MESSAGES,
+  ReplaySummaryStatus,
+} from 'sentry/views/replays/detail/ai/utils';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 
 import {useFetchReplaySummary} from './useFetchReplaySummary';
@@ -49,13 +52,26 @@ export default function Ai() {
   const summaryIsOld =
     summaryData?.created_at &&
     new Date(summaryData.created_at) < new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const needsInitialGeneration =
+    summaryData?.status === ReplaySummaryStatus.NOT_STARTED || !summaryData?.data;
 
-  // Do we also need to check if summaryData.status === not started?
   useEffect(() => {
-    if ((segmentsIncreased || summaryIsOld) && !(isPending || isPolling) && !isError) {
+    if (
+      (segmentsIncreased || summaryIsOld || needsInitialGeneration) &&
+      !(isPending || isPolling) &&
+      !isError
+    ) {
       triggerSummary();
     }
-  }, [segmentsIncreased, summaryIsOld, isPending, isPolling, triggerSummary, isError]);
+  }, [
+    segmentsIncreased,
+    summaryIsOld,
+    needsInitialGeneration,
+    isPending,
+    isPolling,
+    triggerSummary,
+    isError,
+  ]);
 
   if (!organization.features.includes('replay-ai-summaries') || !areAiFeaturesAllowed) {
     return (

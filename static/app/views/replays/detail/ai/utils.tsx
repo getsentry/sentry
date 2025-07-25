@@ -8,3 +8,27 @@ export const NO_REPLAY_SUMMARY_MESSAGES = [
   t('Not a lot happening here — maybe a coffee break?'),
   t('All quiet on the replay front.'),
 ];
+
+export enum ReplaySummaryStatus {
+  PROCESSING = 'processing',
+  COMPLETED = 'completed',
+  ERROR = 'error',
+  NOT_STARTED = 'not_started',
+}
+
+export interface SummaryResponse {
+  created_at: string | null;
+  data: {
+    summary: string;
+    time_ranges: Array<{
+      error: boolean;
+      feedback: boolean;
+      period_end: number;
+      period_start: number;
+      period_title: string;
+    }>;
+    title: string;
+  } | null;
+  num_segments: number | null;
+  status: ReplaySummaryStatus;
+}
