@@ -25,10 +25,18 @@ export function SeerSearchPopover(props: PopoverProps) {
       <ListBoxOverlay
         ref={element => {
           popoverRef.current = element;
-          if (!element || !props.containerRef.current) return;
+          if (!element || !props.containerRef.current) return undefined;
 
-          element.style.width = `${props.containerRef.current.clientWidth}px`;
-          return;
+          const resizeObserver = new ResizeObserver(entries => {
+            if (!props.containerRef.current) return;
+            element.style.width = `${entries[0]?.target.clientWidth}px`;
+          });
+
+          resizeObserver.observe(props.containerRef.current);
+
+          return () => {
+            resizeObserver.disconnect();
+          };
         }}
       >
         {children}
