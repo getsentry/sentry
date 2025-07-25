@@ -14,7 +14,7 @@ from sentry.integrations.types import ExternalProviders
 from sentry.notifications.helpers import get_reason_context
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import NotificationSettingEnum, UnsubscribeContext
-from sentry.notifications.utils import send_activity_notification
+from sentry.notifications.utils import get_commits, send_activity_notification
 from sentry.notifications.utils.avatar import avatar_as_html
 from sentry.notifications.utils.participants import ParticipantMap, get_participants_for_group
 from sentry.types.actor import Actor
@@ -129,11 +129,31 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
         should_add_url = provider is not None
         text_description = self.description_as_text(text_template, params, should_add_url, provider)
         html_description = self.description_as_html(html_template or text_template, params)
-        return {
+
+        context = {
             **self.get_base_context(),
             "text_description": text_description,
             "html_description": html_description,
         }
+
+        # Add suspect commits to workflow notifications using the same method as issue alerts
+        if self.group:
+            # Create a minimal event object since get_commits() only uses event.group_id
+            # Include empty data/platform to avoid AttributeError if fallback analysis is triggered
+            class MinimalEvent:
+                def __init__(self, group_id):
+                    self.group_id = group_id
+                    self.data = {}  # Empty data to avoid AttributeError
+                    self.platform = None  # Platform info not needed
+
+            try:
+                minimal_event = MinimalEvent(self.group.id)
+                context["commits"] = get_commits(self.project, minimal_event)
+            except Exception:
+                # If anything fails, return empty list (graceful degradation)
+                context["commits"] = []
+
+        return context
 
     def get_group_context(self) -> MutableMapping[str, Any]:
         group_link = self.get_group_link()
