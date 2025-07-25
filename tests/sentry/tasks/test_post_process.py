@@ -2200,7 +2200,7 @@ class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
 @patch("sentry.utils.metrics.distribution")
 class CheckIfFlagsSentTestMixin(BasePostProgressGroupMixin):
     def test_set_has_flags(self, mock_dist, mock_incr, mock_record):
-        project = self.create_project()
+        project = self.create_project(platform="other")
         event_id = "a" * 32
         event = self.create_event(
             data={
