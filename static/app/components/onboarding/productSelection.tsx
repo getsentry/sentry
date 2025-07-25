@@ -171,6 +171,11 @@ export const platformProductAvailability = {
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
   ],
+  'javascript-nuxt': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
+  ],
   node: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'node-azurefunctions': [
     ProductSolution.PERFORMANCE_MONITORING,

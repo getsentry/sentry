@@ -85,6 +85,31 @@ const onboarding: OnboardingConfig = {
           type: 'custom',
           content: <CopyDsnField params={params} />,
         },
+        ...(params.isLogsSelected
+          ? [
+              {
+                type: 'text' as const,
+                text: t('To enable logs, add the following configuration to your Sentry initialization:'),
+              },
+              {
+                type: 'code' as const,
+                tabs: [
+                  {
+                    label: 'JavaScript',
+                    language: 'javascript',
+                    code: `import * as Sentry from "@sentry/nuxt";
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  
+  // Logs
+  enableLogs: true,
+});`,
+                  },
+                ],
+              },
+            ]
+          : []),
       ],
     },
   ],
@@ -121,14 +146,29 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  nextSteps: () => [
-    {
-      id: 'nuxt-features',
-      name: t('Nuxt Features'),
-      description: t('Learn about our first class integration with the Nuxt framework.'),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/nuxt/features/',
-    },
-  ],
+  nextSteps: (params: Params) => {
+    const steps = [
+      {
+        id: 'nuxt-features',
+        name: t('Nuxt Features'),
+        description: t('Learn about our first class integration with the Nuxt framework.'),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/nuxt/features/',
+      },
+    ];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/nuxt/logs/#integrations/',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const replayOnboarding: OnboardingConfig = {
