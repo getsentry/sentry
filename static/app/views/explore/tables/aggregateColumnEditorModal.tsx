@@ -328,6 +328,7 @@ function AggregateSelector({
     numberTags,
     stringTags,
     parsedFunction,
+    traceItemType: TraceItemDataset.SPANS,
   });
 
   const handleFunctionChange = useCallback(
