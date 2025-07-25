@@ -15,6 +15,7 @@ from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 from sentry_sdk import set_tag
 
+from sentry import metrics
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.filestore.gcs import GCS_RETRYABLE_ERRORS
 from sentry.replays.usecases.ingest import (
@@ -108,6 +109,9 @@ def parse_recording_event(message: bytes) -> Event:
     if replay_event_json:
         replay_event = json.loads(cast(bytes, replay_event_json))
     else:
+        # Check if any events are not present in the pipeline. We need
+        # to know because we want to write to Snuba from here soon.
+        metrics.incr("sentry.replays.consumer.recording.missing-replay-event")
         replay_event = None
 
     replay_video_raw = recording.get("replay_video")
