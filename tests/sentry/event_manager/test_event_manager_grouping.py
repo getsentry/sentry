@@ -149,6 +149,9 @@ class EventManagerGroupingTest(TestCase):
 
     def test_auto_updates_grouping_config(self) -> None:
         self.project.update_option("sentry:grouping_config", NO_MSG_PARAM_CONFIG)
+        # Set platform to prevent additional audit log entry from platform inference
+        self.project.platform = "python"
+        self.project.save()
 
         save_new_event({"message": "Adopt don't shop"}, self.project)
         assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG

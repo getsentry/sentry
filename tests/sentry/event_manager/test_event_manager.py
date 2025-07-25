@@ -3717,7 +3717,7 @@ class DSLatestReleaseBoostTest(TestCase):
         ts = timezone.now().timestamp()
 
         # We want to test with multiple platforms.
-        for platform in ("python", "java", None):
+        for platform in ("python", "java"):
             project = self.create_project(platform=platform)
 
             for index, (release_version, environment) in enumerate(
