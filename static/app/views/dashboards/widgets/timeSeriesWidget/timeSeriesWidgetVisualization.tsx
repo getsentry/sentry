@@ -64,8 +64,31 @@ import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
 
 const {error, warn, info} = Sentry.logger;
 
+export interface BoxSelectProps {
+  /**
+   * The brush options for the chart.
+   */
+  brush: EChartsOption['brush'];
+
+  /**
+   * Callback that returns an updated ECharts brush selection when the user finishes a brush operation.
+   */
+  onBrushEnd: EChartBrushEndHandler;
+
+  /**
+   * Callback that returns an updated ECharts brush selection when the user starts a brush operation.
+   */
+  onBrushStart: EChartBrushStartHandler;
+
+  /**
+   * The toolBox options for the chart.
+   */
+  toolBox?: ToolboxComponentOption;
+}
+
 export interface TimeSeriesWidgetVisualizationProps
-  extends Partial<LoadableChartWidgetProps> {
+  extends Partial<LoadableChartWidgetProps>,
+    Partial<BoxSelectProps> {
   /**
    * An array of `Plottable` objects. This can be any object that implements the `Plottable` interface.
    */
@@ -80,11 +103,6 @@ export interface TimeSeriesWidgetVisualizationProps
   axisRange?: 'auto' | 'dataMin';
 
   /**
-   * The brush options for the chart.
-   */
-  brush?: EChartsOption['brush'];
-
-  /**
    * Reference to the chart instance
    */
   chartRef?: React.Ref<ReactEchartsRef>;
@@ -92,16 +110,6 @@ export interface TimeSeriesWidgetVisualizationProps
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
   legendSelection?: LegendSelection;
-
-  /**
-   * Callback that returns an updated ECharts brush selection when the user finishes a brush operation.
-   */
-  onBrushEnd?: EChartBrushEndHandler;
-
-  /**
-   * Callback that returns an updated ECharts brush selection when the user starts a brush operation.
-   */
-  onBrushStart?: EChartBrushStartHandler;
 
   /**
    * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
@@ -139,11 +147,6 @@ export interface TimeSeriesWidgetVisualizationProps
    * Default: `auto`
    */
   showXAxis?: 'auto' | 'never';
-
-  /**
-   * The toolBox options for the chart.
-   */
-  toolBox?: ToolboxComponentOption;
 }
 
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {

@@ -55,6 +55,7 @@ interface SidebarButtonProps {
   children: React.ReactNode;
   label: string;
   buttonProps?: Omit<ButtonProps, 'aria-label'>;
+  className?: string;
   onClick?: MouseEventHandler<HTMLButtonElement>;
 }
 
@@ -275,6 +276,7 @@ export function SidebarLink({
 }
 
 export function SidebarButton({
+  className,
   analyticsKey,
   children,
   buttonProps = {},
@@ -287,7 +289,7 @@ export function SidebarButton({
   const showLabel = layout === NavLayout.MOBILE;
 
   return (
-    <SidebarItem label={label} showLabel={showLabel}>
+    <SidebarItem label={label} showLabel={showLabel} className={className}>
       <NavButton
         {...buttonProps}
         isMobile={layout === NavLayout.MOBILE}
