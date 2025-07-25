@@ -237,6 +237,12 @@ const getDynamicParts = (params: Params): string[] => {
       replaysOnErrorSampleRate: 1.0 // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`);
   }
 
+  if (params.isLogsSelected) {
+    dynamicParts.push(`
+      // Logs
+      enableLogs: true`);
+  }
+
   if (params.isProfilingSelected) {
     dynamicParts.push(`
         // Set profilesSampleRate to 1.0 to profile every transaction.
@@ -397,7 +403,7 @@ async function fetchUserData(userId) {
 # Logs
 
 Where logs are used, ensure Sentry is imported using \`import * as Sentry from "@sentry/browser"\`
-Enable logging in Sentry using \`Sentry.init({ _experiments: { enableLogs: true } })\`
+Enable logging in Sentry using \`Sentry.init({ enableLogs: true })\`
 Reference the logger using \`const { logger } = Sentry\`
 Sentry offers a \`consoleLoggingIntegration\` that can be used to log specific console error types automatically without instrumenting the individual logger calls
 
@@ -411,9 +417,7 @@ import * as Sentry from "@sentry/browser";
 Sentry.init({
   dsn: "${params.dsn.public}",
 
-  _experiments: {
-    enableLogs: true,
-  },
+  enableLogs: true,
 });
 \`\`\`
 
@@ -581,14 +585,29 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
     getAiRulesConfig(params),
   ],
   verify: getVerifyConfig,
-  nextSteps: () => [
-    {
-      id: 'source-maps',
-      name: t('Source Maps'),
-      description: t('Learn how to enable readable stack traces in your Sentry errors.'),
-      link: 'https://docs.sentry.io/platforms/javascript/sourcemaps/',
-    },
-  ],
+  nextSteps: (params: Params) => {
+    const steps = [
+      {
+        id: 'source-maps',
+        name: t('Source Maps'),
+        description: t('Learn how to enable readable stack traces in your Sentry errors.'),
+        link: 'https://docs.sentry.io/platforms/javascript/sourcemaps/',
+      },
+    ];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/logs/#integrations/',
+      });
+    }
+
+    return steps;
+  },
   onPageLoad: params => {
     return () => {
       trackAnalytics('onboarding.setup_loader_docs_rendered', {
@@ -683,7 +702,22 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
     getAiRulesConfig(params),
   ],
   verify: getVerifyConfig,
-  nextSteps: () => [],
+  nextSteps: (params: Params) => {
+    const steps = [];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/logs/#integrations/',
+      });
+    }
+
+    return steps;
+  },
   onPageLoad: params => {
     return () => {
       trackAnalytics('onboarding.js_loader_npm_docs_shown', {

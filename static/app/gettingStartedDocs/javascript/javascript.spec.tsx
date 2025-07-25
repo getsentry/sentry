@@ -104,6 +104,48 @@ describe('javascript onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
+  it('enables logs by setting enableLogs to true', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+      selectedOptions: {
+        installationMode: InstallationMode.MANUAL,
+      },
+    });
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/enableLogs: true/))
+    ).toBeInTheDocument();
+  });
+
+  it('shows Logging Integrations in next steps when logs is selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.PERFORMANCE_MONITORING,
+        ProductSolution.LOGS,
+      ],
+      selectedOptions: {
+        installationMode: InstallationMode.MANUAL,
+      },
+    });
+
+    expect(screen.getByText('Logging Integrations')).toBeInTheDocument();
+  });
+
+  it('does not show Logging Integrations in next steps when logs is not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.PERFORMANCE_MONITORING,
+      ],
+      selectedOptions: {
+        installationMode: InstallationMode.MANUAL,
+      },
+    });
+
+    expect(screen.queryByText('Logging Integrations')).not.toBeInTheDocument();
+  });
+
   it('renders Loader Script by default', function () {
     renderWithOnboardingLayout(docs);
 
