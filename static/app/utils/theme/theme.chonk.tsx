@@ -540,7 +540,7 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
 }
 
 const radius = {
-  none: '0px',
+  '0': '0px',
   '2xs': '2px',
   xs: '3px',
   sm: '4px',
