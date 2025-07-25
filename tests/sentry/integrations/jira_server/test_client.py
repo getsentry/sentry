@@ -41,7 +41,7 @@ class JiraServerClientTest(TestCase, BaseTestCase):
         install = self.integration.get_installation(self.organization.id)
         self.jira_server_client: JiraServerClient = install.get_client()
 
-    def test_authorize_request(self):
+    def test_authorize_request(self) -> None:
         method = "GET"
         request = Request(
             method=method,

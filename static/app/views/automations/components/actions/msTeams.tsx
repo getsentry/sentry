@@ -22,7 +22,7 @@ export function MSTeamsDetails({
   return tct('Send a [logo] Microsoft Teams notification to [team] team, to [channel]', {
     logo: ActionMetadata[ActionType.MSTEAMS]?.icon,
     team: integrationName,
-    channel: String(action.config.target_identifier),
+    channel: String(action.config.targetIdentifier),
   });
 }
 
@@ -38,7 +38,7 @@ export function validateMSTeamsAction(action: Action): string | undefined {
   if (!action.integrationId) {
     return t('You must specify a Microsoft Teams team.');
   }
-  if (!action.config.target_display) {
+  if (!action.config.targetDisplay) {
     return t('You must specify a channel.');
   }
   return undefined;

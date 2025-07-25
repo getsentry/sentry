@@ -28,12 +28,12 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
     def features(self):
         return {"organizations:session-replay": True}
 
-    def test_feature_flag_disabled(self):
+    def test_feature_flag_disabled(self) -> None:
         """Test replays can be disabled."""
         response = self.client.get(self.url)
         assert response.status_code == 404
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         """Test replays must be used with a project(s)."""
         with self.feature(self.features):
             response = self.client.get(self.url)
@@ -43,7 +43,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert "data" in response_data
             assert response_data["data"] == []
 
-    def test_get_replays(self):
+    def test_get_replays(self) -> None:
         """Test replays conform to the interchange format."""
         project = self.create_project(teams=[self.team])
 
@@ -150,7 +150,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             )
             assert_expected_response(response_data["data"][0], expected_response)
 
-    def test_get_replays_viewed(self):
+    def test_get_replays_viewed(self) -> None:
         """Test replays conform to the interchange format."""
         project = self.create_project(teams=[self.team])
 
@@ -183,7 +183,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response_data["data"][1]["has_viewed"] is True
             assert response_data["data"][1]["id"] == replay1_id
 
-    def test_get_replays_browse_screen_fields(self):
+    def test_get_replays_browse_screen_fields(self) -> None:
         """Test replay response with fields requested in production."""
         project = self.create_project(teams=[self.team])
 
@@ -247,7 +247,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert "region" in response_data["data"][0]["user"]["geo"]
             assert "subdivision" in response_data["data"][0]["user"]["geo"]
 
-    def test_get_replays_tags_field(self):
+    def test_get_replays_tags_field(self) -> None:
         """Test replay response with fields requested in production."""
         project = self.create_project(teams=[self.team])
 
@@ -289,7 +289,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert sorted(response_data["data"][0]["tags"]["test"]) == ["hello", "world"]
             assert response_data["data"][0]["tags"]["other"] == ["hello"]
 
-    def test_get_replays_minimum_field_set(self):
+    def test_get_replays_minimum_field_set(self) -> None:
         """Test replay response with fields requested in production."""
         project = self.create_project(teams=[self.team])
 
@@ -335,7 +335,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert len(response_data["data"][0]) == 1
             assert "id" in response_data["data"][0]
 
-    def test_get_replays_filter_environment(self):
+    def test_get_replays_filter_environment(self) -> None:
         """Test returned replays can not partially fall outside of range."""
         project = self.create_project(teams=[self.team])
 
@@ -375,7 +375,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert "data" in response_data
             assert response_data["data"][0]["id"] == replay2_id
 
-    def test_get_replays_started_at_sorted(self):
+    def test_get_replays_started_at_sorted(self) -> None:
         project = self.create_project(teams=[self.team])
 
         replay1_id = uuid.uuid4().hex
@@ -403,7 +403,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response_data["data"][0]["id"] == replay1_id
             assert response_data["data"][1]["id"] == replay2_id
 
-    def test_get_replays_finished_at_sorted(self):
+    def test_get_replays_finished_at_sorted(self) -> None:
         project = self.create_project(teams=[self.team])
 
         replay1_id = uuid.uuid4().hex
@@ -431,7 +431,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response_data["data"][0]["id"] == replay1_id
             assert response_data["data"][1]["id"] == replay2_id
 
-    def test_get_replays_duration_sorted(self):
+    def test_get_replays_duration_sorted(self) -> None:
         """Test replays can be sorted by duration."""
         project = self.create_project(teams=[self.team])
 
@@ -461,7 +461,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response_data["data"][0]["id"] == replay2_id
             assert response_data["data"][1]["id"] == replay1_id
 
-    def test_get_replays_pagination(self):
+    def test_get_replays_pagination(self) -> None:
         """Test replays can be paginated."""
         project = self.create_project(teams=[self.team])
 
@@ -517,7 +517,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             link_header = response.headers["Link"]
             assert 'rel="next"; results="false"' in link_header
 
-    def test_get_replays_user_filters(self):
+    def test_get_replays_user_filters(self) -> None:
         """Test replays conform to the interchange format."""
         project = self.create_project(teams=[self.team])
 
@@ -811,7 +811,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response_data = response.json()
                 assert len(response_data["data"]) == 0, (query, response.json())
 
-    def test_get_replays_user_sorts(self):
+    def test_get_replays_user_sorts(self) -> None:
         """Test replays conform to the interchange format."""
         project = self.create_project(teams=[self.team])
         project2 = self.create_project(teams=[self.team])
@@ -988,7 +988,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 assert r["data"][0]["id"] == replay1_id, key
                 assert r["data"][1]["id"] == replay2_id, key
 
-    def test_get_replays_filter_bad_operator(self):
+    def test_get_replays_filter_bad_operator(self) -> None:
         self.create_project(teams=[self.team])
 
         queries = [
@@ -1004,7 +1004,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 400, query
 
-    def test_get_replays_filter_bad_value(self):
+    def test_get_replays_filter_bad_value(self) -> None:
         """Test replays conform to the interchange format."""
         self.create_project(teams=[self.team])
 
@@ -1022,7 +1022,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response = self.client.get(self.url + f"?query={query}")
                 assert response.status_code == 400, query
 
-    def test_get_replays_filter_bad_duration_error_messages(self):
+    def test_get_replays_filter_bad_duration_error_messages(self) -> None:
         # TODO: remove once we support ms timestamps
         self.create_project(teams=[self.team])
         queries = [
@@ -1043,7 +1043,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
     # Note: there's no such thing as a bad field with the tag filtering behavior.
 
-    def test_get_replays_unknown_field(self):
+    def test_get_replays_unknown_field(self) -> None:
         """Test replays unknown fields raise a 400 error."""
         project = self.create_project(teams=[self.team])
 
@@ -1057,7 +1057,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response = self.client.get(self.url + "?field=unknown")
             assert response.status_code == 400
 
-    def test_get_replays_activity_field(self):
+    def test_get_replays_activity_field(self) -> None:
         """Test replays activity field does not raise 400."""
         project = self.create_project(teams=[self.team])
 
@@ -1071,7 +1071,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response = self.client.get(self.url + "?field=activity")
             assert response.status_code == 200
 
-    def test_archived_records_are_null_fields(self):
+    def test_archived_records_are_null_fields(self) -> None:
         replay1_id = uuid.uuid4().hex
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=30)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=15)
@@ -1119,22 +1119,22 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "finished_at": None,
                     "duration": None,
                     "is_archived": True,
-                    "releases": None,
+                    "releases": [],
                     "platform": None,
                     "dist": None,
                     "count_segments": None,
                     "count_urls": None,
-                    "clicks": None,
-                    "warning_ids": None,
-                    "info_ids": None,
+                    "clicks": [],
+                    "warning_ids": [],
+                    "info_ids": [],
                     "count_warnings": None,
                     "count_infos": None,
-                    "has_viewed": None,
+                    "has_viewed": False,
                 }
             ]
 
     # commented out until https://github.com/getsentry/snuba/pull/4137 is merged.
-    # def test_archived_records_out_of_bounds(self):
+    # def test_archived_records_out_of_bounds(self) -> None:
     #     replay1_id = uuid.uuid4().hex
     #     seq1_timestamp = datetime.datetime.now() - datetime.timedelta(days=10)
     #     seq2_timestamp = datetime.datetime.now() - datetime.timedelta(days=3)
@@ -1172,7 +1172,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
     #             }
     #         ]
 
-    def test_get_replays_filter_clicks(self):
+    def test_get_replays_filter_clicks(self) -> None:
         """Test replays conform to the interchange format."""
         project = self.create_project(teams=[self.team])
 
@@ -1281,7 +1281,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response_data = response.json()
                 assert len(response_data["data"]) == 0, query
 
-    def test_get_replays_click_fields(self):
+    def test_get_replays_click_fields(self) -> None:
         project = self.create_project(teams=[self.team])
 
         replay1_id = uuid.uuid4().hex
@@ -1355,7 +1355,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 }
             ]
 
-    def test_get_replays_filter_clicks_nested_selector(self):
+    def test_get_replays_filter_clicks_nested_selector(self) -> None:
         """Test replays do not support nested selectors."""
         project = self.create_project(teams=[self.team])
         self.store_replays(mock_replay(datetime.datetime.now(), project.id, uuid.uuid4().hex))
@@ -1372,7 +1372,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 assert response.status_code == 400
                 assert response.content == b'{"detail":"Nested selectors are not supported."}'
 
-    def test_get_replays_filter_clicks_pseudo_element(self):
+    def test_get_replays_filter_clicks_pseudo_element(self) -> None:
         """Assert replays only supports a subset of selector syntax."""
         project = self.create_project(teams=[self.team])
         self.store_replays(mock_replay(datetime.datetime.now(), project.id, uuid.uuid4().hex))
@@ -1386,7 +1386,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 assert response.status_code == 400, query
                 assert response.content == b'{"detail":"Pseudo-elements are not supported."}', query
 
-    def test_get_replays_filter_clicks_unsupported_selector(self):
+    def test_get_replays_filter_clicks_unsupported_selector(self) -> None:
         """Assert replays only supports a subset of selector syntax."""
         project = self.create_project(teams=[self.team])
         self.store_replays(mock_replay(datetime.datetime.now(), project.id, uuid.uuid4().hex))
@@ -1404,7 +1404,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     == b'{"detail":"Only attribute, class, id, and tag name selectors are supported."}'
                 ), query
 
-    def test_get_replays_filter_clicks_unsupported_attribute_selector(self):
+    def test_get_replays_filter_clicks_unsupported_attribute_selector(self) -> None:
         """Assert replays only supports a subset of selector syntax."""
         project = self.create_project(teams=[self.team])
         self.store_replays(mock_replay(datetime.datetime.now(), project.id, uuid.uuid4().hex))
@@ -1419,7 +1419,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     b'data-testid, data-test-id, data-sentry-component, and title are supported."}'
                 ), query
 
-    def test_get_replays_filter_clicks_unsupported_operators(self):
+    def test_get_replays_filter_clicks_unsupported_operators(self) -> None:
         """Assert replays only supports a subset of selector syntax."""
         project = self.create_project(teams=[self.team])
         self.store_replays(mock_replay(datetime.datetime.now(), project.id, uuid.uuid4().hex))
@@ -1438,7 +1438,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     response.content == b'{"detail":"Only the \'=\' operator is supported."}'
                 ), query
 
-    def test_get_replays_field_order(self):
+    def test_get_replays_field_order(self) -> None:
         """Test replay response with fields requested in production."""
         project = self.create_project(teams=[self.team])
 
@@ -1461,7 +1461,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response = self.client.get(self.url + "?field=browser&field=count_urls")
             assert response.status_code == 200
 
-    def test_get_replays_memory_error(self):
+    def test_get_replays_memory_error(self) -> None:
         """Test replay response with fields requested in production."""
         project = self.create_project(teams=[self.team])
 
@@ -1484,7 +1484,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     == b'{"detail":"Query limits exceeded. Try narrowing your request."}'
                 )
 
-    def test_get_replays_filter_clicks_non_click_rows(self):
+    def test_get_replays_filter_clicks_non_click_rows(self) -> None:
         project = self.create_project(teams=[self.team])
 
         replay1_id = uuid.uuid4().hex
@@ -1565,7 +1565,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
     # The following section tests the valid branches of the condition classes.
 
-    def test_query_branches_string_conditions(self):
+    def test_query_branches_string_conditions(self) -> None:
         project = self.create_project(teams=[self.team])
 
         replay1_id = uuid.uuid4().hex
@@ -1590,7 +1590,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
 
-    def test_query_branches_click_scalar_conditions(self):
+    def test_query_branches_click_scalar_conditions(self) -> None:
         project = self.create_project(teams=[self.team])
 
         replay1_id = uuid.uuid4().hex
@@ -1620,7 +1620,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
 
-    def test_query_branches_click_array_conditions(self):
+    def test_query_branches_click_array_conditions(self) -> None:
         project = self.create_project(teams=[self.team])
 
         replay1_id = uuid.uuid4().hex
@@ -1650,7 +1650,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
 
-    def test_query_branches_array_of_string_conditions(self):
+    def test_query_branches_array_of_string_conditions(self) -> None:
         project = self.create_project(teams=[self.team])
 
         replay1_id = uuid.uuid4().hex
@@ -1677,7 +1677,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
 
-    def test_query_branches_integer_conditions(self):
+    def test_query_branches_integer_conditions(self) -> None:
         project = self.create_project(teams=[self.team])
 
         replay1_id = uuid.uuid4().hex
@@ -1709,7 +1709,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
 
-    def test_query_branches_error_ids_conditions(self):
+    def test_query_branches_error_ids_conditions(self) -> None:
         project = self.create_project(teams=[self.team])
 
         uid1 = uuid.uuid4().hex
@@ -1735,7 +1735,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
 
-    def test_query_branches_uuid_conditions(self):
+    def test_query_branches_uuid_conditions(self) -> None:
         project = self.create_project(teams=[self.team])
 
         uid1 = uuid.uuid4().hex
@@ -1761,7 +1761,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
 
-    def test_query_branches_string_uuid_conditions(self):
+    def test_query_branches_string_uuid_conditions(self) -> None:
         project = self.create_project(teams=[self.team])
 
         replay1_id = uuid.uuid4().hex
@@ -1786,7 +1786,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
 
-    def test_query_branches_ip_address_conditions(self):
+    def test_query_branches_ip_address_conditions(self) -> None:
         project = self.create_project(teams=[self.team])
 
         replay1_id = uuid.uuid4().hex
@@ -1809,7 +1809,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
 
-    def test_query_invalid_ipv4_addresses(self):
+    def test_query_invalid_ipv4_addresses(self) -> None:
         project = self.create_project(teams=[self.team])
 
         replay1_id = uuid.uuid4().hex
@@ -1893,19 +1893,19 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 data = response.json()["data"]
                 assert len(data) == 0
 
-    def test_query_empty_email(self):
+    def test_query_empty_email(self) -> None:
         self._test_empty_filters("user.email", "user_email", "", "andrew@example.com")
 
-    def test_query_empty_ipv4(self):
+    def test_query_empty_ipv4(self) -> None:
         self._test_empty_filters("user.ip", "ipv4", None, "127.0.0.1")
 
-    def test_query_empty_username(self):
+    def test_query_empty_username(self) -> None:
         self._test_empty_filters("user.username", "user_name", "", "andrew1")
 
-    def test_query_empty_user_id(self):
+    def test_query_empty_user_id(self) -> None:
         self._test_empty_filters("user.id", "user_id", "", "12ef6")
 
-    def test_query_branches_computed_activity_conditions(self):
+    def test_query_branches_computed_activity_conditions(self) -> None:
         project = self.create_project(teams=[self.team])
 
         replay1_id = uuid.uuid4().hex
@@ -1932,7 +1932,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
 
-    def test_query_scalar_optimization_multiple_varying(self):
+    def test_query_scalar_optimization_multiple_varying(self) -> None:
         project = self.create_project(teams=[self.team])
 
         replay1_id = uuid.uuid4().hex
@@ -1950,7 +1950,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response_data = response.json()
             assert len(response_data["data"]) == 1
 
-    def test_query_scalar_optimization_varying_with_tags(self):
+    def test_query_scalar_optimization_varying_with_tags(self) -> None:
         project = self.create_project(teams=[self.team])
 
         replay1_id = uuid.uuid4().hex
@@ -1996,7 +1996,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response.status_code == 200
             assert response.headers["X-Data-Source"] == "aggregated-subquery"
 
-    def test_get_replays_missing_segment_0(self):
+    def test_get_replays_missing_segment_0(self) -> None:
         """Test fetching replays when the 0th segment is missing."""
         project = self.create_project(teams=[self.team])
 
@@ -2014,7 +2014,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert "data" in response_data
             assert len(response_data["data"]) == 0
 
-    def test_new_errors_column(self):
+    def test_new_errors_column(self) -> None:
         project = self.create_project(teams=[self.team])
 
         uid1 = uuid.uuid4().hex
@@ -2057,7 +2057,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response_data = response.json()
             assert len(response_data["data"]) == 0, query
 
-    def test_warnings_column(self):
+    def test_warnings_column(self) -> None:
         project = self.create_project(teams=[self.team])
 
         uid1 = uuid.uuid4().hex
@@ -2094,7 +2094,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response_data = response.json()
             assert len(response_data["data"]) == 0, query
 
-    def test_infos_column(self):
+    def test_infos_column(self) -> None:
         project = self.create_project(teams=[self.team])
 
         uid1 = uuid.uuid4().hex
@@ -2133,7 +2133,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response_data = response.json()
             assert len(response_data["data"]) == 0, query
 
-    def test_exp_query_branches_error_ids_conditions(self):
+    def test_exp_query_branches_error_ids_conditions(self) -> None:
         """
         Test that the new columns work the same w/ only the previous errors populated
         """
@@ -2163,7 +2163,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 assert len(response_data["data"]) == 1, query
                 assert len(response_data["data"][0]["error_ids"]) == 1, query
 
-    def test_event_id_count_columns(self):
+    def test_event_id_count_columns(self) -> None:
         project = self.create_project(teams=[self.team])
 
         replay1_id = uuid.uuid4().hex
@@ -2209,7 +2209,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response_data = response.json()
             assert response_data["data"][0]["count_warnings"] == 1
 
-    def test_non_empty_string_scalar(self):
+    def test_non_empty_string_scalar(self) -> None:
         project = self.create_project(teams=[self.team])
 
         replay1_id = uuid.uuid4().hex
@@ -2249,7 +2249,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response_data = response.json()
                 assert len(response_data["data"]) == 0, query
 
-    def test_get_replays_preferred_source(self):
+    def test_get_replays_preferred_source(self) -> None:
         replay1_id = uuid.uuid4().hex
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
@@ -2265,7 +2265,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response.status_code == 200
             assert response.headers["X-Data-Source"] == "aggregated-subquery"
 
-    def test_get_replays_default_data_source(self):
+    def test_get_replays_default_data_source(self) -> None:
         """Assert default data source is conditional on flag."""
         features = self.features.copy()
         replay1_id = uuid.uuid4().hex
@@ -2279,7 +2279,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response.status_code == 200
             assert response.headers["X-Data-Source"] == "scalar-subquery"
 
-    def test_viewed_by_denylist(self):
+    def test_viewed_by_denylist(self) -> None:
         project = self.create_project(teams=[self.team])
 
         replay1_id = uuid.uuid4().hex

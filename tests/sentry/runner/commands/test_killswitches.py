@@ -19,7 +19,7 @@ class KillswitchesTest(CliTestCase):
             )
         },
     )
-    def test_basic(self):
+    def test_basic(self) -> None:
         assert self.invoke("list").output == (
             "\n"
             "store.load-shed-group-creation-projects\n"
@@ -156,7 +156,7 @@ class KillswitchesTest(CliTestCase):
             )
         ]
 
-        # All organisations should have been invalidated:
+        # All organizations should have been invalidated:
         assert mock_schedule.mock_calls == [
             mock.call(
                 trigger="invalidate-all",

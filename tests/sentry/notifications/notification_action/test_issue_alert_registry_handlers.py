@@ -102,7 +102,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
 
         self.handler = TestHandler()
 
-    def test_create_rule_instance_from_action_missing_properties_raises_value_error(self):
+    def test_create_rule_instance_from_action_missing_properties_raises_value_error(self) -> None:
         class TestHandler(BaseIssueAlertHandler):
             @classmethod
             def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping):
@@ -112,7 +112,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         with pytest.raises(ValueError):
             handler.create_rule_instance_from_action(self.action, self.detector, self.event_data)
 
-    def test_create_rule_instance_from_action_missing_workflow_id_raises_value_error(self):
+    def test_create_rule_instance_from_action_missing_workflow_id_raises_value_error(self) -> None:
         job = WorkflowEventData(
             event=self.group_event, workflow_env=self.environment, group=self.group
         )
@@ -126,7 +126,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         with pytest.raises(ValueError):
             self.handler.create_rule_instance_from_action(action, self.detector, job)
 
-    def test_create_rule_instance_from_action_missing_rule_raises_value_error(self):
+    def test_create_rule_instance_from_action_missing_rule_raises_value_error(self) -> None:
         job = WorkflowEventData(
             event=self.group_event, workflow_env=self.environment, group=self.group
         )
@@ -142,7 +142,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         with pytest.raises(ValueError):
             self.handler.create_rule_instance_from_action(action, self.detector, job)
 
-    def test_create_rule_instance_from_action(self):
+    def test_create_rule_instance_from_action(self) -> None:
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
         rule = self.handler.create_rule_instance_from_action(
             self.action, self.detector, self.event_data
@@ -170,7 +170,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert rule.source == RuleSource.ISSUE
 
     @with_feature("organizations:workflow-engine-ui-links")
-    def test_create_rule_instance_from_action_with_workflow_engine_ui_feature_flag(self):
+    def test_create_rule_instance_from_action_with_workflow_engine_ui_feature_flag(self) -> None:
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
         rule = self.handler.create_rule_instance_from_action(
             self.action, self.detector, self.event_data
@@ -197,7 +197,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert rule.status == ObjectStatus.ACTIVE
         assert rule.source == RuleSource.ISSUE
 
-    def test_create_rule_instance_from_action_no_environment(self):
+    def test_create_rule_instance_from_action_no_environment(self) -> None:
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
         self.create_workflow()
         job = WorkflowEventData(event=self.group_event, workflow_env=None, group=self.group)
@@ -289,7 +289,7 @@ class TestDiscordIssueAlertHandler(BaseWorkflowTest):
             data={"tags": "environment,user,my_tag"},
         )
 
-    def test_build_rule_action_blob(self):
+    def test_build_rule_action_blob(self) -> None:
         """Test that build_rule_action_blob creates correct Discord action data"""
         blob = self.handler.build_rule_action_blob(self.action, self.organization.id)
 
@@ -300,7 +300,7 @@ class TestDiscordIssueAlertHandler(BaseWorkflowTest):
             "tags": "environment,user,my_tag",
         }
 
-    def test_build_rule_action_blob_no_tags(self):
+    def test_build_rule_action_blob_no_tags(self) -> None:
         """Test that build_rule_action_blob handles missing tags"""
         self.action.data = {}
         blob = self.handler.build_rule_action_blob(self.action, self.organization.id)
@@ -328,7 +328,7 @@ class TestMSTeamsIssueAlertHandler(BaseWorkflowTest):
             },
         )
 
-    def test_build_rule_action_blob(self):
+    def test_build_rule_action_blob(self) -> None:
         """Test that build_rule_action_blob creates correct MSTeams action data"""
         blob = self.handler.build_rule_action_blob(self.action, self.organization.id)
 
@@ -356,7 +356,7 @@ class TestSlackIssueAlertHandler(BaseWorkflowTest):
             },
         )
 
-    def test_build_rule_action_blob(self):
+    def test_build_rule_action_blob(self) -> None:
         """Test that build_rule_action_blob creates correct Slack action data"""
         blob = self.handler.build_rule_action_blob(self.action, self.organization.id)
 
@@ -369,7 +369,7 @@ class TestSlackIssueAlertHandler(BaseWorkflowTest):
             "notes": "Important alert",
         }
 
-    def test_build_rule_action_blob_no_data(self):
+    def test_build_rule_action_blob_no_data(self) -> None:
         """Test that build_rule_action_blob handles missing data"""
         self.action.data = {}
         blob = self.handler.build_rule_action_blob(self.action, self.organization.id)
@@ -396,7 +396,7 @@ class TestPagerDutyIssueAlertHandler(BaseWorkflowTest):
             data={"priority": "default"},
         )
 
-    def test_build_rule_action_blob(self):
+    def test_build_rule_action_blob(self) -> None:
         """Test that build_rule_action_blob creates correct PagerDuty action data"""
         blob = self.handler.build_rule_action_blob(self.action, self.organization.id)
 
@@ -407,7 +407,7 @@ class TestPagerDutyIssueAlertHandler(BaseWorkflowTest):
             "severity": "default",
         }
 
-    def test_build_rule_action_blob_no_priority(self):
+    def test_build_rule_action_blob_no_priority(self) -> None:
         """Test that build_rule_action_blob handles missing priority"""
         self.action.data = {}
         blob = self.handler.build_rule_action_blob(self.action, self.organization.id)
@@ -432,7 +432,7 @@ class TestOpsgenieIssueAlertHandler(BaseWorkflowTest):
             data={"priority": "P1"},
         )
 
-    def test_build_rule_action_blob(self):
+    def test_build_rule_action_blob(self) -> None:
         """Test that build_rule_action_blob creates correct Opsgenie action data"""
         blob = self.handler.build_rule_action_blob(self.action, self.organization.id)
 
@@ -443,7 +443,7 @@ class TestOpsgenieIssueAlertHandler(BaseWorkflowTest):
             "priority": "P1",
         }
 
-    def test_build_rule_action_blob_no_priority(self):
+    def test_build_rule_action_blob_no_priority(self) -> None:
         """Test that build_rule_action_blob handles missing priority"""
         self.action.data = {}
         blob = self.handler.build_rule_action_blob(self.action, self.organization.id)
@@ -493,7 +493,7 @@ class TestGithubIssueAlertHandler(TestTicketingIssueAlertHandlerBase):
         super().setUp()
         self.handler = GithubIssueAlertHandler()
 
-    def test_build_rule_action_blob(self):
+    def test_build_rule_action_blob(self) -> None:
         for expected in GITHUB_ACTION_DATA_BLOBS:
             if expected["id"] == ACTION_FIELD_MAPPINGS[Action.Type.GITHUB]["id"]:
                 self._test_build_rule_action_blob(expected, Action.Type.GITHUB)
@@ -506,7 +506,7 @@ class TestAzureDevopsIssueAlertHandler(TestTicketingIssueAlertHandlerBase):
         super().setUp()
         self.handler = AzureDevopsIssueAlertHandler()
 
-    def test_build_rule_action_blob(self):
+    def test_build_rule_action_blob(self) -> None:
         for expected in AZURE_DEVOPS_ACTION_DATA_BLOBS:
             self._test_build_rule_action_blob(expected, Action.Type.AZURE_DEVOPS)
 
@@ -516,7 +516,7 @@ class TestJiraIssueAlertHandler(TestTicketingIssueAlertHandlerBase):
         super().setUp()
         self.handler = JiraIssueAlertHandler()
 
-    def test_build_rule_action_blob(self):
+    def test_build_rule_action_blob(self) -> None:
         for expected in JIRA_ACTION_DATA_BLOBS:
             self._test_build_rule_action_blob(expected, Action.Type.JIRA)
 
@@ -526,7 +526,7 @@ class TestJiraServerIssueAlertHandler(TestTicketingIssueAlertHandlerBase):
         super().setUp()
         self.handler = JiraServerIssueAlertHandler()
 
-    def test_build_rule_action_blob(self):
+    def test_build_rule_action_blob(self) -> None:
         for expected in JIRA_SERVER_ACTION_DATA_BLOBS:
             self._test_build_rule_action_blob(expected, Action.Type.JIRA_SERVER)
 
@@ -584,7 +584,7 @@ class TestEmailIssueAlertHandler(BaseWorkflowTest):
             },
         ]
 
-    def test_build_rule_action_blob(self):
+    def test_build_rule_action_blob(self) -> None:
         for expected, healed in zip(EMAIL_ACTION_DATA_BLOBS, self.HEALED_EMAIL_ACTION_DATA_BLOBS):
             action_data = pop_keys_from_data_blob(expected, Action.Type.EMAIL)
 
@@ -618,7 +618,7 @@ class TestPluginIssueAlertHandler(BaseWorkflowTest):
             type=Action.Type.PLUGIN,
         )
 
-    def test_build_rule_action_blob(self):
+    def test_build_rule_action_blob(self) -> None:
         blob = self.handler.build_rule_action_blob(self.action, self.organization.id)
 
         assert blob == {
@@ -632,7 +632,7 @@ class TestWebhookIssueAlertHandler(BaseWorkflowTest):
         self.handler = WebhookIssueAlertHandler()
         self.detector = self.create_detector(project=self.project)
 
-    def test_build_rule_action_blob(self):
+    def test_build_rule_action_blob(self) -> None:
         for expected in WEBHOOK_ACTION_DATA_BLOBS:
             action = self.create_action(
                 type=Action.Type.WEBHOOK, config={"target_identifier": expected["service"]}
@@ -683,7 +683,7 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
 
         return blob
 
-    def test_build_rule_action_blob_sentry_app(self):
+    def test_build_rule_action_blob_sentry_app(self) -> None:
         data_blob = self.build_sentry_app_form_config_data_blob()
         cleaned_data_blob = self.build_sentry_app_form_config_data_blob(include_null_label=False)
         target_id = str(self.sentry_app.id)
@@ -732,7 +732,7 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
         # Both orgs should have different sentry app installations
         assert action_1_uuid != action_2_uuid
 
-    def test_build_rule_action_blob_sentry_app_sentry_app_installation_uuid(self):
+    def test_build_rule_action_blob_sentry_app_sentry_app_installation_uuid(self) -> None:
         data_blob = self.build_sentry_app_form_config_data_blob()
         cleaned_data_blob = self.build_sentry_app_form_config_data_blob(include_null_label=False)
 
@@ -780,7 +780,7 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
         # Both orgs should have different sentry app installations
         assert action_1_uuid != action_2_uuid
 
-    def test_build_rule_action_blob_sentry_app_no_settings(self):
+    def test_build_rule_action_blob_sentry_app_no_settings(self) -> None:
         target_id = str(self.sentry_app.id)
 
         action = self.create_action(

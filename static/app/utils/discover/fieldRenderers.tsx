@@ -6,7 +6,7 @@ import partial from 'lodash/partial';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {deviceNameMapper} from 'sentry/components/deviceName';
@@ -18,7 +18,6 @@ import FileSize from 'sentry/components/fileSize';
 import BadgeDisplayName from 'sentry/components/idBadge/badgeDisplayName';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import UserMisery from 'sentry/components/userMisery';
@@ -322,7 +321,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
   },
   string: {
     isSortable: true,
-    renderFunc: (field, data) => {
+    renderFunc: (field, data, baggage) => {
       // Some fields have long arrays in them, only show the tail of the data.
       const value = Array.isArray(data[field])
         ? data[field].slice(-1)
@@ -330,7 +329,11 @@ export const FIELD_FORMATTERS: FieldFormatters = {
           ? data[field]
           : emptyValue;
 
-      if (isUrl(value)) {
+      // In the future, external linking will be done through CellAction component instead of the default renderer
+      if (
+        !baggage?.organization.features.includes('discover-cell-actions-v2') &&
+        isUrl(value)
+      ) {
         return (
           <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
             <Container>
@@ -496,7 +499,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
   },
   'span.description': {
     sortField: 'span.description',
-    renderFunc: data => {
+    renderFunc: (data, {organization}) => {
       const value = data[SpanFields.SPAN_DESCRIPTION];
       const op: string = data[SpanFields.SPAN_OP];
       const projectId =
@@ -524,7 +527,8 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
           maxWidth={400}
         >
           <Container>
-            {isUrl(value) ? (
+            {!organization.features.includes('discover-cell-actions-v2') &&
+            isUrl(value) ? (
               <ExternalLink href={value}>{value}</ExternalLink>
             ) : (
               nullableValue(value)
@@ -970,13 +974,14 @@ const getContextIcon = (value: string) => {
 };
 
 /**
- * Drops the last part of an operating system or browser string that contains version appended at the end
+ * Drops the last part of an operating system or browser string that contains version appended at the end.
+ * If the value string has no spaces, the original string will be returned.
  * @param value The string that contains the version to be dropped. E.g., 'Safari 9.1.2'
- * @returns E.g., 'Safari 9.1.2' -> 'Safari'
+ * @returns E.g., 'Safari 9.1.2' -> 'Safari', 'Linux' -> 'Linux'
  */
 const dropVersion = (value: string) => {
   const valueArray = value.split(' ');
-  valueArray.pop();
+  if (valueArray.length > 1) valueArray.pop();
   return valueArray.join(' ');
 };
 

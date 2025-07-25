@@ -7,7 +7,7 @@ from sentry.testutils.cases import APITestCase
 class ProjectSymbolSourcesTest(APITestCase):
     endpoint = "sentry-api-0-project-symbol-sources"
 
-    def test_get_successful(self):
+    def test_get_successful(self) -> None:
         config = {
             "id": "honk",
             "name": "honk source",
@@ -33,7 +33,7 @@ class ProjectSymbolSourcesTest(APITestCase):
         )
         assert response.data == expected
 
-    def test_get_unsuccessful(self):
+    def test_get_unsuccessful(self) -> None:
         config = {
             "id": "honk",
             "name": "honk source",
@@ -58,7 +58,7 @@ class ProjectSymbolSourcesDeleteTest(APITestCase):
     endpoint = "sentry-api-0-project-symbol-sources"
     method = "delete"
 
-    def test_delete_successful(self):
+    def test_delete_successful(self) -> None:
         config = {
             "id": "honk",
             "name": "honk source",
@@ -81,7 +81,7 @@ class ProjectSymbolSourcesDeleteTest(APITestCase):
 
         assert project.get_option("sentry:symbol_sources") == "[]"
 
-    def test_delete_unsuccessful(self):
+    def test_delete_unsuccessful(self) -> None:
         config = {
             "id": "honk",
             "name": "honk source",
@@ -109,7 +109,7 @@ class ProjectSymbolSourcesPostTest(APITestCase):
     endpoint = "sentry-api-0-project-symbol-sources"
     method = "post"
 
-    def test_submit_successful(self):
+    def test_submit_successful(self) -> None:
         config = {
             "id": "honk",
             "name": "honk source",
@@ -139,7 +139,7 @@ class ProjectSymbolSourcesPostTest(APITestCase):
         )
         assert "id" in response.data
 
-    def test_submit_duplicate(self):
+    def test_submit_duplicate(self) -> None:
         config = {
             "id": "honk",
             "name": "honk source",
@@ -158,7 +158,7 @@ class ProjectSymbolSourcesPostTest(APITestCase):
 
         self.get_error_response(project.organization.slug, project.slug, raw_data=config)
 
-    def test_submit_invalid_id(self):
+    def test_submit_invalid_id(self) -> None:
         config = {
             "id": "sentry:project",
             "name": "honk source",
@@ -176,7 +176,7 @@ class ProjectSymbolSourcesPostTest(APITestCase):
 
         self.get_error_response(project.organization.slug, project.slug, raw_data=config)
 
-    def test_submit_invalid_config(self):
+    def test_submit_invalid_config(self) -> None:
         config = {
             "id": "honk",
             "name": "honk source",
@@ -198,7 +198,7 @@ class ProjectSymbolSourcesPutTest(APITestCase):
     endpoint = "sentry-api-0-project-symbol-sources"
     method = "put"
 
-    def test_update_successful(self):
+    def test_update_successful(self) -> None:
         config = [
             {
                 "id": "honk",
@@ -277,7 +277,7 @@ class ProjectSymbolSourcesPutTest(APITestCase):
         assert "hank" in source_ids
         assert "beep" not in source_ids
 
-    def test_update_unsuccessful(self):
+    def test_update_unsuccessful(self) -> None:
         config = [
             {
                 "id": "honk",

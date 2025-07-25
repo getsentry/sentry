@@ -132,12 +132,17 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 path_patterns={"Sentry**"},
                 path_replacer=FixedPathReplacer(path="Sentry.framework"),
             ),
-            # [SentrySDK crash] is a testing function causing a crash.
-            # Therefore, we don't want to mark it a as a SDK crash.
             sdk_crash_ignore_matchers={
+                # [SentrySDK crash] is a testing function causing a crash.
+                # Therefore, we don't want to mark it a as a SDK crash.
                 FunctionAndModulePattern(
                     module_pattern="*",
                     function_pattern="**SentrySDK crash**",
+                ),
+                # SentryCrashExceptionApplicationHelper._crashOnException calls abort() intentionally, which would cause false positives.
+                FunctionAndModulePattern(
+                    module_pattern="*",
+                    function_pattern="**SentryCrashExceptionApplicationHelper _crashOnException**",
                 ),
             },
         )
@@ -374,6 +379,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             sdk_frame_config=SDKFrameConfig(
                 function_patterns=set(),
                 path_patterns={
+                    # non-obfuscated builds
                     r"package:sentry/**",  # sentry-dart
                     r"package:sentry_flutter/**",  # sentry-dart-flutter
                     # sentry-dart packages
@@ -384,6 +390,10 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                     r"package:sentry_drift/**",
                     r"package:sentry_hive/**",
                     r"package:sentry_isar/**",
+                    r"package:sentry_link/**",
+                    r"package:sentry_firebase_remote_config/**",
+                    # obfuscated builds
+                    r"/**/.pub-cache/**/sentry**",
                 },
                 path_replacer=KeepFieldPathReplacer(fields={"package", "filename", "abs_path"}),
             ),

@@ -46,8 +46,11 @@ function ProjectSeerSetting({project, orgSlug}: {orgSlug: string; project: Proje
     projectSlug: project.slug,
   });
 
-  const {preference, isPending: isLoadingPreferences} =
-    useProjectSeerPreferences(project);
+  const {
+    preference,
+    isPending: isLoadingPreferences,
+    codeMappingRepos,
+  } = useProjectSeerPreferences(project);
 
   if (detailedProject.isPending || isLoadingPreferences) {
     return (
@@ -64,7 +67,10 @@ function ProjectSeerSetting({project, orgSlug}: {orgSlug: string; project: Proje
   const {autofixAutomationTuning = 'off', seerScannerAutomation = false} =
     detailedProject.data;
 
-  const repoCount = preference?.repositories?.length || 0;
+  let repoCount = preference?.repositories?.length || 0;
+  if (repoCount === 0 && codeMappingRepos) {
+    repoCount = codeMappingRepos.length;
+  }
 
   return (
     <SeerValue>
@@ -211,7 +217,7 @@ export function SeerAutomationProjectList() {
   };
 
   const handleRowClick = (project: Project) => {
-    navigate(`/settings/projects/${project.slug}/seer/`);
+    navigate(`/settings/${organization.slug}/projects/${project.slug}/seer/`);
   };
 
   const handleCheckboxChange = (projectId: string) => {
@@ -223,26 +229,33 @@ export function SeerAutomationProjectList() {
   };
 
   async function updateProjectsSeerValue(value: string) {
-    addLoadingMessage('Updating projects...', {duration: 30000});
+    addLoadingMessage('Updating projects...', {duration: 60000});
     try {
-      await Promise.all(
-        Array.from(selected).map(projectId => {
-          const project = projects.find(p => p.id === projectId);
-          if (!project) return Promise.resolve();
+      // Process projects in batches to avoid concurrency limit
+      const batchSize = 20;
+      const selectedProjects = Array.from(selected);
 
-          const updateData: any = {autofixAutomationTuning: value};
+      for (let i = 0; i < selectedProjects.length; i += batchSize) {
+        const batch = selectedProjects.slice(i, i + batchSize);
+        await Promise.all(
+          batch.map(projectId => {
+            const project = projects.find(p => p.id === projectId);
+            if (!project) return Promise.resolve();
 
-          // If setting fixes to anything other than "off", also enable scanner
-          if (value !== 'off') {
-            updateData.seerScannerAutomation = true;
-          }
+            const updateData: any = {autofixAutomationTuning: value};
 
-          return api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
-            method: 'PUT',
-            data: updateData,
-          });
-        })
-      );
+            // If setting fixes to anything other than "off", also enable scanner
+            if (value !== 'off') {
+              updateData.seerScannerAutomation = true;
+            }
+
+            return api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
+              method: 'PUT',
+              data: updateData,
+            });
+          })
+        );
+      }
       addSuccessMessage('Projects updated successfully');
     } catch (err) {
       addErrorMessage('Failed to update some projects');
@@ -261,18 +274,25 @@ export function SeerAutomationProjectList() {
   }
 
   async function updateProjectsSeerScanner(value: boolean) {
-    addLoadingMessage('Updating projects...', {duration: 30000});
+    addLoadingMessage('Updating projects...', {duration: 60000});
     try {
-      await Promise.all(
-        Array.from(selected).map(projectId => {
-          const project = projects.find(p => p.id === projectId);
-          if (!project) return Promise.resolve();
-          return api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
-            method: 'PUT',
-            data: {seerScannerAutomation: value},
-          });
-        })
-      );
+      // Process projects in batches to avoid concurrency limit
+      const batchSize = 20;
+      const selectedProjects = Array.from(selected);
+
+      for (let i = 0; i < selectedProjects.length; i += batchSize) {
+        const batch = selectedProjects.slice(i, i + batchSize);
+        await Promise.all(
+          batch.map(projectId => {
+            const project = projects.find(p => p.id === projectId);
+            if (!project) return Promise.resolve();
+            return api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
+              method: 'PUT',
+              data: {seerScannerAutomation: value},
+            });
+          })
+        );
+      }
       addSuccessMessage('Projects updated successfully');
     } catch (err) {
       addErrorMessage('Failed to update some projects');
@@ -322,7 +342,7 @@ export function SeerAutomationProjectList() {
         <Button
           size="md"
           priority="primary"
-          onClick={() => navigate('/settings/seer/onboarding')}
+          onClick={() => navigate(`/settings/${organization.slug}/seer/onboarding`)}
         >
           {t('Open Setup Wizard')}
         </Button>
@@ -330,7 +350,7 @@ export function SeerAutomationProjectList() {
       <Panel>
         <PanelHeader hasButtons>
           <div>{t('Automation for Existing Projects')}</div>
-          <Flex gap={space(1)} align="center" style={{marginLeft: 'auto'}}>
+          <Flex gap="md" align="center" style={{marginLeft: 'auto'}}>
             <ActionDropdownMenu
               items={scanMenuItems}
               triggerLabel={t('Set Issue Scans to')}
@@ -356,8 +376,8 @@ export function SeerAutomationProjectList() {
           )}
           {paginatedProjects.map(project => (
             <ClickablePanelItem key={project.id} onClick={() => handleRowClick(project)}>
-              <Flex justify="space-between" align="center" gap={space(2)} flex={1}>
-                <Flex gap={space(1)} align="center">
+              <Flex justify="space-between" align="center" gap="xl" flex={1}>
+                <Flex gap="md" align="center">
                   <StyledCheckbox
                     checked={selected.has(project.id)}
                     onChange={() => handleCheckboxChange(project.id)}
@@ -375,7 +395,7 @@ export function SeerAutomationProjectList() {
       </Panel>
       {totalProjects > PROJECTS_PER_PAGE && (
         <Flex justify="flex-end">
-          <ButtonBar merged gap="none">
+          <ButtonBar merged gap="0">
             <Button
               icon={<IconChevron direction="left" />}
               aria-label={t('Previous')}

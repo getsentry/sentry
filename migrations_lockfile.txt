@@ -23,11 +23,11 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notifications: 0001_move_notifications_models
 
-preprod: 0012_installablepreprod
+preprod: 0013_binary_uuid
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0953_make_releasefiles_tti
+sentry: 0958_base_option_json_field
 
 social_auth: 0003_social_auth_json_field
 
@@ -35,4 +35,4 @@ tempest: 0001_squashed_0002_make_message_type_nullable
 
 uptime: 0001_squashed_0042_extra_uptime_indexes
 
-workflow_engine: 0079_add_unique_constraint_to_detector_group
+workflow_engine: 0082_disconnect_error_detector_cron_workflows

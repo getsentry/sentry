@@ -37,6 +37,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
+import type {MetaType} from 'sentry/utils/discover/eventView';
+import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
 import {
   getAggregateAlias,
@@ -57,6 +59,7 @@ import {
   decodeScalar,
   decodeSorts,
 } from 'sentry/utils/queryString';
+import type {Theme} from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
@@ -108,7 +111,6 @@ import {
   convertTableDataToTabularData,
   decodeColumnAliases,
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
-import type {TableColumn} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
@@ -304,6 +306,7 @@ function WidgetViewerModal(props: Props) {
   // include the orderby in the table widget aggregates and columns otherwise
   // eventsv2 will complain about sorting on an unselected field.
   if (
+    widget.displayType !== DisplayType.TABLE &&
     orderby &&
     !isEquationAlias(rawOrderby) &&
     // Normalize to the aggregate alias because we may still have widgets
@@ -501,7 +504,7 @@ function WidgetViewerModal(props: Props) {
         tableResults,
         loading,
         pageLinks,
-        columnOrder,
+        fields,
         widget,
         tableWidget,
         setChartUnmodified,
@@ -509,6 +512,8 @@ function WidgetViewerModal(props: Props) {
         location,
         organization,
         navigate,
+        eventView,
+        theme,
       });
     }
 
@@ -593,7 +598,7 @@ function WidgetViewerModal(props: Props) {
         tableResults,
         loading,
         pageLinks,
-        columnOrder,
+        fields,
         widget,
         tableWidget,
         setChartUnmodified,
@@ -601,6 +606,8 @@ function WidgetViewerModal(props: Props) {
         location,
         organization,
         navigate,
+        eventView,
+        theme,
       });
     }
     const links = parseLinkHeader(pageLinks ?? null);
@@ -684,7 +691,7 @@ function WidgetViewerModal(props: Props) {
         tableResults,
         loading,
         pageLinks,
-        columnOrder,
+        fields,
         widget,
         tableWidget,
         setChartUnmodified,
@@ -692,6 +699,8 @@ function WidgetViewerModal(props: Props) {
         location,
         organization,
         navigate,
+        eventView,
+        theme,
       });
     }
     const links = parseLinkHeader(pageLinks ?? null);
@@ -1250,13 +1259,15 @@ function renderTotalResults(totalResults?: string, widgetType?: WidgetType) {
 }
 
 interface ViewerTableV2Props {
-  columnOrder: Array<TableColumn<string>>;
+  eventView: EventView;
+  fields: string[];
   loading: boolean;
   location: Location;
   navigate: ReactRouter3Navigate;
   organization: Organization;
   setChartUnmodified: React.Dispatch<React.SetStateAction<boolean>>;
   tableWidget: Widget;
+  theme: Theme;
   widget: Widget;
   widths: string[];
   pageLinks?: string;
@@ -1268,13 +1279,15 @@ function ViewerTableV2({
   tableResults,
   loading,
   pageLinks,
-  columnOrder,
+  fields,
   widths,
   setChartUnmodified,
   tableWidget,
   location,
   organization,
   navigate,
+  eventView,
+  theme,
 }: ViewerTableV2Props) {
   const page = decodeInteger(location.query[WidgetViewerQueryField.PAGE]) ?? 0;
   const links = parseLinkHeader(pageLinks ?? null);
@@ -1289,17 +1302,25 @@ function ViewerTableV2({
     return true;
   }
 
+  const columnOrder = decodeColumnOrder(
+    fields.map(field => ({
+      field,
+    })),
+    tableResults?.[0]?.meta
+  );
+
   const tableColumns = columnOrder.map((column, index) => ({
     key: column.key,
     type: column.type === 'never' ? null : column.type,
     sortable: sortable(column.key),
     width: widths[index] ? parseInt(widths[index], 10) || -1 : -1,
   }));
+  const datasetConfig = getDatasetConfig(widget.widgetType);
   const aliases = decodeColumnAliases(
     tableColumns,
     tableWidget.queries[0]?.fieldAliases ?? [],
     tableWidget.widgetType === WidgetType.ISSUE
-      ? getDatasetConfig(tableWidget.widgetType).getFieldHeaderMap?.()
+      ? datasetConfig?.getFieldHeaderMap?.()
       : {}
   );
 
@@ -1352,6 +1373,27 @@ function ViewerTableV2({
         aliases={aliases}
         sort={tableSort}
         onChangeSort={onChangeSort}
+        getRenderer={(field, _dataRow, meta) => {
+          const customRenderer = datasetConfig?.getCustomFieldRenderer?.(
+            field,
+            meta as MetaType,
+            widget,
+            organization
+          )!;
+
+          return customRenderer;
+        }}
+        makeBaggage={(field, _dataRow, meta) => {
+          const unit = meta.units?.[field] as string | undefined;
+
+          return {
+            location,
+            organization,
+            theme,
+            unit,
+            eventView,
+          } satisfies RenderFunctionBaggage;
+        }}
       />
       {!(
         tableWidget.queries[0]!.orderby.match(/^-?release$/) &&

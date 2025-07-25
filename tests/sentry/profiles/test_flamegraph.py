@@ -8,8 +8,11 @@ def test_split_datetime_range_exponential_with_days():
     end = datetime(2023, 1, 31)
     initial_delta = timedelta(days=1)
     max_chunk_delta = timedelta(days=8)
+    multiplier = 2
 
-    result = list(split_datetime_range_exponential(start, end, initial_delta, max_chunk_delta))
+    result = list(
+        split_datetime_range_exponential(start, end, initial_delta, max_chunk_delta, multiplier)
+    )
 
     expected_chunks = [
         (datetime(2023, 1, 1), datetime(2023, 1, 2)),  # Delta: 1 day
@@ -28,9 +31,12 @@ def test_split_datetime_range_exponential_with_hours():
     end_time = datetime(2024, 5, 2, 12, 0, 0)
     initial_h_delta = timedelta(hours=2)
     max_h_delta = timedelta(hours=8)
+    multiplier = 2
 
     result = list(
-        split_datetime_range_exponential(start_time, end_time, initial_h_delta, max_h_delta)
+        split_datetime_range_exponential(
+            start_time, end_time, initial_h_delta, max_h_delta, multiplier
+        )
     )
 
     expected_chunks = [
@@ -39,6 +45,58 @@ def test_split_datetime_range_exponential_with_hours():
         (datetime(2024, 5, 1, 12, 0), datetime(2024, 5, 1, 20, 0)),  # Delta: 8 hours (max reached)
         (datetime(2024, 5, 1, 20, 0), datetime(2024, 5, 2, 4, 0)),  # Delta: 8 hours
         (datetime(2024, 5, 2, 4, 0), datetime(2024, 5, 2, 12, 0)),  # Final chunk fits perfectly
+    ]
+
+    assert result == expected_chunks
+
+
+def test_split_datetime_range_exponential_with_days_reverse():
+    start = datetime(2023, 1, 1)
+    end = datetime(2023, 1, 31)
+    initial_delta = timedelta(days=1)
+    max_chunk_delta = timedelta(days=8)
+    multiplier = 2
+
+    result = list(
+        split_datetime_range_exponential(
+            start, end, initial_delta, max_chunk_delta, multiplier, reverse=True
+        )
+    )
+
+    expected_chunks = [
+        (datetime(2023, 1, 30), datetime(2023, 1, 31)),  # Delta: 1 day (last chunk first)
+        (datetime(2023, 1, 28), datetime(2023, 1, 30)),  # Delta: 2 days
+        (datetime(2023, 1, 24), datetime(2023, 1, 28)),  # Delta: 4 days
+        (datetime(2023, 1, 16), datetime(2023, 1, 24)),  # Delta: 8 days (max reached)
+        (datetime(2023, 1, 8), datetime(2023, 1, 16)),  # Delta: 8 days
+        (datetime(2023, 1, 1), datetime(2023, 1, 8)),  # First chunk trimmed to start
+    ]
+
+    assert result == expected_chunks
+
+
+def test_split_datetime_range_exponential_with_hours_reverse():
+    start_time = datetime(2024, 5, 1, 6, 0, 0)
+    end_time = datetime(2024, 5, 2, 12, 0, 0)
+    initial_h_delta = timedelta(hours=2)
+    max_h_delta = timedelta(hours=8)
+    multiplier = 2
+
+    result = list(
+        split_datetime_range_exponential(
+            start_time, end_time, initial_h_delta, max_h_delta, multiplier, reverse=True
+        )
+    )
+
+    expected_chunks = [
+        (
+            datetime(2024, 5, 2, 10, 0),
+            datetime(2024, 5, 2, 12, 0),
+        ),  # Delta: 2 hours (last chunk first)
+        (datetime(2024, 5, 2, 6, 0), datetime(2024, 5, 2, 10, 0)),  # Delta: 4 hours
+        (datetime(2024, 5, 1, 22, 0), datetime(2024, 5, 2, 6, 0)),  # Delta: 8 hours (max reached)
+        (datetime(2024, 5, 1, 14, 0), datetime(2024, 5, 1, 22, 0)),  # Delta: 8 hours
+        (datetime(2024, 5, 1, 6, 0), datetime(2024, 5, 1, 14, 0)),  # First chunk fits perfectly
     ]
 
     assert result == expected_chunks

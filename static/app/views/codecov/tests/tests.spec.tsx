@@ -3,6 +3,12 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import CodecovQueryParamsProvider from 'sentry/components/codecov/container/codecovParamsProvider';
 import TestsPage from 'sentry/views/codecov/tests/tests';
 
+jest.mock('sentry/components/pagination', () => {
+  return function MockPagination() {
+    return <div>Pagination Component</div>;
+  };
+});
+
 // TODO: Make these fixtures
 const mockTestResultsData = [
   {
@@ -54,6 +60,15 @@ const mockRepositories = [
   },
 ];
 
+const mockBranches = [
+  {
+    name: 'main',
+  },
+  {
+    name: 'another branch',
+  },
+];
+
 const mockIntegrations = [
   {name: 'integration-1', id: '1'},
   {name: 'integration-2', id: '2'},
@@ -86,6 +101,14 @@ const mockApiCall = () => {
     method: 'GET',
     body: {
       results: mockRepositories,
+    },
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/prevent/owner/123/repository/some-repository/branches/`,
+    method: 'GET',
+    body: {
+      defaultBranch: 'main',
+      results: mockBranches,
     },
   });
   MockApiClient.addMockResponse({
@@ -126,6 +149,10 @@ describe('CoveragePageWrapper', () => {
 
       await waitFor(() => {
         expect(screen.getByRole('table')).toBeInTheDocument();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Pagination Component')).toBeInTheDocument();
       });
     });
   });

@@ -2,13 +2,23 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {t, tn} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
-import type {Automation, NewAutomation} from 'sentry/types/workflowEngine/automations';
+import type {
+  Automation,
+  AutomationFireHistory,
+  NewAutomation,
+} from 'sentry/types/workflowEngine/automations';
 import type {
   DataConditionHandler,
   DataConditionHandlerGroupType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {
+  setApiQueryData,
+  useApiQuery,
+  useMutation,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -67,6 +77,45 @@ export function useAutomationQuery(automationId: string) {
   });
 }
 
+const makeAutomationFireHistoryQueryKey = ({
+  orgSlug,
+  automationId,
+  cursor,
+  limit,
+  query,
+}: {
+  automationId: string;
+  orgSlug: string;
+  cursor?: string;
+  limit?: number;
+  query?: string;
+}): ApiQueryKey => [
+  `/organizations/${orgSlug}/workflows/${automationId}/group-history/`,
+  {query: {query, per_page: limit, cursor}},
+];
+
+interface UseAutomationFireHistoryQueryOptions {
+  automationId: string;
+  cursor?: string;
+  limit?: number;
+  query?: string;
+}
+export function useAutomationFireHistoryQuery(
+  options: UseAutomationFireHistoryQueryOptions,
+  queryOptions: Partial<UseApiQueryOptions<AutomationFireHistory[]>> = {}
+) {
+  const {slug} = useOrganization();
+
+  return useApiQuery<AutomationFireHistory[]>(
+    makeAutomationFireHistoryQueryKey({orgSlug: slug, ...options}),
+    {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      retry: false,
+      ...queryOptions,
+    }
+  );
+}
+
 export function useDataConditionsQuery(groupType: DataConditionHandlerGroupType) {
   const {slug} = useOrganization();
 
@@ -93,7 +142,7 @@ export function useCreateAutomation() {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
-  return useMutation<Automation, void, NewAutomation>({
+  return useMutation<Automation, RequestError, NewAutomation>({
     mutationFn: data =>
       api.requestPromise(`/organizations/${org.slug}/workflows/`, {
         method: 'POST',
@@ -110,23 +159,53 @@ export function useCreateAutomation() {
   });
 }
 
+export function useDeleteAutomationMutation() {
+  const org = useOrganization();
+  const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
+
+  return useMutation<void, RequestError, string>({
+    mutationFn: (automationId: string) =>
+      api.requestPromise(`/organizations/${org.slug}/workflows/${automationId}/`, {
+        method: 'DELETE',
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [`/organizations/${org.slug}/workflows/`],
+      });
+      addSuccessMessage(t('Automation deleted'));
+    },
+    onError: error => {
+      addErrorMessage(t('Unable to delete automation: %s', error.message));
+    },
+  });
+}
+
 export function useUpdateAutomation() {
   const org = useOrganization();
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
-  return useMutation<Automation, void, {automationId: string} & NewAutomation>({
-    mutationFn: ({automationId, ...data}) =>
-      api.requestPromise(`/organizations/${org.slug}/workflows/${automationId}/`, {
+  return useMutation<
+    Automation,
+    void,
+    Partial<NewAutomation> & {id: Automation['id']; name: NewAutomation['name']}
+  >({
+    mutationFn: data =>
+      api.requestPromise(`/organizations/${org.slug}/workflows/${data.id}/`, {
         method: 'PUT',
         data,
       }),
-    onSuccess: (_, data) => {
+    onSuccess: data => {
+      // Update cache with new automation data
+      setApiQueryData(
+        queryClient,
+        [`/organizations/${org.slug}/workflows/${data.id}/`],
+        data
+      );
+      // Invalidate list query
       queryClient.invalidateQueries({
         queryKey: [`/organizations/${org.slug}/workflows/`],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [`/organizations/${org.slug}/workflows/${data.automationId}/`],
       });
     },
     onError: _ => {

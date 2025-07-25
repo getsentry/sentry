@@ -66,7 +66,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         if exc_args:
             assert call_arg.args == (exc_args,)
 
-    def test_simple_get_link(self):
+    def test_simple_get_link(self) -> None:
         self.login_as(user=self.user)
         org = self.organization
         integration = self.create_integration(
@@ -108,7 +108,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                 ],
             }
 
-    def test_simple_get_create(self):
+    def test_simple_get_create(self) -> None:
         self.login_as(user=self.user)
         org = self.organization
         integration = self.create_integration(
@@ -176,7 +176,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                 ],
             }
 
-    def test_get_create_with_error(self):
+    def test_get_create_with_error(self) -> None:
         self.login_as(user=self.user)
         org = self.organization
         integration = self.create_integration(
@@ -194,7 +194,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                 assert response.status_code == 400
                 assert response.data == {"detail": "oops"}
 
-    def test_get_feature_disabled(self):
+    def test_get_feature_disabled(self) -> None:
         self.login_as(user=self.user)
         org = self.organization
         integration = self.create_integration(
@@ -351,7 +351,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                 mock_record_failure, IntegrationError, "The whole operation was invalid"
             )
 
-    def test_put_feature_disabled(self):
+    def test_put_feature_disabled(self) -> None:
         self.login_as(user=self.user)
         org = self.organization
         group = self.create_group()
@@ -484,7 +484,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                 "Repository has no issue tracker.",
             )
 
-    def test_post_feature_disabled(self):
+    def test_post_feature_disabled(self) -> None:
         self.login_as(user=self.user)
         org = self.organization
         group = self.create_group()
@@ -504,7 +504,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         assert response.status_code == 400
         assert response.data["detail"] == "Your organization does not have access to this feature."
 
-    def test_simple_delete(self):
+    def test_simple_delete(self) -> None:
         self.login_as(user=self.user)
         org = self.organization
         group = self.create_group()
@@ -533,7 +533,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             assert not ExternalIssue.objects.filter(id=external_issue.id).exists()
             assert not GroupLink.objects.filter(id=group_link.id).exists()
 
-    def test_delete_feature_disabled(self):
+    def test_delete_feature_disabled(self) -> None:
         self.login_as(user=self.user)
         org = self.organization
         group = self.create_group()
@@ -565,7 +565,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         assert response.status_code == 400
         assert response.data["detail"] == "Your organization does not have access to this feature."
 
-    def test_default_project(self):
+    def test_default_project(self) -> None:
         def assert_default_project(path, action, expected_project_field):
             response = self.client.get(path)
             assert response.status_code == 200

@@ -47,6 +47,7 @@ export function FeedbackOnboardingLayout({
       platformKey,
       projectId,
       projectSlug,
+      isLogsSelected: false,
       isFeedbackSelected: true,
       isPerformanceSelected: false,
       isProfilingSelected: false,

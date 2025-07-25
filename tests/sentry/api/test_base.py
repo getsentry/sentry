@@ -112,7 +112,7 @@ _dummy_streaming_endpoint = DummyPaginationStreamingEndpoint.as_view()
 
 @all_silo_test
 class EndpointTest(APITestCase):
-    def test_basic_cors(self):
+    def test_basic_cors(self) -> None:
         org = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
             apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
@@ -140,7 +140,7 @@ class EndpointTest(APITestCase):
         assert "Access-Control-Allow-Credentials" not in response
 
     @override_options({"system.base-hostname": "example.com"})
-    def test_allow_credentials_subdomain(self):
+    def test_allow_credentials_subdomain(self) -> None:
         org = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
             apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
@@ -168,7 +168,7 @@ class EndpointTest(APITestCase):
         assert response["Access-Control-Allow-Credentials"] == "true"
 
     @override_options({"system.base-hostname": "example.com"})
-    def test_allow_credentials_root_domain(self):
+    def test_allow_credentials_root_domain(self) -> None:
         org = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
             apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
@@ -197,7 +197,7 @@ class EndpointTest(APITestCase):
 
     @override_options({"system.base-hostname": "example.com"})
     @override_settings(ALLOWED_CREDENTIAL_ORIGINS=["http://docs.example.org"])
-    def test_allow_credentials_allowed_domain(self):
+    def test_allow_credentials_allowed_domain(self) -> None:
         org = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
             apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
@@ -225,7 +225,7 @@ class EndpointTest(APITestCase):
         assert response["Access-Control-Allow-Credentials"] == "true"
 
     @override_options({"system.base-hostname": "acme.com"})
-    def test_allow_credentials_incorrect(self):
+    def test_allow_credentials_incorrect(self) -> None:
         org = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
             apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
@@ -240,7 +240,7 @@ class EndpointTest(APITestCase):
             assert "Access-Control-Allow-Credentials" not in response
 
     @override_options({"system.base-hostname": "acme.com"})
-    def test_disallow_credentials_when_two_origins(self):
+    def test_disallow_credentials_when_two_origins(self) -> None:
         org = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
             apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
@@ -253,7 +253,7 @@ class EndpointTest(APITestCase):
         response.render()
         assert "Access-Control-Allow-Credentials" not in response
 
-    def test_invalid_cors_without_auth(self):
+    def test_invalid_cors_without_auth(self) -> None:
         request = self.make_request(method="GET")
         request.META["HTTP_ORIGIN"] = "http://example.com"
 
@@ -263,7 +263,7 @@ class EndpointTest(APITestCase):
 
         assert response.status_code == 400, response.content
 
-    def test_valid_cors_without_auth(self):
+    def test_valid_cors_without_auth(self) -> None:
         request = self.make_request(method="GET")
         request.META["HTTP_ORIGIN"] = "http://example.com"
 
@@ -275,7 +275,7 @@ class EndpointTest(APITestCase):
         assert response["Access-Control-Allow-Origin"] == "http://example.com"
 
     # XXX(dcramer): The default setting needs to allow requests to work or it will be a regression
-    def test_cors_not_configured_is_valid(self):
+    def test_cors_not_configured_is_valid(self) -> None:
         request = self.make_request(method="GET")
         request.META["HTTP_ORIGIN"] = "http://example.com"
 
@@ -296,7 +296,7 @@ class EndpointTest(APITestCase):
         )
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
 
-    def test_update_token_access_record_is_called(self):
+    def test_update_token_access_record_is_called(self) -> None:
         token_str = generate_token(self.organization.slug, "")
         token_hashed = hash_token(token_str)
         token = self.create_org_auth_token(
@@ -402,7 +402,7 @@ class EndpointHandleExceptionTest(APITestCase):
 
 
 class CursorGenerationTest(APITestCase):
-    def test_serializes_params(self):
+    def test_serializes_params(self) -> None:
         request = self.make_request(method="GET", path="/api/0/organizations/")
         request.GET = QueryDict("member=1&cursor=foo")
         endpoint = Endpoint()
@@ -415,7 +415,7 @@ class CursorGenerationTest(APITestCase):
             ' rel="next"; results="false"; cursor="1492107369532:0:0"'
         )
 
-    def test_preserves_ssl_proto(self):
+    def test_preserves_ssl_proto(self) -> None:
         request = self.make_request(method="GET", path="/api/0/organizations/", secure_scheme=True)
         request.GET = QueryDict("member=1&cursor=foo")
         endpoint = Endpoint()
@@ -429,7 +429,7 @@ class CursorGenerationTest(APITestCase):
             ' rel="next"; results="false"; cursor="1492107369532:0:0"'
         )
 
-    def test_handles_customer_domains(self):
+    def test_handles_customer_domains(self) -> None:
         request = self.make_request(
             method="GET", path="/api/0/organizations/", secure_scheme=True, subdomain="bebe"
         )
@@ -450,7 +450,7 @@ class CursorGenerationTest(APITestCase):
             ' rel="next"; results="false"; cursor="1492107369532:0:0"'
         )
 
-    def test_unicode_path(self):
+    def test_unicode_path(self) -> None:
         request = self.make_request(method="GET", path="/api/0/organizations/üuuuu/")
         endpoint = Endpoint()
         result = endpoint.build_cursor_link(
@@ -462,7 +462,7 @@ class CursorGenerationTest(APITestCase):
             ' rel="next"; results="false"; cursor="1492107369532:0:0"'
         )
 
-    def test_encodes_url(self):
+    def test_encodes_url(self) -> None:
         endpoint = Endpoint()
         request = self.make_request(method="GET", path="/foo/bar/lol:what/")
 
@@ -476,7 +476,7 @@ class CursorGenerationTest(APITestCase):
 class PaginateTest(APITestCase):
     view = staticmethod(DummyPaginationEndpoint().as_view())
 
-    def test_success(self):
+    def test_success(self) -> None:
         response = self.view(self.make_request())
         assert response.status_code == 200, response.content
         assert (
@@ -484,27 +484,27 @@ class PaginateTest(APITestCase):
             == '<http://testserver/?&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <http://testserver/?&cursor=0:100:0>; rel="next"; results="false"; cursor="0:100:0"'
         )
 
-    def test_invalid_cursor(self):
+    def test_invalid_cursor(self) -> None:
         request = self.make_request(GET={"cursor": "no:no:no"})
         response = self.view(request)
         assert response.status_code == 400
 
-    def test_non_int_per_page(self):
+    def test_non_int_per_page(self) -> None:
         request = self.make_request(GET={"per_page": "nope"})
         response = self.view(request)
         assert response.status_code == 400
 
-    def test_per_page_too_low(self):
+    def test_per_page_too_low(self) -> None:
         request = self.make_request(GET={"per_page": "0"})
         response = self.view(request)
         assert response.status_code == 400
 
-    def test_per_page_too_high(self):
+    def test_per_page_too_high(self) -> None:
         request = self.make_request(GET={"per_page": "101"})
         response = self.view(request)
         assert response.status_code == 400
 
-    def test_custom_response_type(self):
+    def test_custom_response_type(self) -> None:
         response = _dummy_streaming_endpoint(self.make_request())
         assert response.status_code == 200
         assert is_streaming_response(response)
@@ -514,7 +514,7 @@ class PaginateTest(APITestCase):
 
 @all_silo_test(regions=create_test_regions("us", "eu"))
 class CustomerDomainTest(APITestCase):
-    def test_resolve_region(self):
+    def test_resolve_region(self) -> None:
         def request_with_subdomain(subdomain):
             request = self.make_request(method="GET")
             request.subdomain = subdomain
@@ -551,15 +551,15 @@ class EndpointSiloLimitTest(APITestCase):
                         DecoratedEndpoint.as_view()(request)
                     # TODO: Make work with EndpointWithDecoratedMethod
 
-    def test_with_active_mode(self):
+    def test_with_active_mode(self) -> None:
         self._test_active_on(SiloMode.REGION, SiloMode.REGION, True)
         self._test_active_on(SiloMode.CONTROL, SiloMode.CONTROL, True)
 
-    def test_with_inactive_mode(self):
+    def test_with_inactive_mode(self) -> None:
         self._test_active_on(SiloMode.REGION, SiloMode.CONTROL, False)
         self._test_active_on(SiloMode.CONTROL, SiloMode.REGION, False)
 
-    def test_with_monolith_mode(self):
+    def test_with_monolith_mode(self) -> None:
         self._test_active_on(SiloMode.REGION, SiloMode.MONOLITH, True)
         self._test_active_on(SiloMode.CONTROL, SiloMode.MONOLITH, True)
 
@@ -577,15 +577,15 @@ class FunctionSiloLimitTest(APITestCase):
                 with raises(FunctionSiloLimit.AvailabilityError):
                     decorated_function()
 
-    def test_with_active_mode(self):
+    def test_with_active_mode(self) -> None:
         self._test_active_on(SiloMode.REGION, SiloMode.REGION, True)
         self._test_active_on(SiloMode.CONTROL, SiloMode.CONTROL, True)
 
-    def test_with_inactive_mode(self):
+    def test_with_inactive_mode(self) -> None:
         self._test_active_on(SiloMode.REGION, SiloMode.CONTROL, False)
         self._test_active_on(SiloMode.CONTROL, SiloMode.REGION, False)
 
-    def test_with_monolith_mode(self):
+    def test_with_monolith_mode(self) -> None:
         self._test_active_on(SiloMode.REGION, SiloMode.MONOLITH, True)
         self._test_active_on(SiloMode.CONTROL, SiloMode.MONOLITH, True)
 
@@ -597,7 +597,7 @@ class SuperuserPermissionTest(APITestCase):
         self.superuser_permission_view = DummySuperuserPermissionEndpoint().as_view()
         self.superuser_or_any_permission_view = DummySuperuserOrAnyPermissionEndpoint().as_view()
 
-    def test_superuser_exception_raised(self):
+    def test_superuser_exception_raised(self) -> None:
         response = self.superuser_permission_view(self.request)
         response_detail = response.data["detail"]
 
@@ -622,7 +622,7 @@ class RequestAccessTest(APITestCase):
         self.create_member(user=self.user, organization=self.org)
         self.request = self.make_request(user=self.user, method="GET")
 
-    def test_access_property_set_before_convert_args(self):
+    def test_access_property_set_before_convert_args(self) -> None:
         """Test that request.access is available during convert_args"""
 
         class AccessUsingEndpoint(Endpoint):

@@ -9,7 +9,7 @@ class ListProjectKeysTest(APITestCase):
         super().setUp()
         self.user = self.create_user(is_superuser=False)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project()
         key = ProjectKey.objects.get_or_create(project=project)[0]
         self.login_as(user=self.user)
@@ -25,7 +25,7 @@ class ListProjectKeysTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["public"] == key.public_key
 
-    def test_playstation_dsn(self):
+    def test_playstation_dsn(self) -> None:
         project = self.create_project()
         key = ProjectKey.objects.get_or_create(project=project)[0]
         self.login_as(user=self.user)
@@ -40,7 +40,22 @@ class ListProjectKeysTest(APITestCase):
         assert response.status_code == 200
         assert response.data[0]["dsn"]["playstation"] == key.playstation_endpoint
 
-    def test_use_case(self):
+    def test_otlp_traces_endpoint(self) -> None:
+        project = self.create_project()
+        key = ProjectKey.objects.get_or_create(project=project)[0]
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-keys",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert response.data[0]["dsn"]["otlp_traces"] == key.otlp_traces_endpoint
+
+    def test_use_case(self) -> None:
         """Regular user can access user DSNs but not internal DSNs"""
         project = self.create_project()
         user_key = ProjectKey.objects.get_or_create(project=project)[0]
@@ -63,7 +78,7 @@ class ListProjectKeysTest(APITestCase):
         assert response_data["public"] == user_key.public_key
         assert response_data["public"] != internal_key.public_key
 
-    def test_use_case_superuser(self):
+    def test_use_case_superuser(self) -> None:
         """Superuser can access both user DSNs and internal DSNs"""
         project = self.create_project()
         user_key = ProjectKey.objects.get_or_create(project=project)[0]
@@ -95,7 +110,7 @@ class ListProjectKeysTest(APITestCase):
 
 
 class CreateProjectKeyTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project()
         self.login_as(user=self.user)
         url = reverse(
@@ -119,7 +134,7 @@ class CreateProjectKeyTest(APITestCase):
             "hasReplay": True,
         }
 
-    def test_minimal_args(self):
+    def test_minimal_args(self) -> None:
         project = self.create_project()
         self.login_as(user=self.user)
         url = reverse(
@@ -139,7 +154,7 @@ class CreateProjectKeyTest(APITestCase):
             "hasReplay": True,
         }
 
-    def test_keys(self):
+    def test_keys(self) -> None:
         project = self.create_project()
         self.login_as(user=self.user)
         url = reverse(
@@ -155,7 +170,7 @@ class CreateProjectKeyTest(APITestCase):
         assert key.public_key == resp.data["public"] == "a" * 32
         assert key.secret_key == resp.data["secret"] == "b" * 32
 
-    def test_cannot_create_internal(self):
+    def test_cannot_create_internal(self) -> None:
         """POST request ignores use case field"""
         project = self.create_project()
         self.login_as(user=self.user)
@@ -173,7 +188,7 @@ class CreateProjectKeyTest(APITestCase):
         key = ProjectKey.objects.get(public_key=resp.data["public"])
         assert key.use_case == "user"
 
-    def test_superuser_can_create_internal(self):
+    def test_superuser_can_create_internal(self) -> None:
         project = self.create_project()
         self.user = self.create_user(is_superuser=True)
         self.login_as(user=self.user, superuser=True)

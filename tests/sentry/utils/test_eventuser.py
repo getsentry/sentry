@@ -98,13 +98,13 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
             ],
         )
 
-    def test_for_projects_query_filter_username(self):
+    def test_for_projects_query_filter_username(self) -> None:
         euser = EventUser.for_projects([self.project], {"username": ["minion"]}, result_limit=1)
         assert len(euser) == 1
         assert euser[0].user_ident == self.event_3.data.get("user").get("id")
         assert euser[0].email == self.event_3.data.get("user").get("email")
 
-    def test_for_projects_query_filter_email(self):
+    def test_for_projects_query_filter_email(self) -> None:
         euser = EventUser.for_projects(
             [self.project], {"email": ["foo@example.com"]}, result_limit=1
         )
@@ -112,13 +112,13 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         assert euser[0].user_ident == self.event_1.data.get("user").get("id")
         assert euser[0].email == self.event_1.data.get("user").get("email")
 
-    def test_for_projects_query_filter_ip(self):
+    def test_for_projects_query_filter_ip(self) -> None:
         euser = EventUser.for_projects([self.project], {"ip": ["8.8.8.8"]}, result_limit=1)
         assert len(euser) == 1
         assert euser[0].user_ident == self.event_3.data.get("user").get("id")
         assert euser[0].email == self.event_3.data.get("user").get("email")
 
-    def test_for_projects_query_multiple_OR_filters(self):
+    def test_for_projects_query_multiple_OR_filters(self) -> None:
         eusers = EventUser.for_projects(
             [self.project],
             {"username": ["minion"], "email": ["foo@example.com"]},
@@ -126,7 +126,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         )
         assert len(eusers) == 2
 
-    def test_for_projects_query_multiple_AND_filters(self):
+    def test_for_projects_query_multiple_AND_filters(self) -> None:
         eusers = EventUser.for_projects(
             [self.project],
             {"username": ["minion"], "email": ["minion@universal.com"], "ip": ["8.8.8.8"]},
@@ -135,7 +135,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         assert eusers[0].user_ident == self.event_3.data.get("user").get("id")
         assert eusers[0].email == self.event_3.data.get("user").get("email")
 
-    def test_for_projects_query_with_multiple_eventuser_entries_different_ips(self):
+    def test_for_projects_query_with_multiple_eventuser_entries_different_ips(self) -> None:
         for i in range(10):
             self.store_event(
                 data={
@@ -160,7 +160,9 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         assert eusers[0].email == self.event_2.data.get("user").get("email")
         assert eusers[0].ip_address == self.event_2.data.get("user").get("ip_address")
 
-    def test_for_projects_query_with_multiple_eventuser_entries_different_ips_query_by_ip(self):
+    def test_for_projects_query_with_multiple_eventuser_entries_different_ips_query_by_ip(
+        self,
+    ) -> None:
         for i in range(5):
             self.store_event(
                 data={
@@ -405,13 +407,13 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
             ],
         )
 
-    def test_tag_value_primary_is_user_ident(self):
+    def test_tag_value_primary_is_user_ident(self) -> None:
         euser = EventUser.for_projects([self.project], {"id": ["2"]}, result_limit=1)
         assert len(euser) == 1
         assert euser[0].user_ident == "2"
         assert euser[0].tag_value == "id:2"
 
-    def test_tag_value_primary_is_username(self):
+    def test_tag_value_primary_is_username(self) -> None:
         self.store_event(
             data={
                 "user": {
@@ -429,7 +431,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         assert euser[0].user_ident is None
         assert euser[0].tag_value == "username:cocoa"
 
-    def test_tag_value_primary_is_email(self):
+    def test_tag_value_primary_is_email(self) -> None:
         self.store_event(
             data={
                 "user": {
@@ -450,7 +452,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         assert euser[0].username is None
         assert euser[0].tag_value == "email:cocoa@universal.com"
 
-    def test_tag_value_primary_is_ip(self):
+    def test_tag_value_primary_is_ip(self) -> None:
         self.store_event(
             data={
                 "user": {
@@ -470,7 +472,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         assert euser[0].email is None
         assert euser[0].tag_value == "ip:8.8.8.1"
 
-    def test_for_tags(self):
+    def test_for_tags(self) -> None:
         assert EventUser.for_tags(self.project.id, ["id:myminion"]) == {
             "id:myminion": EventUser.from_event(self.event_3)
         }

@@ -87,6 +87,8 @@ class Topic(Enum):
     TASKWORKER_INGEST_DLQ = "taskworker-ingest-dlq"
     TASKWORKER_INGEST_ERRORS = "taskworker-ingest-errors"
     TASKWORKER_INGEST_ERRORS_DLQ = "taskworker-ingest-errors-dlq"
+    TASKWORKER_INGEST_ERRORS_POSTPROCESS = "taskworker-ingest-errors-postprocess"
+    TASKWORKER_INGEST_ERRORS_POSTPROCESS_DLQ = "taskworker-ingest-errors-postprocess-dlq"
     TASKWORKER_INGEST_TRANSACTIONS = "taskworker-ingest-transactions"
     TASKWORKER_INGEST_TRANSACTIONS_DLQ = "taskworker-ingest-transactions-dlq"
     TASKWORKER_INGEST_ATTACHMENTS = "taskworker-ingest-attachments"
@@ -107,6 +109,8 @@ class Topic(Enum):
     TASKWORKER_SYMBOLICATION_DLQ = "taskworker-symbolication-dlq"
     TASKWORKER_USAGE = "taskworker-usage"
     TASKWORKER_USAGE_DLQ = "taskworker-usage-dlq"
+    TASKWORKER_WORKFLOWS_ENGINE = "taskworker-workflows-engine"
+    TASKWORKER_WORKFLOWS_ENGINE_DLQ = "taskworker-workflows-engine-dlq"
 
 
 class ConsumerDefinition(TypedDict, total=False):
@@ -126,8 +130,9 @@ class ConsumerDefinition(TypedDict, total=False):
     # Hardcoded additional kwargs for strategy_factory
     static_args: Mapping[str, Any]
 
-    # Pass the consumer group ID to the strategy factory as 'consumer_group' kwarg
+    # Pass optional kwargs to the strategy factory
     pass_consumer_group: bool
+    pass_kafka_slice_id: bool
 
     require_synchronization: bool
     synchronize_commit_group_default: str

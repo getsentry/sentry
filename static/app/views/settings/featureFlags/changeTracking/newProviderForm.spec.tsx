@@ -5,6 +5,15 @@ import NewProviderForm from 'sentry/views/settings/featureFlags/changeTracking/n
 describe('NewProviderForm', () => {
   it('renders', () => {
     const callback = () => {};
-    render(<NewProviderForm onSetProvider={callback} onCreatedSecret={callback} />);
+    render(
+      <NewProviderForm
+        onCreatedSecret={callback}
+        setSelectedProvider={callback}
+        selectedProvider="LaunchDarkly"
+        setError={callback}
+        canSaveSecret
+        existingSecret={undefined}
+      />
+    );
   });
 });
