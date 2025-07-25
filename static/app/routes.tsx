@@ -37,13 +37,7 @@ import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprec
 import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
-import {
-  IndexRedirect,
-  IndexRoute,
-  Redirect,
-  Route,
-  type SentryRouteObject,
-} from './components/route';
+import {IndexRoute, Redirect, Route, type SentryRouteObject} from './components/route';
 import {makeLazyloadComponent as make} from './makeLazyloadComponent';
 
 const routeHook = (name: HookName): SentryRouteObject =>
@@ -1425,159 +1419,184 @@ function buildRoutes() {
 
   const dashboardRoutes = <Route newStyleChildren={dashboardChildRoutes} />;
 
-  const alertChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
-    // ALERT CHILD ROUTES
-    return (
-      <Fragment>
-        <IndexRoute
-          component={make(() => import('sentry/views/alerts/list/incidents'))}
-        />
-        <Route path="rules/">
-          <IndexRoute
-            component={make(
+  const alertChildRoutes = (forCustomerDomain: boolean): SentryRouteObject => ({
+    children: [
+      {
+        index: true,
+        component: make(() => import('sentry/views/alerts/list/incidents')),
+      },
+      {
+        path: 'rules/',
+        children: [
+          {
+            index: true,
+            component: make(
               () => import('sentry/views/alerts/list/rules/alertRulesList')
-            )}
-          />
-          <Route
-            path="details/:ruleId/"
-            component={make(() => import('sentry/views/alerts/rules/metric/details'))}
-          />
-          <Route
-            path=":projectId/"
-            component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
-          >
-            <IndexRedirect
-              to={
-                forCustomerDomain
+            ),
+          },
+          {
+            path: 'details/:ruleId/',
+            component: make(() => import('sentry/views/alerts/rules/metric/details')),
+          },
+          {
+            path: ':projectId/',
+            component: make(() => import('sentry/views/alerts/builder/projectProvider')),
+            children: [
+              {
+                index: true,
+                redirectTo: forCustomerDomain
                   ? '/alerts/rules/'
-                  : '/organizations/:orgId/alerts/rules/'
-              }
-            />
-            <Route
-              path=":ruleId/"
-              component={make(() => import('sentry/views/alerts/edit'))}
-            />
-          </Route>
-          <Route path=":projectId/:ruleId/details/">
-            <IndexRoute
-              component={make(
-                () => import('sentry/views/alerts/rules/issue/details/ruleDetails')
-              )}
-            />
-          </Route>
-          <Route
-            path="uptime/"
-            component={make(() => import('sentry/views/alerts/rules/uptime'))}
-          >
-            <Route
-              path=":projectId/:uptimeRuleId/details/"
-              component={make(() => import('sentry/views/alerts/rules/uptime/details'))}
-            />
-            <Route
-              path="existing-or-create/"
-              component={make(
-                () => import('sentry/views/alerts/rules/uptime/existingOrCreate')
-              )}
-            />
-          </Route>
-          <Route
-            path="crons/"
-            component={make(() => import('sentry/views/alerts/rules/crons'))}
-          >
-            <Route
-              path=":projectId/:monitorSlug/details/"
-              component={make(() => import('sentry/views/alerts/rules/crons/details'))}
-            />
-          </Route>
-        </Route>
-        <Route path="metric-rules/">
-          <IndexRedirect
-            to={
-              forCustomerDomain ? '/alerts/rules/' : '/organizations/:orgId/alerts/rules/'
-            }
-          />
-          <Route
-            path=":projectId/"
-            component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
-          >
-            <IndexRedirect
-              to={
-                forCustomerDomain
+                  : '/organizations/:orgId/alerts/rules/',
+              },
+              {
+                path: ':ruleId/',
+                component: make(() => import('sentry/views/alerts/edit')),
+              },
+            ],
+          },
+          {
+            path: ':projectId/:ruleId/details/',
+            children: [
+              {
+                index: true,
+                component: make(
+                  () => import('sentry/views/alerts/rules/issue/details/ruleDetails')
+                ),
+              },
+            ],
+          },
+          {
+            path: 'uptime/',
+            component: make(() => import('sentry/views/alerts/rules/uptime')),
+            children: [
+              {
+                path: ':projectId/:uptimeRuleId/details/',
+                component: make(() => import('sentry/views/alerts/rules/uptime/details')),
+              },
+              {
+                path: 'existing-or-create/',
+                component: make(
+                  () => import('sentry/views/alerts/rules/uptime/existingOrCreate')
+                ),
+              },
+            ],
+          },
+          {
+            path: 'crons/',
+            component: make(() => import('sentry/views/alerts/rules/crons')),
+            children: [
+              {
+                path: ':projectId/:monitorSlug/details/',
+                component: make(() => import('sentry/views/alerts/rules/crons/details')),
+              },
+            ],
+          },
+        ],
+      },
+      {
+        path: 'metric-rules/',
+        children: [
+          {
+            index: true,
+            redirectTo: forCustomerDomain
+              ? '/alerts/rules/'
+              : '/organizations/:orgId/alerts/rules/',
+          },
+          {
+            path: ':projectId/',
+            component: make(() => import('sentry/views/alerts/builder/projectProvider')),
+            children: [
+              {
+                index: true,
+                redirectTo: forCustomerDomain
                   ? '/alerts/rules/'
-                  : '/organizations/:orgId/alerts/rules/'
-              }
-            />
-            <Route
-              path=":ruleId/"
-              component={make(() => import('sentry/views/alerts/edit'))}
-            />
-          </Route>
-        </Route>
-        <Route path="uptime-rules/">
-          <Route
-            path=":projectId/"
-            component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
-          >
-            <Route
-              path=":ruleId/"
-              component={make(() => import('sentry/views/alerts/edit'))}
-            />
-          </Route>
-        </Route>
-        <Route path="crons-rules/">
-          <Route
-            path=":projectId/"
-            component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
-          >
-            <Route
-              path=":monitorSlug/"
-              component={make(() => import('sentry/views/alerts/edit'))}
-            />
-          </Route>
-        </Route>
-        <Route
-          path="wizard/"
-          component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
-        >
-          <IndexRoute component={make(() => import('sentry/views/alerts/wizard'))} />
-        </Route>
-        <Route
-          path="new/"
-          component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
-        >
-          <IndexRedirect
-            to={
-              forCustomerDomain
-                ? '/alerts/wizard/'
-                : '/organizations/:orgId/alerts/wizard/'
-            }
-          />
-          <Route
-            path=":alertType/"
-            component={make(() => import('sentry/views/alerts/create'))}
-          />
-        </Route>
-        <Route
-          path=":alertId/"
-          component={make(() => import('sentry/views/alerts/incidentRedirect'))}
-        />
-        <Route
-          path=":projectId/"
-          component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
-        >
-          <Route
-            path="new/"
-            component={make(() => import('sentry/views/alerts/create'))}
-          />
-          <Route
-            path="wizard/"
-            component={make(() => import('sentry/views/alerts/wizard'))}
-          />
-        </Route>
-      </Fragment>
-    );
-  };
-  // ALERT ROUTES
+                  : '/organizations/:orgId/alerts/rules/',
+              },
+              {
+                path: ':ruleId/',
+                component: make(() => import('sentry/views/alerts/edit')),
+              },
+            ],
+          },
+        ],
+      },
+      {
+        path: 'uptime-rules/',
+        children: [
+          {
+            path: ':projectId/',
+            component: make(() => import('sentry/views/alerts/builder/projectProvider')),
+            children: [
+              {
+                path: ':ruleId/',
+                component: make(() => import('sentry/views/alerts/edit')),
+              },
+            ],
+          },
+        ],
+      },
+      {
+        path: 'crons-rules/',
+        children: [
+          {
+            path: ':projectId/',
+            component: make(() => import('sentry/views/alerts/builder/projectProvider')),
+            children: [
+              {
+                path: ':monitorSlug/',
+                component: make(() => import('sentry/views/alerts/edit')),
+              },
+            ],
+          },
+        ],
+      },
+      {
+        path: 'wizard/',
+        component: make(() => import('sentry/views/alerts/builder/projectProvider')),
+        children: [
+          {
+            index: true,
+            component: make(() => import('sentry/views/alerts/wizard')),
+          },
+        ],
+      },
+      {
+        path: 'new/',
+        component: make(() => import('sentry/views/alerts/builder/projectProvider')),
+        children: [
+          {
+            index: true,
+            redirectTo: forCustomerDomain
+              ? '/alerts/wizard/'
+              : '/organizations/:orgId/alerts/wizard/',
+          },
+          {
+            path: ':alertType/',
+            component: make(() => import('sentry/views/alerts/create')),
+          },
+        ],
+      },
+      {
+        path: ':alertId/',
+        component: make(() => import('sentry/views/alerts/incidentRedirect')),
+      },
+      {
+        path: ':projectId/',
+        component: make(() => import('sentry/views/alerts/builder/projectProvider')),
+        children: [
+          {
+            path: 'new/',
+            component: make(() => import('sentry/views/alerts/create')),
+          },
+          {
+            path: 'wizard/',
+            component: make(() => import('sentry/views/alerts/wizard')),
+          },
+        ],
+      },
+    ],
+  });
+
   const alertRoutes = (
     <Fragment>
       {USING_CUSTOMER_DOMAIN && (
@@ -1585,17 +1604,15 @@ function buildRoutes() {
           path="/alerts/"
           component={withDomainRequired(make(() => import('sentry/views/alerts')))}
           key="orgless-alerts-route"
-        >
-          {alertChildRoutes({forCustomerDomain: true})}
-        </Route>
+          newStyleChildren={alertChildRoutes(true).children}
+        />
       )}
       <Route
         path="/organizations/:orgId/alerts/"
         component={withDomainRedirect(make(() => import('sentry/views/alerts')))}
         key="org-alerts"
-      >
-        {alertChildRoutes({forCustomerDomain: false})}
-      </Route>
+        newStyleChildren={alertChildRoutes(false).children}
+      />
     </Fragment>
   );
 
@@ -2512,9 +2529,11 @@ function buildRoutes() {
         component={make(() => import('sentry/views/feedback/index'))}
         newStyleChildren={feedbackV2ChildRoutes}
       />
-      <Route path="alerts/" component={make(() => import('sentry/views/alerts'))}>
-        {alertChildRoutes({forCustomerDomain: true})}
-      </Route>
+      <Route
+        path="alerts/"
+        component={make(() => import('sentry/views/alerts'))}
+        newStyleChildren={alertChildRoutes(true).children}
+      />
       {traceViewRoute}
       {automationRoutes}
       {detectorRoutes}
