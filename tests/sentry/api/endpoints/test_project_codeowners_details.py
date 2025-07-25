@@ -5,10 +5,8 @@ from unittest.mock import patch
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.api.endpoints.codeowners.analytics import CodeOwnersMaxLengthExceeded
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.analytics import assert_last_analytics_event
 
 
 class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
@@ -163,11 +161,10 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
                     )
                 ]
             }
-            assert_last_analytics_event(
-                mock_record,
-                CodeOwnersMaxLengthExceeded(
-                    organization_id=self.organization.id,
-                ),
+
+            mock_record.assert_called_with(
+                "codeowners.max_length_exceeded",
+                organization_id=self.organization.id,
             )
 
             # Test that we allow this to be modified for existing large rows

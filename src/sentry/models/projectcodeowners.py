@@ -95,7 +95,6 @@ class ProjectCodeOwners(Model):
         2. convert the codeowner file to the ownership syntax
         3. convert the ownership syntax to the schema
         """
-        from sentry.api.endpoints.codeowners.analytics import CodeOwnersMaxLengthExceeded
         from sentry.api.validators.project_codeowners import validate_codeowners_associations
         from sentry.utils.codeowners import MAX_RAW_LENGTH
 
@@ -107,9 +106,8 @@ class ProjectCodeOwners(Model):
 
         if len(self.raw) > MAX_RAW_LENGTH:
             analytics.record(
-                CodeOwnersMaxLengthExceeded(
-                    organization_id=organization.id,
-                )
+                "codeowners.max_length_exceeded",
+                organization_id=organization.id,
             )
             logger.warning({"raw": f"Raw needs to be <= {MAX_RAW_LENGTH} characters in length"})
             return
