@@ -17,7 +17,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import CellAction, {
   Actions,
-  copyToClipBoard,
+  ActionTriggerType,
+  copyToClipboard,
+  openExternalLink,
 } from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
@@ -315,7 +317,10 @@ export const LogRowContent = memo(function LogRowContent({
                         });
                         break;
                       case Actions.COPY_TO_CLIPBOARD:
-                        copyToClipBoard(cellValue);
+                        copyToClipboard(cellValue);
+                        break;
+                      case Actions.OPEN_EXTERNAL_LINK:
+                        openExternalLink(cellValue);
                         break;
                       default:
                         break;
@@ -326,6 +331,7 @@ export const LogRowContent = memo(function LogRowContent({
                       ? []
                       : ALLOWED_CELL_ACTIONS
                   }
+                  triggerType={ActionTriggerType.ELLIPSIS}
                 >
                   {renderedField}
                 </CellAction>
