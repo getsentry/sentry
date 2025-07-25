@@ -279,12 +279,6 @@ def _assemble_preprod_artifact_size_analysis(
         raise Exception(f"PreprodArtifact with id {artifact_id} does not exist")
 
     size_analysis_results = SizeAnalysisResults.parse_raw(assemble_result.bundle_temp_file.read())
-    install_size = (
-        size_analysis_results.treemap.total_install_size if size_analysis_results.treemap else None
-    )
-    download_size = (
-        size_analysis_results.treemap.total_download_size if size_analysis_results.treemap else None
-    )
 
     # Update size metrics in its own transaction
     with transaction.atomic(router.db_for_write(PreprodArtifactSizeMetrics)):
@@ -293,10 +287,10 @@ def _assemble_preprod_artifact_size_analysis(
             defaults={
                 "analysis_file_id": assemble_result.bundle.id,
                 "metrics_artifact_type": PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,  # TODO: parse this from the treemap json
-                "min_install_size": install_size,
-                "max_install_size": install_size,
-                "min_download_size": download_size,
-                "max_download_size": download_size,
+                "min_install_size": None,  # No min value at this time
+                "max_install_size": size_analysis_results.install_size,
+                "min_download_size": None,  # No min value at this time
+                "max_download_size": size_analysis_results.download_size,
                 "state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             },
         )
