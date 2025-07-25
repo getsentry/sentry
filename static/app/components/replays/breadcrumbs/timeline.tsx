@@ -11,6 +11,8 @@ import styled from '@emotion/styled';
  * </Columns>
  */
 export const Columns = styled('ul')<{remainder: number; totalColumns: number}>`
+  pointer-events: none;
+
   /* Reset defaults for <ul> */
   list-style: none;
   margin: 0;

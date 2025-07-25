@@ -69,7 +69,11 @@ export default function ReplayTimeline() {
           startTimestampMs={startTimestampMs}
           videoEvents={videoEvents}
         />
+      </VisibleStack>
 
+      <TimelineScrubber />
+
+      <VisibleStack>
         <ReplayTimelineEvents
           durationMs={durationMs}
           frames={chapterFrames}
@@ -77,8 +81,6 @@ export default function ReplayTimeline() {
           width={width}
         />
       </VisibleStack>
-
-      <TimelineScrubber />
     </CenteredStack>
   );
 }

@@ -51,6 +51,8 @@ export default function ReplayTimelineEvents({
 }
 
 const EventColumn = styled(Timeline.Col)`
+  pointer-events: auto;
+
   place-items: stretch;
   display: grid;
   align-items: center;
