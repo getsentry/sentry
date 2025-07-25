@@ -628,12 +628,8 @@ const SummaryContainer = styled('div')`
   display: flex;
   gap: ${p => (p.theme.isChonk ? space(0.75) : space(0.5))};
   flex-direction: column;
-  margin: ${space(1)} ${space(0.25)} ${space(1)} 0;
+  margin: ${space(1)};
   border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
-
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    margin: ${space(1)} ${space(1)} ${space(1)} 0;
-  }
 `;
 
 const CalloutButton = withChonk(

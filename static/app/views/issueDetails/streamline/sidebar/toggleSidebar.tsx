@@ -18,13 +18,10 @@ export function ToggleSidebar({size = 'lg'}: {size?: 'lg' | 'sm'}) {
 
   const props = theme.isChonk
     ? ({size: 'xs'} as const)
-    : ({style: {height: size === 'lg' ? '30px' : '26px'}} as const);
+    : ({style: {height: size === 'lg' ? '40px' : '26px'}} as const);
 
   return (
-    <ToggleContainer
-      sidebarOpen={isSidebarOpen ?? true}
-      style={{paddingTop: size === 'lg' ? '4px' : '0px'}}
-    >
+    <ToggleContainer sidebarOpen={isSidebarOpen ?? true}>
       <ToggleButton
         expanded={isSidebarOpen}
         onClick={() => dispatch({type: 'UPDATE_SIDEBAR_STATE', isOpen: !isSidebarOpen})}
@@ -51,6 +48,7 @@ export function ToggleSidebar({size = 'lg'}: {size?: 'lg' | 'sm'}) {
 const ToggleContainer = styled('div')<{sidebarOpen: boolean}>`
   width: ${p => (p.theme.isChonk ? undefined : p.sidebarOpen ? '30px' : '50px')};
   position: relative;
+  margin-right: -12px;
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
     display: none;
   }
