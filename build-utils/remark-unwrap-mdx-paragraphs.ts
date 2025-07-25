@@ -42,7 +42,7 @@ export function remarkUnwrapMdxParagraphs() {
         isParagraph(node.children[0])
       ) {
         node.children = node.children[0].children;
-        return node.children.length;
+        return node.children.length - 1;
       }
       return;
     });
