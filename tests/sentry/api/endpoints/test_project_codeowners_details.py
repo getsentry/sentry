@@ -5,7 +5,7 @@ from unittest.mock import patch
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.api.endpoints.codeowners.analytics import CodeOwnersMaxLengthExceeded
+from sentry.analytics.events.codeowners_max_length_exceeded import CodeOwnersMaxLengthExceeded
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
