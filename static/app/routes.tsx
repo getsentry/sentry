@@ -43,7 +43,6 @@ import {
   Redirect,
   Route,
   type SentryRouteObject,
-  WorkingRedirect,
 } from './components/route';
 import {makeLazyloadComponent as make} from './makeLazyloadComponent';
 
@@ -304,7 +303,7 @@ function buildRoutes() {
   const accountSettingsChildRoutes: SentryRouteObject[] = [
     {
       index: true,
-      component: () => <WorkingRedirect to="details/" replace />,
+      redirectTo: 'details/',
     },
     {
       path: 'details/',
@@ -413,7 +412,7 @@ function buildRoutes() {
       children: [
         {
           index: true,
-          component: () => <WorkingRedirect to="auth-tokens/" replace />,
+          redirectTo: 'auth-tokens/',
         },
         {
           path: 'auth-tokens/',
@@ -484,9 +483,7 @@ function buildRoutes() {
     },
     {
       path: 'install/',
-      component: () => (
-        <WorkingRedirect to="/projects/:projectId/getting-started/" replace />
-      ),
+      redirectTo: '/projects/:projectId/getting-started/',
     },
     {
       path: 'teams/',
@@ -504,45 +501,27 @@ function buildRoutes() {
         },
         {
           path: 'new/',
-          component: () => (
-            <WorkingRedirect to="/organizations/:orgId/alerts/:projectId/new/" replace />
-          ),
+          redirectTo: '/organizations/:orgId/alerts/:projectId/new/',
         },
         {
           path: 'rules/',
-          component: () => (
-            <WorkingRedirect to="/organizations/:orgId/alerts/rules/" replace />
-          ),
+          redirectTo: '/organizations/:orgId/alerts/rules/',
         },
         {
           path: 'rules/new/',
-          component: () => (
-            <WorkingRedirect to="/organizations/:orgId/alerts/:projectId/new/" replace />
-          ),
+          redirectTo: '/organizations/:orgId/alerts/:projectId/new/',
         },
         {
           path: 'metric-rules/new/',
-          component: () => (
-            <WorkingRedirect to="/organizations/:orgId/alerts/:projectId/new/" replace />
-          ),
+          redirectTo: '/organizations/:orgId/alerts/:projectId/new/',
         },
         {
           path: 'rules/:ruleId/',
-          component: () => (
-            <WorkingRedirect
-              to="/organizations/:orgId/alerts/rules/:projectId/:ruleId/"
-              replace
-            />
-          ),
+          redirectTo: '/organizations/:orgId/alerts/rules/:projectId/:ruleId/',
         },
         {
           path: 'metric-rules/:ruleId/',
-          component: () => (
-            <WorkingRedirect
-              to="/organizations/:orgId/alerts/metric-rules/:projectId/:ruleId/"
-              replace
-            />
-          ),
+          redirectTo: '/organizations/:orgId/alerts/metric-rules/:projectId/:ruleId/',
         },
       ],
     },
@@ -566,9 +545,7 @@ function buildRoutes() {
     },
     {
       path: 'issue-tracking/',
-      component: () => (
-        <WorkingRedirect to="/settings/:orgId/:projectId/plugins/" replace />
-      ),
+      redirectTo: '/settings/:orgId/:projectId/plugins/',
     },
     {
       path: 'release-tracking/',
@@ -660,11 +637,11 @@ function buildRoutes() {
         },
         {
           path: 'source-maps/artifact-bundles/',
-          component: () => <WorkingRedirect to="source-maps/" replace />,
+          redirectTo: 'source-maps/',
         },
         {
           path: 'source-maps/release-bundles/',
-          component: () => <WorkingRedirect to="source-maps/" replace />,
+          redirectTo: 'source-maps/',
         },
       ],
     },
@@ -675,7 +652,7 @@ function buildRoutes() {
       children: [
         {
           index: true,
-          component: () => <WorkingRedirect to="data-filters/" replace />,
+          redirectTo: 'data-filters/',
         },
         {
           path: ':filterType/',
@@ -684,7 +661,7 @@ function buildRoutes() {
     },
     {
       path: 'dynamic-sampling/',
-      component: () => <WorkingRedirect to="performance/" replace />,
+      redirectTo: 'performance/',
     },
     {
       path: 'issue-grouping/',
@@ -734,12 +711,7 @@ function buildRoutes() {
     },
     {
       path: 'csp/',
-      component: () => (
-        <WorkingRedirect
-          to="/settings/:orgId/projects/:projectId/security-headers/csp/"
-          replace
-        />
-      ),
+      redirectTo: '/settings/:orgId/projects/:projectId/security-headers/csp/',
     },
     {
       path: 'security-headers/',
@@ -1293,13 +1265,11 @@ function buildRoutes() {
     },
     {
       path: '/organizations/:orgId/dashboards/:dashboardId/',
-      component: () => (
-        <WorkingRedirect to="/organizations/:orgId/dashboard/:dashboardId/" replace />
-      ),
+      redirectTo: '/organizations/:orgId/dashboard/:dashboardId/',
     },
     {
       path: '/dashboards/:dashboardId/',
-      component: () => <WorkingRedirect to="/dashboard/:dashboardId/" replace />,
+      redirectTo: '/dashboard/:dashboardId/',
       customerDomainOnlyRoute: true,
     },
     {
@@ -1582,7 +1552,7 @@ function buildRoutes() {
   const discoverChildRoutes: SentryRouteObject[] = [
     {
       index: true,
-      component: () => <WorkingRedirect to="queries/" replace />,
+      redirectTo: 'queries/',
     },
     {
       path: 'homepage/',
@@ -1632,12 +1602,7 @@ function buildRoutes() {
       moduleBaseURL
         ? {
             path: `${moduleBaseURL}/*`,
-            component: () => (
-              <WorkingRedirect
-                to={`/${DOMAIN_VIEW_BASE_URL}/${getModuleView(moduleUrlToModule[moduleBaseURL]!)}${moduleBaseURL}/:splat`}
-                replace
-              />
-            ),
+            redirectTo: `/${DOMAIN_VIEW_BASE_URL}/${getModuleView(moduleUrlToModule[moduleBaseURL]!)}${moduleBaseURL}/:splat`,
           }
         : null
     )
@@ -1956,15 +1921,15 @@ function buildRoutes() {
     },
     {
       path: `${FRONTEND_LANDING_SUB_PATH}/uptime/`,
-      component: () => <WorkingRedirect to="/insights/uptime/" replace />,
+      redirectTo: '/insights/uptime/',
     },
     {
       path: `${BACKEND_LANDING_SUB_PATH}/uptime/`,
-      component: () => <WorkingRedirect to="/insights/uptime/" replace />,
+      redirectTo: '/insights/uptime/',
     },
     {
       path: `${BACKEND_LANDING_SUB_PATH}/crons/`,
-      component: () => <WorkingRedirect to="/insights/crons/" replace />,
+      redirectTo: '/insights/crons/',
     },
     {
       path: 'uptime/',
@@ -1997,7 +1962,7 @@ function buildRoutes() {
   const performanceChildRoutes: SentryRouteObject[] = [
     {
       index: true,
-      component: () => <WorkingRedirect to="/insights/frontend/" replace />,
+      redirectTo: '/insights/frontend/',
     },
     {
       path: 'summary/',
@@ -2011,30 +1976,15 @@ function buildRoutes() {
     ...insightsRedirectObjects,
     {
       path: 'browser/resources',
-      component: () => (
-        <WorkingRedirect
-          to={`/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.RESOURCE]}/`}
-          replace
-        />
-      ),
+      redirectTo: `/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.RESOURCE]}/`,
     },
     {
       path: 'browser/assets',
-      component: () => (
-        <WorkingRedirect
-          to={`/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.RESOURCE]}/`}
-          replace
-        />
-      ),
+      redirectTo: `/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.RESOURCE]}/`,
     },
     {
       path: 'browser/pageloads',
-      component: () => (
-        <WorkingRedirect
-          to={`/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.VITAL]}/`}
-          replace
-        />
-      ),
+      redirectTo: `/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.VITAL]}/`,
     },
     {
       path: ':eventSlug/',
@@ -2542,35 +2492,21 @@ function buildRoutes() {
   const gettingStartedChildRoutes: SentryRouteObject[] = [
     {
       path: '/getting-started/:projectId/',
-      component: () => (
-        <WorkingRedirect to="/projects/:projectId/getting-started/" replace />
-      ),
+      redirectTo: '/projects/:projectId/getting-started/',
       customerDomainOnlyRoute: true,
     },
     {
       path: '/getting-started/:projectId/:platform/',
-      component: () => (
-        <WorkingRedirect to="/projects/:projectId/getting-started/" replace />
-      ),
+      redirectTo: '/projects/:projectId/getting-started/',
       customerDomainOnlyRoute: true,
     },
     {
       path: '/:orgId/:projectId/getting-started/',
-      component: () => (
-        <WorkingRedirect
-          to="/organizations/:orgId/projects/:projectId/getting-started/"
-          replace
-        />
-      ),
+      redirectTo: '/organizations/:orgId/projects/:projectId/getting-started/',
     },
     {
       path: '/:orgId/:projectId/getting-started/:platform/',
-      component: () => (
-        <WorkingRedirect
-          to="/organizations/:orgId/projects/:projectId/getting-started/"
-          replace
-        />
-      ),
+      redirectTo: '/organizations/:orgId/projects/:projectId/getting-started/',
     },
   ];
 
