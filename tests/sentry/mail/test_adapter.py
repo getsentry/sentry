@@ -1564,8 +1564,9 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )
 
         rule = project.rule_set.all()[0]
-        rule2 = Rule.objects.create(project=project, label="my rule")
-        # mute the first rule only for self.user, not user2
+        rule2 = self.create_project_rule(
+            project=project
+        )  # mute the first rule only for self.user, not user2
         self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule)
 
         ProjectOwnership.objects.create(project_id=project.id, fallthrough=True)
@@ -1613,7 +1614,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )
 
         rule = project.rule_set.all()[0]
-        rule2 = Rule.objects.create(project=project, label="my rule")
+        rule2 = self.create_project_rule(project=project)
         # mute the rules for self.user, not user2
         self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule)
         self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule2)
@@ -1656,7 +1657,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )
 
         rule = project.rule_set.all()[0]
-        rule2 = Rule.objects.create(project=project, label="my rule")
+        rule2 = self.create_project_rule(project=project)
         # mute the first rule for self.user, not user2
         self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule)
         # mute the 2nd rule for both
