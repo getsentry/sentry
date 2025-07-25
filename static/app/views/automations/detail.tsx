@@ -41,7 +41,7 @@ import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 
 const AUTOMATION_DETECTORS_LIMIT = 10;
 
-export const DEFAULT_CHART_PERIOD = '7d';
+const DEFAULT_CHART_PERIOD = '7d';
 
 const PAGE_QUERY_PARAMS = [
   'pageStatsPeriod',
