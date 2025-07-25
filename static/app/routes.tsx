@@ -163,145 +163,175 @@ function buildRoutes() {
     />
   );
 
+  const rootChildRoutes: SentryRouteObject[] = [
+    {
+      index: true,
+      component: make(() => import('sentry/views/app/root')),
+    },
+    routeHook('routes:root'),
+    {
+      path: '/accept/:orgId/:memberId/:token/',
+      component: make(() => import('sentry/views/acceptOrganizationInvite')),
+    },
+    {
+      path: '/accept/:memberId/:token/',
+      component: make(() => import('sentry/views/acceptOrganizationInvite')),
+    },
+    {
+      path: '/accept-transfer/',
+      component: make(() => import('sentry/views/acceptProjectTransfer')),
+    },
+    {
+      component: errorHandler(OrganizationContainer),
+      children: [
+        {
+          path: '/extensions/external-install/:integrationSlug/:installationId',
+          component: make(() => import('sentry/views/integrationOrganizationLink')),
+        },
+        {
+          path: '/extensions/:integrationSlug/link/',
+          component: make(() => import('sentry/views/integrationOrganizationLink')),
+        },
+      ],
+    },
+    {
+      path: '/sentry-apps/:sentryAppSlug/external-install/',
+      component: make(() => import('sentry/views/sentryAppExternalInstallation')),
+    },
+    {
+      path: '/account/',
+      redirectTo: '/settings/account/details/',
+    },
+    {
+      path: '/share/group/:shareId/',
+      redirectTo: '/share/issue/:shareId/',
+    },
+    // Add redirect from old user feedback to new feedback
+    {
+      path: '/user-feedback/',
+      redirectTo: '/feedback/',
+    },
+    // TODO: remove share/issue orgless url
+    {
+      path: '/share/issue/:shareId/',
+      component: make(() => import('sentry/views/sharedGroupDetails')),
+    },
+    {
+      path: '/organizations/:orgId/share/issue/:shareId/',
+      component: make(() => import('sentry/views/sharedGroupDetails')),
+    },
+    {
+      path: '/unsubscribe/project/:id/',
+      component: make(() => import('sentry/views/unsubscribe/project')),
+      customerDomainOnlyRoute: true,
+    },
+    {
+      path: '/unsubscribe/:orgId/project/:id/',
+      component: make(() => import('sentry/views/unsubscribe/project')),
+    },
+    {
+      path: '/unsubscribe/issue/:id/',
+      component: make(() => import('sentry/views/unsubscribe/issue')),
+      customerDomainOnlyRoute: true,
+    },
+    {
+      path: '/unsubscribe/:orgId/issue/:id/',
+      component: make(() => import('sentry/views/unsubscribe/issue')),
+    },
+    {
+      path: '/organizations/new/',
+      component: make(() => import('sentry/views/organizationCreate')),
+    },
+    {
+      path: '/data-export/:dataExportId',
+      component: make(() => import('sentry/views/dataExport/dataDownload')),
+      withOrgPath: true,
+    },
+    {
+      component: errorHandler(OrganizationContainer),
+      children: [
+        {
+          path: '/disabled-member/',
+          component: make(() => import('sentry/views/disabledMember')),
+          withOrgPath: true,
+        },
+      ],
+    },
+    {
+      path: '/restore/',
+      component: make(() => import('sentry/views/organizationRestore')),
+      customerDomainOnlyRoute: true,
+    },
+    {
+      path: '/organizations/:orgId/restore/',
+      component: make(() => import('sentry/views/organizationRestore')),
+    },
+    {
+      path: '/join-request/',
+      component: withDomainRequired(
+        make(() => import('sentry/views/organizationJoinRequest'))
+      ),
+      customerDomainOnlyRoute: true,
+    },
+    {
+      path: '/join-request/:orgId/',
+      component: withDomainRedirect(
+        make(() => import('sentry/views/organizationJoinRequest'))
+      ),
+    },
+    {
+      path: '/relocation/',
+      component: make(() => import('sentry/views/relocation')),
+      children: [
+        {
+          index: true,
+          redirectTo: 'get-started/',
+        },
+        {
+          path: ':step/',
+          component: make(() => import('sentry/views/relocation')),
+        },
+      ],
+    },
+    {
+      path: '/onboarding/',
+      redirectTo: '/onboarding/welcome/',
+      customerDomainOnlyRoute: true,
+    },
+    {
+      path: '/onboarding/:step/',
+      component: errorHandler(withDomainRequired(OrganizationContainer)),
+      customerDomainOnlyRoute: true,
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/onboarding')),
+        },
+      ],
+    },
+    {
+      path: '/onboarding/:orgId/',
+      redirectTo: '/onboarding/:orgId/welcome/',
+    },
+    {
+      path: '/onboarding/:orgId/:step/',
+      component: withDomainRedirect(errorHandler(OrganizationContainer)),
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/onboarding')),
+        },
+      ],
+    },
+    {
+      path: '/stories/:storyType?/:storySlug?/',
+      component: make(() => import('sentry/stories/view/index')),
+      withOrgPath: true,
+    },
+  ];
+
   const rootRoutes = (
-    <Route component={errorHandler(AppBodyContent)}>
-      <IndexRoute component={make(() => import('sentry/views/app/root'))} />
-      {hook('routes:root')}
-      <Route
-        path="/accept/:orgId/:memberId/:token/"
-        component={make(() => import('sentry/views/acceptOrganizationInvite'))}
-      />
-      <Route
-        path="/accept/:memberId/:token/"
-        component={make(() => import('sentry/views/acceptOrganizationInvite'))}
-      />
-      <Route
-        path="/accept-transfer/"
-        component={make(() => import('sentry/views/acceptProjectTransfer'))}
-      />
-      <Route component={errorHandler(OrganizationContainer)}>
-        <Route
-          path="/extensions/external-install/:integrationSlug/:installationId"
-          component={make(() => import('sentry/views/integrationOrganizationLink'))}
-        />
-        <Route
-          path="/extensions/:integrationSlug/link/"
-          component={make(() => import('sentry/views/integrationOrganizationLink'))}
-        />
-      </Route>
-      <Route
-        path="/sentry-apps/:sentryAppSlug/external-install/"
-        component={make(() => import('sentry/views/sentryAppExternalInstallation'))}
-      />
-      <Redirect from="/account/" to="/settings/account/details/" />
-      <Redirect from="/share/group/:shareId/" to="/share/issue/:shareId/" />
-      {/* Add redirect from old user feedback to new feedback */}
-      <Redirect from="/user-feedback/" to="/feedback/" />
-      {/* TODO: remove share/issue orgless url */}
-      <Route
-        path="/share/issue/:shareId/"
-        component={make(() => import('sentry/views/sharedGroupDetails'))}
-      />
-      <Route
-        path="/organizations/:orgId/share/issue/:shareId/"
-        component={make(() => import('sentry/views/sharedGroupDetails'))}
-      />
-      {USING_CUSTOMER_DOMAIN && (
-        <Route
-          path="/unsubscribe/project/:id/"
-          component={make(() => import('sentry/views/unsubscribe/project'))}
-        />
-      )}
-      <Route
-        path="/unsubscribe/:orgId/project/:id/"
-        component={make(() => import('sentry/views/unsubscribe/project'))}
-      />
-      {USING_CUSTOMER_DOMAIN && (
-        <Route
-          path="/unsubscribe/issue/:id/"
-          component={make(() => import('sentry/views/unsubscribe/issue'))}
-        />
-      )}
-      <Route
-        path="/unsubscribe/:orgId/issue/:id/"
-        component={make(() => import('sentry/views/unsubscribe/issue'))}
-      />
-      <Route
-        path="/organizations/new/"
-        component={make(() => import('sentry/views/organizationCreate'))}
-      />
-      <Route
-        path="/data-export/:dataExportId"
-        component={make(() => import('sentry/views/dataExport/dataDownload'))}
-        withOrgPath
-      />
-      <Route component={errorHandler(OrganizationContainer)}>
-        <Route
-          path="/disabled-member/"
-          component={make(() => import('sentry/views/disabledMember'))}
-          withOrgPath
-        />
-      </Route>
-      {USING_CUSTOMER_DOMAIN && (
-        <Route
-          path="/restore/"
-          component={make(() => import('sentry/views/organizationRestore'))}
-        />
-      )}
-      <Route
-        path="/organizations/:orgId/restore/"
-        component={make(() => import('sentry/views/organizationRestore'))}
-      />
-      {USING_CUSTOMER_DOMAIN && (
-        <Route
-          path="/join-request/"
-          component={withDomainRequired(
-            make(() => import('sentry/views/organizationJoinRequest'))
-          )}
-          key="orgless-join-request"
-        />
-      )}
-      <Route
-        path="/join-request/:orgId/"
-        component={withDomainRedirect(
-          make(() => import('sentry/views/organizationJoinRequest'))
-        )}
-        key="org-join-request"
-      />
-      <Route
-        path="/relocation/"
-        component={make(() => import('sentry/views/relocation'))}
-        key="orgless-relocation"
-      >
-        <IndexRedirect to="get-started/" />
-        <Route path=":step/" component={make(() => import('sentry/views/relocation'))} />
-      </Route>
-      {USING_CUSTOMER_DOMAIN && (
-        <Fragment>
-          <Redirect from="/onboarding/" to="/onboarding/welcome/" />
-          <Route
-            path="/onboarding/:step/"
-            component={errorHandler(withDomainRequired(OrganizationContainer))}
-            key="orgless-onboarding"
-          >
-            <IndexRoute component={make(() => import('sentry/views/onboarding'))} />
-          </Route>
-        </Fragment>
-      )}
-      <Redirect from="/onboarding/:orgId/" to="/onboarding/:orgId/welcome/" />
-      <Route
-        path="/onboarding/:orgId/:step/"
-        component={withDomainRedirect(errorHandler(OrganizationContainer))}
-        key="org-onboarding"
-      >
-        <IndexRoute component={make(() => import('sentry/views/onboarding'))} />
-      </Route>
-      <Route
-        path="/stories/:storyType?/:storySlug?/"
-        component={make(() => import('sentry/stories/view/index'))}
-        withOrgPath
-      />
-    </Route>
+    <Route component={errorHandler(AppBodyContent)} newStyleChildren={rootChildRoutes} />
   );
 
   const accountSettingsChildRoutes: SentryRouteObject[] = [
