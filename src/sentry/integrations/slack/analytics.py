@@ -16,14 +16,14 @@ class SlackIntegrationStatus(analytics.Event):
 
 @analytics.eventclass("integrations.slack.notification_sent")
 class SlackIntegrationNotificationSent(analytics.Event):
-    organization_id: str
-    project_id: str | None = None
+    organization_id: int
+    project_id: int | None = None
     category: str
-    actor_id: str | None = None
-    user_id: str | None = None
+    actor_id: int | None = None
+    user_id: int | None = None
     group_id: str | None = None
     notification_uuid: str
-    alert_id: str | None = None
+    alert_id: int | None = None
     actor_type: str | None = None
 
 
@@ -49,10 +49,10 @@ class IntegrationSlackLinkIdentity(analytics.Event):
 
 @analytics.eventclass("integrations.slack.approve_member_invitation")
 class IntegrationSlackApproveMemberInvitation(analytics.Event):
-    organization_id: str
-    actor_id: str
+    organization_id: int
+    actor_id: int
     invitation_type: str
-    invited_member_id: str
+    invited_member_id: int
 
 
 class IntegrationSlackRejectMemberInvitation(IntegrationSlackApproveMemberInvitation):
