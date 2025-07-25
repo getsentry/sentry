@@ -642,7 +642,7 @@ def parse_network_content_lengths(event: dict[str, Any]) -> tuple[int | None, in
 def parse_click_event(payload: dict[str, Any], is_dead: bool, is_rage: bool) -> ClickEvent | None:
     node = payload["data"].get("node")
 
-    if not isinstance(node, dict) or node["id"] < 0:
+    if not isinstance(node, dict) or node.get("id", -1) < 0:
         return None
 
     attributes = node.get("attributes", {})
