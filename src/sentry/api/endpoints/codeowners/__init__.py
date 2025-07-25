@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, MutableMapping
 from typing import Any
 
+import sentry_sdk
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
@@ -20,7 +21,7 @@ from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.utils import metrics
 from sentry.utils.codeowners import MAX_RAW_LENGTH
 
-from .analytics import *  # NOQA
+from .analytics import CodeOwnersMaxLengthExceeded
 
 
 class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer[ProjectCodeOwners]):
@@ -55,10 +56,14 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer[ProjectCodeOwners]):
         existing_raw = self.instance.raw if self.instance else ""
         max_length = self.get_max_length()
         if len(attrs["raw"]) > max_length and len(existing_raw) <= max_length:
-            analytics.record(
-                "codeowners.max_length_exceeded",
-                organization_id=self.context["project"].organization.id,
-            )
+            try:
+                analytics.record(
+                    CodeOwnersMaxLengthExceeded(
+                        organization_id=self.context["project"].organization.id,
+                    )
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
             raise serializers.ValidationError(
                 {"raw": f"Raw needs to be <= {max_length} characters in length"}
             )
