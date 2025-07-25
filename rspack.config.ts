@@ -24,6 +24,8 @@ import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
 // @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
+// @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
+import {remarkUnwrapMdxParagraphs} from './build-utils/remark-unwrap-mdx-paragraphs.ts';
 import packageJson from './package.json' with {type: 'json'};
 
 const {env} = process;
@@ -296,6 +298,7 @@ const appConfig: Configuration = {
             loader: '@mdx-js/loader',
             options: {
               remarkPlugins: [
+                remarkUnwrapMdxParagraphs,
                 remarkFrontmatter,
                 remarkMdxFrontmatter,
                 remarkGfm,
