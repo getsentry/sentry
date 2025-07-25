@@ -55,7 +55,7 @@ const StyledOption = styled('li')<{isFocused: boolean}>`
   list-style: none;
   transition: background-color 0.2s ease;
   border-bottom: 1px solid ${p => p.theme.border};
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
   background-color: ${p => (p.isFocused ? p.theme.backgroundSecondary : 'transparent')};
 
   &:last-child {
@@ -72,5 +72,9 @@ const StyledOption = styled('li')<{isFocused: boolean}>`
 
   &[aria-selected='true'] {
     background-color: ${p => p.theme.backgroundSecondary};
+  }
+
+  &[data-is-none-of-these] {
+    padding: ${p => p.theme.space.lg} ${p => p.theme.space['2xl']};
   }
 `;
