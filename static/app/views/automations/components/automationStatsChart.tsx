@@ -4,6 +4,7 @@ import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
+import LoadingError from 'sentry/components/loadingError';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
@@ -13,7 +14,6 @@ import {space} from 'sentry/styles/space';
 import type {Automation, AutomationStats} from 'sentry/types/workflowEngine/automations';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import RouteError from 'sentry/views/routeError';
 
 interface IssueAlertDetailsProps extends DateTimeObject {
   automationId: Automation['id'];
@@ -31,7 +31,6 @@ export function AutomationStatsChart({
     data: fireHistory,
     isPending,
     isError,
-    error,
   } = useApiQuery<AutomationStats[]>(
     [
       `/organizations/${organization.slug}/workflows/${automationId}/stats/`,
@@ -57,7 +56,7 @@ export function AutomationStatsChart({
           <HeaderTitleLegend>{t('Automations Triggered')}</HeaderTitleLegend>
         </ChartHeader>
         {isPending && <Placeholder height="200px" />}
-        {isError && <RouteError error={error} />}
+        {isError && <LoadingError />}
         {!isPending && !isError && (
           <ChartZoom period={period} start={start} end={end} utc={utc} usePageDate>
             {zoomRenderProps => (
