@@ -320,7 +320,6 @@ const performanceOnboarding: OnboardingConfig = {
           tabs: [
             {
               label: 'JavaScript',
-              value: 'javascript',
               filename: 'instrument.(js|mjs)',
               language: 'javascript',
               code: getSdkInitSnippet(params, 'node'),
