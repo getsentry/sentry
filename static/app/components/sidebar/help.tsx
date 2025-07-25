@@ -98,43 +98,50 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
                   {t('Give Feedback')}
                 </SidebarMenuItem>
               ) : null}
-              {organization?.features?.includes('navigation-sidebar-v2') && (
-                <SidebarMenuItem
-                  onClick={() => {
-                    mutateUserOptions({prefersStackedNavigation: true});
-                    trackAnalytics(
-                      'navigation.help_menu_opt_in_stacked_navigation_clicked',
-                      {
-                        organization,
-                      }
-                    );
-                  }}
-                >
-                  {t('Try New Navigation')} <FeatureBadge type="new" />
-                </SidebarMenuItem>
-              )}
-              {organization?.features?.includes('chonk-ui') ? (
+              {organization?.features?.includes('navigation-sidebar-v2') &&
+                !organization?.features?.includes('chonk-ui') && (
+                  <SidebarMenuItem
+                    onClick={() => {
+                      mutateUserOptions({prefersStackedNavigation: true});
+                      trackAnalytics(
+                        'navigation.help_menu_opt_in_stacked_navigation_clicked',
+                        {
+                          organization,
+                        }
+                      );
+                    }}
+                  >
+                    {t('Try New Navigation')} <FeatureBadge type="new" />
+                  </SidebarMenuItem>
+                )}
+              {organization?.features?.includes('navigation-sidebar-v2') &&
+              organization?.features?.includes('chonk-ui') ? (
                 user.options.prefersChonkUI ? (
                   <SidebarMenuItem
                     onClick={() => {
-                      mutateUserOptions({prefersChonkUI: false});
+                      mutateUserOptions({
+                        prefersChonkUI: false,
+                      });
                       trackAnalytics('navigation.help_menu_opt_out_chonk_ui_clicked', {
                         organization,
                       });
                     }}
                   >
-                    {t('Switch Back To Our Old Look')}
+                    {t('Switch back to old Sentry')}
                   </SidebarMenuItem>
                 ) : (
                   <SidebarMenuItem
                     onClick={() => {
-                      mutateUserOptions({prefersChonkUI: true});
+                      mutateUserOptions({
+                        prefersChonkUI: true,
+                        prefersStackedNavigation: true,
+                      });
                       trackAnalytics('navigation.help_menu_opt_in_chonk_ui_clicked', {
                         organization,
                       });
                     }}
                   >
-                    {t('Try Our New Look')} <FeatureBadge type="beta" />
+                    {t('Try the new Sentry')} <FeatureBadge type="beta" />
                   </SidebarMenuItem>
                 )
               ) : null}
