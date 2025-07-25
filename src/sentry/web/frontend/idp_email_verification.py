@@ -1,10 +1,15 @@
+import logging
+
 from django.http import HttpRequest
 from django.http.response import HttpResponse
 
 from sentry.auth.idpmigration import SSO_VERIFICATION_KEY, get_verification_value_from_key
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.utils.cache import cache
 from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
+
+logger = logging.getLogger(__name__)
 
 
 @control_silo_view
@@ -23,6 +28,18 @@ class AccountConfirmationView(BaseView):
 
         if verification_value and org:
             request.session[SSO_VERIFICATION_KEY] = key
+            user_id = verification_value.get("user_id")
+            if user_id:
+                key = f"{SSO_VERIFICATION_KEY}:{user_id}"
+                cache.set(key, True, timeout=300)
+                logger.info(
+                    "sso.login-pipeline.verified-email-set-cache",
+                    extra={
+                        "user_id": user_id,
+                        "organization_id": verification_value.get("organization_id"),
+                    },
+                )
+
             return render_to_response(
                 "sentry/idp_account_verified.html", context=context, request=request
             )

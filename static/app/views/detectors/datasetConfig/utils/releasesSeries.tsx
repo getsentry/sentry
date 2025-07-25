@@ -27,10 +27,10 @@ export function transformMetricsResponseToSeries(
 
   return {
     seriesName: field,
-    data: data.intervals.map((interval, index) => {
+    data: data.intervals.map((interval: string, index: number) => {
       return {
         name: new Date(interval).getTime(),
-        value: data.groups.reduce((acc, group) => {
+        value: data.groups.reduce((acc: number, group) => {
           const value = group.series?.[field]?.[index] ?? 0;
           return acc + value;
         }, 0),
@@ -47,6 +47,7 @@ export function getReleasesSeriesQueryOptions({
   projectId,
   query,
   statsPeriod,
+  comparisonDelta,
 }: DetectorSeriesQueryOptions): ApiQueryKey {
   const field = fieldsToDerivedMetrics(aggregate);
   return [
@@ -63,6 +64,7 @@ export function getReleasesSeriesQueryOptions({
         statsPeriod,
         ...(environment && {environment: [environment]}),
         ...(query && {query}),
+        ...(comparisonDelta && {comparisonDelta}),
       },
     },
   ];
