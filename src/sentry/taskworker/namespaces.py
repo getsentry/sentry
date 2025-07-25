@@ -21,7 +21,7 @@ crons_tasks = taskregistry.create_namespace("crons", app_feature="crons")
 
 deletion_tasks = taskregistry.create_namespace(
     "deletions",
-    processing_deadline_duration=60 * 6,
+    processing_deadline_duration=60 * 10,
     app_feature="shared",
 )
 
