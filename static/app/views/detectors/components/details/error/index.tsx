@@ -20,9 +20,7 @@ type ErrorDetectorDetailsProps = {
 
 const formatResolveAge = (resolveAge: number) => {
   if (!resolveAge) {
-    return tct('Auto-resolution disabled.', {
-      link: <ExternalLink href="https://docs.sentry.io/product/issues/auto-resolve/" />,
-    });
+    return t('Auto-resolution disabled.');
   }
 
   if (resolveAge < 24 || resolveAge % 24 !== 0) {
