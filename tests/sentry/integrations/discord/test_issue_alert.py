@@ -177,7 +177,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         )
 
     @responses.activate
-    def test_has_releases(self):
+    def test_has_releases(self) -> None:
         release = Release.objects.create(
             organization_id=self.organization.id,
             version="1.0",
@@ -260,7 +260,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         )
 
     @responses.activate
-    def test_feature_flag_disabled(self):
+    def test_feature_flag_disabled(self) -> None:
         results = list(self.rule.after(self.event))
         assert len(results) == 1
         results[0].callback(self.event, futures=[])
@@ -268,7 +268,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         responses.assert_call_count(f"{MESSAGE_URL.format(channel_id=self.channel_id)}", 0)
 
     @responses.activate
-    def test_integration_removed(self):
+    def test_integration_removed(self) -> None:
         integration_service.delete_integration(integration_id=self.discord_integration.id)
         results = list(self.rule.after(self.event))
         assert len(results) == 0
@@ -288,7 +288,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         assert mock_validate_channel_id.call_count == 1
 
     @responses.activate
-    def test_label(self):
+    def test_label(self) -> None:
         label = self.rule.render_label()
         assert (
             label
@@ -322,7 +322,7 @@ class DiscordNotifyServiceFormTest(TestCase):
             integrations=self.integrations,
         )
 
-    def test_has_choices(self):
+    def test_has_choices(self) -> None:
         form = DiscordNotifyServiceForm(integrations=self.integrations)
         assert form.fields["server"].choices == [  # type: ignore[attr-defined]
             (self.discord_integration.id, self.discord_integration.name),
@@ -347,7 +347,7 @@ class DiscordNotifyServiceFormTest(TestCase):
         assert not self.form.is_valid()
         assert mock_get_channel_id_from_url.call_count == 1
 
-    def test_no_server(self):
+    def test_no_server(self) -> None:
         form = DiscordNotifyServiceForm(integrations=self.integrations)
         form.full_clean()
         assert not form.is_valid()
@@ -388,7 +388,7 @@ class DiscordNotifyServiceFormTest(TestCase):
         assert not form.is_valid()
         assert mock_validate_channel_id.call_count == 1
 
-    def test_get_channel_id_bad(self):
+    def test_get_channel_id_bad(self) -> None:
         form = DiscordNotifyServiceForm(
             data={
                 "server": self.discord_integration.id,

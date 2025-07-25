@@ -14,7 +14,7 @@ class TestBulkTableQueries(TestCase):
         self.config = SearchResolverConfig()
         self.resolver = get_resolver(self.snuba_params, self.config)
 
-    def test_missing_name(self):
+    def test_missing_name(self) -> None:
         with pytest.raises(ValueError):
             run_bulk_table_queries(
                 [
@@ -33,7 +33,7 @@ class TestBulkTableQueries(TestCase):
                 ]
             )
 
-    def test_duplicate_name(self):
+    def test_duplicate_name(self) -> None:
         with pytest.raises(ValueError):
             run_bulk_table_queries(
                 [

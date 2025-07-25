@@ -50,7 +50,7 @@ class UpdateWithNewestVersionOrCreateTest(TestCase):
         assert project_sdk.sdk_version == sdk_version
         return project_sdk
 
-    def test_first_sdk_version(self):
+    def test_first_sdk_version(self) -> None:
         ProjectSDK.update_with_newest_version_or_create(
             project=self.project,
             event_type=self.event_type,
@@ -76,7 +76,7 @@ class UpdateWithNewestVersionOrCreateTest(TestCase):
 
         assert db_project_sdk.id == cache_project_sdk.id
 
-    def test_newer_sdk_version(self):
+    def test_newer_sdk_version(self) -> None:
         project_sdk = ProjectSDK.objects.create(
             project=self.project,
             event_type=self.event_type.value,
@@ -109,7 +109,7 @@ class UpdateWithNewestVersionOrCreateTest(TestCase):
         )
         assert project_sdk.id == cache_project_sdk.id
 
-    def test_older_sdk_version(self):
+    def test_older_sdk_version(self) -> None:
         project_sdk = ProjectSDK.objects.create(
             project=self.project,
             event_type=self.event_type.value,
@@ -142,7 +142,7 @@ class UpdateWithNewestVersionOrCreateTest(TestCase):
         )
         assert project_sdk.id == cache_project_sdk.id
 
-    def test_same_sdk_version(self):
+    def test_same_sdk_version(self) -> None:
         project_sdk = ProjectSDK.objects.create(
             project=self.project,
             event_type=self.event_type.value,
@@ -175,7 +175,7 @@ class UpdateWithNewestVersionOrCreateTest(TestCase):
         )
         assert project_sdk.id == cache_project_sdk.id
 
-    def test_no_existing_version(self):
+    def test_no_existing_version(self) -> None:
         project_sdk = ProjectSDK.objects.create(
             project=self.project,
             event_type=self.event_type.value,
@@ -207,7 +207,7 @@ class UpdateWithNewestVersionOrCreateTest(TestCase):
         )
         assert project_sdk.id == cache_project_sdk.id
 
-    def test_no_new_version(self):
+    def test_no_new_version(self) -> None:
         project_sdk = ProjectSDK.objects.create(
             project=self.project,
             event_type=self.event_type.value,
@@ -235,7 +235,7 @@ class UpdateWithNewestVersionOrCreateTest(TestCase):
         cache_key = ProjectSDK.get_cache_key(self.project, self.event_type, "sentry.python")
         assert cache.get(cache_key) is None
 
-    def test_updated_cached_sdk_version(self):
+    def test_updated_cached_sdk_version(self) -> None:
         ProjectSDK.update_with_newest_version_or_create(
             project=self.project,
             event_type=self.event_type,
@@ -286,7 +286,7 @@ class UpdateWithNewestVersionOrCreateTest(TestCase):
         )
         assert before_cache_project_sdk.id == cache_project_sdk.id
 
-    def test_normalized_sdk_name(self):
+    def test_normalized_sdk_name(self) -> None:
         ProjectSDK.update_with_newest_version_or_create(
             project=self.project,
             event_type=self.event_type,
@@ -312,7 +312,7 @@ class UpdateWithNewestVersionOrCreateTest(TestCase):
 
         assert db_project_sdk.id == cache_project_sdk.id
 
-    def test_unknown_sdk_name(self):
+    def test_unknown_sdk_name(self) -> None:
         ProjectSDK.update_with_newest_version_or_create(
             project=self.project,
             event_type=self.event_type,

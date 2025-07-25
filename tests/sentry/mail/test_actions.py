@@ -56,27 +56,27 @@ class NotifyEmailFormTest(TestCase):
             json[self.TARGET_IDENTIFIER_KEY] = target_id
         return self.form_from_json(json)
 
-    def test_validate_empty_fail(self):
+    def test_validate_empty_fail(self) -> None:
         form = self.form_from_json({})
         assert not form.is_valid()
 
-    def test_validate_none_fail(self):
+    def test_validate_none_fail(self) -> None:
         form = self.form_from_json(None)
         assert not form.is_valid()
 
-    def test_validate_malformed_json_fail(self):
+    def test_validate_malformed_json_fail(self) -> None:
         form = self.form_from_json({"notTheRightK3yName": ActionTargetType.ISSUE_OWNERS.value})
         assert not form.is_valid()
 
-    def test_validate_invalid_target_type_fail(self):
+    def test_validate_invalid_target_type_fail(self) -> None:
         form = self.form_from_values("TheLegend27")
         assert not form.is_valid()
 
-    def test_validate_issue_owners(self):
+    def test_validate_issue_owners(self) -> None:
         form = self.form_from_values(ActionTargetType.ISSUE_OWNERS.value)
         assert form.is_valid()
 
-    def test_validate_fallthrough_choice(self):
+    def test_validate_fallthrough_choice(self) -> None:
         form = self.form_from_values(
             ActionTargetType.ISSUE_OWNERS.value,
             fallthroughChoice=FallthroughChoiceType.NO_ONE.value,
@@ -89,7 +89,7 @@ class NotifyEmailFormTest(TestCase):
         )
         assert form.is_valid()
 
-    def test_validate_invalid_fallthrough_choice(self):
+    def test_validate_invalid_fallthrough_choice(self) -> None:
         # FallthroughChoice is only set for ActionTargetType.ISSUE_OWNERS
         form = self.form_from_values(
             ActionTargetType.TEAM.value,
@@ -97,24 +97,24 @@ class NotifyEmailFormTest(TestCase):
         )
         assert not form.is_valid()
 
-    def test_validate_team(self):
+    def test_validate_team(self) -> None:
         form = self.form_from_values(ActionTargetType.TEAM.value, self.team.id)
         assert form.is_valid()
 
-    def test_validate_team_not_in_project_fail(self):
+    def test_validate_team_not_in_project_fail(self) -> None:
         form = self.form_from_values(ActionTargetType.TEAM.value, self.team_not_in_project.id)
         assert not form.is_valid()
 
-    def test_validate_user(self):
+    def test_validate_user(self) -> None:
         for u in [self.user, self.user2]:
             form = self.form_from_values(ActionTargetType.MEMBER.value, u.id)
             assert form.is_valid()
 
-    def test_validate_inactive_user_fail(self):
+    def test_validate_inactive_user_fail(self) -> None:
         form = self.form_from_values(ActionTargetType.MEMBER.value, self.inactive_user)
         assert not form.is_valid()
 
-    def test_none_target_identifier(self):
+    def test_none_target_identifier(self) -> None:
         json = {self.TARGET_TYPE_KEY: ActionTargetType.ISSUE_OWNERS.value}
         json[self.TARGET_IDENTIFIER_KEY] = "None"
         form = self.form_from_json(json)
@@ -124,7 +124,7 @@ class NotifyEmailFormTest(TestCase):
 class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
     rule_cls = NotifyEmailAction
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         event = self.get_event()
         rule = self.get_rule(data={"targetType": "IssueOwners"})
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -132,7 +132,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
         results = list(rule.after(event=event))
         assert len(results) == 1
 
-    def test_full_integration(self):
+    def test_full_integration(self) -> None:
         one_min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
@@ -172,7 +172,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
 
-    def test_full_integration_fallthrough(self):
+    def test_full_integration_fallthrough(self) -> None:
         one_min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
@@ -211,7 +211,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
 
-    def test_full_integration_fallthrough_not_provided(self):
+    def test_full_integration_fallthrough_not_provided(self) -> None:
         one_min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
@@ -250,7 +250,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
 
-    def test_full_integration_performance(self):
+    def test_full_integration_performance(self) -> None:
         event = self.create_performance_issue()
         action_data = {
             "id": "sentry.mail.actions.NotifyEmailAction",
@@ -284,7 +284,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
         assert sent.to == [self.user.email]
         assert "N+1 Query" in sent.subject
 
-    def test_hack_mail_workflow(self):
+    def test_hack_mail_workflow(self) -> None:
         gil_workflow = self.create_user(email="gilbert@workflow.com", is_active=True)
         dan_workflow = self.create_user(email="dan@workflow.com", is_active=True)
         team_workflow = self.create_team(
@@ -337,7 +337,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
         for x in [out.subject for out in mail.outbox]:
             assert "uh oh" in x
 
-    def test_render_label_fallback_none(self):
+    def test_render_label_fallback_none(self) -> None:
         # Check that the label defaults to ActiveMembers
         rule = self.get_rule(data={"targetType": ActionTargetType.ISSUE_OWNERS.value})
         assert (

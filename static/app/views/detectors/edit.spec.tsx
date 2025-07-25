@@ -1,4 +1,5 @@
 import {MetricDetectorFixture} from 'sentry-fixture/detectors';
+import {MetricsFieldFixture} from 'sentry-fixture/metrics';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -100,7 +101,7 @@ describe('DetectorEdit | Metric Detector', () => {
     await userEvent.click(screen.getByText('All Environments'));
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'production'}));
 
-    await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     const snubaQuery = mockDetector.dataSources[0].queryObj!.snubaQuery;
     await waitFor(() => {
@@ -125,7 +126,7 @@ describe('DetectorEdit | Metric Detector', () => {
               queryType: 0,
             },
             conditionGroup: {
-              conditions: [{comparison: 8, conditionResult: 50, type: 'gt'}],
+              conditions: [{comparison: 8, conditionResult: 75, type: 'gt'}],
               logicType: 'any',
             },
             config: {detectionType: 'static', thresholdPeriod: 1},
@@ -269,5 +270,42 @@ describe('DetectorEdit | Metric Detector', () => {
       conditionResult: 50,
       type: 'gt',
     });
+  });
+
+  it('hides detection type options when dataset is changed to releases', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+      body: mockDetector,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/metrics/data/`,
+      body: MetricsFieldFixture('count()'),
+    });
+
+    render(<DetectorEdit />, {
+      organization,
+      initialRouterConfig: {
+        route: '/organizations/:orgId/issues/monitors/:detectorId/edit/',
+        location: {
+          pathname: `/organizations/${organization.slug}/issues/monitors/${mockDetector.id}/edit/`,
+        },
+      },
+    });
+
+    expect(await screen.findByRole('link', {name})).toBeInTheDocument();
+
+    // Verify detection type options are initially available
+    expect(screen.getByText('Threshold')).toBeInTheDocument();
+    expect(screen.getByText('Change')).toBeInTheDocument();
+
+    // Change dataset to releases
+    const datasetField = screen.getByLabelText('Dataset');
+    await userEvent.click(datasetField);
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Releases'}));
+
+    // Verify detection type options are no longer available
+    expect(screen.queryByText('Change')).not.toBeInTheDocument();
+    expect(screen.queryByText('Dynamic')).not.toBeInTheDocument();
   });
 });

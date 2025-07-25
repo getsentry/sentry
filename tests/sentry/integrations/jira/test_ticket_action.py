@@ -155,7 +155,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
                 IntegrationError("Error Communicating with Jira (HTTP 400): unknown error"),
             )
 
-    def test_fails_validation(self):
+    def test_fails_validation(self) -> None:
         """
         Test that the absence of dynamic_form_fields in the action fails validation
         """

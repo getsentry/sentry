@@ -13,7 +13,7 @@ class BaseUpdateMonitorEnvironmentTest(MonitorTestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         monitor = self._create_monitor(status=MonitorStatus.ACTIVE)
         monitor_environment = self._create_monitor_environment(monitor)
         # Test disable
@@ -72,7 +72,7 @@ class BaseDeleteMonitorTest(MonitorTestCase):
         self.login_as(user=self.user)
         super().setUp()
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         monitor = self._create_monitor(status=MonitorStatus.ACTIVE)
         monitor_environment = self._create_monitor_environment(monitor)
         monitor_environment_2 = self._create_monitor_environment(monitor, name="second")

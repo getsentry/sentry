@@ -9,7 +9,7 @@ from sentry.testutils.silo import control_silo_test
 class ExampleIntegrationTest(IntegrationTestCase):
     provider = ExampleIntegrationProvider
 
-    def test_basic_flow(self):
+    def test_basic_flow(self) -> None:
         resp = self.client.get(self.init_path)
         assert resp.status_code == 200
         assert ExampleSetupView.TEMPLATE in resp.content.decode("utf-8")

@@ -10,10 +10,7 @@ import {processInitQueue} from './processInitQueue';
 import {renderMain} from './renderMain';
 import {renderOnDomReady} from './renderOnDomReady';
 
-export function initializeApp(
-  config: Config,
-  SentryHooksProvider?: React.ComponentType<React.PropsWithChildren>
-) {
+export function initializeApp(config: Config) {
   initializeSdk(config);
   // Initialize the config store after the SDK, so we can log errors to Sentry during config initialization if needed. N.B. This mutates the config slightly
   commonInitialization(config);
@@ -21,6 +18,6 @@ export function initializeApp(
   // Used for operational metrics to determine that the application js
   // bundle was loaded by browser.
   metric.mark({name: 'sentry-app-init'});
-  renderOnDomReady(renderMain(SentryHooksProvider));
+  renderOnDomReady(renderMain);
   processInitQueue();
 }

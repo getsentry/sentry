@@ -46,7 +46,7 @@ class CheckAuthTest(TestCase):
             expires=AUTH_CHECK_INTERVAL - AUTH_CHECK_SKEW,
         )
 
-    def test_processes_recursively(self):
+    def test_processes_recursively(self) -> None:
         organization = self.create_organization(name="Test")
         auth_provider = AuthProvider.objects.create(
             organization_id=organization.id, provider="dummy"
@@ -111,7 +111,7 @@ class CheckAuthIdentityTest(TestCase):
         assert updated_ai.last_synced != ai.last_synced
         assert updated_ai.last_verified != ai.last_verified
 
-    def test_skips_provider_that_does_not_require_refresh(self):
+    def test_skips_provider_that_does_not_require_refresh(self) -> None:
         organization = self.create_organization(name="Test")
         user = self.create_user(email="bar@example.com")
         auth_provider = AuthProvider.objects.create(

@@ -7,7 +7,7 @@ from sentry.testutils.cases import TestCase
 
 
 class FindReferencedGroupsTest(TestCase):
-    def test_multiple_matches_basic(self):
+    def test_multiple_matches_basic(self) -> None:
         group = self.create_group()
         group2 = self.create_group()
 
@@ -60,7 +60,7 @@ class FindReferencedGroupsTest(TestCase):
         assert len(groups) == 1
         assert group in groups
 
-    def test_multiple_matches_comma_separated(self):
+    def test_multiple_matches_comma_separated(self) -> None:
         group = self.create_group()
         group2 = self.create_group()
 
@@ -78,7 +78,7 @@ class FindReferencedGroupsTest(TestCase):
         assert group in groups
         assert group2 in groups
 
-    def test_markdown_links(self):
+    def test_markdown_links(self) -> None:
         group = self.create_group()
         group2 = self.create_group()
 

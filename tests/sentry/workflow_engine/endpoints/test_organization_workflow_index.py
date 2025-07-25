@@ -1,10 +1,13 @@
 from typing import Any
+from unittest import mock
 
+from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.workflow_engine.models import Action, Workflow, WorkflowDataConditionGroup
+from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 
 
@@ -39,11 +42,11 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
                 event_id=self.event.event_id,
             )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         response = self.get_success_response(self.organization.slug)
         assert response.data == serialize([self.workflow, self.workflow_two, self.workflow_three])
 
-    def test_empty_result(self):
+    def test_empty_result(self) -> None:
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "aaaaaaaaaaaaa"}
         )
@@ -75,7 +78,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         )
         assert response.data == {"id": ["Invalid ID format"]}
 
-    def test_sort_by_name(self):
+    def test_sort_by_name(self) -> None:
         response = self.get_success_response(self.organization.slug, qs_params={"sortBy": "-name"})
         assert [w["name"] for w in response.data] == [
             self.workflow_three.name,
@@ -89,7 +92,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             self.workflow_three.name,
         ]
 
-    def test_sort_by_duplicated_name(self):
+    def test_sort_by_duplicated_name(self) -> None:
         fresh_org = self.create_organization(name="Fresh Org", owner=self.user)
         self.create_workflow(organization_id=fresh_org.id, name="Name")
         self.create_workflow(organization_id=fresh_org.id, name="Name")
@@ -102,7 +105,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             reversed([w["id"] for w in response1.data])
         )
 
-    def test_sort_by_connected_detectors(self):
+    def test_sort_by_connected_detectors(self) -> None:
         detector = self.create_detector(project=self.project, name="A Test Detector")
         detector_two = self.create_detector(project=self.project, name="B Test Detector 2")
 
@@ -133,7 +136,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             self.workflow_two.name,
         ]
 
-    def test_invalid_sort_by(self):
+    def test_invalid_sort_by(self) -> None:
         response = self.get_error_response(
             self.organization.slug, qs_params={"sortBy": "not_a_valid_sort_by_field"}
         )
@@ -163,7 +166,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         self.create_workflow_data_condition_group(condition_group=dcg, workflow=workflow)
         return action
 
-    def test_sort_by_actions(self):
+    def test_sort_by_actions(self) -> None:
         # workflow gets 2 actions, workflow_two/workflow_three get none.
         self._create_action_for_workflow(self.workflow, Action.Type.SLACK, self.FAKE_SLACK_CONFIG)
         self._create_action_for_workflow(self.workflow, Action.Type.EMAIL, self.FAKE_EMAIL_CONFIG)
@@ -186,7 +189,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             self.workflow_two.name,
         ][0]
 
-    def test_sort_by_last_triggered(self):
+    def test_sort_by_last_triggered(self) -> None:
         response = self.get_success_response(
             self.organization.slug, qs_params={"sortBy": "lastTriggered"}
         )
@@ -206,7 +209,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             self.workflow_three.name,
         ]
 
-    def test_query_filter_by_name(self):
+    def test_query_filter_by_name(self) -> None:
         response = self.get_success_response(self.organization.slug, qs_params={"query": "apple"})
         assert len(response.data) == 2
         assert {self.workflow.name, self.workflow_three.name} == {w["name"] for w in response.data}
@@ -239,7 +242,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         )
         assert len(response3.data) == 0
 
-    def test_filter_by_project(self):
+    def test_filter_by_project(self) -> None:
         self.create_detector_workflow(
             workflow=self.workflow, detector=self.create_detector(project=self.project)
         )
@@ -281,7 +284,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             self.organization.slug, qs_params=[("project", empty_project.id)]
         ).data
 
-    def test_query_filter_by_action(self):
+    def test_query_filter_by_action(self) -> None:
         self._create_action_for_workflow(self.workflow, Action.Type.SLACK, self.FAKE_SLACK_CONFIG)
         self._create_action_for_workflow(self.workflow, Action.Type.SLACK, self.FAKE_SLACK_CONFIG)
         self._create_action_for_workflow(
@@ -322,7 +325,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         assert len(response3.data) == 2
         assert {self.workflow.name, self.workflow_two.name} == {w["name"] for w in response3.data}
 
-    def test_compound_query(self):
+    def test_compound_query(self) -> None:
         self.create_detector_workflow(
             workflow=self.workflow, detector=self.create_detector(project=self.project)
         )
@@ -362,7 +365,8 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
             "actionFilters": [],
         }
 
-    def test_create_workflow__basic(self):
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.workflow.create_audit_entry")
+    def test_create_workflow__basic(self, mock_audit):
         response = self.get_success_response(
             self.organization.slug,
             raw_data=self.valid_workflow,
@@ -372,7 +376,15 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
         new_workflow = Workflow.objects.get(id=response.data["id"])
         assert new_workflow.name == self.valid_workflow["name"]
 
-    def test_create_workflow__with_config(self):
+        mock_audit.assert_called_once_with(
+            request=mock.ANY,
+            organization=self.organization,
+            target_object=new_workflow.id,
+            event=audit_log.get_event_id("WORKFLOW_ADD"),
+            data=new_workflow.get_audit_log_data(),
+        )
+
+    def test_create_workflow__with_config(self) -> None:
         self.valid_workflow["config"] = {"frequency": 100}
         response = self.get_success_response(
             self.organization.slug,
@@ -383,7 +395,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
         new_workflow = Workflow.objects.get(id=response.data["id"])
         assert new_workflow.config == self.valid_workflow["config"]
 
-    def test_create_workflow__with_triggers(self):
+    def test_create_workflow__with_triggers(self) -> None:
         self.valid_workflow["triggers"] = {
             "logicType": "any",
             "conditions": [
@@ -407,7 +419,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
             "id"
         )
 
-    def test_create_workflow__with_actions(self):
+    def test_create_workflow__with_actions(self) -> None:
         self.valid_workflow["actionFilters"] = [
             {
                 "logicType": "any",
@@ -446,7 +458,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
             "actionFilters", []
         )[0].get("id")
 
-    def test_create_invalid_workflow(self):
+    def test_create_invalid_workflow(self) -> None:
         self.valid_workflow["name"] = ""
         response = self.get_response(
             self.organization.slug,
@@ -455,7 +467,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
 
         assert response.status_code == 400
 
-    def test_create_workflow__invalid_triggers(self):
+    def test_create_workflow__invalid_triggers(self) -> None:
         self.valid_workflow["triggers"] = {
             "logicType": "some",
             "conditions": [
@@ -473,7 +485,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
 
         assert response.status_code == 400
 
-    def test_create_workflow__invalid_actions(self):
+    def test_create_workflow__invalid_actions(self) -> None:
         self.valid_workflow["actionFilters"] = [
             {
                 "logicType": "some",
@@ -499,3 +511,74 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
         )
 
         assert response.status_code == 400
+
+    @mock.patch("sentry.workflow_engine.endpoints.validators.detector_workflow.create_audit_entry")
+    def test_create_workflow_with_detector_ids(self, mock_audit):
+        detector_1 = self.create_detector()
+        detector_2 = self.create_detector()
+
+        workflow_data = {
+            **self.valid_workflow,
+            "detectorIds": [detector_1.id, detector_2.id],
+        }
+
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=workflow_data,
+        )
+
+        assert response.status_code == 201
+
+        created_detector_workflows = DetectorWorkflow.objects.filter(
+            workflow_id=response.data["id"]
+        )
+        assert created_detector_workflows.count() == 2
+
+        assert mock_audit.call_count == 2
+        detector_workflow_audit_calls = [
+            call
+            for call in mock_audit.call_args_list
+            if call.kwargs.get("event") == audit_log.get_event_id("DETECTOR_WORKFLOW_ADD")
+        ]
+        assert len(detector_workflow_audit_calls) == 2
+
+    def test_create_workflow_with_invalid_detector_ids(self) -> None:
+        workflow_data = {
+            **self.valid_workflow,
+            "detectorIds": [999999],  # doesn't exist
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            raw_data=workflow_data,
+            status_code=400,
+        )
+        assert "detectors do not exist" in str(response.data).lower()
+
+        assert Workflow.objects.count() == 0
+
+    def test_create_workflow_with_unauthorized_detectors(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        member_user = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "contributor")],
+            user=member_user,
+            role="member",
+            organization=self.organization,
+        )
+        self.login_as(user=member_user)
+
+        detector = self.create_detector()  # owned by self.user, not member_user
+
+        workflow_data = {
+            **self.valid_workflow,
+            "detectorIds": [detector.id],
+        }
+
+        self.get_error_response(
+            self.organization.slug,
+            raw_data=workflow_data,
+            status_code=403,
+        )

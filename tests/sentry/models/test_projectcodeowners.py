@@ -36,7 +36,7 @@ class ProjectCodeOwnersTestCase(TestCase):
             "raw": "docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n",
         }
 
-    def test_merge_codeowners(self):
+    def test_merge_codeowners(self) -> None:
         self.code_mapping_2 = self.create_code_mapping(
             project=self.project,
             stack_root="stack/root/",

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Iterable
+from collections.abc import Iterable, MutableMapping
 from os import path
 from typing import Any
 from unittest import mock
@@ -35,6 +35,13 @@ FINGERPRINT_INPUTS_DIR = path.join(path.dirname(__file__), "fingerprint_inputs")
 
 MANUAL_SAVE_CONFIGS = set(CONFIGURATIONS.keys()) - {DEFAULT_GROUPING_CONFIG}
 FULL_PIPELINE_CONFIGS = {DEFAULT_GROUPING_CONFIG}
+
+# When regenerating snapshots locally, you can set `SENTRY_SNAPSHOTS_WRITEBACK=1` and
+# `SENTRY_FAST_GROUPING_SNAPSHOTS=1` in the environment to update snapshots automatically and run
+# all snapshots through the faster, non-DB-involving process.
+if os.environ.get("SENTRY_FAST_GROUPING_SNAPSHOTS") and not os.environ.get("GITHUB_ACTIONS"):
+    FULL_PIPELINE_CONFIGS.remove(DEFAULT_GROUPING_CONFIG)
+    MANUAL_SAVE_CONFIGS.add(DEFAULT_GROUPING_CONFIG)
 
 # Create a grouping config to be used only in tests, in which message parameterization is turned
 # off. This lets us easily force an event to have different hashes for different configs. (We use a
@@ -83,7 +90,7 @@ class GroupingInput:
         grouping_config: GroupingConfig,
         fingerprinting_config: FingerprintingRules,
         project: Project,
-    ):
+    ) -> Event:
         with (
             mock.patch(
                 "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
@@ -150,15 +157,15 @@ def with_grouping_configs(config_ids: Iterable[str]) -> pytest.MarkDecorator:
 
 
 class FingerprintInput:
-    def __init__(self, filename):
+    def __init__(self, filename: str) -> None:
         self.filename = filename
 
     @cached_property
-    def data(self):
+    def data(self) -> MutableMapping[str, Any]:
         with open(path.join(FINGERPRINT_INPUTS_DIR, self.filename)) as f:
             return json.load(f)
 
-    def create_event(self):
+    def create_event(self) -> tuple[FingerprintingRules, Event]:
         config = FingerprintingRules.from_json(
             {"rules": self.data.get("_fingerprinting_rules", [])},
             bases=CONFIGURATIONS[DEFAULT_GROUPING_CONFIG].fingerprinting_bases,
@@ -184,7 +191,7 @@ fingerprint_input = list(
 )
 
 
-def with_fingerprint_input(name):
+def with_fingerprint_input(name: str) -> pytest.MarkDecorator:
     return pytest.mark.parametrize(
         name, fingerprint_input, ids=lambda x: x.filename[:-5].replace("-", "_")
     )
@@ -204,7 +211,9 @@ def dump_variant(
     indent: int = 0,
     include_non_contributing: bool = True,
 ) -> list[str]:
-    def _dump_component(component: BaseGroupingComponent, indent: int) -> None:
+    def _dump_component(
+        component: BaseGroupingComponent[str | int | BaseGroupingComponent[Any]], indent: int
+    ) -> None:
         if not component.hint and not component.values:
             return
         if component.contributes or include_non_contributing:

@@ -138,7 +138,7 @@ class VstsWebhookWorkItemTest(APITestCase):
         assert_failure_metric(mock_record, error)
 
     @responses.activate
-    def test_workitem_unassign(self):
+    def test_workitem_unassign(self) -> None:
         work_item_id = 33
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id, integration_id=self.model.id, key=work_item_id
@@ -232,7 +232,7 @@ class VstsWebhookWorkItemTest(APITestCase):
         assert_failure_metric(mock_record, error)  # multiple success metrics being recorded
 
     @responses.activate
-    def test_inbound_status_sync_unresolve(self):
+    def test_inbound_status_sync_unresolve(self) -> None:
         responses.add(
             responses.GET,
             "https://instance.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workitemtypes/Bug/states",
@@ -265,7 +265,7 @@ class VstsWebhookWorkItemTest(APITestCase):
         assert len(Activity.objects.filter(group_id__in=group_ids)) == num_groups
 
     @responses.activate
-    def test_inbound_status_sync_new_workitem(self):
+    def test_inbound_status_sync_new_workitem(self) -> None:
         responses.add(
             responses.GET,
             "https://instance.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workitemtypes/Bug/states",
