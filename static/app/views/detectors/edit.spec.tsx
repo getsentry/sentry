@@ -126,7 +126,7 @@ describe('DetectorEdit | Metric Detector', () => {
               queryType: 0,
             },
             conditionGroup: {
-              conditions: [{comparison: 8, conditionResult: 50, type: 'gt'}],
+              conditions: [{comparison: 8, conditionResult: 75, type: 'gt'}],
               logicType: 'any',
             },
             config: {detectionType: 'static', thresholdPeriod: 1},
