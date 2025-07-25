@@ -61,15 +61,13 @@ function getDateTimeFromQuery(query: Record<string, any>): DateTimeObject {
     allowEmptyPeriod: true,
     allowAbsoluteDatetime: true,
     allowAbsolutePageDatetime: true,
+    defaultStatsPeriod: DEFAULT_CHART_PERIOD,
   });
 
-  // Following getParams, statsPeriod will take priority over start/end
-  if (statsPeriod) {
-    return {period: statsPeriod};
-  }
-
   const utc = utcString === 'true';
-  if (start && end) {
+
+  // Following getParams, statsPeriod will take priority over start/end
+  if (!statsPeriod && start && end) {
     return utc
       ? {
           start: moment.utc(start).format(),
@@ -83,7 +81,7 @@ function getDateTimeFromQuery(query: Record<string, any>): DateTimeObject {
         };
   }
 
-  return {period: DEFAULT_CHART_PERIOD};
+  return {period: statsPeriod};
 }
 
 function AutomationDetailContent({automation}: {automation: Automation}) {
