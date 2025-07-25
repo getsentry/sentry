@@ -11,6 +11,7 @@ from django.db import router, transaction
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.preprod.api.models.project_preprod_size_analysis_models import SizeAnalysisResults
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.producer import produce_preprod_artifact_to_kafka
 from sentry.silo.base import SiloMode
@@ -277,6 +278,11 @@ def _assemble_preprod_artifact_size_analysis(
             pass  # Ignore cleanup errors
         raise Exception(f"PreprodArtifact with id {artifact_id} does not exist")
 
+    size_analysis_results = SizeAnalysisResults.parse_raw(assemble_result.bundle_temp_file.read())
+    if size_analysis_results.treemap:
+        install_size = size_analysis_results.treemap.total_install_size
+        download_size = size_analysis_results.treemap.total_download_size
+
     # Update size metrics in its own transaction
     with transaction.atomic(router.db_for_write(PreprodArtifactSizeMetrics)):
         size_metrics, created = PreprodArtifactSizeMetrics.objects.update_or_create(
@@ -284,6 +290,10 @@ def _assemble_preprod_artifact_size_analysis(
             defaults={
                 "analysis_file_id": assemble_result.bundle.id,
                 "metrics_artifact_type": PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,  # TODO: parse this from the treemap json
+                "min_install_size": install_size,
+                "max_install_size": install_size,
+                "min_download_size": download_size,
+                "max_download_size": download_size,
                 "state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             },
         )
