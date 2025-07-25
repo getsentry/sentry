@@ -130,7 +130,7 @@ export interface RouteContextInterface<P = Record<string, string | undefined>, Q
   routes: PlainRoute[];
 }
 
-export interface IndexRedirectProps {
+interface IndexRedirectProps {
   to: RoutePattern;
   query?: Query | undefined;
 }
