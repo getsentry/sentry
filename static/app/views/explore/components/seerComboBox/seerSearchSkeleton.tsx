@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
@@ -16,7 +17,7 @@ function generateThreeUniqueNumbers(): number[] {
 }
 
 export function SeerSearchSkeleton() {
-  const numbers = generateThreeUniqueNumbers();
+  const numbers = useMemo(() => generateThreeUniqueNumbers(), []);
 
   return (
     <LoadingSkeleton>
