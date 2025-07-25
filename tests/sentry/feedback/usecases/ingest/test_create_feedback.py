@@ -6,6 +6,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from sentry import features
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import (
     create_feedback_issue,
@@ -14,6 +15,7 @@ from sentry.feedback.usecases.ingest.create_feedback import (
     validate_issue_platform_event_schema,
 )
 from sentry.models.group import Group, GroupStatus
+from sentry.models.organization import Organization
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -893,35 +895,96 @@ def test_get_feedback_title():
     """Test the get_feedback_title function with various message types."""
 
     # Test normal short message
-    assert get_feedback_title("Login button broken") == "User Feedback: Login button broken"
+    assert get_feedback_title("Login button broken") == "Login button broken"
 
     # Test message with exactly 10 words (default max_words)
     message_10_words = "This is a test message with exactly ten words total"
-    assert get_feedback_title(message_10_words) == f"User Feedback: {message_10_words}"
+    assert get_feedback_title(message_10_words) == message_10_words
 
     # Test message with more than 10 words (should truncate)
     long_message = "This is a very long feedback message that goes on and on and describes many different issues"
-    expected = "User Feedback: This is a very long feedback message that goes on..."
+    expected = "This is a very long feedback message that goes on..."
     assert get_feedback_title(long_message) == expected
 
     # Test very short message
-    assert get_feedback_title("Bug") == "User Feedback: Bug"
+    assert get_feedback_title("Bug") == "Bug"
 
     # Test custom max_words parameter
     message = "This is a test with custom word limit"
-    assert get_feedback_title(message, max_words=3) == "User Feedback: This is a..."
+    assert get_feedback_title(message, max_words=3) == "This is a..."
 
     # Test message that would create a title longer than 200 characters
     very_long_message = "a" * 300  # 300 character message
     result = get_feedback_title(very_long_message)
     assert len(result) <= 200
     assert result.endswith("...")
-    assert result.startswith("User Feedback: ")
+    # No longer starts with "User Feedback: "
 
     # Test message with special characters
     special_message = "The @login button doesn't work! It's broken & needs fixing."
-    expected_special = "User Feedback: The @login button doesn't work! It's broken & needs fixing."
+    expected_special = "The @login button doesn't work! It's broken & needs fixing."
     assert get_feedback_title(special_message) == expected_special
+
+
+@django_db_all
+def test_get_feedback_title_with_ai():
+    """Test the get_feedback_title function with AI generation enabled and disabled."""
+    # Create a test organization
+    org = Organization.objects.create(name="Test Org", slug="test-org")
+
+    # Test with AI disabled (should fall back to original logic)
+    title = get_feedback_title("Login button broken", organization=org)
+    assert title == "Login button broken"
+
+    # Test with AI enabled but feature flag disabled
+    with patch.object(features, "has", return_value=False):
+        title = get_feedback_title("Login button broken", organization=org)
+        assert title == "Login button broken"
+
+    # Test with AI enabled and feature flag enabled, but Seer call fails
+    with patch.object(features, "has", return_value=True):
+        with patch("sentry.feedback.usecases.ingest.create_feedback.requests.post") as mock_post:
+            mock_post.side_effect = Exception("Network error")
+            title = get_feedback_title("Login button broken", organization=org)
+            assert title == "Login button broken"
+
+    # Test with AI enabled and successful Seer response
+    with patch.object(features, "has", return_value=True):
+        with patch("sentry.feedback.usecases.ingest.create_feedback.requests.post") as mock_post:
+            mock_response = Mock()
+            mock_response.status_code = 200
+            mock_response.content = b'{"data": "Login Button Issue"}'
+            mock_post.return_value = mock_response
+
+            title = get_feedback_title("Login button broken", organization=org)
+            assert title == "Login Button Issue"
+
+    # Test with AI enabled but invalid Seer response
+    with patch.object(features, "has", return_value=True):
+        with patch("sentry.feedback.usecases.ingest.create_feedback.requests.post") as mock_post:
+            mock_response = Mock()
+            mock_response.status_code = 200
+            mock_response.content = b'{"invalid": "response"}'
+            mock_post.return_value = mock_response
+
+            title = get_feedback_title("Login button broken", organization=org)
+            assert title == "Login button broken"
+
+    # Test with AI enabled but HTTP error
+    with patch.object(features, "has", return_value=True):
+        with patch("sentry.feedback.usecases.ingest.create_feedback.requests.post") as mock_post:
+            mock_response = Mock()
+            mock_response.status_code = 500
+            mock_post.return_value = mock_response
+
+            title = get_feedback_title("Login button broken", organization=org)
+            assert title == "Login button broken"
+
+    # Test with AI enabled but organization has AI features hidden
+    org.update_option("sentry:hide_ai_features", True)
+    with patch.object(features, "has", return_value=True):
+        title = get_feedback_title("Login button broken", organization=org)
+        assert title == "Login button broken"
 
 
 @django_db_all
@@ -940,7 +1003,5 @@ def test_create_feedback_issue_title(default_project, mock_produce_occurrence_to
     occurrence = call_args[1]["occurrence"]
 
     # Check that the title is truncated properly
-    expected_title = (
-        "User Feedback: This is a very long feedback message that describes multiple..."
-    )
+    expected_title = "This is a very long feedback message that describes multiple..."
     assert occurrence.issue_title == expected_title
