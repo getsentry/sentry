@@ -1498,9 +1498,6 @@ describe('Subscription > CombinedUsageTotals', function () {
           [DataCategory.SEER_AUTOFIX]: 4,
           [DataCategory.SEER_SCANNER]: 5,
         },
-        attachmentSpendUsed: 0,
-        errorSpendUsed: 0,
-        transactionSpendUsed: 0,
         usedSpends: {
           [DataCategory.SEER_AUTOFIX]: 4,
           [DataCategory.SEER_SCANNER]: 5,

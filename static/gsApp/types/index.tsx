@@ -242,10 +242,6 @@ export type PerCategoryOnDemandBudget = {
 };
 
 type PerCategoryOnDemandBudgetWithSpends = PerCategoryOnDemandBudget & {
-  attachmentSpendUsed: number;
-  errorSpendUsed: number;
-  transactionSpendUsed: number;
-  // TODO(data categories): BIL-959
   usedSpends: Partial<Record<DataCategory, number>>;
 };
 
