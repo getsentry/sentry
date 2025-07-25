@@ -140,9 +140,9 @@ function VitalPill({vital, vitalDetails}: VitalPillProps) {
   const acronym = vitalDetails.acronym ?? vitalDetails.name;
   return (
     <VitalPillContainer>
-      <Tooltip title={toolTipTitle}>
-        <VitalPillName status={status}>{`${acronym}`}</VitalPillName>
-      </Tooltip>
+      <VitalPillName status={status}>
+        <Tooltip title={toolTipTitle}>{`${acronym}`}</Tooltip>
+      </VitalPillName>
       <VitalPillValue>{formattedMeterValueText}</VitalPillValue>
     </VitalPillContainer>
   );
@@ -150,47 +150,34 @@ function VitalPill({vital, vitalDetails}: VitalPillProps) {
 
 const VitalPillContainer = styled('div')`
   display: flex;
-  flex-direction: row;
+  align-items: center;
 `;
 
 const VitalPillName = styled('div')<{status: PerformanceScore}>`
   display: flex;
-  align-items: center;
-  position: relative;
-  height: 100%;
   border: solid 1px
     ${p =>
       p.status === 'none'
         ? p.theme.border
         : makePerformanceScoreColors(p.theme)[p.status].border};
   border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
-
   background-color: ${p => makePerformanceScoreColors(p.theme)[p.status].light};
   color: ${p => makePerformanceScoreColors(p.theme)[p.status].normal};
-
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.bold};
   text-decoration: underline;
   text-decoration-style: dotted;
   text-underline-offset: ${space(0.25)};
   text-decoration-thickness: 1px;
-
-  cursor: pointer;
 `;
 
 const VitalPillValue = styled('div')`
-  display: flex;
-  flex: 1;
-  align-items: center;
-  justify-content: flex-end;
   border: 1px solid ${p => p.theme.border};
   border-left: none;
   border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
-
   background: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
-
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const VitalMetersContainer = styled('div')`

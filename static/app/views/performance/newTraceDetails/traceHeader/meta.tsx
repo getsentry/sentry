@@ -29,7 +29,7 @@ function MetaSection({headingText, bodyText, rightAlignBody}: MetaDataProps) {
   return (
     <HeaderInfo>
       <StyledSectionHeading>{headingText}</StyledSectionHeading>
-      <SectionBody rightAlign={rightAlignBody}>{bodyText}</SectionBody>
+      <SectionBody alignment={rightAlignBody}>{bodyText}</SectionBody>
     </HeaderInfo>
   );
 }
@@ -43,9 +43,9 @@ const StyledSectionHeading = styled(SectionHeading)`
   margin: 0;
 `;
 
-const SectionBody = styled('div')<{rightAlign?: boolean}>`
+const SectionBody = styled('div')<{alignment?: boolean}>`
   font-size: ${p => p.theme.fontSize.xl};
-  text-align: ${p => (p.rightAlign ? 'right' : 'left')};
+  text-align: ${p => (p.alignment ? 'right' : 'left')};
   padding: ${space(0.5)} 0;
   max-height: 32px;
 `;
