@@ -22,8 +22,7 @@ export function StoryHeading(props: ComponentProps<typeof Heading>) {
         <strong>
           {storyTitle ? `${storyTitle} > ` : null}
           {text}
-        </strong>{' '}
-        section
+        </strong>
       </Fragment>
     ),
   });
