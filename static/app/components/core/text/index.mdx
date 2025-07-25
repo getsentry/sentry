@@ -12,6 +12,7 @@ resources:
     WCAG 1.4.12: https://www.w3.org/TR/WCAG22/#text-spacing
 ---
 
+import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import * as Storybook from 'sentry/stories';
 
@@ -177,39 +178,32 @@ Control line height with the `density` prop: `compressed` (1.0), default (1.2), 
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
     <div style={{width: '300px', marginBottom: '16px'}}>
-      <Text bold as="p">
-        {`Compressed density.`}
+      <Heading as="h4">Compressed density</Heading>
+      <Text as="p" density="compressed">
+        Compressed density text. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+        Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
       </Text>
-      <Text
-        density="compressed"
-        as="p"
-      >{`Compressed density text. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`}</Text>
     </div>
     <div style={{width: '300px', marginBottom: '16px'}}>
-      <Text bold as="p">
-        {`Default density.`}
+      <Heading as="h4">Default density</Heading>
+      <Text as="p">
+        Default density text. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed
+        do eiusmod tempor incididunt ut labore et dolore magna aliqua.
       </Text>
-      <Text as="p">{`Default density text. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`}</Text>
     </div>
     <div style={{width: '300px'}}>
-      <Text bold as="p">
-        {`Comfortable density.`}
+      <Heading as="h4">Comfortable density</Heading>
+      <Text as="p" density="comfortable">
+        Comfortable density text. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+        Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
       </Text>
-      <Text
-        density="comfortable"
-        as="p"
-      >{`Comfortable density text. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`}</Text>
     </div>
   </Storybook.SideBySide>
 </Storybook.Demo>
 ```jsx
-<Text density="compressed" as="p">
-  Compressed density text...
-</Text>
-<Text as="p">Default density text...</Text>
-<Text density="comfortable" as="p">
-  Comfortable density text...
-</Text>
+<Text density="compressed">Compressed density text...</Text>
+<Text>Default density text...</Text>
+<Text density="comfortable">Comfortable density text...</Text>
 ```
 
 ### Ellipsis Overflow
@@ -233,20 +227,18 @@ Use `monospace` for fixed-width text.
 
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
-    <div
-      style={{marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '16px'}}
-    >
+    <Flex align="center" gap="xl" style={{marginBottom: '16px'}}>
       <Text>1234567890</Text>
       <Text size="sm" variant="muted">
-        {`Regular`}
+        Regular
       </Text>
-    </div>
-    <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
+    </Flex>
+    <Flex align="center" gap="xl">
       <Text monospace>1234567890</Text>
       <Text size="sm" variant="muted">
-        {`Monospace`}
+        Monospace
       </Text>
-    </div>
+    </Flex>
   </Storybook.SideBySide>
 </Storybook.Demo>
 ```jsx
@@ -260,36 +252,30 @@ Use `tabular` for consistent number alignment and `fraction` for diagonal fracti
 
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
-    <div
-      style={{marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '16px'}}
-    >
+    <Flex align="center" gap="xl" style={{marginBottom: '16px'}}>
       <Text>1234567890</Text>
       <Text size="sm" variant="muted">
-        {`Regular numbers`}
+        Regular numbers
       </Text>
-    </div>
-    <div
-      style={{marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '16px'}}
-    >
+    </Flex>
+    <Flex align="center" gap="xl" style={{marginBottom: '16px'}}>
       <Text tabular>1234567890</Text>
       <Text size="sm" variant="muted">
-        {`Tabular numbers`}
+        Tabular numbers
       </Text>
-    </div>
-    <div
-      style={{marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '16px'}}
-    >
+    </Flex>
+    <Flex align="center" gap="xl" style={{marginBottom: '16px'}}>
       <Text>1/2 3/4 5/8</Text>
       <Text size="sm" variant="muted">
-        {`Regular fractions`}
+        Regular fractions
       </Text>
-    </div>
-    <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
+    </Flex>
+    <Flex align="center" gap="xl">
       <Text fraction>1/2 3/4 5/8</Text>
       <Text size="sm" variant="muted">
-        {`Diagonal fractions`}
+        Diagonal fractions
       </Text>
-    </div>
+    </Flex>
   </Storybook.SideBySide>
 </Storybook.Demo>
 ```jsx
