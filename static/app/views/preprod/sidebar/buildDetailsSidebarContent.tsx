@@ -54,7 +54,7 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
       item: {
         key: 'SHA',
         subject: 'SHA',
-        value: buildDetailsData.vcs_info.commit_id ?? '-',
+        value: buildDetailsData.vcs_info?.commit_id ?? '-',
       },
     },
     {
