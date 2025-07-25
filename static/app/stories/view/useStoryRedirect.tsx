@@ -35,7 +35,10 @@ export function useStoryRedirect() {
       return;
     }
     const {state, ...to} = story.location;
-    navigate({...location, ...to}, {replace: true, state: {...location.state, ...state}});
+    navigate(
+      {pathname: location.pathname, ...to},
+      {replace: true, state: {...location.state, ...state}}
+    );
   }, [location, params, navigate, stories]);
 
   useLayoutEffect(() => {
