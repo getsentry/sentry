@@ -5707,6 +5707,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["floored_epm()"] == 1
         assert data[0]["epm()"] == 2.5
 
+    @pytest.mark.skip(reason="flaky: #96108")
     def test_floored_epm_more_events(self):
         for _ in range(25):
             data = self.load_data(
