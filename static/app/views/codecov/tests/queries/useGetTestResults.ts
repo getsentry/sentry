@@ -77,6 +77,7 @@ export function useInfiniteTestResults({
   const signedSortBy = sortValueToSortKey(sortBy);
 
   const term = searchParams.get('term') || '';
+  const testSuites = searchParams.get('testSuites') || null;
 
   const filterBy = searchParams.get('filterBy') as SummaryFilterKey;
   let mappedFilterBy = null;
@@ -101,6 +102,7 @@ export function useInfiniteTestResults({
           term,
           cursor,
           navigation,
+          testSuites,
         },
       },
     ],
@@ -123,6 +125,7 @@ export function useInfiniteTestResults({
               branch,
               term,
               ...(mappedFilterBy ? {filterBy: mappedFilterBy} : {}),
+              ...(testSuites ? {testSuites} : {}),
               ...(cursor ? {cursor} : {}),
               ...(navigation ? {navigation} : {}),
             },
