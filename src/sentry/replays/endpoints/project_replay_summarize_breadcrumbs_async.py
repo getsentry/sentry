@@ -47,6 +47,14 @@ SEER_POLL_STATE_URL = (
 )
 
 
+def _get_request_exc_extras(e: requests.exceptions.RequestException) -> dict[str, Any]:
+    return {
+        "status_code": e.response.status_code if e.response is not None else None,
+        "response": e.response.text if e.response is not None else None,
+        "content": e.response.content if e.response is not None else None,
+    }
+
+
 @region_silo_endpoint
 @extend_schema(tags=["Replays"])
 class ProjectReplaySummarizeBreadcrumbsAsyncEndpoint(ProjectEndpoint):
@@ -83,35 +91,23 @@ class ProjectReplaySummarizeBreadcrumbsAsyncEndpoint(ProjectEndpoint):
         except requests.exceptions.HTTPError as e:
             logger.exception(
                 "Seer returned error during replay breadcrumbs summary",
-                extra={
-                    "url": url,
-                    "status_code": e.response.status_code if e.response is not None else None,
-                    "response": e.response.text if e.response is not None else None,
-                    "content": e.response.content if e.response is not None else None,
-                },
+                extra={"url": url, **_get_request_exc_extras(e)},
             )
-            return self.respond(status=e.response.status_code if e.response is not None else 503)
+            return self.respond(status=e.response.status_code if e.response is not None else 502)
 
-        except requests.exceptions.Timeout:
+        except requests.exceptions.Timeout as e:
             logger.exception(
                 "Seer timed out when starting a replay breadcrumbs summary",
-                extra={"url": url},
+                extra={"url": url, **_get_request_exc_extras(e)},
             )
             return self.respond(status=504)
 
-        except requests.exceptions.ConnectionError:
-            logger.exception(
-                "Seer connection error when starting a replay breadcrumbs summary",
-                extra={"url": url},
-            )
-            return self.respond(status=502)
-
-        except requests.exceptions.RequestException:
+        except requests.exceptions.RequestException as e:
             logger.exception(
                 "Error requesting from Seer when starting a replay breadcrumbs summary",
-                extra={"url": url},
+                extra={"url": url, **_get_request_exc_extras(e)},
             )
-            return self.respond(status=503)
+            return self.respond(status=502)
 
         # Note any headers in the Seer response aren't returned.
         return Response(data=response.json(), status=response.status_code)

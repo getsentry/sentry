@@ -186,7 +186,7 @@ class ProjectReplaySummarizeBreadcrumbsAsyncTestCase(
         with self.feature(self.features):
             response = self.client.post(self.url)
 
-        assert response.status_code == 503
+        assert response.status_code == 502
 
     @responses.activate
     def test_post_seer_http_errors(self):
