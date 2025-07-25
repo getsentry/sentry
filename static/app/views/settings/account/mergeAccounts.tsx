@@ -66,7 +66,9 @@ function MergeAccounts() {
           ids_to_delete: idsToDelete,
           verification_code: token,
         },
-      });
+      })
+        .then(() => refetch())
+        .then(() => addSuccessMessage(t('Accounts merged!')));
     },
   });
 
