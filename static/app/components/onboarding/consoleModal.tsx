@@ -70,24 +70,14 @@ const consoleConfig = {
   xbox: (
     <Fragment>
       <p>
+        {t('Sentry supports Xbox Series X and S, devkits as well as retail devices.')}
+      </p>
+      <p>
         {tct(
           'You can get started with Sentry by [microsoftGameDevelopmentKitLink: requesting access to the Microsoft Game Development Kit (GDK) Middleware]. We will get back to you with the next steps as soon as we receive your request.',
           {
             microsoftGameDevelopmentKitLink: (
               <ExternalLink href="https://developer.microsoft.com/en-us/games/support/request-gdkx-middleware" />
-            ),
-          }
-        )}
-      </p>
-      <p>
-        {tct(
-          "Sentry supports Xbox Series X and S, devkits as well as retail devices. You can also use Sentry's [unityLink:Unity] and [unrealLink:Unreal Engine] SDKs with Xbox.",
-          {
-            unityLink: (
-              <ExternalLink href="https://docs.sentry.io/platforms/unity/game-consoles/" />
-            ),
-            unrealLink: (
-              <ExternalLink href="https://docs.sentry.io/platforms/unreal/game-consoles/" />
             ),
           }
         )}
