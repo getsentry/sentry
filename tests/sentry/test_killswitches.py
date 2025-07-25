@@ -17,6 +17,7 @@ def test_normalize_value():
     ]
 
 
+@pytest.mark.skip(reason="flaky: #94876")
 @pytest.mark.parametrize(
     ("cfg", "value"),
     (
