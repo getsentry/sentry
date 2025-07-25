@@ -512,7 +512,7 @@ module = [
     "tests.sentry.post_process_forwarder.*",
     "tests.sentry.profiling.*",
     "tests.sentry.queue.*",
-    "tests.sentry.ratelimits.test_leaky_bucket",
+    "tests.sentry.ratelimits.*",
     "tests.sentry.relay.config.test_metric_extraction",
     "tests.sentry.replays.unit.lib.*",
     "tests.sentry.rules.actions.base.*",

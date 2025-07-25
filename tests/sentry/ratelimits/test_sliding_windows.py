@@ -9,14 +9,14 @@ from sentry.ratelimits.sliding_windows import (
 
 
 @pytest.fixture
-def limiter():
+def limiter() -> RedisSlidingWindowRateLimiter:
     return RedisSlidingWindowRateLimiter()
 
 
 TIMESTAMP_OFFSET = 100
 
 
-def test_empty_quota(limiter):
+def test_empty_quota(limiter: RedisSlidingWindowRateLimiter) -> None:
     quotas = [
         Quota(
             window_seconds=10,
@@ -36,7 +36,7 @@ def test_empty_quota(limiter):
     assert resp == [GrantedQuota(prefix="foo", granted=0, reached_quotas=quotas)]
 
 
-def test_basic(limiter):
+def test_basic(limiter: RedisSlidingWindowRateLimiter) -> None:
     quotas = [
         Quota(
             window_seconds=10,
