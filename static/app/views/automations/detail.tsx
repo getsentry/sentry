@@ -51,53 +51,47 @@ const PAGE_QUERY_PARAMS = [
   'cursor',
 ];
 
+function getDateTimeFromQuery(query: Record<string, any>): DateTimeObject {
+  const {
+    start,
+    end,
+    statsPeriod,
+    utc: utcString,
+  } = normalizeDateTimeParams(query, {
+    allowEmptyPeriod: true,
+    allowAbsoluteDatetime: true,
+    allowAbsolutePageDatetime: true,
+  });
+
+  // Following getParams, statsPeriod will take priority over start/end
+  if (statsPeriod) {
+    return {period: statsPeriod};
+  }
+
+  const utc = utcString === 'true';
+  if (start && end) {
+    return utc
+      ? {
+          start: moment.utc(start).format(),
+          end: moment.utc(end).format(),
+          utc,
+        }
+      : {
+          start: moment(start).utc().format(),
+          end: moment(end).utc().format(),
+          utc,
+        };
+  }
+
+  return {period: DEFAULT_CHART_PERIOD};
+}
+
 function AutomationDetailContent({automation}: {automation: Automation}) {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
 
   const {data: createdByUser} = useUserFromId({id: Number(automation.createdBy)});
-
-  function getDataDatetime(): DateTimeObject {
-    const query = location?.query ?? {};
-
-    const {
-      start,
-      end,
-      statsPeriod,
-      utc: utcString,
-    } = normalizeDateTimeParams(query, {
-      allowEmptyPeriod: true,
-      allowAbsoluteDatetime: true,
-      allowAbsolutePageDatetime: true,
-    });
-
-    if (!statsPeriod && !start && !end) {
-      return {period: DEFAULT_CHART_PERIOD};
-    }
-
-    // Following getParams, statsPeriod will take priority over start/end
-    if (statsPeriod) {
-      return {period: statsPeriod};
-    }
-
-    const utc = utcString === 'true';
-    if (start && end) {
-      return utc
-        ? {
-            start: moment.utc(start).format(),
-            end: moment.utc(end).format(),
-            utc,
-          }
-        : {
-            start: moment(start).utc().format(),
-            end: moment(end).utc().format(),
-            utc,
-          };
-    }
-
-    return {period: DEFAULT_CHART_PERIOD};
-  }
 
   function setStateOnUrl(nextState: {
     cursor?: string;
@@ -156,7 +150,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
     }
   );
 
-  const {period, start, end, utc} = getDataDatetime();
+  const {period, start, end, utc} = getDateTimeFromQuery(location?.query ?? {});
 
   return (
     <SentryDocumentTitle title={automation.name} noSuffix>
