@@ -287,7 +287,6 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 @click.option(
     "--num-brokers", help="Number of brokers available to connect to", default=None, type=int
 )
-@click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
 @click.option(
     "--max-child-task-count",
     help="Number of tasks child processes execute before being restart",
@@ -324,10 +323,8 @@ def taskworker(**options: Any) -> None:
     Run a taskworker worker
     """
     os.environ["GRPC_ENABLE_FORK_SUPPORT"] = "0"
-    if options["autoreload"]:
-        autoreload.run_with_reloader(run_taskworker, **options)
-    else:
-        run_taskworker(**options)
+    # TODO(mark) restore autoreload
+    run_taskworker(**options)
 
 
 def run_taskworker(
