@@ -50,11 +50,9 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
       {/* App info */}
       <BuildDetailsSidebarAppInfo
         appInfo={buildDetailsData.app_info}
+        sizeInfo={buildDetailsData.size_info}
         projectId={props.projectId}
         artifactId={props.artifactId}
-        // TODO: Get from size data when available
-        installSizeBytes={1000000}
-        downloadSizeBytes={1000000}
       />
 
       {/* TODO: VCS info */}
