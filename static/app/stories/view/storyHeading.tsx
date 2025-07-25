@@ -1,30 +1,41 @@
 import type {ComponentProps} from 'react';
+import {Fragment} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
 import {Heading} from 'sentry/components/core/text';
 import {IconLink} from 'sentry/icons';
+import {useStory} from 'sentry/stories/view/useStory';
 import slugify from 'sentry/utils/slugify';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import {useLocation} from 'sentry/utils/useLocation';
 
 export function StoryHeading(props: ComponentProps<typeof Heading>) {
-  const id = props.id ?? slugify(renderToStaticMarkup(props.children));
-  const location = useLocation();
+  const {story} = useStory();
+  const storyTitle = (story.exports.frontmatter as any)?.title;
+  const text = renderToStaticMarkup(props.children);
+  const id = props.id ?? slugify(text);
   const {onClick} = useCopyToClipboard({
-    text: `${window.location}#${id}`,
-    successMessage: `Copied \`#${id}\` link to clipboard`,
+    text: `${window.location.toString().replace(/#.*$/, '')}#${id}`,
+    successMessage: (
+      <Fragment>
+        Copied link to{' '}
+        <strong>
+          {storyTitle ? `${storyTitle} > ` : null}
+          {text}
+        </strong>{' '}
+        section
+      </Fragment>
+    ),
   });
   return (
-    <HeadingLink to={{...location, hash: id}} onClick={onClick}>
+    <HeadingLink href={`#${id}`} onClick={onClick}>
       <IconLink />
       <Heading {...props} id={id} />
     </HeadingLink>
   );
 }
 
-const HeadingLink = styled(Link)`
+const HeadingLink = styled('a')`
   display: flex;
   flex-flow: row-reverse;
   justify-content: flex-end;
