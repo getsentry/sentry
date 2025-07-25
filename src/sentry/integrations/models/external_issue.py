@@ -14,12 +14,13 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.eventstore.models import GroupEvent
 
 if TYPE_CHECKING:
+    from sentry.integrations.models.integration import Integration
     from sentry.integrations.services.integration import RpcIntegration
 
 
 class ExternalIssueManager(BaseManager["ExternalIssue"]):
     def get_for_integration(
-        self, integration: RpcIntegration, external_issue_key: str | None = None
+        self, integration: Integration | RpcIntegration, external_issue_key: str | None = None
     ) -> QuerySet[ExternalIssue]:
         from sentry.integrations.services.integration import integration_service
 
