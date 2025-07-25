@@ -36,10 +36,11 @@ export function remarkUnwrapMdxParagraphs() {
     });
     // unwrap paragraphs that are only children of MDX JSX elements
     visit(tree, ['mdxJsxFlowElement', 'mdxJsxTextElement'], node => {
-      if (!isMdxJsxNode(node)) {
-        return;
-      }
-      if (node.children.length === 1 && isParagraph(node.children[0])) {
+      if (
+        isMdxJsxNode(node) &&
+        node.children.length === 1 &&
+        isParagraph(node.children[0])
+      ) {
         node.children = node.children[0].children;
         return node.children.length;
       }
