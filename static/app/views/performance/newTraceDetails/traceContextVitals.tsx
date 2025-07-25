@@ -148,13 +148,20 @@ function VitalPill({vital, vitalDetails}: VitalPillProps) {
   );
 }
 
-const VitalPillContainer = styled('div')`
+const VitalMetersContainer = styled('div')`
   display: flex;
   align-items: center;
+  gap: ${space(1)};
+`;
+
+const VitalPillContainer = styled('div')`
+  display: flex;
 `;
 
 const VitalPillName = styled('div')<{status: PerformanceScore}>`
   display: flex;
+  align-items: center;
+  justify-content: center;
   border: solid 1px
     ${p =>
       p.status === 'none'
@@ -169,23 +176,20 @@ const VitalPillName = styled('div')<{status: PerformanceScore}>`
   text-decoration-style: dotted;
   text-underline-offset: ${space(0.25)};
   text-decoration-thickness: 1px;
+  padding: 0 ${space(1)};
 `;
 
 const VitalPillValue = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid ${p => p.theme.border};
   border-left: none;
   border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
   background: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSize.md};
-`;
-
-const VitalMetersContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: ${space(1)};
+  font-size: ${p => p.theme.fontSize.lg};
+  padding: 0 ${space(1)};
 `;
 
 const SecondaryVitalsCount = styled('span')`
