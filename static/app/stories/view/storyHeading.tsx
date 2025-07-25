@@ -12,8 +12,8 @@ import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 export function StoryHeading(props: ComponentProps<typeof Heading>) {
   const {story} = useStory();
   const storyTitle = (story.exports.frontmatter as any)?.title;
-  const text = renderToStaticMarkup(props.children);
-  const id = props.id ?? slugify(text);
+  const text = stringifyChildren(props.children);
+  const id = props.id ?? slugify(text.replace(/\s+/, '-'));
   const {onClick} = useCopyToClipboard({
     text: `${window.location.toString().replace(/#.*$/, '')}#${id}`,
     successMessage: (
@@ -58,3 +58,12 @@ const HeadingLink = styled('a')`
     }
   }
 `;
+
+function stringifyChildren(children: React.ReactNode) {
+  const markup = renderToStaticMarkup(children);
+  const p = new DOMParser();
+  const {
+    body: {textContent},
+  } = p.parseFromString(markup, 'text/html');
+  return textContent ?? '';
+}
