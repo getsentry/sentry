@@ -46,7 +46,11 @@ import {
 } from './components/route';
 import {makeLazyloadComponent as make} from './makeLazyloadComponent';
 
+// TODO(epurkhiser): Will be removed once all hooks are converted to routeHooks
 const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
+
+const routeHook = (name: HookName): SentryRouteObject =>
+  HookStore.get(name)?.[0]?.() ?? {};
 
 function buildRoutes() {
   // Read this to understand where to add new routes, how / why the routing
@@ -2455,38 +2459,85 @@ function buildRoutes() {
     />
   );
 
+  const legacyOrganizationRootChildRoutes: SentryRouteObject[] = [
+    {
+      path: '/organizations/:orgId/teams/new/',
+      redirectTo: '/settings/:orgId/teams/',
+    },
+    {
+      path: '/organizations/:orgId/',
+      children: [
+        routeHook('routes:legacy-organization-redirects'),
+        {
+          index: true,
+          redirectTo: 'issues/',
+        },
+        {
+          path: 'teams/',
+          redirectTo: '/settings/:orgId/teams/',
+        },
+        {
+          path: 'teams/your-teams/',
+          redirectTo: '/settings/:orgId/teams/',
+        },
+        {
+          path: 'teams/all-teams/',
+          redirectTo: '/settings/:orgId/teams/',
+        },
+        {
+          path: 'teams/:teamId/',
+          redirectTo: '/settings/:orgId/teams/:teamId/',
+        },
+        {
+          path: 'teams/:teamId/members/',
+          redirectTo: '/settings/:orgId/teams/:teamId/members/',
+        },
+        {
+          path: 'teams/:teamId/projects/',
+          redirectTo: '/settings/:orgId/teams/:teamId/projects/',
+        },
+        {
+          path: 'teams/:teamId/settings/',
+          redirectTo: '/settings/:orgId/teams/:teamId/settings/',
+        },
+        {
+          path: 'settings/',
+          redirectTo: '/settings/:orgId/',
+        },
+        {
+          path: 'api-keys/',
+          redirectTo: '/settings/:orgId/api-keys/',
+        },
+        {
+          path: 'api-keys/:apiKey/',
+          redirectTo: '/settings/:orgId/api-keys/:apiKey/',
+        },
+        {
+          path: 'members/',
+          redirectTo: '/settings/:orgId/members/',
+        },
+        {
+          path: 'members/:memberId/',
+          redirectTo: '/settings/:orgId/members/:memberId/',
+        },
+        {
+          path: 'rate-limits/',
+          redirectTo: '/settings/:orgId/rate-limits/',
+        },
+        {
+          path: 'repos/',
+          redirectTo: '/settings/:orgId/repos/',
+        },
+        {
+          path: 'user-feedback/',
+          redirectTo: '/organizations/:orgId/feedback/',
+        },
+      ],
+    },
+  ];
+
   const legacyOrganizationRootRoutes = (
-    <Fragment>
-      <Redirect from="/organizations/:orgId/teams/new/" to="/settings/:orgId/teams/" />
-      <Route path="/organizations/:orgId/">
-        {hook('routes:legacy-organization-redirects')}
-        <IndexRedirect to="issues/" />
-        <Redirect from="teams/" to="/settings/:orgId/teams/" />
-        <Redirect from="teams/your-teams/" to="/settings/:orgId/teams/" />
-        <Redirect from="teams/all-teams/" to="/settings/:orgId/teams/" />
-        <Redirect from="teams/:teamId/" to="/settings/:orgId/teams/:teamId/" />
-        <Redirect
-          from="teams/:teamId/members/"
-          to="/settings/:orgId/teams/:teamId/members/"
-        />
-        <Redirect
-          from="teams/:teamId/projects/"
-          to="/settings/:orgId/teams/:teamId/projects/"
-        />
-        <Redirect
-          from="teams/:teamId/settings/"
-          to="/settings/:orgId/teams/:teamId/settings/"
-        />
-        <Redirect from="settings/" to="/settings/:orgId/" />
-        <Redirect from="api-keys/" to="/settings/:orgId/api-keys/" />
-        <Redirect from="api-keys/:apiKey/" to="/settings/:orgId/api-keys/:apiKey/" />
-        <Redirect from="members/" to="/settings/:orgId/members/" />
-        <Redirect from="members/:memberId/" to="/settings/:orgId/members/:memberId/" />
-        <Redirect from="rate-limits/" to="/settings/:orgId/rate-limits/" />
-        <Redirect from="repos/" to="/settings/:orgId/repos/" />
-        <Redirect from="user-feedback/" to="/organizations/:orgId/feedback/" />
-      </Route>
-    </Fragment>
+    <Route newStyleChildren={legacyOrganizationRootChildRoutes} />
   );
 
   const gettingStartedChildRoutes: SentryRouteObject[] = [
