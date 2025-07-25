@@ -248,7 +248,7 @@ describe('DetectorEdit | Metric Detector', () => {
     });
 
     // Save changes and verify the update request includes comparisonDelta
-    await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     await waitFor(() => {
       expect(updateRequest).toHaveBeenCalledWith(
