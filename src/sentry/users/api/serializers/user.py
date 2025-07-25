@@ -189,6 +189,7 @@ class UserSerializer(Serializer):
             options = {
                 o.key: o.value
                 for o in UserOption.objects.filter(user_id=user.id, project_id__isnull=True)
+                if o.value is not None
             }
             stacktrace_order = int(options.get("stacktrace_order", -1) or -1)
 

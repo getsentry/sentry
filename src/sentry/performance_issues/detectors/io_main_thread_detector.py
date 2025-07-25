@@ -166,7 +166,10 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
         # only prepare deobfuscation once we need to fingerprint cause its expensive
         self._prepare_deobfuscation()
         for span in span_list:
-            for item in span.get("data", {}).get("call_stack", []):
+            data = span.get("data")
+            if data is None:
+                continue
+            for item in data.get("call_stack", []):
                 module = self._deobfuscate_module(item.get("module", ""))
                 function = self._deobfuscate_function(item)
                 call_stack_strings.append(f"{module}.{function}")
@@ -179,7 +182,7 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
         return f"1-{PerformanceFileIOMainThreadGroupType.type_id}-{hashed_stack}"
 
     def _is_io_on_main_thread(self, span: Span) -> bool:
-        data = span.get("data", {})
+        data = span.get("data")
         if data is None:
             return False
         file_path = (data.get("file.path") or "").lower()
@@ -221,7 +224,7 @@ class DBMainThreadDetector(BaseIOMainThreadDetector):
         return f"1-{PerformanceDBMainThreadGroupType.type_id}-{hashed_queries}"
 
     def _is_io_on_main_thread(self, span: Span) -> bool:
-        data = span.get("data", {})
+        data = span.get("data")
         if data is None:
             return False
         # doing is True since the value can be any type

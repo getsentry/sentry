@@ -31,17 +31,15 @@ export function SlackDetails({
     {
       logo: ActionMetadata[ActionType.SLACK]?.icon,
       workspace: integrationName,
-      channel: action.config.target_display
-        ? `${action.config.target_display}`
-        : action.config.target_identifier,
+      channel: action.config.targetDisplay || action.config.targetIdentifier,
       tagsAndNotes: SlackTagsAndNotes(action),
     }
   );
 }
 
 function SlackTagsAndNotes(action: Action) {
-  const notes = String(action.data.notes);
-  const tags = String(action.data.tags);
+  const notes = action.data.notes;
+  const tags = action.data.tags;
 
   if (notes && tags) {
     return tct(', and in the message show tags [tags] and notes [notes]', {tags, notes});
@@ -106,7 +104,7 @@ export function validateSlackAction(action: Action): string | undefined {
   if (!action.integrationId) {
     return t('You must specify a Slack workspace.');
   }
-  if (!action.config.target_display) {
+  if (!action.config.targetDisplay) {
     return t('You must specify a channel name or ID.');
   }
   return undefined;

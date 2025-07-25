@@ -7,7 +7,6 @@ from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
-from sentry.db.models.fields.picklefield import PickledObjectField
 from sentry.db.models.manager.option import OptionManager
 from sentry.utils.cache import cache
 
@@ -113,7 +112,7 @@ class OrganizationOption(Model):
 
     organization = FlexibleForeignKey("sentry.Organization")
     key = models.CharField(max_length=64)
-    value = PickledObjectField(null=True)
+    value = models.JSONField(null=True)
 
     objects: ClassVar[OrganizationOptionManager] = OrganizationOptionManager()
 

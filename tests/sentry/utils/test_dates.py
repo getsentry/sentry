@@ -1,5 +1,7 @@
 import datetime
 
+import pytest
+
 from sentry.utils.dates import date_to_utc_datetime, parse_stats_period, parse_timestamp
 
 
@@ -27,4 +29,8 @@ def test_parse_timestamp():
     assert parse_timestamp("2024-05-20T17:29:00") == datetime.datetime(
         2024, 5, 20, 17, 29, tzinfo=datetime.UTC
     )
-    assert parse_timestamp("2024-05-20T17:29:00gu") is None
+
+
+def test_parse_timestamp_error():
+    with pytest.raises(ValueError):
+        parse_timestamp("2024-05-20T17:29:00gu")

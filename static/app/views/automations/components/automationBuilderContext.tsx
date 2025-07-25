@@ -481,10 +481,10 @@ function getDefaultConfig(actionHandler: ActionHandler): ActionConfig {
     undefined;
 
   return {
-    target_type: targetType,
-    ...(targetIdentifier && {target_identifier: targetIdentifier}),
+    targetType,
+    ...(targetIdentifier && {targetIdentifier}),
     ...(actionHandler.sentryApp?.id && {
-      sentry_app_identifier: SentryAppIdentifier.SENTRY_APP_ID,
+      sentryAppIdentifier: SentryAppIdentifier.SENTRY_APP_ID,
     }),
   };
 }

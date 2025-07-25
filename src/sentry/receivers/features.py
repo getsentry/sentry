@@ -4,6 +4,11 @@ from django.db.models.signals import post_save
 
 from sentry import analytics
 from sentry.adoption import manager
+from sentry.integrations.analytics import (
+    IntegrationAddedEvent,
+    IntegrationIssueCreatedEvent,
+    IntegrationIssueLinkedEvent,
+)
 from sentry.integrations.services.integration import integration_service
 from sentry.models.featureadoption import FeatureAdoption
 from sentry.models.group import Group
@@ -643,12 +648,13 @@ def record_integration_added(
         default_user_id = organization.get_default_owner().id
 
     analytics.record(
-        "integration.added",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=organization.id,
-        provider=integration.provider,
-        id=integration.id,
+        IntegrationAddedEvent(
+            user_id=user_id,
+            default_user_id=default_user_id,
+            organization_id=organization.id,
+            provider=integration.provider,
+            id=integration.id,
+        )
     )
     metrics.incr(
         "integration.added",
@@ -665,12 +671,13 @@ def record_integration_issue_created(integration, organization, user, **kwargs):
         user_id = None
         default_user_id = organization.get_default_owner().id
     analytics.record(
-        "integration.issue.created",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=organization.id,
-        provider=integration.provider,
-        id=integration.id,
+        IntegrationIssueCreatedEvent(
+            user_id=user_id,
+            default_user_id=default_user_id,
+            organization_id=organization.id,
+            provider=integration.provider,
+            id=integration.id,
+        )
     )
 
 
@@ -682,12 +689,13 @@ def record_integration_issue_linked(integration, organization, user, **kwargs):
         user_id = None
         default_user_id = organization.get_default_owner().id
     analytics.record(
-        "integration.issue.linked",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=organization.id,
-        provider=integration.provider,
-        id=integration.id,
+        IntegrationIssueLinkedEvent(
+            user_id=user_id,
+            default_user_id=default_user_id,
+            organization_id=organization.id,
+            provider=integration.provider,
+            id=integration.id,
+        )
     )
 
 

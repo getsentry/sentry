@@ -1,4 +1,4 @@
-import {logger} from '@sentry/core';
+import {debug} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
 import type {Organization} from 'sentry/types/organization';
@@ -20,7 +20,7 @@ export function buildSentryFeaturesHandler(
       'FeatureFlags'
     );
   if (!featureFlagsIntegration || !('addFeatureFlag' in featureFlagsIntegration)) {
-    logger.error(
+    debug.error(
       'Unable to track flag evaluations because FeatureFlagsIntegration is not installed correctly.'
     );
     return (_name, _value) => {};

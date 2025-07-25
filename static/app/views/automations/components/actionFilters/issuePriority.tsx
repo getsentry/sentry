@@ -11,8 +11,8 @@ import type {ValidateDataConditionProps} from 'sentry/views/automations/componen
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 export function IssuePriorityDetails({condition}: {condition: DataCondition}) {
-  return tct('Current issue priority is greater than or equal to [level]', {
-    level:
+  return tct('Current issue priority is greater than or equal to [priority]', {
+    priority:
       PRIORITY_CHOICES.find(choice => choice.value === condition.comparison)?.label ||
       condition.comparison,
   });

@@ -43,15 +43,15 @@ function getActionHandler(
       if (handler.type !== ActionType.SENTRY_APP) {
         return false;
       }
-      const {sentry_app_identifier, target_identifier} = action.config;
+      const {sentryAppIdentifier, targetIdentifier} = action.config;
       const sentryApp = handler.sentryApp;
 
       const isMatchingAppId =
-        sentry_app_identifier === SentryAppIdentifier.SENTRY_APP_ID &&
-        target_identifier === sentryApp?.id;
+        sentryAppIdentifier === SentryAppIdentifier.SENTRY_APP_ID &&
+        targetIdentifier === sentryApp?.id;
       const isMatchingInstallationUuid =
-        sentry_app_identifier === SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID &&
-        target_identifier === sentryApp?.installationUuid;
+        sentryAppIdentifier === SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID &&
+        targetIdentifier === sentryApp?.installationUuid;
       return isMatchingAppId || isMatchingInstallationUuid;
     });
   }

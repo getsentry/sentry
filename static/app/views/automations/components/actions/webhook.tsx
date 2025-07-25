@@ -12,8 +12,8 @@ export function WebhookDetails({
   handler: ActionHandler;
 }) {
   const service =
-    handler.services?.find(s => s.slug === action.config.target_identifier)?.name ||
-    action.config.target_identifier;
+    handler.services?.find(s => s.slug === action.config.targetIdentifier)?.name ||
+    action.config.targetIdentifier;
 
   return tct('Send a notification via [service]', {
     service: String(service),
@@ -32,9 +32,9 @@ function ServicesField() {
 
   return (
     <AutomationBuilderSelect
-      name={`${actionId}.config.target_identifier`}
+      name={`${actionId}.config.targetIdentifier`}
       aria-label={t('Webhook')}
-      value={action.config.target_identifier}
+      value={action.config.targetIdentifier}
       options={services?.map(service => ({
         label: service.name,
         value: service.slug,
@@ -43,7 +43,7 @@ function ServicesField() {
         onUpdate({
           config: {
             ...action.config,
-            target_identifier: option.value,
+            targetIdentifier: option.value,
           },
         });
       }}
@@ -52,7 +52,7 @@ function ServicesField() {
 }
 
 export function validateWebhookAction(action: Action): string | undefined {
-  if (!action.config.target_identifier) {
+  if (!action.config.targetIdentifier) {
     return t('You must specify an integration.');
   }
   return undefined;

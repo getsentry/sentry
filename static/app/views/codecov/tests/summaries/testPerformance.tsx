@@ -52,7 +52,7 @@ function CumulativeFailuresTooltip() {
       </p>
       <p>
         <ToolTipTitle>What is it:</ToolTipTitle>
-        The sum of all test failures, incremented each time any test has failed.
+        The number of individual runs of tests that failed.
       </p>
     </Fragment>
   );
@@ -63,7 +63,7 @@ function SkippedTestsTooltip() {
     <Fragment>
       <p>
         <ToolTipTitle>What is it:</ToolTipTitle>
-        The number of tests that were skipped.
+        The number of individual runs of tests that were skipped.
       </p>
     </Fragment>
   );

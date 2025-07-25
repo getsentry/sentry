@@ -347,9 +347,12 @@ class SubscriptionProcessor:
                     "result": subscription_update,
                 },
             )
-
-        has_metric_alert_processing = features.has(
-            "organizations:workflow-engine-metric-alert-processing", organization
+        has_metric_issue_single_processing = features.has(
+            "organizations:workflow-engine-single-process-metric-issues", organization
+        )
+        has_metric_alert_processing = (
+            features.has("organizations:workflow-engine-metric-alert-processing", organization)
+            or has_metric_issue_single_processing
         )
         has_anomaly_detection = features.has("organizations:anomaly-detection-alerts", organization)
 
@@ -420,6 +423,10 @@ class SubscriptionProcessor:
                             "rule_id": self.alert_rule.id,
                         },
                     )
+
+        if has_metric_issue_single_processing:
+            # don't go through the legacy system
+            return
 
         potential_anomalies = None
         if (

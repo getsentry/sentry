@@ -202,11 +202,11 @@ x: Request
 reveal_type(x.auth)
 """
     expected_no_plugins = """\
-<string>:3: note: Revealed type is "Union[rest_framework.authtoken.models.Token, Any]"
+<string>:3: note: Revealed type is "rest_framework.authtoken.models.Token | Any"
 Success: no issues found in 1 source file
 """
     expected_plugins = """\
-<string>:3: note: Revealed type is "Union[sentry.auth.services.auth.model.AuthenticatedToken, None]"
+<string>:3: note: Revealed type is "sentry.auth.services.auth.model.AuthenticatedToken | None"
 Success: no issues found in 1 source file
 """
     ret, out = call_mypy(src, plugins=[])

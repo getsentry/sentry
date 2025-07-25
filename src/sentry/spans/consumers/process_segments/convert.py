@@ -1,5 +1,5 @@
 from collections.abc import MutableMapping
-from typing import Any
+from typing import Any, cast
 
 import orjson
 import sentry_sdk
@@ -127,15 +127,18 @@ def _sanitize_span_link(link: SpanLink) -> SpanLink:
     attributes, so span links are stored as a JSON-encoded string. In order to
     prevent unbounded storage, we only support well-known attributes.
     """
+    sanitized_link = cast(SpanLink, {**link})
+
     allowed_attributes = {}
+    attributes = link.get("attributes", {}) or {}
 
     # In the future, we want Relay to drop unsupported attributes, so there
     # might be an intermediary state where there is a pre-existing dropped
     # attributes count. Respect that count, if it's present. It should always be
     # an integer.
-    dropped_attributes_count = link.get("attributes", {}).get("sentry.dropped_attributes_count", 0)
+    dropped_attributes_count = attributes.get("sentry.dropped_attributes_count", 0)
 
-    for key, value in link.get("attributes", {}).items():
+    for key, value in attributes.items():
         if key in ALLOWED_LINK_ATTRIBUTE_KEYS:
             allowed_attributes[key] = value
         else:
@@ -144,4 +147,10 @@ def _sanitize_span_link(link: SpanLink) -> SpanLink:
     if dropped_attributes_count > 0:
         allowed_attributes["sentry.dropped_attributes_count"] = dropped_attributes_count
 
-    return {**link, "attributes": allowed_attributes}
+    # Only include the `attributes` key if the key was present in the original
+    # link, don't create a an empty object, since there is a semantic difference
+    # between missing attributes, and an empty attributes object
+    if "attributes" in link:
+        sanitized_link["attributes"] = allowed_attributes
+
+    return sanitized_link

@@ -20,14 +20,18 @@ function SpansSearchBar({
   const {
     selection: {projects},
   } = usePageFilters();
-  const {tags: numberTags} = useTraceItemTags('number');
-  const {tags: stringTags} = useTraceItemTags('string');
+  const {tags: numberTags, secondaryAliases: numberSecondaryAliases} =
+    useTraceItemTags('number');
+  const {tags: stringTags, secondaryAliases: stringSecondaryAliases} =
+    useTraceItemTags('string');
   return (
     <EAPSpanSearchQueryBuilder
       initialQuery={widgetQuery.conditions}
       onSearch={onSearch}
       numberTags={numberTags}
       stringTags={stringTags}
+      numberSecondaryAliases={numberSecondaryAliases}
+      stringSecondaryAliases={stringSecondaryAliases}
       supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
       searchSource="dashboards"
       projects={projects}

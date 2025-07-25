@@ -18,8 +18,7 @@ class ExistingHighPriorityIssueCondition(EventCondition):
         if state.is_new:
             return False
 
-        is_escalating = state.has_reappeared or state.has_escalated
-        return is_escalating and event.group.priority == PriorityLevel.HIGH
+        return state.has_escalated and event.group.priority == PriorityLevel.HIGH
 
     def get_activity(
         self, start: datetime, end: datetime, limit: int

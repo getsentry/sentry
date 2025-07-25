@@ -33,7 +33,7 @@ export function DiscordDetails({
     {
       logo: ActionMetadata[ActionType.DISCORD]?.icon,
       server: integrationName,
-      channel: String(action.config.target_identifier),
+      channel: String(action.config.targetIdentifier),
       tags: action.data.tags ? `, and in the message show tags [${tags}]` : null,
     }
   );
@@ -70,7 +70,7 @@ export function validateDiscordAction(action: Action): string | undefined {
   if (!action.integrationId) {
     return t('You must specify a Discord server.');
   }
-  if (!action.config.target_display) {
+  if (!action.config.targetDisplay) {
     return t('You must specify a channel ID or URL.');
   }
   return undefined;

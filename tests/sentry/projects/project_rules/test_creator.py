@@ -2,7 +2,7 @@ import pytest
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.locks import locks
-from sentry.models.rule import Rule
+from sentry.models.rule import Rule, RuleSource
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -49,6 +49,7 @@ class TestProjectRuleCreator(TestCase):
                 }
             ],
             frequency=5,
+            source=RuleSource.ISSUE,
         )
 
     def test_creates_rule(self):

@@ -122,6 +122,61 @@ def configs() -> Sequence[SDKCrashDetectionConfig]:
             "dart:core-patch/growable_array.dart",
             True,
         ),
+        (
+            "package:/some/directory/.pub-cache/hosted/pub.dev/sentry-9.5.0/lib/src/sentry.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "package:/some/directory/.pub-cache/hosted/pub.dev/sentry_flutter-9.5.0/lib/src/sentry.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "package:/some/directory/.pub-cache/hosted/pub.dev/sentry_logging-9.5.0/lib/src/sentry.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "package:/some/directory/.pub-cache/hosted/pub.dev/sentry_dio-9.5.0/lib/src/sentry.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "package:/some/directory/.pub-cache/hosted/pub.dev/sentry_file-9.5.0/lib/src/sentry.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "package:/some/directory/.pub-cache/hosted/pub.dev/sentry_sqflite-9.5.0/lib/src/sentry.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "package:/some/directory/.pub-cache/hosted/pub.dev/sentry_drift-9.5.0/lib/src/sentry.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "package:/some/directory/.pub-cache/hosted/pub.dev/sentry_hive-9.5.0/lib/src/sentry.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "package:/some/directory/.pub-cache/hosted/pub.dev/sentry_isar-9.5.0/lib/src/sentry.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "package:/some/directory/.pub-cache/hosted/pub.dev/sentry_link-9.5.0/lib/src/sentry.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "package:/some/directory/.pub-cache/hosted/pub.dev/sentry_firebase_remote_config-9.5.0/lib/src/sentry.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
     ],
 )
 @decorators

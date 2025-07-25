@@ -91,6 +91,8 @@ export default function ActionTargetSelector(props: Props) {
           value={action.targetIdentifier || ''}
           onChange={handleChangeSpecificTargetIdentifier}
           placeholder={getPlaceholderForType(action.type)}
+          // Disable 1Password autocomplete
+          data-1p-ignore
         />
       );
 

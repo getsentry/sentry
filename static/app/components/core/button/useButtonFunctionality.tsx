@@ -13,7 +13,16 @@ export function useButtonFunctionality(props: ButtonProps | LinkButtonProps) {
     props['aria-label'] ??
     (typeof props.children === 'string' ? props.children : undefined);
 
-  const buttonTracking = useButtonTracking();
+  const buttonTracking = useButtonTracking({
+    analyticsEventName: props.analyticsEventName,
+    analyticsEventKey: props.analyticsEventKey,
+    analyticsParams: {
+      priority: props.priority,
+      href: 'href' in props ? props.href : undefined,
+      ...props.analyticsParams,
+    },
+    'aria-label': accessibleLabel || '',
+  });
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
     // Don't allow clicks when disabled or busy
@@ -23,16 +32,7 @@ export function useButtonFunctionality(props: ButtonProps | LinkButtonProps) {
       return;
     }
 
-    buttonTracking({
-      analyticsEventName: props.analyticsEventName,
-      analyticsEventKey: props.analyticsEventKey,
-      analyticsParams: {
-        priority: props.priority,
-        href: 'href' in props ? props.href : undefined,
-        ...props.analyticsParams,
-      },
-      'aria-label': accessibleLabel || '',
-    });
+    buttonTracking();
     // @ts-expect-error at this point, we don't know if the button is a button or a link
     props.onClick?.(e);
   };

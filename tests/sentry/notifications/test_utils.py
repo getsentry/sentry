@@ -71,8 +71,18 @@ class PerformanceProblemContextTestCase(TestCase):
                 evidence_display=[],
             ),
             [
-                {"span_id": "b93d2be92cd64fd5", "description": "SELECT * FROM parent_table"},
-                {"span_id": "054ba3a374d543eb", "description": "SELECT * FROM table WHERE id=%s"},
+                {
+                    "span_id": "b93d2be92cd64fd5",
+                    "description": "SELECT * FROM parent_table",
+                    "start_timestamp": 1.0,
+                    "timestamp": 2.0,
+                },
+                {
+                    "span_id": "054ba3a374d543eb",
+                    "description": "SELECT * FROM table WHERE id=%s",
+                    "start_timestamp": 1.0,
+                    "timestamp": 2.0,
+                },
             ],
             event,
         )
@@ -102,12 +112,21 @@ class PerformanceProblemContextTestCase(TestCase):
                 {
                     "span_id": "b93d2be92cd64fd5",
                     "description": "GET https://resource.io/resource?id=1",
+                    "start_timestamp": 1.0,
+                    "timestamp": 2.0,
                 },
                 {
                     "span_id": "054ba3a374d543eb",
                     "description": "GET https://resource.io/resource?id=2",
+                    "start_timestamp": 1.0,
+                    "timestamp": 2.0,
                 },
-                {"span_id": "563712f9722fb09", "description": "GET https://resource.io/resource"},
+                {
+                    "span_id": "563712f9722fb09",
+                    "description": "GET https://resource.io/resource",
+                    "start_timestamp": 1.0,
+                    "timestamp": 2.0,
+                },
             ],
             event,
         )

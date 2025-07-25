@@ -28,6 +28,7 @@ class SnubaQueryEventTypesTest(TestCase):
             SnubaQueryEventType.EventType.DEFAULT,
             SnubaQueryEventType.EventType.ERROR,
         }
+        assert snuba_query.group_by is None
 
 
 class QuerySubscriptionDataSourceHandlerTest(TestCase):

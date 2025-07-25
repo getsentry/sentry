@@ -25,7 +25,7 @@ class RuleConditionTranslationTest(ConditionTestCase):
         assert condition == {}
         assert filters == [payload]
 
-    def test_reappeared_event(self):
+    def test_escalating_event(self):
         payload = {"id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"}
         self.assert_basic_condition_translated(payload)
 

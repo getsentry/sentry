@@ -1,5 +1,11 @@
-from sentry.incidents.grouptype import MetricIssueDetectorHandler
+from sentry.incidents.grouptype import (
+    MetricIssueDetectorHandler,
+    SessionsAggregate,
+    get_alert_type_from_aggregate_dataset,
+)
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.snuba.dataset import Dataset
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.workflow_engine.models import DataCondition
 from sentry.workflow_engine.models.data_condition import Condition
@@ -183,4 +189,127 @@ class TestConstructTitle(TestEvaluateMetricDetector):
         assert (
             title
             == f"Critical: Crash free session rate in the last minute above {self.critical_detector_trigger.comparison}"
+        )
+
+    def test_dynamic_alert_title(self):
+        self.detector.config.update({"detection_type": "dynamic"})
+        self.snuba_query.aggregate = "count_unique(user)"
+        title = self.handler.construct_title(
+            snuba_query=self.snuba_query,
+            detector_trigger=self.critical_detector_trigger,
+            priority=self.critical_detector_trigger.condition_result,
+        )
+        assert title == "Detected an anomaly in the query for users_experiencing_errors"
+
+        self.snuba_query.aggregate = "p95(transaction.duration)"
+        title = self.handler.construct_title(
+            snuba_query=self.snuba_query,
+            detector_trigger=self.critical_detector_trigger,
+            priority=self.critical_detector_trigger.condition_result,
+        )
+        assert title == "Detected an anomaly in the query for custom_transactions"
+
+    def test_dynamic_alert_title_default(self):
+        self.detector.config.update({"detection_type": "dynamic"})
+        self.snuba_query.dataset = "asdf"
+        self.snuba_query.aggregate = "default_aggregate"
+        title = self.handler.construct_title(
+            snuba_query=self.snuba_query,
+            detector_trigger=self.critical_detector_trigger,
+            priority=self.critical_detector_trigger.condition_result,
+        )
+        assert title == "Detected an anomaly in the query for default_aggregate"
+
+
+class TestGetAnomalyDetectionIssueTitle(TestCase):
+    def test_extract_lcp_alert(self):
+        assert (
+            get_alert_type_from_aggregate_dataset("p95(measurements.lcp)", Dataset.Transactions)
+            == "lcp"
+        )
+        assert (
+            get_alert_type_from_aggregate_dataset(
+                "percentile(measurements.lcp,0.7)", Dataset.Transactions
+            )
+            == "lcp"
+        )
+        assert (
+            get_alert_type_from_aggregate_dataset("avg(measurements.lcp)", Dataset.Transactions)
+            == "lcp"
+        )
+
+    def test_extract_duration_alert(self):
+        assert (
+            get_alert_type_from_aggregate_dataset("p95(transaction.duration)", Dataset.Transactions)
+            == "trans_duration"
+        )
+        assert (
+            get_alert_type_from_aggregate_dataset(
+                "percentile(transaction.duration,0.3)", Dataset.Transactions
+            )
+            == "trans_duration"
+        )
+        assert (
+            get_alert_type_from_aggregate_dataset("avg(transaction.duration)", Dataset.Transactions)
+            == "trans_duration"
+        )
+
+    def test_extract_throughput_alert(self):
+        assert (
+            get_alert_type_from_aggregate_dataset("count()", Dataset.Transactions) == "throughput"
+        )
+
+    def test_extract_user_error_alert(self):
+        assert (
+            get_alert_type_from_aggregate_dataset("count_unique(user)", Dataset.Events)
+            == "users_experiencing_errors"
+        )
+
+    def test_extract_error_count_alert(self):
+        assert get_alert_type_from_aggregate_dataset("count()", Dataset.Events) == "num_errors"
+
+    def test_extract_crash_free_sessions_alert(self):
+        assert (
+            get_alert_type_from_aggregate_dataset(
+                SessionsAggregate.CRASH_FREE_SESSIONS, Dataset.Metrics
+            )
+            == "crash_free_sessions"
+        )
+
+    def test_extract_crash_free_users_alert(self):
+        assert (
+            get_alert_type_from_aggregate_dataset(
+                SessionsAggregate.CRASH_FREE_USERS, Dataset.Metrics
+            )
+            == "crash_free_users"
+        )
+
+    def test_defaults_to_custom(self):
+        assert (
+            get_alert_type_from_aggregate_dataset(
+                "count_unique(tags[sentry:user])", Dataset.Transactions
+            )
+            == "custom_transactions"
+        )
+        assert (
+            get_alert_type_from_aggregate_dataset("p95(measurements.fp)", Dataset.Transactions)
+            == "custom_transactions"
+        )
+        assert (
+            get_alert_type_from_aggregate_dataset("p95(measurements.ttfb)", Dataset.Transactions)
+            == "custom_transactions"
+        )
+        assert (
+            get_alert_type_from_aggregate_dataset(
+                "count(d:transaction/measurement@seconds)", Dataset.PerformanceMetrics
+            )
+            == "custom_transactions"
+        )
+
+    def test_extract_eap_metrics_alert(self):
+        assert (
+            get_alert_type_from_aggregate_dataset(
+                "count(span.duration)", Dataset.EventsAnalyticsPlatform
+            )
+            == "eap_metrics"
         )

@@ -140,7 +140,7 @@ def create_audit_entries(
         )
 
 
-def delete_groups(
+def schedule_tasks_to_delete_groups(
     request: Request,
     projects: Sequence[Project],
     organization_id: int,
@@ -179,7 +179,7 @@ def delete_groups(
     for group in group_list:
         groups_by_project_id[group.project_id].append(group)
 
-    for project in projects:
+    for project in sorted(projects, key=lambda p: p.id):
         delete_group_list(
             request, project, groups_by_project_id.get(project.id, []), delete_type="delete"
         )

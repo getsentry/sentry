@@ -1805,3 +1805,77 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
         starred_dashboard = response.data[2]
         assert starred_dashboard["projects"] == []
+
+    def test_automatically_favorites_dashboard_when_isFavorited_is_true(self):
+        data = {
+            "title": "Dashboard with errors widget",
+            "isFavorited": True,
+        }
+        with self.feature("organizations:dashboards-starred-reordering"):
+            response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 201, response.data
+        dashboard = Dashboard.objects.get(
+            organization=self.organization, title="Dashboard with errors widget"
+        )
+        assert response.data["isFavorited"] is True
+
+        assert (
+            DashboardFavoriteUser.objects.get_favorite_dashboard(
+                organization=self.organization, user_id=self.user.id, dashboard=dashboard
+            )
+            is not None
+        )
+
+    def test_does_not_automatically_favorite_dashboard_when_isFavorited_is_false(self):
+        data = {
+            "title": "Dashboard with errors widget",
+            "isFavorited": False,
+        }
+        with self.feature("organizations:dashboards-starred-reordering"):
+            response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 201, response.data
+        dashboard = Dashboard.objects.get(
+            organization=self.organization, title="Dashboard with errors widget"
+        )
+        assert response.data["isFavorited"] is False
+
+        assert (
+            DashboardFavoriteUser.objects.get_favorite_dashboard(
+                organization=self.organization, user_id=self.user.id, dashboard=dashboard
+            )
+            is None
+        )
+
+    def test_order_by_most_favorited(self):
+        Dashboard.objects.all().delete()
+
+        # A mapping from dashboard title to the number of times it was favorited
+        dashboards = {
+            "Dashboard 1": 0,
+            "Dashboard 2": 2,
+            "Dashboard 3": 1,
+        }
+
+        # Set up a favorite entry for each dashboard by the number of times it was favorited
+        for title, favorited in dashboards.items():
+            dashboard = self.create_dashboard(title=title, organization=self.organization)
+            if favorited:
+                for _ in range(favorited):
+                    user = self.create_user()
+                    DashboardFavoriteUser.objects.create(
+                        dashboard=dashboard,
+                        user_id=user.id,
+                        organization=self.organization,
+                    )
+
+        with self.feature("organizations:dashboards-starred-reordering"):
+            response = self.do_request(
+                "get", self.url, {"sort": "mostFavorited", "pin": "favorites"}
+            )
+
+        assert response.status_code == 200, response.content
+        assert [dashboard["title"] for dashboard in response.data] == [
+            "Dashboard 2",
+            "Dashboard 3",
+            "Dashboard 1",
+        ]
