@@ -90,10 +90,12 @@ def semver_filter_converter(params: SnubaParams, search_filter: SearchFilter) ->
     if operator in ["IN", "NOT IN"]:
         raw_versions = search_filter.value.raw_value
         if not isinstance(raw_versions, list):
-            raw_versions = [raw_versions]
+            raw_versions_list = [raw_versions]
+        else:
+            raw_versions_list = raw_versions
 
         all_versions = set()
-        for version_item in raw_versions:
+        for version_item in raw_versions_list:
             try:
                 if not isinstance(version_item, str):
                     continue
@@ -229,10 +231,12 @@ def semver_build_filter_converter(
     if operator in ["IN", "NOT IN"]:
         raw_builds = search_filter.value.raw_value
         if not isinstance(raw_builds, list):
-            raw_builds = [raw_builds]
+            raw_builds_list = [raw_builds]
+        else:
+            raw_builds_list = raw_builds
 
         all_versions = set()
-        for build_item in raw_builds:
+        for build_item in raw_builds_list:
             try:
                 if not isinstance(build_item, str):
                     continue
