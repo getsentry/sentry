@@ -393,7 +393,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                     r"package:sentry_link/**",
                     r"package:sentry_firebase_remote_config/**",
                     # obfuscated builds
-                    r"package:/**/.pub-cache/**/sentry**",
+                    r"/**/.pub-cache/**/sentry**",
                 },
                 path_replacer=KeepFieldPathReplacer(fields={"package", "filename", "abs_path"}),
             ),

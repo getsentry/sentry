@@ -152,6 +152,7 @@ export interface DocsParams<
   api: Client;
   dsn: ProjectKey['dsn'];
   isFeedbackSelected: boolean;
+  isLogsSelected: boolean;
   isPerformanceSelected: boolean;
   isProfilingSelected: boolean;
   isReplaySelected: boolean;
