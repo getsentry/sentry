@@ -5,7 +5,7 @@ from sentry.testutils.helpers.eventprocessing import save_new_event
 
 class ProjectPlatformInferTest(TestCase):
     @override_options({"sentry:infer_project_platform": 1.0})
-    def test_platform_inferred_on_event(self):
+    def test_platform_inferred_on_event(self) -> None:
         project = self.create_project()
 
         save_new_event({"message": "test", "platform": "javascript"}, project)
@@ -14,7 +14,7 @@ class ProjectPlatformInferTest(TestCase):
         assert project.platform == "javascript"
 
     @override_options({"sentry:infer_project_platform": 1.0})
-    def test_platform_does_not_override_existing_platform(self):
+    def test_platform_does_not_override_existing_platform(self) -> None:
         project = self.create_project(platform="python")
 
         save_new_event({"message": "test", "platform": "javascript"}, project)

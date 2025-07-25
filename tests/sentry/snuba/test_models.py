@@ -13,7 +13,7 @@ from sentry.testutils.cases import TestCase
 
 
 class SnubaQueryEventTypesTest(TestCase):
-    def test(self):
+    def test(self) -> None:
         snuba_query = create_snuba_query(
             SnubaQuery.Type.ERROR,
             Dataset.Events,
@@ -55,11 +55,11 @@ class QuerySubscriptionDataSourceHandlerTest(TestCase):
             source_id=str(self.subscription.id),
         )
 
-    def test_bulk_get_query_object(self):
+    def test_bulk_get_query_object(self) -> None:
         result = QuerySubscriptionDataSourceHandler.bulk_get_query_object([self.data_source])
         assert result[self.data_source.id] == self.subscription
 
-    def test_bulk_get_query_object__incorrect_data_source(self):
+    def test_bulk_get_query_object__incorrect_data_source(self) -> None:
         self.ds_with_invalid_subscription_id = self.create_data_source(
             type="snuba_query_subscription",
             source_id="not_int",
@@ -78,11 +78,11 @@ class QuerySubscriptionDataSourceHandlerTest(TestCase):
                 },
             )
 
-    def test_get_instance_limit(self):
+    def test_get_instance_limit(self) -> None:
         with self.settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=42):
             assert QuerySubscriptionDataSourceHandler.get_instance_limit(self.organization) == 42
 
-    def test_get_current_instance_count(self):
+    def test_get_current_instance_count(self) -> None:
         new_org = self.create_organization()
         new_project = self.create_project(organization=new_org)
         new_project2 = self.create_project(organization=new_org)

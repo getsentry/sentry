@@ -136,6 +136,6 @@ class NotificationTaskTests(TestCase):
         assert list(notification.call_args.kwargs.keys()) == ["organization", "foo"]
         notification.return_value.send.assert_called_once_with()
 
-    def test_invalid_notification(self):
+    def test_invalid_notification(self) -> None:
         with pytest.raises(NotificationClassNotSetException):
             async_send_notification(DummyNotification, self.organization, "some_value")

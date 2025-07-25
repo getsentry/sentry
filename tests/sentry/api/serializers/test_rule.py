@@ -23,7 +23,7 @@ from sentry.workflow_engine.models.data_condition import Condition
 
 @freeze_time()
 class RuleSerializerTest(TestCase):
-    def test_last_triggered_rule_only(self):
+    def test_last_triggered_rule_only(self) -> None:
         rule = self.create_project_rule()
 
         # Initially no fire history
@@ -37,7 +37,21 @@ class RuleSerializerTest(TestCase):
         assert result["lastTriggered"] == timezone.now()
 
     @with_feature("organizations:workflow-engine-single-process-workflows")
-    def test_last_triggered_with_workflow(self):
+    def test_last_triggered_with_workflow_only(self) -> None:
+        rule = self.create_project_rule()
+
+        # Create a workflow for the rule
+        workflow = IssueAlertMigrator(rule).run()
+
+        WorkflowFireHistory.objects.create(
+            workflow=workflow, group=self.group, event_id="test-event-id", is_single_written=True
+        )
+
+        result = serialize(rule, self.user, RuleSerializer(expand=["lastTriggered"]))
+        assert result["lastTriggered"] == timezone.now()
+
+    @with_feature("organizations:workflow-engine-single-process-workflows")
+    def test_last_triggered_with_workflow(self) -> None:
         rule = self.create_project_rule()
 
         # Create a workflow for the rule
@@ -55,7 +69,7 @@ class RuleSerializerTest(TestCase):
         result = serialize(rule, self.user, RuleSerializer(expand=["lastTriggered"]))
         assert result["lastTriggered"] == timezone.now()
 
-    def test_last_triggered_workflow_ignore_single_written_false(self):
+    def test_last_triggered_workflow_ignore_single_written_false(self) -> None:
         """Test that WorkflowFireHistory with is_single_written=False is ignored."""
         rule = self.create_project_rule()
 
@@ -132,7 +146,7 @@ class WorkflowRuleSerializerTest(TestCase):
 
         assert serialized_rule == serialized_workflow_rule
 
-    def test_fetch_workflow_users(self):
+    def test_fetch_workflow_users(self) -> None:
         workflow = self.create_workflow(created_by_id=self.user.id)
         user_2 = self.create_user()
         workflow_2 = self.create_workflow(created_by_id=user_2.id)
@@ -144,7 +158,7 @@ class WorkflowRuleSerializerTest(TestCase):
         )
         assert set(users.keys()) == {self.user.id, user_2.id}
 
-    def test_fetch_workflow_projects(self):
+    def test_fetch_workflow_projects(self) -> None:
         workflow = self.create_workflow()
 
         error_detector = self.create_detector(project=self.project, type="error")
@@ -169,7 +183,7 @@ class WorkflowRuleSerializerTest(TestCase):
             workflow_3: {self.project, project_2},
         }
 
-    def test_fetch_workflows__prefetch(self):
+    def test_fetch_workflows__prefetch(self) -> None:
         workflow_triggers = self.create_data_condition_group()
         workflow = self.create_workflow(when_condition_group=workflow_triggers)
         trigger_condition = self.create_data_condition(
@@ -205,7 +219,7 @@ class WorkflowRuleSerializerTest(TestCase):
 
         assert len(queries) == 0
 
-    def test_fetch_workflow_rule_ids(self):
+    def test_fetch_workflow_rule_ids(self) -> None:
         workflow = self.create_workflow()
         workflow_2 = self.create_workflow()
         self.create_alert_rule_workflow(workflow_id=workflow.id, rule_id=1)
@@ -216,7 +230,7 @@ class WorkflowRuleSerializerTest(TestCase):
             workflow_2.id: 2,
         }
 
-    def test_fetch_workflow_created_by(self):
+    def test_fetch_workflow_created_by(self) -> None:
         users = {self.user.id: serialize_rpc_user(self.user)}
         workflow = self.create_workflow(created_by_id=self.user.id)
 
@@ -226,27 +240,27 @@ class WorkflowRuleSerializerTest(TestCase):
             "email": self.user.email,
         }
 
-    def test_fetch_workflow_created_by__none(self):
+    def test_fetch_workflow_created_by__none(self) -> None:
         workflow = self.create_workflow()
 
         assert WorkflowEngineRuleSerializer()._fetch_workflow_created_by(workflow, {}) is None
 
-    def test_fetch_workflow_owner__user(self):
+    def test_fetch_workflow_owner__user(self) -> None:
         workflow = self.create_workflow(owner_user_id=self.user.id)
         assert (
             WorkflowEngineRuleSerializer()._fetch_workflow_owner(workflow) == f"user:{self.user.id}"
         )
 
-    def test_fetch_workflow_owner__team(self):
+    def test_fetch_workflow_owner__team(self) -> None:
         team = self.create_team()
         workflow = self.create_workflow(owner_team=team)
         assert WorkflowEngineRuleSerializer()._fetch_workflow_owner(workflow) == f"team:{team.id}"
 
-    def test_fetch_workflow_owner__none(self):
+    def test_fetch_workflow_owner__none(self) -> None:
         workflow = self.create_workflow()
         assert WorkflowEngineRuleSerializer()._fetch_workflow_owner(workflow) is None
 
-    def test_generate_rule_conditions_filters(self):
+    def test_generate_rule_conditions_filters(self) -> None:
         serialized_rule = serialize(self.issue_alert)
 
         workflow = IssueAlertMigrator(self.issue_alert).run()
@@ -258,7 +272,7 @@ class WorkflowRuleSerializerTest(TestCase):
         assert conditions == serialized_rule["conditions"]
         assert filters == serialized_rule["filters"]
 
-    def test_fetch_workflow_last_triggered(self):
+    def test_fetch_workflow_last_triggered(self) -> None:
         workflow = self.create_workflow()
         workflow_2 = self.create_workflow()
 
@@ -277,10 +291,10 @@ class WorkflowRuleSerializerTest(TestCase):
             [workflow, workflow_2]
         ) == {workflow.id: timezone.now(), workflow_2.id: before_now(hours=1)}
 
-    def test_rule_serializer(self):
+    def test_rule_serializer(self) -> None:
         self.assert_equal_serializers(self.issue_alert)
 
-    def test_special_condition(self):
+    def test_special_condition(self) -> None:
         condition = {
             "interval": "1h",
             "id": EventUniqueUserFrequencyConditionWithConditions.id,

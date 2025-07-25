@@ -13,7 +13,7 @@ class OrganizationAvatarTestBase(APITestCase):
 
 
 class OrganizationAvatarTest(OrganizationAvatarTestBase):
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.get_success_response(self.organization.slug)
         assert response.data["id"] == str(self.organization.id)
         assert response.data["avatar"]["avatarType"] == "letter_avatar"
@@ -24,7 +24,7 @@ class OrganizationAvatarTest(OrganizationAvatarTestBase):
 class OrganizationAvatarPutTest(OrganizationAvatarTestBase):
     method = "put"
 
-    def test_upload(self):
+    def test_upload(self) -> None:
         data = {"avatar_type": "upload", "avatar_photo": b64encode(self.load_fixture("avatar.jpg"))}
         self.get_success_response(self.organization.slug, **data)
 
@@ -32,7 +32,7 @@ class OrganizationAvatarPutTest(OrganizationAvatarTestBase):
         assert avatar.get_avatar_type_display() == "upload"
         assert avatar.file_id
 
-    def test_put_bad(self):
+    def test_put_bad(self) -> None:
         OrganizationAvatar.objects.create(organization=self.organization)
 
         self.get_error_response(self.organization.slug, avatar_type="upload", status_code=400)
@@ -44,6 +44,6 @@ class OrganizationAvatarPutTest(OrganizationAvatarTestBase):
 
         assert avatar.get_avatar_type_display() == "letter_avatar"
 
-    def test_put_forbidden(self):
+    def test_put_forbidden(self) -> None:
         org = self.create_organization()
         self.get_error_response(org.slug, avatar_type="letter_avatar", status_code=403)

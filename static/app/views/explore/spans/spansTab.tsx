@@ -44,7 +44,7 @@ import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
-import {SeerSearch} from 'sentry/views/explore/components/seerSearch';
+import {SeerComboBox} from 'sentry/views/explore/components/seerComboBox/seerComboBox';
 import {
   useExploreFields,
   useExploreId,
@@ -176,7 +176,7 @@ function SpansSearchBar({
   const {displaySeerResults, query} = useSearchQueryBuilder();
 
   return displaySeerResults ? (
-    <SeerSearch initialQuery={query} />
+    <SeerComboBox initialQuery={query} />
   ) : (
     <EAPSpanSearchQueryBuilder autoFocus {...eapSpanSearchQueryBuilderProps} />
   );

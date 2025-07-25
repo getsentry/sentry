@@ -47,11 +47,11 @@ class OpsgenieClientTest(APITestCase):
         )
         self.installation = self.integration.get_installation(self.organization.id)
 
-    def test_get_client(self):
+    def test_get_client(self) -> None:
         with pytest.raises(NotImplementedError):
             self.installation.get_client()
 
-    def test_get_keyring_client(self):
+    def test_get_keyring_client(self) -> None:
         client = self.installation.get_keyring_client("team-123")
         assert client.integration == self.installation.model
         assert client.base_url == METADATA["base_url"] + "v2"

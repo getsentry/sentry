@@ -18,7 +18,7 @@ class OrganizationRepositoriesListTest(APITestCase):
 
         self.login_as(user=self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         repo = Repository.objects.create(name="example", organization_id=self.org.id)
 
         response = self.client.get(self.url, format="json")
@@ -28,7 +28,7 @@ class OrganizationRepositoriesListTest(APITestCase):
         assert response.data[0]["id"] == str(repo.id)
         assert response.data[0]["externalSlug"] is None
 
-    def test_get_integration_repository(self):
+    def test_get_integration_repository(self) -> None:
         repo = Repository.objects.create(
             name="getsentry/example",
             organization_id=self.org.id,
@@ -46,7 +46,7 @@ class OrganizationRepositoriesListTest(APITestCase):
         assert first_row["provider"] == {"id": "dummy", "name": "Example"}
         assert first_row["externalSlug"] == str(repo.external_id)
 
-    def test_get_active_repos(self):
+    def test_get_active_repos(self) -> None:
         repo1 = Repository.objects.create(
             name="getsentry/example",
             organization_id=self.org.id,
@@ -77,7 +77,7 @@ class OrganizationRepositoriesListTest(APITestCase):
         assert second_row["provider"] == {"id": "dummy", "name": "Example"}
         assert second_row["externalSlug"] == str(repo2.external_id)
 
-    def test_get_exclude_hidden_repo(self):
+    def test_get_exclude_hidden_repo(self) -> None:
         repo = Repository.objects.create(
             name="getsentry/example",
             organization_id=self.org.id,
@@ -103,7 +103,7 @@ class OrganizationRepositoriesListTest(APITestCase):
         assert first_row["provider"] == {"id": "dummy", "name": "Example"}
         assert first_row["externalSlug"] == str(repo.external_id)
 
-    def test_get_all_repos(self):
+    def test_get_all_repos(self) -> None:
         repo1 = Repository.objects.create(
             name="getsentry/example",
             organization_id=self.org.id,
@@ -137,7 +137,7 @@ class OrganizationRepositoriesListTest(APITestCase):
         assert second_row["provider"] == {"id": "dummy", "name": "Example"}
         assert second_row["externalSlug"] == str(repo2.external_id)
 
-    def test_status_unmigratable(self):
+    def test_status_unmigratable(self) -> None:
         self.url = self.url + "?status=unmigratable"
 
         self.create_integration(
@@ -160,7 +160,7 @@ class OrganizationRepositoriesListTest(APITestCase):
             assert response.status_code == 200, response.content
             assert response.data[0]["name"] == unmigratable_repo.name
 
-    def test_status_unmigratable_missing_org_integration(self):
+    def test_status_unmigratable_missing_org_integration(self) -> None:
         self.url = self.url + "?status=unmigratable"
 
         self.create_integration(
@@ -185,7 +185,7 @@ class OrganizationRepositoriesListTest(APITestCase):
             assert response.status_code == 200, response.content
             assert len(response.data) == 0
 
-    def test_status_unmigratable_disabled_integration(self):
+    def test_status_unmigratable_disabled_integration(self) -> None:
         self.url = self.url + "?status=unmigratable"
 
         self.create_integration(
@@ -215,7 +215,7 @@ class OrganizationRepositoriesListTest(APITestCase):
             # Shouldn't even make the request to get repos
             assert not f.called
 
-    def test_status_unmigratable_disabled_org_integration(self):
+    def test_status_unmigratable_disabled_org_integration(self) -> None:
         self.url = self.url + "?status=unmigratable"
         self.create_integration(
             organization=self.org,
@@ -244,7 +244,7 @@ class OrganizationRepositoriesListTest(APITestCase):
             # Shouldn't even make the request to get repos
             assert not f.called
 
-    def test_passing_integration_id(self):
+    def test_passing_integration_id(self) -> None:
         integration = self.create_integration(
             organization=self.org,
             provider="github",
@@ -270,7 +270,7 @@ class OrganizationRepositoriesListTest(APITestCase):
 
 
 class OrganizationRepositoriesCreateTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -286,7 +286,7 @@ class OrganizationRepositoriesCreateTest(APITestCase):
         assert repo.provider == "dummy"
         assert repo.name == "getsentry/sentry"
 
-    def test_admin_ok(self):
+    def test_admin_ok(self) -> None:
         org = self.create_organization(owner=self.user, name="baz")
         team = self.create_team(name="people", organization=org)
 
@@ -301,7 +301,7 @@ class OrganizationRepositoriesCreateTest(APITestCase):
 
         assert response.status_code == 201, (response.status_code, response.content)
 
-    def test_member_ok(self):
+    def test_member_ok(self) -> None:
         org = self.create_organization(owner=self.user, name="baz")
         team = self.create_team(name="people", organization=org)
 
