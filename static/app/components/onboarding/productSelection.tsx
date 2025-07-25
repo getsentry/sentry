@@ -170,6 +170,7 @@ export const platformProductAvailability = {
   'javascript-astro': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   node: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'node-azurefunctions': [
