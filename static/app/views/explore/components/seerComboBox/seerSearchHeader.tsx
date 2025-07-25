@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Text} from 'sentry/components/core/text';
 import {IconSeer} from 'sentry/icons';
 
 interface SeerSearchHeaderProps {
@@ -39,7 +40,7 @@ export function SeerSearchHeader({
   return (
     <HeaderWrapper>
       <IconSeer variant={loading ? 'loading' : 'default'} color="purple300" />
-      <Header>
+      <Text>
         {title}
         {handleExampleClick ? (
           <AnimatedExampleText
@@ -54,7 +55,7 @@ export function SeerSearchHeader({
             {EXAMPLE_QUERIES[currentExampleIndex] || EXAMPLE_QUERIES[0]}
           </AnimatedExampleText>
         ) : null}
-      </Header>
+      </Text>
     </HeaderWrapper>
   );
 }
@@ -63,17 +64,9 @@ const HeaderWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.md};
-
   background: ${p => p.theme.purple100};
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   width: 100%;
-`;
-
-const Header = styled('h3')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.textColor};
-  margin: 0;
 `;
 
 const AnimatedExampleText = styled('button')<{isAnimating: boolean}>`
