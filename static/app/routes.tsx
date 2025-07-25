@@ -2698,129 +2698,164 @@ function buildRoutes() {
     </Route>
   );
 
-  const legacyRedirectRoutes = (
-    <Route path="/:orgId/">
-      <IndexRedirect to="/organizations/:orgId/" />
-      <Route path=":projectId/settings/">
-        <Redirect from="teams/" to="/settings/:orgId/projects/:projectId/teams/" />
-        <Redirect from="alerts/" to="/settings/:orgId/projects/:projectId/alerts/" />
-        <Redirect
-          from="alerts/rules/"
-          to="/settings/:orgId/projects/:projectId/alerts/rules/"
-        />
-        <Redirect
-          from="alerts/rules/new/"
-          to="/settings/:orgId/projects/:projectId/alerts/rules/new/"
-        />
-        <Redirect
-          from="alerts/rules/:ruleId/"
-          to="/settings/:orgId/projects/:projectId/alerts/rules/:ruleId/"
-        />
-        <Redirect
-          from="environments/"
-          to="/settings/:orgId/projects/:projectId/environments/"
-        />
-        <Redirect
-          from="environments/hidden/"
-          to="/settings/:orgId/projects/:projectId/environments/hidden/"
-        />
-        <Redirect from="tags/" to="/settings/projects/:orgId/projects/:projectId/tags/" />
-        <Redirect
-          from="issue-tracking/"
-          to="/settings/:orgId/projects/:projectId/issue-tracking/"
-        />
-        <Redirect
-          from="release-tracking/"
-          to="/settings/:orgId/projects/:projectId/release-tracking/"
-        />
-        <Redirect
-          from="ownership/"
-          to="/settings/:orgId/projects/:projectId/ownership/"
-        />
-        <Redirect
-          from="data-forwarding/"
-          to="/settings/:orgId/projects/:projectId/data-forwarding/"
-        />
-        <Redirect
-          from="debug-symbols/"
-          to="/settings/:orgId/projects/:projectId/debug-symbols/"
-        />
-        <Redirect from="filters/" to="/settings/:orgId/projects/:projectId/filters/" />
-        <Redirect from="hooks/" to="/settings/:orgId/projects/:projectId/hooks/" />
-        <Redirect from="keys/" to="/settings/:orgId/projects/:projectId/keys/" />
-        <Redirect
-          from="keys/:keyId/"
-          to="/settings/:orgId/projects/:projectId/keys/:keyId/"
-        />
-        <Redirect
-          from="user-feedback/"
-          to="/settings/:orgId/projects/:projectId/user-feedback/"
-        />
-        <Redirect
-          from="security-headers/"
-          to="/settings/:orgId/projects/:projectId/security-headers/"
-        />
-        <Redirect
-          from="security-headers/csp/"
-          to="/settings/:orgId/projects/:projectId/security-headers/csp/"
-        />
-        <Redirect
-          from="security-headers/expect-ct/"
-          to="/settings/:orgId/projects/:projectId/security-headers/expect-ct/"
-        />
-        <Redirect
-          from="security-headers/hpkp/"
-          to="/settings/:orgId/projects/:projectId/security-headers/hpkp/"
-        />
-        <Redirect from="plugins/" to="/settings/:orgId/projects/:projectId/plugins/" />
-        <Redirect
-          from="plugins/:pluginId/"
-          to="/settings/:orgId/projects/:projectId/plugins/:pluginId/"
-        />
-        <Redirect
-          from="integrations/:providerKey/"
-          to="/settings/:orgId/projects/:projectId/integrations/:providerKey/"
-        />
-      </Route>
-      <Redirect from=":projectId/group/:groupId/" to="issues/:groupId/" />
-      <Redirect
-        from=":projectId/issues/:groupId/"
-        to="/organizations/:orgId/issues/:groupId/"
-      />
-      <Redirect
-        from=":projectId/issues/:groupId/events/"
-        to="/organizations/:orgId/issues/:groupId/events/"
-      />
-      <Redirect
-        from=":projectId/issues/:groupId/events/:eventId/"
-        to="/organizations/:orgId/issues/:groupId/events/:eventId/"
-      />
-      <Redirect
-        from=":projectId/issues/:groupId/tags/"
-        to="/organizations/:orgId/issues/:groupId/tags/"
-      />
-      <Redirect
-        from=":projectId/issues/:groupId/tags/:tagKey/"
-        to="/organizations/:orgId/issues/:groupId/tags/:tagKey/"
-      />
-      <Redirect
-        from=":projectId/issues/:groupId/feedback/"
-        to="/organizations/:orgId/issues/:groupId/feedback/"
-      />
-      <Redirect
-        from=":projectId/issues/:groupId/similar/"
-        to="/organizations/:orgId/issues/:groupId/similar/"
-      />
-      <Redirect
-        from=":projectId/issues/:groupId/merged/"
-        to="/organizations/:orgId/issues/:groupId/merged/"
-      />
-      <Route
-        path=":projectId/events/:eventId/"
-        component={errorHandler(ProjectEventRedirect)}
-      />
-    </Route>
-  );
+  const legacyRedirectRoutes: SentryRouteObject[] = [
+    {
+      path: '/:orgId/',
+      children: [
+        {
+          index: true,
+          redirectTo: '/organizations/:orgId/',
+        },
+        {
+          path: ':projectId/settings/',
+          children: [
+            {
+              path: 'teams/',
+              redirectTo: '/settings/:orgId/projects/:projectId/teams/',
+            },
+            {
+              path: 'alerts/',
+              redirectTo: '/settings/:orgId/projects/:projectId/alerts/',
+            },
+            {
+              path: 'alerts/rules/',
+              redirectTo: '/settings/:orgId/projects/:projectId/alerts/rules/',
+            },
+            {
+              path: 'alerts/rules/new/',
+              redirectTo: '/settings/:orgId/projects/:projectId/alerts/rules/new/',
+            },
+            {
+              path: 'alerts/rules/:ruleId/',
+              redirectTo: '/settings/:orgId/projects/:projectId/alerts/rules/:ruleId/',
+            },
+            {
+              path: 'environments/',
+              redirectTo: '/settings/:orgId/projects/:projectId/environments/',
+            },
+            {
+              path: 'environments/hidden/',
+              redirectTo: '/settings/:orgId/projects/:projectId/environments/hidden/',
+            },
+            {
+              path: 'tags/',
+              redirectTo: '/settings/projects/:orgId/projects/:projectId/tags/',
+            },
+            {
+              path: 'issue-tracking/',
+              redirectTo: '/settings/:orgId/projects/:projectId/issue-tracking/',
+            },
+            {
+              path: 'release-tracking/',
+              redirectTo: '/settings/:orgId/projects/:projectId/release-tracking/',
+            },
+            {
+              path: 'ownership/',
+              redirectTo: '/settings/:orgId/projects/:projectId/ownership/',
+            },
+            {
+              path: 'data-forwarding/',
+              redirectTo: '/settings/:orgId/projects/:projectId/data-forwarding/',
+            },
+            {
+              path: 'debug-symbols/',
+              redirectTo: '/settings/:orgId/projects/:projectId/debug-symbols/',
+            },
+            {
+              path: 'filters/',
+              redirectTo: '/settings/:orgId/projects/:projectId/filters/',
+            },
+            {
+              path: 'hooks/',
+              redirectTo: '/settings/:orgId/projects/:projectId/hooks/',
+            },
+            {
+              path: 'keys/',
+              redirectTo: '/settings/:orgId/projects/:projectId/keys/',
+            },
+            {
+              path: 'keys/:keyId/',
+              redirectTo: '/settings/:orgId/projects/:projectId/keys/:keyId/',
+            },
+            {
+              path: 'user-feedback/',
+              redirectTo: '/settings/:orgId/projects/:projectId/user-feedback/',
+            },
+            {
+              path: 'security-headers/',
+              redirectTo: '/settings/:orgId/projects/:projectId/security-headers/',
+            },
+            {
+              path: 'security-headers/csp/',
+              redirectTo: '/settings/:orgId/projects/:projectId/security-headers/csp/',
+            },
+            {
+              path: 'security-headers/expect-ct/',
+              redirectTo:
+                '/settings/:orgId/projects/:projectId/security-headers/expect-ct/',
+            },
+            {
+              path: 'security-headers/hpkp/',
+              redirectTo: '/settings/:orgId/projects/:projectId/security-headers/hpkp/',
+            },
+            {
+              path: 'plugins/',
+              redirectTo: '/settings/:orgId/projects/:projectId/plugins/',
+            },
+            {
+              path: 'plugins/:pluginId/',
+              redirectTo: '/settings/:orgId/projects/:projectId/plugins/:pluginId/',
+            },
+            {
+              path: 'integrations/:providerKey/',
+              redirectTo:
+                '/settings/:orgId/projects/:projectId/integrations/:providerKey/',
+            },
+          ],
+        },
+        {
+          path: ':projectId/group/:groupId/',
+          redirectTo: 'issues/:groupId/',
+        },
+        {
+          path: ':projectId/issues/:groupId/',
+          redirectTo: '/organizations/:orgId/issues/:groupId/',
+        },
+        {
+          path: ':projectId/issues/:groupId/events/',
+          redirectTo: '/organizations/:orgId/issues/:groupId/events/',
+        },
+        {
+          path: ':projectId/issues/:groupId/events/:eventId/',
+          redirectTo: '/organizations/:orgId/issues/:groupId/events/:eventId/',
+        },
+        {
+          path: ':projectId/issues/:groupId/tags/',
+          redirectTo: '/organizations/:orgId/issues/:groupId/tags/',
+        },
+        {
+          path: ':projectId/issues/:groupId/tags/:tagKey/',
+          redirectTo: '/organizations/:orgId/issues/:groupId/tags/:tagKey/',
+        },
+        {
+          path: ':projectId/issues/:groupId/feedback/',
+          redirectTo: '/organizations/:orgId/issues/:groupId/feedback/',
+        },
+        {
+          path: ':projectId/issues/:groupId/similar/',
+          redirectTo: '/organizations/:orgId/issues/:groupId/similar/',
+        },
+        {
+          path: ':projectId/issues/:groupId/merged/',
+          redirectTo: '/organizations/:orgId/issues/:groupId/merged/',
+        },
+        {
+          path: ':projectId/events/:eventId/',
+          component: errorHandler(ProjectEventRedirect),
+        },
+      ],
+    },
+  ];
 
   const appRoutes = (
     <Route component={ProvideAriaRouter}>
@@ -2829,7 +2864,7 @@ function buildRoutes() {
         {rootRoutes}
         {authV2Routes}
         {organizationRoutes}
-        {legacyRedirectRoutes}
+        <Route newStyleChildren={legacyRedirectRoutes} />
         <Route path="*" component={errorHandler(RouteNotFound)} />
       </Route>
     </Route>
