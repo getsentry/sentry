@@ -381,7 +381,9 @@ class DatabaseBackedIntegrationService(IntegrationService):
     ) -> bool:
         try:
             new_status_str = INCIDENT_STATUS[IncidentStatus(new_status)].lower()
-            event = SentryAppEventType(f"{SentryAppResourceType.METRIC_ALERT}.{new_status_str}")
+            event = SentryAppEventType(
+                f"{SentryAppResourceType.METRIC_ALERT}.{SentryAppActionType(new_status_str)}"
+            )
         except ValueError as e:
             sentry_sdk.capture_exception(e)
             return False

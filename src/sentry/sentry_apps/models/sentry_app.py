@@ -3,7 +3,7 @@ import itertools
 import uuid
 from enum import StrEnum
 from hashlib import sha256
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Final, Literal, Union
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models, router, transaction
@@ -64,15 +64,24 @@ class SentryAppActionType(StrEnum):
 
     # Metric alert actions
     OPEN = "open"
-    CLOSED = "resolved"
     CRITICAL = "critical"
     WARNING = "warning"
 
 
+# Define event type unions for each resource
+IssueEventType = Literal[
+    "issue.assigned", "issue.created", "issue.ignored", "issue.resolved", "issue.unresolved"
+]
+ErrorEventType = Literal["error.created"]
+CommentEventType = Literal["comment.created", "comment.deleted", "comment.updated"]
+
+# Union of all event types
+EventType = Union[IssueEventType, ErrorEventType, CommentEventType]
+
 # When a developer selects to receive "<Resource> Webhooks" it really means
 # listening to a list of specific events. This is a mapping of what those
 # specific events are for each resource.
-EVENT_EXPANSION = {
+EVENT_EXPANSION: Final[dict[str, list[EventType]]] = {
     SentryAppResourceType.ISSUE.value: [
         "issue.assigned",
         "issue.created",
