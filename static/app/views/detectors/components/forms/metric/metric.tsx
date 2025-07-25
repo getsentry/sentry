@@ -32,8 +32,11 @@ import {AutomateSection} from 'sentry/views/detectors/components/forms/automateS
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
+  DEFAULT_THRESHOLD_METRIC_FORM_DATA,
   DetectorDataset,
   METRIC_DETECTOR_FORM_FIELDS,
+  metricDetectorFormDataToEndpointPayload,
+  metricSavedDetectorToFormData,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {MetricDetectorPreviewChart} from 'sentry/views/detectors/components/forms/metric/previewChart';
@@ -59,9 +62,10 @@ function MetricDetectorForm() {
 export function EditExistingMetricDetectorForm({detector}: {detector: Detector}) {
   return (
     <EditDetectorLayout
-      detectorType="metric_issue"
       detector={detector}
       previewChart={<MetricDetectorPreviewChart />}
+      formDataToEndpointPayload={metricDetectorFormDataToEndpointPayload}
+      savedDetectorToFormData={metricSavedDetectorToFormData}
     >
       <MetricDetectorForm />
     </EditDetectorLayout>
@@ -73,6 +77,8 @@ export function NewMetricDetectorForm() {
     <NewDetectorLayout
       detectorType="metric_issue"
       previewChart={<MetricDetectorPreviewChart />}
+      formDataToEndpointPayload={metricDetectorFormDataToEndpointPayload}
+      initialFormData={DEFAULT_THRESHOLD_METRIC_FORM_DATA}
     >
       <MetricDetectorForm />
     </NewDetectorLayout>

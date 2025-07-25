@@ -1,6 +1,9 @@
 import {t} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
-import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import type {
+  BaseDetectorUpdatePayload,
+  Detector,
+} from 'sentry/types/workflowEngine/detectors';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {
   useApiQueries,
@@ -10,7 +13,6 @@ import {
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {DetectorUpdatePayload} from 'sentry/views/detectors/components/forms/config';
 
 interface UseDetectorsQueryKeyOptions {
   cursor?: string;
@@ -71,7 +73,7 @@ export function useCreateDetector() {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
-  return useMutation<Detector, void, DetectorUpdatePayload>({
+  return useMutation<Detector, void, BaseDetectorUpdatePayload>({
     mutationFn: data =>
       api.requestPromise(`/organizations/${org.slug}/detectors/`, {
         method: 'POST',
@@ -93,7 +95,7 @@ export function useUpdateDetector() {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
-  return useMutation<Detector, void, {detectorId: string} & DetectorUpdatePayload>({
+  return useMutation<Detector, void, {detectorId: string} & BaseDetectorUpdatePayload>({
     mutationFn: data =>
       api.requestPromise(`/organizations/${org.slug}/detectors/${data.detectorId}/`, {
         method: 'PUT',
