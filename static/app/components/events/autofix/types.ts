@@ -247,8 +247,15 @@ export interface AutofixRepoDefinition {
   provider: string;
 }
 
+export interface BranchOverride {
+  branch_name: string;
+  tag_name: string;
+  tag_value: string;
+}
+
 export interface RepoSettings {
   branch: string;
+  branch_overrides: BranchOverride[];
   instructions: string;
 }
 
@@ -259,6 +266,7 @@ export interface SeerRepoDefinition {
   provider: string;
   base_commit_sha?: string;
   branch_name?: string;
+  branch_overrides?: BranchOverride[];
   instructions?: string;
   provider_raw?: string;
 }
