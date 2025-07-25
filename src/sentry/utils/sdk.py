@@ -198,6 +198,12 @@ def traces_sampler(sampling_context):
         if task_name in SAMPLED_TASKS:
             return SAMPLED_TASKS[task_name]
 
+    if "taskworker" in sampling_context:
+        task_name = sampling_context["taskworker"].get("task")
+
+        if task_name in SAMPLED_TASKS:
+            return SAMPLED_TASKS[task_name]
+
     # Default to the sampling rate in settings
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
 
