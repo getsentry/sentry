@@ -373,16 +373,18 @@ class RateLimitExceeded(SnubaError):
     def __init__(
         self,
         message: str | None = None,
-        error_type: str | None = None,
+        policy: str | None = None,
+        quota_unit: str | None = None,
+        storage_key: str | None = None,
         quota_used: int | None = None,
         rejection_threshold: int | None = None,
-        suggestion: str | None = None,
     ) -> None:
         super().__init__(message)
-        self.error_type = error_type
+        self.policy = policy
+        self.quota_unit = quota_unit
+        self.storage_key = storage_key
         self.quota_used = quota_used
         self.rejection_threshold = rejection_threshold
-        self.suggestion = suggestion
 
 
 class SchemaValidationError(QueryExecutionError):
@@ -1265,18 +1267,20 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                             if rejected_by:
                                 raise RateLimitExceeded(
                                     error["message"],
-                                    error_type="rejected_by",
+                                    policy=rejected_by["policy"],
+                                    quota_unit=rejected_by["quota_unit"],
+                                    storage_key=rejected_by["storage_key"],
                                     quota_used=rejected_by["quota_used"],
                                     rejection_threshold=rejected_by["rejection_threshold"],
-                                    suggestion=rejected_by["suggestion"],
                                 )
                             elif throttled_by:
                                 raise RateLimitExceeded(
                                     error["message"],
-                                    error_type="throttled_by",
+                                    policy=throttled_by["policy"],
+                                    quota_unit=throttled_by["quota_unit"],
+                                    storage_key=throttled_by["storage_key"],
                                     quota_used=throttled_by["quota_used"],
                                     rejection_threshold=throttled_by["rejection_threshold"],
-                                    suggestion=throttled_by["suggestion"],
                                 )
 
                         raise RateLimitExceeded(error["message"])

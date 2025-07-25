@@ -15,10 +15,11 @@ def custom_exception_handler(exc, context):
         if request is not None:
             request.will_be_rate_limited = True
             request.snuba_rate_limit_metadata = SnubaRateLimitMeta(
-                error_type=exc.error_type,
+                policy=exc.policy,
+                quota_unit=exc.quota_unit,
+                storage_key=exc.storage_key,
                 quota_used=exc.quota_used,
                 rejection_threshold=exc.rejection_threshold,
-                suggestion=exc.suggestion,
             )
 
         # capture the rate limited exception so we can see it in Sentry

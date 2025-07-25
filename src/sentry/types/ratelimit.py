@@ -72,7 +72,8 @@ class SnubaRateLimitMeta:
     Rate Limit metadata for Snuba's RateLimitExceeded error
     """
 
-    error_type: str | None
+    policy: str | None
+    quota_unit: str | None
     quota_used: int | None
     rejection_threshold: int | None
-    suggestion: str | None
+    storage_key: str | None
