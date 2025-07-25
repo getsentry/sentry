@@ -448,7 +448,7 @@ def build_tree(spans: Sequence[dict[str, Any]]) -> tuple[dict[str, Any], str | N
 
     for span in spans:
         span_id = span["span_id"]
-        is_root = span["is_segment"]
+        is_root = span.get("is_segment", False)
         if is_root:
             segment_id = span_id
         if span_id not in span_tree:
