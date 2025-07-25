@@ -54,63 +54,63 @@ def test_get_numeric_field_value():
 
 
 class TestParseNumericValue(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         assert parse_numeric_value("10", None) == 10
 
-    def test_k(self):
+    def test_k(self) -> None:
         assert parse_numeric_value("1", "k") == 1000.0
         assert parse_numeric_value("1", "K") == 1000.0
 
-    def test_m(self):
+    def test_m(self) -> None:
         assert parse_numeric_value("1", "m") == 1000000.0
         assert parse_numeric_value("1", "M") == 1000000.0
 
-    def test_b(self):
+    def test_b(self) -> None:
         assert parse_numeric_value("1", "b") == 1000000000.0
         assert parse_numeric_value("1", "B") == 1000000000.0
 
 
 class TestParseSizeValue(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         assert parse_size("8", "bit") == 1
 
-    def test_uppercase(self):
+    def test_uppercase(self) -> None:
         assert parse_size("1", "KB") == 1000
         assert parse_size("1", "kb") == 1000
         assert parse_size("1", "Kb") == 1000
 
 
 class TestParseDuration(TestCase):
-    def test_ms(self):
+    def test_ms(self) -> None:
         assert parse_duration("123", "ms") == 123
 
-    def test_sec(self):
+    def test_sec(self) -> None:
         assert parse_duration("456", "s") == 456000
 
-    def test_minutes(self):
+    def test_minutes(self) -> None:
         assert parse_duration("789", "min") == 789 * 60 * 1000
         assert parse_duration("789", "m") == 789 * 60 * 1000
 
-    def test_hours(self):
+    def test_hours(self) -> None:
         assert parse_duration("234", "hr") == 234 * 60 * 60 * 1000
         assert parse_duration("234", "h") == 234 * 60 * 60 * 1000
 
-    def test_days(self):
+    def test_days(self) -> None:
         assert parse_duration("567", "day") == 567 * 24 * 60 * 60 * 1000
         assert parse_duration("567", "d") == 567 * 24 * 60 * 60 * 1000
 
-    def test_weeks(self):
+    def test_weeks(self) -> None:
         assert parse_duration("890", "wk") == 890 * 7 * 24 * 60 * 60 * 1000
         assert parse_duration("890", "w") == 890 * 7 * 24 * 60 * 60 * 1000
 
-    def test_errors(self):
+    def test_errors(self) -> None:
         with pytest.raises(InvalidQuery):
             parse_duration("test", "ms")
 
         with pytest.raises(InvalidQuery):
             parse_duration("123", "test")
 
-    def test_large_durations(self):
+    def test_large_durations(self) -> None:
         max_duration = 999999999 * 24 * 60 * 60 * 1000
         assert parse_duration("999999999", "d") == max_duration
         assert parse_duration(str(999999999 * 24), "h") == max_duration
@@ -118,7 +118,7 @@ class TestParseDuration(TestCase):
         assert parse_duration(str(999999999 * 24 * 60 * 60), "s") == max_duration
         assert parse_duration(str(999999999 * 24 * 60 * 60 * 1000), "ms") == max_duration
 
-    def test_overflow_durations(self):
+    def test_overflow_durations(self) -> None:
         with pytest.raises(InvalidQuery):
             assert parse_duration(str(999999999 + 1), "d")
 
@@ -183,79 +183,79 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
     def parse_query(self, query):
         return parse_query([self.project], query, self.user, [])
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         result = self.parse_query("foo bar")
         assert result == {"tags": {}, "query": "foo bar"}
 
-    def test_useless_prefix(self):
+    def test_useless_prefix(self) -> None:
         result = self.parse_query("foo: bar")
         assert result == {"tags": {}, "query": "foo: bar"}
 
-    def test_useless_prefix_with_symbol(self):
+    def test_useless_prefix_with_symbol(self) -> None:
         result = self.parse_query("foo:  @ba$r")
         assert result == {"tags": {}, "query": "foo:  @ba$r"}
 
-    def test_useless_prefix_with_colon(self):
+    def test_useless_prefix_with_colon(self) -> None:
         result = self.parse_query("foo:  :ba:r::foo:")
         assert result == {"tags": {}, "query": "foo:  :ba:r::foo:"}
 
-    def test_handles_space_separation_after_useless_prefix_exception(self):
+    def test_handles_space_separation_after_useless_prefix_exception(self) -> None:
         result = self.parse_query("foo: bar foo:bar")
         assert result == {"tags": {"foo": "bar"}, "query": "foo: bar"}
 
-    def test_handles_period_in_tag_key(self):
+    def test_handles_period_in_tag_key(self) -> None:
         result = self.parse_query("foo.bar:foobar")
         assert result == {"tags": {"foo.bar": "foobar"}, "query": ""}
 
-    def test_handles_dash_in_tag_key(self):
+    def test_handles_dash_in_tag_key(self) -> None:
         result = self.parse_query("foo-bar:foobar")
         assert result == {"tags": {"foo-bar": "foobar"}, "query": ""}
 
     # TODO: update docs to include minutes, days, and weeks suffixes
     @freeze_time("2016-01-01")
-    def test_age_tag_negative_value(self):
+    def test_age_tag_negative_value(self) -> None:
         start = timezone.now()
         expected = start - timedelta(hours=12)
         result = self.parse_query("age:-12h")
         assert result == {"tags": {}, "query": "", "age_from": expected, "age_from_inclusive": True}
 
     @freeze_time("2016-01-01")
-    def test_age_tag_positive_value(self):
+    def test_age_tag_positive_value(self) -> None:
         start = timezone.now()
         expected = start - timedelta(hours=12)
         result = self.parse_query("age:+12h")
         assert result == {"tags": {}, "query": "", "age_to": expected, "age_to_inclusive": True}
 
     @freeze_time("2016-01-01")
-    def test_age_tag_weeks(self):
+    def test_age_tag_weeks(self) -> None:
         start = timezone.now()
         expected = start - timedelta(days=35)
         result = self.parse_query("age:+5w")
         assert result == {"tags": {}, "query": "", "age_to": expected, "age_to_inclusive": True}
 
     @freeze_time("2016-01-01")
-    def test_age_tag_days(self):
+    def test_age_tag_days(self) -> None:
         start = timezone.now()
         expected = start - timedelta(days=10)
         result = self.parse_query("age:+10d")
         assert result == {"tags": {}, "query": "", "age_to": expected, "age_to_inclusive": True}
 
     @freeze_time("2016-01-01")
-    def test_age_tag_hours(self):
+    def test_age_tag_hours(self) -> None:
         start = timezone.now()
         expected = start - timedelta(hours=10)
         result = self.parse_query("age:+10h")
         assert result == {"tags": {}, "query": "", "age_to": expected, "age_to_inclusive": True}
 
     @freeze_time("2016-01-01")
-    def test_age_tag_minutes(self):
+    def test_age_tag_minutes(self) -> None:
         start = timezone.now()
         expected = start - timedelta(minutes=30)
         result = self.parse_query("age:+30m")
         assert result == {"tags": {}, "query": "", "age_to": expected, "age_to_inclusive": True}
 
     @freeze_time("2016-01-01")
-    def test_two_age_tags(self):
+    def test_two_age_tags(self) -> None:
         start = timezone.now()
         expected_to = start - timedelta(hours=12)
         expected_from = start - timedelta(hours=24)
@@ -269,7 +269,7 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
             "age_from_inclusive": True,
         }
 
-    def test_event_timestamp_syntax(self):
+    def test_event_timestamp_syntax(self) -> None:
         result = self.parse_query("event.timestamp:2016-01-02")
         assert result == {
             "query": "",
@@ -280,13 +280,13 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
             "tags": {},
         }
 
-    def test_times_seen_syntax(self):
+    def test_times_seen_syntax(self) -> None:
         result = self.parse_query("timesSeen:10")
         assert result == {"tags": {}, "times_seen": 10, "query": ""}
 
     # TODO: query parser for '>' timestamp should set inclusive to False.
     @pytest.mark.xfail
-    def test_greater_than_comparator(self):
+    def test_greater_than_comparator(self) -> None:
         result = self.parse_query("timesSeen:>10 event.timestamp:>2016-01-02")
         assert result == {
             "tags": {},
@@ -297,7 +297,7 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
             "date_from_inclusive": False,
         }
 
-    def test_greater_than_equal_comparator(self):
+    def test_greater_than_equal_comparator(self) -> None:
         result = self.parse_query("timesSeen:>=10 event.timestamp:>=2016-01-02")
         assert result == {
             "tags": {},
@@ -308,7 +308,7 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
             "date_from_inclusive": True,
         }
 
-    def test_less_than_comparator(self):
+    def test_less_than_comparator(self) -> None:
         result = self.parse_query("event.timestamp:<2016-01-02 timesSeen:<10")
         assert result == {
             "tags": {},
@@ -321,7 +321,7 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
 
     # TODO: query parser for '<=' timestamp should set inclusive to True.
     @pytest.mark.xfail
-    def test_less_than_equal_comparator(self):
+    def test_less_than_equal_comparator(self) -> None:
         result = self.parse_query("event.timestamp:<=2016-01-02 timesSeen:<=10")
         assert result == {
             "tags": {},
@@ -332,103 +332,103 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
             "date_to_inclusive": True,
         }
 
-    def test_handles_underscore_in_tag_key(self):
+    def test_handles_underscore_in_tag_key(self) -> None:
         result = self.parse_query("foo_bar:foobar")
         assert result == {"tags": {"foo_bar": "foobar"}, "query": ""}
 
-    def test_mix_tag_and_query(self):
+    def test_mix_tag_and_query(self) -> None:
         result = self.parse_query("foo bar key:value")
         assert result == {"tags": {"key": "value"}, "query": "foo bar"}
 
-    def test_single_tag(self):
+    def test_single_tag(self) -> None:
         result = self.parse_query("key:value")
         assert result == {"tags": {"key": "value"}, "query": ""}
 
-    def test_tag_with_colon_in_value(self):
+    def test_tag_with_colon_in_value(self) -> None:
         result = self.parse_query("url:http://example.com")
         assert result == {"tags": {"url": "http://example.com"}, "query": ""}
 
-    def test_single_space_in_value(self):
+    def test_single_space_in_value(self) -> None:
         result = self.parse_query('key:"value1 value2"')
         assert result == {"tags": {"key": "value1 value2"}, "query": ""}
 
-    def test_multiple_spaces_in_value(self):
+    def test_multiple_spaces_in_value(self) -> None:
         result = self.parse_query('key:"value1  value2"')
         assert result == {"tags": {"key": "value1  value2"}, "query": ""}
 
-    def test_invalid_tag_as_query(self):
+    def test_invalid_tag_as_query(self) -> None:
         result = self.parse_query("Resque::DirtyExit")
         assert result == {"tags": {}, "query": "Resque::DirtyExit"}
 
-    def test_colons_in_tag_value(self):
+    def test_colons_in_tag_value(self) -> None:
         result = self.parse_query("key:Resque::DirtyExit")
         assert result == {"tags": {"key": "Resque::DirtyExit"}, "query": ""}
 
-    def test_multiple_tags(self):
+    def test_multiple_tags(self) -> None:
         result = self.parse_query("foo:bar key:value")
         assert result == {"tags": {"key": "value", "foo": "bar"}, "query": ""}
 
-    def test_single_tag_with_quotes(self):
+    def test_single_tag_with_quotes(self) -> None:
         result = self.parse_query('foo:"bar"')
         assert result == {"tags": {"foo": "bar"}, "query": ""}
 
-    def test_tag_with_quotes_and_query(self):
+    def test_tag_with_quotes_and_query(self) -> None:
         result = self.parse_query('key:"a value" hello')
         assert result == {"tags": {"key": "a value"}, "query": "hello"}
 
-    def test_is_resolved(self):
+    def test_is_resolved(self) -> None:
         result = self.parse_query("is:resolved")
         assert result == {"status": GroupStatus.RESOLVED, "tags": {}, "query": ""}
 
-    def test_assigned_me(self):
+    def test_assigned_me(self) -> None:
         result = self.parse_query("assigned:me")
         assert result == {"assigned_to": self.current_rpc_user, "tags": {}, "query": ""}
 
-    def test_assigned_none(self):
+    def test_assigned_none(self) -> None:
         result = self.parse_query("assigned:none")
         assert result == {"assigned_to": None, "tags": {}, "query": ""}
 
-    def test_assigned_email(self):
+    def test_assigned_email(self) -> None:
         result = self.parse_query(f"assigned:{self.user.email}")
         assert result == {"assigned_to": self.rpc_user, "tags": {}, "query": ""}
 
-    def test_assigned_unknown_user(self):
+    def test_assigned_unknown_user(self) -> None:
         result = self.parse_query("assigned:fake@example.com")
         assert isinstance(result["assigned_to"], RpcUser)
         assert result["assigned_to"].id == 0
 
-    def test_assigned_valid_team(self):
+    def test_assigned_valid_team(self) -> None:
         result = self.parse_query(f"assigned:#{self.team.slug}")
         assert result["assigned_to"] == self.team
 
-    def test_assigned_unassociated_team(self):
+    def test_assigned_unassociated_team(self) -> None:
         team2 = self.create_team(organization=self.organization)
         result = self.parse_query(f"assigned:#{team2.slug}")
         assert isinstance(result["assigned_to"], Team)
         assert result["assigned_to"].id == 0
 
-    def test_assigned_invalid_team(self):
+    def test_assigned_invalid_team(self) -> None:
         result = self.parse_query("assigned:#invalid")
         assert isinstance(result["assigned_to"], Team)
         assert result["assigned_to"].id == 0
 
-    def test_bookmarks_me(self):
+    def test_bookmarks_me(self) -> None:
         result = self.parse_query("bookmarks:me")
         assert result == {"bookmarked_by": self.current_rpc_user, "tags": {}, "query": ""}
 
-    def test_bookmarks_email(self):
+    def test_bookmarks_email(self) -> None:
         result = self.parse_query(f"bookmarks:{self.user.email}")
         assert result == {"bookmarked_by": self.rpc_user, "tags": {}, "query": ""}
 
-    def test_bookmarks_unknown_user(self):
+    def test_bookmarks_unknown_user(self) -> None:
         result = self.parse_query("bookmarks:fake@example.com")
         assert result["bookmarked_by"].id == 0
 
-    def test_first_release(self):
+    def test_first_release(self) -> None:
         result = self.parse_query("first-release:bar")
         assert result == {"first_release": ["bar"], "tags": {}, "query": ""}
 
-    def test_first_release_latest(self):
+    def test_first_release_latest(self) -> None:
         result = self.parse_query("first-release:latest")
         assert result == {"first_release": [""], "tags": {}, "query": ""}
         release = self.create_release(
@@ -444,11 +444,11 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
         result = self.parse_query("first-release:latest")
         assert result == {"first_release": [release.version], "tags": {}, "query": ""}
 
-    def test_release(self):
+    def test_release(self) -> None:
         result = self.parse_query("release:bar")
         assert result == {"tags": {"sentry:release": ["bar"]}, "query": ""}
 
-    def test_release_latest(self):
+    def test_release_latest(self) -> None:
         result = self.parse_query("release:latest")
         assert result == {"tags": {"sentry:release": [""]}, "query": ""}
 
@@ -465,23 +465,23 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
         result = self.parse_query("release:latest")
         assert result == {"tags": {"sentry:release": [release.version]}, "query": ""}
 
-    def test_dist(self):
+    def test_dist(self) -> None:
         result = self.parse_query("dist:123")
         assert result == {"tags": {"sentry:dist": "123"}, "query": ""}
 
-    def test_padded_spacing(self):
+    def test_padded_spacing(self) -> None:
         result = self.parse_query("release:bar  foo   bar")
         assert result == {"tags": {"sentry:release": ["bar"]}, "query": "foo bar"}
 
-    def test_unknown_user_with_dot_query(self):
+    def test_unknown_user_with_dot_query(self) -> None:
         result = self.parse_query("user.email:fake@example.com")
         assert result["tags"]["sentry:user"] == "email:fake@example.com"
 
-    def test_unknown_user_value(self):
+    def test_unknown_user_value(self) -> None:
         result = self.parse_query("user.xxxxxx:example")
         assert result["tags"]["sentry:user"] == "xxxxxx:example"
 
-    def test_user_lookup_with_dot_query(self):
+    def test_user_lookup_with_dot_query(self) -> None:
         self.project.date_added = timezone.now() - timedelta(minutes=10)
         self.project.save()
 
@@ -500,11 +500,11 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
         result = self.parse_query("user.username:foobar")
         assert result["tags"]["sentry:user"] == "id:1"
 
-    def test_unknown_user_legacy_syntax(self):
+    def test_unknown_user_legacy_syntax(self) -> None:
         result = self.parse_query("user:email:fake@example.com")
         assert result["tags"]["sentry:user"] == "email:fake@example.com"
 
-    def test_user_lookup_legacy_syntax(self):
+    def test_user_lookup_legacy_syntax(self) -> None:
         self.project.date_added = timezone.now() - timedelta(minutes=10)
         self.project.save()
 
@@ -523,60 +523,60 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
         result = self.parse_query("user:username:foobar")
         assert result["tags"]["sentry:user"] == "id:1"
 
-    def test_is_unassigned(self):
+    def test_is_unassigned(self) -> None:
         result = self.parse_query("is:unassigned")
         assert result == {"unassigned": True, "tags": {}, "query": ""}
 
-    def test_is_assigned(self):
+    def test_is_assigned(self) -> None:
         result = self.parse_query("is:assigned")
         assert result == {"unassigned": False, "tags": {}, "query": ""}
 
-    def test_is_inbox(self):
+    def test_is_inbox(self) -> None:
         result = self.parse_query("is:for_review")
         assert result == {"for_review": True, "tags": {}, "query": ""}
 
-    def test_is_unlinked(self):
+    def test_is_unlinked(self) -> None:
         result = self.parse_query("is:unlinked")
         assert result == {"linked": False, "tags": {}, "query": ""}
 
-    def test_is_linked(self):
+    def test_is_linked(self) -> None:
         result = self.parse_query("is:linked")
         assert result == {"linked": True, "tags": {}, "query": ""}
 
-    def test_age_from(self):
+    def test_age_from(self) -> None:
         result = self.parse_query("age:-24h")
         assert result["age_from"] > timezone.now() - timedelta(hours=25)
         assert result["age_from"] < timezone.now() - timedelta(hours=23)
         assert not result.get("age_to")
 
-    def test_age_to(self):
+    def test_age_to(self) -> None:
         result = self.parse_query("age:+24h")
         assert result["age_to"] > timezone.now() - timedelta(hours=25)
         assert result["age_to"] < timezone.now() - timedelta(hours=23)
         assert not result.get("age_from")
 
-    def test_age_range(self):
+    def test_age_range(self) -> None:
         result = self.parse_query("age:-24h age:+12h")
         assert result["age_from"] > timezone.now() - timedelta(hours=25)
         assert result["age_from"] < timezone.now() - timedelta(hours=23)
         assert result["age_to"] > timezone.now() - timedelta(hours=13)
         assert result["age_to"] < timezone.now() - timedelta(hours=11)
 
-    def test_first_seen_range(self):
+    def test_first_seen_range(self) -> None:
         result = self.parse_query("firstSeen:-24h firstSeen:+12h")
         assert result["age_from"] > timezone.now() - timedelta(hours=25)
         assert result["age_from"] < timezone.now() - timedelta(hours=23)
         assert result["age_to"] > timezone.now() - timedelta(hours=13)
         assert result["age_to"] < timezone.now() - timedelta(hours=11)
 
-    def test_date_range(self):
+    def test_date_range(self) -> None:
         result = self.parse_query("event.timestamp:>2016-01-01 event.timestamp:<2016-01-02")
         assert result["date_from"] == datetime(2016, 1, 1, tzinfo=UTC)
         assert result["date_from_inclusive"] is False
         assert result["date_to"] == datetime(2016, 1, 2, tzinfo=UTC)
         assert result["date_to_inclusive"] is False
 
-    def test_date_range_with_timezone(self):
+    def test_date_range_with_timezone(self) -> None:
         result = self.parse_query(
             "event.timestamp:>2016-01-01T10:00:00-03:00 event.timestamp:<2016-01-02T10:00:00+02:00"
         )
@@ -585,7 +585,7 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
         assert result["date_to"] == datetime(2016, 1, 2, 8, 0, tzinfo=UTC)
         assert result["date_to_inclusive"] is False
 
-    def test_date_range_with_z_timezone(self):
+    def test_date_range_with_z_timezone(self) -> None:
         result = self.parse_query(
             "event.timestamp:>2016-01-01T10:00:00Z event.timestamp:<2016-01-02T10:00:00Z"
         )
@@ -594,14 +594,14 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
         assert result["date_to"] == datetime(2016, 1, 2, 10, 0, tzinfo=UTC)
         assert result["date_to_inclusive"] is False
 
-    def test_date_range_inclusive(self):
+    def test_date_range_inclusive(self) -> None:
         result = self.parse_query("event.timestamp:>=2016-01-01 event.timestamp:<=2016-01-02")
         assert result["date_from"] == datetime(2016, 1, 1, tzinfo=UTC)
         assert result["date_from_inclusive"] is True
         assert result["date_to"] == datetime(2016, 1, 2, tzinfo=UTC)
         assert result["date_to_inclusive"] is True
 
-    def test_date_approx_day(self):
+    def test_date_approx_day(self) -> None:
         date_value = datetime(2016, 1, 1, tzinfo=UTC)
         result = self.parse_query("event.timestamp:2016-01-01")
         assert result["date_from"] == date_value
@@ -609,7 +609,7 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
         assert result["date_to"] == date_value + timedelta(days=1)
         assert not result["date_to_inclusive"]
 
-    def test_date_approx_precise(self):
+    def test_date_approx_precise(self) -> None:
         date_value = datetime(2016, 1, 1, tzinfo=UTC)
         result = self.parse_query("event.timestamp:2016-01-01T00:00:00")
         assert result["date_from"] == date_value - timedelta(minutes=5)
@@ -617,7 +617,7 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
         assert result["date_to"] == date_value + timedelta(minutes=6)
         assert not result["date_to_inclusive"]
 
-    def test_date_approx_precise_with_timezone(self):
+    def test_date_approx_precise_with_timezone(self) -> None:
         date_value = datetime(2016, 1, 1, 5, 0, 0, tzinfo=UTC)
         result = self.parse_query("event.timestamp:2016-01-01T00:00:00-05:00")
         assert result["date_from"] == date_value - timedelta(minutes=5)
@@ -625,48 +625,48 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
         assert result["date_to"] == date_value + timedelta(minutes=6)
         assert not result["date_to_inclusive"]
 
-    def test_last_seen_range(self):
+    def test_last_seen_range(self) -> None:
         result = self.parse_query("lastSeen:-24h lastSeen:+12h")
         assert result["last_seen_from"] > timezone.now() - timedelta(hours=25)
         assert result["last_seen_from"] < timezone.now() - timedelta(hours=23)
         assert result["last_seen_to"] > timezone.now() - timedelta(hours=13)
         assert result["last_seen_to"] < timezone.now() - timedelta(hours=11)
 
-    def test_has_tag(self):
+    def test_has_tag(self) -> None:
         result = self.parse_query("has:foo")
         assert result["tags"]["foo"] == ANY
 
         result = self.parse_query("has:foo foo:value")
         assert result["tags"]["foo"] == "value"
 
-    def test_has_user(self):
+    def test_has_user(self) -> None:
         result = self.parse_query("has:user")
         assert result["tags"]["sentry:user"] == ANY
 
-    def test_has_release(self):
+    def test_has_release(self) -> None:
         result = self.parse_query("has:release")
         assert result["tags"]["sentry:release"] == ANY
 
-    def test_quoted_string(self):
+    def test_quoted_string(self) -> None:
         result = self.parse_query('"release:foo"')
         assert result == {"tags": {}, "query": "release:foo"}
 
-    def test_quoted_tag_value(self):
+    def test_quoted_tag_value(self) -> None:
         result = self.parse_query('event.type:error title:"QueryExecutionError: Code: 141."')
         assert result["query"] == ""
         assert result["tags"]["title"] == "QueryExecutionError: Code: 141."
         assert result["tags"]["event.type"] == "error"
 
-    def test_leading_colon(self):
+    def test_leading_colon(self) -> None:
         result = self.parse_query("country:canada :unresolved")
         assert result["query"] == ":unresolved"
         assert result["tags"]["country"] == "canada"
 
-    def test_assigned_or_suggested_me(self):
+    def test_assigned_or_suggested_me(self) -> None:
         result = self.parse_query("assigned_or_suggested:me")
         assert result == {"assigned_or_suggested": self.current_rpc_user, "tags": {}, "query": ""}
 
-    def test_assigned_or_suggested_none(self):
+    def test_assigned_or_suggested_none(self) -> None:
         result = self.parse_query("assigned_or_suggested:none")
         assert result == {
             "assigned_or_suggested": None,
@@ -674,33 +674,33 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
             "query": "",
         }
 
-    def test_owner_email(self):
+    def test_owner_email(self) -> None:
         result = self.parse_query(f"assigned_or_suggested:{self.user.email}")
         assert result == {"assigned_or_suggested": self.rpc_user, "tags": {}, "query": ""}
 
-    def test_assigned_or_suggested_unknown_user(self):
+    def test_assigned_or_suggested_unknown_user(self) -> None:
         result = self.parse_query("assigned_or_suggested:fake@example.com")
         assert isinstance(result["assigned_or_suggested"], RpcUser)
         assert result["assigned_or_suggested"].id == 0
 
-    def test_owner_valid_team(self):
+    def test_owner_valid_team(self) -> None:
         result = self.parse_query(f"assigned_or_suggested:#{self.team.slug}")
         assert result["assigned_or_suggested"] == self.team
 
-    def test_assigned_or_suggested_unassociated_team(self):
+    def test_assigned_or_suggested_unassociated_team(self) -> None:
         team2 = self.create_team(organization=self.organization)
         result = self.parse_query(f"assigned_or_suggested:#{team2.slug}")
         assert isinstance(result["assigned_or_suggested"], Team)
         assert result["assigned_or_suggested"].id == 0
 
-    def test_owner_invalid_team(self):
+    def test_owner_invalid_team(self) -> None:
         result = self.parse_query("assigned_or_suggested:#invalid")
         assert isinstance(result["assigned_or_suggested"], Team)
         assert result["assigned_or_suggested"].id == 0
 
 
 class GetLatestReleaseTest(TestCase):
-    def test(self):
+    def test(self) -> None:
         with pytest.raises(Release.DoesNotExist):
             # no releases exist period
             environment = None
@@ -772,7 +772,7 @@ class GetLatestReleaseTest(TestCase):
             other_project_env_release.version,
         ]
 
-    def test_semver(self):
+    def test_semver(self) -> None:
         project_2 = self.create_project()
         release_1 = self.create_release(version="test@2.0.0", environments=[self.environment])
         env_2 = self.create_environment()
@@ -820,7 +820,7 @@ class GetLatestReleaseTest(TestCase):
             release_1.version,
         ]
 
-    def test_multiple_projects_mixed_versions(self):
+    def test_multiple_projects_mixed_versions(self) -> None:
         project_2 = self.create_project()
         release_1 = self.create_release(version="test@2.0.0")
         self.create_release(project_2, version="not_semver")
@@ -833,7 +833,7 @@ class GetLatestReleaseTest(TestCase):
 
 
 class GetFirstLastReleaseForGroupTest(TestCase):
-    def test_date(self):
+    def test_date(self) -> None:
         with pytest.raises(Release.DoesNotExist):
             get_first_last_release_for_group(self.group, LatestReleaseOrders.DATE, True)
 
@@ -858,7 +858,7 @@ class GetFirstLastReleaseForGroupTest(TestCase):
         assert oldest == get_first_last_release_for_group(group_2, LatestReleaseOrders.DATE, True)
         assert oldest == get_first_last_release_for_group(group_2, LatestReleaseOrders.DATE, False)
 
-    def test_semver(self):
+    def test_semver(self) -> None:
         with pytest.raises(Release.DoesNotExist):
             get_first_last_release_for_group(self.group, LatestReleaseOrders.SEMVER, True)
 
@@ -897,16 +897,16 @@ class GetFirstLastReleaseForGroupTest(TestCase):
 
 @control_silo_test
 class ConvertUserTagTest(TestCase):
-    def test_simple_user_tag(self):
+    def test_simple_user_tag(self) -> None:
         assert convert_user_tag_to_query("user", "id:123456") == 'user.id:"123456"'
 
-    def test_user_tag_with_quote(self):
+    def test_user_tag_with_quote(self) -> None:
         assert convert_user_tag_to_query("user", 'id:123"456') == 'user.id:"123\\"456"'
 
-    def test_user_tag_with_space(self):
+    def test_user_tag_with_space(self) -> None:
         assert convert_user_tag_to_query("user", "id:123 456") == 'user.id:"123 456"'
 
-    def test_non_user_tag(self):
+    def test_non_user_tag(self) -> None:
         assert convert_user_tag_to_query("user", 'fake:123"456') is None
 
 

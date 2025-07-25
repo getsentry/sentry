@@ -111,14 +111,14 @@ class ProjectPreprodInstallDetailsEndpointTest(TestCase):
             artifact_id=str(self.preprod_artifact.id),
         )
 
-    def test_artifact_not_found(self):
+    def test_artifact_not_found(self) -> None:
         """Test when artifact doesn't exist"""
         url = self._get_url(artifact_id=99999)
         response = self.client.get(url)
 
         assert response.status_code == 404
 
-    def test_invalid_code_signature(self):
+    def test_invalid_code_signature(self) -> None:
         """Test when code signature is invalid"""
         self.preprod_artifact = self._create_ios_artifact(extras={"is_code_signature_valid": False})
 
@@ -130,7 +130,7 @@ class ProjectPreprodInstallDetailsEndpointTest(TestCase):
         assert data["is_code_signature_valid"] is False
         assert "install_url" not in data
 
-    def test_missing_extras(self):
+    def test_missing_extras(self) -> None:
         """Test when extras field is missing"""
         self.preprod_artifact = self._create_ios_artifact(extras=None)
 
@@ -142,7 +142,7 @@ class ProjectPreprodInstallDetailsEndpointTest(TestCase):
         assert data["is_code_signature_valid"] is False
         assert "install_url" not in data
 
-    def test_missing_code_signature_valid_field(self):
+    def test_missing_code_signature_valid_field(self) -> None:
         """Test when is_code_signature_valid field is missing from extras"""
         self.preprod_artifact = self._create_ios_artifact(extras={"profile_name": "Test Profile"})
 
@@ -154,7 +154,7 @@ class ProjectPreprodInstallDetailsEndpointTest(TestCase):
         assert data["is_code_signature_valid"] is False
         assert "install_url" not in data
 
-    def test_no_installable_file(self):
+    def test_no_installable_file(self) -> None:
         """Test when installable_app_file_id is None"""
         self.preprod_artifact = self._create_ios_artifact(installable_app_file_id=None)
 
@@ -165,7 +165,7 @@ class ProjectPreprodInstallDetailsEndpointTest(TestCase):
         data = response.json()
         assert data["error"] == "Installable file not available"
 
-    def test_unauthorized_access(self):
+    def test_unauthorized_access(self) -> None:
         """Test that unauthorized users cannot access the endpoint"""
         self.preprod_artifact = self._create_ios_artifact()
 

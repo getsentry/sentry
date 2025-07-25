@@ -12,7 +12,7 @@ class CreateTicketUtilsTest(TestCase):
         super().setUp()
         self.rule = self.create_project_rule()
 
-    def test_build_description(self):
+    def test_build_description(self) -> None:
         installation = MagicMock()
         installation.get_group_description.return_value = "Test description"
 
@@ -26,7 +26,7 @@ class CreateTicketUtilsTest(TestCase):
             description == f"Test description\n\nThis issue was created by a rule: {expected_url}"
         )
 
-    def test_build_description_workflow_engine_ui(self):
+    def test_build_description_workflow_engine_ui(self) -> None:
         installation = MagicMock()
         installation.get_group_description.return_value = "Test description"
         workflow_id = 123

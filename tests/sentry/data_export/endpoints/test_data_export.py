@@ -43,7 +43,7 @@ class DataExportTest(APITestCase):
                 payload["query_info"].update(extras)
         return payload
 
-    def test_authorization(self):
+    def test_authorization(self) -> None:
         payload = self.make_payload("issue")
 
         # Without the discover-query feature, the endpoint should 404
@@ -60,7 +60,7 @@ class DataExportTest(APITestCase):
         with self.feature("organizations:discover-query"):
             self.get_error_response(self.org.slug, status_code=403, **modified_payload)
 
-    def test_new_export(self):
+    def test_new_export(self) -> None:
         """
         Ensures that a request to this endpoint returns a 201 status code
         and an appropriate response object
@@ -88,7 +88,7 @@ class DataExportTest(APITestCase):
             "fileName": None,
         }
 
-    def test_progress_export(self):
+    def test_progress_export(self) -> None:
         """
         Checks to make sure that identical requests (same payload, organization, user)
         are routed to the same ExportedData object, with a 200 status code
@@ -118,7 +118,7 @@ class DataExportTest(APITestCase):
             "fileName": None,
         }
 
-    def test_fields_are_lists(self):
+    def test_fields_are_lists(self) -> None:
         """
         Ensures that if a single field is passed, we convert it to a list before making
         a snuba query.
@@ -132,7 +132,7 @@ class DataExportTest(APITestCase):
         # rather than a list of strings
         assert data_export.query_info["field"] == ["id"]
 
-    def test_export_too_many_fields(self):
+    def test_export_too_many_fields(self) -> None:
         """
         Ensures that if too many fields are requested, returns a 400 status code with the
         corresponding error message.
@@ -146,7 +146,7 @@ class DataExportTest(APITestCase):
             ]
         }
 
-    def test_export_no_fields(self):
+    def test_export_no_fields(self) -> None:
         """
         Ensures that if no fields are requested, returns a 400 status code with
         the corresponding error message.
@@ -156,7 +156,7 @@ class DataExportTest(APITestCase):
             response = self.get_error_response(self.org.slug, status_code=400, **payload)
         assert response.data == {"non_field_errors": ["at least one field is required to export"]}
 
-    def test_discover_without_query(self):
+    def test_discover_without_query(self) -> None:
         """
         Ensurse that we handle export requests without a query, and return a 400 status code
         """
@@ -169,7 +169,7 @@ class DataExportTest(APITestCase):
             ]
         }
 
-    def test_export_invalid_fields(self):
+    def test_export_invalid_fields(self) -> None:
         """
         Ensures that if a field is requested with the wrong parameters, the corresponding
         error message is returned
@@ -182,7 +182,7 @@ class DataExportTest(APITestCase):
         }
 
     @freeze_time("2020-02-27 12:07:37")
-    def test_export_invalid_date_params(self):
+    def test_export_invalid_date_params(self) -> None:
         """
         Ensures that if an invalidate date parameter is specified, returns a 400 status code
         with the corresponding error message.
@@ -215,7 +215,7 @@ class DataExportTest(APITestCase):
         assert response.data == {"non_field_errors": ["shrug is not a valid ISO8601 date query"]}
 
     @freeze_time("2020-05-19 14:00:00")
-    def test_converts_stats_period(self):
+    def test_converts_stats_period(self) -> None:
         """
         Ensures that statsPeriod is converted to start/end.
         """
@@ -235,7 +235,7 @@ class DataExportTest(APITestCase):
         assert "statsPeriodSEnd" not in query_info
 
     @freeze_time("2020-05-19 14:00:00")
-    def test_converts_stats_period_start_end(self):
+    def test_converts_stats_period_start_end(self) -> None:
         """
         Ensures that statsPeriodStart and statsPeriodEnd is converted to start/end.
         """
@@ -254,7 +254,7 @@ class DataExportTest(APITestCase):
         assert "statsPeriodStart" not in query_info
         assert "statsPeriodSEnd" not in query_info
 
-    def test_preserves_start_end(self):
+    def test_preserves_start_end(self) -> None:
         """
         Ensures that start/end is preserved
         """
@@ -275,7 +275,7 @@ class DataExportTest(APITestCase):
         assert "statsPeriodStart" not in query_info
         assert "statsPeriodSEnd" not in query_info
 
-    def test_validates_query_info(self):
+    def test_validates_query_info(self) -> None:
         """
         Ensures that bad queries are rejected.
         """
@@ -285,7 +285,7 @@ class DataExportTest(APITestCase):
         assert response.data == {"non_field_errors": ["Empty string after 'foo:'"]}
 
     @freeze_time("2020-05-19 14:00:00")
-    def test_export_resolves_empty_project(self):
+    def test_export_resolves_empty_project(self) -> None:
         """
         Ensures that a request to this endpoint returns a 201 if projects
         is an empty list.
@@ -303,7 +303,7 @@ class DataExportTest(APITestCase):
         with self.feature("organizations:discover-query"):
             self.get_success_response(self.org.slug, status_code=201, **payload)
 
-    def test_equations(self):
+    def test_equations(self) -> None:
         """
         Ensures that equations are handled
         """
@@ -315,7 +315,7 @@ class DataExportTest(APITestCase):
         assert query_info["field"] == ["count()"]
         assert query_info["equations"] == ["count() / 2"]
 
-    def test_valid_dataset(self):
+    def test_valid_dataset(self) -> None:
         """
         Ensures that equations are handled
         """
@@ -329,7 +329,7 @@ class DataExportTest(APITestCase):
         assert query_info["field"] == ["title", "count()"]
         assert query_info["dataset"] == "issuePlatform"
 
-    def test_valid_dataset_transactions(self):
+    def test_valid_dataset_transactions(self) -> None:
         """
         Tests that the transactions dataset is valid
         """
@@ -343,7 +343,7 @@ class DataExportTest(APITestCase):
         assert query_info["field"] == ["title", "count()"]
         assert query_info["dataset"] == "transactions"
 
-    def test_valid_dataset_errors(self):
+    def test_valid_dataset_errors(self) -> None:
         """
         Tests that the errors dataset is valid
         """
@@ -357,7 +357,7 @@ class DataExportTest(APITestCase):
         assert query_info["field"] == ["title", "count()"]
         assert query_info["dataset"] == "errors"
 
-    def test_invalid_dataset(self):
+    def test_invalid_dataset(self) -> None:
         """
         Ensures that equations are handled
         """
@@ -368,7 +368,7 @@ class DataExportTest(APITestCase):
             response = self.get_response(self.org.slug, **payload)
         assert response.status_code == 400
 
-    def test_is_query(self):
+    def test_is_query(self) -> None:
         """
         is queries should work with the errors dataset
         """

@@ -26,7 +26,7 @@ class TestGetIssuesWithEventDetailsForFile(CreateEventTestCase):
     def setUp(self):
         self.group_id = [self._create_event(user_id=str(i)) for i in range(6)][0].group.id
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         group_id = [
             self._create_event(function_names=["blue", "planet"], user_id=str(i)) for i in range(7)
         ][0].group.id
@@ -55,7 +55,7 @@ class TestGetIssuesWithEventDetailsForFile(CreateEventTestCase):
             serialized_event = serialize(event, serializer=EventSerializer())
             assert event_dict == serialized_event
 
-    def test_javascript_simple(self):
+    def test_javascript_simple(self) -> None:
         group_id = [
             self._create_event(
                 function_names=["component.blue", "world"],
@@ -76,7 +76,7 @@ class TestGetIssuesWithEventDetailsForFile(CreateEventTestCase):
         assert set(issue_ids) == {group_id}
 
     # The rest are mostly copied from tests/sentry/integrations/github/tasks/test_open_pr_comment.py
-    def test_filename_mismatch(self):
+    def test_filename_mismatch(self) -> None:
         group_id = self._create_event(
             filenames=["foo.py", "bar.py"],
         ).group.id
@@ -86,7 +86,7 @@ class TestGetIssuesWithEventDetailsForFile(CreateEventTestCase):
         assert group_id != self.group_id
         assert issue_ids == [self.group_id]
 
-    def test_function_name_mismatch(self):
+    def test_function_name_mismatch(self) -> None:
         group_id = self._create_event(
             function_names=["world", "hello"],
         ).group.id
@@ -96,7 +96,7 @@ class TestGetIssuesWithEventDetailsForFile(CreateEventTestCase):
         assert group_id != self.group_id
         assert issue_ids == [self.group_id]
 
-    def test_not_first_frame(self):
+    def test_not_first_frame(self) -> None:
         group_id = self._create_event(
             function_names=["world", "hello"], filenames=["baz.py", "bar.py"], culprit="hi"
         ).group.id
@@ -106,7 +106,7 @@ class TestGetIssuesWithEventDetailsForFile(CreateEventTestCase):
         assert group_id != self.group_id
         assert set(issue_ids) == {self.group_id, group_id}
 
-    def test_not_within_frame_limit(self):
+    def test_not_within_frame_limit(self) -> None:
         function_names = ["world"] + ["a" for _ in range(STACKFRAME_COUNT)]
         filenames = ["baz.py"] + ["foo.py" for _ in range(STACKFRAME_COUNT)]
         group_id = self._create_event(function_names=function_names, filenames=filenames).group.id
@@ -116,7 +116,7 @@ class TestGetIssuesWithEventDetailsForFile(CreateEventTestCase):
         assert group_id != self.group_id
         assert issue_ids == [self.group_id]
 
-    def test_event_too_old(self):
+    def test_event_too_old(self) -> None:
         group_id = self._create_event(
             timestamp=before_now(days=NUM_DAYS_AGO + 1).isoformat(), filenames=["bar.py", "baz.py"]
         ).group.id
@@ -126,7 +126,7 @@ class TestGetIssuesWithEventDetailsForFile(CreateEventTestCase):
         assert group_id != self.group_id
         assert issue_ids == [self.group_id]
 
-    def test_empty(self):
+    def test_empty(self) -> None:
         assert (
             get_issues_with_event_details_for_file(
                 projects=[],
@@ -246,7 +246,7 @@ class TestGetIssues(IntegrationTestCase, CreateEventTestCase):
             event_timestamp_end=None,
         )
 
-    def test_missing_repo(self):
+    def test_missing_repo(self) -> None:
         assert (
             get_issues_related_to_file_patches(
                 organization_id=1,
@@ -257,7 +257,7 @@ class TestGetIssues(IntegrationTestCase, CreateEventTestCase):
             == {}
         )
 
-    def test__get_projects_and_filenames_from_source_file(self):
+    def test__get_projects_and_filenames_from_source_file(self) -> None:
         projects, filenames = _get_projects_and_filenames_from_source_file(
             self.organization.id, self.gh_repo.id, "some/path/foo.py"
         )

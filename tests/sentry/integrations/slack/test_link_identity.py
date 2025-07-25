@@ -57,7 +57,7 @@ class SlackIntegrationLinkIdentityTestBase(TestCase):
 
 @control_silo_test
 class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
-    def test_basic_flow_with_webhook_client(self):
+    def test_basic_flow_with_webhook_client(self) -> None:
         """Do the auth flow and assert that the identity was created."""
         linking_url = build_linking_url(
             self.integration, self.external_id, self.channel_id, self.response_url
@@ -78,7 +78,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         assert identity[0].status == IdentityStatus.VALID
         assert self.mock_webhook.call_count == 1
 
-    def test_basic_flow_with_webhook_client_error(self):
+    def test_basic_flow_with_webhook_client_error(self) -> None:
         """Do the auth flow and assert that the identity was created."""
         self.mock_webhook.side_effect = SlackApiError("", response={"ok": False})
 
@@ -98,7 +98,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
 
         assert len(identity) == 1
 
-    def test_basic_flow_with_web_client(self):
+    def test_basic_flow_with_web_client(self) -> None:
         """No response URL is provided, so we use WebClient."""
         linking_url = build_linking_url(self.integration, self.external_id, self.channel_id, "")
 
@@ -136,7 +136,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
 
         assert len(identity) == 1
 
-    def test_overwrites_existing_identities_with_sdk(self):
+    def test_overwrites_existing_identities_with_sdk(self) -> None:
         external_id_2 = "slack-id2"
 
         # Create a second user.
@@ -170,7 +170,7 @@ class SlackIntegrationUnlinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
             self.response_url,
         )
 
-    def test_basic_flow(self):
+    def test_basic_flow(self) -> None:
         # Load page.
         response = self.client.get(self.unlinking_url)
         assert response.status_code == 200
@@ -184,7 +184,7 @@ class SlackIntegrationUnlinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         assert not Identity.objects.filter(external_id="new-slack-id", user=self.user).exists()
         assert self.mock_webhook.call_count == 1
 
-    def test_user_with_multiple_organizations(self):
+    def test_user_with_multiple_organizations(self) -> None:
         # Create a second organization where the user is _not_ a member.
         self.create_organization_integration(
             organization_id=self.create_organization(name="Another Org").id,

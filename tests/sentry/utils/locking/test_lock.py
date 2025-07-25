@@ -10,7 +10,7 @@ from sentry.utils.locking.lock import Lock
 
 
 class LockTestCase(unittest.TestCase):
-    def test_procedural_interface(self):
+    def test_procedural_interface(self) -> None:
         backend = mock.Mock(spec=LockBackend)
         key = "lock"
         duration = 60
@@ -31,7 +31,7 @@ class LockTestCase(unittest.TestCase):
         with pytest.raises(UnableToAcquireLock):
             lock.acquire()
 
-    def test_context_manager_interface(self):
+    def test_context_manager_interface(self) -> None:
         backend = mock.Mock(spec=LockBackend)
         key = "lock"
         duration = 60

@@ -32,7 +32,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    def test_valid_widget(self):
+    def test_valid_widget(self) -> None:
         data = {
             "title": "Errors over time",
             "displayType": "line",
@@ -62,11 +62,11 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
-    def test_valid_widget_permissions(self):
+    def test_valid_widget_permissions(self) -> None:
         self.create_user_member_role()
         self.test_valid_widget()
 
-    def test_invalid_query_conditions(self):
+    def test_invalid_query_conditions(self) -> None:
         data = {
             "title": "Invalid query",
             "displayType": "line",
@@ -89,7 +89,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert "queries" in response.data, response.data
         assert response.data["queries"][0]["conditions"], response.data
 
-    def test_blank_descriptions_are_allowed(self):
+    def test_blank_descriptions_are_allowed(self) -> None:
         data = {
             "title": "Errors over time",
             "displayType": "line",
@@ -128,11 +128,11 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
-    def test_invalid_widget_permissions(self):
+    def test_invalid_widget_permissions(self) -> None:
         self.create_user_member_role()
         self.test_invalid_query_conditions()
 
-    def test_invalid_query_fields(self):
+    def test_invalid_query_fields(self) -> None:
         data = {
             "title": "Invalid query",
             "displayType": "line",
@@ -155,7 +155,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert "queries" in response.data, response.data
         assert response.data["queries"][0]["fields"], response.data
 
-    def test_invalid_display_type(self):
+    def test_invalid_display_type(self) -> None:
         data = {
             "title": "Invalid query",
             "displayType": "cats",
@@ -177,7 +177,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.status_code == 400, response.data
         assert "displayType" in response.data, response.data
 
-    def test_invalid_equation(self):
+    def test_invalid_equation(self) -> None:
         data = {
             "title": "Invalid query",
             "displayType": "line",
@@ -199,7 +199,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.status_code == 400, response.data
         assert "queries" in response.data, response.data
 
-    def test_valid_equation_line_widget(self):
+    def test_valid_equation_line_widget(self) -> None:
         data = {
             "title": "Invalid query",
             "displayType": "line",
@@ -220,7 +220,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
-    def test_valid_orderby_equation_alias_line_widget(self):
+    def test_valid_orderby_equation_alias_line_widget(self) -> None:
         data = {
             "title": "Invalid query",
             "displayType": "line",
@@ -242,7 +242,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
-    def test_invalid_orderby_equation_alias_line_widget(self):
+    def test_invalid_orderby_equation_alias_line_widget(self) -> None:
         data = {
             "title": "Invalid query",
             "displayType": "line",
@@ -265,7 +265,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.status_code == 400, response.data
         assert "queries" in response.data, response.data
 
-    def test_missing_equation_for_orderby_equation_alias(self):
+    def test_missing_equation_for_orderby_equation_alias(self) -> None:
         data = {
             "title": "Invalid query",
             "displayType": "line",
@@ -288,7 +288,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.status_code == 400, response.data
         assert "queries" in response.data, response.data
 
-    def test_invalid_equation_table_widget(self):
+    def test_invalid_equation_table_widget(self) -> None:
         data = {
             "title": "Invalid query",
             "displayType": "table",
@@ -310,7 +310,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.status_code == 400, response.data
         assert "queries" in response.data, response.data
 
-    def test_valid_epm_widget(self):
+    def test_valid_epm_widget(self) -> None:
         data = {
             "title": "EPM Big Number",
             "displayType": "big_number",
@@ -332,7 +332,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
-    def test_big_number_widget_with_selected_equation(self):
+    def test_big_number_widget_with_selected_equation(self) -> None:
         data = {
             "title": "EPM Big Number",
             "displayType": "big_number",
@@ -355,7 +355,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
-    def test_project_search_condition(self):
+    def test_project_search_condition(self) -> None:
         self.user = self.create_user(is_superuser=False)
         self.project = self.create_project(
             name="foo", organization=self.organization, teams=[self.team]
@@ -385,7 +385,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
-    def test_issue_search_condition(self):
+    def test_issue_search_condition(self) -> None:
         self.user = self.create_user(is_superuser=False)
         self.create_member(
             user=self.user, organization=self.organization, role="member", teams=[self.team]
@@ -425,7 +425,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
-    def test_valid_issue_query_conditions(self):
+    def test_valid_issue_query_conditions(self) -> None:
         data = {
             "title": "Unresolved Issues",
             "displayType": "table",
@@ -447,7 +447,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
-    def test_invalid_issue_query_conditions(self):
+    def test_invalid_issue_query_conditions(self) -> None:
         data = {
             "title": "Unresolved Issues",
             "displayType": "table",
@@ -472,7 +472,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.data["queries"][0]["conditions"], response.data
 
     @pytest.mark.skip("Flaky - utc bug")
-    def test_timestamp_query_with_timezone(self):
+    def test_timestamp_query_with_timezone(self) -> None:
         data = {
             "title": "Timestamp filter",
             "displayType": "table",
@@ -493,7 +493,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
-    def test_raw_equation_in_orderby_is_valid(self):
+    def test_raw_equation_in_orderby_is_valid(self) -> None:
         data = {
             "title": "Test Query",
             "displayType": "table",
@@ -516,7 +516,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
-    def test_raw_desc_equation_in_orderby_is_valid(self):
+    def test_raw_desc_equation_in_orderby_is_valid(self) -> None:
         data = {
             "title": "Test Query",
             "displayType": "table",
@@ -540,7 +540,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
-    def test_invalid_raw_equation_in_orderby_throws_error(self):
+    def test_invalid_raw_equation_in_orderby_throws_error(self) -> None:
         data = {
             "title": "Test Query",
             "displayType": "table",
@@ -565,7 +565,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.status_code == 400, response.data
         assert "queries" in response.data, response.data
 
-    def test_save_with_orderby_from_columns(self):
+    def test_save_with_orderby_from_columns(self) -> None:
         data = {
             "title": "Test Query",
             "displayType": "line",
@@ -589,7 +589,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
-    def test_save_with_orderby_not_from_columns_or_aggregates(self):
+    def test_save_with_orderby_not_from_columns_or_aggregates(self) -> None:
         data = {
             "title": "Test Query",
             "displayType": "line",
@@ -613,7 +613,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
-    def test_save_with_invalid_orderby_not_from_columns_or_aggregates(self):
+    def test_save_with_invalid_orderby_not_from_columns_or_aggregates(self) -> None:
         data = {
             "title": "Test Query",
             "displayType": "line",
@@ -638,7 +638,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.status_code == 400, response.data
         assert "queries" in response.data, response.data
 
-    def test_save_with_total_count(self):
+    def test_save_with_total_count(self) -> None:
         # We cannot query the Discover entity without a project being defined for the org
         self.create_project()
         data = {
@@ -663,7 +663,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
-    def test_accepts_environment_for_filters_that_require_single_env(self):
+    def test_accepts_environment_for_filters_that_require_single_env(self) -> None:
         mock_project = self.create_project()
         self.create_environment(project=mock_project, name="mock_env")
         data = {
@@ -684,7 +684,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         response = self.client.post(f"{self.url()}?environment=mock_env", data)
         assert response.status_code == 200, response.data
 
-    def test_dashboard_widget_ondemand_one_field(self):
+    def test_dashboard_widget_ondemand_one_field(self) -> None:
         mock_project = self.create_project()
         self.create_environment(project=mock_project, name="mock_env")
         data = {
@@ -958,7 +958,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert warnings["queries"][0] is None
         assert warnings["queries"][1] == "disabled:spec-limit"
 
-    def test_on_demand_doesnt_query(self):
+    def test_on_demand_doesnt_query(self) -> None:
         mock_project = self.create_project()
         self.create_environment(project=mock_project, name="mock_env")
         data = {
@@ -1037,7 +1037,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert len(warnings["queries"]) == 2
         assert response.data == {"warnings": {"columns": {}, "queries": [None, None]}}
 
-    def test_widget_cardinality(self):
+    def test_widget_cardinality(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -1083,7 +1083,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert len(warnings["columns"]) == 1
         assert warnings["columns"]["sometag"] == "disabled:high-cardinality"
 
-    def test_widget_type_spans(self):
+    def test_widget_type_spans(self) -> None:
         data = {
             "title": "Test Query",
             "widgetType": "spans",
@@ -1106,7 +1106,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
-    def test_widget_type_logs(self):
+    def test_widget_type_logs(self) -> None:
         data = {
             "title": "Test Logs Query",
             "widgetType": "logs",
@@ -1129,7 +1129,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
-    def test_has_group_by_and_no_limit_on_creation(self):
+    def test_has_group_by_and_no_limit_on_creation(self) -> None:
         data = {
             "title": "Test Query",
             "widgetType": "error-events",
@@ -1154,7 +1154,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
 
         assert response.status_code == 400, response.data
 
-    def test_has_group_by_and_limit_on_creation(self):
+    def test_has_group_by_and_limit_on_creation(self) -> None:
         data = {
             "title": "Test Query",
             "widgetType": "error-events",
@@ -1180,7 +1180,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
 
         assert response.status_code == 200, response.data
 
-    def test_edit_widget_with_group_by_and_no_limit(self):
+    def test_edit_widget_with_group_by_and_no_limit(self) -> None:
         # First create a valid widget
         self.widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
@@ -1228,7 +1228,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
 
         assert response.status_code == 400, response.data
 
-    def test_edit_widget_with_group_by_and_limit(self):
+    def test_edit_widget_with_group_by_and_limit(self) -> None:
         # First create a valid widget
         self.widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
@@ -1276,7 +1276,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
 
         assert response.status_code == 200, response.data
 
-    def test_has_correct_limit_suggestion_with_muiltiple_aggregates_on_creation(self):
+    def test_has_correct_limit_suggestion_with_muiltiple_aggregates_on_creation(self) -> None:
         data = {
             "title": "Test Query",
             "widgetType": "error-events",
@@ -1303,7 +1303,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             "limit": "limit is required. The maximum limit is 3."
         }
 
-    def test_has_correct_limit_suggestion_with_no_aggregates_on_creation(self):
+    def test_has_correct_limit_suggestion_with_no_aggregates_on_creation(self) -> None:
         data = {
             "title": "Test Query",
             "widgetType": "error-events",
@@ -1330,7 +1330,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             "limit": "limit is required. The maximum limit is 5."
         }
 
-    def test_valid_widget_is_filters(self):
+    def test_valid_widget_is_filters(self) -> None:
         data = {
             "title": "Errors over time",
             "displayType": "line",

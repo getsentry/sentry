@@ -39,7 +39,7 @@ class ReleaseDetailsTest(APITestCase):
         self.team1 = self.create_team(organization=self.organization)
         self.project1 = self.create_project(teams=[self.team1], organization=self.organization)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         team2 = self.create_team(organization=self.organization)
 
         project2 = self.create_project(teams=[team2], organization=self.organization)
@@ -86,7 +86,7 @@ class ReleaseDetailsTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 404
 
-    def test_multiple_projects(self):
+    def test_multiple_projects(self) -> None:
         team2 = self.create_team(organization=self.organization)
 
         project2 = self.create_project(teams=[team2], organization=self.organization)
@@ -109,7 +109,7 @@ class ReleaseDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
 
-    def test_wrong_project(self):
+    def test_wrong_project(self) -> None:
         project2 = self.create_project(teams=[self.team1], organization=self.organization)
 
         release = Release.objects.create(organization_id=self.organization.id, version="abcabcabc")
@@ -130,7 +130,7 @@ class ReleaseDetailsTest(APITestCase):
         response = self.client.get(url, {"project": self.project1.id})
         assert response.status_code == 200
 
-    def test_correct_project_contains_current_project_meta(self):
+    def test_correct_project_contains_current_project_meta(self) -> None:
         """
         Test that shows when correct project id is passed to the request, `sessionsLowerBound`,
         `sessionsUpperBound`, `prevReleaseVersion`, `nextReleaseVersion`, `firstReleaseVersion`
@@ -157,7 +157,7 @@ class ReleaseDetailsTest(APITestCase):
         assert "firstReleaseVersion" in response.data["currentProjectMeta"]
         assert "lastReleaseVersion" in response.data["currentProjectMeta"]
 
-    def test_incorrect_sort_option_should_return_invalid_sort_response(self):
+    def test_incorrect_sort_option_should_return_invalid_sort_response(self) -> None:
         """
         Test that ensures a 400 response is returned when an invalid sort option
         is provided
@@ -176,7 +176,7 @@ class ReleaseDetailsTest(APITestCase):
         response = self.client.get(url, {"project": str(self.project1.id), "sort": "invalid_sort"})
         assert response.status_code == 400
 
-    def test_get_prev_and_next_release_to_current_release_on_date_sort(self):
+    def test_get_prev_and_next_release_to_current_release_on_date_sort(self) -> None:
         release_1 = Release.objects.create(
             organization_id=self.organization.id, version="foobar@1.0.0"
         )
@@ -235,7 +235,7 @@ class ReleaseDetailsTest(APITestCase):
         assert response.data["currentProjectMeta"]["nextReleaseVersion"] == "foobar@2.0.0"
         assert response.data["currentProjectMeta"]["prevReleaseVersion"] is None
 
-    def test_get_prev_and_next_release_to_current_release_on_date_sort_with_same_date(self):
+    def test_get_prev_and_next_release_to_current_release_on_date_sort_with_same_date(self) -> None:
         """
         Test that ensures that in the case we are trying to get prev and next release to a current
         release with exact same date then we fallback to id comparison
@@ -281,7 +281,9 @@ class ReleaseDetailsTest(APITestCase):
         assert response.data["currentProjectMeta"]["nextReleaseVersion"] is None
         assert response.data["currentProjectMeta"]["prevReleaseVersion"] == "foobar@1.0.0"
 
-    def test_get_prev_and_next_release_to_current_release_on_date_sort_env_filter_applied(self):
+    def test_get_prev_and_next_release_to_current_release_on_date_sort_env_filter_applied(
+        self,
+    ) -> None:
         """
         Test that ensures that environment filter is applied when fetching prev and next
         releases on date sort order
@@ -334,7 +336,9 @@ class ReleaseDetailsTest(APITestCase):
         assert response.data["currentProjectMeta"]["nextReleaseVersion"] is None
         assert response.data["currentProjectMeta"]["prevReleaseVersion"] == "foobar@1.0.0"
 
-    def test_get_prev_and_next_release_to_current_release_on_date_sort_status_filter_applied(self):
+    def test_get_prev_and_next_release_to_current_release_on_date_sort_status_filter_applied(
+        self,
+    ) -> None:
         """
         Test that ensures that status filter is applied when fetching prev and next
         releases on date sort order
@@ -389,7 +393,9 @@ class ReleaseDetailsTest(APITestCase):
         assert response.data["currentProjectMeta"]["prevReleaseVersion"] is None
         assert response.data["currentProjectMeta"]["nextReleaseVersion"] is None
 
-    def test_get_prev_and_next_release_to_current_release_on_date_sort_query_filter_applied(self):
+    def test_get_prev_and_next_release_to_current_release_on_date_sort_query_filter_applied(
+        self,
+    ) -> None:
         """
         Test that ensures that query filter is applied when fetching prev and next
         releases on date sort order
@@ -426,7 +432,9 @@ class ReleaseDetailsTest(APITestCase):
         assert response.data["currentProjectMeta"]["prevReleaseVersion"] == "foobar@1.0.0"
         assert response.data["currentProjectMeta"]["nextReleaseVersion"] is None
 
-    def test_get_prev_and_next_release_on_date_sort_does_not_apply_stats_period_filter(self):
+    def test_get_prev_and_next_release_on_date_sort_does_not_apply_stats_period_filter(
+        self,
+    ) -> None:
         """
         Test that ensures that stats_period filter is applied when fetching prev and next
         releases on date sort order
@@ -468,7 +476,7 @@ class ReleaseDetailsTest(APITestCase):
         assert response.data["currentProjectMeta"]["nextReleaseVersion"] == "foobar@2.0.0"
         assert response.data["currentProjectMeta"]["prevReleaseVersion"] == "foobar@3.0.0"
 
-    def test_get_first_and_last_release_on_date_sort(self):
+    def test_get_first_and_last_release_on_date_sort(self) -> None:
         """
         Test that ensures that the first release and the last release in terms of `date_added` are
         retrieved correctly
@@ -499,7 +507,7 @@ class ReleaseDetailsTest(APITestCase):
         assert response.data["currentProjectMeta"]["firstReleaseVersion"] == "foobar@1.0.0"
         assert response.data["currentProjectMeta"]["lastReleaseVersion"] == "foobar@3.0.0"
 
-    def test_get_first_and_last_release_on_date_sort_with_exact_same_date(self):
+    def test_get_first_and_last_release_on_date_sort_with_exact_same_date(self) -> None:
         """
         Test that ensures that the first release and the last release in terms of `date_added` are
         retrieved correctly in the case when all releases have the same exact datetime and we
@@ -538,7 +546,7 @@ class ReleaseDetailsTest(APITestCase):
         assert response.data["currentProjectMeta"]["firstReleaseVersion"] == "foobar@2.0.0"
         assert response.data["currentProjectMeta"]["lastReleaseVersion"] == "foobar@3.0.0"
 
-    def test_get_first_and_last_release_on_date_sort_env_filter_applied(self):
+    def test_get_first_and_last_release_on_date_sort_env_filter_applied(self) -> None:
         """
         Test that ensures that environment filter is applied when fetching first and last
         releases on date sort order
@@ -588,7 +596,7 @@ class ReleaseDetailsTest(APITestCase):
         assert response.data["currentProjectMeta"]["firstReleaseVersion"] == "foobar@2.0.0"
         assert response.data["currentProjectMeta"]["lastReleaseVersion"] == "foobar@3.0.0"
 
-    def test_get_first_and_last_release_on_non_date_sort(self):
+    def test_get_first_and_last_release_on_non_date_sort(self) -> None:
         """
         Test that ensures that when trying to fetch first and last releases on a sort option that
         is not `date`, then the values of `firstReleaseVersion` and `lastReleaseVersion` are None
@@ -613,7 +621,7 @@ class ReleaseDetailsTest(APITestCase):
         assert response.status_code == 400
         assert response.data["detail"] == "invalid sort"
 
-    def test_get_first_and_last_release_when_project_has_no_releases(self):
+    def test_get_first_and_last_release_when_project_has_no_releases(self) -> None:
         """
         Test that ensures that when fetching first and last releases on date sort option in a
         project that contains no matching release for all the filters, then `firstReleaseVersion`
@@ -639,7 +647,7 @@ class ReleaseDetailsTest(APITestCase):
         assert response.data["currentProjectMeta"]["firstReleaseVersion"] is None
         assert response.data["currentProjectMeta"]["lastReleaseVersion"] is None
 
-    def test_with_adoption_stages(self):
+    def test_with_adoption_stages(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.save()
@@ -845,7 +853,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         response = self.client.put(url, {"ref": "master"})
         assert response.status_code == 404
 
-    def test_commits(self):
+    def test_commits(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False
@@ -876,7 +884,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         for rc in rc_list:
             assert rc.organization_id == org.id
 
-    def test_commits_patchset_character_limit_255(self):
+    def test_commits_patchset_character_limit_255(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False
@@ -917,7 +925,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         for rc in rc_list:
             assert rc.organization_id == org.id
 
-    def test_commits_patchset_character_limit_reached(self):
+    def test_commits_patchset_character_limit_reached(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False
@@ -949,7 +957,7 @@ class UpdateReleaseDetailsTest(APITestCase):
 
         assert response.status_code == 400, (response.status_code, response.content)
 
-    def test_commits_lock_conflict(self):
+    def test_commits_lock_conflict(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
         org.flags.allow_joinleave = False
@@ -977,7 +985,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         assert response.status_code == 409, (response.status_code, response.content)
         assert "Release commits" in response.data["detail"]
 
-    def test_release_archiving(self):
+    def test_release_archiving(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False
@@ -1005,7 +1013,7 @@ class UpdateReleaseDetailsTest(APITestCase):
 
         assert Release.objects.get(id=release.id).status == ReleaseStatus.ARCHIVED
 
-    def test_activity_generation(self):
+    def test_activity_generation(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False
@@ -1039,7 +1047,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         )
         assert activity.exists()
 
-    def test_activity_generation_long_release(self):
+    def test_activity_generation_long_release(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False
@@ -1073,7 +1081,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         )
         assert activity.exists()
 
-    def test_org_auth_token(self):
+    def test_org_auth_token(self) -> None:
         org = self.organization
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -1138,7 +1146,7 @@ class UpdateReleaseDetailsTest(APITestCase):
 
 
 class ReleaseDeleteTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False
@@ -1173,7 +1181,7 @@ class ReleaseDeleteTest(APITestCase):
         assert not Release.objects.filter(id=release.id).exists()
         assert not ReleaseFile.objects.filter(id=release_file.id).exists()
 
-    def test_existing_group(self):
+    def test_existing_group(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False
@@ -1202,7 +1210,7 @@ class ReleaseDeleteTest(APITestCase):
 
         assert Release.objects.filter(id=release.id).exists()
 
-    def test_bad_repo_name(self):
+    def test_bad_repo_name(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
         org.flags.allow_joinleave = False
@@ -1232,7 +1240,7 @@ class ReleaseDeleteTest(APITestCase):
         assert response.status_code == 400
         assert response.data == {"refs": ["Invalid repository names: not_a_repo"]}
 
-    def test_bad_commit_list(self):
+    def test_bad_commit_list(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
         org.flags.allow_joinleave = False
@@ -1282,7 +1290,7 @@ class ReleaseSerializerTest(unittest.TestCase):
             {"commit": "b" * 40, "previousCommit": "", "repository": self.repo2_name},
         ]
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         serializer = OrganizationReleaseSerializer(
             data={
                 "ref": self.ref,
@@ -1313,29 +1321,29 @@ class ReleaseSerializerTest(unittest.TestCase):
         assert result["headCommits"] == self.headCommits
         assert result["refs"] == self.refs
 
-    def test_fields_not_required(self):
+    def test_fields_not_required(self) -> None:
         serializer = OrganizationReleaseSerializer(data={})
         assert serializer.is_valid()
 
-    def test_do_not_allow_null_commits(self):
+    def test_do_not_allow_null_commits(self) -> None:
         serializer = OrganizationReleaseSerializer(data={"commits": None})
         assert not serializer.is_valid()
 
-    def test_do_not_allow_null_head_commits(self):
+    def test_do_not_allow_null_head_commits(self) -> None:
         serializer = OrganizationReleaseSerializer(data={"headCommits": None})
         assert not serializer.is_valid()
 
-    def test_do_not_allow_null_refs(self):
+    def test_do_not_allow_null_refs(self) -> None:
         serializer = OrganizationReleaseSerializer(data={"refs": None})
         assert not serializer.is_valid()
 
-    def test_ref_limited_by_max_version_length(self):
+    def test_ref_limited_by_max_version_length(self) -> None:
         serializer = OrganizationReleaseSerializer(data={"ref": "a" * MAX_VERSION_LENGTH})
         assert serializer.is_valid()
         serializer = OrganizationReleaseSerializer(data={"ref": "a" * (MAX_VERSION_LENGTH + 1)})
         assert not serializer.is_valid()
 
-    def test_author_email_patch(self):
+    def test_author_email_patch(self) -> None:
         serializer = OrganizationReleaseSerializer(
             data={"commits": [{"id": "a", "author_email": "email[test]@example.org"}]}
         )

@@ -26,7 +26,7 @@ class SnubaQueryValidatorTest(TestCase):
             "request": self.make_request(),
         }
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid()
         assert validator.validated_data["query_type"] == SnubaQuery.Type.ERROR
@@ -38,7 +38,7 @@ class SnubaQueryValidatorTest(TestCase):
         assert validator.validated_data["event_types"] == [SnubaQueryEventType.EventType.ERROR]
         assert isinstance(validator.validated_data["_creator"], DataSourceCreator)
 
-    def test_invalid_query(self):
+    def test_invalid_query(self) -> None:
         unsupported_query = "release:latest"
         self.valid_data["query"] = unsupported_query
         validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
@@ -50,7 +50,7 @@ class SnubaQueryValidatorTest(TestCase):
             )
         ]
 
-    def test_invalid_query_type(self):
+    def test_invalid_query_type(self) -> None:
         invalid_query_type = 666
         self.valid_data["queryType"] = invalid_query_type
         validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
@@ -59,7 +59,7 @@ class SnubaQueryValidatorTest(TestCase):
             ErrorDetail(string=f"Invalid query type {invalid_query_type}", code="invalid")
         ]
 
-    def test_validated_create_source_limits(self):
+    def test_validated_create_source_limits(self) -> None:
         with self.settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=2):
             validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
             assert validator.is_valid()

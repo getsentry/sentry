@@ -18,7 +18,7 @@ class RuleSnoozeTest(APITestCase):
         )
         self.user2 = self.create_user()
 
-    def test_snooze_user_and_global(self):
+    def test_snooze_user_and_global(self) -> None:
         """Test that a rule can be snoozed by a user and globally"""
         issue_alert_rule_snooze_user = self.snooze_rule(
             user_id=self.user.id,
@@ -34,7 +34,7 @@ class RuleSnoozeTest(APITestCase):
         assert RuleSnooze.objects.filter(id=issue_alert_rule_snooze_user.id).exists()
         assert RuleSnooze.objects.filter(id=issue_alert_rule_snooze_all.id).exists()
 
-    def test_issue_alert_until_and_forever(self):
+    def test_issue_alert_until_and_forever(self) -> None:
         issue_alert_rule_snooze_user_until = self.snooze_rule(
             user_id=self.user.id,
             owner_id=self.user.id,
@@ -53,7 +53,7 @@ class RuleSnoozeTest(APITestCase):
         )
         assert RuleSnooze.objects.filter(id=issue_alert_rule_snooze_user_forever.id).exists()
 
-    def test_metric_alert_until_and_forever(self):
+    def test_metric_alert_until_and_forever(self) -> None:
         metric_alert_rule_snooze_user = self.snooze_rule(
             user_id=self.user.id,
             owner_id=self.user.id,
@@ -70,7 +70,7 @@ class RuleSnoozeTest(APITestCase):
         )
         assert RuleSnooze.objects.filter(id=metric_alert_rule_snooze_user.id).exists()
 
-    def test_constraints(self):
+    def test_constraints(self) -> None:
         # ensure the rule can be globally ignored after it's been individually ignored
         metric_alert_rule_snooze_all = self.snooze_rule(alert_rule=self.metric_alert_rule)
         issue_alert_rule_snooze_all = self.snooze_rule(rule=self.issue_alert_rule)
@@ -84,7 +84,7 @@ class RuleSnoozeTest(APITestCase):
         )
         assert RuleSnooze.objects.filter(id=issue_alert_rule_snooze_user2.id).exists()
 
-    def test_errors(self):
+    def test_errors(self) -> None:
         # ensure no dupes
         self.snooze_rule(owner_id=self.user.id, alert_rule=self.metric_alert_rule)
         with pytest.raises(IntegrityError), transaction.atomic(router.db_for_write(RuleSnooze)):

@@ -378,7 +378,7 @@ class MarkFailedTestCase(TestCase):
         assert mock_dispatch_incident_occurrence.call_count == 0
         assert monitor_environment.active_incident is not None
 
-    def test_mark_failed_issue_assignment(self):
+    def test_mark_failed_issue_assignment(self) -> None:
         monitor = Monitor.objects.create(
             name="test monitor",
             organization_id=self.organization.id,

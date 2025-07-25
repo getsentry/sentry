@@ -55,7 +55,7 @@ class DiscordWebhookTest(APITestCase):
 
         assert resp.status_code == 401
 
-    def test_missing_signature(self):
+    def test_missing_signature(self) -> None:
         resp = self.client.post(
             path=WEBHOOK_URL,
             data={
@@ -67,7 +67,7 @@ class DiscordWebhookTest(APITestCase):
 
         assert resp.status_code == 401
 
-    def test_missing_timestamp(self):
+    def test_missing_timestamp(self) -> None:
         resp = self.client.post(
             path=WEBHOOK_URL,
             data={

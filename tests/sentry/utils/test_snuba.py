@@ -53,7 +53,7 @@ class SnubaUtilsTest(TestCase):
             project_id=self.proj1.id, group_id=self.proj1group2.id, release_id=self.release1.id
         )
 
-    def test_translation_no_translation(self):
+    def test_translation_no_translation(self) -> None:
         # Case 1: No translation
         filter_keys = {"sdk": ["python", "js"]}
         forward, reverse = get_snuba_translators(filter_keys)
@@ -61,7 +61,7 @@ class SnubaUtilsTest(TestCase):
         result = [{"sdk": "python", "count": 123}, {"sdk": "js", "count": 234}]
         assert all(reverse(row) == row for row in result)
 
-    def test_translation_environment_id_to_name_and_back(self):
+    def test_translation_environment_id_to_name_and_back(self) -> None:
         # Case 2: Environment ID -> Name and back
         filter_keys = {"environment": [self.proj1env1.id]}
         forward, reverse = get_snuba_translators(filter_keys)
@@ -69,7 +69,7 @@ class SnubaUtilsTest(TestCase):
         row = {"environment": self.proj1env1.name, "count": 123}
         assert reverse(row) == {"environment": self.proj1env1.id, "count": 123}
 
-    def test_translation_both_environment_and_release(self):
+    def test_translation_both_environment_and_release(self) -> None:
         # Case 3, both Environment and Release
         filter_keys = {
             "environment": [self.proj1env1.id],
@@ -91,7 +91,7 @@ class SnubaUtilsTest(TestCase):
             "count": 123,
         }
 
-    def test_translation_two_groups_many_to_many_of_groups(self):
+    def test_translation_two_groups_many_to_many_of_groups(self) -> None:
         # Case 4: 2 Groups, many-to-many mapping of Groups
         # to Releases. Reverse translation depends on multiple
         # fields.
@@ -149,7 +149,7 @@ class SnubaUtilsTest(TestCase):
             },
         ]
 
-    def test_get_json_type(self):
+    def test_get_json_type(self) -> None:
         assert get_json_type(None) == "string"
         assert get_json_type("UInt8") == "boolean"
         assert get_json_type("UInt16") == "integer"
@@ -165,7 +165,7 @@ class SnubaUtilsTest(TestCase):
         assert get_json_type("unknown") == "string"
         assert get_json_type("") == "string"
 
-    def test_get_snuba_column_name(self):
+    def test_get_snuba_column_name(self) -> None:
         assert get_snuba_column_name("project_id") == "project_id"
         assert get_snuba_column_name("start") == "start"
         assert get_snuba_column_name("'thing'") == "'thing'"
@@ -227,7 +227,7 @@ class SnubaUtilsTest(TestCase):
 
 
 class PrepareQueryParamsTest(TestCase):
-    def test_events_dataset_with_project_id(self):
+    def test_events_dataset_with_project_id(self) -> None:
         query_params = SnubaQueryParams(
             dataset=Dataset.Events, filter_keys={"project_id": [self.project.id]}
         )
@@ -235,7 +235,7 @@ class PrepareQueryParamsTest(TestCase):
         kwargs, _, _ = _prepare_query_params(query_params)
         assert kwargs["project"] == [self.project.id]
 
-    def test_with_deleted_project(self):
+    def test_with_deleted_project(self) -> None:
         query_params = SnubaQueryParams(
             dataset=Dataset.Events, filter_keys={"project_id": [self.project.id]}
         )
@@ -255,7 +255,7 @@ class PrepareQueryParamsTest(TestCase):
         organization_id, _ = get_query_params_to_update_for_projects(query_params)
         assert organization_id == self.organization.id
 
-    def test_outcomes_dataset_with_org_id(self):
+    def test_outcomes_dataset_with_org_id(self) -> None:
         query_params = SnubaQueryParams(
             dataset=Dataset.Outcomes, filter_keys={"org_id": [self.organization.id]}
         )
@@ -263,26 +263,26 @@ class PrepareQueryParamsTest(TestCase):
         kwargs, _, _ = _prepare_query_params(query_params)
         assert kwargs["organization"] == self.organization.id
 
-    def test_outcomes_dataset_with_key_id(self):
+    def test_outcomes_dataset_with_key_id(self) -> None:
         key = self.create_project_key(project=self.project)
         query_params = SnubaQueryParams(dataset=Dataset.Outcomes, filter_keys={"key_id": [key.id]})
 
         kwargs, _, _ = _prepare_query_params(query_params)
         assert kwargs["organization"] == self.organization.id
 
-    def test_outcomes_dataset_with_no_org_id_given(self):
+    def test_outcomes_dataset_with_no_org_id_given(self) -> None:
         query_params = SnubaQueryParams(dataset=Dataset.Outcomes)
 
         with pytest.raises(UnqualifiedQueryError):
             _prepare_query_params(query_params)
 
-    def test_invalid_dataset_provided(self):
+    def test_invalid_dataset_provided(self) -> None:
         query_params = SnubaQueryParams(dataset="invalid_dataset")
 
         with pytest.raises(UnqualifiedQueryError):
             _prepare_query_params(query_params)
 
-    def test_original_query_params_does_not_get_mutated(self):
+    def test_original_query_params_does_not_get_mutated(self) -> None:
         snuba_params = SnubaQueryParams(
             dataset=Dataset.Sessions,
             start=datetime.now() - timedelta(hours=1),
@@ -306,7 +306,7 @@ class QuantizeTimeTest(unittest.TestCase):
     def setUp(self):
         self.now = timezone.now().replace(microsecond=0)
 
-    def test_quantizes_with_duration(self):
+    def test_quantizes_with_duration(self) -> None:
         key_hash = 0
         time = datetime(2023, 12, 27, 4, 4, 24)
 
@@ -314,21 +314,21 @@ class QuantizeTimeTest(unittest.TestCase):
         assert quantize_time(time, key_hash, 120) == datetime(2023, 12, 27, 4, 4, 0)
         assert quantize_time(time, key_hash, 900) == datetime(2023, 12, 27, 4, 0, 0)
 
-    def test_quantizes_with_key_hash(self):
+    def test_quantizes_with_key_hash(self) -> None:
         key_hash = 12
         time = datetime(2023, 12, 27, 4, 4, 24)
 
         assert quantize_time(time, key_hash, 60) == datetime(2023, 12, 27, 4, 4, 12)
         assert quantize_time(time, key_hash, 900) == datetime(2023, 12, 27, 4, 0, 12)
 
-    def test_quantizes_if_already_quantized(self):
+    def test_quantizes_if_already_quantized(self) -> None:
         key_hash = 1
         duration = 10
         time = datetime(2023, 12, 27, 21, 22, 41)
 
         assert quantize_time(time, key_hash, duration) == datetime(2023, 12, 27, 21, 22, 31)
 
-    def test_quantizes_with_rounding_up(self):
+    def test_quantizes_with_rounding_up(self) -> None:
         assert quantize_time(datetime(2023, 12, 27, 4, 4, 0), 0, 60, ROUND_UP) == datetime(
             2023, 12, 27, 4, 4, 0
         )
@@ -336,13 +336,13 @@ class QuantizeTimeTest(unittest.TestCase):
             2023, 12, 27, 4, 5, 0
         )
 
-    def test_cache_suffix_time(self):
+    def test_cache_suffix_time(self) -> None:
         starting_key = quantize_time(self.now, 0)
         finishing_key = quantize_time(self.now + timedelta(seconds=300), 0)
 
         assert starting_key != finishing_key
 
-    def test_quantize_hour_edges(self):
+    def test_quantize_hour_edges(self) -> None:
         """a suffix should still behave correctly around the end of the hour
 
         At a duration of 10 only one key between 0-10 should flip on the hour, the other 9
@@ -360,7 +360,7 @@ class QuantizeTimeTest(unittest.TestCase):
 
         assert changed_on_hour == 1
 
-    def test_quantize_day_edges(self):
+    def test_quantize_day_edges(self) -> None:
         """a suffix should still behave correctly around the end of a day
 
         This test is nearly identical to test_quantize_hour_edges, but is to confirm that date changes don't
@@ -377,7 +377,7 @@ class QuantizeTimeTest(unittest.TestCase):
 
         assert changed_on_hour == 1
 
-    def test_quantize_time_matches_duration(self):
+    def test_quantize_time_matches_duration(self) -> None:
         """The number of seconds between keys changing should match duration"""
         previous_key = quantize_time(self.now, 0, duration=10)
         changes = []
@@ -391,7 +391,7 @@ class QuantizeTimeTest(unittest.TestCase):
         assert len(changes) == 2
         assert (changes[1] - changes[0]).total_seconds() == 10
 
-    def test_quantize_time_jitter(self):
+    def test_quantize_time_jitter(self) -> None:
         """Different key hashes should change keys at different times
 
         While starting_key and other_key might begin as the same values they should change at different times

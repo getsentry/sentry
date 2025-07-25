@@ -37,12 +37,12 @@ class WebhookTest(APITestCase):
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
         options.set("github-app.webhook-secret", self.secret)
 
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.client.get(self.url)
 
         assert response.status_code == 405
 
-    def test_unregistered_event(self):
+    def test_unregistered_event(self) -> None:
         response = self.client.post(
             path=self.url,
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
@@ -54,7 +54,7 @@ class WebhookTest(APITestCase):
 
         assert response.status_code == 204
 
-    def test_invalid_signature_event(self):
+    def test_invalid_signature_event(self) -> None:
         response = self.client.post(
             path=self.url,
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
@@ -66,7 +66,7 @@ class WebhookTest(APITestCase):
 
         assert response.status_code == 401
 
-    def test_missing_signature_event(self):
+    def test_missing_signature_event(self) -> None:
         response = self.client.post(
             path=self.url,
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
@@ -359,7 +359,7 @@ class PushEventWebhookTest(APITestCase):
         assert repos[0].name == "baxterthehacker/public-repo"
         mock_metrics.incr.assert_called_with("github.webhook.repository_created")
 
-    def test_ignores_hidden_repo(self):
+    def test_ignores_hidden_repo(self) -> None:
         repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
@@ -375,7 +375,7 @@ class PushEventWebhookTest(APITestCase):
         assert len(repos) == 1
         assert repos[0] == repo
 
-    def test_anonymous_lookup(self):
+    def test_anonymous_lookup(self) -> None:
 
         repo = Repository.objects.create(
             organization_id=self.project.organization.id,
@@ -427,7 +427,7 @@ class PushEventWebhookTest(APITestCase):
         assert set(repo.languages) == {"python", "javascript"}
 
     @responses.activate
-    def test_multiple_orgs(self):
+    def test_multiple_orgs(self) -> None:
         Repository.objects.create(
             organization_id=self.project.organization.id,
             external_id="35129377",
@@ -525,7 +525,7 @@ class PushEventWebhookTest(APITestCase):
             assert repo.name == "baxterthehacker/public-repo"
         mock_metrics.incr.assert_called_with("github.webhook.repository_created")
 
-    def test_multiple_orgs_ignores_hidden_repo(self):
+    def test_multiple_orgs_ignores_hidden_repo(self) -> None:
         org2 = self.create_organization()
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
@@ -698,7 +698,7 @@ class PullRequestEventWebhook(APITestCase):
         assert repos[0].name == "baxterthehacker/public-repo"
         mock_metrics.incr.assert_any_call("github.webhook.repository_created")
 
-    def test_ignores_hidden_repo(self):
+    def test_ignores_hidden_repo(self) -> None:
 
         repo = self.create_repo(
             project=self.project,
@@ -755,7 +755,7 @@ class PullRequestEventWebhook(APITestCase):
             assert repo.name == "baxterthehacker/public-repo"
         mock_metrics.incr.assert_any_call("github.webhook.repository_created")
 
-    def test_multiple_orgs_ignores_hidden_repo(self):
+    def test_multiple_orgs_ignores_hidden_repo(self) -> None:
 
         org2 = self.create_organization()
 
@@ -796,7 +796,7 @@ class PullRequestEventWebhook(APITestCase):
 
         assert repos[0] == repo
 
-    def test_edited_pr_description_with_group_link(self):
+    def test_edited_pr_description_with_group_link(self) -> None:
         group = self.create_group(project=self.project, short_id=7)
         url = "/extensions/github/webhook/"
         secret = "b3002c3e321d4b7880360d397db2ccfd"

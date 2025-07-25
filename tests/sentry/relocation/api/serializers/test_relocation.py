@@ -54,7 +54,7 @@ class RelocationSerializerTest(TestCase):
             inserted_map={1: self.imported_org.id},
         )
 
-    def test_in_progress(self):
+    def test_in_progress(self) -> None:
         relocation: Relocation = Relocation.objects.create(
             date_added=TEST_DATE_ADDED,
             creator_id=self.superuser.id,
@@ -93,7 +93,7 @@ class RelocationSerializerTest(TestCase):
         assert result["importedUserIds"] == []
         assert result["importedOrgIds"] == []
 
-    def test_pause(self):
+    def test_pause(self) -> None:
         relocation: Relocation = Relocation.objects.create(
             date_added=TEST_DATE_ADDED,
             creator_id=self.superuser.id,
@@ -135,7 +135,7 @@ class RelocationSerializerTest(TestCase):
         ]
         assert result["importedOrgIds"] == [self.imported_org.id]
 
-    def test_success(self):
+    def test_success(self) -> None:
         relocation: Relocation = Relocation.objects.create(
             date_added=TEST_DATE_ADDED,
             creator_id=self.superuser.id,
@@ -178,7 +178,7 @@ class RelocationSerializerTest(TestCase):
         ]
         assert result["importedOrgIds"] == [self.imported_org.id]
 
-    def test_failure(self):
+    def test_failure(self) -> None:
         relocation: Relocation = Relocation.objects.create(
             date_added=TEST_DATE_ADDED,
             creator_id=self.superuser.id,

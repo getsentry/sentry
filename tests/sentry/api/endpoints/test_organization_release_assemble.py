@@ -26,7 +26,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
             args=[self.organization.slug, self.release.version],
         )
 
-    def test_assemble_json_schema(self):
+    def test_assemble_json_schema(self) -> None:
         response = self.client.post(
             self.url, data={"lol": "test"}, HTTP_AUTHORIZATION=f"Bearer {self.token.token}"
         )
@@ -86,7 +86,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
             }
         )
 
-    def test_assemble_response(self):
+    def test_assemble_response(self) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version
         )
@@ -111,7 +111,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.OK
 
-    def test_dif_error_response(self):
+    def test_dif_error_response(self) -> None:
         bundle_file = b"invalid"
         total_checksum = sha1(bundle_file).hexdigest()
         blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)

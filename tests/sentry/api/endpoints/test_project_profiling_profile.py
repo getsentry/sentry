@@ -11,6 +11,6 @@ class ProjectProfilingProfileTest(APITestCase):
     def setUp(self):
         self.login_as(user=self.user)
 
-    def test_feature_flag_disabled(self):
+    def test_feature_flag_disabled(self) -> None:
         response = self.get_response(self.project.organization.slug, self.project.id, str(uuid4()))
         assert response.status_code == 404

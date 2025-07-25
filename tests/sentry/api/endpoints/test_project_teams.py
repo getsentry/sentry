@@ -8,7 +8,7 @@ class ProjectTeamsTest(APITestCase):
         super().setUp()
         self.login_as(self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         team = self.create_team()
         project = self.create_project(teams=[team])
 

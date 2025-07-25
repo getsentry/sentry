@@ -2511,7 +2511,7 @@ class CompletedTest(RelocationTaskTestCase):
         self.relocation.latest_task = OrderedTask.NOTIFYING_OWNER.name
         self.relocation.save()
 
-    def test_success(self):
+    def test_success(self) -> None:
         completed(self.uuid)
 
         relocation = Relocation.objects.get(uuid=self.uuid)

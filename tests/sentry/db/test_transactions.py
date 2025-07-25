@@ -24,7 +24,7 @@ from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 
 class CaseMixin:
-    def test_collect_transaction_queries(self):
+    def test_collect_transaction_queries(self) -> None:
         with collect_transaction_queries() as queries, outbox_context(flush=False):
             Organization.objects.filter(name="org1").first()
             User.objects.filter(username="user1").first()
@@ -42,7 +42,7 @@ class CaseMixin:
 
         assert [(s["transaction"]) for s in queries] == [None, "default", "default", "control"]
 
-    def test_bad_transaction_boundaries(self):
+    def test_bad_transaction_boundaries(self) -> None:
 
         org = Factories.create_organization()
         Factories.create_project(organization=org)
@@ -52,7 +52,7 @@ class CaseMixin:
             with transaction.atomic(using=router.db_for_write(User)):
                 Factories.create_project(organization=org)
 
-    def test_safe_transaction_boundaries(self):
+    def test_safe_transaction_boundaries(self) -> None:
         org = Factories.create_organization()
         Factories.create_project(organization=org)
         Factories.create_user()
@@ -82,7 +82,7 @@ class CaseMixin:
             with django_test_transaction_water_mark():
                 Factories.create_user()
 
-    def test_in_test_assert_no_transaction(self):
+    def test_in_test_assert_no_transaction(self) -> None:
         def do_assertions():
             in_test_assert_no_transaction("Not, in transaction, should not fail")
 
@@ -98,7 +98,7 @@ class CaseMixin:
         with transaction.atomic("default"), django_test_transaction_water_mark():
             do_assertions()
 
-    def test_transaction_on_commit(self):
+    def test_transaction_on_commit(self) -> None:
         def do_assertions():
             calls = []
             transaction.on_commit(lambda: calls.append("a"), "default")
@@ -127,34 +127,34 @@ class TestDjangoTestCaseTransactions(CaseMixin, TestCase):
 
 @no_silo_test
 class TestDjangoTransactionTestCaseTransactions(CaseMixin, TransactionTestCase):
-    def test_collect_transaction_queries(self):
+    def test_collect_transaction_queries(self) -> None:
         return
 
 
 class TestPytestDjangoDbAll(CaseMixin):
     @no_silo_test
     @django_db_all
-    def test_in_test_assert_no_transaction(self):
+    def test_in_test_assert_no_transaction(self) -> None:
         super().test_in_test_assert_no_transaction()
 
     @no_silo_test
     @django_db_all
-    def test_transaction_on_commit(self):
+    def test_transaction_on_commit(self) -> None:
         super().test_transaction_on_commit()
 
     @no_silo_test
     @django_db_all
-    def test_safe_transaction_boundaries(self):
+    def test_safe_transaction_boundaries(self) -> None:
         super().test_safe_transaction_boundaries()
 
     @no_silo_test
     @django_db_all
-    def test_bad_transaction_boundaries(self):
+    def test_bad_transaction_boundaries(self) -> None:
         super().test_bad_transaction_boundaries()
 
     @no_silo_test
     @django_db_all
-    def test_collect_transaction_queries(self):
+    def test_collect_transaction_queries(self) -> None:
         super().test_collect_transaction_queries()
 
 
@@ -170,7 +170,7 @@ class FakeRegionService:
 
 @no_silo_test
 class TestDelegatedByOpenTransaction(TestCase):
-    def test_selects_mode_in_transaction_or_default(self):
+    def test_selects_mode_in_transaction_or_default(self) -> None:
         service: Any = silo_mode_delegation(
             {
                 SiloMode.CONTROL: lambda: FakeControlService(),

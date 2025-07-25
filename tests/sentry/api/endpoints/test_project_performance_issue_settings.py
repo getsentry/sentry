@@ -135,7 +135,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             assert response.data["n_plus_one_api_calls_total_duration_threshold"] == 500
             assert response.data["consecutive_http_spans_min_time_saved_threshold"] == 1000
 
-    def test_get_returns_error_without_feature_enabled(self):
+    def test_get_returns_error_without_feature_enabled(self) -> None:
         self.get_error_response(
             self.project.organization.slug,
             self.project.slug,
@@ -144,7 +144,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         )
 
     @with_feature("organizations:performance-view")
-    def test_put_non_super_user_updates_detection_setting(self):
+    def test_put_non_super_user_updates_detection_setting(self) -> None:
         self.login_as(user=self.user, superuser=False)
         response = self.get_error_response(
             self.project.organization.slug,
@@ -162,7 +162,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         }
 
     @with_feature("organizations:performance-view")
-    def test_put_super_user_updates_detection_setting(self):
+    def test_put_super_user_updates_detection_setting(self) -> None:
         response = self.get_success_response(
             self.project.organization.slug,
             self.project.slug,
@@ -182,7 +182,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
     @override_settings(SENTRY_SELF_HOSTED=False)
     @with_feature("organizations:performance-view")
     @override_options({"superuser.read-write.ga-rollout": True})
-    def test_put_superuser_read_write_updates_detection_setting(self):
+    def test_put_superuser_read_write_updates_detection_setting(self) -> None:
         # superuser read-only cannot hit put
         self.get_error_response(
             self.project.organization.slug,
@@ -212,7 +212,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         assert not get_response.data["function_duration_regression_detection_enabled"]
 
     @with_feature("organizations:performance-view")
-    def test_put_update_non_super_user_option(self):
+    def test_put_update_non_super_user_option(self) -> None:
         self.login_as(user=self.user, superuser=False)
         response = self.get_success_response(
             self.project.organization.slug,
@@ -257,7 +257,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         )
 
     @with_feature("organizations:performance-view")
-    def test_update_project_setting_check_validation(self):
+    def test_update_project_setting_check_validation(self) -> None:
         response = self.get_error_response(
             self.project.organization.slug,
             self.project.slug,
@@ -273,7 +273,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         }
 
     @with_feature("organizations:performance-view")
-    def test_update_project_setting_invalid_option(self):
+    def test_update_project_setting_invalid_option(self) -> None:
         response = self.get_error_response(
             self.project.organization.slug,
             self.project.slug,
@@ -285,7 +285,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         assert response.data == {"detail": "Invalid settings option"}
 
     @with_feature("organizations:performance-view")
-    def test_project_admins_can_manage_detectors(self):
+    def test_project_admins_can_manage_detectors(self) -> None:
         self.login_as(user=self.user, superuser=False)
         response = self.get_success_response(
             self.project.organization.slug,
@@ -298,7 +298,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         assert not response.data["n_plus_one_db_queries_detection_enabled"]
 
     @with_feature("organizations:performance-view")
-    def test_project_members_cannot_manage_detectors(self):
+    def test_project_members_cannot_manage_detectors(self) -> None:
         user = self.create_user("member@localhost")
         self.create_member(
             organization=self.project.organization,
@@ -337,7 +337,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         }
 
     @with_feature("organizations:performance-view")
-    def test_delete_resets_enabled_project_settings(self):
+    def test_delete_resets_enabled_project_settings(self) -> None:
         self.project.update_option(
             SETTINGS_PROJECT_OPTION_KEY,
             {
@@ -376,7 +376,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         )  # removes enabled threshold settings
 
     @with_feature("organizations:performance-view")
-    def test_delete_does_not_resets_enabled_project_settings(self):
+    def test_delete_does_not_resets_enabled_project_settings(self) -> None:
         self.project.update_option(
             SETTINGS_PROJECT_OPTION_KEY,
             {

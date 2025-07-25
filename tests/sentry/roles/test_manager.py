@@ -10,7 +10,7 @@ class RoleManagerTest(TestCase):
     def _assert_minimum_team_role_is(manager: RoleManager, org_role: str, team_role: str) -> None:
         assert manager.get_minimum_team_role(org_role).id == team_role
 
-    def test_default_manager(self):
+    def test_default_manager(self) -> None:
         assert default_manager.get_all()
         assert len(default_manager.get_choices()) == len(default_manager.get_all())
         assert default_manager.get_top_dog().id == "owner"
@@ -54,7 +54,7 @@ class RoleManagerTest(TestCase):
         },
     ]
 
-    def test_priority(self):
+    def test_priority(self) -> None:
         manager = RoleManager(self.TEST_ORG_ROLES, self.TEST_TEAM_ROLES)
 
         assert len(manager.get_all()) == len(self.TEST_ORG_ROLES)
@@ -67,7 +67,7 @@ class RoleManagerTest(TestCase):
         assert manager.get_default().id == "peasant"
         assert manager.get_top_dog().id == "monarch"
 
-    def test_mapping(self):
+    def test_mapping(self) -> None:
         manager = RoleManager(self.TEST_ORG_ROLES, self.TEST_TEAM_ROLES)
 
         self._assert_minimum_team_role_is(manager, "monarch", "captain")
@@ -76,7 +76,7 @@ class RoleManagerTest(TestCase):
         self._assert_minimum_team_role_is(manager, "baron", "private")
         self._assert_minimum_team_role_is(manager, "peasant", "private")
 
-    def test_choices(self):
+    def test_choices(self) -> None:
         manager = RoleManager(self.TEST_ORG_ROLES, self.TEST_TEAM_ROLES)
 
         assert manager.get_choices() == manager.organization_roles.get_choices()
@@ -84,14 +84,14 @@ class RoleManagerTest(TestCase):
             (role["id"], role["name"]) for role in self.TEST_TEAM_ROLES
         )
 
-    def test_descriptions(self):
+    def test_descriptions(self) -> None:
         manager = RoleManager(self.TEST_ORG_ROLES, self.TEST_TEAM_ROLES)
 
         assert manager.team_roles.get_descriptions() == tuple(
             (role["id"], role["desc"]) for role in self.TEST_TEAM_ROLES
         )
 
-    def test_team_default_mapping(self):
+    def test_team_default_mapping(self) -> None:
         # Check that RoleManager provides sensible defaults in case the team roles
         # don't specify any mappings
 
@@ -107,7 +107,7 @@ class RoleManagerTest(TestCase):
         self._assert_minimum_team_role_is(manager, "baron", "private")
         self._assert_minimum_team_role_is(manager, "peasant", "private")
 
-    def test_top_dog_accesses_all_team_roles(self):
+    def test_top_dog_accesses_all_team_roles(self) -> None:
         # Check that the org's top dog role has access to the top team role even if
         # it's explicitly mapped to a lower role
 
@@ -130,7 +130,7 @@ class RoleManagerTest(TestCase):
         self._assert_minimum_team_role_is(manager, "baron", "private")
         self._assert_minimum_team_role_is(manager, "peasant", "private")
 
-    def test_if_team_top_dog_is_not_org_top_dog(self):
+    def test_if_team_top_dog_is_not_org_top_dog(self) -> None:
         team_roles = [
             {"id": "private", "name": "Private", "is_minimum_role_for": "peasant", "desc": "fee"},
             {"id": "sergeant", "name": "Sergeant", "is_minimum_role_for": "earl", "desc": "fi"},
@@ -145,7 +145,7 @@ class RoleManagerTest(TestCase):
         self._assert_minimum_team_role_is(manager, "baron", "private")
         self._assert_minimum_team_role_is(manager, "peasant", "private")
 
-    def test_handles_non_injective_mapping(self):
+    def test_handles_non_injective_mapping(self) -> None:
         # Check that RoleManager tolerates multiple team roles pointing at the same
         # org role and maps to the highest one
 

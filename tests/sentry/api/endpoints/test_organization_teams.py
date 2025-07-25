@@ -8,7 +8,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class OrganizationTeamsListTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=self.user)
         team1 = self.create_team(organization=org, name="foo")
@@ -29,7 +29,7 @@ class OrganizationTeamsListTest(APITestCase):
         assert response.data[1]["id"] == str(team1.id)
         assert response.data[1]["isMember"]
 
-    def test_simple_results_no_projects(self):
+    def test_simple_results_no_projects(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=self.user)
         team1 = self.create_team(organization=org, name="foo")
@@ -48,7 +48,7 @@ class OrganizationTeamsListTest(APITestCase):
         assert "projects" not in response.data[0]
         assert "projects" not in response.data[1]
 
-    def test_search(self):
+    def test_search(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=self.user)
         team = self.create_team(organization=org, name="bar", slug="bar")
@@ -70,7 +70,7 @@ class OrganizationTeamsListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-    def test_list_external_teams(self):
+    def test_list_external_teams(self) -> None:
         self.external_team = self.create_external_team(
             self.team, external_name="@getsentry/ecosystem"
         )
@@ -90,7 +90,7 @@ class OrganizationTeamsListTest(APITestCase):
             "teamId": str(self.team.id),
         }
 
-    def test_has_external_teams_query(self):
+    def test_has_external_teams_query(self) -> None:
         team = self.create_team(organization=self.organization, name="foo")
         self.login_as(user=self.user)
         path = f"/api/0/organizations/{self.organization.slug}/teams/?query=hasExternalTeams:true"
@@ -111,7 +111,7 @@ class OrganizationTeamsListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-    def test_query_by_slug(self):
+    def test_query_by_slug(self) -> None:
         self.create_team(organization=self.organization, name="foo")
         self.create_team(organization=self.organization, name="bar")
         self.login_as(user=self.user)
@@ -126,7 +126,7 @@ class OrganizationTeamsListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
 
-    def test_query_by_id(self):
+    def test_query_by_id(self) -> None:
         team1 = self.create_team(organization=self.organization, name="foo")
         team2 = self.create_team(organization=self.organization, name="bar")
         self.login_as(user=self.user)
@@ -145,7 +145,7 @@ class OrganizationTeamsListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
 
-    def test_hanging_project_team(self):
+    def test_hanging_project_team(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=self.user)
         external_org = self.create_organization()
@@ -170,17 +170,17 @@ class OrganizationTeamsCreateTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    def test_missing_permission(self):
+    def test_missing_permission(self) -> None:
         user = self.create_user()
         self.login_as(user=user)
 
         self.get_error_response(self.organization.slug, status_code=403)
 
-    def test_missing_params(self):
+    def test_missing_params(self) -> None:
         resp = self.get_error_response(self.organization.slug, status_code=400)
         assert b"Name or slug is required" in resp.content
 
-    def test_valid_params(self):
+    def test_valid_params(self) -> None:
         resp = self.get_success_response(
             self.organization.slug, name="hello world", slug="foobar", status_code=201
         )
@@ -199,7 +199,7 @@ class OrganizationTeamsCreateTest(APITestCase):
             organizationmember=member, team=team, is_active=True
         ).exists()
 
-    def test_without_slug(self):
+    def test_without_slug(self) -> None:
         resp = self.get_success_response(
             self.organization.slug, name="hello world", status_code=201
         )
@@ -207,7 +207,7 @@ class OrganizationTeamsCreateTest(APITestCase):
         team = Team.objects.get(id=resp.data["id"])
         assert team.slug == "hello-world"
 
-    def test_without_name(self):
+    def test_without_name(self) -> None:
         resp = self.get_success_response(
             self.organization.slug, slug="example-slug", status_code=201
         )
@@ -216,7 +216,7 @@ class OrganizationTeamsCreateTest(APITestCase):
         assert team.slug == "example-slug"
         assert team.name == "example-slug"
 
-    def test_with_idp_provisioned(self):
+    def test_with_idp_provisioned(self) -> None:
         resp = self.get_success_response(
             self.organization.slug, name="hello world", idp_provisioned=True, status_code=201
         )
@@ -224,7 +224,7 @@ class OrganizationTeamsCreateTest(APITestCase):
         team = Team.objects.get(id=resp.data["id"])
         assert team.idp_provisioned
 
-    def test_duplicate(self):
+    def test_duplicate(self) -> None:
         self.get_success_response(
             self.organization.slug, name="hello world", slug="foobar", status_code=201
         )
@@ -236,18 +236,18 @@ class OrganizationTeamsCreateTest(APITestCase):
             "detail": "A team with this slug already exists.",
         }
 
-    def test_name_too_long(self):
+    def test_name_too_long(self) -> None:
         self.get_error_response(
             self.organization.slug, name="x" * 65, slug="xxxxxxx", status_code=400
         )
 
-    def test_invalid_numeric_slug(self):
+    def test_invalid_numeric_slug(self) -> None:
         response = self.get_error_response(
             self.organization.slug, name="hello word", slug="1234", status_code=400
         )
         assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
-    def test_generated_slug_not_entirely_numeric(self):
+    def test_generated_slug_not_entirely_numeric(self) -> None:
         response = self.get_success_response(self.organization.slug, name="1234", status_code=201)
         team = Team.objects.get(id=response.data["id"])
         assert team.slug.startswith("1234-")

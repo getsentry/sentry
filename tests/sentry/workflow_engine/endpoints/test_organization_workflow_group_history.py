@@ -45,7 +45,7 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
 
         self.login_as(self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         resp = self.get_success_response(
             self.organization.slug,
             self.workflow.id,
@@ -69,7 +69,7 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
             WorkflowGroupHistorySerializer(),
         )
 
-    def test_pagination(self):
+    def test_pagination(self) -> None:
         resp = self.get_success_response(
             self.organization.slug,
             self.workflow.id,
@@ -109,7 +109,7 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
             WorkflowGroupHistorySerializer(),
         )
 
-    def test_invalid_dates_error(self):
+    def test_invalid_dates_error(self) -> None:
         self.get_error_response(
             self.organization.slug,
             self.workflow.id,

@@ -18,7 +18,7 @@ class BaseTSDBTest(TestCase):
             )
         )
 
-    def test_normalize_to_epoch(self):
+    def test_normalize_to_epoch(self) -> None:
         timestamp = datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=timezone.utc)
         normalize_to_epoch = self.tsdb.normalize_to_epoch
 
@@ -31,19 +31,19 @@ class BaseTSDBTest(TestCase):
         result = normalize_to_epoch(timestamp + timedelta(seconds=70), 60)
         assert result == 1368890100
 
-    def test_rollup(self):
+    def test_rollup(self) -> None:
         pre_results = {1: [(1368889980, 5), (1368890040, 10), (1368893640, 7)]}
         post_results = self.tsdb.rollup(pre_results, 3600)
         assert len(post_results) == 1
         assert post_results[1] == [[1368889200, 15], [1368892800, 7]]
 
-    def test_calculate_expiry(self):
+    def test_calculate_expiry(self) -> None:
         timestamp = datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=timezone.utc)
         result = self.tsdb.calculate_expiry(10, 30, timestamp)
         assert result == 1368890330
 
     @freeze_time("2016-08-01")
-    def test_get_optimal_rollup_series_aligned_intervals(self):
+    def test_get_optimal_rollup_series_aligned_intervals(self) -> None:
 
         start = datetime.now(timezone.utc) - timedelta(seconds=30)
 
@@ -71,7 +71,7 @@ class BaseTSDBTest(TestCase):
         )
 
     @freeze_time("2016-08-01 00:00:15")
-    def test_get_optimal_rollup_series_offset_intervals(self):
+    def test_get_optimal_rollup_series_offset_intervals(self) -> None:
         # This test is a funny one (notice it doesn't return a range that
         # includes the start position.) This occurs because the algorithm for
         # determining the series to be returned will attempt to return the same
@@ -103,7 +103,7 @@ class BaseTSDBTest(TestCase):
         )
 
     @freeze_time("2016-08-01")
-    def test_make_series_aligned_intervals(self):
+    def test_make_series_aligned_intervals(self) -> None:
 
         start = datetime.now(timezone.utc) - timedelta(seconds=30)
         assert self.tsdb.make_series(0, start) == [

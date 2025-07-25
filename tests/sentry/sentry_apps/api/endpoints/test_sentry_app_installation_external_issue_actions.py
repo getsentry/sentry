@@ -26,7 +26,7 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         )
 
     @responses.activate
-    def test_creates_external_issue(self):
+    def test_creates_external_issue(self) -> None:
         self.login_as(user=self.user)
         data = {
             "groupId": self.group.id,
@@ -59,7 +59,7 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         }
 
     @responses.activate
-    def test_external_issue_doesnt_get_created(self):
+    def test_external_issue_doesnt_get_created(self) -> None:
         self.login_as(user=self.user)
         data = {
             "groupId": self.group.id,

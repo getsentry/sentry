@@ -20,22 +20,22 @@ class CodecovEndpointPermissionTest(APITestCase):
             },
         )
 
-    def test_unauthenticated_user_denied(self):
+    def test_unauthenticated_user_denied(self) -> None:
         response = self.client.get(self.endpoint_url)
         assert response.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN)
 
-    def test_user_not_in_org_denied(self):
+    def test_user_not_in_org_denied(self) -> None:
         other_user = Factories.create_user(email="other@example.com")
         self.login_as(other_user)
         response = self.client.get(self.endpoint_url)
         assert response.status_code in (status.HTTP_403_FORBIDDEN, status.HTTP_404_NOT_FOUND)
 
-    def test_user_in_org_no_integration_denied(self):
+    def test_user_in_org_no_integration_denied(self) -> None:
         self.login_as(self.user)
         response = self.client.get(self.endpoint_url)
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_integration_not_in_org_denied(self):
+    def test_integration_not_in_org_denied(self) -> None:
         # Create a different organization and integration
         other_user = Factories.create_user(email="other2@example.com")
         other_org = Factories.create_organization(owner=other_user)
@@ -59,7 +59,7 @@ class CodecovEndpointPermissionTest(APITestCase):
         response = self.client.get(endpoint_url)
         assert response.status_code in (status.HTTP_403_FORBIDDEN, status.HTTP_404_NOT_FOUND)
 
-    def test_auth_token_denied(self):
+    def test_auth_token_denied(self) -> None:
         token = Factories.create_user_auth_token(self.user, scope_list=["org:read"])
         response = self.client.get(self.endpoint_url, HTTP_AUTHORIZATION=f"Bearer {token.token}")
         assert response.status_code in (

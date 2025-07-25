@@ -28,7 +28,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
             args=[self.organization.slug],
         )
 
-    def test_assemble_json_schema(self):
+    def test_assemble_json_schema(self) -> None:
         response = self.client.post(
             self.url, data={"lol": "test"}, HTTP_AUTHORIZATION=f"Bearer {self.token.token}"
         )
@@ -116,7 +116,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.NOT_FOUND
 
-    def test_assemble_with_invalid_projects(self):
+    def test_assemble_with_invalid_projects(self) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version
         )
@@ -141,7 +141,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         assert response.status_code == 400, response.content
         assert response.data["error"] == "One or more projects are invalid"
 
-    def test_assemble_with_valid_project_slugs(self):
+    def test_assemble_with_valid_project_slugs(self) -> None:
         # Test with all valid project slugs
         valid_project = self.create_project()
         another_valid_project = self.create_project()
@@ -166,7 +166,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
 
         self.assertEqual(response.status_code, 200)
 
-    def test_assemble_with_valid_project_ids(self):
+    def test_assemble_with_valid_project_ids(self) -> None:
         # Test with all valid project IDs
         valid_project = self.create_project()
         another_valid_project = self.create_project()
@@ -191,7 +191,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
 
         self.assertEqual(response.status_code, 200)
 
-    def test_assemble_with_mix_of_slugs_and_ids(self):
+    def test_assemble_with_mix_of_slugs_and_ids(self) -> None:
         # Test with a mix of valid project slugs and IDs
         valid_project = self.create_project()
         another_valid_project = self.create_project()
@@ -330,7 +330,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
             }
         )
 
-    def test_assemble_with_missing_chunks(self):
+    def test_assemble_with_missing_chunks(self) -> None:
         dist = "android"
         bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version
@@ -374,7 +374,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
 
-    def test_assemble_response(self):
+    def test_assemble_response(self) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version
         )
@@ -395,7 +395,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
 
-    def test_assemble_org_auth_token(self):
+    def test_assemble_org_auth_token(self) -> None:
         org2 = self.create_organization(owner=self.user)
 
         bundle_file = self.create_artifact_bundle_zip(

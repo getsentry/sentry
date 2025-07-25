@@ -329,7 +329,7 @@ class TestResultsEndpointTest(APITestCase):
         assert call_args[1]["variables"] == expected_variables
         assert response.status_code == 200
 
-    def test_get_with_negative_limit_returns_bad_request(self):
+    def test_get_with_negative_limit_returns_bad_request(self) -> None:
         url = self.reverse_url()
         query_params = {"limit": "-5"}
         response = self.client.get(url, query_params)
@@ -337,7 +337,7 @@ class TestResultsEndpointTest(APITestCase):
         assert response.status_code == 400
         assert response.data == {"details": "provided `limit` parameter must be a positive integer"}
 
-    def test_get_with_limit_as_string_returns_bad_request(self):
+    def test_get_with_limit_as_string_returns_bad_request(self) -> None:
         url = self.reverse_url()
         query_params = {"limit": "asdf"}
         response = self.client.get(url, query_params)

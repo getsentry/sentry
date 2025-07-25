@@ -38,7 +38,7 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
         self.second_organization = self.create_organization(owner=self.user)
         self.third_project = self.create_project(organization=self.second_organization)
 
-    def test_update_or_create(self):
+    def test_update_or_create(self) -> None:
         condition = {"op": "equals", "name": "environment", "value": "prod"}
 
         end1 = timezone.now() + timedelta(hours=1)
@@ -75,7 +75,7 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
         assert updated_rule.end_date >= end1
         assert updated_rule.end_date >= end2
 
-    def test_assign_rule_id(self):
+    def test_assign_rule_id(self) -> None:
 
         rule_ids = set()
         rules = []
@@ -107,7 +107,7 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
         new_rule_3 = _create_rule_for_env(6, [self.project], self.organization)
         assert new_rule_3.rule_id == rules[2].rule_id
 
-    def test_deactivate_old_rules(self):
+    def test_deactivate_old_rules(self) -> None:
         idx = 1
 
         old_rules = []
@@ -152,7 +152,7 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
         for rule in new_rules:
             assert rule in active_rules
 
-    def test_get_rule_for_org(self):
+    def test_get_rule_for_org(self) -> None:
         """
         Test the get_rule_for_org method
         """
@@ -180,7 +180,7 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
         )
         assert rule == new_rule
 
-    def test_get_project_rules(self):
+    def test_get_project_rules(self) -> None:
         """
         Tests that all valid rules (i.e. active and within the date range) that apply to a project
         (i.e. that are either organization rules or apply to the project) are returned.
@@ -241,7 +241,7 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
         assert valid_project_rule in rules
         assert valid_org_rule in rules
 
-    def test_separate_projects_create_different_rules(self):
+    def test_separate_projects_create_different_rules(self) -> None:
         """
         Tests that same condition for different projects create different rules
         """
@@ -282,7 +282,7 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
         assert len(second_projects) == 1
         assert self.second_project == second_projects[0]
 
-    def test_deactivate_expired_rules(self):
+    def test_deactivate_expired_rules(self) -> None:
         """
         Tests that expired, and only expired, rules are deactivated
         """
@@ -336,7 +336,7 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
                 assert rule.is_active
                 assert rule.id in active_rules
 
-    def test_per_project_limit(self):
+    def test_per_project_limit(self) -> None:
         """
         Tests that it is not possible to create more than MAX_CUSTOM_RULES_PER_PROJECT
         for a project

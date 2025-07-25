@@ -8,12 +8,12 @@ class TestFeatureAdoptionRedisCache(TestCase):
         self.cache = FeatureAdoptionRedisBackend(cluster="default")
         self.org_id = 1234
 
-    def test_in_cache(self):
+    def test_in_cache(self) -> None:
         assert not self.cache.in_cache(self.org_id, 90)
         self.cache.bulk_set_cache(self.org_id, 90)
         assert self.cache.in_cache(self.org_id, 90)
 
-    def test_get_all_cache(self):
+    def test_get_all_cache(self) -> None:
         fids = {70, 71, 72, 90, 91, 92}
         self.cache.bulk_set_cache(self.org_id, *fids)
         assert self.cache.get_all_cache(self.org_id) == fids

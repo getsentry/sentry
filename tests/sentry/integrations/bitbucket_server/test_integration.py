@@ -35,7 +35,7 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
         integration.add_organization(self.organization, self.user)
         return integration
 
-    def test_config_view(self):
+    def test_config_view(self) -> None:
         resp = self.client.get(self.init_path)
         assert resp.status_code == 200
 
@@ -45,7 +45,7 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
         self.assertContains(resp, "Submit</button>")
 
     @responses.activate
-    def test_validate_url(self):
+    def test_validate_url(self) -> None:
         # Start pipeline and go to setup page.
         self.client.get(self.setup_path)
 
@@ -61,7 +61,7 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
         self.assertContains(resp, "Enter a valid URL")
 
     @responses.activate
-    def test_validate_private_key(self):
+    def test_validate_private_key(self) -> None:
         responses.add(
             responses.POST,
             "https://bitbucket.example.com/plugins/servlet/oauth/request-token",
@@ -85,7 +85,7 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
         )
 
     @responses.activate
-    def test_validate_consumer_key_length(self):
+    def test_validate_consumer_key_length(self) -> None:
         # Start pipeline and go to setup page.
         self.client.get(self.setup_path)
 
@@ -157,7 +157,7 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
         assert_failure_metric(mock_record, "")
 
     @responses.activate
-    def test_authentication_request_token_redirect(self):
+    def test_authentication_request_token_redirect(self) -> None:
         responses.add(
             responses.POST,
             "https://bitbucket.example.com/plugins/servlet/oauth/request-token",
@@ -274,7 +274,7 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
         assert_failure_metric(mock_record, error_msg)
 
     @responses.activate
-    def test_authentication_success(self):
+    def test_authentication_success(self) -> None:
         responses.add(
             responses.POST,
             "https://bitbucket.example.com/plugins/servlet/oauth/request-token",
@@ -319,7 +319,7 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
         assert identity.data["private_key"] == EXAMPLE_PRIVATE_KEY
 
     @responses.activate
-    def test_setup_external_id_length(self):
+    def test_setup_external_id_length(self) -> None:
         responses.add(
             responses.POST,
             "https://bitbucket.example.com/plugins/servlet/oauth/request-token",
@@ -367,7 +367,7 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
             == "bitbucket.example.com:a-very-long-consumer-key-that-when-combine"
         )
 
-    def test_source_url_matches(self):
+    def test_source_url_matches(self) -> None:
         installation = self.integration.get_installation(self.organization.id)
 
         test_cases = [
@@ -388,7 +388,7 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
         for source_url, matches in test_cases:
             assert installation.source_url_matches(source_url) == matches
 
-    def test_format_source_url(self):
+    def test_format_source_url(self) -> None:
         installation = self.integration.get_installation(self.organization.id)
 
         with assume_test_silo_mode(SiloMode.REGION):
@@ -415,7 +415,7 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
             == "https://bitbucket.example.com/projects/TEST/repos/sentry/browse/src/sentry/integrations/bitbucket_server/integration.py?at=main"
         )
 
-    def test_extract_branch_from_source_url(self):
+    def test_extract_branch_from_source_url(self) -> None:
         installation = self.integration.get_installation(self.organization.id)
 
         with assume_test_silo_mode(SiloMode.REGION):
@@ -446,7 +446,7 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
             == "main"
         )
 
-    def test_extract_source_path_from_source_url(self):
+    def test_extract_source_path_from_source_url(self) -> None:
         installation = self.integration.get_installation(self.organization.id)
 
         with assume_test_silo_mode(SiloMode.REGION):

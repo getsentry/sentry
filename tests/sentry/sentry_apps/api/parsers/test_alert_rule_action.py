@@ -21,10 +21,10 @@ class TestAlertRuleActionSchemaValidation(unittest.TestCase):
             },
         }
 
-    def test_valid_schema(self):
+    def test_valid_schema(self) -> None:
         validate_component(self.schema)
 
     @invalid_schema
-    def test_missing_required_fields_fails(self):
+    def test_missing_required_fields_fails(self) -> None:
         del self.schema["settings"]["required_fields"]
         validate_component(self.schema)

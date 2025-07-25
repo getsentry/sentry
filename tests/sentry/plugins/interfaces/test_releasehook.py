@@ -6,7 +6,7 @@ from sentry.testutils.cases import TestCase
 
 
 class FinishReleaseTest(TestCase):
-    def test_minimal(self):
+    def test_minimal(self) -> None:
         project = self.create_project()
         version = "bbee5b51f84611e4b14834363b8514c2"
 
@@ -20,7 +20,7 @@ class FinishReleaseTest(TestCase):
 
 
 class SetCommitsTest(TestCase):
-    def test_minimal(self):
+    def test_minimal(self) -> None:
         project = self.create_project()
         version = "bbee5b51f84611e4b14834363b8514c2"
         data_list = [

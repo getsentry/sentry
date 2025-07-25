@@ -33,7 +33,7 @@ def merge_dictionaries(dict1, dict2):
 class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
     endpoint = "sentry-api-0-organization-scim-member-index"
 
-    def test_get_users_index_empty(self):
+    def test_get_users_index_empty(self) -> None:
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
         response = self.client.get(
             f"{url}?startIndex=1&count=100&filter=userName%20eq%20%22test.user%40okta.local%22"
@@ -128,7 +128,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
             ],
         )
 
-    def test_post_users_successful_existing_invite(self):
+    def test_post_users_successful_existing_invite(self) -> None:
         member = self.create_member(
             organization=self.organization,
             email="test.user@okta.local",
@@ -170,7 +170,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         assert not member.flags["idp:role-restricted"]
         assert member.role == self.organization.default_role
 
-    def test_post_users_already_exists(self):
+    def test_post_users_already_exists(self) -> None:
         # test that response 409s if member already exists (by email)
         member = self.create_member(
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
@@ -185,7 +185,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         assert not member.flags["idp:provisioned"]
         assert not member.flags["idp:role-restricted"]
 
-    def test_post_users_with_role_valid(self):
+    def test_post_users_with_role_valid(self) -> None:
         data = post_data()
         data["sentryOrgRole"] = "manager"
         with outbox_runner():
@@ -259,7 +259,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         assert member.role == self.organization.default_role
         member.delete()
 
-    def test_post_users_with_role_invalid(self):
+    def test_post_users_with_role_invalid(self) -> None:
         # Non-existant role
         data = post_data()
         data["sentryOrgRole"] = "nonexistant"
@@ -281,7 +281,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
             "detail": "Invalid organization role.",
         }
 
-    def test_get_members_with_filter__invited(self):
+    def test_get_members_with_filter__invited(self) -> None:
         member = self.create_member(organization=self.organization, email="test.user@okta.local")
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
         response = self.client.get(
@@ -308,7 +308,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         assert response.status_code == 200, response.content
         assert response.data == correct_get_data
 
-    def test_get_members_no_filter__invited(self):
+    def test_get_members_no_filter__invited(self) -> None:
         member = self.create_member(organization=self.organization, email="test.user@okta.local")
         admin = OrganizationMember.objects.get(organization=self.organization, user_id=self.user.id)
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
@@ -344,7 +344,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         assert response.status_code == 200, response.content
         assert response.data == correct_get_data
 
-    def test_get_members_no_filter__approved(self):
+    def test_get_members_no_filter__approved(self) -> None:
         user = self.create_user(email="test.user@okta.local")
         member = self.create_member(organization=self.organization, user=user)
         admin = OrganizationMember.objects.get(organization=self.organization, user_id=self.user.id)
@@ -381,7 +381,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         assert response.status_code == 200, response.content
         assert response.data == correct_get_data
 
-    def test_get_members_with_filter__approved(self):
+    def test_get_members_with_filter__approved(self) -> None:
         user = self.create_user(email="test.user@okta.local")
         member = self.create_member(organization=self.organization, user=user)
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
@@ -409,7 +409,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         assert response.status_code == 200, response.content
         assert response.data == correct_get_data
 
-    def test_users_get_filter_case_insensitive(self):
+    def test_users_get_filter_case_insensitive(self) -> None:
         member = self.create_member(organization=self.organization, email="test.user@okta.local")
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
         response = self.client.get(
@@ -437,7 +437,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         assert response.status_code == 200, response.content
         assert response.data == correct_get_data
 
-    def test_pagination(self):
+    def test_pagination(self) -> None:
         for _ in range(0, 15):
             self.create_member(
                 user=self.create_user(),
@@ -462,7 +462,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
 
 
 class SCIMMemberIndexAzureTests(SCIMAzureTestCase):
-    def test_user_index_get_no_active(self):
+    def test_user_index_get_no_active(self) -> None:
         member = self.create_member(organization=self.organization, email="test.user@okta.local")
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
         response = self.client.get(
@@ -490,7 +490,7 @@ class SCIMMemberIndexAzureTests(SCIMAzureTestCase):
 
 @all_silo_test
 class SCIMQueryParameterSerializerTest(unittest.TestCase):
-    def test_defaults(self):
+    def test_defaults(self) -> None:
         serializer = SCIMQueryParamSerializer(data={})
         assert serializer.is_valid()
         assert serializer.validated_data["start_index"] == 1
@@ -498,24 +498,24 @@ class SCIMQueryParameterSerializerTest(unittest.TestCase):
         assert serializer.validated_data["excluded_attributes"] == []
         assert serializer.validated_data["filter"] is None
 
-    def test_start_index(self):
+    def test_start_index(self) -> None:
         serializer = SCIMQueryParamSerializer(data={"startIndex": 0})
         assert not serializer.is_valid()
 
         serializer = SCIMQueryParamSerializer(data={"startIndex": 1})
         assert serializer.is_valid()
 
-    def test_count(self):
+    def test_count(self) -> None:
         serializer = SCIMQueryParamSerializer(data={"count": -1})
         assert not serializer.is_valid()
 
         serializer = SCIMQueryParamSerializer(data={"count": 0})
         assert serializer.is_valid()
 
-    def test_filter(self):
+    def test_filter(self) -> None:
         serializer = SCIMQueryParamSerializer(data={"filter": "aoiwefjoi3j9f"})
         assert not serializer.is_valid()
 
-    def test_excluded_attributes(self):
+    def test_excluded_attributes(self) -> None:
         serializer = SCIMQueryParamSerializer(data={"excludedAttributes": ["members"]})
         assert serializer.is_valid()

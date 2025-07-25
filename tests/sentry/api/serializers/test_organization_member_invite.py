@@ -10,7 +10,7 @@ class OrganizationMemberInviteSerializerTest(TestCase):
         self.org = self.create_organization()
         self.email = "user@email.com"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         member_invite = self.create_member_invite(
             organization=self.org, email=self.email, organization_member_team_data=[]
         )
@@ -33,7 +33,7 @@ class OrganizationMemberInviteSerializerTest(TestCase):
             "inviterName": None,
         }
 
-    def test_teams(self):
+    def test_teams(self) -> None:
         team = self.create_team(organization=self.org)
 
         member_invite = self.create_member_invite(
@@ -45,7 +45,7 @@ class OrganizationMemberInviteSerializerTest(TestCase):
 
         assert result["teams"] == [{"id": team.id, "slug": team.slug}]
 
-    def test_inviter(self):
+    def test_inviter(self) -> None:
         user = self.create_user()
         member_invite = self.create_member_invite(
             organization=self.org, email=self.email, inviter_id=user.id

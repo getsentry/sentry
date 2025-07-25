@@ -88,14 +88,14 @@ class OrganizationDetectorDetailsBaseTest(APITestCase):
 
 @region_silo_test
 class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
-    def test_simple(self):
+    def test_simple(self) -> None:
         response = self.get_success_response(self.organization.slug, self.detector.id)
         assert response.data == serialize(self.detector)
 
-    def test_does_not_exist(self):
+    def test_does_not_exist(self) -> None:
         self.get_error_response(self.organization.slug, 3, status_code=404)
 
-    def test_malformed_id(self):
+    def test_malformed_id(self) -> None:
         from django.urls import reverse
 
         # get_error_response can't generate an invalid URL, so we have to
@@ -104,13 +104,13 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
         bad_url = good_url.replace("7654", "not-an-id")
         assert_status_code(self.client.get(bad_url), 404)
 
-    def test_pending_deletion(self):
+    def test_pending_deletion(self) -> None:
         detector = self.create_detector()
         detector.status = ObjectStatus.PENDING_DELETION
         detector.save()
         self.get_error_response(self.organization.slug, detector.id, status_code=404)
 
-    def test_with_alert_rule_mapping(self):
+    def test_with_alert_rule_mapping(self) -> None:
         # Create a metric alert rule mapping
         metric_alert_id = 12345
         AlertRuleDetector.objects.create(alert_rule_id=metric_alert_id, detector=self.detector)
@@ -120,7 +120,7 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
         assert response.data["alertRuleId"] == metric_alert_id
         assert response.data["ruleId"] is None
 
-    def test_with_issue_rule_mapping(self):
+    def test_with_issue_rule_mapping(self) -> None:
         # Create an issue alert rule mapping
         issue_rule_id = 67890
         AlertRuleDetector.objects.create(rule_id=issue_rule_id, detector=self.detector)
@@ -130,7 +130,7 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
         assert response.data["ruleId"] == issue_rule_id
         assert response.data["alertRuleId"] is None
 
-    def test_without_alert_rule_mapping(self):
+    def test_without_alert_rule_mapping(self) -> None:
         """Test that alertRuleId and ruleId are null when no mapping exists"""
         response = self.get_success_response(self.organization.slug, self.detector.id)
 
@@ -198,7 +198,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert snuba_query.query == "updated query"
         assert snuba_query.time_window == 300
 
-    def test_update(self):
+    def test_update(self) -> None:
         with self.tasks():
             response = self.get_success_response(
                 self.organization.slug,
@@ -225,7 +225,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query.id)
         self.assert_snuba_query_updated(snuba_query)
 
-    def test_update_add_data_condition(self):
+    def test_update_add_data_condition(self) -> None:
         """
         Test that we can add an additional data condition
         """
@@ -251,7 +251,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         conditions = list(DataCondition.objects.filter(condition_group=condition_group))
         assert len(conditions) == 2
 
-    def test_update_bad_schema(self):
+    def test_update_bad_schema(self) -> None:
         """
         Test when we encounter bad data in the payload
         """
@@ -271,7 +271,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                 status_code=400,
             )
 
-    def test_update_owner_to_user(self):
+    def test_update_owner_to_user(self) -> None:
         # Initially no owner
         assert self.detector.owner_user_id is None
         assert self.detector.owner_team_id is None
@@ -300,7 +300,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         # Verify serialized response includes owner
         assert response.data["owner"] == self.user.get_actor_identifier()
 
-    def test_update_owner_to_team(self):
+    def test_update_owner_to_team(self) -> None:
         # Set initial user owner
         self.detector.owner_user_id = self.user.id
         self.detector.save()
@@ -332,7 +332,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         # Verify serialized response includes team owner
         assert response.data["owner"] == f"team:{team.id}"
 
-    def test_update_clear_owner(self):
+    def test_update_clear_owner(self) -> None:
         # Set initial owner
         self.detector.owner_user_id = self.user.id
         self.detector.save()
@@ -360,7 +360,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         # Verify serialized response shows no owner
         assert response.data["owner"] is None
 
-    def test_disable_detector(self):
+    def test_disable_detector(self) -> None:
         assert self.detector.enabled is True
         assert self.detector.status == ObjectStatus.ACTIVE
 
@@ -380,7 +380,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert detector.enabled is False
         assert detector.status == ObjectStatus.DISABLED
 
-    def test_enable_detector(self):
+    def test_enable_detector(self) -> None:
         self.detector.update(enabled=False)
         self.detector.update(status=ObjectStatus.DISABLED)
 
@@ -400,7 +400,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert detector.enabled is True
         assert detector.status == ObjectStatus.ACTIVE
 
-    def test_update_workflows_add_workflow(self):
+    def test_update_workflows_add_workflow(self) -> None:
         workflow1 = self.create_workflow(organization_id=self.organization.id)
         workflow2 = self.create_workflow(organization_id=self.organization.id)
 
@@ -435,7 +435,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
             assert audit_entries[0].target_object == detector_workflows[0].id
             assert audit_entries[1].target_object == detector_workflows[1].id
 
-    def test_update_workflows_replace_workflows(self):
+    def test_update_workflows_replace_workflows(self) -> None:
         """Test replacing existing workflows with new ones"""
         existing_workflow = self.create_workflow(organization_id=self.organization.id)
         new_workflow = self.create_workflow(organization_id=self.organization.id)
@@ -487,7 +487,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                 == 1
             )
 
-    def test_update_workflows_remove_all_workflows(self):
+    def test_update_workflows_remove_all_workflows(self) -> None:
         """Test removing all workflows by passing empty list"""
         # Create and connect a workflow initially
         workflow = self.create_workflow(organization_id=self.organization.id)
@@ -525,7 +525,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                 == 1
             )
 
-    def test_update_workflows_invalid_workflow_ids(self):
+    def test_update_workflows_invalid_workflow_ids(self) -> None:
         """Test validation failure with non-existent workflow IDs"""
         data = {
             **self.valid_data,
@@ -541,7 +541,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
 
         assert "Some workflows do not exist" in str(response.data)
 
-    def test_update_workflows_from_different_organization(self):
+    def test_update_workflows_from_different_organization(self) -> None:
         """Test validation failure when workflows belong to different organization"""
         other_org = self.create_organization()
         other_workflow = self.create_workflow(organization_id=other_org.id)
@@ -560,7 +560,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
 
         assert "Some workflows do not exist" in str(response.data)
 
-    def test_update_workflows_transaction_rollback_on_validation_failure(self):
+    def test_update_workflows_transaction_rollback_on_validation_failure(self) -> None:
         """Test that detector updates are rolled back when workflow validation fails"""
         existing_workflow = self.create_workflow(organization_id=self.organization.id)
         DetectorWorkflow.objects.create(detector=self.detector, workflow=existing_workflow)
@@ -607,7 +607,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                 == 0
             )
 
-    def test_update_without_workflow_ids(self):
+    def test_update_without_workflow_ids(self) -> None:
         """Test that omitting workflowIds doesn't affect existing workflow connections"""
         workflow = self.create_workflow(organization_id=self.organization.id)
         DetectorWorkflow.objects.create(detector=self.detector, workflow=workflow)
@@ -632,7 +632,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert self.detector.name == "Updated Without Workflows"
         assert DetectorWorkflow.objects.filter(detector=self.detector).count() == 1
 
-    def test_update_workflows_no_changes(self):
+    def test_update_workflows_no_changes(self) -> None:
         """Test that passing the same workflow IDs doesn't change anything"""
         workflow = self.create_workflow(organization_id=self.organization.id)
         DetectorWorkflow.objects.create(detector=self.detector, workflow=workflow)
@@ -676,7 +676,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
 class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest):
     method = "DELETE"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         with outbox_runner():
             self.get_success_response(self.organization.slug, self.detector.id)
 
@@ -692,7 +692,7 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         self.detector.refresh_from_db()
         assert self.detector.status == ObjectStatus.PENDING_DELETION
 
-    def test_error_group_type(self):
+    def test_error_group_type(self) -> None:
         """
         Test that we do not delete the required error detector
         """

@@ -6,11 +6,11 @@ from sentry.testutils.helpers.options import override_options
 
 
 class ProjectOptionManagerTest(TransactionTestCase):
-    def test_set_value(self):
+    def test_set_value(self) -> None:
         ProjectOption.objects.set_value(self.project, "foo", "bar")
         assert ProjectOption.objects.get(project=self.project, key="foo").value == "bar"
 
-    def test_get_value(self):
+    def test_get_value(self) -> None:
         result = ProjectOption.objects.get_value(self.project, "foo")
         assert result is None
 
@@ -18,13 +18,13 @@ class ProjectOptionManagerTest(TransactionTestCase):
         result = ProjectOption.objects.get_value(self.project, "foo")
         assert result == "bar"
 
-    def test_unset_value(self):
+    def test_unset_value(self) -> None:
         ProjectOption.objects.unset_value(self.project, "foo")
         ProjectOption.objects.create(project=self.project, key="foo", value="bar")
         ProjectOption.objects.unset_value(self.project, "foo")
         assert not ProjectOption.objects.filter(project=self.project, key="foo").exists()
 
-    def test_get_value_bulk(self):
+    def test_get_value_bulk(self) -> None:
         result = ProjectOption.objects.get_value_bulk([self.project], "foo")
         assert result == {self.project: None}
 
@@ -32,7 +32,7 @@ class ProjectOptionManagerTest(TransactionTestCase):
         result = ProjectOption.objects.get_value_bulk([self.project], "foo")
         assert result == {self.project: "bar"}
 
-    def test_set_value_with_new_caching_option_enabled(self):
+    def test_set_value_with_new_caching_option_enabled(self) -> None:
         """Test set_value behavior with reload_cache_only_on_value_change enabled"""
         with override_options({"sentry.project_option.reload_cache_only_on_value_change": True}):
             with patch.object(ProjectOption.objects, "reload_cache") as mock_reload:
@@ -62,7 +62,7 @@ class ProjectOptionManagerTest(TransactionTestCase):
                 assert result4 is True  # Value changed
                 assert not mock_reload.called
 
-    def test_set_value_with_new_caching_option_disabled(self):
+    def test_set_value_with_new_caching_option_disabled(self) -> None:
         """Test set_value behavior with reload_cache_only_on_value_change disabled (legacy behavior)"""
         with override_options({"sentry.project_option.reload_cache_only_on_value_change": False}):
             with patch.object(ProjectOption.objects, "reload_cache") as mock_reload:
@@ -94,7 +94,7 @@ class ProjectOptionManagerTest(TransactionTestCase):
                 assert result is True  # Updated
                 assert not mock_reload.called
 
-    def test_set_value_with_project_id(self):
+    def test_set_value_with_project_id(self) -> None:
         """Test set_value works with project ID instead of project object"""
         with override_options({"sentry.project_option.reload_cache_only_on_value_change": True}):
             result = ProjectOption.objects.set_value(self.project.id, "id_key", "id_value")

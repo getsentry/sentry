@@ -46,7 +46,7 @@ class ReleaseWebhookTest(ReleaseWebhookTestBase):
         super().setUp()
         self.plugin_id = "dummy"
 
-    def test_no_token(self):
+    def test_no_token(self) -> None:
         project = self.create_project(teams=[self.team])
         path = reverse(
             "sentry-release-hook",
@@ -55,7 +55,7 @@ class ReleaseWebhookTest(ReleaseWebhookTestBase):
         resp = self.client.post(path)
         assert resp.status_code == 403
 
-    def test_invalid_signature(self):
+    def test_invalid_signature(self) -> None:
         path = reverse(
             "sentry-release-hook",
             kwargs={"project_id": self.project.id, "plugin_id": "dummy", "signature": "wrong"},
@@ -63,7 +63,7 @@ class ReleaseWebhookTest(ReleaseWebhookTestBase):
         resp = self.client.post(path)
         assert resp.status_code == 403
 
-    def test_invalid_project(self):
+    def test_invalid_project(self) -> None:
         path = reverse(
             "sentry-release-hook",
             kwargs={"project_id": 1000000, "plugin_id": "dummy", "signature": self.signature},
@@ -105,11 +105,11 @@ class BuiltinReleaseWebhookTest(ReleaseWebhookTestBase):
         super().setUp()
         self.plugin_id = "builtin"
 
-    def test_invalid_params(self):
+    def test_invalid_params(self) -> None:
         resp = self.client.post(self.path, content_type="application/json")
         assert resp.status_code == 400
 
-    def test_valid_params(self):
+    def test_valid_params(self) -> None:
         resp = self.client.post(
             self.path, data=json.dumps({"version": "a"}), content_type="application/json"
         )

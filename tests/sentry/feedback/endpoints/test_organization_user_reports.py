@@ -74,18 +74,18 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
         result_ids = {report["id"] for report in response.data}
         assert result_ids == {str(report.id) for report in expected}
 
-    def test_no_filters(self):
+    def test_no_filters(self) -> None:
         self.run_test([self.report_1, self.report_2])
 
-    def test_project_filter(self):
+    def test_project_filter(self) -> None:
         self.run_test([self.report_1], project=[self.project_1.id])
         self.run_test([self.report_2], project=[self.project_2.id])
 
-    def test_environment_filter(self):
+    def test_environment_filter(self) -> None:
         self.run_test([self.report_1], environment=[self.env_1.name])
         self.run_test([self.report_2], environment=[self.env_2.name])
 
-    def test_date_filter(self):
+    def test_date_filter(self) -> None:
         self.run_test(
             [self.report_1],
             start=(datetime.now(UTC) - timedelta(days=1)).isoformat(),
@@ -98,10 +98,10 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
         )
         self.run_test([self.report_1, self.report_2], statsPeriod="14d")
 
-    def test_all_reports(self):
+    def test_all_reports(self) -> None:
         self.run_test([self.report_1, self.report_2, self.report_resolved_1], status="")
 
-    def test_new_project(self):
+    def test_new_project(self) -> None:
         org2 = self.create_organization()
         self.team = self.create_team(organization=org2)
         self.create_member(teams=[self.team], user=self.user, organization=org2)
@@ -109,13 +109,13 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data == []
 
-    def test_invalid_date_params(self):
+    def test_invalid_date_params(self) -> None:
         response = self.get_response(
             self.project_1.organization.slug, **{"start": "null", "end": "null"}
         )
         assert response.status_code == 400
 
-    def test_with_event_user(self):
+    def test_with_event_user(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "d" * 32,

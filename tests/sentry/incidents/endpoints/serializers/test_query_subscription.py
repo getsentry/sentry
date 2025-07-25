@@ -4,7 +4,7 @@ from sentry.testutils.cases import TestCase
 
 
 class TestSnubaQuerySerializer(TestCase):
-    def test_serialize(self):
+    def test_serialize(self) -> None:
         snuba_query = SnubaQuery.objects.create(
             type=SnubaQuery.Type.ERROR.value,
             dataset="events",
@@ -30,7 +30,7 @@ class TestSnubaQuerySerializer(TestCase):
             "eventTypes": ["error"],
         }
 
-    def test_serialize_no_environment(self):
+    def test_serialize_no_environment(self) -> None:
         snuba_query = SnubaQuery.objects.create(
             type=SnubaQuery.Type.ERROR.value,
             dataset="events",
@@ -57,7 +57,7 @@ class TestSnubaQuerySerializer(TestCase):
 
 
 class TestQuerySubscriptionSerializer(TestCase):
-    def test_serialize(self):
+    def test_serialize(self) -> None:
         snuba_query = SnubaQuery.objects.create(
             type=SnubaQuery.Type.ERROR.value,
             dataset="events",

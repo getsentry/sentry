@@ -112,7 +112,7 @@ class PerformanceDetectionTest(TestCase):
         assert mock.call_count == 1
 
     @override_options(BASE_DETECTOR_OPTIONS)
-    def test_detector_respects_project_option_settings(self):
+    def test_detector_respects_project_option_settings(self) -> None:
         n_plus_one_event = get_event("n-plus-one-in-django-index-view")
         sdk_span_mock = Mock()
 
@@ -126,7 +126,7 @@ class PerformanceDetectionTest(TestCase):
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
         assert perf_problems == []
 
-    def test_project_options_overrides_default_detection_settings(self):
+    def test_project_options_overrides_default_detection_settings(self) -> None:
         default_settings = get_detection_settings(self.project)
 
         assert default_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["detection_enabled"]
@@ -172,7 +172,7 @@ class PerformanceDetectionTest(TestCase):
         )
         assert not configured_settings[DetectorType.UNCOMPRESSED_ASSETS]["detection_enabled"]
 
-    def test_project_options_overrides_default_threshold_settings(self):
+    def test_project_options_overrides_default_threshold_settings(self) -> None:
 
         default_settings = get_detection_settings(self.project)
 
@@ -231,7 +231,7 @@ class PerformanceDetectionTest(TestCase):
         assert configured_settings[DetectorType.CONSECUTIVE_HTTP_OP]["min_time_saved"] == 1000
 
     @override_options(BASE_DETECTOR_OPTIONS)
-    def test_n_plus_one_extended_detection_no_parent_span(self):
+    def test_n_plus_one_extended_detection_no_parent_span(self) -> None:
         n_plus_one_event = get_event("n-plus-one-db-root-parent-span")
         sdk_span_mock = Mock()
 
@@ -278,7 +278,7 @@ class PerformanceDetectionTest(TestCase):
         ]
 
     @override_options(BASE_DETECTOR_OPTIONS)
-    def test_overlap_detector_problems(self):
+    def test_overlap_detector_problems(self) -> None:
         n_plus_one_event = get_event("n-plus-one-db-root-parent-span")
         sdk_span_mock = Mock()
 
@@ -289,7 +289,7 @@ class PerformanceDetectionTest(TestCase):
         assert len(n_plus_one_problems)
 
     @override_options(BASE_DETECTOR_OPTIONS_OFF)
-    def test_system_option_disables_detector_issue_creation(self):
+    def test_system_option_disables_detector_issue_creation(self) -> None:
         n_plus_one_event = get_event("n-plus-one-in-django-index-view")
         sdk_span_mock = Mock()
 
@@ -297,7 +297,7 @@ class PerformanceDetectionTest(TestCase):
         assert perf_problems == []
 
     @override_options({"performance.issues.consecutive_http.problem-creation": True})
-    def test_boolean_system_option_disables_detector_issue_creation(self):
+    def test_boolean_system_option_disables_detector_issue_creation(self) -> None:
         event = get_event("consecutive-http/consecutive-http-basic")
         sdk_span_mock = Mock()
 
@@ -305,7 +305,7 @@ class PerformanceDetectionTest(TestCase):
         assert perf_problems == []
 
     @override_options({"performance.issues.consecutive_http.problem-creation": False})
-    def test_boolean_system_option_enables_detector_issue_creation(self):
+    def test_boolean_system_option_enables_detector_issue_creation(self) -> None:
         event = get_event("consecutive-http/consecutive-http-basic")
         sdk_span_mock = Mock()
 
@@ -344,7 +344,7 @@ class PerformanceDetectionTest(TestCase):
         ]
 
     @override_options(BASE_DETECTOR_OPTIONS)
-    def test_system_option_used_when_project_option_is_default(self):
+    def test_system_option_used_when_project_option_is_default(self) -> None:
         n_plus_one_event = get_event("n-plus-one-in-django-index-view")
         sdk_span_mock = Mock()
 
@@ -372,7 +372,7 @@ class PerformanceDetectionTest(TestCase):
             assert_n_plus_one_db_problem(perf_problems)
 
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
-    def test_respects_organization_creation_permissions(self):
+    def test_respects_organization_creation_permissions(self) -> None:
         n_plus_one_event = get_event("n-plus-one-in-django-index-view")
         sdk_span_mock = Mock()
 
@@ -389,7 +389,7 @@ class PerformanceDetectionTest(TestCase):
         assert_n_plus_one_db_problem(perf_problems)
 
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
-    def test_respects_project_creation_permissions(self):
+    def test_respects_project_creation_permissions(self) -> None:
         n_plus_one_event = get_event("n-plus-one-in-django-index-view")
         sdk_span_mock = Mock()
 
@@ -406,7 +406,7 @@ class PerformanceDetectionTest(TestCase):
         assert_n_plus_one_db_problem(perf_problems)
 
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
-    def test_detects_performance_issues_in_n_plus_one_query(self):
+    def test_detects_performance_issues_in_n_plus_one_query(self) -> None:
         n_plus_one_event = get_event("n-plus-one-in-django-index-view")
         sdk_span_mock = Mock()
 
@@ -481,7 +481,7 @@ class PerformanceDetectionTest(TestCase):
 
 
 class EventPerformanceProblemTest(TestCase):
-    def test_save_and_fetch(self):
+    def test_save_and_fetch(self) -> None:
         event = Event(self.project.id, "something")
         problem = PerformanceProblem(
             "test",
@@ -500,7 +500,7 @@ class EventPerformanceProblemTest(TestCase):
         assert found is not None
         assert found.problem == problem
 
-    def test_fetch_multi(self):
+    def test_fetch_multi(self) -> None:
         event_1 = Event(self.project.id, "something")
         event_1_problems = [
             PerformanceProblem(

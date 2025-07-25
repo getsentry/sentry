@@ -16,10 +16,10 @@ class OrganizationSamplingProjectRatesTest(APITestCase):
         self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
         self.login_as(user=self.user)
 
-    def test_without_ds(self):
+    def test_without_ds(self) -> None:
         self.get_error_response(self.organization.slug, status_code=404)
 
-    def test_get(self):
+    def test_get(self) -> None:
         project1 = self.create_project(teams=[self.team])
         project2 = self.create_project(teams=[self.team])
         project2.update_option("sentry:target_sample_rate", 0.2)
@@ -32,7 +32,7 @@ class OrganizationSamplingProjectRatesTest(APITestCase):
             {"id": project2.id, "sampleRate": 0.2},
         ]
 
-    def test_put(self):
+    def test_put(self) -> None:
         project1 = self.create_project(teams=[self.team])
         project1.update_option("sentry:target_sample_rate", 0.2)
         project2 = self.create_project(teams=[self.team])
@@ -60,7 +60,7 @@ class OrganizationSamplingProjectRatesTest(APITestCase):
         assert project2.get_option("sentry:target_sample_rate") == 0.5
         assert project3.get_option("sentry:target_sample_rate") == 0.1235
 
-    def test_put_automatic_mode(self):
+    def test_put_automatic_mode(self) -> None:
         self.organization.update_option(
             "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
         )
@@ -69,7 +69,7 @@ class OrganizationSamplingProjectRatesTest(APITestCase):
         with self.feature(self.features):
             self.get_error_response(self.organization.slug, method="put", raw_data=data)
 
-    def test_put_invalid_body(self):
+    def test_put_invalid_body(self) -> None:
         with self.feature(self.features):
             self.get_error_response(
                 self.organization.slug, method="put", raw_data={}, status_code=400

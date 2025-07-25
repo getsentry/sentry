@@ -17,7 +17,7 @@ class ProjectFiltersTest(APITestCase):
                 return spec
         raise AssertionError(f"spec not found: {spec_id}")
 
-    def test_get(self):
+    def test_get(self) -> None:
         org = self.create_organization(name="baz", slug="1", owner=self.user)
         team = self.create_team(organization=org, name="foo", slug="foo")
         project = self.create_project(name="Bar", slug="bar", teams=[team])
@@ -27,7 +27,7 @@ class ProjectFiltersTest(APITestCase):
 
         self.insta_snapshot(response.data)
 
-    def test_health_check_filter(self):
+    def test_health_check_filter(self) -> None:
         """
         Tests setting health check filters ( aka filtered-transactions)
         """

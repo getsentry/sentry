@@ -10,13 +10,13 @@ class CatchallTestCase(APITestCase):
     def setUp(self):
         super().setUp()
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         response = self.client.get("/api/0/bad_url/")
         assert_status_code(response, status.HTTP_404_NOT_FOUND)
 
         assert response.content == b""
 
-    def test_trailing_slash_help(self):
+    def test_trailing_slash_help(self) -> None:
         response = self.client.get("/api/0/bad_url")
         assert_status_code(response, status.HTTP_404_NOT_FOUND)
 
@@ -27,7 +27,7 @@ class CatchallTestCase(APITestCase):
             in response.content
         )
 
-    def test_trailing_slash_help_json(self):
+    def test_trailing_slash_help_json(self) -> None:
         response = self.client.get("/api/0/bad_url", content_type="application/json")
         assert_status_code(response, status.HTTP_404_NOT_FOUND)
 
@@ -35,7 +35,7 @@ class CatchallTestCase(APITestCase):
             "info": "Route not found, did you forget a trailing slash? try: /api/0/bad_url/"
         }
 
-    def test_missing_route_response_includes_cors(self):
+    def test_missing_route_response_includes_cors(self) -> None:
         res = self.client.get("/api/0/bad_url/")
         assert res.status_code == 404
         assert "x-frame-options" in res

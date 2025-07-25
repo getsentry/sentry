@@ -14,7 +14,7 @@ class IntegrationFeaturesTest(APITestCase):
         self.user = self.create_user(email="cynthia@poke.mon")
         self.login_as(self.user)
 
-    def test_returns_all_features(self):
+    def test_returns_all_features(self) -> None:
         """
         Tests that all of the default IntegrationFeatures were returned
         """
@@ -26,7 +26,7 @@ class IntegrationFeaturesTest(APITestCase):
             # Ensure their featureGate matches the featureId
             assert feature["featureGate"] == Feature.as_str(feature["featureId"])
 
-    def test_no_records_are_created(self):
+    def test_no_records_are_created(self) -> None:
         """
         Tests that calling this endpoint does not save any
         IntegrationFeatures to the database

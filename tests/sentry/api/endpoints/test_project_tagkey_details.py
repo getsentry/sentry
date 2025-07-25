@@ -12,7 +12,7 @@ pytestmark = [requires_snuba]
 
 
 class ProjectTagKeyDetailsTest(APITestCase, SnubaTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project()
 
         def make_event(i):
@@ -77,7 +77,7 @@ class ProjectTagKeyDeleteTest(APITestCase):
         mock_eventstream.start_delete_tag.assert_called_once_with(project.id, "foo")
         mock_eventstream.end_delete_tag.assert_called_once_with(eventstream_state)
 
-    def test_protected(self):
+    def test_protected(self) -> None:
         project = self.create_project()
         self.store_event(
             data={"environment": "prod", "timestamp": before_now(seconds=1).isoformat()},

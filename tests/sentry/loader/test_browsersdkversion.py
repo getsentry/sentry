@@ -23,7 +23,7 @@ MOCK_VERSIONS = [
 
 
 class BrowserSdkVersionTestCase(TestCase):
-    def test_get_all_browser_sdk_version_versions(self):
+    def test_get_all_browser_sdk_version_versions(self) -> None:
         assert "latest" in get_all_browser_sdk_version_versions()
         assert "4.x" in get_all_browser_sdk_version_versions()
 

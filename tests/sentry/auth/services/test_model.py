@@ -10,7 +10,7 @@ class TestRpcApiToken(TestCase):
         self.user = self.create_user()
         self.org = self.create_organization()
 
-    def test_serializes_correct_fields(self):
+    def test_serializes_correct_fields(self) -> None:
         internal_app = self.create_internal_integration(organization=self.org)
         api_token = self.create_internal_integration_token(
             user=self.user, internal_integration=internal_app
@@ -26,7 +26,7 @@ class TestRpcApiKey(TestCase):
         self.user = self.create_user()
         self.org = self.create_organization()
 
-    def test_serializes_correct_fields(self):
+    def test_serializes_correct_fields(self) -> None:
         key = ApiKey.objects.create(
             organization_id=self.create_organization().id, scope_list=["org:read"]
         )

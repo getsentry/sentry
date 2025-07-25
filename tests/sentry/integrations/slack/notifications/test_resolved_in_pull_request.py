@@ -32,7 +32,7 @@ class SlackResolvedInPullRequestNotificationTest(
             )
         )
 
-    def test_resolved_in_pull_request_block(self):
+    def test_resolved_in_pull_request_block(self) -> None:
         notification = self.create_notification(self.group)
         with self.tasks():
             notification.send()

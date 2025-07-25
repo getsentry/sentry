@@ -33,14 +33,14 @@ class AtlassianConnectTest(TestCase):
 
         self.expired_jwt = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ0ZXN0c2VydmVyLmppcmE6MTIzIiwiaWF0IjoxMjM0NTY3ODkwLCJleHAiOjEyMzQ1Njc4OTAsInFzaCI6IjM2ZjQzYjg4ZDZhOGNkZjg5YmI4Zjc0NGUyMzc4YmIwY2ViNjM3OGU4MGFiMGI1MTMwODJhOGI3MjM5NmJjY2MiLCJzdWIiOiJjb25uZWN0OjEyMyJ9.1ZIrXDbaS6nUMgtmdCE1BFbsT7yvNKTkzVnSjX-Q7TA"
 
-    def test_get_token_success(self):
+    def test_get_token_success(self) -> None:
         request = self.factory.post(path=self.path, HTTP_AUTHORIZATION=f"JWT {self.valid_jwt}")
         assert get_token(request) == self.valid_jwt
 
         request = self.factory.post(path=self.path, HTTP_AUTHORIZATION=f"Bearer {self.valid_jwt}")
         assert get_token(request) == self.valid_jwt
 
-    def test_get_token_error(self):
+    def test_get_token_error(self) -> None:
         request = self.factory.post(path=self.path, AUTHORIZATION=f"JWT {self.valid_jwt}")
         with pytest.raises(AtlassianConnectValidationError):
             get_token(request)
@@ -49,11 +49,11 @@ class AtlassianConnectTest(TestCase):
         with pytest.raises(AtlassianConnectValidationError):
             get_token(request)
 
-    def test_get_query_hash(self):
+    def test_get_query_hash(self) -> None:
         result = get_query_hash(uri=self.path, method=self.method, query_params=self.query_params)
         assert result == self.query_hash
 
-    def test_get_integration_from_jwt_success(self):
+    def test_get_integration_from_jwt_success(self) -> None:
         integration = get_integration_from_jwt(
             token=self.valid_jwt,
             path=self.path,
@@ -63,7 +63,7 @@ class AtlassianConnectTest(TestCase):
         )
         assert integration.id == self.integration.id
 
-    def test_get_integration_from_jwt_failure(self):
+    def test_get_integration_from_jwt_failure(self) -> None:
         try:
             get_integration_from_jwt(
                 token=None, path=self.path, provider=self.provider, query_params=None
@@ -116,7 +116,7 @@ class AtlassianConnectTest(TestCase):
             assert str(e) == "Signature is expired"
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_parse_integration_from_request(self):
+    def test_parse_integration_from_request(self) -> None:
         """This is the only function unique to the Control Silo"""
         # From request header...
         request = self.factory.get(

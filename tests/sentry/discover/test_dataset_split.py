@@ -48,7 +48,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         self.ten_mins_ago = before_now(minutes=10)
         self.dry_run = False
 
-    def test_errors_query(self):
+    def test_errors_query(self) -> None:
         errors_query = DiscoverSavedQuery.objects.create(
             organization_id=self.organization.id,
             name="",
@@ -70,7 +70,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         saved_query = DiscoverSavedQuery.objects.get(id=errors_query.id)
         assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 1
 
-    def test_errors_query_top_level_and_condition(self):
+    def test_errors_query_top_level_and_condition(self) -> None:
         errors_query = DiscoverSavedQuery.objects.create(
             organization_id=self.organization.id,
             name="",
@@ -92,7 +92,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         saved_query = DiscoverSavedQuery.objects.get(id=errors_query.id)
         assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 1
 
-    def test_top_level_or_condition_with_no_data(self):
+    def test_top_level_or_condition_with_no_data(self) -> None:
         transaction_query = DiscoverSavedQuery.objects.create(
             organization_id=self.organization.id,
             name="",
@@ -114,7 +114,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         saved_query = DiscoverSavedQuery.objects.get(id=transaction_query.id)
         assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 2
 
-    def test_conflicting_or_conditions_favor_errors(self):
+    def test_conflicting_or_conditions_favor_errors(self) -> None:
         transaction_query = DiscoverSavedQuery.objects.create(
             organization_id=self.organization.id,
             name="",
@@ -136,7 +136,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         saved_query = DiscoverSavedQuery.objects.get(id=transaction_query.id)
         assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 1
 
-    def test_array_condition(self):
+    def test_array_condition(self) -> None:
         array_query = DiscoverSavedQuery.objects.create(
             organization_id=self.organization.id,
             name="",
@@ -158,7 +158,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         saved_query = DiscoverSavedQuery.objects.get(id=array_query.id)
         assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 2
 
-    def test_measurements_condition(self):
+    def test_measurements_condition(self) -> None:
         measurements_query = DiscoverSavedQuery.objects.create(
             organization_id=self.organization.id,
             name="",
@@ -187,7 +187,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         saved_query = DiscoverSavedQuery.objects.get(id=measurements_query.id)
         assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 2
 
-    def test_spans_condition(self):
+    def test_spans_condition(self) -> None:
         query = DiscoverSavedQuery.objects.create(
             organization_id=self.organization.id,
             name="",
@@ -215,7 +215,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         saved_query = DiscoverSavedQuery.objects.get(id=query.id)
         assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 2
 
-    def test_measurements_columns(self):
+    def test_measurements_columns(self) -> None:
         query = DiscoverSavedQuery.objects.create(
             organization_id=self.organization.id,
             name="",
@@ -244,7 +244,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         saved_query = DiscoverSavedQuery.objects.get(id=query.id)
         assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 2
 
-    def test_spans_column(self):
+    def test_spans_column(self) -> None:
         query = DiscoverSavedQuery.objects.create(
             organization_id=self.organization.id,
             name="",
@@ -271,7 +271,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         saved_query = DiscoverSavedQuery.objects.get(id=query.id)
         assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 2
 
-    def test_ambiguous_query_with_error_data(self):
+    def test_ambiguous_query_with_error_data(self) -> None:
         data = load_data("javascript", timestamp=self.ten_mins_ago)
         data["transaction"] = "/to_other/"
         self.store_event(data, project_id=self.project.id, assert_no_errors=False)
@@ -305,7 +305,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         saved_query = DiscoverSavedQuery.objects.get(id=query.id)
         assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 1
 
-    def test_ambiguous_query_with_transactions_data(self):
+    def test_ambiguous_query_with_transactions_data(self) -> None:
         data = load_data("transaction", timestamp=self.ten_mins_ago)
         data["transaction"] = "/to_other/"
         data["environment"] = self.environment.name
@@ -341,7 +341,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         saved_query = DiscoverSavedQuery.objects.get(id=query.id)
         assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 2
 
-    def test_ambiguous_query_with_no_data(self):
+    def test_ambiguous_query_with_no_data(self) -> None:
         query = DiscoverSavedQuery.objects.create(
             organization_id=self.organization.id,
             name="",
@@ -367,7 +367,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         saved_query = DiscoverSavedQuery.objects.get(id=query.id)
         assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 1
 
-    def test_ambiguous_query_with_error_and_transaction_data(self):
+    def test_ambiguous_query_with_error_and_transaction_data(self) -> None:
         data = load_data("transaction", timestamp=self.ten_mins_ago)
         data["transaction"] = "/to_other/"
         self.store_event(data, project_id=self.project.id, assert_no_errors=False)
@@ -401,7 +401,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         saved_query = DiscoverSavedQuery.objects.get(id=query.id)
         assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 1
 
-    def test_ambiguous_query_with_tags(self):
+    def test_ambiguous_query_with_tags(self) -> None:
         data = load_data("transaction", timestamp=self.ten_mins_ago)
         data["transaction"] = "/to_other/"
         data["tags"] = {"branch": "/main/"}
@@ -436,7 +436,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         saved_query = DiscoverSavedQuery.objects.get(id=query.id)
         assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 2
 
-    def test_ambiguous_error_query_with_tags(self):
+    def test_ambiguous_error_query_with_tags(self) -> None:
         data = load_data("transaction", timestamp=self.ten_mins_ago)
         data["transaction"] = "/to_other/"
         data["tags"] = {"branch": "/main/"}
@@ -473,7 +473,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 1
 
     @freeze_time("2024-05-01 12:00:00")
-    def test_out_of_range_defaults_to_seven_days(self):
+    def test_out_of_range_defaults_to_seven_days(self) -> None:
         query = DiscoverSavedQuery.objects.create(
             organization_id=self.organization.id,
             name="",
@@ -502,7 +502,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         assert snuba_dataclass.end == datetime(2024, 5, 1, 12, 0, tzinfo=timezone.utc)
 
     @freeze_time("2024-05-01 12:00:00")
-    def test_respects_range_date_params(self):
+    def test_respects_range_date_params(self) -> None:
         query = DiscoverSavedQuery.objects.create(
             organization_id=self.organization.id,
             name="",
@@ -528,7 +528,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         assert snuba_dataclass.start == datetime(2024, 5, 1, 11, 0, tzinfo=timezone.utc)
         assert snuba_dataclass.end == datetime(2024, 5, 1, 12, 0, tzinfo=timezone.utc)
 
-    def test_errors_query_fallback(self):
+    def test_errors_query_fallback(self) -> None:
         errors_query = DiscoverSavedQuery.objects.create(
             organization_id=self.organization.id,
             name="",
@@ -553,7 +553,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         if not self.dry_run:
             assert errors_query.dataset_source == DatasetSourcesTypes.FORCED.value
 
-    def test_saved_query_org_with_no_projects(self):
+    def test_saved_query_org_with_no_projects(self) -> None:
         # An org with no projects
         self.organization = self.create_organization()
 
@@ -577,7 +577,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         saved_query = DiscoverSavedQuery.objects.get(id=errors_query.id)
         assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 1
 
-    def test_dashboard_split_transaction_status_error_events_dataset(self):
+    def test_dashboard_split_transaction_status_error_events_dataset(self) -> None:
         transaction_query = DiscoverSavedQuery.objects.create(
             organization_id=self.organization.id,
             name="",
@@ -598,7 +598,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         if not self.dry_run:
             assert transaction_query.dataset_source == DatasetSourcesTypes.FORCED.value
 
-    def test_unhandled_filter_sets_error_events_dataset(self):
+    def test_unhandled_filter_sets_error_events_dataset(self) -> None:
         error_query = DiscoverSavedQuery.objects.create(
             organization_id=self.organization.id,
             name="",
@@ -625,7 +625,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         if not self.dry_run:
             assert error_query.dataset_source == DatasetSourcesTypes.FORCED.value
 
-    def test_empty_equation_is_filtered_out(self):
+    def test_empty_equation_is_filtered_out(self) -> None:
         error_query = DiscoverSavedQuery.objects.create(
             organization_id=self.organization.id,
             name="",

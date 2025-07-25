@@ -22,7 +22,7 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
         super().setUp()
         self.ten_mins_ago = before_now(minutes=10)
 
-    def test_get_transactions_for_project(self):
+    def test_get_transactions_for_project(self) -> None:
         """Test the full end-to-end happy path for get_transactions_for_project."""
         # Create spans for different transactions with varying volumes
         transactions_data = [
@@ -78,7 +78,7 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
             assert isinstance(transaction.name, str)
             assert len(transaction.name) > 0
 
-    def test_get_trace_for_transaction(self):
+    def test_get_trace_for_transaction(self) -> None:
         transaction_name = "api/users/profile"
 
         # Create multiple traces with different span counts
@@ -145,7 +145,7 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
         super().setUp()
         self.ten_mins_ago = before_now(minutes=10)
 
-    def test_get_profiles_for_trace(self):
+    def test_get_profiles_for_trace(self) -> None:
         """Test the full end-to-end happy path for get_profiles_for_trace."""
         trace_id = "a" * 32  # Valid 32-char hex trace ID
 
@@ -284,7 +284,7 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
         super().setUp()
         self.ten_mins_ago = before_now(minutes=10)
 
-    def test_get_issues_for_transaction(self):
+    def test_get_issues_for_transaction(self) -> None:
         """Test the full end-to-end happy path for get_issues_for_transaction."""
         transaction_name = "api/users/profile"
 

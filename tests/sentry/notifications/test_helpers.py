@@ -42,7 +42,7 @@ class NotificationHelpersTest(TestCase):
                 value="always",
             )
 
-    def test_validate(self):
+    def test_validate(self) -> None:
         self.assertTrue(
             validate(NotificationSettingEnum.ISSUE_ALERTS, NotificationSettingsOptionEnum.ALWAYS)
         )
@@ -80,17 +80,17 @@ class NotificationHelpersTest(TestCase):
             )
         )
 
-    def test_get_subscription_from_attributes(self):
+    def test_get_subscription_from_attributes(self) -> None:
         attrs = {"subscription": (True, True, None)}
         assert get_subscription_from_attributes(attrs) == (True, {"disabled": True})
 
         attrs = {"subscription": (True, False, None)}
         assert get_subscription_from_attributes(attrs) == (False, {"disabled": True})
 
-    def test_collect_groups_by_project(self):
+    def test_collect_groups_by_project(self) -> None:
         assert collect_groups_by_project([self.group]) == {self.project.id: {self.group}}
 
-    def test_get_group_settings_link(self):
+    def test_get_group_settings_link(self) -> None:
         rule: Rule = self.create_project_rule(self.project)
         rule_details = get_rules([rule], self.organization, self.project, self.group.type)
         link = get_group_settings_link(
@@ -109,7 +109,7 @@ class NotificationHelpersTest(TestCase):
             "extra": "123",
         }
 
-    def test_get_email_link_extra_params(self):
+    def test_get_email_link_extra_params(self) -> None:
         rule: Rule = self.create_project_rule(self.project)
         project2 = self.create_project()
         rule2 = self.create_project_rule(project2)
@@ -132,7 +132,7 @@ class NotificationHelpersTest(TestCase):
             for rule_detail in rule_details
         }
 
-    def test_get_team_members(self):
+    def test_get_team_members(self) -> None:
         user1 = self.create_user()
         user2 = self.create_user()
         team1 = self.create_team()
@@ -146,7 +146,7 @@ class NotificationHelpersTest(TestCase):
             assert get_team_members(team2) == [Actor.from_object(user2)]
             assert get_team_members(team3) == []
 
-    def test_team_is_valid_recipient(self):
+    def test_team_is_valid_recipient(self) -> None:
         team1 = self.create_team(organization=self.organization)
         team2 = self.create_team(organization=self.organization)
         team3 = self.create_team(organization=self.organization)

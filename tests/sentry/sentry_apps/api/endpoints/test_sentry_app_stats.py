@@ -33,7 +33,7 @@ class GetSentryAppStatsTest(APITestCase):
             slug=self.unowned_published_app.slug, organization=self.create_organization()
         )
 
-    def test_superuser_sees_unowned_published_stats(self):
+    def test_superuser_sees_unowned_published_stats(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
 
         url = reverse("sentry-api-0-sentry-app-stats", args=[self.unowned_published_app.slug])
@@ -48,7 +48,7 @@ class GetSentryAppStatsTest(APITestCase):
         )
         assert (install_epoch, 1) in response.data["installStats"]
 
-    def test_superuser_sees_unowned_unpublished_stats(self):
+    def test_superuser_sees_unowned_unpublished_stats(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
 
         url = reverse("sentry-api-0-sentry-app-stats", args=[self.unowned_unpublished_app.slug])
@@ -57,7 +57,7 @@ class GetSentryAppStatsTest(APITestCase):
         assert response.data["totalInstalls"] == 0
         assert response.data["totalUninstalls"] == 0
 
-    def test_user_sees_owned_published_stats(self):
+    def test_user_sees_owned_published_stats(self) -> None:
         self.login_as(self.user)
 
         url = reverse("sentry-api-0-sentry-app-stats", args=[self.published_app.slug])
@@ -72,7 +72,7 @@ class GetSentryAppStatsTest(APITestCase):
         )
         assert (install_epoch, 1) in response.data["installStats"]
 
-    def test_user_does_not_see_unowned_published_stats(self):
+    def test_user_does_not_see_unowned_published_stats(self) -> None:
         self.login_as(self.user)
 
         url = reverse("sentry-api-0-sentry-app-stats", args=[self.unowned_published_app.slug])
@@ -80,7 +80,7 @@ class GetSentryAppStatsTest(APITestCase):
         assert response.status_code == 403
         assert response.data["detail"] == "You do not have permission to perform this action."
 
-    def test_user_sees_owned_unpublished_stats(self):
+    def test_user_sees_owned_unpublished_stats(self) -> None:
         self.login_as(self.user)
 
         url = reverse("sentry-api-0-sentry-app-stats", args=[self.unpublished_app.slug])
@@ -89,7 +89,7 @@ class GetSentryAppStatsTest(APITestCase):
         assert response.data["totalInstalls"] == 0
         assert response.data["totalUninstalls"] == 0
 
-    def test_user_sees_internal_stats(self):
+    def test_user_sees_internal_stats(self) -> None:
         self.login_as(self.user)
 
         url = reverse("sentry-api-0-sentry-app-stats", args=[self.internal_app.slug])
@@ -98,7 +98,7 @@ class GetSentryAppStatsTest(APITestCase):
         assert response.data["totalInstalls"] == 1
         assert response.data["totalUninstalls"] == 0
 
-    def test_invalid_startend_throws_error(self):
+    def test_invalid_startend_throws_error(self) -> None:
         self.login_as(self.user)
 
         url = "%s?since=1569523068&until=1566931068" % reverse(

@@ -108,19 +108,19 @@ class GetRelocationsTest(APITestCase):
         self.success_uuid = Relocation.objects.get(status=Relocation.Status.SUCCESS.value)
 
     @override_options({"staff.ga-rollout": True})
-    def test_good_staff_simple(self):
+    def test_good_staff_simple(self) -> None:
         self.login_as(user=self.staff_user, staff=True)
         response = self.get_success_response(status_code=200)
 
         assert len(response.data) == 4
 
-    def test_good_superuser_simple(self):
+    def test_good_superuser_simple(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(status_code=200)
 
         assert len(response.data) == 4
 
-    def test_good_status_in_progress(self):
+    def test_good_status_in_progress(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(
             status=Relocation.Status.IN_PROGRESS.name, status_code=200
@@ -136,7 +136,7 @@ class GetRelocationsTest(APITestCase):
         assert response.data[0]["owner"]["email"] == str(self.owner.email)
         assert response.data[0]["owner"]["username"] == str(self.owner.username)
 
-    def test_good_status_pause(self):
+    def test_good_status_pause(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(status=Relocation.Status.PAUSE.name, status_code=200)
 
@@ -144,7 +144,7 @@ class GetRelocationsTest(APITestCase):
         assert response.data[0]["status"] == Relocation.Status.PAUSE.name
         assert response.data[0]["provenance"] == Relocation.Provenance.SAAS_TO_SAAS.name
 
-    def test_good_status_success(self):
+    def test_good_status_success(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(status=Relocation.Status.SUCCESS.name, status_code=200)
 
@@ -152,13 +152,13 @@ class GetRelocationsTest(APITestCase):
         assert response.data[0]["status"] == Relocation.Status.SUCCESS.name
         assert response.data[0]["provenance"] == Relocation.Provenance.SELF_HOSTED.name
 
-    def test_good_status_failure(self):
+    def test_good_status_failure(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(status=Relocation.Status.FAILURE.name, status_code=200)
         assert response.data[0]["status"] == Relocation.Status.FAILURE.name
         assert response.data[0]["provenance"] == Relocation.Provenance.SAAS_TO_SAAS.name
 
-    def test_good_single_query_partial_uuid(self):
+    def test_good_single_query_partial_uuid(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(
             qs_params={
@@ -169,7 +169,7 @@ class GetRelocationsTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["status"] == Relocation.Status.IN_PROGRESS.name
 
-    def test_good_single_query_full_uuid(self):
+    def test_good_single_query_full_uuid(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(
             qs_params={
@@ -181,7 +181,7 @@ class GetRelocationsTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["status"] == Relocation.Status.PAUSE.name
 
-    def test_good_single_query_org_slug(self):
+    def test_good_single_query_org_slug(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(
             qs_params={
@@ -194,7 +194,7 @@ class GetRelocationsTest(APITestCase):
         assert response.data[0]["status"] == Relocation.Status.SUCCESS.name
         assert response.data[1]["status"] == Relocation.Status.IN_PROGRESS.name
 
-    def test_good_single_query_username(self):
+    def test_good_single_query_username(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(
             qs_params={
@@ -207,7 +207,7 @@ class GetRelocationsTest(APITestCase):
         assert response.data[0]["status"] == Relocation.Status.FAILURE.name
         assert response.data[1]["status"] == Relocation.Status.IN_PROGRESS.name
 
-    def test_good_single_query_letter(self):
+    def test_good_single_query_letter(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(
             qs_params={
@@ -220,7 +220,7 @@ class GetRelocationsTest(APITestCase):
         assert response.data[1]["status"] == Relocation.Status.PAUSE.name
         assert response.data[2]["status"] == Relocation.Status.IN_PROGRESS.name
 
-    def test_good_multiple_queries(self):
+    def test_good_multiple_queries(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(
             qs_params={
@@ -232,7 +232,7 @@ class GetRelocationsTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["status"] == Relocation.Status.IN_PROGRESS.name
 
-    def test_good_superuser_but_not_enabled(self):
+    def test_good_superuser_but_not_enabled(self) -> None:
         self.login_as(user=self.superuser, superuser=False)
         response = self.get_success_response(status_code=200)
 
@@ -242,7 +242,7 @@ class GetRelocationsTest(APITestCase):
         assert response.data[0]["status"] == Relocation.Status.FAILURE.name
         assert response.data[1]["status"] == Relocation.Status.SUCCESS.name
 
-    def test_good_no_regular_user(self):
+    def test_good_no_regular_user(self) -> None:
         self.login_as(user=self.owner, superuser=False)
         response = self.get_success_response(status_code=200)
 
@@ -252,7 +252,7 @@ class GetRelocationsTest(APITestCase):
         assert response.data[0]["status"] == Relocation.Status.PAUSE.name
         assert response.data[1]["status"] == Relocation.Status.IN_PROGRESS.name
 
-    def test_good_no_regular_user_with_query(self):
+    def test_good_no_regular_user_with_query(self) -> None:
         self.login_as(user=self.owner, superuser=False)
         response = self.get_success_response(
             qs_params={
@@ -265,7 +265,7 @@ class GetRelocationsTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["status"] == Relocation.Status.IN_PROGRESS.name
 
-    def test_bad_unknown_status(self):
+    def test_bad_unknown_status(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_error_response(status="nonexistent", status_code=400)
 
@@ -274,7 +274,7 @@ class GetRelocationsTest(APITestCase):
             status="nonexistent"
         )
 
-    def test_bad_no_auth(self):
+    def test_bad_no_auth(self) -> None:
         self.get_error_response(status_code=401)
 
 

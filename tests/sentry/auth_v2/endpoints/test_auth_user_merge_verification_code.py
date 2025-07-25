@@ -12,11 +12,11 @@ class VerificationCodeTest(APITestCase):
         self.login_as(self.user)
         return super().setUp()
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.get_success_response()
         assert UserMergeVerificationCode.objects.get(user=self.user)
 
-    def test_update(self):
+    def test_update(self) -> None:
         code = UserMergeVerificationCode.objects.create(user=self.user)
         old_code = code.token
 

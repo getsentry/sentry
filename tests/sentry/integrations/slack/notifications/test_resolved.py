@@ -24,7 +24,7 @@ class SlackResolvedNotificationTest(SlackActivityNotificationTest, PerformanceIs
             )
         )
 
-    def test_resolved_block(self):
+    def test_resolved_block(self) -> None:
         """
         Test that a Slack message is sent with the expected payload when an issue is resolved
         and block kit is enabled.

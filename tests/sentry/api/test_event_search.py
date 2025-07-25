@@ -247,7 +247,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
     ParseSearchQueryTest.
     """
 
-    def test_key_remapping(self):
+    def test_key_remapping(self) -> None:
         config = SearchConfig(key_mappings={"target_value": ["someValue", "legacy-value"]})
 
         assert parse_search_query(
@@ -264,7 +264,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    def test_paren_expression(self):
+    def test_paren_expression(self) -> None:
         assert parse_search_query("(x:1 OR y:1) AND z:1") == [
             ParenExpression(
                 children=[  # type: ignore[arg-type]  # python/mypy#19483
@@ -281,10 +281,10 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             SearchFilter(key=SearchKey(name="z"), operator="=", value=SearchValue(raw_value="1")),
         ]
 
-    def test_paren_expression_of_empty_string(self):
+    def test_paren_expression_of_empty_string(self) -> None:
         assert parse_search_query('("")') == parse_search_query('""') == []
 
-    def test_paren_expression_with_bool_disabled(self):
+    def test_paren_expression_with_bool_disabled(self) -> None:
         config = SearchConfig.create_from(default_config, allow_boolean=False)
         ret = parse_search_query("( x:1 )", config=config)
         assert ret == [
@@ -293,19 +293,19 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             )
         ]
 
-    def test_paren_expression_to_query_string(self):
+    def test_paren_expression_to_query_string(self) -> None:
         (val,) = parse_search_query("(has:1 random():<5)")
         assert isinstance(val, ParenExpression)
         assert val.to_query_string() == "(has:=1 random():<5.0)"
 
-    def test_bool_operator_with_bool_disabled(self):
+    def test_bool_operator_with_bool_disabled(self) -> None:
         config = SearchConfig.create_from(default_config, allow_boolean=False)
         with pytest.raises(InvalidSearchQuery) as excinfo:
             parse_search_query("x:1 OR y:1", config=config)
         (msg,) = excinfo.value.args
         assert msg == 'Boolean statements containing "OR" or "AND" are not supported in this search'
 
-    def test_wildcard_free_text(self):
+    def test_wildcard_free_text(self) -> None:
         config = SearchConfig.create_from(default_config, wildcard_free_text=True)
         assert parse_search_query("foo", config=config) == [
             SearchFilter(
@@ -337,7 +337,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    def test_size_field_unrelated_field(self):
+    def test_size_field_unrelated_field(self) -> None:
         assert parse_search_query("something:5gb") == [
             SearchFilter(
                 key=SearchKey(name="something"), operator="=", value=SearchValue(raw_value="5gb")
@@ -384,7 +384,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    def test_aggregate_empty_quoted_arg(self):
+    def test_aggregate_empty_quoted_arg(self) -> None:
         assert parse_search_query('p50(""):5') == [
             AggregateFilter(
                 key=AggregateKey(name='p50("")'), operator="=", value=SearchValue(raw_value=5.0)
@@ -429,7 +429,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    def test_invalid_duration(self):
+    def test_invalid_duration(self) -> None:
         with pytest.raises(InvalidSearchQuery) as excinfo:
             parse_search_query("transaction.duration:>1111111111w")
         (msg,) = excinfo.value.args
@@ -455,7 +455,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    def test_invalid_aggregate_duration(self):
+    def test_invalid_aggregate_duration(self) -> None:
         with pytest.raises(InvalidSearchQuery) as excinfo:
             parse_search_query("trend_difference():>1111111111w")
         (msg,) = excinfo.value.args
@@ -499,7 +499,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    def test_rel_time_filter(self):
+    def test_rel_time_filter(self) -> None:
         now = timezone.now()
         with freeze_time(now):
             assert parse_search_query("time:+7d") == [
@@ -520,13 +520,13 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
                 SearchFilter(key=SearchKey(name="random"), operator="=", value=SearchValue("-2w"))
             ]
 
-    def test_invalid_rel_time_filter(self):
+    def test_invalid_rel_time_filter(self) -> None:
         with pytest.raises(InvalidSearchQuery) as excinfo:
             parse_search_query(f'time:+{"1" * 9999}d')
         (msg,) = excinfo.value.args
         assert msg.endswith(" is not a valid datetime query")
 
-    def test_aggregate_rel_time_filter(self):
+    def test_aggregate_rel_time_filter(self) -> None:
         now = timezone.now()
         with freeze_time(now):
             assert parse_search_query("last_seen():+7d") == [
@@ -547,19 +547,19 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
                 SearchFilter(key=SearchKey(name="random()"), operator="=", value=SearchValue("-2w"))
             ]
 
-    def test_invalid_aggregate_rel_time_filter(self):
+    def test_invalid_aggregate_rel_time_filter(self) -> None:
         with pytest.raises(InvalidSearchQuery) as excinfo:
             parse_search_query(f'last_seen():+{"1" * 9999}d')
         (msg,) = excinfo.value.args
         assert msg.endswith(" is not a valid datetime query")
 
-    def test_invalid_date_filter(self):
+    def test_invalid_date_filter(self) -> None:
         with pytest.raises(InvalidSearchQuery) as excinfo:
             parse_search_query("time:>0000-00-00")
         (msg,) = excinfo.value.args
         assert msg == "0000-00-00 is not a valid ISO8601 date query"
 
-    def test_specific_time_filter(self):
+    def test_specific_time_filter(self) -> None:
         assert parse_search_query("time:2018-01-01") == [
             SearchFilter(
                 key=SearchKey(name="time"),
@@ -615,13 +615,13 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             )
         ]
 
-    def test_invalid_time_format(self):
+    def test_invalid_time_format(self) -> None:
         with pytest.raises(InvalidSearchQuery) as excinfo:
             parse_search_query("time:0000-00-00")
         (msg,) = excinfo.value.args
         assert msg == "0000-00-00 is not a valid datetime query"
 
-    def test_aggregate_time_filter(self):
+    def test_aggregate_time_filter(self) -> None:
         assert parse_search_query("last_seen():>2025-01-01") == [
             AggregateFilter(
                 key=AggregateKey(name="last_seen()"),
@@ -639,13 +639,13 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             )
         ]
 
-    def test_aggregate_time_filter_invalid_date_format(self):
+    def test_aggregate_time_filter_invalid_date_format(self) -> None:
         with pytest.raises(InvalidSearchQuery) as excinfo:
             parse_search_query("last_seen():>0000-00-00")
         (msg,) = excinfo.value.args
         assert msg == "0000-00-00 is not a valid ISO8601 date query"
 
-    def test_timestamp_rollup(self):
+    def test_timestamp_rollup(self) -> None:
         assert parse_search_query("timestamp.to_hour:2018-01-01T05:06:07+00:00") == [
             SearchFilter(
                 key=SearchKey(name="timestamp.to_hour"),
@@ -663,7 +663,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    def test_percentage_filter(self):
+    def test_percentage_filter(self) -> None:
         assert parse_search_query("failure_rate():<5%") == [
             AggregateFilter(
                 key=AggregateKey(name="failure_rate()"),
@@ -679,13 +679,13 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             )
         ]
 
-    def test_percentage_filter_unknown_column(self):
+    def test_percentage_filter_unknown_column(self) -> None:
         with pytest.raises(InvalidSearchQuery) as excinfo:
             parse_search_query("unknown():<5%")
         (msg,) = excinfo.value.args
         assert msg == "unknown is not a valid function"
 
-    def test_binary_operators(self):
+    def test_binary_operators(self) -> None:
         ret_or = parse_search_query("has:release or has:something_else")
         assert ret_or == [
             SearchFilter(
@@ -708,7 +708,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    def test_flags(self):
+    def test_flags(self) -> None:
         ret_flags = parse_search_query("flags[feature.one]:true")
         assert ret_flags == [
             SearchFilter(
@@ -736,7 +736,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             )
         ]
 
-    def test_has_tag(self):
+    def test_has_tag(self) -> None:
         # unquoted key
         assert parse_search_query("has:release") == [
             SearchFilter(
@@ -755,7 +755,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         with pytest.raises(InvalidSearchQuery):
             parse_search_query('has:"hi there"')
 
-    def test_not_has_tag(self):
+    def test_not_has_tag(self) -> None:
         # unquoted key
         assert parse_search_query("!has:release") == [
             SearchFilter(key=SearchKey(name="release"), operator="=", value=SearchValue(""))
@@ -766,7 +766,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             SearchFilter(key=SearchKey(name="hi:there"), operator="=", value=SearchValue(""))
         ]
 
-    def test_allowed_keys(self):
+    def test_allowed_keys(self) -> None:
         config = SearchConfig(allowed_keys={"good_key"})
 
         assert parse_search_query("good_key:123 bad_key:123 text") == [
@@ -783,7 +783,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             SearchFilter(key=SearchKey(name="message"), operator="=", value=SearchValue("text")),
         ]
 
-    def test_blocked_keys(self):
+    def test_blocked_keys(self) -> None:
         config = SearchConfig(blocked_keys={"bad_key"})
 
         assert parse_search_query("some_key:123 bad_key:123 text") == [
@@ -803,14 +803,14 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             SearchFilter(key=SearchKey(name="message"), operator="=", value=SearchValue("text")),
         ]
 
-    def test_invalid_aggregate_column_with_duration_filter(self):
+    def test_invalid_aggregate_column_with_duration_filter(self) -> None:
         with self.assertRaisesMessage(
             InvalidSearchQuery,
             expected_message="avg: column argument invalid: stack.colno is not a numeric column",
         ):
             parse_search_query("avg(stack.colno):>500s")
 
-    def test_invalid_numeric_aggregate_filter(self):
+    def test_invalid_numeric_aggregate_filter(self) -> None:
         with self.assertRaisesMessage(
             InvalidSearchQuery, "is not a valid number suffix, must be k, m or b"
         ):
@@ -821,13 +821,13 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ):
             parse_search_query("count_if(measurements.fcp, greater, 5s):3s")
 
-    def test_is_query_unsupported(self):
+    def test_is_query_unsupported(self) -> None:
         with pytest.raises(
             InvalidSearchQuery, match=".*queries are not supported in this search.*"
         ):
             parse_search_query("is:unassigned")
 
-    def test_is_query_when_configured(self):
+    def test_is_query_when_configured(self) -> None:
         config = SearchConfig.create_from(
             default_config,
             is_filter_translation={
@@ -844,7 +844,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             )
         ]
 
-    def test_is_query_invalid_is_value_when_configured(self):
+    def test_is_query_invalid_is_value_when_configured(self) -> None:
         config = SearchConfig.create_from(
             default_config,
             is_filter_translation={
@@ -857,7 +857,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         (msg,) = excinfo.value.args
         assert msg == "Invalid value for \"is\" search, valid values are ['assigned', 'unassigned']"
 
-    def test_is_query_invalid_is_value_syntax(self):
+    def test_is_query_invalid_is_value_syntax(self) -> None:
         config = SearchConfig.create_from(
             default_config,
             is_filter_translation={
@@ -870,7 +870,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         (msg,) = excinfo.value.args
         assert msg == '"in" syntax invalid for "is" search'
 
-    def test_escaping_asterisk(self):
+    def test_escaping_asterisk(self) -> None:
         # the asterisk is escaped with a preceding backslash, so it's a literal and not a wildcard
         search_filters = parse_search_query(r"title:a\*b")
         assert search_filters == [
@@ -892,7 +892,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         assert search_filter.value.value == r"^.*\*.*$"
 
     @pytest.mark.xfail(reason="escaping backslashes is not supported yet")
-    def test_escaping_backslashes(self):
+    def test_escaping_backslashes(self) -> None:
         search_filters = parse_search_query(r"title:a\\b")
         assert search_filters == [
             SearchFilter(key=SearchKey(name="title"), operator="=", value=SearchValue(r"a\\b"))
@@ -903,7 +903,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         assert search_filter.value.value == r"a\b"
 
     @pytest.mark.xfail(reason="escaping backslashes is not supported yet")
-    def test_trailing_escaping_backslashes(self):
+    def test_trailing_escaping_backslashes(self) -> None:
         search_filters = parse_search_query(r"title:a\\")
         assert search_filters == [
             SearchFilter(key=SearchKey(name="title"), operator="=", value=SearchValue(r"a\\"))
@@ -913,7 +913,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         assert isinstance(search_filter, SearchFilter)
         assert search_filter.value.value == "a\\"
 
-    def test_escaping_quotes(self):
+    def test_escaping_quotes(self) -> None:
         search_filters = parse_search_query(r"title:a\"b")
         assert search_filters == [
             SearchFilter(key=SearchKey(name="title"), operator="=", value=SearchValue(r'a"b'))

@@ -56,7 +56,7 @@ class TestClientIdSecretAuthentication(TestCase):
 
         self.api_app = self.sentry_app.application
 
-    def test_authenticate(self):
+    def test_authenticate(self) -> None:
         request = _drf_request(
             {
                 "client_id": self.api_app.client_id,
@@ -68,25 +68,25 @@ class TestClientIdSecretAuthentication(TestCase):
 
         assert user.id == self.sentry_app.proxy_user.id
 
-    def test_without_json_body(self):
+    def test_without_json_body(self) -> None:
         request = _drf_request()
 
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
 
-    def test_missing_client_id(self):
+    def test_missing_client_id(self) -> None:
         request = _drf_request({"client_secret": self.api_app.client_secret})
 
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
 
-    def test_missing_client_secret(self):
+    def test_missing_client_secret(self) -> None:
         request = _drf_request({"client_id": self.api_app.client_id})
 
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
 
-    def test_incorrect_client_id(self):
+    def test_incorrect_client_id(self) -> None:
         request = _drf_request(
             {
                 "client_id": "notit",
@@ -97,7 +97,7 @@ class TestClientIdSecretAuthentication(TestCase):
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
 
-    def test_incorrect_client_secret(self):
+    def test_incorrect_client_secret(self) -> None:
         request = _drf_request(
             {
                 "client_id": self.api_app.client_id,
@@ -118,7 +118,7 @@ class TestDSNAuthentication(TestCase):
         self.project = self.create_project(organization=self.org)
         self.project_key = self.create_project_key(project=self.project)
 
-    def test_authenticate(self):
+    def test_authenticate(self) -> None:
         request = _drf_request()
         request.META["HTTP_AUTHORIZATION"] = f"DSN {self.project_key.dsn_public}"
 
@@ -129,7 +129,7 @@ class TestDSNAuthentication(TestCase):
         assert user.is_anonymous
         assert auth == AuthenticatedToken.from_token(self.project_key)
 
-    def test_inactive_key(self):
+    def test_inactive_key(self) -> None:
         self.project_key.update(status=ProjectKeyStatus.INACTIVE)
         request = _drf_request()
         request.META["HTTP_AUTHORIZATION"] = f"DSN {self.project_key.dsn_public}"
@@ -156,7 +156,7 @@ class TestOrgAuthTokenAuthentication(TestCase):
             date_last_used=None,
         )
 
-    def test_authenticate(self):
+    def test_authenticate(self) -> None:
         request = _drf_request()
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {self.token}"
 
@@ -169,14 +169,14 @@ class TestOrgAuthTokenAuthentication(TestCase):
             self.org_auth_token
         )
 
-    def test_no_match(self):
+    def test_no_match(self) -> None:
         request = _drf_request()
         request.META["HTTP_AUTHORIZATION"] = "Bearer sntrys_abc"
 
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
 
-    def test_inactive_key(self):
+    def test_inactive_key(self) -> None:
         self.org_auth_token.update(date_deactivated=datetime.now(UTC))
         request = _drf_request()
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {self.token}"
@@ -198,7 +198,7 @@ class TestTokenAuthentication(TestCase):
         )
         self.token = self.api_token.plaintext_token
 
-    def test_authenticate(self):
+    def test_authenticate(self) -> None:
         request = _drf_request()
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {self.token}"
 
@@ -210,7 +210,7 @@ class TestTokenAuthentication(TestCase):
         assert user.id == self.user.id
         assert AuthenticatedToken.from_token(auth) == AuthenticatedToken.from_token(self.api_token)
 
-    def test_no_match(self):
+    def test_no_match(self) -> None:
         request = _drf_request()
         request.META["HTTP_AUTHORIZATION"] = "Bearer abc"
 
@@ -233,7 +233,7 @@ class TestOrgScopedAppTokenAuthentication(TestCase):
         )
         self.token = self.api_token.plaintext_token
 
-    def test_authenticate_correct_org(self):
+    def test_authenticate_correct_org(self) -> None:
         request = _drf_request()
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {self.token}"
         request.path_info = f"/api/0/organizations/{self.org.slug}/projects/"
@@ -246,7 +246,7 @@ class TestOrgScopedAppTokenAuthentication(TestCase):
         assert user.id == self.user.id
         assert AuthenticatedToken.from_token(auth) == AuthenticatedToken.from_token(self.api_token)
 
-    def test_authenticate_incorrect_org(self):
+    def test_authenticate_incorrect_org(self) -> None:
         request = _drf_request()
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {self.token}"
         request.path_info = f"/api/0/organizations/{self.another_org}/projects/"
@@ -254,7 +254,7 @@ class TestOrgScopedAppTokenAuthentication(TestCase):
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
 
-    def test_authenticate_user_level_endpoints(self):
+    def test_authenticate_user_level_endpoints(self) -> None:
         request = _drf_request()
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {self.token}"
         request.path_info = "/api/0/projects/"
@@ -262,7 +262,7 @@ class TestOrgScopedAppTokenAuthentication(TestCase):
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
 
-    def test_authenticate_allowlist_endpoint(self):
+    def test_authenticate_allowlist_endpoint(self) -> None:
         request = _drf_request()
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {self.token}"
         request.path_info = "/api/0/organizations/"
@@ -275,7 +275,7 @@ class TestOrgScopedAppTokenAuthentication(TestCase):
         assert user.id == self.user.id
         assert AuthenticatedToken.from_token(auth) == AuthenticatedToken.from_token(self.api_token)
 
-    def test_no_match(self):
+    def test_no_match(self) -> None:
         request = _drf_request()
         request.META["HTTP_AUTHORIZATION"] = "Bearer abc"
         request.path_info = f"/api/0/organizations/{self.another_org}/projects/"
@@ -355,7 +355,7 @@ class TestRpcSignatureAuthentication(TestCase):
         self.org = self.create_organization(owner=self.user)
 
     @override_settings(RPC_SHARED_SECRET=["a-long-secret-key"])
-    def test_authenticate_success(self):
+    def test_authenticate_success(self) -> None:
         data = b'{"meta":{},"args":{"id":1}'
         request = drf_request_from_request(
             RequestFactory().post("/", data=data, content_type="application/json")
@@ -368,7 +368,7 @@ class TestRpcSignatureAuthentication(TestCase):
         assert user.is_anonymous
         assert token == signature
 
-    def test_authenticate_old_key_validates(self):
+    def test_authenticate_old_key_validates(self) -> None:
         request = drf_request_from_request(
             RequestFactory().post("/", data="", content_type="application/json")
         )
@@ -383,7 +383,7 @@ class TestRpcSignatureAuthentication(TestCase):
         assert user.is_anonymous
         assert token == signature
 
-    def test_authenticate_without_signature(self):
+    def test_authenticate_without_signature(self) -> None:
         request = drf_request_from_request(
             RequestFactory().post("/", data="", content_type="application/json")
         )
@@ -392,7 +392,7 @@ class TestRpcSignatureAuthentication(TestCase):
         assert self.auth.authenticate(request) is None
 
     @override_settings(RPC_SHARED_SECRET=["a-long-secret-key"])
-    def test_authenticate_invalid_signature(self):
+    def test_authenticate_invalid_signature(self) -> None:
         request = drf_request_from_request(
             RequestFactory().post("/", data="", content_type="application/json")
         )
@@ -401,7 +401,7 @@ class TestRpcSignatureAuthentication(TestCase):
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
 
-    def test_authenticate_no_shared_secret(self):
+    def test_authenticate_no_shared_secret(self) -> None:
         request = drf_request_from_request(
             RequestFactory().post("/", data="", content_type="application/json")
         )
@@ -425,7 +425,7 @@ class TestServiceRpcSignatureAuthentication(TestCase):
         self.auth = TestServiceAuth()
 
     @override_settings(TEST_SERVICE_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_authenticate_success(self):
+    def test_authenticate_success(self) -> None:
         data = b'{"test": "data"}'
         request = drf_request_from_request(
             RequestFactory().post("/test", data=data, content_type="application/json")
@@ -441,7 +441,7 @@ class TestServiceRpcSignatureAuthentication(TestCase):
         assert token == signature
 
     @override_settings(TEST_SERVICE_RPC_SHARED_SECRET=["new-key", "old-key"])
-    def test_authenticate_old_key_validates(self):
+    def test_authenticate_old_key_validates(self) -> None:
         data = b'{"test": "data"}'
         request = drf_request_from_request(
             RequestFactory().post("/test", data=data, content_type="application/json")
@@ -457,7 +457,7 @@ class TestServiceRpcSignatureAuthentication(TestCase):
         assert user.is_anonymous
         assert token == signature
 
-    def test_authenticate_without_signature(self):
+    def test_authenticate_without_signature(self) -> None:
         request = drf_request_from_request(
             RequestFactory().post(
                 "/test", data=b'{"test": "data"}', content_type="application/json"
@@ -468,7 +468,7 @@ class TestServiceRpcSignatureAuthentication(TestCase):
         assert self.auth.authenticate(request) is None
 
     @override_settings(TEST_SERVICE_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_authenticate_invalid_signature(self):
+    def test_authenticate_invalid_signature(self) -> None:
         request = drf_request_from_request(
             RequestFactory().post(
                 "/test", data=b'{"test": "data"}', content_type="application/json"
@@ -479,7 +479,7 @@ class TestServiceRpcSignatureAuthentication(TestCase):
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
 
-    def test_authenticate_no_shared_secret(self):
+    def test_authenticate_no_shared_secret(self) -> None:
         request = drf_request_from_request(
             RequestFactory().post(
                 "/test", data=b'{"test": "data"}', content_type="application/json"
@@ -491,7 +491,7 @@ class TestServiceRpcSignatureAuthentication(TestCase):
             with pytest.raises(RpcAuthenticationSetupException):
                 self.auth.authenticate(request)
 
-    def test_authenticate_empty_shared_secret(self):
+    def test_authenticate_empty_shared_secret(self) -> None:
         request = drf_request_from_request(
             RequestFactory().post(
                 "/test", data=b'{"test": "data"}', content_type="application/json"
@@ -511,7 +511,7 @@ class TestServiceRpcSignatureAuthentication(TestCase):
 
 
 class TestCompareServiceSignature(TestCase):
-    def test_valid_signature(self):
+    def test_valid_signature(self) -> None:
         url = "/test/endpoint"
         body = b'{"test": "data"}'
         shared_secrets = ["secret-key"]
@@ -523,7 +523,7 @@ class TestCompareServiceSignature(TestCase):
         result = compare_service_signature(url, body, signature, shared_secrets, service_name)
         assert result is True
 
-    def test_valid_signature_with_multiple_keys(self):
+    def test_valid_signature_with_multiple_keys(self) -> None:
         url = "/test/endpoint"
         body = b'{"test": "data"}'
         shared_secrets = ["new-key", "old-key"]
@@ -539,7 +539,7 @@ class TestCompareServiceSignature(TestCase):
         result = compare_service_signature(url, body, signature, shared_secrets, service_name)
         assert result is True
 
-    def test_invalid_signature(self):
+    def test_invalid_signature(self) -> None:
         url = "/test/endpoint"
         body = b'{"test": "data"}'
         shared_secrets = ["secret-key"]
@@ -550,7 +550,7 @@ class TestCompareServiceSignature(TestCase):
         )
         assert result is False
 
-    def test_no_shared_secrets(self):
+    def test_no_shared_secrets(self) -> None:
         url = "/test/endpoint"
         body = b'{"test": "data"}'
         service_name = "TestService"
@@ -558,7 +558,7 @@ class TestCompareServiceSignature(TestCase):
         with pytest.raises(RpcAuthenticationSetupException):
             compare_service_signature(url, body, "rpc0:signature", [], service_name)
 
-    def test_empty_shared_secrets(self):
+    def test_empty_shared_secrets(self) -> None:
         url = "/test/endpoint"
         body = b'{"test": "data"}'
         service_name = "TestService"
@@ -577,7 +577,7 @@ class TestCompareServiceSignature(TestCase):
                 url, body, "rpc0:signature", ["valid-secret", ""], service_name
             )
 
-    def test_invalid_signature_prefix(self):
+    def test_invalid_signature_prefix(self) -> None:
         url = "/test/endpoint"
         body = b'{"test": "data"}'
         shared_secrets = ["secret-key"]
@@ -588,7 +588,7 @@ class TestCompareServiceSignature(TestCase):
         )
         assert result is False
 
-    def test_empty_body(self):
+    def test_empty_body(self) -> None:
         url = "/test/endpoint"
         body = b""
         shared_secrets = ["secret-key"]
@@ -599,7 +599,7 @@ class TestCompareServiceSignature(TestCase):
         )
         assert result is False
 
-    def test_malformed_signature(self):
+    def test_malformed_signature(self) -> None:
         url = "/test/endpoint"
         body = b'{"test": "data"}'
         shared_secrets = ["secret-key"]
@@ -611,7 +611,7 @@ class TestCompareServiceSignature(TestCase):
 
 
 class TestGenerateServiceRequestSignature(TestCase):
-    def test_generate_signature(self):
+    def test_generate_signature(self) -> None:
         url = "/test/endpoint"
         body = b'{"test": "data"}'
         shared_secrets = ["secret-key"]
@@ -622,7 +622,7 @@ class TestGenerateServiceRequestSignature(TestCase):
         assert signature.startswith("rpc0:")
         assert len(signature) > 5  # Should have actual signature data after prefix
 
-    def test_generate_signature_uses_first_key(self):
+    def test_generate_signature_uses_first_key(self) -> None:
         url = "/test/endpoint"
         body = b'{"test": "data"}'
         shared_secrets = ["first-key", "second-key"]
@@ -638,7 +638,7 @@ class TestGenerateServiceRequestSignature(TestCase):
         result = compare_service_signature(url, body, signature, ["second-key"], service_name)
         assert result is False
 
-    def test_generate_signature_no_shared_secrets(self):
+    def test_generate_signature_no_shared_secrets(self) -> None:
         url = "/test/endpoint"
         body = b'{"test": "data"}'
         service_name = "TestService"
@@ -646,7 +646,7 @@ class TestGenerateServiceRequestSignature(TestCase):
         with pytest.raises(RpcAuthenticationSetupException):
             generate_service_request_signature(url, body, [], service_name)
 
-    def test_consistent_signatures(self):
+    def test_consistent_signatures(self) -> None:
         url = "/test/endpoint"
         body = b'{"test": "data"}'
         shared_secrets = ["secret-key"]
@@ -657,7 +657,7 @@ class TestGenerateServiceRequestSignature(TestCase):
 
         assert signature1 == signature2
 
-    def test_different_bodies_different_signatures(self):
+    def test_different_bodies_different_signatures(self) -> None:
         url = "/test/endpoint"
         body1 = b'{"test": "data1"}'
         body2 = b'{"test": "data2"}'
@@ -672,7 +672,7 @@ class TestGenerateServiceRequestSignature(TestCase):
 
 @no_silo_test
 class TestAuthTokens(TestCase):
-    def test_system_tokens(self):
+    def test_system_tokens(self) -> None:
         sys_token = SystemToken()
         auth_token = AuthenticatedToken.from_token(sys_token)
 
@@ -686,7 +686,7 @@ class TestAuthTokens(TestCase):
         assert auth_token.scopes == sys_token.get_scopes()
         assert auth_token.audit_log_data == sys_token.get_audit_log_data()
 
-    def test_api_tokens(self):
+    def test_api_tokens(self) -> None:
         app = self.create_sentry_app(user=self.user, organization_id=self.organization.id)
         app_install = self.create_sentry_app_installation(
             organization=self.organization, user=self.user, slug=app.slug
@@ -711,7 +711,7 @@ class TestAuthTokens(TestCase):
             assert auth_token.scopes == token.get_scopes()
             assert auth_token.audit_log_data == token.get_audit_log_data()
 
-    def test_api_keys(self):
+    def test_api_keys(self) -> None:
         ak = self.create_api_key(organization=self.organization, scope_list=["projects:read"])
         with assume_test_silo_mode(SiloMode.REGION):
             akr = ApiKeyReplica.objects.get(apikey_id=ak.id)
@@ -729,7 +729,7 @@ class TestAuthTokens(TestCase):
             assert auth_token.scopes == token.get_scopes()
             assert auth_token.audit_log_data == token.get_audit_log_data()
 
-    def test_org_auth_tokens(self):
+    def test_org_auth_tokens(self) -> None:
         oat = OrgAuthToken.objects.create(
             organization_id=self.organization.id,
             name="token 1",

@@ -25,15 +25,15 @@ class OrganizationWorkflowDetailsBaseTest(APITestCase):
 
 @region_silo_test
 class OrganizationWorkflowIndexGetTest(OrganizationWorkflowDetailsBaseTest):
-    def test_simple(self):
+    def test_simple(self) -> None:
         workflow = self.create_workflow(organization_id=self.organization.id)
         response = self.get_success_response(self.organization.slug, workflow.id)
         assert response.data == serialize(workflow)
 
-    def test_does_not_exist(self):
+    def test_does_not_exist(self) -> None:
         self.get_error_response(self.organization.slug, 3, status_code=404)
 
-    def test_pending_deletion(self):
+    def test_pending_deletion(self) -> None:
         workflow = self.create_workflow(organization_id=self.organization.id)
         workflow.status = ObjectStatus.PENDING_DELETION
         workflow.save()
@@ -60,7 +60,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         validator.is_valid(raise_exception=True)
         self.workflow = validator.create(validator.validated_data)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.valid_workflow["name"] = "Updated Workflow"
         response = self.get_success_response(
             self.organization.slug, self.workflow.id, raw_data=self.valid_workflow
@@ -70,7 +70,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert response.status_code == 200
         assert updated_workflow.name == "Updated Workflow"
 
-    def test_update_detectors_add_detector(self):
+    def test_update_detectors_add_detector(self) -> None:
         detector1 = self.create_detector(project_id=self.project.id)
         detector2 = self.create_detector(project_id=self.project.id)
 
@@ -104,7 +104,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             assert audit_entries[0].target_object == detector_workflows[0].id
             assert audit_entries[1].target_object == detector_workflows[1].id
 
-    def test_update_detectors_replace_detectors(self):
+    def test_update_detectors_replace_detectors(self) -> None:
         """Test replacing existing detectors with new ones"""
         existing_detector = self.create_detector(project_id=self.project.id)
         new_detector = self.create_detector(project_id=self.project.id)
@@ -155,7 +155,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
                 == 1
             )
 
-    def test_update_detectors_remove_all_detectors(self):
+    def test_update_detectors_remove_all_detectors(self) -> None:
         """Test removing all detectors by passing empty list"""
         # Create and connect a detector initially
         detector = self.create_detector(project_id=self.project.id)
@@ -192,7 +192,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
                 == 1
             )
 
-    def test_update_detectors_invalid_detector_ids(self):
+    def test_update_detectors_invalid_detector_ids(self) -> None:
         """Test validation failure with non-existent detector IDs"""
         data = {
             **self.valid_workflow,
@@ -208,7 +208,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         assert "Some detectors do not exist" in str(response.data)
 
-    def test_update_detectors_from_different_organization(self):
+    def test_update_detectors_from_different_organization(self) -> None:
         """Test validation failure when detectors belong to different organization"""
         other_org = self.create_organization()
         other_project = self.create_project(organization=other_org)
@@ -228,7 +228,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         assert "Some detectors do not exist" in str(response.data)
 
-    def test_update_detectors_transaction_rollback_on_validation_failure(self):
+    def test_update_detectors_transaction_rollback_on_validation_failure(self) -> None:
         """Test that workflow updates are rolled back when detector validation fails"""
         existing_detector = self.create_detector(project_id=self.project.id)
         DetectorWorkflow.objects.create(detector=existing_detector, workflow=self.workflow)
@@ -275,7 +275,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
                 == 0
             )
 
-    def test_update_without_detector_ids(self):
+    def test_update_without_detector_ids(self) -> None:
         """Test that omitting detectorIds doesn't affect existing detector connections"""
         detector = self.create_detector(project_id=self.project.id)
         DetectorWorkflow.objects.create(detector=detector, workflow=self.workflow)
@@ -299,7 +299,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert self.workflow.name == "Updated Without Detectors"
         assert DetectorWorkflow.objects.filter(workflow=self.workflow).count() == 1
 
-    def test_update_detectors_no_changes(self):
+    def test_update_detectors_no_changes(self) -> None:
         """Test that passing the same detector IDs doesn't change anything"""
         detector = self.create_detector(project_id=self.project.id)
         DetectorWorkflow.objects.create(detector=detector, workflow=self.workflow)
@@ -349,7 +349,7 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         super().setUp()
         self.workflow = self.create_workflow(organization_id=self.organization.id)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         with outbox_runner():
             self.get_success_response(self.organization.slug, self.workflow.id)
 
@@ -360,7 +360,7 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         self.workflow.refresh_from_db()
         assert self.workflow.status == ObjectStatus.PENDING_DELETION
 
-    def test_audit_entry(self):
+    def test_audit_entry(self) -> None:
         with outbox_runner():
             self.get_success_response(self.organization.slug, self.workflow.id)
 
@@ -371,7 +371,7 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
                 actor=self.user,
             ).exists()
 
-    def test_does_not_exist(self):
+    def test_does_not_exist(self) -> None:
         with outbox_runner():
             response = self.get_error_response(self.organization.slug, 999999999)
             assert response.status_code == 404
@@ -382,7 +382,7 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             object_id=self.workflow.id,
         ).exists()
 
-    def test_delete_configured_workflow__action(self):
+    def test_delete_configured_workflow__action(self) -> None:
         action_condition_group, action = self.create_workflow_action(workflow=self.workflow)
 
         with outbox_runner():
@@ -401,7 +401,7 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         # Ensure action is removed
         assert not Action.objects.filter(id=action.id).exists()
 
-    def test_delete_configured_workflow__action_condition(self):
+    def test_delete_configured_workflow__action_condition(self) -> None:
         action_condition_group, action = self.create_workflow_action(workflow=self.workflow)
 
         with outbox_runner():
@@ -419,7 +419,7 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         assert not DataConditionGroup.objects.filter(id=action_condition_group.id).exists()
 
-    def test_without_permissions(self):
+    def test_without_permissions(self) -> None:
         # Create a workflow with a different organization
         new_org = self.create_organization()
         workflow = self.create_workflow(organization_id=new_org.id)

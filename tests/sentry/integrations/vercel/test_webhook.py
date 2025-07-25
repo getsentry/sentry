@@ -25,11 +25,11 @@ from sentry.utils.http import absolute_uri
 class SignatureVercelTest(APITestCase):
     webhook_url = "/extensions/vercel/webhook/"
 
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.client.get(self.webhook_url)
         assert response.status_code == 405
 
-    def test_invalid_signature(self):
+    def test_invalid_signature(self) -> None:
         with override_options({"vercel.client-secret": SECRET}):
             response = self.client.post(
                 path=self.webhook_url,
@@ -97,7 +97,7 @@ class VercelReleasesTest(APITestCase):
         responses.reset()
 
     @responses.activate
-    def test_create_release(self):
+    def test_create_release(self) -> None:
         responses.add(
             responses.POST,
             absolute_uri("/api/0/organizations/%s/releases/" % self.organization.slug),
@@ -130,7 +130,7 @@ class VercelReleasesTest(APITestCase):
             assert release_request.headers["User-Agent"] == f"sentry_vercel/{VERSION}"
 
     @responses.activate
-    def test_no_match(self):
+    def test_no_match(self) -> None:
         responses.add(
             responses.POST,
             absolute_uri("/api/0/organizations/%s/releases/" % self.organization.slug),
@@ -147,7 +147,7 @@ class VercelReleasesTest(APITestCase):
             assert response.status_code == 204
 
     @responses.activate
-    def test_no_integration(self):
+    def test_no_integration(self) -> None:
         responses.add(
             responses.POST,
             absolute_uri("/api/0/organizations/%s/releases/" % self.organization.slug),
@@ -163,7 +163,7 @@ class VercelReleasesTest(APITestCase):
             assert response.data["detail"] == "Integration not found"
 
     @responses.activate
-    def test_no_project(self):
+    def test_no_project(self) -> None:
         responses.add(
             responses.POST,
             absolute_uri("/api/0/organizations/%s/releases/" % self.organization.slug),
@@ -180,7 +180,7 @@ class VercelReleasesTest(APITestCase):
             assert response.data["detail"] == "Project not found"
 
     @responses.activate
-    def test_no_installation(self):
+    def test_no_installation(self) -> None:
         responses.add(
             responses.POST,
             absolute_uri("/api/0/organizations/%s/releases/" % self.organization.slug),
@@ -196,7 +196,7 @@ class VercelReleasesTest(APITestCase):
             assert response.data["detail"] == "Installation not found"
 
     @responses.activate
-    def test_no_token(self):
+    def test_no_token(self) -> None:
         responses.add(
             responses.POST,
             absolute_uri("/api/0/organizations/%s/releases/" % self.organization.slug),
@@ -213,7 +213,7 @@ class VercelReleasesTest(APITestCase):
             assert response.data["detail"] == "Token not found"
 
     @responses.activate
-    def test_create_release_fails(self):
+    def test_create_release_fails(self) -> None:
         responses.add(
             responses.POST,
             absolute_uri("/api/0/organizations/%s/releases/" % self.organization.slug),
@@ -229,7 +229,7 @@ class VercelReleasesTest(APITestCase):
             assert "Error creating release" in response.data["detail"]
 
     @responses.activate
-    def test_set_refs_failed(self):
+    def test_set_refs_failed(self) -> None:
         def request_callback(request):
             payload = orjson.loads(request.body)
             status_code = 400 if payload.get("refs") else 200
@@ -249,19 +249,19 @@ class VercelReleasesTest(APITestCase):
             assert "Error setting refs" in response.data["detail"]
 
     @responses.activate
-    def test_manual_vercel_deploy(self):
+    def test_manual_vercel_deploy(self) -> None:
         response = self._get_response(DEPLOYMENT_WEBHOOK_NO_COMMITS)
 
         assert response.status_code == 404
         assert "No commit found" == response.data["detail"]
         assert len(responses.calls) == 0
 
-    def test_empty_payload(self):
+    def test_empty_payload(self) -> None:
         response = self._get_response("{}")
 
         assert response.status_code == 400
 
-    def test_missing_repository(self):
+    def test_missing_repository(self) -> None:
         response = self._get_response(MINIMAL_WEBHOOK)
 
         assert response.status_code == 400
@@ -273,7 +273,7 @@ class VercelReleasesNewTest(VercelReleasesTest):
     webhook_url = "/extensions/vercel/delete/"
 
     @responses.activate
-    def test_release_already_created(self):
+    def test_release_already_created(self) -> None:
         responses.add(
             responses.POST,
             absolute_uri("/api/0/organizations/%s/releases/" % self.organization.slug),

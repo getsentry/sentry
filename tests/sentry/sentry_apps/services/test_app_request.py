@@ -36,7 +36,7 @@ class TestRegionApp(TestCase):
             },
         )
 
-    def test_get_buffer_requests_for_region(self):
+    def test_get_buffer_requests_for_region(self) -> None:
         buffer = SentryAppWebhookRequestsBuffer(self.app)
         buffer.add_request(
             response_code=200,
@@ -50,7 +50,7 @@ class TestRegionApp(TestCase):
         assert requests and len(requests) == 1
         assert requests[0].organization_id == self.org.id
 
-    def test_get_buffer_requests_for_region_with_error_request(self):
+    def test_get_buffer_requests_for_region_with_error_request(self) -> None:
         buffer = SentryAppWebhookRequestsBuffer(self.app)
 
         mock_response = Mock(spec=Response)
@@ -83,7 +83,7 @@ class TestRegionApp(TestCase):
         }
         assert requests[0].response_body == json.dumps(mock_response.content)
 
-    def test_get_filtered_buffer_requests_for_region(self):
+    def test_get_filtered_buffer_requests_for_region(self) -> None:
         buffer = SentryAppWebhookRequestsBuffer(self.app)
         buffer.add_request(
             response_code=200,
@@ -104,13 +104,13 @@ class TestRegionApp(TestCase):
         assert requests and len(requests) == 1
         assert requests[0].organization_id == self.org.id
 
-    def test_empty_buffer(self):
+    def test_empty_buffer(self) -> None:
         requests = app_request_service.get_buffer_requests_for_region(
             sentry_app_id=self.app.id, region_name="us"
         )
         assert requests == []
 
-    def test_invalid_app_id(self):
+    def test_invalid_app_id(self) -> None:
         requests = app_request_service.get_buffer_requests_for_region(
             sentry_app_id=-1,
             region_name="us",

@@ -54,7 +54,7 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
             args=[self.org.slug, self.project.slug, artifact_id],
         )
 
-    def test_get_build_details_success(self):
+    def test_get_build_details_success(self) -> None:
         url = self._get_url()
         response = self.client.get(
             url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
@@ -72,7 +72,7 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
             self.preprod_artifact.commit.key if self.preprod_artifact.commit is not None else None
         )
 
-    def test_get_build_details_not_found(self):
+    def test_get_build_details_not_found(self) -> None:
         url = self._get_url(artifact_id=999999)
         response = self.client.get(
             url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
@@ -80,7 +80,7 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         assert response.status_code == 404
         assert "not found" in response.json()["error"]
 
-    def test_get_build_details_feature_flag_disabled(self):
+    def test_get_build_details_feature_flag_disabled(self) -> None:
         with self.feature({"organizations:preprod-frontend-routes": False}):
             url = self._get_url()
             response = self.client.get(
@@ -89,7 +89,7 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
             assert response.status_code == 403
             assert response.json()["error"] == "Feature not enabled"
 
-    def test_get_build_details_dates_and_types(self):
+    def test_get_build_details_dates_and_types(self) -> None:
         url = self._get_url()
         response = self.client.get(
             url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
@@ -107,7 +107,7 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         # artifact_type is int
         assert isinstance(resp_data["app_info"]["artifact_type"], int)
 
-    def test_get_build_details_vcs_info(self):
+    def test_get_build_details_vcs_info(self) -> None:
         new_commit = Commit.objects.create(
             organization_id=self.org.id,
             repository_id=1,

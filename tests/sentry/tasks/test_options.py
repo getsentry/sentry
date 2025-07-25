@@ -18,7 +18,7 @@ class SyncOptionsTest(TestCase):
         except UnknownOption:
             pass
 
-    def test_task_persistent_name(self):
+    def test_task_persistent_name(self) -> None:
         assert sync_options.name == "sentry.tasks.options.sync_options"
 
     @patch.object(default_store, "set_cache")

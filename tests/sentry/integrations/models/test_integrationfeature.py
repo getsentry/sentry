@@ -11,10 +11,10 @@ class IntegrationFeatureTest(TestCase):
             target_id=self.sentry_app.id, target_type=IntegrationTypes.SENTRY_APP.value
         )
 
-    def test_feature_str(self):
+    def test_feature_str(self) -> None:
         assert self.integration_feature.feature_str() == "integrations-api"
 
-    def test_description(self):
+    def test_description(self) -> None:
         assert (
             self.integration_feature.description
             == "%s can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course)."

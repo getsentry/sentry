@@ -27,7 +27,7 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
     def create_schema(self):
         self.schema = {"elements": [self.create_alert_rule_action_schema()]}
 
-    def test_applies_correctly_for_sentry_apps(self):
+    def test_applies_correctly_for_sentry_apps(self) -> None:
         event = self.get_event()
 
         self.app = self.create_sentry_app(
@@ -93,7 +93,7 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
         assert action["formFields"] == alert_element["settings"]
         assert alert_element["title"] in action["label"]
 
-    def test_self_validate(self):
+    def test_self_validate(self) -> None:
         self.organization = self.create_organization()
         self.app = self.create_sentry_app(
             organization=self.organization,
@@ -188,7 +188,7 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
         with pytest.raises(ValidationError):
             rule.self_validate()
 
-    def test_render_label(self):
+    def test_render_label(self) -> None:
         event = self.get_event()
 
         self.app = self.create_sentry_app(

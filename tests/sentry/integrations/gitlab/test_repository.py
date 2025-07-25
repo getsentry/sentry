@@ -98,13 +98,13 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         }
 
     @responses.activate
-    def test_create_repository(self):
+    def test_create_repository(self) -> None:
         response = self.create_repository(self.default_repository_config, self.integration.id)
         assert response.status_code == 201
         self.assert_repository(self.default_repository_config)
 
     @responses.activate
-    def test_create_repository_verify_payload(self):
+    def test_create_repository_verify_payload(self) -> None:
         def request_callback(request):
             payload = orjson.loads(request.body)
             assert "url" in payload
@@ -127,7 +127,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         self.assert_repository(self.default_repository_config)
 
     @responses.activate
-    def test_create_repository_request_invalid_url(self):
+    def test_create_repository_request_invalid_url(self) -> None:
         responses.add(
             responses.GET,
             "https://example.gitlab.com/api/v4/projects/%s" % self.gitlab_id,
@@ -148,12 +148,12 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             response, "validation", "Error Communicating with GitLab (HTTP 422): Invalid url given"
         )
 
-    def test_create_repository_data_no_installation_id(self):
+    def test_create_repository_data_no_installation_id(self) -> None:
         response = self.create_repository(self.default_repository_config, None)
         assert response.status_code == 400
         self.assert_error_message(response, "validation", "requires an integration id")
 
-    def test_create_repository_data_integration_does_not_exist(self):
+    def test_create_repository_data_integration_does_not_exist(self) -> None:
         integration_id = self.integration.id
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()
@@ -164,7 +164,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             response, "not found", "Integration matching query does not exist."
         )
 
-    def test_create_repository_org_given_has_no_installation(self):
+    def test_create_repository_org_given_has_no_installation(self) -> None:
         organization = self.create_organization(owner=self.user)
         response = self.create_repository(
             self.default_repository_config, self.integration.id, organization.slug
@@ -172,7 +172,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         assert response.status_code == 404
 
     @responses.activate
-    def test_create_repository_get_project_request_fails(self):
+    def test_create_repository_get_project_request_fails(self) -> None:
         responses.add(
             responses.GET,
             "https://example.gitlab.com/api/v4/projects/%s" % self.gitlab_id,
@@ -184,7 +184,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         assert response.status_code == 503
 
     @responses.activate
-    def test_create_repository_integration_create_webhook_failure(self):
+    def test_create_repository_integration_create_webhook_failure(self) -> None:
         responses.add(
             responses.GET,
             "https://example.gitlab.com/api/v4/projects/%s" % self.gitlab_id,
@@ -201,7 +201,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         assert response.status_code == 503
 
     @responses.activate
-    def test_on_delete_repository_remove_webhook(self):
+    def test_on_delete_repository_remove_webhook(self) -> None:
         response = self.create_repository(self.default_repository_config, self.integration.id)
         responses.reset()
 
@@ -215,7 +215,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
-    def test_on_delete_repository_remove_webhook_missing_hook(self):
+    def test_on_delete_repository_remove_webhook_missing_hook(self) -> None:
         response = self.create_repository(self.default_repository_config, self.integration.id)
         responses.reset()
 
@@ -229,7 +229,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
-    def test_compare_commits_start_and_end(self):
+    def test_compare_commits_start_and_end(self) -> None:
         responses.add(
             responses.GET,
             "https://example.gitlab.com/api/v4/projects/%s/repository/compare?from=abc&to=xyz"
@@ -256,7 +256,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             assert_commit_shape(commit)
 
     @responses.activate
-    def test_compare_commits_start_and_end_gitlab_failure(self):
+    def test_compare_commits_start_and_end_gitlab_failure(self) -> None:
         responses.add(
             responses.GET,
             "https://example.gitlab.com/api/v4/projects/%s/repository/compare?from=abc&to=xyz"
@@ -269,7 +269,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             self.provider.compare_commits(repo, "abc", "xyz")
 
     @responses.activate
-    def test_compare_commits_no_start(self):
+    def test_compare_commits_no_start(self) -> None:
         responses.add(
             responses.GET,
             "https://example.gitlab.com/api/v4/projects/%s/repository/commits/xyz" % self.gitlab_id,
@@ -301,7 +301,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             assert_commit_shape(commit)
 
     @responses.activate
-    def test_compare_commits_no_start_gitlab_failure(self):
+    def test_compare_commits_no_start_gitlab_failure(self) -> None:
         responses.add(
             responses.GET,
             "https://example.gitlab.com/api/v4/projects/%s/repository/commits/abc" % self.gitlab_id,
@@ -313,7 +313,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             self.provider.compare_commits(repo, None, "abc")
 
     @responses.activate
-    def test_pull_request_url(self):
+    def test_pull_request_url(self) -> None:
         response = self.create_repository(self.default_repository_config, self.integration.id)
         repo = self.get_repository(pk=response.data["id"])
         pull = PullRequest(key=99)
@@ -323,7 +323,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         )
 
     @responses.activate
-    def test_repository_external_slug(self):
+    def test_repository_external_slug(self) -> None:
         response = self.create_repository(self.default_repository_config, self.integration.id)
         repo = self.get_repository(pk=response.data["id"])
         result = self.provider.repository_external_slug(repo)

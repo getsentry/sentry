@@ -37,12 +37,12 @@ class SCIMMemberTestsPermissions(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    def test_cant_use_scim(self):
+    def test_cant_use_scim(self) -> None:
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
         response = self.client.get(url)
         assert response.status_code == 403
 
-    def test_cant_use_scim_even_with_authprovider(self):
+    def test_cant_use_scim_even_with_authprovider(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
@@ -73,7 +73,7 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
         self.restricted_custom_role_member.flags["idp:role-restricted"] = True
         self.restricted_custom_role_member.save()
 
-    def test_owner(self):
+    def test_owner(self) -> None:
         """Owners cannot be edited by this API, but we will return a success response"""
         self.owner = self.create_member(
             user=self.create_user(), organization=self.organization, role="owner"
@@ -87,7 +87,7 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
         assert self.owner.role == "owner"
         assert self.owner.flags["idp:provisioned"]
 
-    def test_owner_blank_role(self):
+    def test_owner_blank_role(self) -> None:
         """A PUT request with a blank role should go through"""
         self.owner = self.create_member(
             user=self.create_user(), organization=self.organization, role="owner"
@@ -114,7 +114,7 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
         assert not self.owner.flags["idp:role-restricted"]
         assert self.owner.flags["idp:provisioned"]
 
-    def test_invalid_role(self):
+    def test_invalid_role(self) -> None:
         self.get_error_response(
             self.organization.slug,
             self.unrestricted_default_role_member.id,
@@ -166,7 +166,7 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
             **generate_put_data(self.restricted_custom_role_member, role="owner"),
         )
 
-    def test_set_to_blank(self):
+    def test_set_to_blank(self) -> None:
         # If we're updating a role to blank, then the user is saying that they don't want the IDP to manage role anymore
 
         # current Unrestricted Default role + blank sentryOrgRole -> No Change
@@ -215,7 +215,7 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
         assert self.restricted_custom_role_member.role == self.organization.default_role
         assert not self.restricted_custom_role_member.flags["idp:role-restricted"]
 
-    def test_set_to_default(self):
+    def test_set_to_default(self) -> None:
         # If we're updating a role, then the user is saying that they want the IDP to manage the role
 
         # current Unrestricted Default role + default sentryOrgRole -> restricted default role
@@ -270,7 +270,7 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
         assert self.restricted_custom_role_member.role == self.organization.default_role
         assert self.restricted_custom_role_member.flags["idp:role-restricted"]
 
-    def test_set_to_new_role(self):
+    def test_set_to_new_role(self) -> None:
         new_role = "admin"
         # If we're updating a role, then the user is saying that they want the IDP to manage the role
 
@@ -318,7 +318,7 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
         assert self.restricted_custom_role_member.role == new_role
         assert self.restricted_custom_role_member.flags["idp:role-restricted"]
 
-    def test_set_to_same_custom_role(self):
+    def test_set_to_same_custom_role(self) -> None:
         same_role = self.unrestricted_custom_role_member.role
 
         assert not self.unrestricted_custom_role_member.flags["idp:role-restricted"]
@@ -337,7 +337,7 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
         assert self.unrestricted_custom_role_member.role == same_role
         assert self.unrestricted_custom_role_member.flags["idp:role-restricted"]
 
-    def test_cannot_set_partnership_member_role(self):
+    def test_cannot_set_partnership_member_role(self) -> None:
         self.partnership_member = self.create_member(
             user=self.create_user(),
             organization=self.organization,
@@ -355,7 +355,7 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
 class SCIMMemberDetailsTests(SCIMTestCase):
     endpoint = "sentry-api-0-organization-scim-member-details"
 
-    def test_user_details_get(self):
+    def test_user_details_get(self) -> None:
         member = self.create_member(organization=self.organization, email="test.user@okta.local")
         response = self.get_success_response(
             self.organization.slug,
@@ -372,7 +372,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             "sentryOrgRole": self.organization.default_role,
         }
 
-    def test_user_details_set_inactive(self):
+    def test_user_details_set_inactive(self) -> None:
         member = self.create_member(
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
@@ -397,7 +397,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         with pytest.raises(AuthIdentity.DoesNotExist), assume_test_silo_mode(SiloMode.CONTROL):
             AuthIdentity.objects.get(auth_provider=self.auth_provider_inst, id=member.id)
 
-    def test_user_details_cannot_set_partnership_member_inactive(self):
+    def test_user_details_cannot_set_partnership_member_inactive(self) -> None:
         member = self.create_member(
             user=self.create_user(email="test.user@okta.local"),
             organization=self.organization,
@@ -415,7 +415,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             self.organization.slug, member.id, raw_data=patch_req, method="patch", status_code=403
         )
 
-    def test_user_details_set_inactive_dict(self):
+    def test_user_details_set_inactive_dict(self) -> None:
         member = self.create_member(
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
@@ -440,7 +440,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         with pytest.raises(AuthIdentity.DoesNotExist), assume_test_silo_mode(SiloMode.CONTROL):
             AuthIdentity.objects.get(auth_provider=self.auth_provider_inst, id=member.id)
 
-    def test_user_details_set_inactive_with_bool_string(self):
+    def test_user_details_set_inactive_with_bool_string(self) -> None:
         member = self.create_member(
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
@@ -465,7 +465,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         with pytest.raises(AuthIdentity.DoesNotExist), assume_test_silo_mode(SiloMode.CONTROL):
             AuthIdentity.objects.get(auth_provider=self.auth_provider_inst, id=member.id)
 
-    def test_user_details_set_inactive_with_dict_bool_string(self):
+    def test_user_details_set_inactive_with_dict_bool_string(self) -> None:
         member = self.create_member(
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
@@ -490,7 +490,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         with pytest.raises(AuthIdentity.DoesNotExist), assume_test_silo_mode(SiloMode.CONTROL):
             AuthIdentity.objects.get(auth_provider=self.auth_provider_inst, id=member.id)
 
-    def test_invalid_patch_op(self):
+    def test_invalid_patch_op(self) -> None:
         member = self.create_member(
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
@@ -506,7 +506,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             self.organization.slug, member.id, raw_data=patch_req, method="patch", status_code=400
         )
 
-    def test_invalid_patch_op_value(self):
+    def test_invalid_patch_op_value(self) -> None:
         member = self.create_member(
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
@@ -522,10 +522,10 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             self.organization.slug, member.id, raw_data=patch_req, method="patch", status_code=400
         )
 
-    def test_user_details_get_404(self):
+    def test_user_details_get_404(self) -> None:
         self.get_error_response(self.organization.slug, 99999999, status_code=404)
 
-    def test_user_details_patch_404(self):
+    def test_user_details_patch_404(self) -> None:
         patch_req = {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
             "Operations": [{"op": "replace", "value": {"active": False}}],
@@ -534,7 +534,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             self.organization.slug, 99999999, raw_data=patch_req, method="patch", status_code=404
         )
 
-    def test_delete_route(self):
+    def test_delete_route(self) -> None:
         member = self.create_member(user=self.create_user(), organization=self.organization)
         with assume_test_silo_mode(SiloMode.CONTROL):
             AuthIdentity.objects.create(
@@ -551,7 +551,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         with pytest.raises(AuthIdentity.DoesNotExist), assume_test_silo_mode(SiloMode.CONTROL):
             AuthIdentity.objects.get(auth_provider=self.auth_provider_inst, id=member.id)
 
-    def test_cannot_delete_partnership_member(self):
+    def test_cannot_delete_partnership_member(self) -> None:
         member = self.create_member(
             user=self.create_user(),
             organization=self.organization,
@@ -563,7 +563,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             )
         self.get_error_response(self.organization.slug, member.id, method="delete", status_code=403)
 
-    def test_patch_inactive_alternate_schema(self):
+    def test_patch_inactive_alternate_schema(self) -> None:
         member = self.create_member(user=self.create_user(), organization=self.organization)
         patch_req = {"Operations": [{"op": "replace", "path": "active", "value": False}]}
         self.get_success_response(
@@ -575,7 +575,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(organization=self.organization, id=member.id)
 
-    def test_patch_bad_schema(self):
+    def test_patch_bad_schema(self) -> None:
         member = self.create_member(user=self.create_user(), organization=self.organization)
         patch_req = {"Operations": [{"op": "replace", "path": "blahblahbbalh", "value": False}]}
         response = self.get_error_response(
@@ -595,7 +595,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             "detail": "Invalid Patch Operation.",
         }
 
-    def test_member_detail_patch_too_many_ops(self):
+    def test_member_detail_patch_too_many_ops(self) -> None:
         member = self.create_member(user=self.create_user(), organization=self.organization)
         patch_req = {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
@@ -613,7 +613,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
 
     # Disabling below test for now.
     # need to see what Okta admins would expect to happen with invited members
-    # def test_request_invite_members_not_in_requests(self):
+    # def test_request_invite_members_not_in_requests(self) -> None:
     #     member1 = self.create_member(user=self.create_user(), organization=self.organization)
     #     member1.invite_status = InviteStatus.REQUESTED_TO_BE_INVITED.value
     #     member1.save()
@@ -643,7 +643,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
     #     response = self.client.get(url)
     #     assert response.status_code == 404, response.content
 
-    def test_overflow_cases(self):
+    def test_overflow_cases(self) -> None:
         member = self.create_member(user=self.create_user(), organization=self.organization)
         self.get_error_response(
             self.organization.slug, "010101001010101011001010101011", status_code=404
@@ -663,7 +663,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             status_code=404,
         )
 
-    def test_cant_delete_only_owner_route(self):
+    def test_cant_delete_only_owner_route(self) -> None:
         member_om = OrganizationMember.objects.get(
             organization=self.organization, user_id=self.user.id
         )
@@ -674,7 +674,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             status_code=403,
         )
 
-    def test_cant_delete_only_owner_route_patch(self):
+    def test_cant_delete_only_owner_route_patch(self) -> None:
         member_om = OrganizationMember.objects.get(
             organization=self.organization, user_id=self.user.id
         )
@@ -696,7 +696,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
 class SCIMMemberDetailsAzureTests(SCIMAzureTestCase):
     endpoint = "sentry-api-0-organization-scim-member-details"
 
-    def test_user_details_get_no_active(self):
+    def test_user_details_get_no_active(self) -> None:
         member = self.create_member(organization=self.organization, email="test.user@okta.local")
         response = self.get_success_response(self.organization.slug, member.id)
         assert response.data == {
@@ -712,7 +712,7 @@ class SCIMMemberDetailsAzureTests(SCIMAzureTestCase):
 
 @no_silo_test
 class SCIMUtilsTests(unittest.TestCase):
-    def test_parse_filter_conditions_basic(self):
+    def test_parse_filter_conditions_basic(self) -> None:
         fil = parse_filter_conditions('userName eq "user@sentry.io"')
         assert fil == "user@sentry.io"
 
@@ -726,12 +726,12 @@ class SCIMUtilsTests(unittest.TestCase):
         fil = parse_filter_conditions('displayName eq "MyTeamName"')
         assert fil == "MyTeamName"
 
-    def test_parse_filter_conditions_invalids(self):
+    def test_parse_filter_conditions_invalids(self) -> None:
         with pytest.raises(SCIMFilterError):
             parse_filter_conditions("userName invalid USER@sentry.io")
         with pytest.raises(SCIMFilterError):
             parse_filter_conditions("blablaba eq USER@sentry.io")
 
-    def test_parse_filter_conditions_single_quote_in_email(self):
+    def test_parse_filter_conditions_single_quote_in_email(self) -> None:
         fil = parse_filter_conditions('userName eq "jos\'h@sentry.io"')
         assert fil == "jos'h@sentry.io"

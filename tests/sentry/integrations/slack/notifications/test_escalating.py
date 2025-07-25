@@ -24,7 +24,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
             )
         )
 
-    def test_escalating_block(self):
+    def test_escalating_block(self) -> None:
         """
         Test that a Slack message is sent with the expected payload when an issue escalates
         and block kit is enabled.

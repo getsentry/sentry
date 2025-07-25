@@ -39,7 +39,7 @@ class OptionsStoreTest(TestCase):
             key_name = uuid1().hex
         return self.manager.make_key(key_name, "", object, 0, ttl, grace, None)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         store, key = self.store, self.key
 
         assert store.get(key) is None
@@ -48,10 +48,10 @@ class OptionsStoreTest(TestCase):
         assert store.get_last_update_channel(key) == UpdateChannel.CLI
         assert store.delete(key)
 
-    def test_not_in_store(self):
+    def test_not_in_store(self) -> None:
         assert self.store.get_last_update_channel(self.key) is None
 
-    def test_simple_without_cache(self):
+    def test_simple_without_cache(self) -> None:
         store = OptionsStore(cache=None)
         key = self.make_key(key_name="foo")
 
@@ -74,7 +74,7 @@ class OptionsStoreTest(TestCase):
         assert str(e.value) == "cache must be configured before mutating options"
 
     @override_settings(SENTRY_OPTIONS_COMPLAIN_ON_ERRORS=False)
-    def test_db_and_cache_unavailable(self):
+    def test_db_and_cache_unavailable(self) -> None:
         store, key = self.store, self.key
         with patch.object(Option.objects, "get_queryset", side_effect=RuntimeError()):
             # we can't update options if the db is unavailable

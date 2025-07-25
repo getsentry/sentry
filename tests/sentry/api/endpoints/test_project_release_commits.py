@@ -49,7 +49,7 @@ class ReleaseCommitsListTest(APITestCase):
 
         self.login_as(user=self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         response = self.get_success_response(
             self.project.organization.slug, self.project.slug, self.release.version
         )
@@ -58,7 +58,7 @@ class ReleaseCommitsListTest(APITestCase):
         assert response.data[0]["id"] == self.commit2.key
         assert response.data[1]["id"] == self.commit.key
 
-    def test_query_name(self):
+    def test_query_name(self) -> None:
         response = self.get_success_response(
             self.project.organization.slug,
             self.project.slug,
@@ -70,7 +70,7 @@ class ReleaseCommitsListTest(APITestCase):
         assert response.data[0]["id"] == self.commit2.key
         assert response.data[1]["id"] == self.commit.key
 
-    def test_query_external_id(self):
+    def test_query_external_id(self) -> None:
         response = self.get_success_response(
             self.project.organization.slug,
             self.project.slug,
@@ -82,7 +82,7 @@ class ReleaseCommitsListTest(APITestCase):
         assert response.data[0]["id"] == self.commit2.key
         assert response.data[1]["id"] == self.commit.key
 
-    def test_query_external_id_with_duplicate_repos(self):
+    def test_query_external_id_with_duplicate_repos(self) -> None:
         newest_repo = Repository.objects.create(
             organization_id=self.project.organization_id,
             name=self.project.name,
@@ -107,7 +107,7 @@ class ReleaseCommitsListTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == new_commit.key
 
-    def test_query_does_not_exist(self):
+    def test_query_does_not_exist(self) -> None:
         self.get_error_response(
             self.project.organization.slug,
             self.project.slug,

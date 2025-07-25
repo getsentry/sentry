@@ -118,7 +118,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
             )
         ]
 
-    def test_associated_existing_member_invite_by_email(self):
+    def test_associated_existing_member_invite_by_email(self) -> None:
         with assume_test_silo_mode(SiloMode.REGION):
             member = OrganizationMember.objects.create(
                 organization=self.organization, email=self.email
@@ -133,7 +133,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
 
         assert assigned_member.id == member.id
 
-    def test_associated_existing_member_invite_request(self):
+    def test_associated_existing_member_invite_request(self) -> None:
         member = self.create_member(
             organization=self.organization,
             email=self.email,
@@ -154,7 +154,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         with assume_test_silo_mode(SiloMode.REGION):
             assert not OrganizationMember.objects.filter(id=member.id).exists()
 
-    def test_associate_pending_invite(self):
+    def test_associate_pending_invite(self) -> None:
         # The org member invite should have a non matching email, but the
         # member id and token will match from the session, allowing association
         with assume_test_silo_mode(SiloMode.REGION):
@@ -362,11 +362,11 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         assert getattr(persisted_om.flags, "sso:invalid")
         self.assert_org_member_mapping(org_member=persisted_om)
 
-    def test_login_with_other_identity(self):
+    def test_login_with_other_identity(self) -> None:
         request_user = self.set_up_user()
         self._test_with_identity_belonging_to_another_user(request_user)
 
-    def test_wipe_existing_identity(self):
+    def test_wipe_existing_identity(self) -> None:
         request_user, existing_identity = self.set_up_user_identity()
         self._test_with_identity_belonging_to_another_user(request_user)
         assert not AuthIdentity.objects.filter(id=existing_identity.id).exists()
@@ -516,11 +516,11 @@ class HasVerifiedAccountTest(AuthIdentityHandlerTest):
             "identity_id": self.identity_id,
         }
 
-    def test_has_verified_account_success(self):
+    def test_has_verified_account_success(self) -> None:
         self.create_useremail(email=self.email, user=self.user)
         assert self.handler.has_verified_account(self.verification_value) is True
 
-    def test_has_verified_account_fail_email(self):
+    def test_has_verified_account_fail_email(self) -> None:
         self.create_useremail(email=self.email, user=self.user)
         identity = {
             "id": "1234",
@@ -530,7 +530,7 @@ class HasVerifiedAccountTest(AuthIdentityHandlerTest):
         }
         assert self._handler_with(identity).has_verified_account(self.verification_value) is False
 
-    def test_has_verified_account_fail_user_id(self):
+    def test_has_verified_account_fail_user_id(self) -> None:
         wrong_user = self.create_user()
         self.create_useremail(email=self.email, user=wrong_user)
         assert self.handler.has_verified_account(self.verification_value) is False

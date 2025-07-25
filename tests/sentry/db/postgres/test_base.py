@@ -3,7 +3,7 @@ from sentry.testutils.cases import TestCase
 
 
 class CursorWrapperTestCase(TestCase):
-    def test_null_bytes(self):
+    def test_null_bytes(self) -> None:
         from django.db import connection
 
         cursor = connection.cursor()
@@ -20,7 +20,7 @@ class CursorWrapperTestCase(TestCase):
         cursor.execute("SELECT %(name)s", {"name": "Ma\x00tt"})
         assert cursor.fetchone()[0] == "Matt"
 
-    def test_null_bytes_at_max_len_bytes(self):
+    def test_null_bytes_at_max_len_bytes(self) -> None:
         from django.db import connection
 
         cursor = connection.cursor()
@@ -38,7 +38,7 @@ class CursorWrapperTestCase(TestCase):
         assert long_str_from_db == (b"a" * (MAX_CULPRIT_LENGTH - 1))
         assert len(long_str_from_db) <= MAX_CULPRIT_LENGTH
 
-    def test_null_bytes_at_max_len_unicode(self):
+    def test_null_bytes_at_max_len_unicode(self) -> None:
         from django.db import connection
 
         cursor = connection.cursor()
@@ -56,7 +56,7 @@ class CursorWrapperTestCase(TestCase):
         assert long_str_from_db == ("a" * (MAX_CULPRIT_LENGTH - 1))
         assert len(long_str_from_db) <= MAX_CULPRIT_LENGTH
 
-    def test_lone_surrogates(self):
+    def test_lone_surrogates(self) -> None:
         from django.db import connection
 
         cursor = connection.cursor()

@@ -18,10 +18,10 @@ pytestmark = [requires_snuba]
 class AlertRuleListEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-alert-rules"
 
-    def test_empty(self):
+    def test_empty(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         alert_rule = self.create_alert_rule()
 
@@ -31,7 +31,7 @@ class AlertRuleListEndpointTest(APITestCase):
 
         assert resp.data == serialize([alert_rule])
 
-    def test_no_perf_alerts(self):
+    def test_no_perf_alerts(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         alert_rule = self.create_alert_rule()
         perf_alert_rule = self.create_alert_rule(query="p95", dataset=Dataset.Transactions)
@@ -44,7 +44,7 @@ class AlertRuleListEndpointTest(APITestCase):
             resp = self.get_success_response(self.organization.slug, self.project.slug)
             assert resp.data == serialize([perf_alert_rule, alert_rule])
 
-    def test_no_feature(self):
+    def test_no_feature(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
         resp = self.get_response(self.organization.slug, self.project.slug)
@@ -93,7 +93,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         )
         self.login_as(self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         with (
             outbox_runner(),
             self.feature(["organizations:incidents", "organizations:performance-view"]),
@@ -118,7 +118,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
             == list(audit_log_entry)[0].ip_address
         )
 
-    def test_status_filter(self):
+    def test_status_filter(self) -> None:
         with (
             outbox_runner(),
             self.feature(
@@ -141,7 +141,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         assert resp.data == serialize(alert_rule, self.user)
         assert alert_rule.snuba_query.query == "is:unresolved"
 
-    def test_project_not_in_request(self):
+    def test_project_not_in_request(self) -> None:
         """Test that if you don't provide the project data in the request, we grab it from the URL"""
         data = deepcopy(self.valid_alert_rule)
         del data["projects"]

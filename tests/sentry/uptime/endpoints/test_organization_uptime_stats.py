@@ -51,7 +51,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
         """Store a single uptime data row. Must be implemented by subclasses."""
         raise NotImplementedError("Subclasses must implement store_uptime_data")
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         """Test that the endpoint returns data for a simple uptime check."""
 
         with self.feature(self.features):
@@ -82,7 +82,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
     @override_options(
         {"uptime.date_cutoff_epoch_seconds": (MOCK_DATETIME - timedelta(days=1)).timestamp()}
     )
-    def test_simple_with_date_cutoff(self):
+    def test_simple_with_date_cutoff(self) -> None:
         """Test that the endpoint returns data for a simple uptime check."""
 
         with self.feature(self.features):
@@ -101,7 +101,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
     @override_options(
         {"uptime.date_cutoff_epoch_seconds": (MOCK_DATETIME - timedelta(days=1)).timestamp()}
     )
-    def test_simple_with_date_cutoff_rounded_resolution(self):
+    def test_simple_with_date_cutoff_rounded_resolution(self) -> None:
         """Test that the endpoint returns data for a simple uptime check."""
 
         with self.feature(self.features):
@@ -120,7 +120,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
     @override_options(
         {"uptime.date_cutoff_epoch_seconds": (MOCK_DATETIME - timedelta(days=1)).timestamp()}
     )
-    def test_simple_with_date_cutoff_rounded_resolution_past_cutoff(self):
+    def test_simple_with_date_cutoff_rounded_resolution_past_cutoff(self) -> None:
         """Test that the endpoint returns data for a simple uptime check."""
         subscription_id = uuid.uuid4().hex
         subscription = self.create_uptime_subscription(
@@ -170,7 +170,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
                 "missed_window": 0,
             }
 
-    def test_invalid_uptime_subscription_id(self):
+    def test_invalid_uptime_subscription_id(self) -> None:
         """
         Test that an invalid uptime_subscription_id produces a 400 response.
         """
@@ -186,7 +186,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
             assert response.status_code == 400
             assert response.json() == "Invalid project uptime subscription ids provided"
 
-    def test_no_uptime_subscription_id(self):
+    def test_no_uptime_subscription_id(self) -> None:
         """
         Test that not sending any uptime_subscription_id produces a 400
         response.
@@ -203,7 +203,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
             assert response.status_code == 400
             assert response.json() == "No project uptime subscription ids provided"
 
-    def test_too_many_periods(self):
+    def test_too_many_periods(self) -> None:
         """
         Test that requesting a high resolution across a large period of time
         produces a 400 response.
@@ -220,7 +220,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
             assert response.status_code == 400
             assert response.json() == "error making request"
 
-    def test_too_many_uptime_subscription_ids(self):
+    def test_too_many_uptime_subscription_ids(self) -> None:
         """
         Test that sending a large number of subscription IDs produces a 400
         """

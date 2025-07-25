@@ -82,7 +82,7 @@ class JiraClientTest(TestCase):
         assert res == body
 
     @freeze_time("2023-01-01 01:01:01")
-    def test_finalize_request(self):
+    def test_finalize_request(self) -> None:
         method = "GET"
         params = {"query": "1", "user": "me"}
         request = Request(

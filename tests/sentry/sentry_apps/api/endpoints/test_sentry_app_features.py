@@ -25,7 +25,7 @@ class SentryAppFeaturesTest(APITestCase):
         )
         self.url = reverse("sentry-api-0-sentry-app-features", args=[self.sentry_app.slug])
 
-    def test_retrieves_all_features(self):
+    def test_retrieves_all_features(self) -> None:
         self.login_as(user=self.user)
         response = self.client.get(self.url, format="json")
         assert response.status_code == 200

@@ -18,7 +18,7 @@ from sentry.testutils.silo import no_silo_test
 
 
 class SubdomainMiddlewareTest(TestCase):
-    def test_attaches_subdomain_attribute(self):
+    def test_attaches_subdomain_attribute(self) -> None:
 
         options = {
             "system.base-hostname": "us.dev.getsentry.net:8000",
@@ -95,7 +95,7 @@ class End2EndTest(APITestCase):
         super().setUp()
         self.middleware = settings.MIDDLEWARE
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.create_organization(name="albertos-apples")
 
         response = self.client.get(

@@ -92,10 +92,10 @@ class GetSendToMemberTest(_ParticipantsTest):
             target_identifier=user_id or self.user.id,
         )
 
-    def test_invalid_user(self):
+    def test_invalid_user(self) -> None:
         assert self.get_send_to_member(self.project, 900001) == {}
 
-    def test_send_to_user(self):
+    def test_send_to_user(self) -> None:
         self.assert_recipients_are(
             self.get_send_to_member(), email=[self.user.id], slack=[self.user.id]
         )
@@ -111,7 +111,7 @@ class GetSendToMemberTest(_ParticipantsTest):
 
         self.assert_recipients_are(self.get_send_to_member(), slack=[self.user.id])
 
-    def test_other_org_user(self):
+    def test_other_org_user(self) -> None:
         org_2 = self.create_organization()
         user_2 = self.create_user()
         team_2 = self.create_team(org_2, members=[user_2])
@@ -123,7 +123,7 @@ class GetSendToMemberTest(_ParticipantsTest):
         )
         assert self.get_send_to_member(self.project, user_2.id) == {}
 
-    def test_no_project_access(self):
+    def test_no_project_access(self) -> None:
         org_2 = self.create_organization()
         user_2 = self.create_user()
         team_2 = self.create_team(org_2, members=[user_2])
@@ -168,10 +168,10 @@ class GetSendToTeamTest(_ParticipantsTest):
             target_identifier=team_id or self.team.id,
         )
 
-    def test_invalid_team(self):
+    def test_invalid_team(self) -> None:
         assert self.get_send_to_team(self.project, 900001) == {}
 
-    def test_send_to_team(self):
+    def test_send_to_team(self) -> None:
         self.assert_recipients_are(self.get_send_to_team(), email=[self.user.id])
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -186,7 +186,7 @@ class GetSendToTeamTest(_ParticipantsTest):
 
         assert self.get_send_to_team() == {}
 
-    def test_send_to_team_direct(self):
+    def test_send_to_team_direct(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSettingProvider.objects.filter(
                 team_id=self.team.id,
@@ -211,7 +211,7 @@ class GetSendToTeamTest(_ParticipantsTest):
         self.assert_recipients_are(self.get_send_to_team(), email=[self.user.id])
 
     @with_feature("organizations:team-workflow-notifications")
-    def test_send_workflow_to_team_direct(self):
+    def test_send_workflow_to_team_direct(self) -> None:
         link_team(self.team, self.integration, "#team-channel", "team_channel_id")
         with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSettingProvider.objects.create(
@@ -232,7 +232,7 @@ class GetSendToTeamTest(_ParticipantsTest):
             ExternalProviders.SLACK: {Actor.from_orm_team(self.team)},
         }
 
-    def test_other_project_team(self):
+    def test_other_project_team(self) -> None:
         user_2 = self.create_user()
         team_2 = self.create_team(self.organization, members=[user_2])
         project_2 = self.create_project(organization=self.organization, teams=[team_2])
@@ -242,7 +242,7 @@ class GetSendToTeamTest(_ParticipantsTest):
         )
         assert self.get_send_to_team(self.project, team_2.id) == {}
 
-    def test_other_org_team(self):
+    def test_other_org_team(self) -> None:
         org_2 = self.create_organization()
         user_2 = self.create_user()
         team_2 = self.create_team(org_2, members=[user_2])
@@ -317,12 +317,12 @@ class GetSendToOwnersTest(_ParticipantsTest):
             message="fix: Fix bug",
         )
 
-    def test_empty(self):
+    def test_empty(self) -> None:
         event = self.store_event_owners("empty.lol")
 
         assert self.get_send_to_owners(event) == {}
 
-    def test_single_user(self):
+    def test_single_user(self) -> None:
         event = self.store_event_owners("user.jsx")
 
         self.assert_recipients_are(
@@ -341,12 +341,12 @@ class GetSendToOwnersTest(_ParticipantsTest):
             )
         self.assert_recipients_are(self.get_send_to_owners(event), slack=[self.user.id])
 
-    def test_single_user_no_teams(self):
+    def test_single_user_no_teams(self) -> None:
         event = self.store_event_owners("user.jx")
 
         assert self.get_send_to_owners(event) == {}
 
-    def test_team_owners(self):
+    def test_team_owners(self) -> None:
         event = self.store_event_owners("team.py")
 
         self.assert_recipients_are(
@@ -370,7 +370,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             slack=[self.user.id],
         )
 
-    def test_disable_alerts_multiple_scopes(self):
+    def test_disable_alerts_multiple_scopes(self) -> None:
         event = self.store_event_owners("everyone.cbl")
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -396,18 +396,18 @@ class GetSendToOwnersTest(_ParticipantsTest):
             self.get_send_to_owners(event), email=[self.user.id], slack=[self.user.id]
         )
 
-    def test_no_fallthrough(self):
+    def test_no_fallthrough(self) -> None:
         event = self.store_event_owners("no_rule.cpp")
 
         self.assert_recipients_are(self.get_send_to_owners(event), email=[], slack=[])
 
-    def test_without_fallthrough(self):
+    def test_without_fallthrough(self) -> None:
         ProjectOwnership.objects.get(project_id=self.project.id).update(fallthrough=False)
         event = self.store_event_owners("no_rule.cpp")
 
         assert self.get_send_to_owners(event) == {}
 
-    def test_send_to_current_assignee_team(self):
+    def test_send_to_current_assignee_team(self) -> None:
         """
         Test the current issue assignee is notified
         """
@@ -433,7 +433,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             slack=[self.user.id],
         )
 
-    def test_send_to_current_assignee_user(self):
+    def test_send_to_current_assignee_user(self) -> None:
         """
         Test the current issue assignee is notified
         """
@@ -458,7 +458,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             slack=[self.user.id],
         )
 
-    def test_send_to_current_assignee_and_owners(self):
+    def test_send_to_current_assignee_and_owners(self) -> None:
         """
         We currently send to both the current assignee and issue owners.
         In the future we might consider only sending to the assignee.
@@ -479,7 +479,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             slack=[self.user.id, self.user2.id, member.id],
         )
 
-    def test_send_to_suspect_committers(self):
+    def test_send_to_suspect_committers(self) -> None:
         """
         Test suspect committer is added as suggested assignee
         """
@@ -504,7 +504,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             slack=[self.user_suspect_committer.id, self.user.id],
         )
 
-    def test_send_to_suspect_committers_no_owners(self):
+    def test_send_to_suspect_committers_no_owners(self) -> None:
         """
         Test suspect committer is added as suggested assignee, where no user owns the file
         """
@@ -557,7 +557,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             slack=[self.user_suspect_committer.id],
         )
 
-    def test_send_to_suspect_committers_dupe(self):
+    def test_send_to_suspect_committers_dupe(self) -> None:
         """
         Test suspect committer/owner is added as suggested assignee once where the suspect
         committer is also the owner.
@@ -581,7 +581,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             self.get_send_to_owners(event), email=[self.user.id], slack=[self.user.id]
         )
 
-    def test_send_to_suspect_committers_exception(self):
+    def test_send_to_suspect_committers_exception(self) -> None:
         """
         Test determine_eligible_recipients throws an exception when get_suspect_committers throws
         an exception and returns the file owner
@@ -605,7 +605,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             self.get_send_to_owners(event), email=[self.user.id], slack=[self.user.id]
         )
 
-    def test_send_to_suspect_committers_not_project_member(self):
+    def test_send_to_suspect_committers_not_project_member(self) -> None:
         """
         Test suspect committer is not added as suggested assignee where the suspect committer
          is not part of the project
@@ -683,7 +683,7 @@ class GetOwnersCase(_ParticipantsTest):
         assert {Actor.from_object(recipient) for recipient in expected} == set(received)
 
     # If no event to match, we assume fallthrough is enabled
-    def test_get_owners_no_event(self):
+    def test_get_owners_no_event(self) -> None:
         self.create_ownership(self.project)
         recipients, outcome = get_owners(project=self.project)
         self.assert_recipients(
@@ -692,7 +692,7 @@ class GetOwnersCase(_ParticipantsTest):
         assert outcome == "everyone"
 
     # If no match, and fallthrough is disabled
-    def test_get_owners_empty(self):
+    def test_get_owners_empty(self) -> None:
         self.create_ownership(self.project)
         event = self.create_event(self.project)
         recipients, outcome = get_owners(project=self.project, event=event)
@@ -700,7 +700,7 @@ class GetOwnersCase(_ParticipantsTest):
         assert outcome == "empty"
 
     # If no match, and fallthrough is still ignored
-    def test_get_owners_fallthrough_ignored(self):
+    def test_get_owners_fallthrough_ignored(self) -> None:
         self.create_ownership(self.project, [], True)
         event = self.create_event(self.project)
         recipients, outcome = get_owners(project=self.project, event=event)
@@ -708,7 +708,7 @@ class GetOwnersCase(_ParticipantsTest):
         assert outcome == "empty"
 
     # If matched, and no all-recipients flag
-    def test_get_owners_single_participant(self):
+    def test_get_owners_single_participant(self) -> None:
         self.create_ownership(self.project, [self.rule_1, self.rule_2, self.rule_3])
         event = self.create_event(self.project)
         recipients, outcome = get_owners(project=self.project, event=event)
@@ -716,14 +716,14 @@ class GetOwnersCase(_ParticipantsTest):
         assert outcome == "match"
 
     # If matched, we don't look at the fallthrough flag
-    def test_get_owners_match_ignores_fallthrough(self):
+    def test_get_owners_match_ignores_fallthrough(self) -> None:
         self.create_ownership(self.project, [self.rule_1, self.rule_2, self.rule_3], True)
         event_2 = self.create_event(self.project)
         recipients_2, outcome = get_owners(project=self.project, event=event_2)
         self.assert_recipients(expected=[self.user_1], received=recipients_2)
         assert outcome == "match"
 
-    def test_get_owner_reason(self):
+    def test_get_owner_reason(self) -> None:
         self.create_ownership(self.project, [], True)
         event = self.create_event(self.project)
         owner_reason = get_owner_reason(
@@ -747,7 +747,7 @@ class GetOwnersCase(_ParticipantsTest):
             == f"We notified recently active members in the {self.project.get_full_name()} project of this issue"
         )
 
-    def test_get_owner_reason_member(self):
+    def test_get_owner_reason_member(self) -> None:
         self.create_ownership(self.project, [], True)
         event = self.create_event(self.project)
         owner_reason = get_owner_reason(
@@ -830,12 +830,12 @@ class GetSendToFallthroughTest(_ParticipantsTest):
     def store_event(self, filename: str, project: Project) -> Event:
         return super().store_event(data=make_event_data(filename), project_id=project.id)
 
-    def test_invalid_fallthrough_choice(self):
+    def test_invalid_fallthrough_choice(self) -> None:
         with pytest.raises(NotImplementedError) as e:
             get_fallthrough_recipients(self.project, "invalid")  # type: ignore[arg-type]
         assert str(e.value).startswith("Unknown fallthrough choice: invalid")
 
-    def test_fallthrough_setting_on(self):
+    def test_fallthrough_setting_on(self) -> None:
         """
         Test that the new fallthrough choice takes precedence even if the fallthrough setting is on.
         """
@@ -850,13 +850,13 @@ class GetSendToFallthroughTest(_ParticipantsTest):
         event = self.store_event("empty.lol", self.project)
         assert self.get_send_to_fallthrough(event, self.project, FallthroughChoiceType.NO_ONE) == {}
 
-    def test_no_fallthrough(self):
+    def test_no_fallthrough(self) -> None:
         """
         Test the new fallthrough choice when no fallthrough choice is provided."""
         event = self.store_event("none.lol", self.project)
         assert self.get_send_to_fallthrough(event, self.project, fallthrough_choice=None) == {}
 
-    def test_no_owners(self):
+    def test_no_owners(self) -> None:
         """
         Test the fallthrough when there is no ProjectOwnership set.
         """
@@ -869,11 +869,11 @@ class GetSendToFallthroughTest(_ParticipantsTest):
         )
         assert ret == {}
 
-    def test_fallthrough_no_one(self):
+    def test_fallthrough_no_one(self) -> None:
         event = self.store_event("empty.lol", self.project)
         assert self.get_send_to_fallthrough(event, self.project, FallthroughChoiceType.NO_ONE) == {}
 
-    def test_fallthrough_all_members_no_owner(self):
+    def test_fallthrough_all_members_no_owner(self) -> None:
         empty_project = self.create_project(organization=self.organization)
         ProjectOwnership.objects.create(
             project_id=empty_project.id,
@@ -891,7 +891,7 @@ class GetSendToFallthroughTest(_ParticipantsTest):
             email=[self.user.id, self.user2.id],
         )
 
-    def test_fallthrough_all_members_multiple_teams(self):
+    def test_fallthrough_all_members_multiple_teams(self) -> None:
         team3 = self.create_team(organization=self.organization, members=[self.user2, self.user3])
         self.project.add_team(team3)
 
@@ -901,7 +901,7 @@ class GetSendToFallthroughTest(_ParticipantsTest):
             email=[self.user.id, self.user2.id, self.user3.id],
         )
 
-    def test_fallthrough_admin_or_recent_inactive_users(self):
+    def test_fallthrough_admin_or_recent_inactive_users(self) -> None:
         notified_users = [self.user, self.user2]
         for i in range(2):
             new_user = self.create_user(email=f"user_{i}@example.com", is_active=False)
@@ -927,7 +927,7 @@ class GetSendToFallthroughTest(_ParticipantsTest):
             email=[user.id for user in [self.user, self.user2]],
         )
 
-    def test_fallthrough_admin_or_recent_under_20(self):
+    def test_fallthrough_admin_or_recent_under_20(self) -> None:
         notifiable_users = [self.user, self.user2]
         for i in range(10):
             new_user = self.create_user(email=f"user_{i}@example.com", is_active=True)
@@ -956,7 +956,7 @@ class GetSendToFallthroughTest(_ParticipantsTest):
         assert len(notified_users) == 12
         assert notified_users == expected_notified_users
 
-    def test_fallthrough_admin_or_recent_over_20(self):
+    def test_fallthrough_admin_or_recent_over_20(self) -> None:
         notifiable_users = [self.user, self.user2]
         for i in range(FALLTHROUGH_NOTIFICATION_LIMIT + 5):
             new_user = self.create_user(email=f"user_{i}@example.com", is_active=True)
@@ -985,7 +985,7 @@ class GetSendToFallthroughTest(_ParticipantsTest):
         assert len(notified_users) == FALLTHROUGH_NOTIFICATION_LIMIT
         assert notified_users.issubset(expected_notified_users)
 
-    def test_fallthrough_recipients_active_member_ordering(self):
+    def test_fallthrough_recipients_active_member_ordering(self) -> None:
         present = timezone.now()
 
         with assume_test_silo_mode(SiloMode.CONTROL):

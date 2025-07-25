@@ -144,7 +144,7 @@ class ProjectRuleActionsEndpointTest(APITestCase):
         assert actions is not None
         assert actions == ["An unexpected error occurred. Error ID: 'abc-1234'"]
 
-    def test_no_events(self):
+    def test_no_events(self) -> None:
         response = self.get_response(self.organization.slug, self.project.slug)
         assert response.status_code == 400
 
@@ -195,7 +195,7 @@ class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest
         self.get_success_response(self.organization.slug, self.project.slug, actions=action_data)
         assert action.called
 
-    def test_unknown_action_returns_400(self):
+    def test_unknown_action_returns_400(self) -> None:
         action_data = [
             {
                 "id": "sentry.rules.actions.fake_action.FakeAction",
@@ -310,6 +310,6 @@ class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest
         assert actions is not None
         assert actions == ["An unexpected error occurred. Error ID: 'abc-1234'"]
 
-    def test_no_events(self):
+    def test_no_events(self) -> None:
         response = self.get_response(self.organization.slug, self.project.slug)
         assert response.status_code == 400

@@ -38,7 +38,7 @@ class BitbucketUnistalledEndpointTest(TestCase):
             integration_id=self.integration.id,
         )
 
-    def test_uninstall_missing_auth_header(self):
+    def test_uninstall_missing_auth_header(self) -> None:
         response = self.client.post(self.path)
 
         assert response.status_code == 400

@@ -15,7 +15,7 @@ class FetchIssueSummaryTest(TestCase):
         # Create an error group with the proper type
         self.group = self.create_group(project=self.project, type=ErrorGroupType.type_id)
 
-    def test_fetch_issue_summary_returns_none_for_non_error_groups(self):
+    def test_fetch_issue_summary_returns_none_for_non_error_groups(self) -> None:
         """Test that fetch_issue_summary returns None for non-error issue categories"""
         # Create a performance group for this test
         performance_group = self.create_group(
@@ -101,7 +101,7 @@ class FetchIssueSummaryTest(TestCase):
 
         assert result is None
 
-    def test_fetch_issue_summary_without_gen_ai_features(self):
+    def test_fetch_issue_summary_without_gen_ai_features(self) -> None:
         """Test that fetch_issue_summary returns None without gen-ai-features flag"""
         self.project.update_option("sentry:seer_scanner_automation", True)
 
@@ -111,7 +111,7 @@ class FetchIssueSummaryTest(TestCase):
         assert result is None
 
     @with_feature("organizations:gen-ai-features")
-    def test_fetch_issue_summary_without_trigger_autofix_feature(self):
+    def test_fetch_issue_summary_without_trigger_autofix_feature(self) -> None:
         """Test that fetch_issue_summary returns None without trigger-autofix-on-issue-summary flag"""
         self.project.update_option("sentry:seer_scanner_automation", True)
 

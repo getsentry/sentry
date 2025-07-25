@@ -45,7 +45,7 @@ class ChunkUploadTest(APITestCase):
         )
         return {"HTTP_AUTHORIZATION": f"rpcsignature {signature}"}
 
-    def test_chunk_parameters(self):
+    def test_chunk_parameters(self) -> None:
         response = self.client.get(
             self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
         )
@@ -75,7 +75,7 @@ class ChunkUploadTest(APITestCase):
         )
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_chunk_parameters_launchpad_auth(self):
+    def test_chunk_parameters_launchpad_auth(self) -> None:
         """Test that Launchpad authentication works for GET requests."""
         headers = self._get_launchpad_auth_headers("GET")
         response = self.client.get(self.url, **headers, format="json")
@@ -85,7 +85,7 @@ class ChunkUploadTest(APITestCase):
         assert response.data["url"] == generate_region_url() + self.url
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_chunk_parameters_launchpad_auth_different_org(self):
+    def test_chunk_parameters_launchpad_auth_different_org(self) -> None:
         """Test that Launchpad auth bypasses organization permission checks."""
         # Create a different organization that the user doesn't have access to
         other_org = self.create_organization(name="Other Org")
@@ -106,7 +106,7 @@ class ChunkUploadTest(APITestCase):
         )
         assert response.status_code == 200
 
-    def test_launchpad_auth_missing_secret(self):
+    def test_launchpad_auth_missing_secret(self) -> None:
         """Test that missing shared secret setting causes authentication to fail."""
         headers = self._get_launchpad_auth_headers("GET")
         response = self.client.get(self.url, **headers, format="json")
@@ -114,14 +114,14 @@ class ChunkUploadTest(APITestCase):
         assert response.status_code == 500  # RpcAuthenticationSetupException
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_launchpad_auth_invalid_signature(self):
+    def test_launchpad_auth_invalid_signature(self) -> None:
         """Test that invalid signature causes authentication to fail."""
         response = self.client.get(
             self.url, HTTP_AUTHORIZATION="rpcsignature rpc0:invalid_signature", format="json"
         )
         assert response.status_code == 401
 
-    def test_relative_url_support(self):
+    def test_relative_url_support(self) -> None:
         # Starting `sentry-cli@1.70.1` we added a support for relative chunk-uploads urls
 
         # >= 1.70.1
@@ -177,7 +177,7 @@ class ChunkUploadTest(APITestCase):
             )
             assert response.data["url"] == generate_region_url() + self.url
 
-    def test_region_upload_urls(self):
+    def test_region_upload_urls(self) -> None:
         response = self.client.get(
             self.url,
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
@@ -220,13 +220,13 @@ class ChunkUploadTest(APITestCase):
             )
             assert response.data["url"] == generate_region_url() + self.url
 
-    def test_wrong_api_token(self):
+    def test_wrong_api_token(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["org:org"])
         response = self.client.get(self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}")
         assert response.status_code == 403, response.content
 
-    def test_upload(self):
+    def test_upload(self) -> None:
         data1 = b"1 this is my testString"
         data2 = b"2 this is my testString"
         checksum1 = sha1(data1).hexdigest()
@@ -252,7 +252,7 @@ class ChunkUploadTest(APITestCase):
         assert file_blobs[1].checksum == checksum2
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_upload_launchpad_auth(self):
+    def test_upload_launchpad_auth(self) -> None:
         """Test that chunk upload works with Launchpad authentication."""
         # For this test, we'll mock the authentication to bypass the signature validation
         # and focus on testing the permission logic
@@ -291,7 +291,7 @@ class ChunkUploadTest(APITestCase):
         assert file_blobs[1].checksum == checksum2
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_upload_launchpad_auth_different_org(self):
+    def test_upload_launchpad_auth_different_org(self) -> None:
         """Test that Launchpad auth bypasses organization permission checks for uploads."""
         # Create a different organization that the user doesn't have access to
         other_org = self.create_organization(name="Other Org")
@@ -326,7 +326,7 @@ class ChunkUploadTest(APITestCase):
         assert permission.has_permission(mock_request, None)
         assert permission.has_object_permission(mock_request, None, other_org)
 
-    def test_empty_upload(self):
+    def test_empty_upload(self) -> None:
         response = self.client.post(
             self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="multipart"
         )
@@ -336,7 +336,7 @@ class ChunkUploadTest(APITestCase):
         assert len(file_blobs) == 0
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_empty_upload_launchpad_auth(self):
+    def test_empty_upload_launchpad_auth(self) -> None:
         """Test that empty uploads work with Launchpad authentication."""
         from unittest.mock import patch
 
@@ -361,7 +361,7 @@ class ChunkUploadTest(APITestCase):
         file_blobs = FileBlob.objects.all()
         assert len(file_blobs) == 0
 
-    def test_too_many_chunks(self):
+    def test_too_many_chunks(self) -> None:
         files = []
 
         # Exactly the limit
@@ -378,7 +378,7 @@ class ChunkUploadTest(APITestCase):
 
         assert response.status_code == 400, response.content
 
-    def test_too_large_request(self):
+    def test_too_large_request(self) -> None:
         files = []
 
         # Exactly the limit
@@ -405,7 +405,7 @@ class ChunkUploadTest(APITestCase):
         )
         assert response.status_code == 400, response.content
 
-    def test_too_large_chunk(self):
+    def test_too_large_chunk(self) -> None:
         files = []
         content = b"x" * (settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE + 1)
         files.append(SimpleUploadedFile(sha1(content).hexdigest(), content))
@@ -419,7 +419,7 @@ class ChunkUploadTest(APITestCase):
 
         assert response.status_code == 400, response.content
 
-    def test_checksum_missmatch(self):
+    def test_checksum_missmatch(self) -> None:
         files = []
         content = b"x" * (settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE + 1)
         files.append(SimpleUploadedFile("wrong checksum", content))

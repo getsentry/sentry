@@ -38,7 +38,7 @@ class ExploreSavedQueryStarredOrderTest(APITestCase, SnubaTestCase):
 
         self.url = reverse("sentry-api-0-explore-saved-query-starred-order", args=[self.org.slug])
 
-    def test_put(self):
+    def test_put(self) -> None:
         with self.feature(self.feature_name):
             ids = (
                 ExploreSavedQueryStarred.objects.filter(organization=self.org, user_id=self.user.id)
@@ -57,7 +57,7 @@ class ExploreSavedQueryStarredOrderTest(APITestCase, SnubaTestCase):
             )
             assert list(ids) == [self.model_b.id, self.model_a.id]
 
-    def test_put_invalid_query_ids(self):
+    def test_put_invalid_query_ids(self) -> None:
         with self.feature(self.feature_name):
             response = self.client.put(
                 self.url, data={"query_ids": [self.model_a.id, self.model_a.id]}

@@ -79,7 +79,7 @@ class SyncArtifactBundlesTest(TestCase):
     def last_three_days(self):
         return timezone.now() - timedelta(days=3)
 
-    def test_sync_artifact_bundles_no_bundles(self):
+    def test_sync_artifact_bundles_no_bundles(self) -> None:
 
         _sync_artifact_bundles(
             source_org=self.source_org,
@@ -89,7 +89,7 @@ class SyncArtifactBundlesTest(TestCase):
 
         assert not ArtifactBundle.objects.all().exists()
 
-    def test_sync_artifact_bundles_with_differences(self):
+    def test_sync_artifact_bundles_with_differences(self) -> None:
         (source_artifact_bundle, _, __) = self.set_up_artifact_bundle(
             self.source_org, self.source_proj_foo
         )
@@ -106,7 +106,7 @@ class SyncArtifactBundlesTest(TestCase):
 
         assert target_artifact_bundles.bundle_id == source_artifact_bundle.bundle_id
 
-    def test_sync_artifact_bundles_does_not_touch_other_orgs(self):
+    def test_sync_artifact_bundles_does_not_touch_other_orgs(self) -> None:
         self.set_up_artifact_bundle(self.source_org, self.source_proj_foo)
         self.set_up_artifact_bundle(self.unrelated_org, self.unrelated_proj_foo)
 
@@ -122,7 +122,7 @@ class SyncArtifactBundlesTest(TestCase):
 
         assert unrelated_artifact_bundles.count() == 1
 
-    def test_sync_artifact_bundles_with_old_uploads(self):
+    def test_sync_artifact_bundles_with_old_uploads(self) -> None:
         self.set_up_artifact_bundle(
             self.source_org, self.source_proj_foo, date_uploaded=timezone.now() - timedelta(days=2)
         )
@@ -137,7 +137,7 @@ class SyncArtifactBundlesTest(TestCase):
 
         assert not ArtifactBundle.objects.filter(organization_id=self.target_org.id).exists()
 
-    def test_sync_artifact_bundles_only_once(self):
+    def test_sync_artifact_bundles_only_once(self) -> None:
         (source_artifact_bundle, _, __) = self.set_up_artifact_bundle(
             self.source_org, self.source_proj_foo
         )
@@ -163,7 +163,7 @@ class SyncArtifactBundlesTest(TestCase):
         assert target_artifact_bundles.count() == 1
         assert target_artifact_bundles[0].bundle_id == source_artifact_bundle.bundle_id
 
-    def test_sync_artifact_bundles_with_empty_org_does_not_fail(self):
+    def test_sync_artifact_bundles_with_empty_org_does_not_fail(self) -> None:
         self.set_up_artifact_bundle(self.source_org, self.source_proj_foo)
 
         _sync_artifact_bundles(
@@ -172,7 +172,7 @@ class SyncArtifactBundlesTest(TestCase):
             cutoff_date=self.last_three_days(),
         )
 
-    def test_sync_project_artifact_bundles(self):
+    def test_sync_project_artifact_bundles(self) -> None:
         self.set_up_artifact_bundle(self.source_org, self.source_proj_foo)
 
         _sync_artifact_bundles(
@@ -189,7 +189,7 @@ class SyncArtifactBundlesTest(TestCase):
         assert target_project_artifact_bundle.project_id == self.target_proj_foo.id
         assert target_project_artifact_bundle.organization_id == self.target_org.id
 
-    def test_sync_release_artifact_bundles(self):
+    def test_sync_release_artifact_bundles(self) -> None:
         (_, __, source_release_bundle) = self.set_up_artifact_bundle(
             self.source_org, self.source_proj_foo
         )
@@ -222,7 +222,7 @@ class SyncArtifactBundlesTest(TestCase):
         assert not ProjectArtifactBundle.objects.filter(organization_id=self.target_org.id).exists()
         assert not ReleaseArtifactBundle.objects.filter(organization_id=self.target_org.id).exists()
 
-    def test_sync_project_debug_files(self):
+    def test_sync_project_debug_files(self) -> None:
         source_project_debug_file = self.create_dif_file(self.source_proj_foo)
 
         assert not ProjectDebugFile.objects.filter(
@@ -245,7 +245,7 @@ class SyncArtifactBundlesTest(TestCase):
         assert target_project_debug_file.code_id == source_project_debug_file.code_id
         assert target_project_debug_file.cpu_name == source_project_debug_file.cpu_name
 
-    def test_sync_project_debug_files_with_old_uploads(self):
+    def test_sync_project_debug_files_with_old_uploads(self) -> None:
         source_project_debug_file = self.create_dif_file(
             self.source_proj_foo,
             date_accessed=timezone.now() - timedelta(days=2),
@@ -267,7 +267,7 @@ class SyncArtifactBundlesTest(TestCase):
             debug_id=source_project_debug_file.debug_id,
         ).exists()
 
-    def test_sync_project_debug_files_with_empty_org_does_not_fail(self):
+    def test_sync_project_debug_files_with_empty_org_does_not_fail(self) -> None:
         self.create_dif_file(self.source_proj_foo)
 
         _sync_project_debug_files(
@@ -276,7 +276,7 @@ class SyncArtifactBundlesTest(TestCase):
             cutoff_date=self.last_three_days(),
         )
 
-    def test_sync_proguard_artifact_releases(self):
+    def test_sync_proguard_artifact_releases(self) -> None:
         source_proguard_artifact_release = self.set_up_proguard_artifact_release(
             self.source_org,
             self.source_proj_foo,
@@ -308,7 +308,7 @@ class SyncArtifactBundlesTest(TestCase):
         )
         assert target_proguard_artifact_release.project_id == self.target_proj_foo.id
 
-    def test_sync_proguard_artifact_releases_with_old_uploads(self):
+    def test_sync_proguard_artifact_releases_with_old_uploads(self) -> None:
         source_proguard_artifact_release = self.set_up_proguard_artifact_release(
             self.source_org,
             self.source_proj_foo,
@@ -331,7 +331,7 @@ class SyncArtifactBundlesTest(TestCase):
             proguard_uuid=source_proguard_artifact_release.proguard_uuid,
         ).exists()
 
-    def test_sync_proguard_artifact_releases_with_empty_org_does_not_fail(self):
+    def test_sync_proguard_artifact_releases_with_empty_org_does_not_fail(self) -> None:
         self.set_up_proguard_artifact_release(self.source_org, self.source_proj_foo)
 
         _sync_proguard_artifact_releases(

@@ -14,12 +14,12 @@ class OrganizationIntegrationIssuesTest(APITestCase):
             f"/api/0/organizations/{self.organization.slug}/integrations/{integration_id}/issues/"
         )
 
-    def test_no_integration(self):
+    def test_no_integration(self) -> None:
         path = self.get_path(integration_id=-1)
         response = self.client.put(path, format="json")
         assert response.status_code == 404
 
-    def test_not_issue_integration(self):
+    def test_not_issue_integration(self) -> None:
         integration = self.create_integration(
             organization=self.organization, provider="slack", external_id="slack:1"
         )

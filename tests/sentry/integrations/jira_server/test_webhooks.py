@@ -28,13 +28,13 @@ class JiraServerWebhookEndpointTest(APITestCase):
             {"id": self.integration.external_id}, self.integration.metadata["webhook_secret"]
         )
 
-    def test_post_empty_token(self):
+    def test_post_empty_token(self) -> None:
         # Read the property to get side-effects in the database.
         _ = self.jwt_token
 
         self.get_error_response(" ", status_code=400)
 
-    def test_post_missing_default_identity(self):
+    def test_post_missing_default_identity(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             org_integration = OrganizationIntegration.objects.get(
                 organization_id=self.organization.id,
@@ -47,19 +47,19 @@ class JiraServerWebhookEndpointTest(APITestCase):
         with self.tasks():
             self.get_success_response(self.jwt_token, **EXAMPLE_PAYLOAD)
 
-    def test_post_token_missing_id(self):
+    def test_post_token_missing_id(self) -> None:
         integration = self.integration
         # No id key in the token
         token = jwt.encode({"no": integration.id}, integration.metadata["webhook_secret"])
         self.get_error_response(token, status_code=400)
 
-    def test_post_token_missing_integration(self):
+    def test_post_token_missing_integration(self) -> None:
         integration = self.integration
         # Use the wrong id in the token.
         token = jwt.encode({"no": integration.id}, integration.metadata["webhook_secret"])
         self.get_error_response(token, status_code=400)
 
-    def test_post_token_invalid_signature(self):
+    def test_post_token_invalid_signature(self) -> None:
         integration = self.integration
         # Use the wrong id in the token.
         token = jwt.encode({"id": integration.external_id}, "bad-secret")
@@ -95,7 +95,7 @@ class JiraServerWebhookEndpointTest(APITestCase):
         )
 
     @responses.activate
-    def test_post_update_status_token_error(self):
+    def test_post_update_status_token_error(self) -> None:
         responses.add(
             method=responses.GET,
             url="https://jira.example.org/rest/api/2/status",

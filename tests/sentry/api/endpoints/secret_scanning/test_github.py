@@ -18,18 +18,18 @@ from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 class SecretScanningGitHubTest(TestCase):
     path = reverse("sentry-api-0-secret-scanning-github")
 
-    def test_invalid_content_type(self):
+    def test_invalid_content_type(self) -> None:
         response = self.client.post(self.path, content_type="application/x-www-form-urlencoded")
         assert response.status_code == 400
         assert response.content == b'{"details":"invalid content type specified"}'
 
-    def test_invalid_signature(self):
+    def test_invalid_signature(self) -> None:
         response = self.client.post(self.path, content_type="application/json")
         assert response.status_code == 400
         assert response.content == b'{"details":"invalid signature"}'
 
     @override_options({"secret-scanning.github.enable-signature-verification": False})
-    def test_false_positive(self):
+    def test_false_positive(self) -> None:
         payload = [
             {
                 "source": "commit",
@@ -46,7 +46,7 @@ class SecretScanningGitHubTest(TestCase):
         )
 
     @override_options({"secret-scanning.github.enable-signature-verification": False})
-    def test_false_positive_deactivated_user_token(self):
+    def test_false_positive_deactivated_user_token(self) -> None:
         user = self.create_user()
         token = ApiToken.objects.create(user=user, name="test user token", scope_list=[])
 
@@ -77,7 +77,7 @@ class SecretScanningGitHubTest(TestCase):
         assert len(mail.outbox) == 0
 
     @override_options({"secret-scanning.github.enable-signature-verification": False})
-    def test_false_positive_deactivated_org_token(self):
+    def test_false_positive_deactivated_org_token(self) -> None:
         token_str = generate_token("test-org", "https://test-region.sentry.io")
         hash_digest = hash_token(token_str)
         token = OrgAuthToken.objects.create(

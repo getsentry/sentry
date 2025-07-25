@@ -34,7 +34,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
             "external_id": external_id,
         }
 
-    def test_delete_no_commits(self):
+    def test_delete_no_commits(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -53,7 +53,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         ).exists()
         self.assert_rename_pending_delete(response, repo)
 
-    def test_delete_with_commits(self):
+    def test_delete_with_commits(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -76,7 +76,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         ).exists()
         self.assert_rename_pending_delete(response, repo, "abc123")
 
-    def test_delete_disabled_no_commits(self):
+    def test_delete_disabled_no_commits(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -101,7 +101,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         ).exists()
         self.assert_rename_pending_delete(response, repo, "abc12345")
 
-    def test_delete_disabled_with_commits(self):
+    def test_delete_disabled_with_commits(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -125,7 +125,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         ).exists()
         self.assert_rename_pending_delete(response, repo)
 
-    def test_put(self):
+    def test_put(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -146,7 +146,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         assert repo.status == ObjectStatus.ACTIVE
         assert repo.integration_id == integration.id
 
-    def test_put_cancel_deletion(self):
+    def test_put_cancel_deletion(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -250,7 +250,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
             }
         )
 
-    def test_put_bad_integration_org(self):
+    def test_put_bad_integration_org(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -267,7 +267,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         assert response.data["detail"] == "Invalid integration id"
         assert Repository.objects.get(id=repo.id).name == "example"
 
-    def test_put_bad_integration_id(self):
+    def test_put_bad_integration_id(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")

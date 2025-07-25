@@ -28,7 +28,7 @@ class TestIssueCategoryCondition(ConditionTestCase):
             condition_result=True,
         )
 
-    def test_dual_write(self):
+    def test_dual_write(self) -> None:
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
 
@@ -39,7 +39,7 @@ class TestIssueCategoryCondition(ConditionTestCase):
         assert dc.condition_result is True
         assert dc.condition_group == dcg
 
-    def test_json_schema(self):
+    def test_json_schema(self) -> None:
         self.dc.comparison.update({"value": 2})
         self.dc.save()
 
@@ -55,7 +55,7 @@ class TestIssueCategoryCondition(ConditionTestCase):
         with pytest.raises(ValidationError):
             self.dc.save()
 
-    def test_valid_input_values(self):
+    def test_valid_input_values(self) -> None:
         self.dc.update(comparison={"value": 1})
         self.assert_passes(self.dc, self.event_data)
         self.dc.update(comparison={"value": str(GroupCategory.ERROR.value)})
@@ -63,7 +63,7 @@ class TestIssueCategoryCondition(ConditionTestCase):
         self.dc.update(comparison={"value": GroupCategory.ERROR.value})
         self.assert_passes(self.dc, self.event_data)
 
-    def test_fail_on_invalid_data(self):
+    def test_fail_on_invalid_data(self) -> None:
         data_cases = [
             {"value": None},
             {},
@@ -76,7 +76,7 @@ class TestIssueCategoryCondition(ConditionTestCase):
             self.dc.update(comparison=data_case)
             self.assert_does_not_pass(self.dc, self.event_data)
 
-    def test_group_event(self):
+    def test_group_event(self) -> None:
         assert self.event.group is not None
         group_event = self.event.for_group(self.group)
 
@@ -92,7 +92,7 @@ class TestIssueCategoryCondition(ConditionTestCase):
             self.dc, WorkflowEventData(event=self.event, group=self.event.group)
         )
 
-    def test_category_v2(self):
+    def test_category_v2(self) -> None:
         perf_group, perf_event, perf_group_event = self.create_group_event(
             group_type_id=PerformanceNPlusOneGroupType.type_id
         )

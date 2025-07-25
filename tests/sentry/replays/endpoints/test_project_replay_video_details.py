@@ -54,7 +54,7 @@ class ReplayVideoDetailsTestCase(APITestCase, ReplaysSnubaTestCase):
         self.save_video_file(segment_id, data)
         self.save_replay_segment(segment_id, **metadata)
 
-    def test_get_replay_video(self):
+    def test_get_replay_video(self) -> None:
         self.save_video(0, self.segment_data)
         self.login_as(user=self.user)
 
@@ -67,7 +67,7 @@ class ReplayVideoDetailsTestCase(APITestCase, ReplaysSnubaTestCase):
             assert response.get("Content-Length") == str(self.segment_data_size)
             assert response.get("Content-Type") == "application/octet-stream"
 
-    def test_get_replay_video_range(self):
+    def test_get_replay_video_range(self) -> None:
         self.save_video(0, self.segment_data)
         self.login_as(user=self.user)
 
@@ -81,7 +81,7 @@ class ReplayVideoDetailsTestCase(APITestCase, ReplaysSnubaTestCase):
             assert response.get("Content-Type") == "application/octet-stream"
             assert response.get("Content-Range") == "bytes 0-5/13"
 
-    def test_get_replay_video_multi_range(self):
+    def test_get_replay_video_multi_range(self) -> None:
         self.save_video(0, self.segment_data)
         self.login_as(user=self.user)
 
@@ -95,7 +95,7 @@ class ReplayVideoDetailsTestCase(APITestCase, ReplaysSnubaTestCase):
             assert response.get("Content-Type") == "application/octet-stream"
             assert response.get("Content-Range") == "bytes */13"
 
-    def test_get_replay_video_invalid_range(self):
+    def test_get_replay_video_invalid_range(self) -> None:
         self.save_video(0, self.segment_data)
         self.login_as(user=self.user)
 
@@ -109,14 +109,14 @@ class ReplayVideoDetailsTestCase(APITestCase, ReplaysSnubaTestCase):
             assert response.get("Content-Type") == "application/octet-stream"
             assert response.get("Content-Range") == "bytes */13"
 
-    def test_get_replay_video_segment_not_found(self):
+    def test_get_replay_video_segment_not_found(self) -> None:
         self.login_as(user=self.user)
 
         with self.feature("organizations:session-replay"):
             response = self.client.get(self.url)
             assert response.status_code == 404, response.content
 
-    def test_get_replay_video_payload_not_found(self):
+    def test_get_replay_video_payload_not_found(self) -> None:
         self.save_replay_segment(0)
         self.login_as(user=self.user)
 

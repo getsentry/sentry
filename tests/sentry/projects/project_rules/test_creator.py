@@ -52,7 +52,7 @@ class TestProjectRuleCreator(TestCase):
             source=RuleSource.ISSUE,
         )
 
-    def test_creates_rule(self):
+    def test_creates_rule(self) -> None:
         r = self.creator.run()
         rule = Rule.objects.get(id=r.id)
         assert rule.label == "New Cool Rule"
@@ -83,7 +83,7 @@ class TestProjectRuleCreator(TestCase):
         assert not AlertRuleWorkflow.objects.filter(rule_id=rule.id).exists()
 
     @with_feature("organizations:workflow-engine-issue-alert-dual-write")
-    def test_dual_create_workflow_engine(self):
+    def test_dual_create_workflow_engine(self) -> None:
         conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -149,7 +149,7 @@ class TestProjectRuleCreator(TestCase):
         assert action.type == Action.Type.PLUGIN
 
     @with_feature("organizations:workflow-engine-issue-alert-dual-write")
-    def test_dual_create_workflow_engine__cant_acquire_lock(self):
+    def test_dual_create_workflow_engine__cant_acquire_lock(self) -> None:
         lock = locks.get(
             f"workflow-engine-project-error-detector:{self.project.id}",
             duration=10,

@@ -210,7 +210,7 @@ class MSTeamsNotificationIntegrationTest(MSTeamsActivityNotificationTest):
         self._setup_msteams_api()
 
     @responses.activate
-    def test_send_note_activity_notification(self):
+    def test_send_note_activity_notification(self) -> None:
         notification = NoteActivityNotification(
             Activity(
                 project=self.project,

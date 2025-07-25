@@ -34,7 +34,7 @@ class TestNewHighPriorityIssueCondition(ConditionTestCase):
             condition_result=True,
         )
 
-    def test_dual_write(self):
+    def test_dual_write(self) -> None:
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
 
@@ -43,7 +43,7 @@ class TestNewHighPriorityIssueCondition(ConditionTestCase):
         assert dc.condition_result is True
         assert dc.condition_group == dcg
 
-    def test_json_schema(self):
+    def test_json_schema(self) -> None:
         dc = self.create_data_condition(
             type=self.condition,
             comparison=True,
@@ -61,7 +61,7 @@ class TestNewHighPriorityIssueCondition(ConditionTestCase):
         with pytest.raises(ValidationError):
             dc.save()
 
-    def test_with_high_priority_alerts(self):
+    def test_with_high_priority_alerts(self) -> None:
         self.project.flags.has_high_priority_alerts = True
         self.project.save()
 
@@ -82,7 +82,7 @@ class TestNewHighPriorityIssueCondition(ConditionTestCase):
         self.group_event.group.update(priority=PriorityLevel.LOW)
         self.assert_does_not_pass(self.dc, self.event_data)
 
-    def test_without_high_priority_alerts(self):
+    def test_without_high_priority_alerts(self) -> None:
         self.project.flags.has_high_priority_alerts = False
         self.project.save()
 

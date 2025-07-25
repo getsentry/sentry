@@ -21,7 +21,7 @@ class AssistantActivityTest(APITestCase):
         self.create_organization(owner=self.user)
         self.login_as(user=self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         resp = self.get_response()
         assert resp.status_code == 200
 
@@ -29,7 +29,7 @@ class AssistantActivityTest(APITestCase):
         for guide in resp.data:
             assert guide["seen"] is False
 
-    def test_dismissed(self):
+    def test_dismissed(self) -> None:
         guide = "issue_stream"
         AssistantActivity.objects.create(
             user=self.user, guide_id=self.guides[guide], dismissed_ts=timezone.now()
@@ -38,7 +38,7 @@ class AssistantActivityTest(APITestCase):
         assert resp.status_code == 200
         assert {"guide": guide, "seen": True} in resp.data
 
-    def test_viewed(self):
+    def test_viewed(self) -> None:
         guide = "issue_stream"
         AssistantActivity.objects.create(
             user=self.user, guide_id=self.guides[guide], viewed_ts=timezone.now()
@@ -62,7 +62,7 @@ class AssistantActivityUpdateTest(APITestCase):
         self.create_organization(owner=self.user)
         self.login_as(user=self.user)
 
-    def test_invalid_inputs(self):
+    def test_invalid_inputs(self) -> None:
         resp = self.get_response(guide="guide_does_not_exist")
         assert resp.status_code == 400
 
@@ -75,7 +75,7 @@ class AssistantActivityUpdateTest(APITestCase):
         resp = self.get_response(guide="issue", status="whats_my_name_again")
         assert resp.status_code == 400
 
-    def test_dismissed(self):
+    def test_dismissed(self) -> None:
         guide = "issue_stream"
         resp = self.get_response(guide=guide, status="dismissed")
         assert resp.status_code == 201
@@ -84,7 +84,7 @@ class AssistantActivityUpdateTest(APITestCase):
         assert activity.dismissed_ts
         assert not activity.viewed_ts
 
-    def test_viewed(self):
+    def test_viewed(self) -> None:
         guide = "issue_stream"
         resp = self.get_response(guide=guide, status="viewed")
         assert resp.status_code == 201
@@ -93,7 +93,7 @@ class AssistantActivityUpdateTest(APITestCase):
         assert activity.viewed_ts
         assert not activity.dismissed_ts
 
-    def test_restart(self):
+    def test_restart(self) -> None:
         guide = "issue_stream"
         resp = self.get_response(guide=guide, status="viewed")
         assert resp.status_code == 201

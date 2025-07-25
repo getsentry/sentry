@@ -141,7 +141,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             },
         )
 
-    def test_sends_alert_rule_notification_to_each_member(self):
+    def test_sends_alert_rule_notification_to_each_member(self) -> None:
         """Test that if there is only one event it is sent as a regular alert rule notification"""
         self.run_test(event_count=1)
 

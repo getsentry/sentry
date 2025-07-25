@@ -15,7 +15,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         self.min_ago = before_now(minutes=1)
         self.day_ago = before_now(days=1)
 
-    def test_invalid_query(self):
+    def test_invalid_query(self) -> None:
         with pytest.raises(InvalidSearchQuery):
             discover.get_facets(
                 "\n",
@@ -23,7 +23,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
                 "testing.get-facets-test",
             )
 
-    def test_no_results(self):
+    def test_no_results(self) -> None:
         results = discover.get_facets(
             "",
             SnubaParams(projects=[self.project], end=self.min_ago, start=self.day_ago),
@@ -31,7 +31,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         )
         assert results == []
 
-    def test_single_project(self):
+    def test_single_project(self) -> None:
         self.store_event(
             data={
                 "message": "very bad",
@@ -60,7 +60,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         assert {r.value for r in result} == {"red", "blue", "1", "0", "error"}
         assert {r.count for r in result} == {1, 2}
 
-    def test_project_filter(self):
+    def test_project_filter(self) -> None:
         self.store_event(
             data={
                 "message": "very bad",
@@ -96,7 +96,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         projects = [f for f in result if f.key == "project"]
         assert [p.count for p in projects] == [1, 1]
 
-    def test_environment_promoted_tag(self):
+    def test_environment_promoted_tag(self) -> None:
         for env in ("prod", "staging", None):
             self.store_event(
                 data={
@@ -117,7 +117,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         assert {None, "prod", "staging"} == {f.value for f in result if f.key == "environment"}
         assert {1} == {f.count for f in result if f.key == "environment"}
 
-    def test_query_string(self):
+    def test_query_string(self) -> None:
         self.store_event(
             data={
                 "message": "very bad",
@@ -147,7 +147,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         assert "color" in keys
         assert "toy" not in keys
 
-    def test_query_string_with_aggregate_condition(self):
+    def test_query_string_with_aggregate_condition(self) -> None:
         self.store_event(
             data={
                 "message": "very bad",
@@ -177,7 +177,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         assert "color" in keys
         assert "toy" not in keys
 
-    def test_date_params(self):
+    def test_date_params(self) -> None:
         self.store_event(
             data={
                 "message": "very bad",
@@ -205,7 +205,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         assert "color" in keys
         assert "toy" not in keys
 
-    def test_count_sorting(self):
+    def test_count_sorting(self) -> None:
         for _ in range(5):
             self.store_event(
                 data={

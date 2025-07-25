@@ -127,7 +127,7 @@ class SentryAppPublishRequestTest(APITestCase):
         )
         send_mail.asssert_not_called()
 
-    def test_cannot_publish_by_manager(self):
+    def test_cannot_publish_by_manager(self) -> None:
         self.user_manager = self.create_user("manager@example.com", is_superuser=False)
         self.create_member(user=self.user_manager, organization=self.org, role="manager", teams=[])
         self.login_as(self.user_manager)

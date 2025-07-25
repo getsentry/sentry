@@ -31,11 +31,11 @@ class WebhookTest(APITestCase):
             "verify_ssl": True,
         }
 
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.client.get(self.url)
         assert response.status_code == 405
 
-    def test_unknown_host_event(self):
+    def test_unknown_host_event(self) -> None:
         # No integration defined in the database, so event should be rejected
         # because we can't find metadata and secret for it
         response = self.client.post(
@@ -48,7 +48,7 @@ class WebhookTest(APITestCase):
         )
         assert response.status_code == 400
 
-    def test_unregistered_event(self):
+    def test_unregistered_event(self) -> None:
         response = self.client.post(
             path=self.url,
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,

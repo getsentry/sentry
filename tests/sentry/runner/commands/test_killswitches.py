@@ -19,7 +19,7 @@ class KillswitchesTest(CliTestCase):
             )
         },
     )
-    def test_basic(self):
+    def test_basic(self) -> None:
         assert self.invoke("list").output == (
             "\n"
             "store.load-shed-group-creation-projects\n"

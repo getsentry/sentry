@@ -46,7 +46,7 @@ class TestEventManagerPriority(TestCase):
         assert event2.group_id == event.group_id
         assert mock_get_priority_for_group.call_count == 1
 
-    def test_priority_scores_without_severity(self):
+    def test_priority_scores_without_severity(self) -> None:
         with self.feature({"projects:first-event-severity-calculation": False}):
             for level, expected_priority in (
                 (logging.INFO, PriorityLevel.LOW),

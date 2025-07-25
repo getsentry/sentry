@@ -54,7 +54,7 @@ class VstsExtensionIntegrationProviderTest(VstsIntegrationTestCase):
         assert integration["external_id"] == self.vsts_account_id
         assert integration["name"] == "test"
 
-    def test_builds_integration_with_vsts_key(self):
+    def test_builds_integration_with_vsts_key(self) -> None:
         self._stub_vsts()
 
         # Emulate the request from VSTS to us

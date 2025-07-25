@@ -14,7 +14,7 @@ class TestSentryAppAvatar(TestCase):
         self.sentry_app = self.create_sentry_app(organization=self.organization)
         self.avatar = self.create_sentry_app_avatar(sentry_app=self.sentry_app)
 
-    def test_rpc_avatar_properties(self):
+    def test_rpc_avatar_properties(self) -> None:
         rpc_avatar = serialize_sentry_app_avatar(self.avatar)
         assert rpc_avatar.id == self.avatar.id
         assert rpc_avatar.ident == self.avatar.ident
@@ -47,7 +47,7 @@ class TestRpcApiApplication(TestCase):
             slug="foo", organization=self.org, user=self.user
         )
 
-    def test_serializes_correct_fields_helper(self):
+    def test_serializes_correct_fields_helper(self) -> None:
         install = serialize_sentry_app_installation(self.install, self.install.sentry_app)
 
         assert (
@@ -57,7 +57,7 @@ class TestRpcApiApplication(TestCase):
         assert f"this {install.sentry_app} is so skibidi".lower().find("client_id") == -1
         assert f"this {install.sentry_app} is so toilet".lower().find("client_secret") == -1
 
-    def test_serializes_correct_fields_(self):
+    def test_serializes_correct_fields_(self) -> None:
         install = app_service.get_many(filter=dict(installation_ids=[self.install.id]))[0]
 
         assert (

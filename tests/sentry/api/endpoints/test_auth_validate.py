@@ -19,20 +19,20 @@ class AuthenticatedTest(APITestCase):
 
         self.url = reverse("sentry-api-0-auth-test")
 
-    def test_valid_session_auth(self):
+    def test_valid_session_auth(self) -> None:
         self.client.login(username=self.user.username, password="ThisIsATestPassword1234")
         response = self.client.get(self.url, format="json")
         assert response.status_code == 200
         self.client.logout()
 
-    def test_valid_user_token_auth(self):
+    def test_valid_user_token_auth(self) -> None:
         api_token = ApiToken.objects.create(token_type=AuthTokenType.USER, user=self.user)
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {api_token.plaintext_token}")
         response = self.client.get(self.url)
         assert response.status_code == 200
         self.client.credentials()
 
-    def test_valid_org_token_auth(self):
+    def test_valid_org_token_auth(self) -> None:
         from sentry.utils.security.orgauthtoken_token import hash_token
 
         token = "sntrys_abc1234_xyz"
@@ -49,6 +49,6 @@ class AuthenticatedTest(APITestCase):
         assert response.status_code == 200
         self.client.credentials()
 
-    def test_no_auth(self):
+    def test_no_auth(self) -> None:
         response = self.client.get(self.url)
         assert response.status_code == 403

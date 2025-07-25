@@ -683,7 +683,7 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
 
     @with_feature("organizations:dynamic-sampling")
     @with_feature("organizations:dynamic-sampling-custom")
-    def test_recalibrate_orgs_with_custom_ds(self):
+    def test_recalibrate_orgs_with_custom_ds(self) -> None:
         """
         Test several organizations with mixed sampling mode.
 

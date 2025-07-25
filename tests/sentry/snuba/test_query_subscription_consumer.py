@@ -81,7 +81,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
         with mock.patch("sentry.utils.metrics") as self.metrics:
             yield
 
-    def test_arroyo_consumer(self):
+    def test_arroyo_consumer(self) -> None:
         topic_defn = get_topic_definition(Topic.EVENTS)
         create_topics(topic_defn["cluster"], [topic_defn["real_topic_name"]])
 
@@ -156,7 +156,7 @@ class ParseMessageValueTest(BaseQuerySubscriptionTest, unittest.TestCase):
             payload.update(update_fields)
         self.run_invalid_schema_test({"version": 3, "payload": payload})
 
-    def test_invalid_payload(self):
+    def test_invalid_payload(self) -> None:
         self.run_invalid_payload_test(remove_fields=["subscription_id"])
         self.run_invalid_payload_test(remove_fields=["result"])
         self.run_invalid_payload_test(remove_fields=["timestamp"])
@@ -167,20 +167,20 @@ class ParseMessageValueTest(BaseQuerySubscriptionTest, unittest.TestCase):
         self.run_invalid_payload_test(update_fields={"timestamp": -1})
         self.run_invalid_payload_test(update_fields={"entity": -1})
 
-    def test_invalid_version(self):
+    def test_invalid_version(self) -> None:
         with pytest.raises(InvalidSchemaError) as excinfo:
             self.run_test({"version": 50, "payload": self.valid_payload})
         assert str(excinfo.value) == "Message wrapper does not match schema"
 
-    def test_valid(self):
+    def test_valid(self) -> None:
         self.run_test({"version": 3, "payload": self.valid_payload})
 
-    def test_valid_nan(self):
+    def test_valid_nan(self) -> None:
         payload = deepcopy(self.valid_payload)
         payload["result"]["data"][0]["hello"] = float("nan")
         self.run_test({"version": 3, "payload": payload})
 
-    def test_invalid_wrapper(self):
+    def test_invalid_wrapper(self) -> None:
         self.run_invalid_schema_test({})
         self.run_invalid_schema_test({"version": 1})
         self.run_invalid_schema_test({"payload": self.valid_payload})
@@ -194,7 +194,7 @@ class RegisterSubscriberTest(unittest.TestCase):
         subscriber_registry.clear()
         subscriber_registry.update(self.orig_registry)
 
-    def test_register(self):
+    def test_register(self) -> None:
         callback = lambda a, b: None
         other_callback = lambda a, b: None
         register_subscriber("hello")(callback)
@@ -202,7 +202,7 @@ class RegisterSubscriberTest(unittest.TestCase):
         register_subscriber("goodbye")(other_callback)
         assert subscriber_registry["goodbye"] is other_callback
 
-    def test_already_registered(self):
+    def test_already_registered(self) -> None:
         callback = lambda a, b: None
         other_callback = lambda a, b: None
         register_subscriber("hello")(callback)

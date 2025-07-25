@@ -84,7 +84,7 @@ class OrganizationInsightsTreeEndpointTest(
             self.store_span(span, is_eap=True)
             spans.append(span)
 
-    def test_get_nextjs_function_data(self):
+    def test_get_nextjs_function_data(self) -> None:
         self.login_as(user=self.user)
         with self.feature(self.FEATURES):
             response = self.client.get(

@@ -10,7 +10,7 @@ class TestTempestCredentials(APITestCase):
 
     valid_credentials_data = {"clientId": "test", "clientSecret": "test"}
 
-    def test_get_tempest_credentials(self):
+    def test_get_tempest_credentials(self) -> None:
         with Feature({"organizations:tempest-access": True}):
             credentials = [self.create_tempest_credentials(self.project) for _ in range(5)]
 
@@ -25,19 +25,19 @@ class TestTempestCredentials(APITestCase):
             assert len(response.data) == 5
             assert {cred.id for cred in credentials} == {item["id"] for item in response.data}
 
-    def test_endpoint_returns_404_if_feature_flag_is_disabled(self):
+    def test_endpoint_returns_404_if_feature_flag_is_disabled(self) -> None:
         self.login_as(self.user)
         response = self.get_response(self.project.organization.slug, self.project.slug)
         assert response.status_code == 404
 
-    def test_client_secret_is_obfuscated(self):
+    def test_client_secret_is_obfuscated(self) -> None:
         with Feature({"organizations:tempest-access": True}):
             credentials = self.create_tempest_credentials(self.project)
             self.login_as(self.user)
             response = self.get_success_response(self.project.organization.slug, self.project.slug)
             assert response.data[0]["clientSecret"] == "*" * len(credentials.client_secret)
 
-    def test_unauthenticated_user_cant_access_endpoint(self):
+    def test_unauthenticated_user_cant_access_endpoint(self) -> None:
         self.get_error_response(self.project.organization.slug, self.project.slug)
 
     @patch(
@@ -61,7 +61,7 @@ class TestTempestCredentials(APITestCase):
 
             create_audit_entry.assert_called()
 
-    def test_create_tempest_credentials_without_feature_flag(self):
+    def test_create_tempest_credentials_without_feature_flag(self) -> None:
         self.login_as(self.user)
         response = self.get_error_response(
             self.project.organization.slug,
@@ -71,7 +71,7 @@ class TestTempestCredentials(APITestCase):
         )
         assert response.status_code == 404
 
-    def test_create_tempest_credentials_as_unauthenticated_user(self):
+    def test_create_tempest_credentials_as_unauthenticated_user(self) -> None:
         response = self.get_error_response(
             self.project.organization.slug,
             self.project.slug,
@@ -80,7 +80,7 @@ class TestTempestCredentials(APITestCase):
         )
         assert response.status_code == 401
 
-    def test_non_admin_cant_create_tempest_credentials(self):
+    def test_non_admin_cant_create_tempest_credentials(self) -> None:
         non_admin_user = self.create_user()
         self.create_member(
             user=non_admin_user, organization=self.project.organization, role="member"
@@ -95,7 +95,7 @@ class TestTempestCredentials(APITestCase):
             )
             assert response.status_code == 403
 
-    def test_create_tempest_credentials_with_invalid_data(self):
+    def test_create_tempest_credentials_with_invalid_data(self) -> None:
         with Feature({"organizations:tempest-access": True}):
             self.login_as(self.user)
             response = self.get_error_response(
@@ -114,7 +114,7 @@ class TestTempestCredentials(APITestCase):
             )
             assert response2.status_code == 400
 
-    def test_cant_create_tempest_credentials_with_duplicate_client_id(self):
+    def test_cant_create_tempest_credentials_with_duplicate_client_id(self) -> None:
         with Feature({"organizations:tempest-access": True}):
             self.login_as(self.user)
             self.create_tempest_credentials(
@@ -130,7 +130,7 @@ class TestTempestCredentials(APITestCase):
             assert response.status_code == 400
             assert response.data["detail"] == "A credential with this client ID already exists."
 
-    def test_user_email_in_response(self):
+    def test_user_email_in_response(self) -> None:
         with Feature({"organizations:tempest-access": True}):
             self.login_as(self.user)
             self.create_tempest_credentials(self.project, created_by=self.user)

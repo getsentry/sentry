@@ -54,7 +54,7 @@ class OrganizationDetectorWorkflowAPITestCase(APITestCase):
 
 @region_silo_test
 class OrganizationDetectorWorkflowIndexGetTest(OrganizationDetectorWorkflowAPITestCase):
-    def test_detector_filter(self):
+    def test_detector_filter(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
             qs_params={"detector_id": self.detector_1.id},
@@ -79,7 +79,7 @@ class OrganizationDetectorWorkflowIndexGetTest(OrganizationDetectorWorkflowAPITe
         )
         assert len(response.data) == 0
 
-    def test_workflow_filter(self):
+    def test_workflow_filter(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
             qs_params={"workflow_id": self.workflow_1.id},
@@ -104,7 +104,7 @@ class OrganizationDetectorWorkflowIndexGetTest(OrganizationDetectorWorkflowAPITe
         )
         assert len(response.data) == 0
 
-    def test_detector_workflow_filter(self):
+    def test_detector_workflow_filter(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
             qs_params={"detector_id": self.detector_1.id, "workflow_id": self.workflow_1.id},
@@ -156,14 +156,14 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
             data=detector_workflow.get_audit_log_data(),
         )
 
-    def test_duplicate(self):
+    def test_duplicate(self) -> None:
         body_params = {"detectorId": self.detector_1.id, "workflowId": self.workflow_1.id}
         self.get_error_response(
             self.organization.slug,
             **body_params,
         )
 
-    def test_invalid_id(self):
+    def test_invalid_id(self) -> None:
         body_params = {"detectorId": -1, "workflowId": self.workflow_1.id}
         self.get_error_response(
             self.organization.slug,
@@ -176,7 +176,7 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
             **body_params,
         )
 
-    def test_missing_body_params(self):
+    def test_missing_body_params(self) -> None:
         # missing detectorId
         body_params = {"workflowId": self.workflow_1.id}
         self.get_error_response(
@@ -194,7 +194,7 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
             self.organization.slug,
         )
 
-    def test_team_admin_can_connect_user_detectors(self):
+    def test_team_admin_can_connect_user_detectors(self) -> None:
         self.login_as(user=self.team_admin_user)
 
         detector = self.create_detector(
@@ -210,7 +210,7 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
             **body_params,
         )
 
-    def test_team_admin_can_connect_sentry_detectors(self):
+    def test_team_admin_can_connect_sentry_detectors(self) -> None:
         self.login_as(user=self.team_admin_user)
 
         sentry_detector = self.create_detector(
@@ -222,7 +222,7 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
         }
         self.get_success_response(self.organization.slug, **body_params)
 
-    def test_team_admin_can_connect_detectors_for_accessible_projects(self):
+    def test_team_admin_can_connect_detectors_for_accessible_projects(self) -> None:
         self.login_as(user=self.team_admin_user)
         self.organization.update_option("sentry:alerts_member_write", False)
 
@@ -239,7 +239,7 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
             **body_params,
         )
 
-    def test_team_admin_cannot_connect_detectors_for_other_projects(self):
+    def test_team_admin_cannot_connect_detectors_for_other_projects(self) -> None:
         self.login_as(user=self.team_admin_user)
         self.organization.update_option("sentry:alerts_member_write", False)
 
@@ -253,7 +253,7 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
         }
         self.get_error_response(self.organization.slug, **body_params, status_code=403)
 
-    def test_member_can_connect_user_detectors(self):
+    def test_member_can_connect_user_detectors(self) -> None:
         self.organization.flags.allow_joinleave = False
         self.organization.save()
         self.login_as(user=self.member_user)
@@ -271,7 +271,7 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
             **body_params,
         )
 
-    def test_member_cannot_connect_detectors_for_other_projects(self):
+    def test_member_cannot_connect_detectors_for_other_projects(self) -> None:
         self.organization.flags.allow_joinleave = False
         self.organization.save()
         self.login_as(user=self.member_user)
@@ -286,7 +286,7 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
         }
         self.get_error_response(self.organization.slug, **body_params, status_code=403)
 
-    def test_member_cannot_connect_sentry_detectors(self):
+    def test_member_cannot_connect_sentry_detectors(self) -> None:
         self.organization.flags.allow_joinleave = False
         self.organization.save()
         self.login_as(user=self.member_user)
@@ -300,7 +300,7 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
         }
         self.get_error_response(self.organization.slug, **body_params, status_code=403)
 
-    def test_member_cannot_connect_detectors_when_alerts_member_write_disabled(self):
+    def test_member_cannot_connect_detectors_when_alerts_member_write_disabled(self) -> None:
         self.organization.update_option("sentry:alerts_member_write", False)
         self.organization.flags.allow_joinleave = True
         self.organization.save()
@@ -382,18 +382,18 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
         ]
         mock_audit.assert_has_calls(expected_calls)
 
-    def test_invalid_id(self):
+    def test_invalid_id(self) -> None:
         self.get_error_response(
             self.organization.slug,
             qs_params={"detector_id": -1},
         )
 
-    def test_missing_ids(self):
+    def test_missing_ids(self) -> None:
         self.get_error_response(
             self.organization.slug,
         )
 
-    def test_team_admin_can_disconnect_user_detectors(self):
+    def test_team_admin_can_disconnect_user_detectors(self) -> None:
         self.login_as(user=self.team_admin_user)
 
         detector = self.create_detector(
@@ -409,7 +409,7 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
             qs_params={"detector_id": detector.id, "workflow_id": self.workflow_1.id},
         )
 
-    def test_team_admin_can_disconnect_sentry_detectors(self):
+    def test_team_admin_can_disconnect_sentry_detectors(self) -> None:
         self.login_as(user=self.team_admin_user)
 
         sentry_detector = self.create_detector(
@@ -424,7 +424,7 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
             qs_params={"detector_id": sentry_detector.id, "workflow_id": self.workflow_1.id},
         )
 
-    def test_team_admin_can_disconnect_detectors_for_accessible_projects(self):
+    def test_team_admin_can_disconnect_detectors_for_accessible_projects(self) -> None:
         self.login_as(user=self.team_admin_user)
         self.organization.update_option("sentry:alerts_member_write", False)
 
@@ -441,7 +441,7 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
             qs_params={"detector_id": project_detector.id, "workflow_id": self.workflow_1.id},
         )
 
-    def test_team_admin_cannot_disconnect_detectors_for_other_projects(self):
+    def test_team_admin_cannot_disconnect_detectors_for_other_projects(self) -> None:
         self.login_as(user=self.team_admin_user)
         self.organization.update_option("sentry:alerts_member_write", False)
 
@@ -459,7 +459,7 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
             status_code=403,
         )
 
-    def test_member_can_disconnect_user_detectors(self):
+    def test_member_can_disconnect_user_detectors(self) -> None:
         self.organization.flags.allow_joinleave = False
         self.organization.save()
         self.login_as(user=self.member_user)
@@ -477,7 +477,7 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
             qs_params={"detector_id": detector.id, "workflow_id": self.workflow_1.id},
         )
 
-    def test_member_cannot_disconnect_detectors_for_other_projects(self):
+    def test_member_cannot_disconnect_detectors_for_other_projects(self) -> None:
         self.organization.flags.allow_joinleave = False
         self.organization.save()
         self.login_as(user=self.member_user)
@@ -496,7 +496,7 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
             status_code=403,
         )
 
-    def test_member_cannot_disconnect_sentry_detectors(self):
+    def test_member_cannot_disconnect_sentry_detectors(self) -> None:
         self.organization.flags.allow_joinleave = False
         self.organization.save()
         self.login_as(user=self.member_user)
@@ -514,7 +514,7 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
             status_code=403,
         )
 
-    def test_member_cannot_disconnect_detectors_when_alerts_member_write_disabled(self):
+    def test_member_cannot_disconnect_detectors_when_alerts_member_write_disabled(self) -> None:
         self.organization.update_option("sentry:alerts_member_write", False)
         self.organization.flags.allow_joinleave = True
         self.organization.save()
@@ -534,7 +534,7 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
             status_code=403,
         )
 
-    def test_batch_delete_no_permission(self):
+    def test_batch_delete_no_permission(self) -> None:
         self.organization.update_option("sentry:alerts_member_write", False)
         self.login_as(user=self.member_user)
 

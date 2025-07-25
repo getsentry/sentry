@@ -12,7 +12,7 @@ class ListUserAccountsWithSharedEmailTest(APITestCase):
     endpoint = "sentry-api-0-auth-merge-accounts"
     method = "get"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         user1 = self.create_user(username="mifu1", email="mifu@example.com")
         user2 = self.create_user(username="mifu2", email="mifu@example.com")
         # unrelated user
@@ -24,7 +24,7 @@ class ListUserAccountsWithSharedEmailTest(APITestCase):
         assert response.data[0]["username"] == user1.username
         assert response.data[1]["username"] == user2.username
 
-    def test_with_orgs(self):
+    def test_with_orgs(self) -> None:
         user1 = self.create_user(username="powerful mifu", email="mifu@example.com")
         user2 = self.create_user(username="transcendent mifu", email="mifu@example.com")
         self.create_user(username="garden variety mifu", email="mifu@example.com")
@@ -70,7 +70,7 @@ class MergeUserAccountsWithSharedEmailTest(APITestCase):
 
         self.verification_code = UserMergeVerificationCode.objects.create(user_id=self.user1.id)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         data = {
             "ids_to_merge": [self.user2.id],
             "ids_to_delete": [self.user3.id],
@@ -81,7 +81,7 @@ class MergeUserAccountsWithSharedEmailTest(APITestCase):
         assert not User.objects.filter(id=self.user2.id).exists()
         assert not User.objects.filter(id=self.user3.id).exists()
 
-    def test_incorrect_code(self):
+    def test_incorrect_code(self) -> None:
         data = {
             "ids_to_merge": [self.user2.id],
             "ids_to_delete": [self.user3.id],
@@ -91,7 +91,7 @@ class MergeUserAccountsWithSharedEmailTest(APITestCase):
         assert response.status_code == 403
         assert response.data == {"error": "Incorrect verification code"}
 
-    def test_merge_unrelated_account(self):
+    def test_merge_unrelated_account(self) -> None:
         data = {
             "ids_to_merge": [self.unrelated_user.id],
             "ids_to_delete": [self.user2.id, self.user3.id],
@@ -103,7 +103,7 @@ class MergeUserAccountsWithSharedEmailTest(APITestCase):
             "error": "One or more of the accounts in your request does not share your primary email address"
         }
 
-    def test_related_and_unrelated_accounts(self):
+    def test_related_and_unrelated_accounts(self) -> None:
         data = {
             "ids_to_merge": [self.user2.id, self.unrelated_user.id],
             "ids_to_delete": [self.user3.id],
@@ -115,7 +115,7 @@ class MergeUserAccountsWithSharedEmailTest(APITestCase):
             "error": "One or more of the accounts in your request does not share your primary email address"
         }
 
-    def test_pass_current_user_id(self):
+    def test_pass_current_user_id(self) -> None:
         data = {
             "ids_to_merge": [self.user1.id],
             "ids_to_delete": [self.user2.id, self.user3.id],
@@ -127,7 +127,7 @@ class MergeUserAccountsWithSharedEmailTest(APITestCase):
             "error": "You may not merge the user attached to your current session"
         }
 
-    def test_not_disjoint(self):
+    def test_not_disjoint(self) -> None:
         data = {
             "ids_to_merge": [self.user2.id],
             "ids_to_delete": [self.user2.id, self.user3.id],

@@ -24,12 +24,12 @@ class ProjectTemplateAPIBase(APITestCase):
 
 
 class ProjectTemplateIndexTest(ProjectTemplateAPIBase):
-    def test_get__no_feature(self):
+    def test_get__no_feature(self) -> None:
         response = self.get_error_response(self.organization.id, status_code=404)
         assert response.status_code == 404
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.get_success_response(self.organization.id)
         assert len(response.data) == 2
 
@@ -38,7 +38,7 @@ class ProjectTemplateIndexTest(ProjectTemplateAPIBase):
         assert response.data[1]["id"] == self.project_template_two.id
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
-    def test_get__no_templates(self):
+    def test_get__no_templates(self) -> None:
         # Delete the project templates
         self.project_template.delete()
         self.project_template_two.delete()
@@ -47,11 +47,11 @@ class ProjectTemplateIndexTest(ProjectTemplateAPIBase):
         assert len(response.data) == 0
 
     @mark.skip("TODO Implement tests for pagination")
-    def test_get__pagination(self):
+    def test_get__pagination(self) -> None:
         pass
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
-    def test_get__no_access(self):
+    def test_get__no_access(self) -> None:
         # Create a new organization and project templates
         org_two = self.create_organization()
         self.create_project_template(organization=org_two)
@@ -65,17 +65,17 @@ class ProjectTemplateIndexTest(ProjectTemplateAPIBase):
 class ProjectTemplateIndexPostTest(ProjectTemplateAPIBase):
     method = "POST"
 
-    def test_post__no_feature(self):
+    def test_post__no_feature(self) -> None:
         response = self.get_error_response(self.organization.id, status_code=404)
         assert response.status_code == 404
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
-    def test_post(self):
+    def test_post(self) -> None:
         response = self.get_success_response(self.organization.id, name="Test Project Template")
         assert response.status_code == 201
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
-    def test_post__as_member_without_permission(self):
+    def test_post__as_member_without_permission(self) -> None:
         """
         Test that a member is part of the organization, but does not have the required
         permissions to create a project template.
@@ -90,7 +90,7 @@ class ProjectTemplateIndexPostTest(ProjectTemplateAPIBase):
         assert response.status_code == 403
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
-    def test_post__with_options(self):
+    def test_post__with_options(self) -> None:
         test_options = {"test-key": "value"}
         response = self.get_success_response(
             self.organization.id,
@@ -104,7 +104,7 @@ class ProjectTemplateIndexPostTest(ProjectTemplateAPIBase):
         assert created_options == test_options
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
-    def test_post__no_name(self):
+    def test_post__no_name(self) -> None:
         response = self.get_error_response(self.organization.id, status_code=400)
         assert response.status_code == 400
 

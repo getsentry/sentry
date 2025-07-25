@@ -5,7 +5,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class ProjectMemberIndexTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         user_1 = self.create_user("foo@localhost", username="foo")
         user_2 = self.create_user("bar@localhost", username="bar")
         user_3 = self.create_user("baz@localhost", username="baz")
@@ -32,7 +32,7 @@ class ProjectMemberIndexTest(APITestCase):
         emails = {user["email"] for user in response.data}
         assert emails == {user_2.email, user_3.email}
 
-    def test_email_id_comparison(self):
+    def test_email_id_comparison(self) -> None:
         # OrganizationMember email indicates the status of an invite, and is
         # cleared when the user is set
         invited_user = self.create_user()
