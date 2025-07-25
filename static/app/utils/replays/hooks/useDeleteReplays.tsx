@@ -80,11 +80,11 @@ export default function useDeleteReplays({projectSlug}: Props) {
             : `id:[${selectedIds.join(',')}]`,
         rangeStart: getDateWithTimezoneInUtc(
           getDateFromTimestamp(start) ?? new Date(),
-          Boolean(getUtcValue(normalizedQuery.utc))
+          getUtcValue(normalizedQuery.utc) === 'true'
         ).toISOString(),
         rangeEnd: getDateWithTimezoneInUtc(
           getDateFromTimestamp(end) ?? new Date(),
-          Boolean(getUtcValue(normalizedQuery.utc))
+          getUtcValue(normalizedQuery.utc) === 'true'
         ).toISOString(),
       };
     },

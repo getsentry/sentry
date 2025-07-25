@@ -45,6 +45,20 @@ describe('useDeleteReplays', () => {
       });
     });
 
+    it('should parse a an empty queryOptions into default 14d rangeStart & rangeEnd', () => {
+      const {result} = renderHook(useDeleteReplays, {
+        wrapper,
+        initialProps: {projectSlug},
+      });
+
+      expect(result.current.queryOptionsToPayload(['1', '2'], {})).toEqual({
+        rangeStart: '2017-10-03T02:41:20.000Z',
+        rangeEnd: '2017-10-17T02:41:20.000Z',
+        environments: [],
+        query: 'id:[1,2]',
+      });
+    });
+
     it('should parse a statsPeriod into rangeStart & rangeEnd', () => {
       const {result} = renderHook(useDeleteReplays, {
         wrapper,
@@ -53,9 +67,7 @@ describe('useDeleteReplays', () => {
 
       expect(
         result.current.queryOptionsToPayload(['1', '2'], {
-          query: {
-            statsPeriod: '1d',
-          },
+          query: {statsPeriod: '1d'},
         })
       ).toEqual({
         rangeStart: '2017-10-16T02:41:20.000Z',
