@@ -225,7 +225,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         snuba_query: SnubaQuery,
         new_status: IncidentStatus,
         title: str,
-        metric_value: float | None = None,
+        metric_value: float | dict | None = None,
         subscription: QuerySubscription | None = None,
         group: Group | None = None,
     ):
@@ -283,7 +283,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         )
         self.handler = TestHandler()
 
-    def test_missing_occurrence_raises_value_error(self):
+    def test_missing_occurrence_raises_value_error(self) -> None:
         self.event_data = WorkflowEventData(
             event=GroupEvent(self.project.id, "test", self.group, NodeData("test-id")),
             group=self.group,
@@ -292,7 +292,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         with pytest.raises(ValueError):
             self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)
 
-    def test_get_incident_status(self):
+    def test_get_incident_status(self) -> None:
         # Initial priority is high -> incident is critical
         group, _, group_event = self.create_group_event(
             group_type_id=MetricIssue.type_id,
@@ -346,14 +346,14 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             == IncidentStatus.CLOSED
         )
 
-    def test_build_notification_context(self):
+    def test_build_notification_context(self) -> None:
         notification_context = self.handler.build_notification_context(self.action)
         assert isinstance(notification_context, NotificationContext)
         assert notification_context.target_identifier == "channel456"
         assert notification_context.integration_id == "1234567890"
         assert notification_context.sentry_app_config is None
 
-    def test_build_alert_context(self):
+    def test_build_alert_context(self) -> None:
         assert self.group_event.occurrence is not None
         alert_context = self.handler.build_alert_context(
             self.detector,
@@ -367,7 +367,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         assert alert_context.threshold_type == AlertRuleThresholdType.ABOVE
         assert alert_context.comparison_delta is None
 
-    def test_get_new_status(self):
+    def test_get_new_status(self) -> None:
         assert self.group_event.occurrence is not None
         assert self.group_event.occurrence.priority is not None
         status = MetricIssueContext._get_new_status(
@@ -436,7 +436,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         assert organization == self.detector.project.organization
         assert isinstance(notification_uuid, str)
 
-    def test_send_alert_not_implemented(self):
+    def test_send_alert_not_implemented(self) -> None:
         with pytest.raises(NotImplementedError):
             BaseMetricAlertHandler().send_alert(
                 notification_context=mock.MagicMock(),

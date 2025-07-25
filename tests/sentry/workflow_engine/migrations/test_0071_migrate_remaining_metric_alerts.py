@@ -192,7 +192,7 @@ class MigrateMetricAlertsTest(TestMigrations):
             alert_rule=self.dynamic_rule, label="critical", alert_threshold=0
         )
 
-    def test_simple_rule(self):
+    def test_simple_rule(self) -> None:
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.valid_rule.id)
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=self.valid_rule.id)
 
@@ -234,7 +234,7 @@ class MigrateMetricAlertsTest(TestMigrations):
         data_source_detector = DataSourceDetector.objects.get(data_source=data_source)
         assert data_source_detector.detector == detector
 
-    def test_simple_trigger(self):
+    def test_simple_trigger(self) -> None:
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.valid_rule.id)
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=self.valid_rule.id)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
@@ -296,7 +296,7 @@ class MigrateMetricAlertsTest(TestMigrations):
         )
         assert resolve_action_filter.condition_result is True
 
-    def test_flipped_trigger(self):
+    def test_flipped_trigger(self) -> None:
         """
         Test that we handle AlertRuleThresholdType.BELOW appropriately
         """
@@ -318,7 +318,7 @@ class MigrateMetricAlertsTest(TestMigrations):
         assert resolve_detector_trigger.comparison == detector_trigger.comparison
         assert resolve_detector_trigger.type == Condition.GREATER_OR_EQUAL
 
-    def test_simple_resolve(self):
+    def test_simple_resolve(self) -> None:
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=self.valid_rule.id)
         detector = Detector.objects.get(id=alert_rule_detector.detector.id)
 
@@ -330,7 +330,7 @@ class MigrateMetricAlertsTest(TestMigrations):
         assert detector_trigger.comparison == self.valid_warning_trigger.alert_threshold
         assert detector_trigger.type == Condition.LESS_OR_EQUAL
 
-    def test_explicit_resolve(self):
+    def test_explicit_resolve(self) -> None:
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=self.rule_with_resolve.id)
         detector = Detector.objects.get(id=alert_rule_detector.detector.id)
 
@@ -342,7 +342,7 @@ class MigrateMetricAlertsTest(TestMigrations):
         assert detector_trigger.comparison == self.rule_with_resolve.resolve_threshold
         assert detector_trigger.type == Condition.LESS_OR_EQUAL
 
-    def test_simple_trigger_action(self):
+    def test_simple_trigger_action(self) -> None:
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.valid_rule.id)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
         workflow_dcgs = DataConditionGroup.objects.filter(
@@ -369,7 +369,7 @@ class MigrateMetricAlertsTest(TestMigrations):
         assert action.config.get("target_identifier") == self.email_action.target_identifier
         assert action.config.get("target_type") == self.email_action.target_type
 
-    def test_on_call_trigger_action(self):
+    def test_on_call_trigger_action(self) -> None:
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.valid_rule.id)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
         workflow_dcgs = DataConditionGroup.objects.filter(
@@ -397,7 +397,7 @@ class MigrateMetricAlertsTest(TestMigrations):
         assert action.config.get("target_identifier") == self.integration_action.target_identifier
         assert action.config.get("target_type") == self.integration_action.target_type
 
-    def test_sentry_app_trigger_action(self):
+    def test_sentry_app_trigger_action(self) -> None:
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.valid_rule.id)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
         workflow_dcgs = DataConditionGroup.objects.filter(
@@ -428,7 +428,7 @@ class MigrateMetricAlertsTest(TestMigrations):
         assert action.config.get("target_type") == self.sentry_app_action.target_type
         assert action.config.get("sentry_app_identifier") == "sentry_app_id"
 
-    def test_create_with_incident(self):
+    def test_create_with_incident(self) -> None:
         alert_rule_detector = AlertRuleDetector.objects.get(
             alert_rule_id=self.rule_with_incident.id
         )
@@ -438,26 +438,26 @@ class MigrateMetricAlertsTest(TestMigrations):
         assert detector_state.is_triggered is True
         assert detector_state.state == str(DetectorPriorityLevel.HIGH)
 
-    def test_create_snoozed(self):
+    def test_create_snoozed(self) -> None:
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=self.snoozed_rule.id)
 
         detector = Detector.objects.get(id=alert_rule_detector.detector.id)
         assert not detector.enabled
 
-    def test_create_disabled(self):
+    def test_create_disabled(self) -> None:
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=self.disabled_rule.id)
 
         detector = Detector.objects.get(id=alert_rule_detector.detector.id)
         assert not detector.enabled
 
-    def test_create_error(self):
+    def test_create_error(self) -> None:
         """
         Test that none of the ACI objects are written to the DB if an exception occurs, and test that
         an exception doesn't crash the migration.
         """
         assert not AlertRuleDetector.objects.filter(alert_rule_id=self.skipped_rule.id).exists()
 
-    def test_discord_action(self):
+    def test_discord_action(self) -> None:
         aarta = ActionAlertRuleTriggerAction.objects.get(
             alert_rule_trigger_action_id=self.discord_action.id
         )
@@ -465,7 +465,7 @@ class MigrateMetricAlertsTest(TestMigrations):
 
         assert action.type == Action.Type.DISCORD
 
-    def test_dynamic_rule(self):
+    def test_dynamic_rule(self) -> None:
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.dynamic_rule.id)
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=self.dynamic_rule.id)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)

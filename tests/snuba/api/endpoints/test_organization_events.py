@@ -6692,6 +6692,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             assert "fields" in meta
             assert "eps()" in meta["fields"]
             assert meta["fields"]["eps()"] == "rate"
+            assert meta["units"]["eps()"] == "1/second"
 
     def test_error_upsampling_epm_with_allowlisted_project(self):
         """Test that epm() is upsampled for allowlisted projects when querying error events."""
@@ -6744,6 +6745,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             assert "fields" in meta
             assert "epm()" in meta["fields"]
             assert meta["fields"]["epm()"] == "rate"
+            assert meta["units"]["epm()"] == "1/minute"
 
     def test_error_upsampling_with_no_allowlist(self):
         """Test that count() is not upsampled when project is not allowlisted."""
@@ -6923,6 +6925,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             assert "fields" in meta
             assert "sample_eps()" in meta["fields"]
             assert meta["fields"]["sample_eps()"] == "rate"
+            assert meta["units"]["sample_eps()"] == "1/second"
 
     def test_sample_epm_with_allowlisted_project(self):
         """Test that sample_epm() returns raw sample rate (not upsampled) for allowlisted projects."""
@@ -6976,6 +6979,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             assert "fields" in meta
             assert "sample_epm()" in meta["fields"]
             assert meta["fields"]["sample_epm()"] == "rate"
+            assert meta["units"]["sample_epm()"] == "1/minute"
 
     def test_is_status(self):
         self.store_event(

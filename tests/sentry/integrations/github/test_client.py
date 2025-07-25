@@ -68,7 +68,7 @@ class GitHubApiClientTest(TestCase):
         self.github_client = self.install.get_client()
 
     @responses.activate
-    def test_get_rate_limit(self):
+    def test_get_rate_limit(self) -> None:
         responses.add(
             method=responses.GET,
             url="https://api.github.com/rate_limit",
@@ -100,7 +100,7 @@ class GitHubApiClientTest(TestCase):
             assert gh_rate_limit.next_window() == "17:39:49"
 
     @responses.activate
-    def test_get_rate_limit_non_existent_resource(self):
+    def test_get_rate_limit_non_existent_resource(self) -> None:
         with pytest.raises(AssertionError):
             self.github_client.get_rate_limit("foo")
 
@@ -243,7 +243,7 @@ class GitHubApiClientTest(TestCase):
         assert mock_record.mock_calls[1].args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
-    def test_get_cached_repo_files_caching_functionality(self):
+    def test_get_cached_repo_files_caching_functionality(self) -> None:
         """Fetch files for repo. Test caching logic."""
         responses.add(
             method=responses.GET,
@@ -265,7 +265,7 @@ class GitHubApiClientTest(TestCase):
             assert cache.get(repo_key) == files
 
     @responses.activate
-    def test_get_cached_repo_files_with_all_files(self):
+    def test_get_cached_repo_files_with_all_files(self) -> None:
         """Fetch files for repo. All files rather than just source code files"""
         responses.add(
             method=responses.GET,
@@ -439,7 +439,7 @@ class GithubProxyClientTest(TestCase):
             provider="github",
             name="github-test",
             external_id="github:1",
-            metadata={"access_token": None, "expires_at": None},
+            metadata={"access_token": None, "expires_at": None, "permissions": None},
             status=ObjectStatus.ACTIVE,
         )
         self.installation = self.integration.get_installation(organization_id=self.organization.id)
@@ -449,7 +449,18 @@ class GithubProxyClientTest(TestCase):
         responses.add(
             method=responses.POST,
             url=f"https://api.github.com/app/installations/{self.installation_id}/access_tokens",
-            json={"token": self.access_token, "expires_at": self.expires_at},
+            json={
+                "token": self.access_token,
+                "expires_at": self.expires_at,
+                "permissions": {
+                    "administration": "read",
+                    "contents": "read",
+                    "issues": "write",
+                    "metadata": "read",
+                    "pull_requests": "read",
+                },
+                "repository_selection": "all",
+            },
             match=[matchers.header_matcher({"Authorization": f"Bearer {self.jwt}"})],
             status=200,
         )
@@ -465,7 +476,11 @@ class GithubProxyClientTest(TestCase):
     @responses.activate
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=jwt)
     def test__refresh_access_token(self, mock_jwt):
-        assert self.integration.metadata == {"access_token": None, "expires_at": None}
+        assert self.integration.metadata == {
+            "access_token": None,
+            "expires_at": None,
+            "permissions": None,
+        }
 
         self.gh_client._refresh_access_token()
         assert mock_jwt.called
@@ -474,6 +489,13 @@ class GithubProxyClientTest(TestCase):
         assert self.integration.metadata == {
             "access_token": self.access_token,
             "expires_at": self.expires_at.rstrip("Z"),
+            "permissions": {
+                "administration": "read",
+                "contents": "read",
+                "issues": "write",
+                "metadata": "read",
+                "pull_requests": "read",
+            },
         }
 
     @responses.activate

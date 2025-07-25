@@ -208,15 +208,22 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             {label: t('Seer')},
           ]}
         />
+        {!showWelcomeScreen &&
+          !aiConfig.isAutofixSetupLoading &&
+          !aiConfig.orgNeedsGenAiAcknowledgement && (
+            <FeedbackWrapper>
+              <AutofixFeedback />
+            </FeedbackWrapper>
+          )}
       </SeerDrawerHeader>
       {(!showWelcomeScreen || aiConfig.isAutofixSetupLoading) && (
         <SeerDrawerNavigator>
-          <Flex align="center" gap={space(1)}>
+          <Flex align="center" gap="md">
             <Header>{t('Seer')}</Header>
             <QuestionTooltip
               isHoverable
               title={
-                <Flex direction="column" gap={space(1)}>
+                <Flex direction="column" gap="md">
                   <div>
                     {tct(
                       'Seer models are powered by generative Al. Per our [dataDocs:data usage policies], Sentry does not use your data to train Seer models or share your data with other customers without your express consent.',
@@ -256,7 +263,6 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                     icon={<IconSettings />}
                   />
                 </Feature>
-                <AutofixFeedback />
                 {aiConfig.hasAutofix && (
                   <Button
                     size="xs"
@@ -454,4 +460,9 @@ const ShortId = styled('div')`
 
 const ButtonBarWrapper = styled('div')`
   margin-left: auto;
+`;
+
+const FeedbackWrapper = styled('div')`
+  margin-left: auto;
+  margin-right: ${p => p.theme.space.md};
 `;

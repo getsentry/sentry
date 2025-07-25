@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getUtcDateString} from 'sentry/utils/dates';
 import useRouter from 'sentry/utils/useRouter';
-import type {ChartInfo} from 'sentry/views/explore/charts';
+import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {Drawer} from 'sentry/views/explore/components/suspectTags/drawer';
 import type {BoxSelectOptions} from 'sentry/views/explore/hooks/useChartBoxSelect';
 
@@ -19,7 +19,7 @@ type Props = {
   triggerWrapperRef: React.RefObject<HTMLDivElement | null>;
 };
 
-export function FloatingTrigger({boxSelectOptions, triggerWrapperRef, chartInfo}: Props) {
+export function FloatingTrigger({boxSelectOptions, chartInfo, triggerWrapperRef}: Props) {
   const router = useRouter();
   const triggerPosition = boxSelectOptions.floatingTriggerPosition;
 

@@ -27,7 +27,7 @@ function getReplayTabs({
   return {
     [TabKey.AI]:
       organization.features.includes('replay-ai-summaries') && areAiFeaturesAllowed ? (
-        <Flex align="center" gap={space(0.75)}>
+        <Flex align="center" gap="sm">
           {t('Summary')}
           <Tooltip
             title={t(

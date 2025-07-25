@@ -47,13 +47,13 @@ class ApiInviteHelperTest(TestCase):
         om.refresh_from_db()
         return om
 
-    def test_accept_invite_without_SSO(self):
+    def test_accept_invite_without_SSO(self) -> None:
         om = self._get_om_from_accepting_invite()
 
         assert om.email is None
         assert om.user_id == self.user.id
 
-    def test_invite_already_accepted_without_SSO(self):
+    def test_invite_already_accepted_without_SSO(self) -> None:
         om = self._get_om_from_accepting_invite()
 
         invite_context = organization_service.get_invite_by_id(
@@ -80,7 +80,7 @@ class ApiInviteHelperTest(TestCase):
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(id=self.member.id)
 
-    def test_accept_invite_with_optional_SSO(self):
+    def test_accept_invite_with_optional_SSO(self) -> None:
         ap = self.create_auth_provider(organization_id=self.org.id, provider="Friendly IdP")
         with assume_test_silo_mode(SiloMode.CONTROL):
             ap.flags.allow_unlinked = True
@@ -91,7 +91,7 @@ class ApiInviteHelperTest(TestCase):
         assert om.email is None
         assert om.user_id == self.user.id
 
-    def test_invite_already_accepted_with_optional_SSO(self):
+    def test_invite_already_accepted_with_optional_SSO(self) -> None:
         ap = self.create_auth_provider(organization_id=self.org.id, provider="Friendly IdP")
         with assume_test_silo_mode(SiloMode.CONTROL):
             ap.flags.allow_unlinked = True
@@ -99,7 +99,7 @@ class ApiInviteHelperTest(TestCase):
 
         self.test_invite_already_accepted_without_SSO()
 
-    def test_accept_invite_with_required_SSO(self):
+    def test_accept_invite_with_required_SSO(self) -> None:
         ap = self.create_auth_provider(organization_id=self.org.id, provider="Friendly IdP")
         assert not ap.flags.allow_unlinked  # SSO is required
 
@@ -109,7 +109,7 @@ class ApiInviteHelperTest(TestCase):
         assert om.email is not None
         assert om.user_id is None
 
-    def test_accept_invite_with_required_SSO_with_identity(self):
+    def test_accept_invite_with_required_SSO_with_identity(self) -> None:
         ap = self.create_auth_provider(organization_id=self.org.id, provider="Friendly IdP")
         assert not ap.flags.allow_unlinked  # SSO is required
         self.create_auth_identity(auth_provider=ap, user=self.user)
@@ -119,7 +119,7 @@ class ApiInviteHelperTest(TestCase):
         assert om.email is None
         assert om.user_id == self.user.id
 
-    def test_invite_already_accepted_with_required_SSO(self):
+    def test_invite_already_accepted_with_required_SSO(self) -> None:
         ap = self.create_auth_provider(organization_id=self.org.id, provider="Friendly IdP")
         assert not ap.flags.allow_unlinked  # SSO is required
         self.create_auth_identity(auth_provider=ap, user=self.user)

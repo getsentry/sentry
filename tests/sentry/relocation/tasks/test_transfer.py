@@ -132,7 +132,7 @@ class FindRelocationTransferRegionTest(TestCase):
 
 @control_silo_test(regions=TEST_REGIONS)
 class ProcessRelocationTransferControlTest(TestCase):
-    def test_missing_transfer(self):
+    def test_missing_transfer(self) -> None:
         res = process_relocation_transfer_control(transfer_id=999)
         assert res is None
 
@@ -183,11 +183,11 @@ class ProcessRelocationTransferControlTest(TestCase):
 
 @region_silo_test(regions=TEST_REGIONS)
 class ProcessRelocationTransferRegionTest(TestCase):
-    def test_missing_transfer(self):
+    def test_missing_transfer(self) -> None:
         res = process_relocation_transfer_region(transfer_id=999)
         assert res is None
 
-    def test_transfer_request_state(self):
+    def test_transfer_request_state(self) -> None:
         transfer = create_region_relocation_transfer(
             organization=self.organization,
             state=RelocationTransferState.Request,
@@ -196,7 +196,7 @@ class ProcessRelocationTransferRegionTest(TestCase):
         # Should be removed as something has gone off the rails
         assert not RegionRelocationTransfer.objects.filter(id=transfer.id).exists()
 
-    def test_transfer_reply_state(self):
+    def test_transfer_reply_state(self) -> None:
         organization = self.organization
         relocation = Relocation.objects.create(
             creator_id=self.user.id,

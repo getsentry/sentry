@@ -140,7 +140,6 @@ from sentry.utils.dates import to_datetime
 from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, is_handled
 from sentry.utils.eventuser import EventUser
 from sentry.utils.metrics import MutableTags
-from sentry.utils.options import sample_modulo
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
@@ -470,8 +469,7 @@ class EventManager:
 
         # Sometimes projects get created without a platform (e.g. through the API), in which case we
         # attempt to set it based on the first event
-        if sample_modulo("sentry:infer_project_platform", project.id):
-            _set_project_platform_if_needed(project, job["event"])
+        _set_project_platform_if_needed(project, job["event"])
 
         event_type = self._data.get("type")
         if event_type == "transaction":
@@ -1181,7 +1179,7 @@ def _track_outcome_accepted_many(jobs: Sequence[Job]) -> None:
 def _get_event_instance(data: MutableMapping[str, Any], project_id: int) -> Event:
     return eventstore.backend.create_event(
         project_id=project_id,
-        event_id=data.get("event_id"),
+        event_id=data["event_id"],
         group_id=None,
         data=EventDict(data, skip_renormalization=True),
     )

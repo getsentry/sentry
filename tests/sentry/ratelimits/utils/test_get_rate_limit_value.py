@@ -9,7 +9,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 class TestGetRateLimitValue(TestCase):
-    def test_default_rate_limit_values(self):
+    def test_default_rate_limit_values(self) -> None:
         """Ensure that the default rate limits are called for endpoints without overrides."""
 
         class TestEndpoint(Endpoint):
@@ -28,7 +28,7 @@ class TestGetRateLimitValue(TestCase):
             "DELETE", RateLimitCategory.USER, rate_limit_config
         ) == get_default_rate_limits_for_group("default", RateLimitCategory.USER)
 
-    def test_cli_group_rate_limit_values(self):
+    def test_cli_group_rate_limit_values(self) -> None:
         """Ensure that the CLI Group has the correct rate limit defaults set"""
 
         class TestEndpoint(Endpoint):
@@ -47,7 +47,7 @@ class TestGetRateLimitValue(TestCase):
             "DELETE", RateLimitCategory.USER, rate_limit_config
         ) == get_default_rate_limits_for_group("CLI", RateLimitCategory.USER)
 
-    def test_override_rate_limit(self):
+    def test_override_rate_limit(self) -> None:
         """Override one or more of the default rate limits."""
 
         class TestEndpoint(Endpoint):
@@ -72,7 +72,7 @@ class TestGetRateLimitValue(TestCase):
             20, 4
         )
 
-    def test_inherit(self):
+    def test_inherit(self) -> None:
         class ParentEndpoint(Endpoint):
             rate_limits = RateLimitConfig(
                 group="foo",

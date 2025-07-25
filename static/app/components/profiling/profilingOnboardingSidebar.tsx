@@ -349,6 +349,7 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     platformKey: props.platform.id,
     projectId: props.projectId,
     projectSlug: props.projectSlug,
+    isLogsSelected: false,
     isFeedbackSelected: false,
     isPerformanceSelected: true,
     isProfilingSelected: true,

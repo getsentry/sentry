@@ -152,7 +152,7 @@ function AutofixInsightCard({
                         }
                       }}
                     />
-                    <ButtonBar merged gap="none">
+                    <ButtonBar merged gap="0">
                       <Button
                         type="button"
                         size="sm"
@@ -404,7 +404,7 @@ function CollapsibleChainLink({
                       }
                     }}
                   />
-                  <ButtonBar merged gap="none">
+                  <ButtonBar merged gap="0">
                     <Button
                       type="button"
                       size="sm"

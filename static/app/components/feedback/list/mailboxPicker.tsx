@@ -7,7 +7,6 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import type decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import useMailboxCounts from 'sentry/components/feedback/list/useMailboxCounts';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Mailbox = ReturnType<typeof decodeMailbox>;
@@ -47,7 +46,7 @@ export default function MailboxPicker({onChange, value}: Props) {
           return (
             <SegmentedControl.Item key={mailbox.key} aria-label={mailbox.label}>
               <Tooltip disabled={!count} title={title}>
-                <Flex align="center" gap={theme.isChonk ? space(0.75) : 0}>
+                <Flex align="center" gap={theme.isChonk ? 'sm' : '0'}>
                   {mailbox.label}
                   {display ? <Badge type="default">{display}</Badge> : null}
                 </Flex>

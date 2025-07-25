@@ -280,7 +280,7 @@ def is_project_identity_before(left: ProjectIdentity, right: ProjectIdentity) ->
 class FetchProjectTransactionTotals:
     """
     Fetches the total number of transactions and the number of distinct transaction types for each
-    project in the given organisations
+    project in the given organizations
     """
 
     def __init__(self, orgs: Sequence[int]):

@@ -40,12 +40,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
-import {ExploreCharts} from 'sentry/views/explore/charts';
 import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
-import {SeerSearch} from 'sentry/views/explore/components/seerSearch';
+import {SeerComboBox} from 'sentry/views/explore/components/seerComboBox/seerComboBox';
 import {
   useExploreFields,
   useExploreId,
@@ -65,6 +64,7 @@ import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeser
 import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
+import {ExploreCharts} from 'sentry/views/explore/spans/charts';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
@@ -176,7 +176,7 @@ function SpansSearchBar({
   const {displaySeerResults, query} = useSearchQueryBuilder();
 
   return displaySeerResults ? (
-    <SeerSearch initialQuery={query} />
+    <SeerComboBox initialQuery={query} />
   ) : (
     <EAPSpanSearchQueryBuilder autoFocus {...eapSpanSearchQueryBuilderProps} />
   );
@@ -192,8 +192,16 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
   const areAiFeaturesAllowed =
     !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
 
-  const {tags: numberTags, isLoading: numberTagsLoading} = useTraceItemTags('number');
-  const {tags: stringTags, isLoading: stringTagsLoading} = useTraceItemTags('string');
+  const {
+    tags: numberTags,
+    isLoading: numberTagsLoading,
+    secondaryAliases: numberSecondaryAliases,
+  } = useTraceItemTags('number');
+  const {
+    tags: stringTags,
+    isLoading: stringTagsLoading,
+    secondaryAliases: stringSecondaryAliases,
+  } = useTraceItemTags('string');
 
   const search = useMemo(() => new MutableSearch(query), [query]);
   const oldSearch = usePrevious(search);
@@ -233,8 +241,20 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
       numberTags,
       stringTags,
       replaceRawSearchKeys: ['span.description'],
+      numberSecondaryAliases,
+      stringSecondaryAliases,
     }),
-    [fields, mode, query, setExplorePageParams, numberTags, stringTags, oldSearch]
+    [
+      query,
+      mode,
+      numberTags,
+      numberSecondaryAliases,
+      stringTags,
+      stringSecondaryAliases,
+      oldSearch,
+      fields,
+      setExplorePageParams,
+    ]
   );
 
   const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(

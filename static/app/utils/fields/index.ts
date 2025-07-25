@@ -25,6 +25,7 @@ export enum FieldKey {
   BOOKMARKS = 'bookmarks',
   BROWSER_NAME = 'browser.name',
   CULPRIT = 'culprit',
+  DETECTOR = 'detector',
   DEVICE = 'device',
   DEVICE_ARCH = 'device.arch',
   DEVICE_BATTERY_LEVEL = 'device.battery_level',
@@ -170,6 +171,7 @@ type ErrorFieldKey =
   | FieldKey.ASSIGNED_OR_SUGGESTED
   | FieldKey.BOOKMARKS
   | FieldKey.CULPRIT
+  | FieldKey.DETECTOR
   | FieldKey.ERROR_HANDLED
   | FieldKey.ERROR_MECHANISM
   | FieldKey.ERROR_TYPE
@@ -363,6 +365,9 @@ export enum AggregationKey {
   COUNT_WEB_VITALS = 'count_web_vitals',
   EPS = 'eps',
   EPM = 'epm',
+  SAMPLE_COUNT = 'sample_count',
+  SAMPLE_EPS = 'sample_eps',
+  SAMPLE_EPM = 'sample_epm',
   FAILURE_COUNT = 'failure_count',
   MIN = 'min',
   MAX = 'max',
@@ -639,6 +644,24 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.EPM]: {
     desc: t('Events per minute'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+    parameters: [],
+  },
+  [AggregationKey.SAMPLE_COUNT]: {
+    desc: t('Raw sample count'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.INTEGER,
+    parameters: [],
+  },
+  [AggregationKey.SAMPLE_EPS]: {
+    desc: t('Raw sample EPS'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+    parameters: [],
+  },
+  [AggregationKey.SAMPLE_EPM]: {
+    desc: t('Raw sample EPM'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
     parameters: [],
@@ -1561,6 +1584,11 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.DETECTOR]: {
+    desc: t('The detector that triggered the issue'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
   [FieldKey.ERROR_HANDLED]: {
     desc: t('Determines handling status of the error'),
     kind: FieldKind.FIELD,
@@ -2133,6 +2161,7 @@ export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.ASSIGNED_OR_SUGGESTED,
   FieldKey.ASSIGNED,
   FieldKey.BOOKMARKS,
+  FieldKey.DETECTOR,
   FieldKey.FIRST_RELEASE,
   FieldKey.FIRST_SEEN,
   FieldKey.HAS,
