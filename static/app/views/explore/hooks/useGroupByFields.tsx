@@ -8,6 +8,7 @@ import {FieldKind} from 'sentry/utils/fields';
 import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {UNGROUPED} from 'sentry/views/explore/contexts/pageParamsContext/groupBys';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface UseGroupByFieldsProps {
   /**
@@ -16,12 +17,14 @@ interface UseGroupByFieldsProps {
    */
   groupBys: string[];
   tags: TagCollection;
+  traceItemType: TraceItemDataset;
   hideEmptyOption?: boolean;
 }
 
 export function useGroupByFields({
   tags,
   groupBys,
+  traceItemType,
   hideEmptyOption,
 }: UseGroupByFieldsProps) {
   const options: Array<SelectOption<string>> = useMemo(() => {
@@ -56,11 +59,18 @@ export function useGroupByFields({
           textValue: key,
           trailingItems: <TypeBadge kind={kind} />,
           showDetailsInOverlay: true,
-          details: <AttributeDetails column={key} kind={kind} label={key} type="span" />,
+          details: (
+            <AttributeDetails
+              column={key}
+              kind={kind}
+              label={key}
+              traceItemType={traceItemType}
+            />
+          ),
         };
       }),
     ];
-  }, [tags, groupBys, hideEmptyOption]);
+  }, [tags, groupBys, hideEmptyOption, traceItemType]);
 
   return options;
 }

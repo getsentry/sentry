@@ -16,6 +16,7 @@ import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {ToolbarSaveAs} from 'sentry/views/explore/toolbar/toolbarSaveAs';
 import {ToolbarSortBy} from 'sentry/views/explore/toolbar/toolbarSortBy';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 type Extras = 'equations';
 
@@ -43,7 +44,11 @@ export function ExploreToolbar({extras, width}: ExploreToolbarProps) {
     },
     [_setGroupBys]
   );
-  const options: Array<SelectOption<string>> = useGroupByFields({groupBys, tags});
+  const options: Array<SelectOption<string>> = useGroupByFields({
+    groupBys,
+    tags,
+    traceItemType: TraceItemDataset.SPANS,
+  });
 
   return (
     <Container width={width}>

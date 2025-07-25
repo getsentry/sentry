@@ -13,6 +13,7 @@ import {
 } from 'sentry/utils/fields';
 import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
 interface UseVisualizeFieldsProps {
@@ -71,7 +72,12 @@ export function useVisualizeFields({
           trailingItems: <TypeBadge kind={kind} />,
           showDetailsInOverlay: true,
           details: (
-            <AttributeDetails column={option} kind={kind} label={label} type="span" />
+            <AttributeDetails
+              column={option}
+              kind={kind}
+              label={label}
+              traceItemType={TraceItemDataset.SPANS}
+            />
           ),
         };
       }),
@@ -83,7 +89,12 @@ export function useVisualizeFields({
           trailingItems: <TypeBadge kind={kind} />,
           showDetailsInOverlay: true,
           details: (
-            <AttributeDetails column={tag.key} kind={kind} label={tag.name} type="span" />
+            <AttributeDetails
+              column={tag.key}
+              kind={kind}
+              label={tag.name}
+              traceItemType={TraceItemDataset.SPANS}
+            />
           ),
         };
       }),
