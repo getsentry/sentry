@@ -294,10 +294,9 @@ describe('TagDetailsDrawerContent', () => {
     });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    // Fixed: No longer overcounts percentages - shows >99% instead of 100%
     // Value and percent columns
     expect(screen.getByText('David Cramer 0')).toBeInTheDocument();
-    expect(screen.getByText('>99%')).toBeInTheDocument(); // Should be >99%, not 100%
+    expect(screen.getByText('>99%')).toBeInTheDocument();
     expect(screen.getByText('David Cramer 1')).toBeInTheDocument();
     expect(screen.getByText('1%')).toBeInTheDocument();
 
