@@ -857,6 +857,12 @@ register(
 )
 
 register(
+    "deletions.groups.use-new-task",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "issues.severity.first-event-severity-calculation-projects-allowlist",
     type=Sequence,
     default=[],
