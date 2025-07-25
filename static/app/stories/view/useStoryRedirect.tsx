@@ -48,7 +48,7 @@ export function useStoryRedirect() {
 
 function scrollToHash() {
   if (window.location.hash) {
-    const hash = window.location.hash.replace(/\^#/, '');
+    const hash = window.location.hash.replace(/^#/, '');
 
     try {
       const element = document.querySelector(`#${hash}`);
