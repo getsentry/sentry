@@ -753,9 +753,9 @@ def create_console_platform_audit_log(
 
     changes = []
     if enabled:
-        changes.append(f"Enabled Platforms: {', '.join(enabled)}")
+        changes.append(f"Enabled platforms: {', '.join(enabled)}")
     if disabled:
-        changes.append(f"Disabled Platforms: {', '.join(disabled)}")
+        changes.append(f"Disabled platforms: {', '.join(disabled)}")
 
     if changes:
         create_audit_entry(
