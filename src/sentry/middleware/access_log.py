@@ -49,30 +49,34 @@ def _get_token_name(auth: AuthenticatedToken | None) -> str | None:
 
 def _get_rate_limit_stats_dict(request: Request) -> dict[str, str]:
 
-    rtm: RateLimitMeta | None = getattr(request, "rate_limit_metadata", None)
-    srtm: SnubaRateLimitMeta | None = getattr(request, "snuba_rate_limit_metadata", None)
+    rate_limit_metadata: RateLimitMeta | None = getattr(request, "rate_limit_metadata", None)
+    snuba_rate_limit_metadata: SnubaRateLimitMeta | None = getattr(
+        request, "snuba_rate_limit_metadata", None
+    )
 
     rate_limit_type = "DNE"
-    if rtm:
-        rate_limit_type = str(getattr(rtm, "rate_limit_type", "DNE"))
-    elif srtm:
+    if rate_limit_metadata:
+        rate_limit_type = str(getattr(rate_limit_metadata, "rate_limit_type", "DNE"))
+    elif snuba_rate_limit_metadata:
         rate_limit_type = "RateLimitType.SNUBA"
 
-    # Combine rate limit metadata from both sources
-    rate_limit_metadata = {
+    rate_limit_stats = {
         "rate_limit_type": rate_limit_type,
-        "concurrent_limit": str(getattr(rtm, "concurrent_limit", None)),
-        "concurrent_requests": str(getattr(rtm, "concurrent_requests", None)),
-        "reset_time": str(getattr(rtm, "reset_time", None)),
-        "group": str(getattr(rtm, "group", None)),
-        "limit": str(getattr(rtm, "limit", None)),
-        "remaining": str(getattr(rtm, "remaining", None)),
+        "concurrent_limit": str(getattr(rate_limit_metadata, "concurrent_limit", None)),
+        "concurrent_requests": str(getattr(rate_limit_metadata, "concurrent_requests", None)),
+        "reset_time": str(getattr(rate_limit_metadata, "reset_time", None)),
+        "group": str(getattr(rate_limit_metadata, "group", None)),
+        "limit": str(getattr(rate_limit_metadata, "limit", None)),
+        "remaining": str(getattr(rate_limit_metadata, "remaining", None)),
         # We prefix the snuba fields with snuba_ to avoid confusion with the standard rate limit metadata
-        "snuba_quota_used": str(getattr(srtm, "quota_used", None)),
-        "snuba_rejection_threshold": str(getattr(srtm, "rejection_threshold", None)),
+        "snuba_quota_used": str(getattr(snuba_rate_limit_metadata, "quota_used", None)),
+        "snuba_rejection_threshold": str(
+            getattr(snuba_rate_limit_metadata, "rejection_threshold", None)
+        ),
+        "snuba_suggestion": str(getattr(snuba_rate_limit_metadata, "suggestion", None)),
     }
 
-    return rate_limit_metadata
+    return rate_limit_stats
 
 
 def _create_api_access_log(

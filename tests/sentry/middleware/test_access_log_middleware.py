@@ -39,9 +39,10 @@ class SnubaRateLimitedEndpoint(Endpoint):
 
     def get(self, request):
         raise RateLimitExceeded(
-            "RateLimitExceeded: Query on could not be run due to allocation policies, ... 'rejection_threshold': 40, 'quota_used': 41, ...",
+            "Query on could not be run due to allocation policies, ... 'rejection_threshold': 40, 'quota_used': 41, ...",
             quota_used=41,
             rejection_threshold=40,
+            suggestion="A customer is sending too many queries to snuba. The customer may be abusing an API or the queries may be inefficient",
         )
 
 

@@ -27,6 +27,7 @@ from snuba_sdk import Column, DeleteQuery, Function, MetricsQuery, Request
 from snuba_sdk.legacy import json_to_snql
 from snuba_sdk.query import SelectableExpression
 
+from sentry import options
 from sentry.api.helpers.error_upsampling import (
     UPSAMPLED_ERROR_AGGREGATION,
     are_any_projects_error_upsampled,
@@ -369,18 +370,17 @@ class RateLimitExceeded(SnubaError):
     Exception raised when a query cannot be executed due to rate limits.
     """
 
-    quota_used: int | None
-    rejection_threshold: int | None
-
     def __init__(
         self,
         message: str | None = None,
         quota_used: int | None = None,
         rejection_threshold: int | None = None,
+        suggestion: str | None = None,
     ) -> None:
         super().__init__(message)
         self.quota_used = quota_used
         self.rejection_threshold = rejection_threshold
+        self.suggestion = suggestion
 
 
 class SchemaValidationError(QueryExecutionError):
@@ -1249,15 +1249,33 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                 if body.get("error"):
                     error = body["error"]
                     if response.status == 429:
-                        quota_allowance = error.get("quota_allowance", {}).get("details", {})
-                        if not quota_allowance:
-                            raise RateLimitExceeded(error["message"])
+                        if options.get("issues.use-snuba-error-data"):
+                            if "stats" not in error:
+                                # Should not hit this - snuba always returns stats when there is an error
+                                raise RateLimitExceeded(error["message"])
 
-                        raise RateLimitExceeded(
-                            error["message"],
-                            quota_used=quota_allowance.get("quota_used"),
-                            rejection_threshold=quota_allowance.get("rejection_threshold"),
-                        )
+                            quota_allowance_summary = error["stats"]["quota_allowance"]["details"][
+                                "summary"
+                            ]
+                            rejected_by = quota_allowance_summary["rejected_by"]
+                            throttled_by = quota_allowance_summary["throttled_by"]
+
+                            if rejected_by:
+                                raise RateLimitExceeded(
+                                    error["message"],
+                                    quota_used=rejected_by["quota_used"],
+                                    rejection_threshold=rejected_by["rejection_threshold"],
+                                    suggestion=rejected_by["suggestion"],
+                                )
+                            elif throttled_by:
+                                raise RateLimitExceeded(
+                                    error["message"],
+                                    quota_used=throttled_by["quota_used"],
+                                    rejection_threshold=throttled_by["rejection_threshold"],
+                                    suggestion=throttled_by["suggestion"],
+                                )
+
+                        raise RateLimitExceeded(error["message"])
 
                     elif error["type"] == "schema":
                         raise SchemaValidationError(error["message"])

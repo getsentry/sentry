@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 from django.utils import timezone
-from snuba_sdk import Entity, Function, Query, Request
+from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 from urllib3 import HTTPConnectionPool
 from urllib3.exceptions import HTTPError, ReadTimeoutError
 from urllib3.response import HTTPResponse
@@ -13,7 +13,7 @@ from sentry.models.grouprelease import GroupRelease
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.snuba.dataset import Dataset
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import TestCase, override_options
 from sentry.utils import json
 from sentry.utils.snuba import (
     ROUND_UP,
@@ -459,6 +459,11 @@ class SnubaQueryRateLimitTest(TestCase):
             query=Query(
                 match=Entity("events"),
                 select=[Function("count", parameters=[], alias="count")],
+                where=[
+                    Condition(Column("project_id"), Op.EQ, self.project.id),
+                    Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(hours=1)),
+                    Condition(Column("timestamp"), Op.LT, datetime.now()),
+                ],
             ),
         )
         self.snuba_request = SnubaRequest(
@@ -469,6 +474,7 @@ class SnubaQueryRateLimitTest(TestCase):
         )
 
     @mock.patch("sentry.utils.snuba._snuba_query")
+    @override_options({"issues.use-snuba-error-data": 1.0})
     def test_rate_limit_error_handling(self, mock_snuba_query):
         """
         Test error handling for rate limit errors creates a RateLimitExceeded exception
@@ -480,12 +486,23 @@ class SnubaQueryRateLimitTest(TestCase):
             {
                 "error": {
                     "message": "Query on could not be run due to allocation policies, info: ...",
-                    "quota_allowance": {
-                        "details": {"quota_used": 1000, "rejection_threshold": 100}
+                    "stats": {
+                        "quota_allowance": {
+                            "details": {
+                                "summary": {
+                                    "rejected_by": {
+                                        "quota_used": 1000,
+                                        "rejection_threshold": 100,
+                                        "suggestion": "A customer is sending too many queries to snuba. The customer may be abusing an API or the queries may be inefficient",
+                                    },
+                                    "throttled_by": {},
+                                }
+                            }
+                        }
                     },
                 }
             }
-        ).encode("utf-8")
+        ).encode()
 
         mock_snuba_query.return_value = ("test_referrer", mock_response, lambda x: x, lambda x: x)
 
@@ -499,6 +516,7 @@ class SnubaQueryRateLimitTest(TestCase):
         )
 
     @mock.patch("sentry.utils.snuba._snuba_query")
+    @override_options({"issues.use-snuba-error-data": 1.0})
     def test_rate_limit_error_handling_without_quota_details(self, mock_snuba_query):
         """
         Test that error handling gracefully handles missing quota details
@@ -508,10 +526,10 @@ class SnubaQueryRateLimitTest(TestCase):
         mock_response.data = json.dumps(
             {
                 "error": {
-                    "message": "Query on could not be run due to allocation policies, info: ..."
+                    "message": "Query on could not be run due to allocation policies, info: ...",
                 }
             }
-        ).encode("utf-8")
+        ).encode()
 
         mock_snuba_query.return_value = ("test_referrer", mock_response, lambda x: x, lambda x: x)
 
