@@ -51,7 +51,7 @@ const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: t(
-            'Once you have access, the private repository contains complete instructions for building and integrating the SDK with your engine of choice.'
+            'Once the access is granted, you can proceed with the SDK integration.'
           ),
         },
       ],
@@ -63,8 +63,13 @@ const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: t(
-            'The PlayStation SDK is designed for standalone engine integration. Initialize the SDK in your application:'
+          text: tct(
+            'The [privateRepositoryLink:private repository] contains complete setup instructions and configuration examples in the sample folder. Here is a basic example of how to initialize the SDK:',
+            {
+              privateRepositoryLink: (
+                <ExternalLink href="https://github.com/getsentry/sentry-playstation" />
+              ),
+            }
           ),
         },
         {
@@ -87,17 +92,6 @@ int main(void) {
   // make sure everything flushes
   sentry_close();
 }`,
-        },
-        {
-          type: 'text',
-          text: tct(
-            'For PlayStation-specific configuration options and advanced features, please refer to the documentation in the [privateRepositoryLink:private repository].',
-            {
-              privateRepositoryLink: (
-                <ExternalLink href="https://github.com/getsentry/sentry-playstation" />
-              ),
-            }
-          ),
         },
       ],
     },
