@@ -7,6 +7,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import TimeSince from 'sentry/components/timeSince';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -121,7 +122,7 @@ function BaseExploreFieldRenderer({
 
   const field = String(column.key);
 
-  const renderer = getExploreFieldRenderer(field, meta, projectsMap);
+  const renderer = getExploreFieldRenderer(field, meta, projectsMap, organization);
 
   let rendered = renderer(data, {
     location,
@@ -145,7 +146,7 @@ function BaseExploreFieldRenderer({
       source: TraceViewSources.TRACES,
     });
 
-    rendered = <Link to={target}>{rendered}</Link>;
+    return <Link to={target}>{rendered}</Link>;
   }
 
   if (['id', 'span_id', 'transaction.id'].includes(field)) {
@@ -161,7 +162,7 @@ function BaseExploreFieldRenderer({
       source: TraceViewSources.TRACES,
     });
 
-    rendered = <Link to={target}>{rendered}</Link>;
+    return <Link to={target}>{rendered}</Link>;
   }
 
   if (field === 'profile.id') {
@@ -170,7 +171,7 @@ function BaseExploreFieldRenderer({
       projectSlug: data.project,
       profileId: data['profile.id'],
     });
-    rendered = <Link to={target}>{rendered}</Link>;
+    return <Link to={target}>{rendered}</Link>;
   }
 
   return (
@@ -191,13 +192,14 @@ function BaseExploreFieldRenderer({
 function getExploreFieldRenderer(
   field: string,
   meta: MetaType,
-  projects: Record<string, Project>
+  projects: Record<string, Project>,
+  organization: Organization
 ): ReturnType<typeof getFieldRenderer> {
   if (field === 'id' || field === 'span_id') {
     return eventIdRenderFunc(field);
   }
   if (field === 'span.description') {
-    return spanDescriptionRenderFunc(projects);
+    return spanDescriptionRenderFunc(projects, organization);
   }
   return getFieldRenderer(field, meta, false);
 }
@@ -214,7 +216,10 @@ function eventIdRenderFunc(field: string) {
   return renderer;
 }
 
-function spanDescriptionRenderFunc(projects: Record<string, Project>) {
+function spanDescriptionRenderFunc(
+  projects: Record<string, Project>,
+  organization: Organization
+) {
   function renderer(data: EventData) {
     const project = projects[data.project];
 
@@ -238,7 +243,8 @@ function spanDescriptionRenderFunc(projects: Record<string, Project>) {
               />
             )}
             <WrappingText>
-              {isUrl(value) ? (
+              {!organization.features.includes('discover-cell-actions-v2') &&
+              isUrl(value) ? (
                 <ExternalLink href={value}>{value}</ExternalLink>
               ) : (
                 nullableValue(value)
