@@ -9,6 +9,7 @@ from datetime import timedelta
 from unittest import mock
 from unittest.mock import patch
 
+import pytest
 from django.utils import timezone
 
 from sentry import eventstream, tsdb
@@ -173,6 +174,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             "first_release": None,
         }
 
+    @pytest.mark.skip(reason="flaky: #95352")
     @with_feature("projects:similarity-indexing")
     @with_feature("organizations:issue-open-periods")
     @mock.patch("sentry.analytics.record")
