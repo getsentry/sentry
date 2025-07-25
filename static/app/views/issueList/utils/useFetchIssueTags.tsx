@@ -368,6 +368,7 @@ function builtInIssuesFields({
         FixabilityScoreThresholds.HIGH,
         FixabilityScoreThresholds.MEDIUM,
         FixabilityScoreThresholds.LOW,
+        FixabilityScoreThresholds.SUPER_LOW,
       ],
       predefined: true,
     },
