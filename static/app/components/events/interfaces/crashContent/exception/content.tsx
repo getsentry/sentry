@@ -247,7 +247,7 @@ export function Content({
         <StyledFoldSection
           key={excIdx}
           className="exception"
-          data-test-id="exception-value"
+          dataTestId="exception-value"
           sectionKey={SectionKey.CHAINED_EXCEPTION}
           title={
             defined(exc?.module) ? (
@@ -262,6 +262,7 @@ export function Content({
           }
           disableCollapsePersistence
           initialCollapse={excIdx !== values.length - 1}
+          additionalIdentifier={exc.mechanism?.exception_id?.toString() ?? ''}
         >
           {getInnerContent({excIdx, exc})}
         </StyledFoldSection>
