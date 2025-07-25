@@ -289,6 +289,170 @@ function buildRoutes() {
     </Route>
   );
 
+  const accountSettingsChildRoutes: SentryRouteObject[] = [
+    {
+      index: true,
+      component: () => <WorkingRedirect to="details/" replace />,
+    },
+    {
+      path: 'details/',
+      name: t('Details'),
+      component: make(() => import('sentry/views/settings/account/accountDetails')),
+    },
+    {
+      path: 'notifications/',
+      name: t('Notifications'),
+      children: [
+        {
+          index: true,
+          component: make(
+            () =>
+              import(
+                'sentry/views/settings/account/notifications/notificationSettingsController'
+              )
+          ),
+        },
+        {
+          path: ':fineTuneType/',
+          name: t('Fine Tune Alerts'),
+          component: make(
+            () =>
+              import(
+                'sentry/views/settings/account/accountNotificationFineTuningController'
+              )
+          ),
+        },
+      ],
+    },
+    {
+      path: 'emails/',
+      name: t('Emails'),
+      component: make(() => import('sentry/views/settings/account/accountEmails')),
+    },
+    {
+      path: 'authorizations/',
+      component: make(
+        () => import('sentry/views/settings/account/accountAuthorizations')
+      ),
+    },
+    {
+      path: 'security/',
+      name: t('Security'),
+      children: [
+        {
+          component: make(
+            () =>
+              import(
+                'sentry/views/settings/account/accountSecurity/accountSecurityWrapper'
+              )
+          ),
+          children: [
+            {
+              index: true,
+              component: make(
+                () => import('sentry/views/settings/account/accountSecurity')
+              ),
+            },
+            {
+              path: 'session-history/',
+              name: t('Session History'),
+              component: make(
+                () =>
+                  import('sentry/views/settings/account/accountSecurity/sessionHistory')
+              ),
+            },
+            {
+              path: 'mfa/:authId/',
+              name: t('Details'),
+              component: make(
+                () =>
+                  import(
+                    'sentry/views/settings/account/accountSecurity/accountSecurityDetails'
+                  )
+              ),
+            },
+          ],
+        },
+        {
+          path: 'mfa/:authId/enroll/',
+          name: t('Enroll'),
+          component: make(
+            () =>
+              import(
+                'sentry/views/settings/account/accountSecurity/accountSecurityEnroll'
+              )
+          ),
+        },
+      ],
+    },
+    {
+      path: 'subscriptions/',
+      name: t('Subscriptions'),
+      component: make(() => import('sentry/views/settings/account/accountSubscriptions')),
+    },
+    {
+      path: 'identities/',
+      name: t('Identities'),
+      component: make(() => import('sentry/views/settings/account/accountIdentities')),
+    },
+    {
+      path: 'api/',
+      name: t('API'),
+      children: [
+        {
+          index: true,
+          component: () => <WorkingRedirect to="auth-tokens/" replace />,
+        },
+        {
+          path: 'auth-tokens/',
+          name: t('Personal Tokens'),
+          children: [
+            {
+              index: true,
+              component: make(() => import('sentry/views/settings/account/apiTokens')),
+            },
+            {
+              path: 'new-token/',
+              name: t('Create Personal Token'),
+              component: make(() => import('sentry/views/settings/account/apiNewToken')),
+            },
+            {
+              path: ':tokenId/',
+              name: t('Edit Personal Token'),
+              component: make(
+                () => import('sentry/views/settings/account/apiTokenDetails')
+              ),
+            },
+          ],
+        },
+        {
+          path: 'applications/',
+          name: t('Applications'),
+          children: [
+            {
+              index: true,
+              component: make(
+                () => import('sentry/views/settings/account/apiApplications')
+              ),
+            },
+            {
+              path: ':appId/',
+              name: t('Details'),
+              component: make(
+                () => import('sentry/views/settings/account/apiApplications/details')
+              ),
+            },
+          ],
+        },
+      ],
+    },
+    {
+      path: 'close-account/',
+      name: t('Close Account'),
+      component: make(() => import('sentry/views/settings/account/accountClose')),
+    },
+  ];
+
   const accountSettingsRoutes = (
     <Route
       path="account/"
@@ -296,139 +460,8 @@ function buildRoutes() {
       component={make(
         () => import('sentry/views/settings/account/accountSettingsLayout')
       )}
-    >
-      <IndexRedirect to="details/" />
-      <Route
-        path="details/"
-        name={t('Details')}
-        component={make(() => import('sentry/views/settings/account/accountDetails'))}
-      />
-      <Route path="notifications/" name={t('Notifications')}>
-        <IndexRoute
-          component={make(
-            () =>
-              import(
-                'sentry/views/settings/account/notifications/notificationSettingsController'
-              )
-          )}
-        />
-        <Route
-          path=":fineTuneType/"
-          name={t('Fine Tune Alerts')}
-          component={make(
-            () =>
-              import(
-                'sentry/views/settings/account/accountNotificationFineTuningController'
-              )
-          )}
-        />
-      </Route>
-      <Route
-        path="emails/"
-        name={t('Emails')}
-        component={make(() => import('sentry/views/settings/account/accountEmails'))}
-      />
-      <Route
-        path="authorizations/"
-        component={make(
-          () => import('sentry/views/settings/account/accountAuthorizations')
-        )}
-      />
-      <Route path="security/" name={t('Security')}>
-        <Route
-          component={make(
-            () =>
-              import(
-                'sentry/views/settings/account/accountSecurity/accountSecurityWrapper'
-              )
-          )}
-        >
-          <IndexRoute
-            component={make(
-              () => import('sentry/views/settings/account/accountSecurity')
-            )}
-          />
-          <Route
-            path="session-history/"
-            name={t('Session History')}
-            component={make(
-              () => import('sentry/views/settings/account/accountSecurity/sessionHistory')
-            )}
-          />
-          <Route
-            path="mfa/:authId/"
-            name={t('Details')}
-            component={make(
-              () =>
-                import(
-                  'sentry/views/settings/account/accountSecurity/accountSecurityDetails'
-                )
-            )}
-          />
-        </Route>
-        <Route
-          path="mfa/:authId/enroll/"
-          name={t('Enroll')}
-          component={make(
-            () =>
-              import(
-                'sentry/views/settings/account/accountSecurity/accountSecurityEnroll'
-              )
-          )}
-        />
-      </Route>
-      <Route
-        path="subscriptions/"
-        name={t('Subscriptions')}
-        component={make(
-          () => import('sentry/views/settings/account/accountSubscriptions')
-        )}
-      />
-      <Route
-        path="identities/"
-        name={t('Identities')}
-        component={make(() => import('sentry/views/settings/account/accountIdentities'))}
-      />
-      <Route path="api/" name={t('API')}>
-        <IndexRedirect to="auth-tokens/" />
-        <Route path="auth-tokens/" name={t('Personal Tokens')}>
-          <IndexRoute
-            component={make(() => import('sentry/views/settings/account/apiTokens'))}
-          />
-          <Route
-            path="new-token/"
-            name={t('Create Personal Token')}
-            component={make(() => import('sentry/views/settings/account/apiNewToken'))}
-          />
-          <Route
-            path=":tokenId/"
-            name={t('Edit Personal Token')}
-            component={make(
-              () => import('sentry/views/settings/account/apiTokenDetails')
-            )}
-          />
-        </Route>
-        <Route path="applications/" name={t('Applications')}>
-          <IndexRoute
-            component={make(
-              () => import('sentry/views/settings/account/apiApplications')
-            )}
-          />
-          <Route
-            path=":appId/"
-            name={t('Details')}
-            component={make(
-              () => import('sentry/views/settings/account/apiApplications/details')
-            )}
-          />
-        </Route>
-      </Route>
-      <Route
-        path="close-account/"
-        name={t('Close Account')}
-        component={make(() => import('sentry/views/settings/account/accountClose'))}
-      />
-    </Route>
+      newStyleChildren={accountSettingsChildRoutes}
+    />
   );
 
   const projectSettingsChildRoutes: SentryRouteObject[] = [
