@@ -2618,87 +2618,88 @@ function buildRoutes() {
   //
   // XXX(epurkhiser): Can these be moved over to the legacyOrgRedirects routes,
   // or do these need to be nested into the OrganizationLayout tree?
+  const legacyOrgRedirectChildRoutes: SentryRouteObject[] = [
+    {
+      index: true,
+      component: errorHandler(
+        redirectDeprecatedProjectRoute(
+          ({orgId, projectId}) => `/organizations/${orgId}/issues/?project=${projectId}`
+        )
+      ),
+    },
+    {
+      path: 'issues/',
+      component: errorHandler(
+        redirectDeprecatedProjectRoute(
+          ({orgId, projectId}) => `/organizations/${orgId}/issues/?project=${projectId}`
+        )
+      ),
+    },
+    {
+      path: 'dashboard/',
+      component: errorHandler(
+        redirectDeprecatedProjectRoute(
+          ({orgId, projectId}) =>
+            `/organizations/${orgId}/dashboards/?project=${projectId}`
+        )
+      ),
+    },
+    {
+      path: 'user-feedback/',
+      component: errorHandler(
+        redirectDeprecatedProjectRoute(
+          ({orgId, projectId}) => `/organizations/${orgId}/feedback/?project=${projectId}`
+        )
+      ),
+    },
+    {
+      path: 'releases/',
+      component: errorHandler(
+        redirectDeprecatedProjectRoute(
+          ({orgId, projectId}) => `/organizations/${orgId}/releases/?project=${projectId}`
+        )
+      ),
+    },
+    {
+      path: 'releases/:version/',
+      component: errorHandler(
+        redirectDeprecatedProjectRoute(
+          ({orgId, projectId, router}) =>
+            `/organizations/${orgId}/releases/${router.params.version}/?project=${projectId}`
+        )
+      ),
+    },
+    {
+      path: 'releases/:version/new-events/',
+      component: errorHandler(
+        redirectDeprecatedProjectRoute(
+          ({orgId, projectId, router}) =>
+            `/organizations/${orgId}/releases/${router.params.version}/new-events/?project=${projectId}`
+        )
+      ),
+    },
+    {
+      path: 'releases/:version/all-events/',
+      component: errorHandler(
+        redirectDeprecatedProjectRoute(
+          ({orgId, projectId, router}) =>
+            `/organizations/${orgId}/releases/${router.params.version}/all-events/?project=${projectId}`
+        )
+      ),
+    },
+    {
+      path: 'releases/:version/commits/',
+      component: errorHandler(
+        redirectDeprecatedProjectRoute(
+          ({orgId, projectId, router}) =>
+            `/organizations/${orgId}/releases/${router.params.version}/commits/?project=${projectId}`
+        )
+      ),
+    },
+  ];
+
   const legacyOrgRedirects = (
-    <Route path="/:orgId/:projectId/">
-      <IndexRoute
-        component={errorHandler(
-          redirectDeprecatedProjectRoute(
-            ({orgId, projectId}) => `/organizations/${orgId}/issues/?project=${projectId}`
-          )
-        )}
-      />
-      <Route
-        path="issues/"
-        component={errorHandler(
-          redirectDeprecatedProjectRoute(
-            ({orgId, projectId}) => `/organizations/${orgId}/issues/?project=${projectId}`
-          )
-        )}
-      />
-      <Route
-        path="dashboard/"
-        component={errorHandler(
-          redirectDeprecatedProjectRoute(
-            ({orgId, projectId}) =>
-              `/organizations/${orgId}/dashboards/?project=${projectId}`
-          )
-        )}
-      />
-      <Route
-        path="user-feedback/"
-        component={errorHandler(
-          redirectDeprecatedProjectRoute(
-            ({orgId, projectId}) =>
-              `/organizations/${orgId}/feedback/?project=${projectId}`
-          )
-        )}
-      />
-      <Route
-        path="releases/"
-        component={errorHandler(
-          redirectDeprecatedProjectRoute(
-            ({orgId, projectId}) =>
-              `/organizations/${orgId}/releases/?project=${projectId}`
-          )
-        )}
-      />
-      <Route
-        path="releases/:version/"
-        component={errorHandler(
-          redirectDeprecatedProjectRoute(
-            ({orgId, projectId, router}) =>
-              `/organizations/${orgId}/releases/${router.params.version}/?project=${projectId}`
-          )
-        )}
-      />
-      <Route
-        path="releases/:version/new-events/"
-        component={errorHandler(
-          redirectDeprecatedProjectRoute(
-            ({orgId, projectId, router}) =>
-              `/organizations/${orgId}/releases/${router.params.version}/new-events/?project=${projectId}`
-          )
-        )}
-      />
-      <Route
-        path="releases/:version/all-events/"
-        component={errorHandler(
-          redirectDeprecatedProjectRoute(
-            ({orgId, projectId, router}) =>
-              `/organizations/${orgId}/releases/${router.params.version}/all-events/?project=${projectId}`
-          )
-        )}
-      />
-      <Route
-        path="releases/:version/commits/"
-        component={errorHandler(
-          redirectDeprecatedProjectRoute(
-            ({orgId, projectId, router}) =>
-              `/organizations/${orgId}/releases/${router.params.version}/commits/?project=${projectId}`
-          )
-        )}
-      />
-    </Route>
+    <Route path="/:orgId/:projectId/" newStyleChildren={legacyOrgRedirectChildRoutes} />
   );
 
   const organizationRoutes = (
