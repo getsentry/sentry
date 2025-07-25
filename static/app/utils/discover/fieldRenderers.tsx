@@ -969,13 +969,14 @@ const getContextIcon = (value: string) => {
 };
 
 /**
- * Drops the last part of an operating system or browser string that contains version appended at the end
+ * Drops the last part of an operating system or browser string that contains version appended at the end.
+ * If the value string has no spaces, the original string will be returned.
  * @param value The string that contains the version to be dropped. E.g., 'Safari 9.1.2'
- * @returns E.g., 'Safari 9.1.2' -> 'Safari'
+ * @returns E.g., 'Safari 9.1.2' -> 'Safari', 'Linux' -> 'Linux'
  */
 const dropVersion = (value: string) => {
   const valueArray = value.split(' ');
-  valueArray.pop();
+  if (valueArray.length > 1) valueArray.pop();
   return valueArray.join(' ');
 };
 

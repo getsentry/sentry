@@ -27,7 +27,7 @@ preprod: 0012_installablepreprod
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0954_user_option_json_field
+sentry: 0956_add_group_by_to_snuba_query
 
 social_auth: 0003_social_auth_json_field
 

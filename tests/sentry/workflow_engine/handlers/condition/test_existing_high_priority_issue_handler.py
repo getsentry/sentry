@@ -77,10 +77,13 @@ class TestExistingHighPriorityIssueCondition(ConditionTestCase):
         self.event_data = replace(self.event_data, has_reappeared=False, has_escalated=True)
         self.assert_passes(self.dc, self.event_data)
 
-        self.event_data = replace(self.event_data, has_reappeared=True, has_escalated=False)
+        self.event_data = replace(self.event_data, has_reappeared=True, has_escalated=True)
         self.assert_passes(self.dc, self.event_data)
 
         self.event_data = replace(self.event_data, has_reappeared=False, has_escalated=False)
+        self.assert_does_not_pass(self.dc, self.event_data)
+
+        self.event_data = replace(self.event_data, has_reappeared=True, has_escalated=False)
         self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_priority(self):
