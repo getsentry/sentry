@@ -145,20 +145,20 @@ class TestAbstractConditionValidator(TestCase):
             "conditionGroupId": self.condition_group.id,
         }
 
-    def test_validate_comparison(self):
+    def test_validate_comparison(self) -> None:
         validator = ExampleConditionValidator(data=self.valid_data)
         assert validator.is_valid() is True
 
-    def test_validate_condition_result(self):
+    def test_validate_condition_result(self) -> None:
         validator = ExampleConditionValidator(data=self.valid_data)
         assert validator.is_valid() is True
 
-    def test_validate_comparison__invalid(self):
+    def test_validate_comparison__invalid(self) -> None:
         invalid_data = {**self.valid_data, "comparison": "invalid"}
         validator = ExampleConditionValidator(data=invalid_data)
         assert validator.is_valid() is False
 
-    def test_validate_condition_result__invalid(self):
+    def test_validate_condition_result__invalid(self) -> None:
         invalid_data = {**self.valid_data, "conditionResult": "invalid"}
         validator = ExampleConditionValidator(data=invalid_data)
         assert validator.is_valid() is False

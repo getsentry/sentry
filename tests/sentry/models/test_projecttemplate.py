@@ -9,7 +9,7 @@ class ProjectTemplateTest(TestCase):
     def tearDown(self):
         self.org.delete()
 
-    def test_create_simple_project_template(self):
+    def test_create_simple_project_template(self) -> None:
         project_template = ProjectTemplate.objects.create(
             name="test_project_template", organization=self.org
         )

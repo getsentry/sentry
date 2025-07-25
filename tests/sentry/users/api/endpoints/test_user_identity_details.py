@@ -13,7 +13,7 @@ class DeleteUserIdentityTest(APITestCase):
         super().setUp()
         self.login_as(self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         auth_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
         )

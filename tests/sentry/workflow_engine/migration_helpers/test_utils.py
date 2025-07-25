@@ -61,7 +61,7 @@ class WorkflowNameTest(APITestCase):
             self.org_integration.config = {"team_table": [self.og_team_table]}
             self.org_integration.save()
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         """
         Test that the action text is what we expect when we migrate an alert rule with only a critical trigger
         """
@@ -72,7 +72,7 @@ class WorkflowNameTest(APITestCase):
         assert self.rpc_user
         assert workflow.name == f"Email {self.rpc_user.email}"
 
-    def test_warning_and_critical(self):
+    def test_warning_and_critical(self) -> None:
         """
         Test that the action text is what we expect when we have both a critical and warning trigger
         """
@@ -94,7 +94,7 @@ class WorkflowNameTest(APITestCase):
             == f"Critical - Email {self.rpc_user.email}, Warning - Email {self.rpc_user.email}"
         )
 
-    def test_many_actions(self):
+    def test_many_actions(self) -> None:
         """
         Test that if we have more than 3 actions we format the name as expected
         """
@@ -130,7 +130,7 @@ class WorkflowNameTest(APITestCase):
             == f"Email {self.rpc_user.email}, Email {user2.email}, Email {user3.email}...(+1)"
         )
 
-    def test_with_integrations(self):
+    def test_with_integrations(self) -> None:
         """
         Test that we receive the text we expect for actions of various integration types
         """
@@ -176,7 +176,7 @@ class WorkflowNameTest(APITestCase):
             == f"Critical - Email {self.rpc_user.email}, Notify {self.og_team_table["team"]} via {self.opsgenie_integration.provider.title()}, Warning - Email #{self.og_team.slug}...(+2)"
         )
 
-    def test_missing_org_member(self):
+    def test_missing_org_member(self) -> None:
         user = self.create_user()
         alert_rule = self.create_alert_rule()
         trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
@@ -190,7 +190,7 @@ class WorkflowNameTest(APITestCase):
 
         assert workflow.name == "Email [removed]"
 
-    def test_missing_team(self):
+    def test_missing_team(self) -> None:
         team = self.create_team(organization=self.organization)
         alert_rule = self.create_alert_rule(organization=self.organization)
         trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)

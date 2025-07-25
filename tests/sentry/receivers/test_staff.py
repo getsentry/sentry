@@ -4,7 +4,7 @@ from sentry.testutils.cases import TestCase
 
 
 class StaffReceiverTest(TestCase):
-    def test_disable_staff_active_upon_logout(self):
+    def test_disable_staff_active_upon_logout(self) -> None:
         staff_user = self.create_user(is_staff=True)
         staff_request = self.make_request(user=staff_user, is_staff=True)
 

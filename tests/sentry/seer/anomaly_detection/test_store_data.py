@@ -6,10 +6,9 @@ import pytest
 
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.seer.anomaly_detection.utils import fetch_historical_data, format_historical_data
-from sentry.snuba import errors, metrics_performance
+from sentry.snuba import errors, metrics_performance, spans_rpc
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
-from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.cases import BaseMetricsTestCase, PerformanceIssueTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.performance_issues.event_generators import get_event
@@ -53,7 +52,7 @@ class AnomalyDetectionStoreDataTest(
         self.session_1 = "5d52fd05-fcc9-4bf3-9dc9-267783670341"
         self.user_1 = "39887d89-13b2-4c84-8c23-5d13d2102666"
 
-    def test_anomaly_detection_format_historical_data(self):
+    def test_anomaly_detection_format_historical_data(self) -> None:
         expected_return_value = [
             {"timestamp": self.time_1_ts, "value": 0},
             {"timestamp": self.time_2_ts, "value": 1},
@@ -67,7 +66,7 @@ class AnomalyDetectionStoreDataTest(
         )
         assert result == expected_return_value
 
-    def test_anomaly_detection_format_historical_data_two(self):
+    def test_anomaly_detection_format_historical_data_two(self) -> None:
         """
         Test a different aggregation key.
         """
@@ -90,7 +89,7 @@ class AnomalyDetectionStoreDataTest(
         )
         assert result == expected_return_value
 
-    def test_anomaly_detection_format_historical_data_none_value(self):
+    def test_anomaly_detection_format_historical_data_none_value(self) -> None:
         """
         Test that we don't end up with a None value, but rather 0.
         """
@@ -113,7 +112,7 @@ class AnomalyDetectionStoreDataTest(
         )
         assert result == expected_return_value
 
-    def test_anomaly_detection_fetch_historical_data(self):
+    def test_anomaly_detection_fetch_historical_data(self) -> None:
         alert_rule = self.create_alert_rule(organization=self.organization, projects=[self.project])
         snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
 
@@ -144,7 +143,7 @@ class AnomalyDetectionStoreDataTest(
         assert {"time": int(self.time_1_ts), "count": 1} in result.data.get("data")
         assert {"time": int(self.time_2_ts), "count": 1} in result.data.get("data")
 
-    def test_anomaly_detection_fetch_historical_data_eap_spans(self):
+    def test_anomaly_detection_fetch_historical_data_eap_spans(self) -> None:
         alert_rule = self.create_alert_rule(
             organization=self.organization,
             projects=[self.project],
@@ -185,7 +184,7 @@ class AnomalyDetectionStoreDataTest(
             formatted_result = format_historical_data(
                 data=result,
                 query_columns=["count(span.duration)"],
-                dataset=Spans,
+                dataset=spans_rpc,
                 organization=self.organization,
             )
 
@@ -193,7 +192,7 @@ class AnomalyDetectionStoreDataTest(
                 if row["timestamp"] == int(expected_ts_1) or row["timestamp"] == int(expected_ts_2):
                     assert row["value"] == 1
 
-    def test_anomaly_detection_fetch_historical_data_is_unresolved_query(self):
+    def test_anomaly_detection_fetch_historical_data_is_unresolved_query(self) -> None:
         alert_rule = self.create_alert_rule(organization=self.organization, projects=[self.project])
         snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
         snuba_query.query = "is:unresolved"
@@ -226,7 +225,7 @@ class AnomalyDetectionStoreDataTest(
         assert {"time": int(self.time_1_ts), "count": 1} in result.data.get("data")
         assert {"time": int(self.time_2_ts), "count": 1} in result.data.get("data")
 
-    def test_anomaly_detection_fetch_historical_data_performance_alert(self):
+    def test_anomaly_detection_fetch_historical_data_performance_alert(self) -> None:
         alert_rule = self.create_alert_rule(
             organization=self.organization, projects=[self.project], dataset=Dataset.Transactions
         )
@@ -243,7 +242,7 @@ class AnomalyDetectionStoreDataTest(
         assert {"time": int(event1.datetime.timestamp()), "count": 1} in result.data.get("data")
         assert {"time": int(event2.datetime.timestamp()), "count": 1} in result.data.get("data")
 
-    def test_anomaly_detection_format_historical_data_crash_rate_alert(self):
+    def test_anomaly_detection_format_historical_data_crash_rate_alert(self) -> None:
         expected_return_value = [
             {"timestamp": self.time_1_ts, "value": 0},
             {"timestamp": self.time_2_ts, "value": 1},
@@ -264,7 +263,7 @@ class AnomalyDetectionStoreDataTest(
         result = format_historical_data(data, ["count()"], metrics_performance, self.organization)
         assert result == expected_return_value
 
-    def test_anomaly_detection_fetch_historical_data_crash_rate_alert(self):
+    def test_anomaly_detection_fetch_historical_data_crash_rate_alert(self) -> None:
         self.store_session(
             self.build_session(
                 distinct_id=self.user_1,

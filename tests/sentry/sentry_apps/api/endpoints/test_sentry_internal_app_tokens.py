@@ -29,7 +29,7 @@ class SentryInternalAppTokenTest(APITestCase):
 class PostSentryInternalAppTokenTest(SentryInternalAppTokenTest):
     method = "post"
 
-    def test_create_token(self):
+    def test_create_token(self) -> None:
         self.login_as(user=self.user)
         response = self.get_success_response(
             self.internal_sentry_app.slug, status_code=status.HTTP_201_CREATED
@@ -37,7 +37,7 @@ class PostSentryInternalAppTokenTest(SentryInternalAppTokenTest):
 
         assert ApiToken.objects.get(token=response.data["token"])
 
-    def test_non_internal_app(self):
+    def test_non_internal_app(self) -> None:
         sentry_app = self.create_sentry_app(name="My External App", organization=self.org)
 
         self.login_as(user=self.user)
@@ -45,11 +45,11 @@ class PostSentryInternalAppTokenTest(SentryInternalAppTokenTest):
 
         assert response.data == "This route is limited to internal integrations only"
 
-    def test_sentry_app_not_found(self):
+    def test_sentry_app_not_found(self) -> None:
         self.login_as(user=self.user)
         self.get_error_response("not_a_slug", status_code=status.HTTP_404_NOT_FOUND)
 
-    def test_token_limit(self):
+    def test_token_limit(self) -> None:
         self.login_as(user=self.user)
 
         # we already have one token created so just need to make 19 more first
@@ -63,7 +63,7 @@ class PostSentryInternalAppTokenTest(SentryInternalAppTokenTest):
         )
         assert response.data == "Cannot generate more than 20 tokens for a single integration"
 
-    def test_cannot_create_partner_app_token(self):
+    def test_cannot_create_partner_app_token(self) -> None:
         self.login_as(user=self.user)
         self.internal_sentry_app.update(metadata={"partnership_restricted": True})
 
@@ -71,7 +71,7 @@ class PostSentryInternalAppTokenTest(SentryInternalAppTokenTest):
             self.internal_sentry_app.slug, status_code=status.HTTP_403_FORBIDDEN
         )
 
-    def test_superuser_post(self):
+    def test_superuser_post(self) -> None:
         self.login_as(self.superuser, superuser=True)
         self.get_success_response(
             self.internal_sentry_app.slug, status_code=status.HTTP_201_CREATED
@@ -79,7 +79,7 @@ class PostSentryInternalAppTokenTest(SentryInternalAppTokenTest):
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     @override_options({"superuser.read-write.ga-rollout": True})
-    def test_superuser_read_write_post(self):
+    def test_superuser_read_write_post(self) -> None:
         # only superuser write can hit post
         self.login_as(self.superuser, superuser=True)
         self.get_error_response(
@@ -96,7 +96,7 @@ class PostSentryInternalAppTokenTest(SentryInternalAppTokenTest):
 class GetSentryInternalAppTokenTest(SentryInternalAppTokenTest):
     method = "get"
 
-    def test_get_tokens(self):
+    def test_get_tokens(self) -> None:
         self.login_as(self.user)
 
         other_internal_app = self.create_internal_integration(
@@ -121,7 +121,7 @@ class GetSentryInternalAppTokenTest(SentryInternalAppTokenTest):
             self.internal_sentry_app.slug, status_code=status.HTTP_403_FORBIDDEN
         )
 
-    def test_token_is_masked(self):
+    def test_token_is_masked(self) -> None:
         user = self.create_user(email="meep@example.com")
         self.create_member(organization=self.org, user=user, role="manager")
         # create an app with scopes higher than what a member role has
@@ -137,7 +137,7 @@ class GetSentryInternalAppTokenTest(SentryInternalAppTokenTest):
         assert response.data[0]["token"] == MASKED_VALUE
         assert response.data[0]["refreshToken"] == MASKED_VALUE
 
-    def test_deny_token_access(self):
+    def test_deny_token_access(self) -> None:
         self.login_as(self.user)
         token = ApiToken.objects.create(user=self.user, scope_list=["org:write"])
 
@@ -150,13 +150,13 @@ class GetSentryInternalAppTokenTest(SentryInternalAppTokenTest):
             extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
         )
 
-    def test_superuser_get(self):
+    def test_superuser_get(self) -> None:
         self.login_as(self.superuser, superuser=True)
         self.get_success_response(self.internal_sentry_app.slug)
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     @override_options({"superuser.read-write.ga-rollout": True})
-    def test_superuser_read_write_get(self):
+    def test_superuser_read_write_get(self) -> None:
         self.login_as(self.superuser, superuser=True)
         self.get_success_response(self.internal_sentry_app.slug)
 

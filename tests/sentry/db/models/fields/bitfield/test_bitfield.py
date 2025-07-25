@@ -46,7 +46,7 @@ class BitFieldTestModelWithDefaultsAsKeyNames(models.Model):
 
 
 class BitHandlerTest(unittest.TestCase):
-    def test_comparison(self):
+    def test_comparison(self) -> None:
         bithandler_1 = BitHandler(0, ("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"))
         bithandler_2 = BitHandler(1, ("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"))
         bithandler_3 = BitHandler(0, ("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"))
@@ -54,7 +54,7 @@ class BitHandlerTest(unittest.TestCase):
         assert bithandler_1 != bithandler_2
         assert bithandler_1 == bithandler_3
 
-    def test_defaults(self):
+    def test_defaults(self) -> None:
         bithandler = BitHandler(0, ("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"))
         # Default value of 0.
         self.assertEqual(int(bithandler), 0)
@@ -71,7 +71,7 @@ class BitHandlerTest(unittest.TestCase):
         self.assertEqual(bool(bithandler.FLAG_2), False)
         self.assertEqual(bool(bithandler.FLAG_3), False)
 
-    def test_bool_default(self):
+    def test_bool_default(self) -> None:
         bithandler = BitHandler(1, ("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"))
         self.assertEqual(bool(bithandler.FLAG_0), True)
         self.assertEqual(bool(bithandler.FLAG_1), False)
@@ -96,7 +96,7 @@ class BitHandlerTest(unittest.TestCase):
         self.assertEqual(bool(bithandler.FLAG_2), True)
         self.assertEqual(bool(bithandler.FLAG_3), False)
 
-    def test_mutation(self):
+    def test_mutation(self) -> None:
         bithandler = BitHandler(0, ("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"))
         self.assertEqual(bool(bithandler.FLAG_0), False)
         self.assertEqual(bool(bithandler.FLAG_1), False)
@@ -128,20 +128,20 @@ class BitHandlerTest(unittest.TestCase):
 
 
 class BitTest(unittest.TestCase):
-    def test_int(self):
+    def test_int(self) -> None:
         bit = Bit(0)
         self.assertEqual(int(bit), 1)
         self.assertEqual(bool(bit), True)
         self.assertFalse(not bit)
 
-    def test_comparison(self):
+    def test_comparison(self) -> None:
         self.assertEqual(Bit(0), Bit(0))
         self.assertNotEqual(Bit(1), Bit(0))
         self.assertNotEqual(Bit(0, 0), Bit(0, 1))
         self.assertEqual(Bit(0, 1), Bit(0, 1))
         self.assertEqual(Bit(0), 1)
 
-    def test_and(self):
+    def test_and(self) -> None:
         self.assertEqual(1 & Bit(2), 0)
         self.assertEqual(1 & Bit(0), 1)
         self.assertEqual(1 & ~Bit(0), 0)
@@ -149,7 +149,7 @@ class BitTest(unittest.TestCase):
         self.assertEqual(Bit(0) & Bit(0), 1)
         self.assertEqual(Bit(0) & ~Bit(0), 0)
 
-    def test_or(self):
+    def test_or(self) -> None:
         self.assertEqual(1 | Bit(2), 5)
         self.assertEqual(1 | Bit(5), 33)
         self.assertEqual(1 | ~Bit(2), -5)
@@ -157,7 +157,7 @@ class BitTest(unittest.TestCase):
         self.assertEqual(Bit(0) | Bit(5), 33)
         self.assertEqual(Bit(0) | ~Bit(2), -5)
 
-    def test_xor(self):
+    def test_xor(self) -> None:
         self.assertEqual(1 ^ Bit(2), 5)
         self.assertEqual(1 ^ Bit(0), 0)
         self.assertEqual(1 ^ Bit(1), 3)
@@ -171,7 +171,7 @@ class BitTest(unittest.TestCase):
 
 
 class BitFieldTest(TestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         # Create instance and make sure flags are working properly.
         instance = BitFieldTestModel.objects.create(flags=1)
         self.assertTrue(instance.flags.FLAG_0)
@@ -179,7 +179,7 @@ class BitFieldTest(TestCase):
         self.assertFalse(instance.flags.FLAG_2)
         self.assertFalse(instance.flags.FLAG_3)
 
-    def test_regression_1425(self):
+    def test_regression_1425(self) -> None:
         # Creating new instances shouldn't allow negative values.
         instance = BitFieldTestModel.objects.create(flags=-1)
         self.assertEqual(instance.flags._value, 15)
@@ -206,7 +206,7 @@ class BitFieldTest(TestCase):
         self.assertEqual(BitFieldTestModel.objects.filter(flags=15).count(), 2)
         self.assertEqual(BitFieldTestModel.objects.filter(flags__lt=0).count(), 0)
 
-    def test_select(self):
+    def test_select(self) -> None:
         BitFieldTestModel.objects.create(flags=3)
         # This F().bitor style of lookup is used extensively throughout sentry/getsentry.
         # If this test breaks, then that most likely means our custom lookup doesn't work
@@ -232,7 +232,7 @@ class BitFieldTest(TestCase):
             ).exists()
         )
 
-    def test_update(self):
+    def test_update(self) -> None:
         instance = BitFieldTestModel.objects.create(flags=0)
         self.assertFalse(instance.flags.FLAG_0)
 
@@ -265,7 +265,7 @@ class BitFieldTest(TestCase):
         self.assertTrue(instance.flags.FLAG_1)
         self.assertFalse(instance.flags.FLAG_3)
 
-    def test_update_with_handler(self):
+    def test_update_with_handler(self) -> None:
         instance = BitFieldTestModel.objects.create(flags=0)
         self.assertFalse(instance.flags.FLAG_0)
 
@@ -277,7 +277,7 @@ class BitFieldTest(TestCase):
         instance = BitFieldTestModel.objects.get(pk=instance.pk)
         self.assertTrue(instance.flags.FLAG_1)
 
-    def test_negate(self):
+    def test_negate(self) -> None:
         BitFieldTestModel.objects.create(
             flags=BitFieldTestModel.flags.FLAG_0 | BitFieldTestModel.flags.FLAG_1
         )
@@ -304,14 +304,14 @@ class BitFieldTest(TestCase):
             2,
         )
 
-    def test_default_value(self):
+    def test_default_value(self) -> None:
         instance = BitFieldTestModel.objects.create()
         self.assertTrue(instance.flags.FLAG_0)
         self.assertTrue(instance.flags.FLAG_1)
         self.assertFalse(instance.flags.FLAG_2)
         self.assertFalse(instance.flags.FLAG_3)
 
-    def test_binary_capacity(self):
+    def test_binary_capacity(self) -> None:
         import math
 
         from django.db.models.fields import BigIntegerField
@@ -326,7 +326,7 @@ class BitFieldTest(TestCase):
 
         pytest.raises(ValueError, BitField, flags=flags[: (MAX_COUNT + 1)])
 
-    def test_dictionary_init(self):
+    def test_dictionary_init(self) -> None:
         flags = {
             0: "zero",
             1: "first",
@@ -344,7 +344,7 @@ class BitFieldTest(TestCase):
         pytest.raises(ValueError, BitField, flags={"wrongkey": "wrongkey"})
         pytest.raises(ValueError, BitField, flags={"1": "non_int_key"})
 
-    def test_defaults_as_key_names(self):
+    def test_defaults_as_key_names(self) -> None:
         field = BitFieldTestModelWithDefaultsAsKeyNames._meta.get_field("flags")
         assert isinstance(field, BitField)
         self.assertEqual(
@@ -353,7 +353,7 @@ class BitFieldTest(TestCase):
             | BitFieldTestModelWithDefaultsAsKeyNames.flags.FLAG_2,
         )
 
-    def test_pickle_integration(self):
+    def test_pickle_integration(self) -> None:
         inst = BitFieldTestModel.objects.create(flags=1)
         data = pickle.dumps(inst)
         inst = pickle.loads(data)
@@ -362,7 +362,7 @@ class BitFieldTest(TestCase):
 
 
 class BitFieldSerializationTest(unittest.TestCase):
-    def test_can_unserialize_bithandler(self):
+    def test_can_unserialize_bithandler(self) -> None:
         bf = BitFieldTestModel()
         bf.flags.FLAG_0 = True
         bf.flags.FLAG_1 = False
@@ -371,7 +371,7 @@ class BitFieldSerializationTest(unittest.TestCase):
         self.assertTrue(inst.flags.FLAG_0)
         self.assertFalse(inst.flags.FLAG_1)
 
-    def test_added_field(self):
+    def test_added_field(self) -> None:
         bf = BitFieldTestModel()
         bf.flags.FLAG_0 = True
         bf.flags.FLAG_1 = False

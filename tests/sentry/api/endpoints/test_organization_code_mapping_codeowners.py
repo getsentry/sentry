@@ -37,7 +37,7 @@ class OrganizationCodeMappingCodeOwnersTest(APITestCase):
             args=[self.organization.slug, self.config.id],
         )
 
-    def test_invalid_code_mapping(self):
+    def test_invalid_code_mapping(self) -> None:
         self.url = reverse(
             "sentry-api-0-organization-code-mapping-codeowners",
             args=[self.organization.slug, "123"],

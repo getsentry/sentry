@@ -51,7 +51,7 @@ class OrganizationCodeMappingsTest(APITestCase):
             config_data.update(data)
         return self.client.post(self.url, data=config_data, format="json")
 
-    def test_basic_get_with_integrationId(self):
+    def test_basic_get_with_integrationId(self) -> None:
         path_config1 = self.create_code_mapping(
             project=self.project1,
             repo=self.repo1,
@@ -114,7 +114,7 @@ class OrganizationCodeMappingsTest(APITestCase):
             "defaultBranch": "master",
         }
 
-    def test_basic_get_with_projectId(self):
+    def test_basic_get_with_projectId(self) -> None:
         path_config1 = self.create_code_mapping(
             project=self.project1,
             repo=self.repo1,
@@ -150,7 +150,7 @@ class OrganizationCodeMappingsTest(APITestCase):
             "defaultBranch": "master",
         }
 
-    def test_basic_get_with_no_integrationId_and_projectId(self):
+    def test_basic_get_with_no_integrationId_and_projectId(self) -> None:
 
         self.create_code_mapping(
             project=self.project1,
@@ -172,21 +172,21 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
 
-    def test_basic_get_with_invalid_integrationId(self):
+    def test_basic_get_with_invalid_integrationId(self) -> None:
 
         url_path = f"{self.url}?integrationId=100"
         response = self.client.get(url_path, format="json")
 
         assert response.status_code == 404, response.content
 
-    def test_basic_get_with_invalid_projectId(self):
+    def test_basic_get_with_invalid_projectId(self) -> None:
 
         url_path = f"{self.url}?project=100"
         response = self.client.get(url_path, format="json")
 
         assert response.status_code == 403, response.content
 
-    def test_basic_get_with_projectId_minus_1(self):
+    def test_basic_get_with_projectId_minus_1(self) -> None:
         self.login_as(user=self.user2)
         self.organization.flags.allow_joinleave = False
         self.organization.save()
@@ -209,7 +209,7 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
 
-    def test_basic_post_with_valid_integrationId(self):
+    def test_basic_post_with_valid_integrationId(self) -> None:
         response = self.make_post()
         assert response.status_code == 201, response.content
         assert response.data == {
@@ -234,12 +234,12 @@ class OrganizationCodeMappingsTest(APITestCase):
             "defaultBranch": "master",
         }
 
-    def test_basic_post_from_member_permissions(self):
+    def test_basic_post_from_member_permissions(self) -> None:
         self.login_as(user=self.user2)
         response = self.make_post()
         assert response.status_code == 201, response.content
 
-    def test_basic_post_from_non_member_permissions(self):
+    def test_basic_post_from_non_member_permissions(self) -> None:
         # disable open membership => no project level access
         # user2 is not in a team1 that has access to project1
         self.organization.flags.allow_joinleave = False
@@ -248,32 +248,32 @@ class OrganizationCodeMappingsTest(APITestCase):
         response = self.make_post()
         assert response.status_code == 403, response.content
 
-    def test_basic_post_with_invalid_integrationId(self):
+    def test_basic_post_with_invalid_integrationId(self) -> None:
         response = self.make_post({"integrationId": 100})
         assert response.status_code == 404, response.content
 
-    def test_basic_post_with_no_integrationId(self):
+    def test_basic_post_with_no_integrationId(self) -> None:
         response = self.make_post({"integrationId": None})
         assert response.status_code == 400, response.content
         assert response.data == "Missing param: integrationId"
 
-    def test_empty_roots_post(self):
+    def test_empty_roots_post(self) -> None:
         response = self.make_post({"stackRoot": "", "sourceRoot": ""})
         assert response.status_code == 201, response.content
 
-    def test_invalid_project_id(self):
+    def test_invalid_project_id(self) -> None:
         response = self.make_post({"projectId": "dogs_are_great"})
         assert response.status_code == 400, response.content
         assert response.data == "Invalid projectId param. Expected an integer."
 
-    def test_project_does_not_exist(self):
+    def test_project_does_not_exist(self) -> None:
         bad_org = self.create_organization()
         bad_project = self.create_project(organization=bad_org)
         response = self.make_post({"projectId": bad_project.id})
         assert response.status_code == 400
         assert response.data == {"projectId": ["Project does not exist"]}
 
-    def test_repo_does_not_exist_on_given_integrationId(self):
+    def test_repo_does_not_exist_on_given_integrationId(self) -> None:
         bad_integration = self.create_integration(
             organization=self.organization,
             external_id="radsfas",
@@ -289,7 +289,7 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert response.status_code == 400
         assert response.data == {"repositoryId": ["Repository does not exist"]}
 
-    def test_repo_does_not_exist_on_given_organization(self):
+    def test_repo_does_not_exist_on_given_organization(self) -> None:
         bad_org = self.create_organization(owner=self.user, name="foo")
         bad_integration = self.create_integration(
             organization=bad_org, provider="github", external_id="radsfas"
@@ -302,7 +302,7 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert response.status_code == 400
         assert response.data == {"repositoryId": ["Repository does not exist"]}
 
-    def test_validate_path_conflict(self):
+    def test_validate_path_conflict(self) -> None:
         self.make_post()
         response = self.make_post()
         assert response.status_code == 400
@@ -312,46 +312,46 @@ class OrganizationCodeMappingsTest(APITestCase):
             ]
         }
 
-    def test_space_in_stack_root(self):
+    def test_space_in_stack_root(self) -> None:
         response = self.make_post({"stackRoot": "has space"})
         assert response.status_code == 400
         assert response.data == {
             "stackRoot": ["Path may not contain spaces or quotations"],
         }
 
-    def test_space_in_source_root(self):
+    def test_space_in_source_root(self) -> None:
         response = self.make_post({"sourceRoot": "has space"})
         assert response.status_code == 400
         assert response.data == {
             "sourceRoot": ["Path may not contain spaces or quotations"],
         }
 
-    def test_quote_in_stack_root(self):
+    def test_quote_in_stack_root(self) -> None:
         response = self.make_post({"stackRoot": "f'f"})
         assert response.status_code == 400
         assert response.data == {
             "stackRoot": ["Path may not contain spaces or quotations"],
         }
 
-    def test_quote_in_branch(self):
+    def test_quote_in_branch(self) -> None:
         response = self.make_post({"defaultBranch": "f'f"})
         assert response.status_code == 400
         assert response.data == {"defaultBranch": [BRANCH_NAME_ERROR_MESSAGE]}
 
-    def test_forward_slash_in_branch(self):
+    def test_forward_slash_in_branch(self) -> None:
         response = self.make_post({"defaultBranch": "prod/deploy-branch"})
         assert response.status_code == 201, response.content
 
-    def test_period_in_branch(self):
+    def test_period_in_branch(self) -> None:
         response = self.make_post({"defaultBranch": "release-2.0.0"})
         assert response.status_code == 201, response.content
 
-    def test_leading_forward_slash_in_branch_conflict(self):
+    def test_leading_forward_slash_in_branch_conflict(self) -> None:
         response = self.make_post({"defaultBranch": "/prod/deploy-branch"})
         assert response.status_code == 400
         assert response.data == {"defaultBranch": [BRANCH_NAME_ERROR_MESSAGE]}
 
-    def test_ending_forward_slash_in_branch_conflict(self):
+    def test_ending_forward_slash_in_branch_conflict(self) -> None:
         response = self.make_post({"defaultBranch": "prod/deploy-branch/"})
         assert response.status_code == 400
         assert response.data == {"defaultBranch": [BRANCH_NAME_ERROR_MESSAGE]}

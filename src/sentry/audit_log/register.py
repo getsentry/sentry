@@ -675,6 +675,6 @@ default_manager.add(
         event_id=1158,
         name="ORG_CONSOLE_PLATFORM_EDIT",
         api_name="org.console-platform.edit",
-        template="edited console platforms",
+        template="{console_platforms}",
     )
 )

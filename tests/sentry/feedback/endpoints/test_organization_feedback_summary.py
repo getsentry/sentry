@@ -35,7 +35,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         )
 
     @django_db_all
-    def test_get_feedback_summary_without_feature_flag(self):
+    def test_get_feedback_summary_without_feature_flag(self) -> None:
         response = self.get_error_response(self.org.slug)
         assert response.status_code == 403
 

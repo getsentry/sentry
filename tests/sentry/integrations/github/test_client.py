@@ -68,7 +68,7 @@ class GitHubApiClientTest(TestCase):
         self.github_client = self.install.get_client()
 
     @responses.activate
-    def test_get_rate_limit(self):
+    def test_get_rate_limit(self) -> None:
         responses.add(
             method=responses.GET,
             url="https://api.github.com/rate_limit",
@@ -100,7 +100,7 @@ class GitHubApiClientTest(TestCase):
             assert gh_rate_limit.next_window() == "17:39:49"
 
     @responses.activate
-    def test_get_rate_limit_non_existent_resource(self):
+    def test_get_rate_limit_non_existent_resource(self) -> None:
         with pytest.raises(AssertionError):
             self.github_client.get_rate_limit("foo")
 
@@ -243,7 +243,7 @@ class GitHubApiClientTest(TestCase):
         assert mock_record.mock_calls[1].args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
-    def test_get_cached_repo_files_caching_functionality(self):
+    def test_get_cached_repo_files_caching_functionality(self) -> None:
         """Fetch files for repo. Test caching logic."""
         responses.add(
             method=responses.GET,
@@ -265,7 +265,7 @@ class GitHubApiClientTest(TestCase):
             assert cache.get(repo_key) == files
 
     @responses.activate
-    def test_get_cached_repo_files_with_all_files(self):
+    def test_get_cached_repo_files_with_all_files(self) -> None:
         """Fetch files for repo. All files rather than just source code files"""
         responses.add(
             method=responses.GET,

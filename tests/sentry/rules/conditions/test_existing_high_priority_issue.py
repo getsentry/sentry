@@ -13,7 +13,7 @@ class ExistingHighPriorityIssueConditionTest(RuleTestCase):
     def setUp(self):
         self.rule = Rule(environment_id=1, project=self.project, label="label")
 
-    def test_applies_correctly(self):
+    def test_applies_correctly(self) -> None:
         rule = self.get_rule(rule=self.rule)
 
         # This will never pass for non-new or non-escalating issuesalways pass
