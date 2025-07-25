@@ -50,6 +50,12 @@ const getDynamicParts = (params: Params): string[] => {
       replaysOnErrorSampleRate: 1.0 // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`);
   }
 
+  if (params.isLogsSelected) {
+    dynamicParts.push(`
+      // Logs
+      enableLogs: true`);
+  }
+
   if (params.isProfilingSelected) {
     dynamicParts.push(`
         // Set profilesSampleRate to 1.0 to profile every transaction.
@@ -266,7 +272,7 @@ async function fetchUserData(userId) {
 # Logs
 
 Where logs are used, ensure Sentry is imported using \`import * as Sentry from "@sentry/react"\`
-Enable logging in Sentry using \`Sentry.init({ _experiments: { enableLogs: true } })\`
+Enable logging in Sentry using \`Sentry.init({ enableLogs: true })\`
 Reference the logger using \`const { logger } = Sentry\`
 Sentry offers a consoleLoggingIntegration that can be used to log specific console error types automatically without instrumenting the individual logger calls
 
@@ -280,9 +286,7 @@ import * as Sentry from "@sentry/react";
 Sentry.init({
   dsn: "${params.dsn.public}",
 
-  _experiments: {
-    enableLogs: true,
-  },
+  enableLogs: true,
 });
 \`\`\`
 
@@ -345,22 +349,39 @@ logger.fatal("Database connection pool exhausted", {
       ],
     },
   ],
-  nextSteps: () => [
-    {
-      id: 'react-features',
-      name: t('React Features'),
-      description: t('Learn about our first class integration with the React framework.'),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/react/features/',
-    },
-    {
-      id: 'react-router',
-      name: t('React Router'),
-      description: t(
-        'Configure routing, so Sentry can generate parameterized transaction names for a better overview on the Performance page.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/react/configuration/integrations/react-router/',
-    },
-  ],
+  nextSteps: (params: Params) => {
+    const steps = [
+      {
+        id: 'react-features',
+        name: t('React Features'),
+        description: t(
+          'Learn about our first class integration with the React framework.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/react/features/',
+      },
+      {
+        id: 'react-router',
+        name: t('React Router'),
+        description: t(
+          'Configure routing, so Sentry can generate parameterized transaction names for a better overview on the Performance page.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/react/configuration/integrations/react-router/',
+      },
+    ];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/react/logs/#integrations/',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const replayOnboarding: OnboardingConfig = {
