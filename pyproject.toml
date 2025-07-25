@@ -48,7 +48,7 @@ dependencies = [
     "google-cloud-pubsub==2.23.0",
     "google-cloud-spanner==3.49.0",
     "google-cloud-storage==2.18.0",
-    "google-crc32c==1.7.0",
+    "google-crc32c==1.6.0",
     "google-resumable-media==2.7.0",
     "googleapis-common-protos==1.63.2",
     "grpc-google-iam-v1==0.13.1",
@@ -57,7 +57,7 @@ dependencies = [
     "grpcio-status==1.67.0",
     "h11==0.16.0",
     "h2==4.2.0",
-    "hiredis==3.2.1",
+    "hiredis==2.3.2",
     "hpack==4.1.0",
     "httpcore==1.0.9",
     "httpx==0.25.2",
@@ -70,11 +70,11 @@ dependencies = [
     "jsonschema==4.20.0",
     "jsonschema-specifications==2023.7.1",
     "kombu==5.5.3",
-    "lxml==6.0.0",
+    "lxml==5.3.0",
     "maxminddb==2.3.0",
     "milksnake==0.1.6",
     "mistune==2.0.4",
-    "mmh3==5.1.0",
+    "mmh3==4.0.0",
     "msgpack==1.1.0",
     "oauthlib==3.1.0",
     "openai==1.3.5",
@@ -97,7 +97,7 @@ dependencies = [
     "pyjwt==2.4.0",
     "pymemcache==4.0.0",
     "python-dateutil==2.9.0.post0",
-    "python-rapidjson==1.21",
+    "python-rapidjson==1.8",
     "python-u2flib-server==5.0.0",
     "python3-saml==1.15.0",
     "pyuwsgi==2.0.28.post1",
@@ -107,7 +107,7 @@ dependencies = [
     "redis==3.4.1",
     "redis-py-cluster==2.1.0",
     "referencing==0.30.2",
-    "regex==2024.11.6",
+    "regex==2022.9.13",
     "reportlab==4.4.0",
     "requests==2.32.3",
     "requests-file==2.1.0",
@@ -151,8 +151,8 @@ dependencies = [
     "vine==5.1.0",
     "vroomrs==0.1.17",
     "wcwidth==0.2.13",
-    "xmlsec==1.3.16",
-    "zstandard==0.23.0",
+    "xmlsec==1.3.14",
+    "zstandard==0.18.0",
 ]
 
 [project.optional-dependencies]
@@ -164,64 +164,17 @@ getsentry = [
     "reportlab==4.4.0",
     "stripe==6.7.0",
 ]
-dev = [
-    "black==24.10.0",
-    "covdefaults==2.3.0",
-    "devservices==1.2.1",
-    "docker==7",
-    "ephemeral-port-reserve==1.1.4",
-    "flake8==7.3",
-    "flake8-bugbear>=22.10",
-    "flake8-logging==1.5",
-    "honcho==2",
-    "isort==5.10.1",
-    "lxml-stubs>=0.5.1",
-    "msgpack-types==0.2.0",
-    "mypy==1.15",
-    "openapi-core==0.18.2",
-    "openapi-pydantic==0.4.0",
-    "pre-commit==4.2",
-    "pytest==8.1",
-    "pytest-cov==4.0.0",
-    "pytest-django==4.9.0",
-    "pytest-fail-slow==0.3.0",
-    "pytest-json-report==1.5.0",
-    "pytest-rerunfailures==15",
-    "pytest-sentry==0.3.0,<0.4.0",
-    "pytest-workaround-12888>=1.0.0",
-    "pytest-xdist>=3",
-    "pyupgrade==3.19.1",
-    "responses==0.23.1",
-    "selenium==4.16.0",
-    "sentry-cli==2.16.0",
-    "sentry-covdefaults-disable-branch-coverage==1.0.2",
-    "sentry-devenv==1.22",
-    "sentry-forked-django-stubs==5.2.1.post3",
-    "sentry-forked-djangorestframework-stubs==3.16.0.post1",
-    "time-machine==2.16.0",
-    "types-beautifulsoup4>=4.12.0.20250516",
-    "types-cachetools>=6.1.0.20250717",
-    "types-docker>=7.1.0.20250705",
-    "types-jsonschema>=4.25.0.20250720",
-    "types-oauthlib>=3.3.0.20250708",
-    "types-parsimonious>=0.10.0.20240331",
-    "types-pillow>=10.2.0.20240822",
-    "types-protobuf>=6.30.2.20250703",
-    "types-psutil>=7.0.0.20250601",
-    "types-psycopg2>=2.9.21.20250718",
-    "types-python-dateutil>=2.9.0.20250708",
-    "types-pyyaml>=6.0.12.20250516",
-    "types-redis<4",
-    "types-requests==2.32.0.20241016",
-    "types-requests-oauthlib==2.0.0.20250119",
-    "types-setuptools==68",
-    "types-simplejson==3.17.7.2",
-    "types-unidiff>=0.7.0.20240505",
-]
 
-[build-system]
-requires = ["uv_build==0.7.22"]
-build-backend = "uv_build"
+[[tool.uv.index]]
+# We don't allow using public pypi - submit a PR to
+# https://github.com/getsentry/pypi to add a dependency.
+url = "https://pypi.devinfra.sentry.io/simple"
+default = true
+
+# TODO: uv_build 0.8.2 needed on pypi
+#[build-system]
+#requires = ["uv_build==0.8.2"]
+#build-backend = "uv_build"
 
 [project.scripts]
 sentry = "sentry.__main__:main"
