@@ -73,18 +73,15 @@ class ProjectPreprodBuildDetailsEndpoint(ProjectEndpoint):
                 preprod_artifact__project=project,
                 preprod_artifact__id=artifact_id,
             )
-            size_metrics_count = size_metrics_qs.count()
-            if size_metrics_count == 0:
+            main_artifact_size_metrics = size_metrics_qs.filter(
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+            )
+            if main_artifact_size_metrics.count() == 0:
                 logger.info("No size analysis results found for preprod artifact %s", artifact_id)
                 size_info = None
-            elif size_metrics_count > 1:
-                logger.info(
-                    "Multiple size analysis results found for preprod artifact %s", artifact_id
-                )
-                size_info = None
             else:
-                size_metrics = size_metrics_qs.first()
-                if size_metrics.min_install_size is None or size_metrics.min_download_size is None:
+                size_metrics = main_artifact_size_metrics.first()
+                if size_metrics.max_install_size is None or size_metrics.max_download_size is None:
                     logger.info(
                         "Size analysis results found for preprod artifact %s but no min install or download size",
                         artifact_id,
@@ -92,14 +89,14 @@ class ProjectPreprodBuildDetailsEndpoint(ProjectEndpoint):
                     size_info = None
                 else:
                     size_info = BuildDetailsSizeInfo(
-                        install_size_bytes=size_metrics.min_install_size,
-                        download_size_bytes=size_metrics.min_download_size,
+                        install_size_bytes=size_metrics.max_install_size,
+                        download_size_bytes=size_metrics.max_download_size,
                     )
         except Exception:
-            return Response(
-                {"error": "Failed to retrieve size analysis results"},
-                status=500,
+            logger.exception(
+                "Failed to retrieve size analysis results for preprod artifact %s", artifact_id
             )
+            size_info = None
 
         app_info = BuildDetailsAppInfo(
             app_id=preprod_artifact.app_id,
