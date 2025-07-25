@@ -48,7 +48,7 @@ from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.models.organization import Organization
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
@@ -570,28 +570,36 @@ def get_github_enterprise_integration_config(
     }
 
 
-def send_seer_webhook(*, event_type: str, organization_id: int, payload: dict) -> dict:
+def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -> dict:
     """
     Send a seer webhook event for an organization.
 
     Args:
-        event_type: The type of seer event (e.g., "seer.issue.root_cause_started")
+        event_name: The sub-name of seer event (e.g., "root_cause_started")
         organization_id: The ID of the organization to send the webhook for
         payload: The webhook payload data
 
     Returns:
         dict: Status of the webhook sending operation
     """
-    organization = Organization.objects.get(id=organization_id)
+    organization = Organization.objects.get(id=organization_id, status=OrganizationStatus.ACTIVE)
+
+    if not organization:
+        logger.error(
+            "Seer webhook trying to send to organization %s not found or not active",
+            organization_id,
+        )
+        return {"success": False, "error": "Organization not found or not active"}
+
     if not features.has("organizations:seer-webhooks", organization):
         return {"success": False, "error": "Seer webhooks are not enabled for this organization"}
 
     try:
         broadcast_webhooks_for_organization(
-            event_type=event_type,
+            resource_name="seer",
+            event_name=event_name,
             organization_id=organization_id,
             payload=payload,
-            event_category="seer",
         )
         return {"success": True}
     except Exception as e:
