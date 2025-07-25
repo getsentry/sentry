@@ -61,7 +61,7 @@
           const forceRefreshPage = () => {
             setTimeout(() => {
               // NOTE: window.location.reload(true) does not work on Chrome
-              window.location.replace(window.location.href);
+              window.location.replace('/auth/login/');
             }, 500);
           };
 
@@ -94,7 +94,7 @@
            */
           const rotateCsrf = async (isAutoRotate = false) => {
             button.disabled = true;
-            button.textContent = '{% trans "Rotating..." %}';
+            button.textContent = 'Rotating...';
             status.textContent = '';
 
             try {
@@ -104,15 +104,15 @@
                 throw new Error();
               }
 
-              status.textContent = '{% trans "Token rotated! Refreshing the page in 1 sec..." %}';
+              status.textContent = 'Token rotated! Refreshing the page in 1 sec...';
               status.style.color = 'green';
               forceRefreshPage();
             } catch (error) {
-              status.textContent = '{% trans "Failed to rotate token." %}';
+              status.textContent = 'Failed to rotate token.';
               status.style.color = 'red';
             } finally {
               button.disabled = false;
-              button.textContent = '{% trans "Rotate CSRF Token" %}';
+              button.textContent = 'Rotate CSRF Token';
             }
           };
 
@@ -137,7 +137,7 @@
               localStorage.setItem('lastCsrfError', new Date().toISOString());
 
               button.disabled = true;
-              status.textContent = '{% trans "Automatically rotating tokens..." %}';
+              status.textContent = 'Automatically rotating tokens...';
               status.style.color = 'green';
               setTimeout(() => rotateCsrf(true), 1500);
             }
