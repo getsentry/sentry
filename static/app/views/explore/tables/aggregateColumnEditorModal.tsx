@@ -51,6 +51,7 @@ import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface AggregateColumnEditorModalProps extends ModalRenderProps {
   columns: AggregateField[];
@@ -255,6 +256,7 @@ function GroupBySelector({
   const options: Array<SelectOption<string>> = useGroupByFields({
     groupBys,
     tags: stringTags,
+    traceItemType: TraceItemDataset.SPANS,
   });
 
   const label = useMemo(() => {
