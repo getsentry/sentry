@@ -147,6 +147,7 @@ access_log_fields = (
     "remaining",
     "snuba_quota_used",
     "snuba_rejection_threshold",
+    "snuba_suggestion",
 )
 
 
