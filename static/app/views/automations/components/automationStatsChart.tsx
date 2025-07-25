@@ -50,19 +50,15 @@ export function AutomationStatsChart({
   const totalAlertsTriggered =
     fireHistory?.reduce((acc, curr) => acc + curr.count, 0) ?? 0;
 
-  if (isError) {
-    return <RouteError error={error} />;
-  }
-
   return (
     <Panel>
       <StyledPanelBody withPadding>
         <ChartHeader>
           <HeaderTitleLegend>{t('Automations Triggered')}</HeaderTitleLegend>
         </ChartHeader>
-        {isPending ? (
-          <Placeholder height="200px" />
-        ) : (
+        {isPending && <Placeholder height="200px" />}
+        {isError && <RouteError error={error} />}
+        {!isPending && !isError && (
           <ChartZoom period={period} start={start} end={end} utc={utc} usePageDate>
             {zoomRenderProps => (
               <BarChart
