@@ -1096,7 +1096,7 @@ interface ChonkTheme extends Omit<SentryTheme, 'isChonk' | 'chart'> {
     border: ReturnType<typeof generateChonkTokens>['border'];
     content: ReturnType<typeof generateChonkTokens>['content'];
   };
-  focusRing: {
+  focusRing: (existingShadow?: React.CSSProperties['boxShadow']) => {
     boxShadow: React.CSSProperties['boxShadow'];
     outline: React.CSSProperties['outline'];
   };
@@ -1126,10 +1126,10 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
     tokens: darkTokens,
   },
   radius,
-  focusRing: {
+  focusRing: (baseShadow = `0 0 0 0 ${lightAliases.background}`) => ({
     outline: 'none',
-    boxShadow: `0 0 0 0 ${lightAliases.background}, 0 0 0 2px ${lightAliases.focusBorder}`,
-  },
+    boxShadow: `${baseShadow}, 0 0 0 2px ${lightAliases.focusBorder}`,
+  }),
 
   // @TODO: these colors need to be ported
   ...generateThemeUtils(chonkLightColorMapping, lightAliases),
@@ -1194,10 +1194,10 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   },
 
   radius,
-  focusRing: {
+  focusRing: (baseShadow = `0 0 0 0 ${darkAliases.background}`) => ({
     outline: 'none',
-    boxShadow: `0 0 0 0 ${darkAliases.background}, 0 0 0 2px ${darkAliases.focusBorder}`,
-  },
+    boxShadow: `${baseShadow}, 0 0 0 2px ${darkAliases.focusBorder}`,
+  }),
 
   // @TODO: these colors need to be ported
   ...generateThemeUtils(chonkDarkColorMapping, darkAliases),
