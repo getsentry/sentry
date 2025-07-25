@@ -37,6 +37,17 @@ export function useStoryRedirect() {
     const {state, ...to} = story.location;
     navigate({...location, ...to}, {replace: true, state: {...location.state, ...state}});
   }, [location, params, navigate, stories]);
+
+  // scroll to active section
+  useLayoutEffect(() => {
+    if (location.hash) {
+      setTimeout(() => {
+        document
+          .querySelector(location.hash)
+          ?.scrollIntoView({behavior: 'instant', block: 'start'});
+      }, 50);
+    }
+  }, [location.hash]);
 }
 
 interface StoryRouteContext {
