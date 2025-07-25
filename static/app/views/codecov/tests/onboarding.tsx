@@ -93,7 +93,7 @@ const OnboardingContainer = styled('div')`
   padding: ${p => p.theme.space.lg} ${p => p.theme.space['3xl']};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  max-width: 800px;
+  max-width: 1000px;
 `;
 
 const IntroContainer = styled('div')`
