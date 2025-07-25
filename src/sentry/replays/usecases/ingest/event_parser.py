@@ -377,25 +377,24 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
         case EventType.UI_FOCUS:
             return None
         case EventType.RESOURCE_FETCH | EventType.RESOURCE_XHR:
+            payload = event["data"]["payload"]
+
             resource_attributes = {
                 "category": (
                     "resource.xhr" if event_type == EventType.RESOURCE_XHR else "resource.fetch"
                 ),
-                "url": as_string_strict(event["data"]["payload"]["description"]),
-                "method": str(event["data"]["payload"]["data"]["method"]),
-                "statusCode": int(event["data"]["payload"]["data"]["statusCode"]),
-                "duration": float(event["data"]["payload"]["endTimestamp"])
-                - float(event["data"]["payload"]["startTimestamp"]),
+                "url": as_string_strict(payload["description"]),
+                "method": str(payload["data"]["method"]),
+                "duration": float(payload["endTimestamp"]) - float(payload["startTimestamp"]),
             }
 
-            for key, value in (
-                event["data"]["payload"]["data"].get("request", {}).get("headers", {}).items()
-            ):
+            if "statusCode" in payload["data"]:
+                resource_attributes["statusCode"] = int(payload["data"]["statusCode"])
+
+            for key, value in payload["data"].get("request", {}).get("headers", {}).items():
                 resource_attributes[f"request.headers.{key}"] = str(value)
 
-            for key, value in (
-                event["data"]["payload"]["data"].get("response", {}).get("headers", {}).items()
-            ):
+            for key, value in payload["data"].get("response", {}).get("headers", {}).items():
                 resource_attributes[f"response.headers.{key}"] = str(value)
 
             request_size, response_size = parse_network_content_lengths(event)
@@ -407,7 +406,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             return {
                 "attributes": resource_attributes,
                 "event_hash": uuid.uuid4().bytes,
-                "timestamp": float(event["data"]["payload"]["startTimestamp"]),
+                "timestamp": float(payload["startTimestamp"]),
             }
         case EventType.RESOURCE_SCRIPT | EventType.RESOURCE_IMAGE:
             return {
