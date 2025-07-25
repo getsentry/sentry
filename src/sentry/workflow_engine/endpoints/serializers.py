@@ -512,6 +512,7 @@ def fetch_workflow_groups_paginated(
         workflow=workflow,
         date_added__gte=start,
         date_added__lt=end,
+        is_single_written=True,
     )
 
     # subquery that retrieves row with the largest date in a group
@@ -543,6 +544,7 @@ def fetch_workflow_hourly_stats(
             workflow=workflow,
             date_added__gte=start,
             date_added__lt=end,
+            is_single_written=True,
         )
         .annotate(bucket=TruncHour("date_added"))
         .order_by("bucket")
