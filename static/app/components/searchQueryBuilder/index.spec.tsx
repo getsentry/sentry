@@ -4406,7 +4406,7 @@ describe('SearchQueryBuilder', function () {
       ).toHaveLength(2);
 
       await userEvent.click(
-        within(screen.getByRole('listbox')).getAllByText('span.description')[0]!
+        within(screen.getByRole('listbox')).getAllByText('span.description')[1]!
       );
 
       expect(
@@ -4438,7 +4438,7 @@ describe('SearchQueryBuilder', function () {
       ).toHaveLength(2);
 
       await userEvent.click(
-        within(screen.getByRole('listbox')).getAllByText('span.description')[1]!
+        within(screen.getByRole('listbox')).getAllByText('span.description')[0]!
       );
 
       expect(
@@ -4470,7 +4470,7 @@ describe('SearchQueryBuilder', function () {
       ).toHaveLength(2);
 
       await userEvent.click(
-        within(screen.getByRole('listbox')).getAllByText('span.description')[0]!
+        within(screen.getByRole('listbox')).getAllByText('span.description')[1]!
       );
 
       expect(
