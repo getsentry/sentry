@@ -146,10 +146,12 @@ access_log_fields = (
     "reset_time",
     "limit",
     "remaining",
-    "snuba_error_type",
+    "snuba_policy",
+    "snuba_quota_unit",
+    "snuba_storage_key",
     "snuba_quota_used",
     "snuba_rejection_threshold",
-    "snuba_suggestion",
+    "snuba_error_type",
 )
 
 
