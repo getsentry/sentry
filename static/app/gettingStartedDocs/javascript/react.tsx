@@ -272,7 +272,7 @@ async function fetchUserData(userId) {
 # Logs
 
 Where logs are used, ensure Sentry is imported using \`import * as Sentry from "@sentry/react"\`
-Enable logging in Sentry using \`Sentry.init({ _experiments: { enableLogs: true } })\`
+Enable logging in Sentry using \`Sentry.init({ enableLogs: true })\`
 Reference the logger using \`const { logger } = Sentry\`
 Sentry offers a consoleLoggingIntegration that can be used to log specific console error types automatically without instrumenting the individual logger calls
 
@@ -286,9 +286,7 @@ import * as Sentry from "@sentry/react";
 Sentry.init({
   dsn: "${params.dsn.public}",
 
-  _experiments: {
-    enableLogs: true,
-  },
+  enableLogs: true,
 });
 \`\`\`
 
