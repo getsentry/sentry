@@ -34,6 +34,7 @@ dependencies = [
     "django-csp==3.8",
     "django-pg-zero-downtime-migrations==0.18",
     "djangorestframework==3.16.0",
+    "docker>=7.1.0",
     "drf-spectacular==0.27.2",
     "fastjsonschema==2.16.2",
     "fido2==0.9.2",
@@ -165,6 +166,9 @@ getsentry = [
     "stripe==6.7.0",
 ]
 
+[tool.uv]
+environments = ["sys_platform == 'darwin' or sys_platform == 'linux'"]
+
 [[tool.uv.index]]
 # We don't allow using public pypi - submit a PR to
 # https://github.com/getsentry/pypi to add a dependency.
@@ -244,6 +248,61 @@ local_partial_types = true  # compat with dmypy
 
 [tool.django-stubs]
 django_settings_module = "sentry.conf.server_mypy"
+
+[dependency-groups]
+dev = [
+    "black==24.10.0",
+    "covdefaults==2.3.0",
+    "devservices==1.2.1",
+    "ephemeral-port-reserve==1.1.4",
+    "flake8==7.3",
+    "flake8-bugbear>=22.10",
+    "flake8-logging==1.5",
+    "honcho==2",
+    "isort==5.10.1",
+    "lxml-stubs>=0.4.0",
+    "msgpack-types==0.2.0",
+    "mypy==1.15",
+    "openapi-core==0.18.2",
+    "openapi-pydantic==0.4.0",
+    "pre-commit==4.2",
+    "pytest==8.1.1",
+    "pytest-cov==4.0.0",
+    "pytest-django==4.9.0",
+    "pytest-fail-slow==0.3.0",
+    "pytest-json-report==1.5.0",
+    "pytest-rerunfailures==15",
+    "pytest-sentry==0.3.0,<0.4.0",
+    "pytest-workaround-12888>=1.0.0",
+    "pytest-xdist>=3",
+    "pyupgrade==3.19.1",
+    "responses==0.23.1",
+    "selenium==4.16.0",
+    "sentry-cli==2.16.0",
+    "sentry-covdefaults-disable-branch-coverage==1.0.2",
+    "sentry-devenv>=1.22",
+    "sentry-forked-django-stubs==5.2.1.post3",
+    "sentry-forked-djangorestframework-stubs==3.16.0.post1",
+    "time-machine==2.16.0",
+    "types-beautifulsoup4>=4.12.0.7",
+    "types-cachetools>=5.3.0.7",
+    "types-docker>=7.1.0.20250705",
+    "types-jsonschema>=4.23.0.20240813",
+    "types-oauthlib>=3.2.0.20240806",
+    "types-parsimonious>=0.10.0.10",
+    "types-pillow>=10.2.0.20240822",
+    "types-protobuf>=6.30.2.20250703",
+    "types-psutil>=5.9.5.17",
+    "types-psycopg2>=2.9.21.20",
+    "types-python-dateutil>=2.8.19.14",
+    "types-pyyaml>=6.0.12.20241230",
+    "types-redis<4",
+    "types-requests==2.32.0.20241016",
+    "types-requests-oauthlib==2.0.0.20250119",
+    "types-setuptools==68.0.0.3",
+    "types-simplejson==3.17.7.2",
+    "types-unidiff>=0.7.0.20240505",
+]
 
 # these have py.typed but incorrect types
 [[tool.mypy.overrides]]
