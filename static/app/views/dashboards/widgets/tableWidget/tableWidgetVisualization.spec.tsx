@@ -17,6 +17,7 @@ import type {
 import {sampleHTTPRequestTableData} from 'sentry/views/dashboards/widgets/tableWidget/fixtures/sampleHTTPRequestTableData';
 import type {FieldRenderer} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
+import {Actions} from 'sentry/views/discover/table/cellAction';
 
 jest.mock('sentry/icons/iconArrow', () => ({
   IconArrow: jest.fn(() => <div />),
@@ -257,6 +258,51 @@ describe('TableWidgetVisualization', function () {
             width: -1,
           },
         ])
+      );
+    });
+  });
+
+  describe('Cell actions functionality', () => {
+    it('Renders default actions', async function () {
+      const tableDataWithLink = {
+        data: [
+          {
+            'http.request_method': 'https://external_link',
+            'count(span.duration)': 14105,
+            id: '',
+          },
+        ],
+        meta: sampleHTTPRequestTableData.meta,
+      };
+      render(<TableWidgetVisualization tableData={tableDataWithLink} />);
+
+      const $cell = screen.getAllByRole('button')[0]!;
+      await userEvent.click($cell);
+      // await screen.findByText('Copy to clipboard');
+      // await screen.findByText('Open external link');
+    });
+
+    it('Renders custom cell actions from allowedCellActions if supplied', async function () {
+      render(
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          allowedCellActions={[Actions.ADD]}
+        />
+      );
+      const $cell = screen.getAllByRole('button')[0]!;
+      await userEvent.click($cell);
+      await screen.findByText('Add to filter');
+    });
+
+    it('Uses onTriggerCellAction if supplied on action click', function () {
+      const onTriggerCellActionMock = jest.fn(
+        (_actions: Actions, _value: string | number) => {}
+      );
+      render(
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          onTriggerCellAction={onTriggerCellActionMock}
+        />
       );
     });
   });

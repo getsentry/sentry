@@ -229,6 +229,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                 } satisfies RenderFunctionBaggage;
               }}
               onResizeColumn={onWidgetTableResizeColumn}
+              allowedCellActions={[]}
             />
           ) : (
             <StyledSimpleTableChart
