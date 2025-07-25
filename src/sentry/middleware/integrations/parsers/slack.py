@@ -227,8 +227,10 @@ class SlackRequestParser(BaseRequestParser):
         For linking/unlinking teams, we can target specific organizations if the user provides it
         as an additional argument. If not, we'll pick from all the organizations, which might fail.
         """
+
+        drf_request: Request
         if self.view_class == SlackCommandsEndpoint:
-            drf_request: Request = SlackDMEndpoint().initialize_request(self.request)
+            drf_request = SlackDMEndpoint().initialize_request(self.request)
             slack_request = self.view_class.slack_request_class(drf_request)
             cmd_input = slack_request.get_command_input()
 
@@ -249,7 +251,7 @@ class SlackRequestParser(BaseRequestParser):
                 return [linking_organization]
 
         elif self.view_class == SlackActionEndpoint:
-            drf_request: Request = SlackDMEndpoint().initialize_request(self.request)
+            drf_request = SlackDMEndpoint().initialize_request(self.request)
             slack_request = self.view_class.slack_request_class(drf_request)
             actions = slack_request.data.get("actions", [])
             action_ids: list[str] = [
@@ -261,16 +263,12 @@ class SlackRequestParser(BaseRequestParser):
             decoded_organization_slugs = [
                 action.organization_slug for action in decoded_actions if action.organization_slug
             ]
-            if len(decoded_organization_slugs) > 1:
-                # This shouldn't happen, it indicates we've encoded different organizations into
-                # the different actions of a slack message.
-                logger.info(
-                    "slack.control.filter_organizations_from_request.multiple_organizations",
-                    extra={"action_ids": action_ids},
-                )
-                return organizations
-            if len(decoded_organization_slugs) == 1:
-                return [org for org in organizations if org.slug == decoded_organization_slugs[0]]
+
+            action_organization = next(
+                (org for org in organizations if org.slug in decoded_organization_slugs), None
+            )
+            if action_organization:
+                return [action_organization]
 
         return organizations
 
