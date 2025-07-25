@@ -144,6 +144,7 @@ export enum ProductSolution {
   PERFORMANCE_MONITORING = 'performance-monitoring',
   SESSION_REPLAY = 'session-replay',
   PROFILING = 'profiling',
+  LOGS = 'logs',
 }
 
 export interface DocsParams<
