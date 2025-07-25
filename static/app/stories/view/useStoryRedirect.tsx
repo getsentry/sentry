@@ -38,16 +38,22 @@ export function useStoryRedirect() {
     navigate({...location, ...to}, {replace: true, state: {...location.state, ...state}});
   }, [location, params, navigate, stories]);
 
-  // scroll to active section
   useLayoutEffect(() => {
-    if (location.hash) {
-      setTimeout(() => {
-        document
-          .querySelector(location.hash)
-          ?.scrollIntoView({behavior: 'instant', block: 'start'});
-      }, 50);
+    setTimeout(() => scrollToHash(), 100);
+  }, []);
+}
+
+function scrollToHash() {
+  if (window.location.hash) {
+    const [, hash] = window.location.hash.split('#');
+
+    try {
+      const element = document.querySelector(`#${hash}`);
+      element?.scrollIntoView({behavior: 'instant', block: 'start'});
+    } catch {
+      // hash might be an invalid querySelector and lead to a DOMException
     }
-  }, [location.hash]);
+  }
 }
 
 interface StoryRouteContext {
