@@ -396,6 +396,7 @@ function DetectSection() {
               <Flex align="center" gap="md">
                 <ChangePercentField
                   name={METRIC_DETECTOR_FORM_FIELDS.conditionValue}
+                  aria-label={t('Initial threshold')}
                   placeholder="0"
                   hideLabel
                   inline
