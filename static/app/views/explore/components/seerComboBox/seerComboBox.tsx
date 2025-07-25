@@ -339,6 +339,7 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
         <Button
           size="xs"
           icon={<IconClose />}
+          onFocus={() => !state.isOpen && state.open()}
           onClick={() => {
             trackAnalytics('trace.explorer.ai_query_interface', {
               organization,
