@@ -1,3 +1,5 @@
+from unittest import mock
+
 import orjson
 import responses
 from requests.exceptions import ReadTimeout
@@ -129,6 +131,34 @@ class JiraServerInstallationTest(IntegrationTestCase):
         assert resp.status_code == 200
         self.assertContains(resp, "Setup Error")
         self.assertContains(resp, "request token from Jira")
+
+    @responses.activate
+    @mock.patch("sentry.integrations.jira_server.integration.logger")
+    def test_authentication_request_token_fails_with_no_oauth_token(self, logger) -> None:
+        responses.add(
+            responses.POST,
+            "https://jira.example.com/plugins/servlet/oauth/request-token",
+            status=200,
+            body="no_token=oops&foo=bar",
+        )
+        self.client.get(self.setup_path)
+
+        data = {
+            "url": "https://jira.example.com/",
+            "verify_ssl": False,
+            "consumer_key": "sentry-bot",
+            "private_key": EXAMPLE_PRIVATE_KEY,
+        }
+        resp = self.client.post(self.setup_path, data=data)
+        assert resp.status_code == 200
+        self.assertContains(resp, "Setup Error")
+        self.assertContains(resp, "Missing oauth_token")
+
+        assert logger.info.call_count == 1
+        logger.info.assert_any_call(
+            "identity.jira-server.oauth-token",
+            extra={"url": "https://jira.example.com", "data_keys": ["no_token", "foo"]},
+        )
 
     @responses.activate
     def test_authentication_request_token_redirect(self) -> None:
