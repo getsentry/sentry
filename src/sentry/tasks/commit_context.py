@@ -15,16 +15,12 @@ from sentry.analytics.events.integration_commit_context_all_frames import (
     IntegrationsFailedToFetchCommitContextAllFrames,
 )
 from sentry.api.serializers.models.release import get_users_for_authors
-from sentry.integrations.source_code_management.commit_context import (
-    CommitContextIntegration,
-)
+from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.utils.commit_context import (
     find_commit_context_for_event_all_frames,
     get_or_create_commit_from_blame,
 )
-from sentry.issues.auto_source_code_config.code_mapping import (
-    get_sorted_code_mapping_configs,
-)
+from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.locks import locks
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
