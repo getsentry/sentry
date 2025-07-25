@@ -87,6 +87,8 @@ describe('logsTableRow', () => {
   it('renders row details', async () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
 
+    mockedUseStacktraceLink.mockClear();
+
     mockedUseExploreLogsTableRow.mockReturnValue({
       data: {
         attributes: rowDetails,
@@ -129,7 +131,20 @@ describe('logsTableRow', () => {
     // Expand the row to show the attributes
     const logTableRow = await screen.findByTestId('log-table-row');
     expect(logTableRow).toBeInTheDocument();
+
+    // At this point, useStacktraceLink should not have been called with enabled: true
+    expect(mockedUseStacktraceLink).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({enabled: true})
+    );
+
     await userEvent.click(logTableRow);
+
+    // Even after clicking, useStacktraceLink should not be called with enabled: true since it's not hovered
+    expect(mockedUseStacktraceLink).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({enabled: true})
+    );
 
     // Check that there is nothing overflowing in the table row
     function hasNoWrapRecursive(element: HTMLElement) {
@@ -165,8 +180,75 @@ describe('logsTableRow', () => {
       '/organizations/org-slug/explore/logs/trace/7b91699f/?source=logs&timestamp=1743695410'
     );
 
-    // Check that stack trace links work
-    expect(mockedUseStacktraceLink).toHaveBeenCalledWith(
+    // The code file path should be rendered but not as a link until hover
+    expect(screen.getByText('herp/merp/derp.py')).toBeInTheDocument();
+
+    // Verify that useStacktraceLink was not called with enabled: true
+    expect(mockedUseStacktraceLink).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({enabled: true})
+    );
+  });
+
+  it('shows a link when hovering over code file path', async () => {
+    // Reset the mock to ensure it's not called until hover
+    mockedUseStacktraceLink.mockClear();
+    mockedUseStacktraceLink.mockReturnValue({
+      data: {
+        sourceUrl: 'https://github.com/example/repo/blob/main/file.py',
+        integrations: [],
+      },
+      error: null,
+      isPending: false,
+    } as unknown as ReturnType<typeof useStacktraceLink>);
+
+    mockedUseExploreLogsTableRow.mockReturnValue({
+      data: {
+        attributes: rowDetails,
+      },
+      isPending: false,
+    } as unknown as ReturnType<typeof useExploreLogsTableRow>);
+
+    render(
+      <ProviderWrapper>
+        <LogRowContent
+          dataRow={rowData}
+          highlightTerms={[]}
+          meta={undefined}
+          sharedHoverTimeoutRef={
+            {
+              current: null,
+            } as React.MutableRefObject<NodeJS.Timeout | null>
+          }
+        />
+      </ProviderWrapper>,
+      {organization}
+    );
+
+    // Expand the row to show the attributes
+    const logTableRow = await screen.findByTestId('log-table-row');
+    await userEvent.click(logTableRow);
+
+    // Find the hoverable code path element
+    const codePathElement = await screen.findByTestId('hoverable-code-path');
+    expect(codePathElement).toBeInTheDocument();
+
+    // Verify the file path is displayed
+    const filePath = 'herp/merp/derp.py';
+    expect(screen.getByText(filePath)).toBeInTheDocument();
+
+    // Initially, useStacktraceLink should not have been called with enabled: true
+    expect(mockedUseStacktraceLink).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({enabled: true})
+    );
+
+    // Hover over the code path
+    await userEvent.hover(codePathElement);
+
+    // Now useStacktraceLink should have been called
+    expect(mockedUseStacktraceLink).toHaveBeenNthCalledWith(
+      2,
       expect.objectContaining({
         event: {
           release: {id: 10, lastCommit: {id: '1e5a9462e6ac23908299b218e18377837297bda1'}},
@@ -179,9 +261,18 @@ describe('logsTableRow', () => {
         },
         orgSlug: 'org-slug',
         projectSlug: projects[0]!.slug,
+      }),
+      expect.objectContaining({
+        enabled: true,
       })
     );
-    const codeLink = screen.getByText('herp/merp/derp.py').closest('a');
-    expect(codeLink).toHaveAttribute('href', 'https://some-stacktrace-link');
+
+    // The link should now be visible
+    const link = await screen.findByTestId('hoverable-code-path-link');
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute(
+      'href',
+      'https://github.com/example/repo/blob/main/file.py'
+    );
   });
 });

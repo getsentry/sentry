@@ -1,4 +1,4 @@
-import React, {Fragment} from 'react';
+import React, {Fragment, useState} from 'react';
 
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -139,6 +139,7 @@ function TimestampRenderer(props: LogFieldRendererProps) {
 }
 
 function CodePathRenderer(props: LogFieldRendererProps) {
+  const [hoveredEver, setHoveredEver] = useState(false);
   const codeLineNumber = props.extra.attributes?.[OurLogKnownFieldKey.CODE_LINE_NUMBER];
   const codeFunctionName =
     props.extra.attributes?.[OurLogKnownFieldKey.CODE_FUNCTION_NAME];
@@ -159,25 +160,43 @@ function CodePathRenderer(props: LogFieldRendererProps) {
     projectSlug: props.extra.projectSlug ?? '',
     releaseVersion: typeof releaseVersion === 'string' ? releaseVersion : '',
   });
-  const {data: codeLink} = useStacktraceLink({
-    event: {
-      release,
-      sdk,
+  const {data: codeLink} = useStacktraceLink(
+    {
+      event: {
+        release,
+        sdk,
+      },
+      frame: {
+        function: typeof codeFunctionName === 'string' ? codeFunctionName : undefined,
+        lineNo: codeLineNumber ? +codeLineNumber : undefined,
+        filename: typeof filename === 'string' ? filename : undefined,
+      },
+      orgSlug: props.extra.organization.slug,
+      projectSlug: props.extra.projectSlug ?? '',
     },
-    frame: {
-      function: typeof codeFunctionName === 'string' ? codeFunctionName : undefined,
-      lineNo: codeLineNumber ? +codeLineNumber : undefined,
-      filename: typeof filename === 'string' ? filename : undefined,
-    },
-    orgSlug: props.extra.organization.slug,
-    projectSlug: props.extra.projectSlug ?? '',
-  });
+    {
+      enabled: hoveredEver && !!props.extra.projectSlug,
+    }
+  );
 
-  if (codeLink?.sourceUrl) {
-    return <Link to={codeLink.sourceUrl}>{props.basicRendered}</Link>;
-  }
+  const content = codeLink?.sourceUrl ? (
+    <Link data-test-id="hoverable-code-path-link" to={codeLink.sourceUrl}>
+      {props.basicRendered}
+    </Link>
+  ) : (
+    props.basicRendered
+  );
 
-  return props.basicRendered;
+  return (
+    <span
+      data-test-id="hoverable-code-path"
+      onMouseEnter={() => {
+        setHoveredEver(true);
+      }}
+    >
+      {content}
+    </span>
+  );
 }
 
 function FilteredTooltip({
