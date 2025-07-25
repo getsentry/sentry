@@ -15,11 +15,7 @@ import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProv
 import type {NavigationSection} from 'sentry/views/settings/types';
 
 import type {Integration, IntegrationProvider} from './integrations';
-import type {
-  Route,
-  RouteComponentProps,
-  RouteContextInterface,
-} from './legacyReactRouter';
+import type {RouteComponentProps, RouteContextInterface} from './legacyReactRouter';
 import type {Member, Organization, OrgRole} from './organization';
 import type {Project} from './project';
 import type {User} from './user';
@@ -60,7 +56,7 @@ export type HookName = keyof Hooks;
 type RouteHooks = {
   'routes:legacy-organization-redirects': RouteObjectHook;
   'routes:root': RouteObjectHook;
-  'routes:settings': RoutesHook;
+  'routes:settings': RouteObjectHook;
 };
 
 /**
@@ -334,11 +330,6 @@ type CallbackHooks = {
  * Renders a React node with no props
  */
 type GenericComponentHook = () => React.ReactNode;
-
-/**
- * A route hook provides an injection point for a list of routes.
- */
-type RoutesHook = () => Route[];
 
 /**
  * A route hook provides an injection point for a list of routes.

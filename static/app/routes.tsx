@@ -46,9 +46,6 @@ import {
 } from './components/route';
 import {makeLazyloadComponent as make} from './makeLazyloadComponent';
 
-// TODO(epurkhiser): Will be removed once all hooks are converted to routeHooks
-const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
-
 const routeHook = (name: HookName): SentryRouteObject =>
   HookStore.get(name)?.[0]?.() ?? {};
 
@@ -844,326 +841,406 @@ function buildRoutes() {
     </Fragment>
   );
 
+  const orgSettingsChildRoutes: SentryRouteObject[] = [
+    routeHook('routes:settings'),
+    {
+      index: true,
+      name: t('General'),
+      component: make(() => import('sentry/views/settings/organizationGeneralSettings')),
+    },
+    {
+      path: 'organization/',
+      name: t('General'),
+      component: make(() => import('sentry/views/settings/organizationGeneralSettings')),
+    },
+    {
+      path: 'projects/',
+      name: t('Projects'),
+      component: make(() => import('sentry/views/settings/organizationProjects')),
+    },
+    {
+      path: 'api-keys/',
+      name: t('API Key'),
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/settings/organizationApiKeys')),
+        },
+        {
+          path: ':apiKey/',
+          name: t('Details'),
+          component: make(
+            () =>
+              import(
+                'sentry/views/settings/organizationApiKeys/organizationApiKeyDetails'
+              )
+          ),
+        },
+      ],
+    },
+    {
+      path: 'audit-log/',
+      name: t('Audit Log'),
+      component: make(() => import('sentry/views/settings/organizationAuditLog')),
+    },
+    {
+      path: 'auth/',
+      name: t('Auth Providers'),
+      component: make(() => import('sentry/views/settings/organizationAuth')),
+    },
+    {
+      path: 'members/requests',
+      redirectTo: '../members/',
+    },
+    {
+      path: 'members/',
+      name: t('Members'),
+      children: [
+        {
+          index: true,
+          component: make(
+            () =>
+              import('sentry/views/settings/organizationMembers/organizationMembersList')
+          ),
+        },
+        {
+          path: ':memberId/',
+          name: t('Details'),
+          component: make(
+            () =>
+              import('sentry/views/settings/organizationMembers/organizationMemberDetail')
+          ),
+        },
+      ],
+    },
+    {
+      path: 'rate-limits/',
+      name: t('Rate Limits'),
+      component: make(() => import('sentry/views/settings/organizationRateLimits')),
+    },
+    {
+      path: 'relay/',
+      name: t('Relay'),
+      component: make(() => import('sentry/views/settings/organizationRelay')),
+    },
+    {
+      path: 'repos/',
+      name: t('Repositories'),
+      component: make(() => import('sentry/views/settings/organizationRepositories')),
+    },
+    {
+      path: 'settings/',
+      component: make(() => import('sentry/views/settings/organizationGeneralSettings')),
+    },
+    {
+      path: 'security-and-privacy/',
+      name: t('Security & Privacy'),
+      children: [
+        {
+          index: true,
+          component: make(
+            () => import('sentry/views/settings/organizationSecurityAndPrivacy')
+          ),
+        },
+        {
+          path: 'advanced-data-scrubbing/:scrubbingId/',
+          component: make(
+            () => import('sentry/views/settings/organizationSecurityAndPrivacy')
+          ),
+        },
+      ],
+    },
+    {
+      path: 'teams/',
+      name: t('Teams'),
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/settings/organizationTeams')),
+        },
+        {
+          path: ':teamId/',
+          name: t('Team'),
+          component: make(
+            () => import('sentry/views/settings/organizationTeams/teamDetails')
+          ),
+          children: [
+            {
+              index: true,
+              redirectTo: 'members/',
+            },
+            {
+              path: 'members/',
+              name: t('Members'),
+              component: make(
+                () => import('sentry/views/settings/organizationTeams/teamMembers')
+              ),
+            },
+            {
+              path: 'notifications/',
+              name: t('Notifications'),
+              component: make(
+                () => import('sentry/views/settings/organizationTeams/teamNotifications')
+              ),
+            },
+            {
+              path: 'projects/',
+              name: t('Projects'),
+              component: make(
+                () => import('sentry/views/settings/organizationTeams/teamProjects')
+              ),
+            },
+            {
+              path: 'settings/',
+              name: t('Settings'),
+              component: make(
+                () => import('sentry/views/settings/organizationTeams/teamSettings')
+              ),
+            },
+          ],
+        },
+      ],
+    },
+    {
+      path: 'plugins/',
+      redirectTo: 'integrations/',
+    },
+    {
+      path: 'plugins/',
+      name: t('Integrations'),
+      children: [
+        {
+          path: ':integrationSlug/',
+          name: t('Integration Details'),
+          component: make(
+            () =>
+              import('sentry/views/settings/organizationIntegrations/pluginDetailedView')
+          ),
+        },
+      ],
+    },
+    {
+      path: 'sentry-apps/',
+      redirectTo: 'integrations/',
+    },
+    {
+      path: 'sentry-apps/',
+      name: t('Integrations'),
+      children: [
+        {
+          path: ':integrationSlug',
+          name: t('Details'),
+          component: make(
+            () =>
+              import(
+                'sentry/views/settings/organizationIntegrations/sentryAppDetailedView'
+              )
+          ),
+        },
+      ],
+    },
+    {
+      path: 'document-integrations/',
+      redirectTo: 'integrations/',
+    },
+    {
+      path: 'document-integrations/',
+      name: t('Integrations'),
+      children: [
+        {
+          path: ':integrationSlug',
+          name: t('Details'),
+          component: make(
+            () =>
+              import(
+                'sentry/views/settings/organizationIntegrations/docIntegrationDetailedView'
+              )
+          ),
+        },
+      ],
+    },
+    {
+      path: 'integrations/',
+      name: t('Integrations'),
+      children: [
+        {
+          index: true,
+          component: make(
+            () =>
+              import(
+                'sentry/views/settings/organizationIntegrations/integrationListDirectory'
+              )
+          ),
+        },
+        {
+          path: ':integrationSlug',
+          name: t('Integration Details'),
+          component: make(
+            () =>
+              import(
+                'sentry/views/settings/organizationIntegrations/integrationDetailedView'
+              )
+          ),
+        },
+        {
+          path: ':providerKey/:integrationId/',
+          name: t('Configure Integration'),
+          component: make(
+            () =>
+              import(
+                'sentry/views/settings/organizationIntegrations/configureIntegration'
+              )
+          ),
+        },
+      ],
+    },
+    {
+      path: 'developer-settings/',
+      name: t('Custom Integrations'),
+      children: [
+        {
+          index: true,
+          component: make(
+            () => import('sentry/views/settings/organizationDeveloperSettings')
+          ),
+        },
+        {
+          path: 'new-public/',
+          name: t('Create Integration'),
+          component: make(
+            () =>
+              import(
+                'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
+              )
+          ),
+        },
+        {
+          path: 'new-internal/',
+          name: t('Create Integration'),
+          component: make(
+            () =>
+              import(
+                'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
+              )
+          ),
+        },
+        {
+          path: ':appSlug/',
+          name: t('Edit Integration'),
+          component: make(
+            () =>
+              import(
+                'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
+              )
+          ),
+        },
+        {
+          path: ':appSlug/dashboard/',
+          name: t('Integration Dashboard'),
+          component: make(
+            () =>
+              import(
+                'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard'
+              )
+          ),
+        },
+      ],
+    },
+    {
+      path: 'auth-tokens/',
+      name: t('Organization Tokens'),
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/settings/organizationAuthTokens')),
+        },
+        {
+          path: 'new-token/',
+          name: t('Create New Organization Token'),
+          component: make(
+            () => import('sentry/views/settings/organizationAuthTokens/newAuthToken')
+          ),
+        },
+        {
+          path: ':tokenId/',
+          name: t('Edit Organization Token'),
+          component: make(
+            () => import('sentry/views/settings/organizationAuthTokens/authTokenDetails')
+          ),
+        },
+      ],
+    },
+    {
+      path: 'early-features/',
+      name: t('Early Features'),
+      component: make(() => import('sentry/views/settings/earlyFeatures')),
+    },
+    {
+      path: 'dynamic-sampling/',
+      name: t('Dynamic Sampling'),
+      component: make(() => import('sentry/views/settings/dynamicSampling')),
+    },
+    {
+      path: 'feature-flags/',
+      name: t('Feature Flags'),
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/settings/featureFlags')),
+        },
+        {
+          path: 'change-tracking/',
+          name: t('Change Tracking'),
+          children: [
+            {
+              index: true,
+              component: make(
+                () => import('sentry/views/settings/featureFlags/changeTracking')
+              ),
+            },
+            {
+              path: 'new-provider/',
+              name: t('Add New Provider'),
+              component: make(
+                () =>
+                  import(
+                    'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsNewSecret'
+                  )
+              ),
+            },
+          ],
+        },
+      ],
+    },
+    {
+      path: 'seer/',
+      name: t('Seer Automation'),
+      children: [
+        {
+          index: true,
+          component: make(() => import('getsentry/views/seerAutomation')),
+        },
+        {
+          path: 'onboarding/',
+          name: t('Configure Seer for All Projects'),
+          component: make(() => import('getsentry/views/seerAutomation/onboarding')),
+        },
+      ],
+    },
+    {
+      path: 'stats/',
+      name: t('Stats'),
+      children: statsChildRoutes,
+    },
+  ];
+
   const orgSettingsRoutes = (
     <Route
       component={make(
         () => import('sentry/views/settings/organization/organizationSettingsLayout')
       )}
-    >
-      {hook('routes:settings')}
-      {!USING_CUSTOMER_DOMAIN && (
-        <IndexRoute
-          name={t('General')}
-          component={make(
-            () => import('sentry/views/settings/organizationGeneralSettings')
-          )}
-        />
-      )}
-      <Route
-        path="organization/"
-        name={t('General')}
-        component={make(
-          () => import('sentry/views/settings/organizationGeneralSettings')
-        )}
-      />
-      <Route
-        path="projects/"
-        name={t('Projects')}
-        component={make(() => import('sentry/views/settings/organizationProjects'))}
-      />
-      <Route path="api-keys/" name={t('API Key')}>
-        <IndexRoute
-          component={make(() => import('sentry/views/settings/organizationApiKeys'))}
-        />
-        <Route
-          path=":apiKey/"
-          name={t('Details')}
-          component={make(
-            () =>
-              import(
-                'sentry/views/settings/organizationApiKeys/organizationApiKeyDetails'
-              )
-          )}
-        />
-      </Route>
-      <Route
-        path="audit-log/"
-        name={t('Audit Log')}
-        component={make(() => import('sentry/views/settings/organizationAuditLog'))}
-      />
-      <Route
-        path="auth/"
-        name={t('Auth Providers')}
-        component={make(() => import('sentry/views/settings/organizationAuth'))}
-      />
-      <Redirect from="members/requests" to="../members/" />
-      <Route path="members/" name={t('Members')}>
-        <IndexRoute
-          component={make(
-            () =>
-              import('sentry/views/settings/organizationMembers/organizationMembersList')
-          )}
-        />
-        <Route
-          path=":memberId/"
-          name={t('Details')}
-          component={make(
-            () =>
-              import('sentry/views/settings/organizationMembers/organizationMemberDetail')
-          )}
-        />
-      </Route>
-      <Route
-        path="rate-limits/"
-        name={t('Rate Limits')}
-        component={make(() => import('sentry/views/settings/organizationRateLimits'))}
-      />
-      <Route
-        path="relay/"
-        name={t('Relay')}
-        component={make(() => import('sentry/views/settings/organizationRelay'))}
-      />
-      <Route
-        path="repos/"
-        name={t('Repositories')}
-        component={make(() => import('sentry/views/settings/organizationRepositories'))}
-      />
-      <Route
-        path="settings/"
-        component={make(
-          () => import('sentry/views/settings/organizationGeneralSettings')
-        )}
-      />
-      <Route path="security-and-privacy/" name={t('Security & Privacy')}>
-        <IndexRoute
-          component={make(
-            () => import('sentry/views/settings/organizationSecurityAndPrivacy')
-          )}
-        />
-        <Route
-          path="advanced-data-scrubbing/:scrubbingId/"
-          component={make(
-            () => import('sentry/views/settings/organizationSecurityAndPrivacy')
-          )}
-        />
-      </Route>
-      <Route path="teams/" name={t('Teams')}>
-        <IndexRoute
-          component={make(() => import('sentry/views/settings/organizationTeams'))}
-        />
-        <Route
-          path=":teamId/"
-          name={t('Team')}
-          component={make(
-            () => import('sentry/views/settings/organizationTeams/teamDetails')
-          )}
-        >
-          <IndexRedirect to="members/" />
-          <Route
-            path="members/"
-            name={t('Members')}
-            component={make(
-              () => import('sentry/views/settings/organizationTeams/teamMembers')
-            )}
-          />
-          <Route
-            path="notifications/"
-            name={t('Notifications')}
-            component={make(
-              () => import('sentry/views/settings/organizationTeams/teamNotifications')
-            )}
-          />
-          <Route
-            path="projects/"
-            name={t('Projects')}
-            component={make(
-              () => import('sentry/views/settings/organizationTeams/teamProjects')
-            )}
-          />
-          <Route
-            path="settings/"
-            name={t('Settings')}
-            component={make(
-              () => import('sentry/views/settings/organizationTeams/teamSettings')
-            )}
-          />
-        </Route>
-      </Route>
-      <Redirect from="plugins/" to="integrations/" />
-      <Route path="plugins/" name={t('Integrations')}>
-        <Route
-          path=":integrationSlug/"
-          name={t('Integration Details')}
-          component={make(
-            () =>
-              import('sentry/views/settings/organizationIntegrations/pluginDetailedView')
-          )}
-        />
-      </Route>
-      <Redirect from="sentry-apps/" to="integrations/" />
-      <Route path="sentry-apps/" name={t('Integrations')}>
-        <Route
-          path=":integrationSlug"
-          name={t('Details')}
-          component={make(
-            () =>
-              import(
-                'sentry/views/settings/organizationIntegrations/sentryAppDetailedView'
-              )
-          )}
-        />
-      </Route>
-      <Redirect from="document-integrations/" to="integrations/" />
-      <Route path="document-integrations/" name={t('Integrations')}>
-        <Route
-          path=":integrationSlug"
-          name={t('Details')}
-          component={make(
-            () =>
-              import(
-                'sentry/views/settings/organizationIntegrations/docIntegrationDetailedView'
-              )
-          )}
-        />
-      </Route>
-      <Route path="integrations/" name={t('Integrations')}>
-        <IndexRoute
-          component={make(
-            () =>
-              import(
-                'sentry/views/settings/organizationIntegrations/integrationListDirectory'
-              )
-          )}
-        />
-        <Route
-          path=":integrationSlug"
-          name={t('Integration Details')}
-          component={make(
-            () =>
-              import(
-                'sentry/views/settings/organizationIntegrations/integrationDetailedView'
-              )
-          )}
-        />
-        <Route
-          path=":providerKey/:integrationId/"
-          name={t('Configure Integration')}
-          component={make(
-            () =>
-              import(
-                'sentry/views/settings/organizationIntegrations/configureIntegration'
-              )
-          )}
-        />
-      </Route>
-      <Route path="developer-settings/" name={t('Custom Integrations')}>
-        <IndexRoute
-          component={make(
-            () => import('sentry/views/settings/organizationDeveloperSettings')
-          )}
-        />
-        <Route
-          path="new-public/"
-          name={t('Create Integration')}
-          component={make(
-            () =>
-              import(
-                'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
-              )
-          )}
-        />
-        <Route
-          path="new-internal/"
-          name={t('Create Integration')}
-          component={make(
-            () =>
-              import(
-                'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
-              )
-          )}
-        />
-        <Route
-          path=":appSlug/"
-          name={t('Edit Integration')}
-          component={make(
-            () =>
-              import(
-                'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
-              )
-          )}
-        />
-        <Route
-          path=":appSlug/dashboard/"
-          name={t('Integration Dashboard')}
-          component={make(
-            () =>
-              import(
-                'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard'
-              )
-          )}
-        />
-      </Route>
-      <Route path="auth-tokens/" name={t('Organization Tokens')}>
-        <IndexRoute
-          component={make(() => import('sentry/views/settings/organizationAuthTokens'))}
-        />
-        <Route
-          path="new-token/"
-          name={t('Create New Organization Token')}
-          component={make(
-            () => import('sentry/views/settings/organizationAuthTokens/newAuthToken')
-          )}
-        />
-        <Route
-          path=":tokenId/"
-          name={t('Edit Organization Token')}
-          component={make(
-            () => import('sentry/views/settings/organizationAuthTokens/authTokenDetails')
-          )}
-        />
-      </Route>
-      <Route
-        path="early-features/"
-        name={t('Early Features')}
-        component={make(() => import('sentry/views/settings/earlyFeatures'))}
-      />
-      <Route
-        path="dynamic-sampling/"
-        name={t('Dynamic Sampling')}
-        component={make(() => import('sentry/views/settings/dynamicSampling'))}
-      />
-      <Route path="feature-flags/" name={t('Feature Flags')}>
-        <IndexRoute
-          component={make(() => import('sentry/views/settings/featureFlags'))}
-        />
-        <Route path="change-tracking/" name={t('Change Tracking')}>
-          <IndexRoute
-            component={make(
-              () => import('sentry/views/settings/featureFlags/changeTracking')
-            )}
-          />
-          <Route
-            path="new-provider/"
-            name={t('Add New Provider')}
-            component={make(
-              () =>
-                import(
-                  'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsNewSecret'
-                )
-            )}
-          />
-        </Route>
-      </Route>
-      <Route path="seer/" name={t('Seer Automation')}>
-        <IndexRoute component={make(() => import('getsentry/views/seerAutomation'))} />
-        <Route
-          path="onboarding/"
-          name={t('Configure Seer for All Projects')}
-          component={make(() => import('getsentry/views/seerAutomation/onboarding'))}
-        />
-      </Route>
-      <Route path="stats/" name={t('Stats')} newStyleChildren={statsChildRoutes} />
-    </Route>
+      newStyleChildren={orgSettingsChildRoutes}
+    />
   );
 
   const legacySettingsRedirectsChildRoutes: SentryRouteObject[] = [
