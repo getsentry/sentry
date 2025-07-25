@@ -8,6 +8,7 @@ import {useComboBoxState} from '@react-stately/combobox';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
+import {Text} from 'sentry/components/core/text';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {IconClose, IconMegaphone, IconSearch} from 'sentry/icons';
@@ -159,8 +160,9 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
     children: item => {
       if (isNoneOfTheseItem(item)) {
         return (
-          <Item key={item.key} textValue={item.label}>
-            <div
+          <Item key={item.key} textValue={item.label} data-is-none-of-these>
+            <Text
+              variant="muted"
               onClick={() => {
                 trackAnalytics('trace.explorer.ai_query_rejected', {
                   organization,
@@ -171,7 +173,7 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
               }}
             >
               {item.label}
-            </div>
+            </Text>
           </Item>
         );
       }
@@ -471,24 +473,6 @@ const ButtonsWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
-`;
-
-const NoneOfTheseItem = styled('div')`
-  cursor: pointer;
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  border-bottom: 1px solid ${p => p.theme.border};
-  transition: background-color 0.2s ease;
-  user-select: none;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
-
-  &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
-  }
-
-  &:last-child {
-    border-bottom: none;
-  }
 `;
 
 const SeerFooter = styled('div')`
