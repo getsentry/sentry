@@ -10,12 +10,12 @@ from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, R
 from sentry.apidocs.parameters import GlobalParams, PreventParams
 from sentry.codecov.base import CodecovEndpoint
 from sentry.codecov.client import CodecovApiClient
-from sentry.codecov.endpoints.Branches.query import query
-from sentry.codecov.endpoints.Branches.serializers import BranchesSerializer
+from sentry.codecov.endpoints.branches.query import query
+from sentry.codecov.endpoints.branches.serializers import BranchesSerializer
 from sentry.codecov.enums import NavigationParameter
 from sentry.integrations.services.integration.model import RpcIntegration
 
-MAX_RESULTS_PER_PAGE = 50
+MAX_RESULTS_PER_PAGE = 25
 
 
 @extend_schema(tags=["Prevent"])
