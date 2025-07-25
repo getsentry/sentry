@@ -93,11 +93,7 @@ const isPolling = (summaryData: SummaryResponse | undefined, runStarted: boolean
     return false;
   }
 
-  if (!summaryData?.data) {
-    return true;
-  }
-
-  if (summaryData.status === ReplaySummaryStatus.PROCESSING) {
+  if (!summaryData?.data || summaryData.status === ReplaySummaryStatus.NOT_STARTED) {
     return true;
   }
 
