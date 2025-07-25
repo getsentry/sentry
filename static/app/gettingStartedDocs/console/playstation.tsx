@@ -78,8 +78,8 @@ int main(void) {
   sentry_options_set_dsn(options, "${params.dsn.public}");
   sentry_options_set_release(options, "my-project-name@2.3.12");
   sentry_options_set_debug(options, 1);
-  // For further configuration options, including database path,
-  // see the private repository.
+  // Example of PlayStation-specific configuration options
+  // (including database path) are available in the sample folder of the private repository.
   sentry_init(options);
 
   /* ... */
