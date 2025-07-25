@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button';
 import {Text} from 'sentry/components/core/text';
 import {IconSeer} from 'sentry/icons';
 
@@ -45,6 +46,8 @@ export function SeerSearchHeader({
         {handleExampleClick ? (
           <AnimatedExampleText
             isAnimating={isAnimating}
+            size="zero"
+            priority="transparent"
             onClick={() => {
               const currentExample = EXAMPLE_QUERIES[currentExampleIndex];
               if (currentExample && handleExampleClick) {
@@ -69,15 +72,7 @@ const HeaderWrapper = styled('div')`
   width: 100%;
 `;
 
-const AnimatedExampleText = styled('button')<{isAnimating: boolean}>`
-  opacity: ${p => (p.isAnimating ? 0 : 1)};
-  transition:
-    opacity 0.3s ease-in-out,
-    background 0.2s ease-in-out,
-    border-color 0.2s ease-in-out;
-  background: ${p => p.theme.gray200};
-  color: ${p => p.theme.textColor};
-  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
+const AnimatedExampleText = styled(Button)<{isAnimating: boolean}>`
   border-radius: ${p => p.theme.borderRadius};
   font-family: ${p => p.theme.text.familyMono};
   white-space: nowrap;
@@ -85,6 +80,12 @@ const AnimatedExampleText = styled('button')<{isAnimating: boolean}>`
   margin: 0 ${p => p.theme.space.sm};
   cursor: pointer;
   border: 1px solid transparent;
+  opacity: ${p => (p.isAnimating ? 0 : 1)};
+  transition:
+    opacity 0.3s ease-in-out,
+    background 0.2s ease-in-out,
+    border-color 0.2s ease-in-out;
+  background: ${p => p.theme.gray200};
 
   &:hover {
     background: ${p => p.theme.translucentGray200};
