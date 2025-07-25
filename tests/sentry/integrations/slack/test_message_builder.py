@@ -34,6 +34,8 @@ from sentry.integrations.slack.message_builder.issues import (
     get_tags,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
+from sentry.integrations.slack.message_builder.routing import encode_action_id
+from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.time_utils import time_since
 from sentry.issues.grouptype import (
     FeedbackGroup,
@@ -186,13 +188,21 @@ def build_test_message_blocks(
         "elements": [
             {
                 "type": "button",
-                "action_id": "resolve_dialog",
+                "action_id": encode_action_id(
+                    action=SlackAction.RESOLVE_DIALOG,
+                    organization_slug=project.organization.slug,
+                    project_slug=project.slug,
+                ),
                 "text": {"type": "plain_text", "text": "Resolve"},
                 "value": "resolve_dialog",
             },
             {
                 "type": "button",
-                "action_id": "archive_dialog",
+                "action_id": encode_action_id(
+                    action=SlackAction.ARCHIVE_DIALOG,
+                    organization_slug=project.organization.slug,
+                    project_slug=project.slug,
+                ),
                 "text": {"type": "plain_text", "text": "Archive"},
                 "value": "archive_dialog",
             },
@@ -203,7 +213,11 @@ def build_test_message_blocks(
                     "text": "Select Assignee...",
                     "emoji": True,
                 },
-                "action_id": "assign",
+                "action_id": encode_action_id(
+                    action=SlackAction.ASSIGN,
+                    organization_slug=project.organization.slug,
+                    project_slug=project.slug,
+                ),
             },
         ],
     }

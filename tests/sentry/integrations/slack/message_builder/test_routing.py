@@ -1,40 +1,18 @@
 from sentry.integrations.slack.message_builder.routing import decode_action_id, encode_action_id
 from sentry.integrations.slack.message_builder.types import SlackAction
-from sentry.integrations.types import ExternalProviders
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 
 
 class SlackRequestRoutingTest(TestCase):
     def setUp(self):
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
-        self.integration = self.create_integration(
-            organization=self.organization,
-            provider=ExternalProviders.SLACK.value,
-            external_id="slack:test",
-        )
-        self.encoded_action_id = (
-            f"{SlackAction.ARCHIVE_DIALOG}::{self.organization.slug}::{self.project.slug}"
-        )
 
-    @override_options({"hybrid_cloud.integration_region_targeting_rate": 0.0})
-    def test_encode_action_id_non_targeted(self):
+    def test_encode_action_id(self):
         action_id = encode_action_id(
             action=SlackAction.ARCHIVE_DIALOG,
             organization_slug=self.organization.slug,
             project_slug=self.project.slug,
-            integration_id=self.integration.id,
-        )
-        assert action_id == SlackAction.ARCHIVE_DIALOG
-
-    @override_options({"hybrid_cloud.integration_region_targeting_rate": 1.0})
-    def test_encode_action_id_targeted(self):
-        action_id = encode_action_id(
-            action=SlackAction.ARCHIVE_DIALOG,
-            organization_slug=self.organization.slug,
-            project_slug=self.project.slug,
-            integration_id=self.integration.id,
         )
         assert (
             action_id
