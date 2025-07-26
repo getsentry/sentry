@@ -489,16 +489,12 @@ function buildRoutes() {
     },
   ];
 
-  const accountSettingsRoutes = (
-    <Route
-      path="account/"
-      name={t('Account')}
-      component={make(
-        () => import('sentry/views/settings/account/accountSettingsLayout')
-      )}
-      newStyleChildren={accountSettingsChildRoutes}
-    />
-  );
+  const accountSettingsRoutes: SentryRouteObject = {
+    path: 'account/',
+    name: t('Account'),
+    component: make(() => import('sentry/views/settings/account/accountSettingsLayout')),
+    children: accountSettingsChildRoutes,
+  };
 
   const projectSettingsChildRoutes: SentryRouteObject[] = [
     {
@@ -786,16 +782,12 @@ function buildRoutes() {
     },
   ];
 
-  const projectSettingsRoutes = (
-    <Route
-      path="projects/:projectId/"
-      name={t('Project')}
-      component={make(
-        () => import('sentry/views/settings/project/projectSettingsLayout')
-      )}
-      newStyleChildren={projectSettingsChildRoutes}
-    />
-  );
+  const projectSettingsRoutes: SentryRouteObject = {
+    path: 'projects/:projectId/',
+    name: t('Project'),
+    component: make(() => import('sentry/views/settings/project/projectSettingsLayout')),
+    children: projectSettingsChildRoutes,
+  };
 
   const statsChildRoutes: SentryRouteObject[] = [
     {
@@ -1228,65 +1220,61 @@ function buildRoutes() {
     },
   ];
 
-  const orgSettingsRoutes = (
-    <Route
-      component={make(
-        () => import('sentry/views/settings/organization/organizationSettingsLayout')
-      )}
-      newStyleChildren={orgSettingsChildRoutes}
-    />
-  );
+  const orgSettingsRoutes: SentryRouteObject = {
+    component: make(
+      () => import('sentry/views/settings/organization/organizationSettingsLayout')
+    ),
+    children: orgSettingsChildRoutes,
+  };
 
-  const legacySettingsRedirectsChildRoutes: SentryRouteObject[] = [
+  const legacySettingsRedirects: SentryRouteObject = {
+    children: [
+      {
+        path: ':projectId/',
+        redirectTo: 'projects/:projectId/',
+      },
+      {
+        path: ':projectId/alerts/',
+        redirectTo: 'projects/:projectId/alerts/',
+      },
+      {
+        path: ':projectId/alerts/rules/',
+        redirectTo: 'projects/:projectId/alerts/rules/',
+      },
+      {
+        path: ':projectId/alerts/rules/:ruleId/',
+        redirectTo: 'projects/:projectId/alerts/rules/:ruleId/',
+      },
+    ],
+  };
+
+  const settingsChildRoutes: SentryRouteObject[] = [
     {
-      path: ':projectId/',
-      redirectTo: 'projects/:projectId/',
+      index: true,
+      component: make(() => import('sentry/views/settings/settingsIndex')),
+    },
+    accountSettingsRoutes,
+    {
+      name: t('Organization'),
+      component: withDomainRequired(NoOp),
+      customerDomainOnlyRoute: true,
+      children: [orgSettingsRoutes, projectSettingsRoutes],
     },
     {
-      path: ':projectId/alerts/',
-      redirectTo: 'projects/:projectId/alerts/',
-    },
-    {
-      path: ':projectId/alerts/rules/',
-      redirectTo: 'projects/:projectId/alerts/rules/',
-    },
-    {
-      path: ':projectId/alerts/rules/:ruleId/',
-      redirectTo: 'projects/:projectId/alerts/rules/:ruleId/',
+      path: ':orgId/',
+      name: t('Organization'),
+      component: withDomainRedirect(NoOp),
+      children: [orgSettingsRoutes, projectSettingsRoutes, legacySettingsRedirects],
     },
   ];
 
-  const legacySettingsRedirects = (
-    <Route newStyleChildren={legacySettingsRedirectsChildRoutes} />
-  );
-
   const settingsRoutes = (
-    <Route path="/settings/" name={t('Settings')} component={SettingsWrapper}>
-      <IndexRoute component={make(() => import('sentry/views/settings/settingsIndex'))} />
-      {accountSettingsRoutes}
-      <Fragment>
-        {USING_CUSTOMER_DOMAIN && (
-          <Route
-            name={t('Organization')}
-            component={withDomainRequired(NoOp)}
-            key="orgless-settings-route"
-          >
-            {orgSettingsRoutes}
-            {projectSettingsRoutes}
-          </Route>
-        )}
-        <Route
-          path=":orgId/"
-          name={t('Organization')}
-          component={withDomainRedirect(NoOp)}
-          key="org-settings"
-        >
-          {orgSettingsRoutes}
-          {projectSettingsRoutes}
-          {legacySettingsRedirects}
-        </Route>
-      </Fragment>
-    </Route>
+    <Route
+      path="/settings/"
+      name={t('Settings')}
+      component={SettingsWrapper}
+      newStyleChildren={settingsChildRoutes}
+    />
   );
 
   const projectsChildRoutes: SentryRouteObject[] = [
