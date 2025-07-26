@@ -110,6 +110,7 @@ class EventType(Enum):
     UI_BLUR = 18
     UI_FOCUS = 19
     UNKNOWN = 20
+    CLS = 21
 
 
 def which(event: dict[str, Any]) -> EventType:
@@ -189,6 +190,8 @@ def which(event: dict[str, Any]) -> EventType:
                         return EventType.LCP
                     elif payload["description"] == "first-contentful-paint":
                         return EventType.FCP
+                    elif payload["description"] == "cumulative-layout-shift":
+                        return EventType.CLS
                     else:
                         return EventType.UNKNOWN
                 elif op == "memory":
@@ -311,6 +314,10 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
         case EventType.CLICK | EventType.DEAD_CLICK | EventType.RAGE_CLICK | EventType.SLOW_CLICK:
             payload = event["data"]["payload"]
 
+            # If the node wasn't provided we're forced to skip the event.
+            if "node" not in payload["data"]:
+                return None
+
             node = payload["data"]["node"]
             node_attributes = node.get("attributes", {})
             click_attributes = {
@@ -352,10 +359,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             payload = event["data"]["payload"]
             payload_data = payload["data"]
 
-            navigation_attributes = {
-                "category": "navigation",
-                "url": as_string_strict(event["data"]["payload"]["description"]),
-            }
+            navigation_attributes = {"category": "navigation"}
             if "from" in payload_data:
                 navigation_attributes["from"] = as_string_strict(payload_data["from"])
             if "to" in payload_data:
@@ -373,25 +377,24 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
         case EventType.UI_FOCUS:
             return None
         case EventType.RESOURCE_FETCH | EventType.RESOURCE_XHR:
+            payload = event["data"]["payload"]
+
             resource_attributes = {
                 "category": (
                     "resource.xhr" if event_type == EventType.RESOURCE_XHR else "resource.fetch"
                 ),
-                "url": as_string_strict(event["data"]["payload"]["description"]),
-                "method": str(event["data"]["payload"]["data"]["method"]),
-                "statusCode": int(event["data"]["payload"]["data"]["statusCode"]),
-                "duration": float(event["data"]["payload"]["endTimestamp"])
-                - float(event["data"]["payload"]["startTimestamp"]),
+                "url": as_string_strict(payload["description"]),
+                "method": str(payload["data"]["method"]),
+                "duration": float(payload["endTimestamp"]) - float(payload["startTimestamp"]),
             }
 
-            for key, value in (
-                event["data"]["payload"]["data"].get("request", {}).get("headers", {}).items()
-            ):
+            if "statusCode" in payload["data"]:
+                resource_attributes["statusCode"] = int(payload["data"]["statusCode"])
+
+            for key, value in payload["data"].get("request", {}).get("headers", {}).items():
                 resource_attributes[f"request.headers.{key}"] = str(value)
 
-            for key, value in (
-                event["data"]["payload"]["data"].get("response", {}).get("headers", {}).items()
-            ):
+            for key, value in payload["data"].get("response", {}).get("headers", {}).items():
                 resource_attributes[f"response.headers.{key}"] = str(value)
 
             request_size, response_size = parse_network_content_lengths(event)
@@ -403,7 +406,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             return {
                 "attributes": resource_attributes,
                 "event_hash": uuid.uuid4().bytes,
-                "timestamp": float(event["data"]["payload"]["startTimestamp"]),
+                "timestamp": float(payload["startTimestamp"]),
             }
         case EventType.RESOURCE_SCRIPT | EventType.RESOURCE_IMAGE:
             return {
@@ -424,17 +427,27 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                 "event_hash": uuid.uuid4().bytes,
                 "timestamp": float(event["data"]["payload"]["startTimestamp"]),
             }
-        case EventType.LCP | EventType.FCP:
+        case EventType.LCP | EventType.FCP | EventType.CLS:
             payload = event["data"]["payload"]
+
+            if event_type == EventType.CLS:
+                category = "web-vital.cls"
+            elif event_type == EventType.FCP:
+                category = "web-vital.fcp"
+            else:
+                category = "web-vital.lcp"
+
             return {
                 "attributes": {
-                    "category": "web-vital.fcp" if event_type == EventType.FCP else "web-vital.lcp",
+                    "category": category,
+                    "duration": float(event["data"]["payload"]["endTimestamp"])
+                    - float(event["data"]["payload"]["startTimestamp"]),
                     "rating": as_string_strict(payload["data"]["rating"]),
-                    "size": int(payload["data"]["size"]),
-                    "value": int(payload["data"]["value"]),
+                    "size": float(payload["data"]["size"]),
+                    "value": float(payload["data"]["value"]),
                 },
                 "event_hash": uuid.uuid4().bytes,
-                "timestamp": float(payload["timestamp"]),
+                "timestamp": float(payload["startTimestamp"]),
             }
         case EventType.HYDRATION_ERROR:
             payload = event["data"]["payload"]
@@ -488,9 +501,9 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             return {
                 "attributes": {
                     "category": "memory",
-                    "jsHeapSizeLimit": int(payload["data"]["jsHeapSizeLimit"]),
-                    "totalJSHeapSize": int(payload["data"]["totalJSHeapSize"]),
-                    "usedJSHeapSize": int(payload["data"]["usedJSHeapSize"]),
+                    "jsHeapSizeLimit": int(payload["data"]["memory"]["jsHeapSizeLimit"]),
+                    "totalJSHeapSize": int(payload["data"]["memory"]["totalJSHeapSize"]),
+                    "usedJSHeapSize": int(payload["data"]["memory"]["usedJSHeapSize"]),
                     "endTimestamp": float(payload["endTimestamp"]),
                     "duration": float(event["data"]["payload"]["endTimestamp"])
                     - float(event["data"]["payload"]["startTimestamp"]),
@@ -577,13 +590,13 @@ def as_highlighted_event(
         return {"mutations": [MutationEvent(event["data"]["payload"])]}
     elif event_type == EventType.CLICK or event_type == EventType.SLOW_CLICK:
         click = parse_click_event(event["data"]["payload"], is_dead=False, is_rage=False)
-        return {"clicks": [click]}
+        return {"clicks": [click]} if click else {}
     elif event_type == EventType.DEAD_CLICK:
         click = parse_click_event(event["data"]["payload"], is_dead=True, is_rage=False)
-        return {"clicks": [click]}
+        return {"clicks": [click]} if click else {}
     elif event_type == EventType.RAGE_CLICK:
         click = parse_click_event(event["data"]["payload"], is_dead=True, is_rage=True)
-        return {"clicks": [click]}
+        return {"clicks": [click]} if click else {}
     elif event_type == EventType.RESOURCE_FETCH or event_type == EventType.RESOURCE_XHR:
         lengths = parse_network_content_lengths(event)
         if lengths != (None, None):
@@ -626,10 +639,11 @@ def parse_network_content_lengths(event: dict[str, Any]) -> tuple[int | None, in
     return request_size, response_size
 
 
-def parse_click_event(payload: dict[str, Any], is_dead: bool, is_rage: bool) -> ClickEvent:
-    node = payload["data"]["node"]
-    assert node is not None
-    assert node["id"] >= 0
+def parse_click_event(payload: dict[str, Any], is_dead: bool, is_rage: bool) -> ClickEvent | None:
+    node = payload["data"].get("node")
+
+    if not isinstance(node, dict) or node.get("id", -1) < 0:
+        return None
 
     attributes = node.get("attributes", {})
 
