@@ -90,13 +90,6 @@ export function getOrganizationNavigationConfiguration({
           id: 'audit-log',
         },
         {
-          path: `${organizationSettingsPathPrefix}/rate-limits/`,
-          title: t('Rate Limits'),
-          show: ({features}) => features!.has('legacy-rate-limits'),
-          description: t('Configure rate limits for all projects in the organization'),
-          id: 'rate-limits',
-        },
-        {
           path: `${organizationSettingsPathPrefix}/relay/`,
           title: t('Relay'),
           description: t('Manage relays connected to the organization'),
