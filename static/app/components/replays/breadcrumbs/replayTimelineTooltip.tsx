@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 
@@ -27,24 +27,37 @@ export default function TimelineTooltip({container}: Props) {
   const startTimestamp = replay?.getStartTimestampMs() ?? 0;
   const [currentHoverTime] = useCurrentHoverTime();
 
+  // Use a timeout instead of hiding right away, to avoid flickering.
+  const [lastHoverTime, setLastHoverTime] = useState<number | undefined>(undefined);
+  useEffect(() => {
+    if (currentHoverTime === undefined) {
+      const timeout = setTimeout(() => {
+        setLastHoverTime(undefined);
+      }, 0);
+      return () => clearTimeout(timeout);
+    }
+    setLastHoverTime(currentHoverTime);
+    return () => {};
+  }, [currentHoverTime]);
+
   return createPortal(
     <CursorLabel
       ref={labelRef}
       style={{
-        display: currentHoverTime ? 'block' : 'none',
+        display: lastHoverTime ? 'block' : 'none',
         top: 0,
-        left: toPercent((currentHoverTime ?? 0) / durationMs),
+        left: toPercent((lastHoverTime ?? 0) / durationMs),
       }}
     >
       <Text size="sm" tabular style={{fontWeight: 'normal'}}>
         {timestampType === 'absolute'
           ? getFormattedDate(
-              startTimestamp + (currentHoverTime ?? 0),
+              startTimestamp + (lastHoverTime ?? 0),
               shouldUse24Hours() ? 'HH:mm:ss.SSS' : 'hh:mm:ss.SSS',
               {local: true}
             )
           : formatDuration({
-              duration: [currentHoverTime ?? 0, 'ms'],
+              duration: [lastHoverTime ?? 0, 'ms'],
               precision: 'ms',
               style: 'hh:mm:ss.sss',
             })}
