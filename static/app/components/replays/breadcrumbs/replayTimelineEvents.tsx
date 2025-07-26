@@ -51,6 +51,8 @@ export default function ReplayTimelineEvents({
 }
 
 const EventColumn = styled(Timeline.Col)`
+  pointer-events: auto;
+
   place-items: stretch;
   display: grid;
   align-items: center;
@@ -157,7 +159,7 @@ function Event({
 
 const IconPosition = styled('div')`
   position: absolute;
-  transform: translate(-50%);
+  translate: -50% 0;
 `;
 
 const getBackgroundGradient = ({

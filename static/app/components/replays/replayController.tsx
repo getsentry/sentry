@@ -13,6 +13,7 @@ import {IconNext, IconRewind10} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getNextReplayFrame} from 'sentry/utils/replays/getReplayEvent';
+import {TimelineScaleContextProvider} from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 
 const SECOND = 1000;
@@ -90,9 +91,11 @@ export default function ReplayController({
   return (
     <ButtonGrid ref={barRef} isCompact={isCompact}>
       <ReplayPlayPauseBar isLoading={isLoading} />
-      <Container>
+
+      <TimelineScaleContextProvider>
         <TimeAndScrubberGrid isCompact={isCompact} showZoom isLoading={isLoading} />
-      </Container>
+      </TimelineScaleContextProvider>
+
       <ButtonBar>
         <ReplayPreferenceDropdown
           isLoading={isLoading}
@@ -111,11 +114,4 @@ const ButtonGrid = styled('div')<{isCompact: boolean}>`
   flex-direction: row;
   justify-content: space-between;
   ${p => (p.isCompact ? `flex-wrap: wrap;` : '')}
-`;
-
-const Container = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1;
-  justify-content: center;
 `;
