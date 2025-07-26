@@ -359,6 +359,11 @@ function buildRoutes() {
       component: make(() => import('sentry/views/settings/account/accountEmails')),
     },
     {
+      path: 'merge-accounts/',
+      name: t('Merge Accounts'),
+      component: make(() => import('sentry/views/settings/account/mergeAccounts')),
+    },
+    {
       path: 'authorizations/',
       component: make(
         () => import('sentry/views/settings/account/accountAuthorizations')
