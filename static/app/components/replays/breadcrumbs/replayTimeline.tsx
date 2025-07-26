@@ -87,14 +87,12 @@ export default function ReplayTimeline() {
 
 const CenteredStack = styled(Stacked)`
   align-items: center;
-  height: 100%;
   position: absolute;
 `;
 
 const VisibleStack = styled(Stacked)`
   height: 100%;
   width: 100%;
-  padding-block: 4px;
 `;
 
 const VisiblePanel = styled(Panel)`

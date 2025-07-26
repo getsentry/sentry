@@ -2,10 +2,12 @@ import {useRef} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 
+import {Text} from 'sentry/components/core/text';
 import {Overlay} from 'sentry/components/overlay';
 import {space} from 'sentry/styles/space';
 import {getFormattedDate, shouldUse24Hours} from 'sentry/utils/dates';
 import formatDuration from 'sentry/utils/duration/formatDuration';
+import toPercent from 'sentry/utils/number/toPercent';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
@@ -25,43 +27,28 @@ export default function TimelineTooltip({container}: Props) {
   const startTimestamp = replay?.getStartTimestampMs() ?? 0;
   const [currentHoverTime] = useCurrentHoverTime();
 
-  const labelText =
-    timestampType === 'absolute'
-      ? getFormattedDate(
-          startTimestamp + (currentHoverTime ?? 0),
-          shouldUse24Hours() ? 'HH:mm:ss.SSS' : 'hh:mm:ss.SSS',
-          {local: true}
-        )
-      : formatDuration({
-          duration: [currentHoverTime ?? 0, 'ms'],
-          precision: 'ms',
-          style: 'hh:mm:ss.sss',
-        });
-
-  // useEffect(() => {
-  //   const handleMouseMove = () => {
-  //     const percent = ((currentHoverTime ?? 0) / durationMs) * 100;
-  //     if (labelRef.current) {
-  //       labelRef.current.style.left = `${percent}%`;
-  //     }
-  //   };
-
-  //   container?.addEventListener('mousemove', handleMouseMove);
-  //   return () => container?.removeEventListener('mousemove', handleMouseMove);
-  // }, [container, currentHoverTime, durationMs]);
-
-  const percent = ((currentHoverTime ?? 0) / durationMs) * 100;
-
   return createPortal(
     <CursorLabel
       ref={labelRef}
       style={{
         display: currentHoverTime ? 'block' : 'none',
         top: 0,
-        left: `${percent}%`,
+        left: toPercent((currentHoverTime ?? 0) / durationMs),
       }}
     >
-      {labelText}
+      <Text size="sm" tabular style={{fontWeight: 'normal'}}>
+        {timestampType === 'absolute'
+          ? getFormattedDate(
+              startTimestamp + (currentHoverTime ?? 0),
+              shouldUse24Hours() ? 'HH:mm:ss.SSS' : 'hh:mm:ss.SSS',
+              {local: true}
+            )
+          : formatDuration({
+              duration: [currentHoverTime ?? 0, 'ms'],
+              precision: 'ms',
+              style: 'hh:mm:ss.sss',
+            })}
+      </Text>
     </CursorLabel>,
     container
   );
@@ -69,10 +56,6 @@ export default function TimelineTooltip({container}: Props) {
 
 const CursorLabel = styled(Overlay)`
   position: absolute;
-  translate: 10px -8px;
-  font-variant-numeric: tabular-nums;
-  width: max-content;
+  translate: 10px -10px;
   padding: ${space(0.75)} ${space(1)};
-  line-height: 1.2;
-  pointer-events: none; /* Prevent tooltip from blocking mouse events */
 `;

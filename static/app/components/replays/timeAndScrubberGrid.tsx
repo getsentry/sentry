@@ -50,7 +50,7 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
   }, [timelineScale, maxScale, setTimelineScale, organization]);
 
   return (
-    <ButtonBar gap="none">
+    <ButtonBar gap="0">
       <Button
         size="xs"
         title={t('Zoom out')}
@@ -169,11 +169,15 @@ const Grid = styled('div')<{isCompact: boolean}>`
 `;
 
 const TimelineWrapper = styled('div')`
-  height: 28px;
+  position: relative;
+  height: 100%;
   display: flex;
   align-items: center;
-  position: relative;
-  overflow: hidden;
+  cursor: pointer;
+
+  & > * {
+    height: 20px;
+  }
 `;
 
 const ScrubberWrapper = styled('div')`
@@ -181,6 +185,7 @@ const ScrubberWrapper = styled('div')`
   height: 32px;
   display: flex;
   align-items: center;
+  cursor: pointer;
 `;
 
 const Padded = styled('div')`

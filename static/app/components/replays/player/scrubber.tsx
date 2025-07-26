@@ -123,7 +123,6 @@ export const TimelineScrubber = styled(Scrubber)`
   ${Meter} {
     background: transparent;
     height: 20px;
-    margin-block: 4px;
   }
 
   ${RangeWrapper},
