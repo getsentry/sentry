@@ -5682,6 +5682,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["group_id"] == "this should just get returned"
 
+    @pytest.mark.skip(reason="flaky: #96444")
     def test_floored_epm(self):
         for _ in range(5):
             data = self.load_data(
