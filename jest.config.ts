@@ -112,11 +112,15 @@ function getTestForGroupBySlice(
   nodeTotal: number,
   allTests: ReadonlyArray<string>
 ): string[] {
-  const sorted = allTests.toSorted();
-  const chunkSize = Math.ceil(sorted.length / nodeTotal);
-  const start = nodeIndex * chunkSize;
-  const end = start + chunkSize;
-  return sorted.slice(start, end).map(test => `<rootDir>/${test}`);
+  const tests = allTests.toSorted((a, b) => b.localeCompare(a));
+
+  const length = tests.length;
+  const size = Math.floor(length / nodeTotal);
+  const remainder = length % nodeTotal;
+  const offset = Math.min(nodeIndex, remainder) + nodeIndex * size;
+  const chunk = size + (nodeIndex < remainder ? 1 : 0);
+
+  return tests.slice(offset, offset + chunk).map(test => '<rootDir>' + test);
 }
 
 function getTestsForGroupByHash(
@@ -266,35 +270,27 @@ if (
   const nodeTotal = Number(CI_NODE_TOTAL);
   const nodeIndex = Number(CI_NODE_INDEX);
 
-  if (balance) {
-    switch (SHARD_STRATEGY) {
-      case 'hash':
-        optionalTags.balancer = true;
-        optionalTags.balancer_strategy = 'by_hash';
-        testMatch = getTestsForGroupByHash(nodeIndex, nodeTotal, envTestList);
-        break;
-      case 'slice':
-        optionalTags.balancer = true;
-        optionalTags.balancer_strategy = 'by_slice';
-        testMatch = getTestForGroupBySlice(nodeIndex, nodeTotal, envTestList);
-        break;
-      case 'original':
-      default:
+  switch (SHARD_STRATEGY) {
+    case 'hash':
+      optionalTags.balancer = true;
+      optionalTags.balancer_strategy = 'by_hash';
+      testMatch = getTestsForGroupByHash(nodeIndex, nodeTotal, envTestList);
+      break;
+    case 'slice':
+      optionalTags.balancer = true;
+      optionalTags.balancer_strategy = 'by_slice';
+      testMatch = getTestForGroupBySlice(nodeIndex, nodeTotal, envTestList);
+      break;
+    case 'original':
+    default:
+      if (balance) {
         optionalTags.balancer = true;
         optionalTags.balancer_strategy = 'by_path';
         testMatch = getTestsForGroup(nodeIndex, nodeTotal, envTestList, balance);
-        break;
-    }
-  } else {
-    const tests = envTestList.sort((a, b) => b.localeCompare(a));
-
-    const length = tests.length;
-    const size = Math.floor(length / nodeTotal);
-    const remainder = length % nodeTotal;
-    const offset = Math.min(nodeIndex, remainder) + nodeIndex * size;
-    const chunk = size + (nodeIndex < remainder ? 1 : 0);
-
-    testMatch = tests.slice(offset, offset + chunk).map(test => '<rootDir>' + test);
+      } else {
+        testMatch = getTestForGroupBySlice(nodeIndex, nodeTotal, envTestList);
+      }
+      break;
   }
 }
 
