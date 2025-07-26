@@ -27,3 +27,8 @@ export interface AutomationFireHistory {
   lastTriggered: string;
   detector?: Detector;
 }
+
+export type AutomationStats = {
+  count: number;
+  date: string;
+};
