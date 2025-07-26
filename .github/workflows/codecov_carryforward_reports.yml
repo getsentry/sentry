@@ -18,9 +18,14 @@ jobs:
         uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4
         with:
           python-version: '3.10.10'
+
+      - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
+        with:
+          version: '0.8.2'
+
       - name: Download Codecov CLI
         run: |
-          pip install --extra-index-url https://pypi.org/simple --no-cache-dir pytest codecov-cli==0.4.0
+          uv pip install --extra-index-url https://pypi.org/simple --no-cache-dir pytest codecov-cli==0.4.0
       # Creates the commit and report objects in codecov
       # This carries forward previouly uploaded coverage reports to the new commit
       - name: Codecov startup

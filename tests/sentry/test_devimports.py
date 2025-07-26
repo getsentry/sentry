@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import functools
 import importlib.metadata
+import re
 import subprocess
 import sys
 
 import pytest
+import tomllib
 
 XFAIL = (
     # XXX: ideally these should get fixed
@@ -14,17 +16,22 @@ XFAIL = (
 )
 EXCLUDED = ("sentry.testutils.", "sentry.web.frontend.debug.")
 
+PACKAGE_NAME = re.compile(r"(=|>|<)")
 
-def extract_packages(text_content: str) -> set[str]:
-    return {line.split("==")[0] for line in text_content.splitlines() if "==" in line}
+
+def extract_packages(package_specs: list[str]) -> set[str]:
+    return {PACKAGE_NAME.split(spec, maxsplit=1)[0] for spec in package_specs}
 
 
 @functools.lru_cache
 def dev_dependencies() -> tuple[str, ...]:
-    with open("requirements-dev-frozen.txt") as f:
-        dev_packages = extract_packages(f.read())
-    with open("requirements-frozen.txt") as f:
-        prod_packages = extract_packages(f.read())
+    with open("pyproject.toml", "rb") as f:
+        pyproject = tomllib.load(f)
+        dev_packages = extract_packages(pyproject["project"]["optional-dependencies"]["dev"])
+        prod_packages = extract_packages(
+            pyproject["project"]["dependencies"]
+            + pyproject["project"]["optional-dependencies"]["getsentry"]
+        )
 
     # We have some packages that are both runtime + dev
     # but we only care about packages that are exclusively dev deps

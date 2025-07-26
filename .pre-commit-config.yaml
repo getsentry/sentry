@@ -56,14 +56,14 @@ repos:
         stages: [pre-push]
         types: [python]
         require_serial: true
-      - id: lint-requirements
-        name: lint-requirements
-        entry: python -m tools.lint_requirements
-        language: python
-        files: requirements-.*\.txt$
-        # exclude the overrides file from this linter -- it doesn't apply at all
-        exclude: ^requirements-getsentry-overrides\.txt$
-        additional_dependencies: [packaging==24.1]
+      # - id: lint-requirements
+      #   name: lint-requirements
+      #   entry: python -m tools.lint_requirements
+      #   language: python
+      #   files: requirements-.*\.txt$
+      #   # exclude the overrides file from this linter -- it doesn't apply at all
+      #   exclude: ^requirements-getsentry-overrides\.txt$
+      #   additional_dependencies: [packaging==24.1]
       - id: requirements-overrides
         name: use pinned archives (see comment in file)
         stages: [pre-commit]
