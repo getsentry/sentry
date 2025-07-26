@@ -147,13 +147,6 @@ function buildRoutes() {
     component: make(() => import('sentry/views/performance/traceDetails')),
   };
 
-  const traceViewRoute = (
-    <Route
-      path="trace/:traceSlug/"
-      component={make(() => import('sentry/views/performance/traceDetails'))}
-    />
-  );
-
   const rootChildRoutes: SentryRouteObject[] = [
     {
       index: true,
@@ -1407,183 +1400,179 @@ function buildRoutes() {
 
   const dashboardRoutes = <Route newStyleChildren={dashboardChildRoutes} />;
 
-  const alertChildRoutes = (forCustomerDomain: boolean): SentryRouteObject => ({
-    children: [
-      {
-        index: true,
-        component: make(() => import('sentry/views/alerts/list/incidents')),
-      },
-      {
-        path: 'rules/',
-        children: [
-          {
-            index: true,
-            component: make(
-              () => import('sentry/views/alerts/list/rules/alertRulesList')
-            ),
-          },
-          {
-            path: 'details/:ruleId/',
-            component: make(() => import('sentry/views/alerts/rules/metric/details')),
-          },
-          {
-            path: ':projectId/',
-            component: make(() => import('sentry/views/alerts/builder/projectProvider')),
-            children: [
-              {
-                index: true,
-                redirectTo: forCustomerDomain
-                  ? '/alerts/rules/'
-                  : '/organizations/:orgId/alerts/rules/',
-              },
-              {
-                path: ':ruleId/',
-                component: make(() => import('sentry/views/alerts/edit')),
-              },
-            ],
-          },
-          {
-            path: ':projectId/:ruleId/details/',
-            children: [
-              {
-                index: true,
-                component: make(
-                  () => import('sentry/views/alerts/rules/issue/details/ruleDetails')
-                ),
-              },
-            ],
-          },
-          {
-            path: 'uptime/',
-            component: make(() => import('sentry/views/alerts/rules/uptime')),
-            children: [
-              {
-                path: ':projectId/:uptimeRuleId/details/',
-                component: make(() => import('sentry/views/alerts/rules/uptime/details')),
-              },
-              {
-                path: 'existing-or-create/',
-                component: make(
-                  () => import('sentry/views/alerts/rules/uptime/existingOrCreate')
-                ),
-              },
-            ],
-          },
-          {
-            path: 'crons/',
-            component: make(() => import('sentry/views/alerts/rules/crons')),
-            children: [
-              {
-                path: ':projectId/:monitorSlug/details/',
-                component: make(() => import('sentry/views/alerts/rules/crons/details')),
-              },
-            ],
-          },
-        ],
-      },
-      {
-        path: 'metric-rules/',
-        children: [
-          {
-            index: true,
-            redirectTo: forCustomerDomain
-              ? '/alerts/rules/'
-              : '/organizations/:orgId/alerts/rules/',
-          },
-          {
-            path: ':projectId/',
-            component: make(() => import('sentry/views/alerts/builder/projectProvider')),
-            children: [
-              {
-                index: true,
-                redirectTo: forCustomerDomain
-                  ? '/alerts/rules/'
-                  : '/organizations/:orgId/alerts/rules/',
-              },
-              {
-                path: ':ruleId/',
-                component: make(() => import('sentry/views/alerts/edit')),
-              },
-            ],
-          },
-        ],
-      },
-      {
-        path: 'uptime-rules/',
-        children: [
-          {
-            path: ':projectId/',
-            component: make(() => import('sentry/views/alerts/builder/projectProvider')),
-            children: [
-              {
-                path: ':ruleId/',
-                component: make(() => import('sentry/views/alerts/edit')),
-              },
-            ],
-          },
-        ],
-      },
-      {
-        path: 'crons-rules/',
-        children: [
-          {
-            path: ':projectId/',
-            component: make(() => import('sentry/views/alerts/builder/projectProvider')),
-            children: [
-              {
-                path: ':monitorSlug/',
-                component: make(() => import('sentry/views/alerts/edit')),
-              },
-            ],
-          },
-        ],
-      },
-      {
-        path: 'wizard/',
-        component: make(() => import('sentry/views/alerts/builder/projectProvider')),
-        children: [
-          {
-            index: true,
-            component: make(() => import('sentry/views/alerts/wizard')),
-          },
-        ],
-      },
-      {
-        path: 'new/',
-        component: make(() => import('sentry/views/alerts/builder/projectProvider')),
-        children: [
-          {
-            index: true,
-            redirectTo: forCustomerDomain
-              ? '/alerts/wizard/'
-              : '/organizations/:orgId/alerts/wizard/',
-          },
-          {
-            path: ':alertType/',
-            component: make(() => import('sentry/views/alerts/create')),
-          },
-        ],
-      },
-      {
-        path: ':alertId/',
-        component: make(() => import('sentry/views/alerts/incidentRedirect')),
-      },
-      {
-        path: ':projectId/',
-        component: make(() => import('sentry/views/alerts/builder/projectProvider')),
-        children: [
-          {
-            path: 'new/',
-            component: make(() => import('sentry/views/alerts/create')),
-          },
-          {
-            path: 'wizard/',
-            component: make(() => import('sentry/views/alerts/wizard')),
-          },
-        ],
-      },
-    ],
-  });
+  const alertChildRoutes = (forCustomerDomain: boolean): SentryRouteObject[] => [
+    {
+      index: true,
+      component: make(() => import('sentry/views/alerts/list/incidents')),
+    },
+    {
+      path: 'rules/',
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/alerts/list/rules/alertRulesList')),
+        },
+        {
+          path: 'details/:ruleId/',
+          component: make(() => import('sentry/views/alerts/rules/metric/details')),
+        },
+        {
+          path: ':projectId/',
+          component: make(() => import('sentry/views/alerts/builder/projectProvider')),
+          children: [
+            {
+              index: true,
+              redirectTo: forCustomerDomain
+                ? '/alerts/rules/'
+                : '/organizations/:orgId/alerts/rules/',
+            },
+            {
+              path: ':ruleId/',
+              component: make(() => import('sentry/views/alerts/edit')),
+            },
+          ],
+        },
+        {
+          path: ':projectId/:ruleId/details/',
+          children: [
+            {
+              index: true,
+              component: make(
+                () => import('sentry/views/alerts/rules/issue/details/ruleDetails')
+              ),
+            },
+          ],
+        },
+        {
+          path: 'uptime/',
+          component: make(() => import('sentry/views/alerts/rules/uptime')),
+          children: [
+            {
+              path: ':projectId/:uptimeRuleId/details/',
+              component: make(() => import('sentry/views/alerts/rules/uptime/details')),
+            },
+            {
+              path: 'existing-or-create/',
+              component: make(
+                () => import('sentry/views/alerts/rules/uptime/existingOrCreate')
+              ),
+            },
+          ],
+        },
+        {
+          path: 'crons/',
+          component: make(() => import('sentry/views/alerts/rules/crons')),
+          children: [
+            {
+              path: ':projectId/:monitorSlug/details/',
+              component: make(() => import('sentry/views/alerts/rules/crons/details')),
+            },
+          ],
+        },
+      ],
+    },
+    {
+      path: 'metric-rules/',
+      children: [
+        {
+          index: true,
+          redirectTo: forCustomerDomain
+            ? '/alerts/rules/'
+            : '/organizations/:orgId/alerts/rules/',
+        },
+        {
+          path: ':projectId/',
+          component: make(() => import('sentry/views/alerts/builder/projectProvider')),
+          children: [
+            {
+              index: true,
+              redirectTo: forCustomerDomain
+                ? '/alerts/rules/'
+                : '/organizations/:orgId/alerts/rules/',
+            },
+            {
+              path: ':ruleId/',
+              component: make(() => import('sentry/views/alerts/edit')),
+            },
+          ],
+        },
+      ],
+    },
+    {
+      path: 'uptime-rules/',
+      children: [
+        {
+          path: ':projectId/',
+          component: make(() => import('sentry/views/alerts/builder/projectProvider')),
+          children: [
+            {
+              path: ':ruleId/',
+              component: make(() => import('sentry/views/alerts/edit')),
+            },
+          ],
+        },
+      ],
+    },
+    {
+      path: 'crons-rules/',
+      children: [
+        {
+          path: ':projectId/',
+          component: make(() => import('sentry/views/alerts/builder/projectProvider')),
+          children: [
+            {
+              path: ':monitorSlug/',
+              component: make(() => import('sentry/views/alerts/edit')),
+            },
+          ],
+        },
+      ],
+    },
+    {
+      path: 'wizard/',
+      component: make(() => import('sentry/views/alerts/builder/projectProvider')),
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/alerts/wizard')),
+        },
+      ],
+    },
+    {
+      path: 'new/',
+      component: make(() => import('sentry/views/alerts/builder/projectProvider')),
+      children: [
+        {
+          index: true,
+          redirectTo: forCustomerDomain
+            ? '/alerts/wizard/'
+            : '/organizations/:orgId/alerts/wizard/',
+        },
+        {
+          path: ':alertType/',
+          component: make(() => import('sentry/views/alerts/create')),
+        },
+      ],
+    },
+    {
+      path: ':alertId/',
+      component: make(() => import('sentry/views/alerts/incidentRedirect')),
+    },
+    {
+      path: ':projectId/',
+      component: make(() => import('sentry/views/alerts/builder/projectProvider')),
+      children: [
+        {
+          path: 'new/',
+          component: make(() => import('sentry/views/alerts/create')),
+        },
+        {
+          path: 'wizard/',
+          component: make(() => import('sentry/views/alerts/wizard')),
+        },
+      ],
+    },
+  ];
 
   const alertRoutes = (
     <Fragment>
@@ -1592,14 +1581,14 @@ function buildRoutes() {
           path="/alerts/"
           component={withDomainRequired(make(() => import('sentry/views/alerts')))}
           key="orgless-alerts-route"
-          newStyleChildren={alertChildRoutes(true).children}
+          newStyleChildren={alertChildRoutes(true)}
         />
       )}
       <Route
         path="/organizations/:orgId/alerts/"
         component={withDomainRedirect(make(() => import('sentry/views/alerts')))}
         key="org-alerts"
-        newStyleChildren={alertChildRoutes(false).children}
+        newStyleChildren={alertChildRoutes(false)}
       />
     </Fragment>
   );
@@ -2396,136 +2385,144 @@ function buildRoutes() {
     />
   );
 
-  const issueTabs = (
-    <Fragment>
-      <IndexRoute
-        component={make(
-          () => import('sentry/views/issueDetails/groupEventDetails/groupEventDetails'),
-          <GroupEventDetailsLoading />
-        )}
-      />
-      <Route
-        path={TabPaths[Tab.REPLAYS]}
-        component={make(() => import('sentry/views/issueDetails/groupReplays'))}
-      />
-      <Route
-        path={TabPaths[Tab.ACTIVITY]}
-        component={make(() => import('sentry/views/issueDetails/groupActivity'))}
-      />
-      <Route
-        path={TabPaths[Tab.EVENTS]}
-        component={make(() => import('sentry/views/issueDetails/groupEvents'))}
-      />
-      <Route
-        path={TabPaths[Tab.OPEN_PERIODS]}
-        component={make(() => import('sentry/views/issueDetails/groupOpenPeriods'))}
-      />
-      <Route
-        path={TabPaths[Tab.UPTIME_CHECKS]}
-        component={make(() => import('sentry/views/issueDetails/groupUptimeChecks'))}
-      />
-      <Route
-        path={TabPaths[Tab.CHECK_INS]}
-        component={make(() => import('sentry/views/issueDetails/groupCheckIns'))}
-      />
-      <Route
-        path={TabPaths[Tab.DISTRIBUTIONS]}
-        component={make(() => import('sentry/views/issueDetails/groupTags/groupTagsTab'))}
-      />
-      <Route
-        path={`${TabPaths[Tab.DISTRIBUTIONS]}:tagKey/`}
-        component={make(
-          () => import('sentry/views/issueDetails/groupTags/groupTagValues')
-        )}
-      />
-      <Route
-        path={TabPaths[Tab.USER_FEEDBACK]}
-        component={make(() => import('sentry/views/issueDetails/groupUserFeedback'))}
-      />
-      <Route
-        path={TabPaths[Tab.ATTACHMENTS]}
-        component={make(() => import('sentry/views/issueDetails/groupEventAttachments'))}
-      />
-      <Route
-        path={TabPaths[Tab.SIMILAR_ISSUES]}
-        component={make(
-          () =>
-            import('sentry/views/issueDetails/groupSimilarIssues/groupSimilarIssuesTab')
-        )}
-      />
-      <Route
-        path={TabPaths[Tab.MERGED]}
-        component={make(
-          () => import('sentry/views/issueDetails/groupMerged/groupMergedTab')
-        )}
-      />
-    </Fragment>
-  );
+  const issueTabsObject: SentryRouteObject[] = [
+    {
+      index: true,
+      component: make(
+        () => import('sentry/views/issueDetails/groupEventDetails/groupEventDetails'),
+        <GroupEventDetailsLoading />
+      ),
+    },
+    {
+      path: TabPaths[Tab.REPLAYS],
+      component: make(() => import('sentry/views/issueDetails/groupReplays')),
+    },
+    {
+      path: TabPaths[Tab.ACTIVITY],
+      component: make(() => import('sentry/views/issueDetails/groupActivity')),
+    },
+    {
+      path: TabPaths[Tab.EVENTS],
+      component: make(() => import('sentry/views/issueDetails/groupEvents')),
+    },
+    {
+      path: TabPaths[Tab.OPEN_PERIODS],
+      component: make(() => import('sentry/views/issueDetails/groupOpenPeriods')),
+    },
+    {
+      path: TabPaths[Tab.UPTIME_CHECKS],
+      component: make(() => import('sentry/views/issueDetails/groupUptimeChecks')),
+    },
+    {
+      path: TabPaths[Tab.CHECK_INS],
+      component: make(() => import('sentry/views/issueDetails/groupCheckIns')),
+    },
+    {
+      path: TabPaths[Tab.DISTRIBUTIONS],
+      component: make(() => import('sentry/views/issueDetails/groupTags/groupTagsTab')),
+    },
+    {
+      path: `${TabPaths[Tab.DISTRIBUTIONS]}:tagKey/`,
+      component: make(() => import('sentry/views/issueDetails/groupTags/groupTagValues')),
+    },
+    {
+      path: TabPaths[Tab.USER_FEEDBACK],
+      component: make(() => import('sentry/views/issueDetails/groupUserFeedback')),
+    },
+    {
+      path: TabPaths[Tab.ATTACHMENTS],
+      component: make(() => import('sentry/views/issueDetails/groupEventAttachments')),
+    },
+    {
+      path: TabPaths[Tab.SIMILAR_ISSUES],
+      component: make(
+        () => import('sentry/views/issueDetails/groupSimilarIssues/groupSimilarIssuesTab')
+      ),
+    },
+    {
+      path: TabPaths[Tab.MERGED],
+      component: make(
+        () => import('sentry/views/issueDetails/groupMerged/groupMergedTab')
+      ),
+    },
+  ];
+
+  const issueChildRoutes: SentryRouteObject[] = [
+    {
+      index: true,
+      component: errorHandler(OverviewWrapper),
+    },
+    {
+      path: `${IssueTaxonomy.ERRORS_AND_OUTAGES}/`,
+      component: make(() => import('sentry/views/issueList/pages/errorsOutages')),
+    },
+    {
+      path: `${IssueTaxonomy.BREACHED_METRICS}/`,
+      component: make(() => import('sentry/views/issueList/pages/breachedMetrics')),
+    },
+    {
+      path: `${IssueTaxonomy.WARNINGS}/`,
+      component: make(() => import('sentry/views/issueList/pages/warnings')),
+    },
+    {
+      path: 'views/',
+      component: make(
+        () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
+      ),
+    },
+    {
+      path: 'views/:viewId/',
+      component: errorHandler(OverviewWrapper),
+    },
+    {
+      path: 'searches/:searchId/',
+      component: errorHandler(OverviewWrapper),
+    },
+    // Redirects for legacy tags route.
+    {
+      path: ':groupId/tags/',
+      redirectTo: `/issues/:groupId/${TabPaths[Tab.DISTRIBUTIONS]}`,
+    },
+    {
+      path: ':groupId/tags/:tagKey/',
+      redirectTo: `/issues/:groupId/${TabPaths[Tab.DISTRIBUTIONS]}:tagKey/`,
+    },
+    {
+      path: `:groupId/${TabPaths[Tab.EVENTS]}:eventId/tags/`,
+      redirectTo: `/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/${TabPaths[Tab.DISTRIBUTIONS]}`,
+    },
+    {
+      path: `:groupId/${TabPaths[Tab.EVENTS]}:eventId/tags/:tagKey/`,
+      redirectTo: `/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/${TabPaths[Tab.DISTRIBUTIONS]}:tagKey/`,
+    },
+    {
+      path: ':groupId/',
+      component: make(() => import('sentry/views/issueDetails/groupDetails')),
+      children: [
+        ...issueTabsObject,
+        {
+          path: `${TabPaths[Tab.EVENTS]}:eventId/`,
+          children: issueTabsObject,
+        },
+      ],
+    },
+    {
+      path: 'feedback/',
+      component: make(() => import('sentry/views/feedback/index')),
+      children: feedbackV2ChildRoutes,
+    },
+    {
+      path: 'alerts/',
+      component: make(() => import('sentry/views/alerts')),
+      children: alertChildRoutes(true),
+    },
+    traceViewRouteObject,
+    automationRoutes,
+    detectorRoutes,
+  ];
 
   const issueRoutes = (
-    <Route path="/issues/" withOrgPath>
-      <IndexRoute component={errorHandler(OverviewWrapper)} />
-      <Route
-        path={`${IssueTaxonomy.ERRORS_AND_OUTAGES}/`}
-        component={make(() => import('sentry/views/issueList/pages/errorsOutages'))}
-      />
-      <Route
-        path={`${IssueTaxonomy.BREACHED_METRICS}/`}
-        component={make(() => import('sentry/views/issueList/pages/breachedMetrics'))}
-      />
-      <Route
-        path={`${IssueTaxonomy.WARNINGS}/`}
-        component={make(() => import('sentry/views/issueList/pages/warnings'))}
-      />
-      <Route
-        path="views/"
-        component={make(
-          () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
-        )}
-      />
-      <Route path="views/:viewId/" component={errorHandler(OverviewWrapper)} />
-      <Route path="searches/:searchId/" component={errorHandler(OverviewWrapper)} />
-
-      {/* Redirects for legacy tags route. */}
-      <Redirect
-        from=":groupId/tags/"
-        to={`/issues/:groupId/${TabPaths[Tab.DISTRIBUTIONS]}`}
-      />
-      <Redirect
-        from=":groupId/tags/:tagKey/"
-        to={`/issues/:groupId/${TabPaths[Tab.DISTRIBUTIONS]}:tagKey/`}
-      />
-      <Redirect
-        from={`:groupId/${TabPaths[Tab.EVENTS]}:eventId/tags/`}
-        to={`/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/${TabPaths[Tab.DISTRIBUTIONS]}`}
-      />
-      <Redirect
-        from={`:groupId/${TabPaths[Tab.EVENTS]}:eventId/tags/:tagKey/`}
-        to={`/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/${TabPaths[Tab.DISTRIBUTIONS]}:tagKey/`}
-      />
-
-      <Route
-        path=":groupId/"
-        component={make(() => import('sentry/views/issueDetails/groupDetails'))}
-        key="org-issues-group-id"
-      >
-        {issueTabs}
-        <Route path={`${TabPaths[Tab.EVENTS]}:eventId/`}>{issueTabs}</Route>
-      </Route>
-      <Route
-        path="feedback/"
-        component={make(() => import('sentry/views/feedback/index'))}
-        newStyleChildren={feedbackV2ChildRoutes}
-      />
-      <Route
-        path="alerts/"
-        component={make(() => import('sentry/views/alerts'))}
-        newStyleChildren={alertChildRoutes(true).children}
-      />
-      {traceViewRoute}
-      {automationRoutes}
-      {detectorRoutes}
-    </Route>
+    <Route path="/issues/" withOrgPath newStyleChildren={issueChildRoutes} />
   );
 
   // These are the "manage" pages. For sentry.io, these are _different_ from
