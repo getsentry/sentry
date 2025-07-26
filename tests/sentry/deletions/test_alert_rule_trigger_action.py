@@ -7,7 +7,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class DeleteAlertRuleTriggerActionTest(BaseWorkflowTest, HybridCloudTestMixin):
-    def test_simple(self):
+    def test_simple(self) -> None:
         incident = self.create_incident()
         alert_rule_trigger_action = self.create_alert_rule_trigger_action()
         notification_message = NotificationMessage(

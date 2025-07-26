@@ -45,7 +45,7 @@ from sentry.utils.snuba import raw_snql_query
 class PaginatorTest(TestCase):
     cls = Paginator
 
-    def test_max_limit(self):
+    def test_max_limit(self) -> None:
         self.create_user("foo@example.com")
         self.create_user("bar@example.com")
         self.create_user("baz@example.com")
@@ -60,7 +60,7 @@ class PaginatorTest(TestCase):
         result = paginator.get_result(limit=2, cursor=None)
         assert len(result) == 1
 
-    def test_count_hits(self):
+    def test_count_hits(self) -> None:
         self.create_user("foo@example.com")
         self.create_user("bar@example.com")
 
@@ -84,7 +84,7 @@ class PaginatorTest(TestCase):
         result = paginator.count_hits(1)
         assert result == 1
 
-    def test_prev_emptyset(self):
+    def test_prev_emptyset(self) -> None:
         queryset = User.objects.all()
 
         paginator = self.cls(queryset, "id")
@@ -103,7 +103,7 @@ class PaginatorTest(TestCase):
 @control_silo_test
 class OffsetPaginatorTest(TestCase):
     # offset paginator does not support dynamic limits on is_prev
-    def test_simple(self):
+    def test_simple(self) -> None:
         res1 = self.create_user("foo@example.com")
         res2 = self.create_user("bar@example.com")
         res3 = self.create_user("baz@example.com")
@@ -140,7 +140,7 @@ class OffsetPaginatorTest(TestCase):
         assert not result5.next
         assert result5.prev
 
-    def test_negative_offset(self):
+    def test_negative_offset(self) -> None:
         self.create_user("baz@example.com")
         queryset = User.objects.all()
         paginator = OffsetPaginator(queryset)
@@ -152,7 +152,7 @@ class OffsetPaginatorTest(TestCase):
         with pytest.raises(BadPaginationError):
             paginator.get_result(cursor=cursor)
 
-    def test_order_by_multiple(self):
+    def test_order_by_multiple(self) -> None:
         res1 = self.create_user("foo@example.com")
         self.create_user("bar@example.com")
         res3 = self.create_user("baz@example.com")
@@ -181,7 +181,7 @@ class OffsetPaginatorTest(TestCase):
         assert result.next
         assert result.prev
 
-    def test_max_offset(self):
+    def test_max_offset(self) -> None:
         self.create_user("foo@example.com")
         self.create_user("bar@example.com")
         self.create_user("baz@example.com")
@@ -199,7 +199,7 @@ class OffsetPaginatorTest(TestCase):
 
 @control_silo_test
 class DateTimePaginatorTest(TestCase):
-    def test_ascending(self):
+    def test_ascending(self) -> None:
         joined = timezone.now()
 
         # The DateTime pager only has accuracy up to 1000th of a second.
@@ -240,7 +240,7 @@ class DateTimePaginatorTest(TestCase):
         assert result4.next
         assert not result4.prev
 
-    def test_descending(self):
+    def test_descending(self) -> None:
         joined = timezone.now()
 
         res1 = self.create_user("foo@example.com", date_joined=joined)
@@ -269,7 +269,7 @@ class DateTimePaginatorTest(TestCase):
         assert result3.next
         assert not result3.prev
 
-    def test_prev_descending_with_new(self):
+    def test_prev_descending_with_new(self) -> None:
         joined = timezone.now()
 
         res1 = self.create_user("foo@example.com", date_joined=joined)
@@ -297,7 +297,7 @@ class DateTimePaginatorTest(TestCase):
         result4 = paginator.get_result(limit=10, cursor=result1.next)
         assert len(result4) == 0, result4
 
-    def test_rounding_offset(self):
+    def test_rounding_offset(self) -> None:
         joined = timezone.now()
 
         res1 = self.create_user("foo@example.com", date_joined=joined)
@@ -330,7 +330,7 @@ class DateTimePaginatorTest(TestCase):
         result5 = paginator.get_result(limit=10, cursor=result4.prev)
         assert len(result5) == 0, list(result5)
 
-    def test_same_row_updated(self):
+    def test_same_row_updated(self) -> None:
         joined = timezone.now()
         res1 = self.create_user("foo@example.com", date_joined=joined)
         queryset = User.objects.all()
@@ -427,7 +427,7 @@ def test_reverse_bisect_left():
 
 
 class SequencePaginatorTestCase(SimpleTestCase):
-    def test_empty_results(self):
+    def test_empty_results(self) -> None:
         paginator: SequencePaginator[None] = SequencePaginator([])
         result = paginator.get_result(5)
         assert list(result) == []
@@ -440,7 +440,7 @@ class SequencePaginatorTestCase(SimpleTestCase):
         assert result.prev == Cursor(0, 0, True, False)
         assert result.next == Cursor(0, 0, False, False)
 
-    def test_ascending_simple(self):
+    def test_ascending_simple(self) -> None:
         paginator = SequencePaginator([(i, i) for i in range(10)], reverse=False)
 
         result = paginator.get_result(5)
@@ -463,7 +463,7 @@ class SequencePaginatorTestCase(SimpleTestCase):
         assert result.prev == Cursor(9, 1, True, True)
         assert result.next == Cursor(9, 1, False, False)
 
-    def test_descending_simple(self):
+    def test_descending_simple(self) -> None:
         paginator = SequencePaginator([(i, i) for i in range(10)], reverse=True)
 
         result = paginator.get_result(5)
@@ -486,7 +486,7 @@ class SequencePaginatorTestCase(SimpleTestCase):
         assert result.prev == Cursor(0, 1, True, True)
         assert result.next == Cursor(0, 1, False, False)
 
-    def test_ascending_repeated_scores(self):
+    def test_ascending_repeated_scores(self) -> None:
         paginator = SequencePaginator([(1, i) for i in range(10)], reverse=False)
 
         result = paginator.get_result(5)
@@ -509,7 +509,7 @@ class SequencePaginatorTestCase(SimpleTestCase):
         assert result.prev == Cursor(1, 10, True, True)
         assert result.next == Cursor(1, 10, False, False)
 
-    def test_descending_repeated_scores(self):
+    def test_descending_repeated_scores(self) -> None:
         paginator = SequencePaginator([(1, i) for i in range(10)], reverse=True)
 
         result = paginator.get_result(5)
@@ -532,14 +532,14 @@ class SequencePaginatorTestCase(SimpleTestCase):
         assert result.prev == Cursor(1, 10, True, True)
         assert result.next == Cursor(1, 10, False, False)
 
-    def test_hits(self):
+    def test_hits(self) -> None:
         n = 10
         paginator = SequencePaginator([(i, i) for i in range(n)])
         assert paginator.get_result(5, count_hits=True).hits == n
 
 
 class GenericOffsetPaginatorTest(SimpleTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         def data_fn(offset=None, limit=None):
             return [i for i in range(offset, limit)]
 
@@ -559,7 +559,7 @@ class GenericOffsetPaginatorTest(SimpleTestCase):
 
 
 class CombinedQuerysetPaginatorTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.project
         Rule.objects.all().delete()
 
@@ -634,14 +634,14 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         result = paginator.get_result(limit=3, cursor=prev_cursor)
         assert list(result) == page1_results
 
-    def test_order_by_invalid_key(self):
+    def test_order_by_invalid_key(self) -> None:
         with pytest.raises(AssertionError):
             rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), "dontexist")
             CombinedQuerysetPaginator(
                 intermediaries=[rule_intermediary],
             )
 
-    def test_mix_date_and_not_date(self):
+    def test_mix_date_and_not_date(self) -> None:
         with pytest.raises(AssertionError):
             rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), "date_added")
             rule_intermediary2 = CombinedQuerysetIntermediary(Rule.objects.all(), "label")
@@ -649,7 +649,7 @@ class CombinedQuerysetPaginatorTest(APITestCase):
                 intermediaries=[rule_intermediary, rule_intermediary2],
             )
 
-    def test_only_issue_alert_rules(self):
+    def test_only_issue_alert_rules(self) -> None:
         project = self.project
         Rule.objects.all().delete()
         rule_ids = []
@@ -692,7 +692,7 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         assert len(result) == 5
         assert result == page1_results
 
-    def test_only_metric_alert_rules(self):
+    def test_only_metric_alert_rules(self) -> None:
         project = self.project
         AlertRule.objects.all().delete()
         Rule.objects.all().delete()
@@ -753,7 +753,7 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         assert len(result) == 5
         assert result == page1_results
 
-    def test_issue_and_metric_alert_rules(self):
+    def test_issue_and_metric_alert_rules(self) -> None:
         project = self.project
         AlertRule.objects.all().delete()
         Rule.objects.all().delete()
@@ -826,7 +826,7 @@ class CombinedQuerysetPaginatorTest(APITestCase):
 class TestChainPaginator(SimpleTestCase):
     cls = ChainPaginator
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         sources = [[1, 2, 3, 4], [5, 6, 7, 8]]
         paginator = self.cls(sources=sources)
         result = paginator.get_result(limit=5)
@@ -835,7 +835,7 @@ class TestChainPaginator(SimpleTestCase):
         assert result.next.has_results
         assert result.prev.has_results is False
 
-    def test_small_first(self):
+    def test_small_first(self) -> None:
         sources = [[1, 2], [3, 4, 5, 6, 7, 8, 9, 10]]
         paginator = self.cls(sources=sources)
         first = paginator.get_result(limit=4)
@@ -848,7 +848,7 @@ class TestChainPaginator(SimpleTestCase):
         assert second.prev.has_results
         assert second.next.has_results
 
-    def test_results_from_two_sources(self):
+    def test_results_from_two_sources(self) -> None:
         sources = [[1, 2, 3, 4], [5, 6, 7, 8]]
         cursor = Cursor(3, 1)
         paginator = self.cls(sources=sources)
@@ -858,7 +858,7 @@ class TestChainPaginator(SimpleTestCase):
         assert result.next.has_results
         assert result.prev.has_results
 
-    def test_results_from_last_source(self):
+    def test_results_from_last_source(self) -> None:
         sources = [[1, 2, 3, 4], [5, 6, 7, 8]]
         cursor = Cursor(3, 2)
         paginator = self.cls(sources=sources)
@@ -868,7 +868,7 @@ class TestChainPaginator(SimpleTestCase):
         assert result.next.has_results is False
         assert result.prev.has_results
 
-    def test_no_duplicates_in_pagination(self):
+    def test_no_duplicates_in_pagination(self) -> None:
         sources = [[1, 2, 3, 4], [5, 6, 7, 8]]
         cursor = Cursor(3, 0)
         paginator = self.cls(sources=sources)
@@ -928,7 +928,7 @@ class CallbackPaginatorTest(APITestCase, SnubaTestCase):
                 },
             )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         paginator = self.cls(
             callback=lambda limit, offset: dummy_snuba_request_method(
                 limit, offset, self.organization.id, self.project.id, self.now

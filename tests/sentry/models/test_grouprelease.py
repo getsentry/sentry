@@ -9,7 +9,7 @@ from sentry.testutils.cases import TestCase
 
 
 class GetOrCreateTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project()
         group = self.create_group(project=project)
         release = Release.objects.create(version="abc", organization_id=project.organization_id)

@@ -88,7 +88,7 @@ class PipelineTestCase(TestCase):
         pipeline.clear_session()
         assert not pipeline.state.is_valid()
 
-    def test_invalidated_pipeline(self):
+    def test_invalidated_pipeline(self) -> None:
         pipeline = DummyPipeline(self.request, "dummy", self.org)
         pipeline.initialize()
 
