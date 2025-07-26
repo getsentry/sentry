@@ -174,7 +174,7 @@ describe('Exception Content', function () {
     );
   });
 
-  it('respects platform overrides in stacktrace frames', function () {
+  it('respects platform overrides in stacktrace frames', async function () {
     const event = EventFixture({
       projectID: project.id,
       platform: 'python',
@@ -215,6 +215,8 @@ describe('Exception Content', function () {
 
     // Cocoa override should render a native stack trace component
     expect(screen.getByTestId('native-stack-trace-content')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'View Section'}));
 
     // Other stacktrace should render the normal stack trace (python)
     expect(screen.getByTestId('stack-trace-content')).toBeInTheDocument();
@@ -259,6 +261,9 @@ describe('Exception Content', function () {
         deprecatedRouterMocks: true,
       });
 
+      expect(
+        screen.getByText('There are 4 chained exceptions in this event.')
+      ).toBeInTheDocument();
       const exceptions = screen.getAllByTestId('exception-value');
 
       // First exception should be the parent ExceptionGroup
@@ -266,45 +271,35 @@ describe('Exception Content', function () {
       expect(
         within(exceptions[0]!).getByRole('heading', {name: 'ExceptionGroup 1'})
       ).toBeInTheDocument();
+      expect(within(exceptions[0]!).getByText('Related Exceptions')).toBeInTheDocument();
     });
 
-    it('displays exception group tree in first frame when there is no other context', function () {
+    it('hides sub-groups by default', async function () {
       render(<Content {...defaultProps} />, {
         deprecatedRouterMocks: true,
       });
 
-      const exceptions = screen.getAllByTestId('exception-value');
-
-      const exceptionGroupWithNoContext = exceptions[2]!;
-      expect(
-        within(exceptionGroupWithNoContext).getByText('Related Exceptions')
-      ).toBeInTheDocument();
-    });
-
-    it('collapses sub-groups by default', async function () {
-      render(<Content {...defaultProps} />, {
-        deprecatedRouterMocks: true,
-      });
-
-      // There are 4 values, but 1 should be hidden
-      expect(screen.getAllByTestId('exception-value')).toHaveLength(3);
-      expect(screen.queryByRole('heading', {name: 'ValueError'})).not.toBeInTheDocument();
+      // There are 4 values, but 3 should be hidden
+      // 2 of them are children of the visible exception group, 1 is a child of
+      // an unknown exception group
+      expect(screen.getAllByTestId('exception-value')).toHaveLength(1);
+      expect(screen.queryByRole('heading', {name: 'TypeError'})).not.toBeInTheDocument();
 
       await userEvent.click(
-        screen.getByRole('button', {name: /show 1 related exception/i})
+        screen.getByRole('button', {name: /show 2 related exceptions/i})
       );
 
-      // After expanding, ValueError should be visible
-      expect(screen.getAllByTestId('exception-value')).toHaveLength(4);
-      expect(screen.getByRole('heading', {name: 'ValueError'})).toBeInTheDocument();
+      // After expanding, TypeError should be visible
+      expect(screen.getAllByTestId('exception-value')).toHaveLength(3);
+      expect(screen.getByRole('heading', {name: 'TypeError'})).toBeInTheDocument();
 
       await userEvent.click(
-        screen.getByRole('button', {name: /hide 1 related exception/i})
+        screen.getByRole('button', {name: /hide 2 related exceptions/i})
       );
 
-      // After collapsing, ValueError should be gone again
-      expect(screen.getAllByTestId('exception-value')).toHaveLength(3);
-      expect(screen.queryByRole('heading', {name: 'ValueError'})).not.toBeInTheDocument();
+      // After hiding, TypeError and its sibling should be gone again
+      expect(screen.getAllByTestId('exception-value')).toHaveLength(1);
+      expect(screen.queryByRole('heading', {name: 'TypeError'})).not.toBeInTheDocument();
     });
 
     it('auto-opens sub-groups when clicking link in tree', async function () {
@@ -312,12 +307,16 @@ describe('Exception Content', function () {
         deprecatedRouterMocks: true,
       });
 
-      expect(screen.queryByRole('heading', {name: 'ValueError'})).not.toBeInTheDocument();
+      expect(screen.queryByText('Hide 2 related exceptions')).not.toBeInTheDocument();
+      expect(screen.getByText('Show 2 related exceptions')).toBeInTheDocument();
+      expect(screen.queryByRole('heading', {name: 'TypeError'})).not.toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('button', {name: /ValueError: test/i}));
+      await userEvent.click(screen.getByRole('button', {name: /TypeError: nested/i}));
 
-      // After expanding, ValueError should be visible
-      expect(screen.getByRole('heading', {name: 'ValueError'})).toBeInTheDocument();
+      // After expanding, TypeError should be visible and toggle copy should change
+      expect(screen.getByText('Hide 2 related exceptions')).toBeInTheDocument();
+      expect(screen.queryByText('Show 2 related exceptions')).not.toBeInTheDocument();
+      expect(screen.getByRole('heading', {name: 'TypeError'})).toBeInTheDocument();
     });
   });
 });
