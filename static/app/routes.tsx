@@ -37,7 +37,7 @@ import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprec
 import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
-import {IndexRoute, Redirect, Route, type SentryRouteObject} from './components/route';
+import {Redirect, Route, type SentryRouteObject} from './components/route';
 import {makeLazyloadComponent as make} from './makeLazyloadComponent';
 
 const routeHook = (name: HookName): SentryRouteObject =>
