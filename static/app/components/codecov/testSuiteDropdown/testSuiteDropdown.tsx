@@ -2,6 +2,7 @@ import {useCallback, useMemo} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import {useTestSuites} from 'sentry/components/codecov/testSuiteDropdown/useTestSuites';
 import {Badge} from 'sentry/components/core/badge';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
@@ -9,26 +10,19 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trimSlug} from 'sentry/utils/string/trimSlug';
 
-// TODO: have these come from the API
-const PLACEHOLDER_TEST_SUITES = [
-  'option 1',
-  'option 2',
-  'option 3',
-  'super-long-option-4',
-];
-
-const TEST_SUITE = 'testSuite';
+const TEST_SUITES = 'testSuites';
 const MAX_SUITE_UI_LENGTH = 22;
 
 export function TestSuiteDropdown() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const {data: testSuites} = useTestSuites();
 
   const handleChange = useCallback(
     (newTestSuites: string[]) => {
-      searchParams.delete(TEST_SUITE);
+      searchParams.delete(TEST_SUITES);
 
       newTestSuites.forEach(suite => {
-        searchParams.append(TEST_SUITE, suite);
+        searchParams.append(TEST_SUITES, suite);
       });
 
       setSearchParams(searchParams);
@@ -38,20 +32,20 @@ export function TestSuiteDropdown() {
 
   const options = useMemo(
     () =>
-      PLACEHOLDER_TEST_SUITES.map(suite => ({
+      testSuites?.map(suite => ({
         value: suite,
         label: suite,
       })),
-    []
+    [testSuites]
   );
 
   /**
    * Validated values that only includes the currently available test suites
    */
   const value = useMemo(() => {
-    const urlTestSuites = searchParams.getAll(TEST_SUITE);
-    return urlTestSuites.filter(suite => PLACEHOLDER_TEST_SUITES.includes(suite));
-  }, [searchParams]);
+    const urlTestSuites = searchParams.getAll(TEST_SUITES);
+    return urlTestSuites.filter(suite => testSuites?.includes(suite));
+  }, [searchParams, testSuites]);
 
   return (
     <HybridFilter
@@ -67,8 +61,7 @@ export function TestSuiteDropdown() {
       menuWidth={`${MAX_SUITE_UI_LENGTH}em`}
       trigger={triggerProps => {
         const areAllSuitesSelected =
-          value.length === 0 ||
-          PLACEHOLDER_TEST_SUITES.every(suite => value.includes(suite));
+          value.length === 0 || testSuites?.every(suite => value.includes(suite));
         // Show 2 suites only if the combined string's length does not exceed 22.
         // Otherwise show only 1 test suite.
         const totalLength =
