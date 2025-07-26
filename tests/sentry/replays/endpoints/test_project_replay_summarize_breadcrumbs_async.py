@@ -103,6 +103,12 @@ class ProjectReplaySummarizeBreadcrumbsAsyncTestCase(
             assert response.status_code == 200
             assert response.json() == {"hello": "world"}
 
+        assert len(responses.calls) == 1
+        request = responses.calls[0].request
+        assert request.url == SEER_POLL_STATE_URL
+        assert request.method == "POST"
+        assert request.body == json.dumps({"replay_id": self.replay_id})
+
     @responses.activate
     def test_post_simple(self):
         mock_seer_response("POST", status=200, json={"hello": "world"})
