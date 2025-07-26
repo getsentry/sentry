@@ -8,9 +8,10 @@ from uuid import UUID, uuid4
 
 import jsonschema
 
-from sentry import options
+from sentry import features, options
 from sentry.constants import DataCategory
 from sentry.feedback.lib.utils import UNREAL_FEEDBACK_UNATTENDED_MESSAGE, FeedbackCreationSource
+from sentry.feedback.usecases.label_generation import generate_labels
 from sentry.feedback.usecases.spam_detection import is_spam, spam_detection_enabled
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -362,6 +363,15 @@ def create_feedback_issue(
         **event,
     }
     event_fixed = fix_for_issue_platform(event_data)
+
+    # Generating labels using Seer, which will later be used to categorize feedbacks
+    if features.has("organizations:user-feedback-ai-categorization", project.organization):
+        try:
+            labels = generate_labels(feedback_message, project.organization_id)
+            for idx, label in enumerate(labels):
+                event_fixed["tags"][f"ai_categorization.label.{idx}"] = label
+        except Exception:
+            logger.exception("Error generating labels", extra={"project_id": project_id})
 
     # Set the user.email tag since we want to be able to display user.email on the feedback UI as a tag
     # as well as be able to write alert conditions on it
