@@ -13,8 +13,9 @@ from sentry.eventstream.kafka.protocol import (
     get_task_kwargs_for_message,
     get_task_kwargs_for_message_from_headers,
 )
+from sentry.options.rollout import in_random_rollout
 from sentry.post_process_forwarder.post_process_forwarder import PostProcessForwarderStrategyFactory
-from sentry.tasks.post_process import post_process_group
+from sentry.tasks.post_process import post_process_group, post_process_group_shim
 from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
 
@@ -52,21 +53,38 @@ def dispatch_post_process_group_task(
     else:
         cache_key = cache_key_for_event({"project": project_id, "event_id": event_id})
 
-        post_process_group.apply_async(
-            kwargs={
-                "is_new": is_new,
-                "is_regression": is_regression,
-                "is_new_group_environment": is_new_group_environment,
-                "primary_hash": primary_hash,
-                "cache_key": cache_key,
-                "group_id": group_id,
-                "group_states": group_states,
-                "occurrence_id": occurrence_id,
-                "project_id": project_id,
-                "eventstream_type": eventstream_type,
-            },
-            queue=queue,
-        )
+        if in_random_rollout("taskworker.postprocess.namespace.rollout"):
+            post_process_group_shim.apply_async(
+                kwargs={
+                    "is_new": is_new,
+                    "is_regression": is_regression,
+                    "is_new_group_environment": is_new_group_environment,
+                    "primary_hash": primary_hash,
+                    "cache_key": cache_key,
+                    "group_id": group_id,
+                    "group_states": group_states,
+                    "occurrence_id": occurrence_id,
+                    "project_id": project_id,
+                    "eventstream_type": eventstream_type,
+                },
+                queue=queue,
+            )
+        else:
+            post_process_group.apply_async(
+                kwargs={
+                    "is_new": is_new,
+                    "is_regression": is_regression,
+                    "is_new_group_environment": is_new_group_environment,
+                    "primary_hash": primary_hash,
+                    "cache_key": cache_key,
+                    "group_id": group_id,
+                    "group_states": group_states,
+                    "occurrence_id": occurrence_id,
+                    "project_id": project_id,
+                    "eventstream_type": eventstream_type,
+                },
+                queue=queue,
+            )
 
 
 def _get_task_kwargs(message: Message[KafkaPayload]) -> Mapping[str, Any] | None:
