@@ -1499,6 +1499,23 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             release_3_g_2,
         ]
 
+        # Test IN operator - this should work after implementation
+        response = self.get_response(
+            sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:[1.2.3,1.2.5]"
+        )
+        assert response.status_code == 200, response.content
+        assert [int(r["id"]) for r in response.data] == [
+            release_1_g_1,
+            release_1_g_2,
+            release_3_g_1,
+            release_3_g_2,
+        ]
+
+        # Test IN operator with single value
+        response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:[1.2.4]")
+        assert response.status_code == 200, response.content
+        assert [int(r["id"]) for r in response.data] == [release_2_g_1, release_2_g_2]
+
     def test_release_stage(self) -> None:
         replaced_release = self.create_release(
             version="replaced_release",
@@ -1689,8 +1706,23 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             release_2_g_1,
         ]
 
+        # This currently returns 400, but should work after implementation
+        response = self.get_response(
+            sort_by="date", limit=10, query=f"{SEMVER_BUILD_ALIAS}:[123,124]"
+        )
+        assert response.status_code == 200, response.content
+        assert [int(r["id"]) for r in response.data] == [
+            release_1_g_1,
+            release_1_g_2,
+            release_2_g_1,
+        ]
+
+        # Test IN operator with single build
         response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_BUILD_ALIAS}:[124]")
-        assert response.status_code == 400, response.content
+        assert response.status_code == 200, response.content
+        assert [int(r["id"]) for r in response.data] == [
+            release_2_g_1,
+        ]
 
     def test_aggregate_stats_regression_test(self) -> None:
         self.store_event(
