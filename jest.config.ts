@@ -285,10 +285,6 @@ if (
         testMatch = getTestsForGroup(nodeIndex, nodeTotal, envTestList, balance);
         break;
     }
-
-    // optionalTags.balancer = true;
-    // optionalTags.balancer_strategy = 'by_path';
-    // testMatch = getTestsForGroup(nodeIndex, nodeTotal, envTestList, balance);
   } else {
     const tests = envTestList.sort((a, b) => b.localeCompare(a));
 
