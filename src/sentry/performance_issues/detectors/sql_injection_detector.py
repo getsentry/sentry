@@ -216,6 +216,10 @@ class SQLInjectionDetector(PerformanceDetector):
         if span.get("origin") == "auto.db.rails":
             return False
 
+        # If bindings are present, we can assume the query is safe
+        if span.get("data", {}).get("db.sql.bindings"):
+            return False
+
         description = span.get("description", None)
         if not description:
             return False
@@ -228,12 +232,10 @@ class SQLInjectionDetector(PerformanceDetector):
         ):
             return False
 
+        # Laravel queries with this pattern can contain interpolated values
         if span.get("sentry_tags", {}).get("sdk.name") == "sentry.php.laravel" and re.search(
             r"IN\s*\(\s*(\d+\s*,\s*)*\d+\s*\)", description
         ):
-            return False
-
-        if span.get("data", {}).get("db.sql.bindings"):
             return False
 
         return True
