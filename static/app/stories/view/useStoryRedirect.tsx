@@ -35,8 +35,28 @@ export function useStoryRedirect() {
       return;
     }
     const {state, ...to} = story.location;
-    navigate(to, {replace: true, state});
+    navigate(
+      {pathname: location.pathname, hash: location.hash, ...to},
+      {replace: true, state: {...location.state, ...state}}
+    );
   }, [location, params, navigate, stories]);
+
+  useLayoutEffect(() => {
+    requestAnimationFrame(() => scrollToHash());
+  }, [location.hash]);
+}
+
+function scrollToHash() {
+  if (window.location.hash) {
+    const hash = window.location.hash.replace(/^#/, '');
+
+    try {
+      const element = document.querySelector(`#${hash}`);
+      element?.scrollIntoView({behavior: 'instant', block: 'start'});
+    } catch {
+      // hash might be an invalid querySelector and lead to a DOMException
+    }
+  }
 }
 
 interface StoryRouteContext {

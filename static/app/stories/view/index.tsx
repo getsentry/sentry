@@ -74,7 +74,7 @@ function StoryDetail() {
 function StoriesLayout(props: PropsWithChildren) {
   return (
     <Fragment>
-      <GlobalStoryStyles />
+      <GlobalStoryStyles key="global-story-styles" />
       <RouteAnalyticsContextProvider>
         <OrganizationContainer>
           <Layout>
@@ -124,7 +124,7 @@ function GlobalStoryStyles() {
       background: ${theme.tokens.background.primary};
     }
   `;
-  return <Global key="stories" styles={styles} />;
+  return <Global styles={styles} />;
 }
 
 const Layout = styled('div')`
@@ -175,7 +175,7 @@ const StoryMainContainer = styled('div')`
   h4,
   h5,
   h6 {
-    scroll-margin-top: 64px;
+    scroll-margin-top: 80px;
     margin: 0;
   }
 
