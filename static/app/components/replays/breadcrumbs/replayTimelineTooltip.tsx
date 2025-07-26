@@ -27,17 +27,28 @@ export default function TimelineTooltip({container}: Props) {
   const startTimestamp = replay?.getStartTimestampMs() ?? 0;
   const [currentHoverTime] = useCurrentHoverTime();
 
+  const timeoutRef = useRef<number | undefined>(undefined);
+
   // Use a timeout instead of hiding right away, to avoid flickering.
   const [lastHoverTime, setLastHoverTime] = useState<number | undefined>(undefined);
   useEffect(() => {
     if (currentHoverTime === undefined) {
-      const timeout = setTimeout(() => {
+      timeoutRef.current = window.setTimeout(() => {
         setLastHoverTime(undefined);
       }, 0);
-      return () => clearTimeout(timeout);
+    } else {
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+        timeoutRef.current = undefined;
+      }
+      setLastHoverTime(currentHoverTime);
     }
-    setLastHoverTime(currentHoverTime);
-    return () => {};
+
+    return () => {
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+      }
+    };
   }, [currentHoverTime]);
 
   return createPortal(
