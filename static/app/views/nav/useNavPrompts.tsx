@@ -8,15 +8,13 @@ export function useNavPrompts({
   collapsed: boolean;
   organization: Organization | null;
 }) {
-  const hasNavigationV2Banner = organization?.features.includes('navigation-sidebar-v2');
-
   const {
     isPromptDismissed: isSidebarPromptDismissed,
     dismissPrompt: dismissSidebarPrompt,
   } = usePrompt({
     feature: 'stacked_navigation_banner',
     organization,
-    options: {enabled: hasNavigationV2Banner},
+    options: {enabled: true},
   });
 
   const {
@@ -25,17 +23,14 @@ export function useNavPrompts({
   } = usePrompt({
     feature: 'stacked_navigation_help_menu',
     organization,
-    options: {enabled: hasNavigationV2Banner},
+    options: {enabled: true},
   });
 
   const shouldShowHelpMenuDot =
-    hasNavigationV2Banner &&
-    isDropdownPromptDismissed === false &&
-    (collapsed || isSidebarPromptDismissed);
+    isDropdownPromptDismissed === false && (collapsed || isSidebarPromptDismissed);
 
   return {
-    shouldShowSidebarBanner:
-      hasNavigationV2Banner && !collapsed && isSidebarPromptDismissed === false,
+    shouldShowSidebarBanner: !collapsed && isSidebarPromptDismissed === false,
     shouldShowHelpMenuDot,
     onOpenHelpMenu: () => {
       if (shouldShowHelpMenuDot) {

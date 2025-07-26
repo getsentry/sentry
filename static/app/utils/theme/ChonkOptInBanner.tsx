@@ -27,6 +27,7 @@ export function ChonkOptInBanner(props: {collapsed: boolean | 'never'}) {
     <TranslucentBackgroundPanel
       isDarkMode={config.theme === 'dark'}
       position={props.collapsed === 'never' ? 'absolute' : 'relative'}
+      data-test-id="chonk-opt-in-banner"
     >
       <Title>{t('Sentry has a new look')}</Title>
       <Description>
