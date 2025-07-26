@@ -227,6 +227,15 @@ class SQLInjectionDetector(PerformanceDetector):
             or any(keyword in description for keyword in PARAMETERIZED_KEYWORDS)
         ):
             return False
+
+        if span.get("sentry_tags", {}).get("sdk.name") == "sentry.php.laravel" and re.search(
+            r"IN\s*\(\s*(\d+\s*,\s*)*\d+\s*\)", description
+        ):
+            return False
+
+        if span.get("data", {}).get("db.sql.bindings"):
+            return False
+
         return True
 
     @classmethod
