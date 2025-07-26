@@ -5,6 +5,28 @@ on:
     branches:
       - master
   pull_request:
+  workflow_dispatch:
+    inputs:
+      jest_shard_strategy:
+        description: 'How to shard the tests'
+        required: true
+        default: 'original'
+        type: choice
+        options:
+          - original
+          - hash
+          - slice
+      jest_instances:
+        description: 'Number of instances to run the tests on'
+        required: true
+        default: '[0, 1, 2, 3]'
+        type: choice
+        options:
+          - '[0, 1, 2, 3, 4, 5]'
+          - '[0, 1, 2, 3, 4]'
+          - '[0, 1, 2, 3]'
+          - '[0, 1, 2]'
+          - '[0, 1]'
 
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
@@ -165,8 +187,9 @@ jobs:
       fail-fast: false
       matrix:
         # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
-
-        instance: [0, 1, 2, 3]
+        instance: ${{ fromJSON(inputs.jest_instances) }}
+        include:
+          - node_total: ${{ fromJSON(inputs.jest_instances).length }}
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -198,7 +221,7 @@ jobs:
           #      Otherwise, if there are other things in the matrix, using strategy.job-total
           #      wouldn't be correct. Also, if this increases, make sure to also increase
           #      `flags.frontend.after_n_builds` in `codecov.yml`.
-          CI_NODE_TOTAL: 4
+          CI_NODE_TOTAL: ${{ matrix.node_total }}
           CI_NODE_INDEX: ${{ matrix.instance }}
           # Disable testing-library from printing out any of of the DOM to
           # stdout. No one actually looks through this in CI, they're just
@@ -206,6 +229,8 @@ jobs:
           #
           # This quiets up the logs quite a bit.
           DEBUG_PRINT_LIMIT: 0
+
+          SHARD_STRATEGY: ${{ inputs.jest_shard_strategy }}
         run: |
           if [ ${{ github.ref }} = 'refs/heads/master' ]; then
             pnpm run test-ci --forceExit --coverage

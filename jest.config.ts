@@ -1,4 +1,5 @@
 import type {Config} from '@jest/types';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import process from 'node:process';
 import {execFileSync} from 'node:child_process';
@@ -45,12 +46,13 @@ const {
   GITHUB_PR_REF,
   GITHUB_RUN_ID,
   GITHUB_RUN_ATTEMPT,
+  SHARD_STRATEGY,
 } = process.env;
 
 const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
 
 const optionalTags: {
-  balancer?: boolean;
+  balancer: boolean;
   balancer_strategy?: string;
 } = {
   balancer: false,
@@ -100,6 +102,36 @@ ${stderr}
  * be running the tests.
  */
 let testMatch: string[] | undefined;
+
+function getTestForGroupBySlice(
+  nodeIndex: number,
+  nodeTotal: number,
+  allTests: ReadonlyArray<string>
+): string[] {
+  const sorted = allTests.toSorted();
+  const chunkSize = Math.ceil(sorted.length / nodeTotal);
+  const start = nodeIndex * chunkSize;
+  const end = start + chunkSize;
+  return sorted.slice(start, end).map(test => `<rootDir>/${test}`);
+}
+
+function getTestsForGroupByHash(
+  nodeIndex: number,
+  nodeTotal: number,
+  allTests: ReadonlyArray<string>
+): string[] {
+  const tests = new Map<number, string[]>(
+    Array.from({length: nodeTotal}, (_, i) => [i, []])
+  );
+
+  for (const test of allTests) {
+    const hash = crypto.createHash('sha256').update(test).digest('hex');
+    const index = parseInt(hash.slice(0, 2), 16) % nodeTotal;
+    tests.get(index)?.push(`<rootDir>/${test}`);
+  }
+
+  return tests.get(nodeIndex) ?? [];
+}
 
 function getTestsForGroup(
   nodeIndex: number,
@@ -231,9 +263,28 @@ if (
   const nodeIndex = Number(CI_NODE_INDEX);
 
   if (balance) {
-    optionalTags.balancer = true;
-    optionalTags.balancer_strategy = 'by_path';
-    testMatch = getTestsForGroup(nodeIndex, nodeTotal, envTestList, balance);
+    switch (SHARD_STRATEGY) {
+      case 'hash':
+        optionalTags.balancer = true;
+        optionalTags.balancer_strategy = 'by_hash';
+        testMatch = getTestsForGroupByHash(nodeIndex, nodeTotal, envTestList);
+        break;
+      case 'slice':
+        optionalTags.balancer = true;
+        optionalTags.balancer_strategy = 'by_slice';
+        testMatch = getTestForGroupBySlice(nodeIndex, nodeTotal, envTestList);
+        break;
+      case 'original':
+      default:
+        optionalTags.balancer = true;
+        optionalTags.balancer_strategy = 'by_path';
+        testMatch = getTestsForGroup(nodeIndex, nodeTotal, envTestList, balance);
+        break;
+    }
+
+    // optionalTags.balancer = true;
+    // optionalTags.balancer_strategy = 'by_path';
+    // testMatch = getTestsForGroup(nodeIndex, nodeTotal, envTestList, balance);
   } else {
     const tests = envTestList.sort((a, b) => b.localeCompare(a));
 
