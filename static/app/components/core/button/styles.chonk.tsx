@@ -198,7 +198,7 @@ export function DO_NOT_USE_getChonkButtonStyles(
       },
 
       '&:focus-visible': {
-        ...p.theme.focusRing,
+        ...p.theme.focusRing(),
       },
 
       '> span:last-child': {
