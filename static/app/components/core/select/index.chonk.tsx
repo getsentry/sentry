@@ -61,6 +61,7 @@ export const getChonkStylesConfig = ({
       color: 'currentcolor',
     },
   });
+  const boxShadow = `0px ${chonk} 0px 0px ${theme.tokens.border.primary} inset`;
 
   return {
     control: (_, state) => ({
@@ -68,11 +69,11 @@ export const getChonkStylesConfig = ({
       color: state.isDisabled ? theme.disabled : theme.textColor,
       background: theme.tokens.background.secondary,
       border: `1px solid ${theme.border}`,
-      boxShadow: `0px ${chonk} 0px 0px ${theme.tokens.border.primary} inset`,
+      boxShadow,
       ...theme.formRadius[size],
       transition: 'border 0.1s, box-shadow 0.1s',
       alignItems: 'center',
-      ...(state.isFocused && theme.focusRing),
+      ...(state.isFocused && theme.focusRing(boxShadow)),
       ...(state.isDisabled && {
         background: theme.background,
         color: theme.disabled,
