@@ -27,11 +27,6 @@ on:
           - '[0, 1, 2, 3]'
           - '[0, 1, 2]'
           - '[0, 1]'
-      jest_instance_count:
-        description: 'Number of instances to run the tests on (1-6)'
-        required: true
-        default: 4
-        type: number
 
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
@@ -224,8 +219,8 @@ jobs:
           #      Otherwise, if there are other things in the matrix, using strategy.job-total
           #      wouldn't be correct. Also, if this increases, make sure to also increase
           #      `flags.frontend.after_n_builds` in `codecov.yml`.
-          CI_NODE_TOTAL: ${{ fromJSON(inputs.jest_instance_count || '4') }}
-          CI_NODE_INDEX: ${{ fromJSON(matrix.instance) }}
+          CI_NODE_INSTANCES: ${{ inputs.jest_instances || '[0, 1, 2, 3]' }}
+          CI_NODE_INDEX: ${{ matrix.instance }}
           # Disable testing-library from printing out any of of the DOM to
           # stdout. No one actually looks through this in CI, they're just
           # going to run it locally.
