@@ -33,7 +33,11 @@ from sentry.sentry_apps.metrics import (
     SentryAppWebhookFailureReason,
     SentryAppWebhookHaltReason,
 )
-from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app import (
+    SentryApp,
+    SentryAppActionType,
+    SentryAppResourceType,
+)
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
@@ -252,7 +256,10 @@ def send_alert_webhook_v2(
             data[additional_payload_key] = additional_payload
 
         request_data = AppPlatformEvent(
-            resource="event_alert", action="triggered", install=install, data=data
+            resource=SentryAppResourceType.EVENT_ALERT,
+            action=SentryAppActionType.TRIGGERED,
+            install=install,
+            data=data,
         )
 
     send_and_save_webhook_request(sentry_app, request_data)
