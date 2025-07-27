@@ -104,6 +104,252 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
             assert len(response.data) == 1
             assert response.data[0]["eventID"] == event.event_id
 
+    def test_with_stats_period_parameter(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+
+        # Event from 20 days ago
+        self.store_event(data={"timestamp": before_now(days=20).isoformat()}, project_id=project.id)
+
+        # Event from 2 days ago
+        recent_event = self.store_event(
+            data={"timestamp": before_now(days=2).isoformat()}, project_id=project.id
+        )
+
+        url = reverse(
+            "sentry-api-0-project-events",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+        response = self.client.get(url, {"statsPeriod": "15d"}, format="json")
+
+        assert response.status_code == 200, response.content
+
+        # Only the recent event should be returned:
+        assert len(response.data) == 1
+        assert response.data[0]["eventID"] == recent_event.event_id
+
+    def test_with_start_and_end_parameters(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+
+        # Event from 10 days ago
+        old_event = self.store_event(
+            data={"timestamp": before_now(days=10).isoformat()}, project_id=project.id
+        )
+
+        # Event from 5 days ago
+        intermediary_event = self.store_event(
+            data={"timestamp": before_now(days=5).isoformat()}, project_id=project.id
+        )
+
+        # Event from 1 day ago
+        self.store_event(data={"timestamp": before_now(days=1).isoformat()}, project_id=project.id)
+
+        url = reverse(
+            "sentry-api-0-project-events",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+
+        # Filter to get events from 12 days ago to 3 days ago
+        start_time = before_now(days=12)
+        end_time = before_now(days=3)
+
+        response = self.client.get(
+            url,
+            {
+                "start": start_time.isoformat(),
+                "end": end_time.isoformat(),
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        event_ids = [event["eventID"] for event in response.data]
+        assert old_event.event_id in event_ids
+        assert intermediary_event.event_id in event_ids
+
+    def test_with_timezone_naive_start_and_end_parameters(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+
+        # Event from 10 days ago
+        old_event = self.store_event(
+            data={"timestamp": before_now(days=10).isoformat()}, project_id=project.id
+        )
+
+        # Event from 5 days ago
+        intermediary_event = self.store_event(
+            data={"timestamp": before_now(days=5).isoformat()}, project_id=project.id
+        )
+
+        # Event from 1 day ago
+        self.store_event(data={"timestamp": before_now(days=1).isoformat()}, project_id=project.id)
+
+        url = reverse(
+            "sentry-api-0-project-events",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+
+        # Filter to get events from 12 days ago to 3 days ago
+        start_time = before_now(days=12).replace(tzinfo=None)
+        end_time = before_now(days=3).replace(tzinfo=None)
+
+        response = self.client.get(
+            url,
+            {
+                "start": start_time.isoformat(),
+                "end": end_time.isoformat(),
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        event_ids = [event["eventID"] for event in response.data]
+        assert old_event.event_id in event_ids
+        assert intermediary_event.event_id in event_ids
+
+    def test_with_invalid_stats_period_parameter(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        url = reverse(
+            "sentry-api-0-project-events",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+
+        response = self.client.get(url, {"statsPeriod": "invalid"}, format="json")
+
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == "Invalid date range parameters provided"
+
+    def test_with_invalid_start_parameter(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        url = reverse(
+            "sentry-api-0-project-events",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+        end_time = before_now(days=3)
+        response = self.client.get(
+            url, {"start": "not-a-date", "end": end_time.isoformat()}, format="json"
+        )
+
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == "Invalid date range parameters provided"
+
+    def test_with_start_parameter_and_no_end_parameter(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+
+        url = reverse(
+            "sentry-api-0-project-events",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+        start_time = before_now(days=3)
+        response = self.client.get(url, {"start": start_time.isoformat()}, format="json")
+
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == "Invalid date range parameters provided"
+
+    def test_with_start_parameter_after_end_parameter(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+
+        url = reverse(
+            "sentry-api-0-project-events",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+        start_time = before_now(days=1)
+        end_time = before_now(days=3)
+        response = self.client.get(
+            url, {"start": start_time.isoformat(), "end": end_time.isoformat()}, format="json"
+        )
+
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == "Invalid date range parameters provided"
+
+    def test_with_stats_period_parameter_with_event_date_limit_feature_flag(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+
+        # Event from 10 days ago (outside feature flag limit)
+        self.store_event(data={"timestamp": before_now(days=10).isoformat()}, project_id=project.id)
+
+        # Event from 5 days ago (within feature flag limit)
+        recent_event = self.store_event(
+            data={"timestamp": before_now(days=5).isoformat()}, project_id=project.id
+        )
+
+        url = reverse(
+            "sentry-api-0-project-events",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+
+        with self.feature("organizations:project-event-date-limit"):
+            response = self.client.get(url, {"statsPeriod": "15d"}, format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["eventID"] == recent_event.event_id
+
+    def test_with_end_date_before_feature_flag_limit_with_event_date_limit_feature_flag(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+
+        url = reverse(
+            "sentry-api-0-project-events",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+
+        with self.feature("organizations:project-event-date-limit"):
+            start_time = before_now(days=10)
+            end_time = before_now(days=8)
+            response = self.client.get(
+                url,
+                {"start": start_time.isoformat(), "end": end_time.isoformat()},
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == "End date must be less than 7 days ago"
+
     def test_sample(self):
         self.login_as(user=self.user)
 
