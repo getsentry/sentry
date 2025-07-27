@@ -2215,7 +2215,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
               {
                 orgSlug: organization.slug,
                 query: qs.stringify(
-                  getTraceQueryParams(urlParams, filters.selection, {
+                  getTraceQueryParams(options.type, urlParams, filters.selection, {
                     timestamp: batchTraceData.timestamp,
                   })
                 ),
