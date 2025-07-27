@@ -230,7 +230,13 @@ export function useTrace(
     // as a dependency, the query will re-run every time we perform actions on the trace view; like
     // clicking on a span, that updates the url.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [options.limit, options.timestamp, query.trace_format]);
+  }, [
+    options.limit,
+    options.timestamp,
+    options.targetEventId,
+    isEAPEnabled,
+    filters.selection,
+  ]);
 
   const isDemoMode = Boolean(queryParams.demo);
   const demoTrace = useDemoTrace(queryParams.demo, organization);
