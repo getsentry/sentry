@@ -1,0 +1,100 @@
+<script>
+
+  const status = document.getElementById('csrf-status');
+  const button = document.getElementById('csrf-rotate-btn');
+
+  /**
+   * Automatically refresh page to prevent form resubmission
+   * Set a short timeout for UX, so user can have a glimpse of the request status
+   * before they are forcefully redirected off the page.
+   */
+  const forceRefreshPage = () => {
+    setTimeout(() => {
+      // NOTE: window.location.reload(true) does not work on Chrome
+      window.location.replace('/auth/login/');
+    }, 500);
+  };
+
+  /**
+   * API call to logout + delete cookies
+   */
+  const fetchDeleteLogin = async () => {
+    const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+    return await fetch('/api/0/auth/?referrer=csrf_error', {
+      method: 'DELETE',
+      headers: {'X-CSRFToken': csrfToken},
+      credentials: 'include',
+    });
+  };
+
+  /**
+   * API call to rotate CSRF token
+   */
+  const fetchPutCsrf = async (isAutoRotate = false) => {
+    const referrer = isAutoRotate ? 'csrf_error' : 'csrf_error_repeat';
+    return await fetch(`/api/0/auth-v2/csrf/?referrer=${referrer}`, {
+      method: 'PUT',
+      credentials: 'include',
+    });
+  };
+
+  /**
+   * onClick handler to rotate CSRF token. If 403 error, there's an existing session,
+   * so try to logout to clear cookies
+   */
+  const rotateCsrf = async (isAutoRotate = false) => {
+    button.disabled = true;
+    button.textContent = 'Rotating...';
+    status.textContent = '';
+
+    try {
+      const csrfRes = await fetchPutCsrf(isAutoRotate);
+      const logoutRes = csrfRes.status == 403 && (await fetchDeleteLogin());
+      if (!csrfRes.ok && !logoutRes.ok) {
+        throw new Error();
+      }
+
+      status.textContent = 'Token rotated! Refreshing the page in 1 sec...';
+      status.style.color = 'green';
+      forceRefreshPage();
+    } catch (error) {
+      status.textContent = 'Failed to rotate token.';
+      status.style.color = 'red';
+    } finally {
+      button.disabled = false;
+      button.textContent = 'Rotate CSRF Token';
+    }
+  };
+
+  /**
+   * Register onClick using JS instead of HTML to guarantee that method exists
+   * before it is registered
+   */
+  button.addEventListener('click', () => rotateCsrf(false));
+
+  /**
+   * If user has not see this this page in the last 5min (i.e. they are not stuck
+   * in a loop), then we invoke rotateCsrf() to try to fix the problem for them
+   */
+  const autoRotateCsrf = () => {
+    const FIVE_MINUTES_MS = 5 * 60 * 1000;
+
+    const storedCsrfError = localStorage.getItem('lastCsrfError');
+    const lastDate = new Date(storedCsrfError);
+    const diffDate = Date.now() - lastDate.getTime();
+
+    if (!storedCsrfError || diffDate > FIVE_MINUTES_MS) {
+      localStorage.setItem('lastCsrfError', new Date().toISOString());
+
+      button.disabled = true;
+      status.textContent = 'Automatically rotating tokens...';
+      status.style.color = 'green';
+      setTimeout(() => rotateCsrf(true), 1500);
+    }
+  };
+
+  /**
+   * Attempt to automatically fix the problem
+   */
+  autoRotateCsrf();
+</script>
