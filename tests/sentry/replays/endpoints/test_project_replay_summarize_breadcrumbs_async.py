@@ -344,7 +344,7 @@ class ProjectReplaySummarizeBreadcrumbsAsyncTestCase(
                     self.client.get(self.url) if method == "GET" else self.client.post(self.url)
                 )
 
-        assert response.status_code == 502, method
+            assert response.status_code == 502, method
 
     @responses.activate
     def test_seer_http_errors(self):
