@@ -7,6 +7,7 @@ import {Overlay} from 'sentry/components/overlay';
 import {space} from 'sentry/styles/space';
 import {getFormattedDate, shouldUse24Hours} from 'sentry/utils/dates';
 import formatDuration from 'sentry/utils/duration/formatDuration';
+import divide from 'sentry/utils/number/divide';
 import toPercent from 'sentry/utils/number/toPercent';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
@@ -57,7 +58,7 @@ export default function TimelineTooltip({container}: Props) {
       style={{
         display: lastHoverTime ? 'block' : 'none',
         top: 0,
-        left: toPercent((lastHoverTime ?? 0) / durationMs),
+        left: toPercent(divide(lastHoverTime ?? 0, durationMs)),
       }}
     >
       <Text size="sm" tabular style={{fontWeight: 'normal'}}>
