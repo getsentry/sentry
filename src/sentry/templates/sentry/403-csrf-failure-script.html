@@ -11,7 +11,7 @@
   const forceRefreshPage = () => {
     setTimeout(() => {
       // NOTE: window.location.reload(true) does not work on Chrome
-      window.location.replace('/auth/login/');
+      window.location.replace(window.location.href);
     }, 500);
   };
 
