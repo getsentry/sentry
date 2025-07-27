@@ -370,12 +370,18 @@ def create_feedback_issue(
             labels = generate_labels(feedback_message, project.organization_id)
             for idx, label in enumerate(labels):
                 event_fixed["tags"][f"ai_categorization.label.{idx}"] = label
-            # print("THESE ARE THE LABELS", labels)
+            if len(labels) >= 15:
+                logger.info(
+                    "Feedback message has 15 or more labels.",
+                    extra={
+                        "project_id": project_id,
+                        "entrypoint": "create_feedback_issue",
+                        "feedback_message": feedback_message[:100],
+                    },
+                )
         except Exception:
             logger.exception("Error generating labels", extra={"project_id": project_id})
-            # print("THERE WAS AN ERROR GENERATING LABELS")
     else:
-        # print("AI CATEGORIZATION IS NOT ENABLED")
         pass
 
     # Set the user.email tag since we want to be able to display user.email on the feedback UI as a tag
