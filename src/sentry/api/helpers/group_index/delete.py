@@ -10,10 +10,9 @@ import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, eventstream, options
+from sentry import audit_log
 from sentry.api.base import audit_logger
 from sentry.deletions.defaults.group import GROUP_CHUNK_SIZE
-from sentry.deletions.tasks.groups import delete_groups as delete_groups_task
 from sentry.deletions.tasks.groups import delete_groups_for_project
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group, GroupStatus
@@ -100,23 +99,13 @@ def delete_group_list(
     # `Group` instances that are pending deletion
     GroupInbox.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
 
-    if options.get("deletions.groups.use-new-task"):
-        # Schedule a task per GROUP_CHUNK_SIZE batch of groups
-        for i in range(0, len(group_ids), GROUP_CHUNK_SIZE):
-            delete_groups_for_project.apply_async(
-                kwargs={
-                    "project_id": project.id,
-                    "object_ids": group_ids[i : i + GROUP_CHUNK_SIZE],
-                    "transaction_id": str(transaction_id),
-                }
-            )
-    else:
-        eventstream_state = eventstream.backend.start_delete_groups(project.id, group_ids)
-        delete_groups_task.apply_async(
+    # Schedule a task per GROUP_CHUNK_SIZE batch of groups
+    for i in range(0, len(group_ids), GROUP_CHUNK_SIZE):
+        delete_groups_for_project.apply_async(
             kwargs={
-                "object_ids": group_ids,
+                "project_id": project.id,
+                "object_ids": group_ids[i : i + GROUP_CHUNK_SIZE],
                 "transaction_id": str(transaction_id),
-                "eventstream_state": eventstream_state,
             }
         )
 
