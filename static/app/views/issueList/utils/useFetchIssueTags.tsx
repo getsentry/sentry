@@ -21,6 +21,7 @@ import type {Organization} from 'sentry/types/organization';
 import {escapeIssueTagKey} from 'sentry/utils';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {
+  FIELD_VALUE_TO_FIELD_DESCRIPTION,
   FieldKey,
   FieldKind,
   IsFieldValues,
@@ -254,7 +255,15 @@ function builtInIssuesFields({
       ...PREDEFINED_FIELDS[FieldKey.IS],
       key: FieldKey.IS,
       name: 'Status',
-      values: Object.values(IsFieldValues),
+      values: Object.values(IsFieldValues).map(value => ({
+        icon: null,
+        title: value,
+        name: value,
+        documentation: FIELD_VALUE_TO_FIELD_DESCRIPTION[value],
+        value,
+        type: ItemType.TAG_VALUE,
+        children: [],
+      })),
       maxSuggestedValues: Object.values(IsFieldValues).length,
       predefined: true,
     },

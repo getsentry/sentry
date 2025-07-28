@@ -55,7 +55,6 @@ import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
-import {getIsFieldDescriptionFromValue} from 'sentry/utils/fields';
 import {
   type FieldDefinition,
   FieldKey,
@@ -213,7 +212,6 @@ function getPredefinedValues({
         sectionText: '',
         suggestions: definedValues.map(value => ({
           label: token.filter === FilterType.HAS ? prettifyTagKey(value) : undefined,
-          description: getIsFieldDescriptionFromValue(value),
           value,
         })),
       },
