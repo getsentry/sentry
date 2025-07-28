@@ -1,4 +1,4 @@
-import React, {Fragment} from 'react';
+import React, {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -21,6 +21,7 @@ import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {stripLogParamsFromLocation} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LOG_ATTRIBUTE_LAZY_LOAD_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
 import LogsTimestampTooltip from 'sentry/views/explore/logs/logsTimeTooltip';
 import {
   AlignedCellContent,
@@ -139,6 +140,10 @@ function TimestampRenderer(props: LogFieldRendererProps) {
 }
 
 function CodePathRenderer(props: LogFieldRendererProps) {
+  const {wrapperProps, shouldLoad} = useLazyLoadAttributeOnHover(
+    LOG_ATTRIBUTE_LAZY_LOAD_HOVER_TIMEOUT,
+    props
+  );
   const codeLineNumber = props.extra.attributes?.[OurLogKnownFieldKey.CODE_LINE_NUMBER];
   const codeFunctionName =
     props.extra.attributes?.[OurLogKnownFieldKey.CODE_FUNCTION_NAME];
@@ -158,26 +163,94 @@ function CodePathRenderer(props: LogFieldRendererProps) {
     orgSlug: props.extra.organization.slug,
     projectSlug: props.extra.projectSlug ?? '',
     releaseVersion: typeof releaseVersion === 'string' ? releaseVersion : '',
+    enabled: shouldLoad,
   });
-  const {data: codeLink} = useStacktraceLink({
-    event: {
-      release,
-      sdk,
+  const {data: codeLink} = useStacktraceLink(
+    {
+      event: {
+        release,
+        sdk,
+      },
+      frame: {
+        function: typeof codeFunctionName === 'string' ? codeFunctionName : undefined,
+        lineNo: codeLineNumber ? +codeLineNumber : undefined,
+        filename: typeof filename === 'string' ? filename : undefined,
+      },
+      orgSlug: props.extra.organization.slug,
+      projectSlug: props.extra.projectSlug ?? '',
     },
-    frame: {
-      function: typeof codeFunctionName === 'string' ? codeFunctionName : undefined,
-      lineNo: codeLineNumber ? +codeLineNumber : undefined,
-      filename: typeof filename === 'string' ? filename : undefined,
+    {
+      enabled: shouldLoad && !!props.extra.projectSlug && !!release,
+    }
+  );
+
+  return (
+    <span data-test-id="hoverable-code-path" {...wrapperProps}>
+      {codeLink?.sourceUrl ? (
+        <Link data-test-id="hoverable-code-path-link" to={codeLink.sourceUrl}>
+          {props.basicRendered}
+        </Link>
+      ) : (
+        props.basicRendered
+      )}
+    </span>
+  );
+}
+
+/**
+ * This hook is used to lazy load an attribute on hover.
+ * This is used to avoid rendering extra content (eg. making api calls) for constantly shown fields (eg. adding a column in the table view).
+ */
+function useLazyLoadAttributeOnHover(hoverTimeout: number, props: LogFieldRendererProps) {
+  const [shouldLoad, setShouldLoad] = useState(props.extra.disableLazyLoad === true);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnter = useCallback(() => {
+    if (shouldLoad) {
+      return () => {};
+    }
+
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+
+    hoverTimeoutRef.current = setTimeout(() => {
+      setShouldLoad(true);
+    }, hoverTimeout);
+
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, [hoverTimeout, shouldLoad]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (shouldLoad) {
+      return;
+    }
+
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+  }, [shouldLoad]);
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  return {
+    wrapperProps: {
+      onMouseEnter: handleMouseEnter,
+      onMouseLeave: handleMouseLeave,
     },
-    orgSlug: props.extra.organization.slug,
-    projectSlug: props.extra.projectSlug ?? '',
-  });
-
-  if (codeLink?.sourceUrl) {
-    return <Link to={codeLink.sourceUrl}>{props.basicRendered}</Link>;
-  }
-
-  return props.basicRendered;
+    shouldLoad,
+  };
 }
 
 function FilteredTooltip({
@@ -267,7 +340,7 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
   // TODO: Allow more than one highlight term to be highlighted at once.
   return (
     <FilteredTooltip value={props.item.value} extra={props.extra}>
-      <WrappingText wrap={props.extra.wrapBody}>
+      <WrappingText wrapText={props.extra.wrapBody}>
         <LogsHighlight text={highlightTerm}>{stripAnsi(attribute_value)}</LogsHighlight>
       </WrappingText>
     </FilteredTooltip>

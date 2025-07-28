@@ -41,18 +41,6 @@ jest.mock('sentry/utils/useRelease', () => ({
   }),
 }));
 
-jest.mock('sentry/components/events/interfaces/frame/useStacktraceLink', () => ({
-  __esModule: true,
-  default: jest.fn().mockReturnValue({
-    data: {
-      sourceUrl: 'https://some-stacktrace-link',
-      integrations: [],
-    },
-    error: null,
-    isPending: false,
-  }),
-}));
-
 jest.mock('@tanstack/react-virtual', () => {
   return {
     useWindowVirtualizer: jest.fn().mockReturnValue({
@@ -101,6 +89,9 @@ describe('LogsInfiniteTable', function () {
       [OurLogKnownFieldKey.RELEASE]: '1.0.0',
       [OurLogKnownFieldKey.CODE_FILE_PATH]:
         '/usr/local/lib/python3.11/dist-packages/gunicorn/glogging.py',
+      [OurLogKnownFieldKey.CODE_LINE_NUMBER]: 123,
+      [OurLogKnownFieldKey.SDK_NAME]: 'sentry.python',
+      [OurLogKnownFieldKey.SDK_VERSION]: '1.0.0',
     }),
     LogFixture({
       [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
@@ -110,6 +101,9 @@ describe('LogsInfiniteTable', function () {
       [OurLogKnownFieldKey.RELEASE]: '1.0.0',
       [OurLogKnownFieldKey.CODE_FILE_PATH]:
         '/usr/local/lib/python3.11/dist-packages/gunicorn/glogging.py',
+      [OurLogKnownFieldKey.CODE_LINE_NUMBER]: 123,
+      [OurLogKnownFieldKey.SDK_NAME]: 'sentry.python',
+      [OurLogKnownFieldKey.SDK_VERSION]: '1.0.0',
     }),
     LogFixture({
       [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
@@ -119,6 +113,9 @@ describe('LogsInfiniteTable', function () {
       [OurLogKnownFieldKey.RELEASE]: '1.0.0',
       [OurLogKnownFieldKey.CODE_FILE_PATH]:
         '/usr/local/lib/python3.11/dist-packages/gunicorn/glogging.py',
+      [OurLogKnownFieldKey.CODE_LINE_NUMBER]: 123,
+      [OurLogKnownFieldKey.SDK_NAME]: 'sentry.python',
+      [OurLogKnownFieldKey.SDK_VERSION]: '1.0.0',
     }),
   ];
 
