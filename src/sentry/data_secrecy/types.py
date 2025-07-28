@@ -39,7 +39,7 @@ class EffectiveGrantStatus:
         if cached_data.cache_status == GrantCacheStatus.NEGATIVE_CACHE:
             return cached_data
 
-        if cached_data.access_end <= datetime.now(timezone.utc):
+        if cached_data.access_end and cached_data.access_end <= datetime.now(timezone.utc):
             return cls(cache_status=GrantCacheStatus.EXPIRED_WINDOW)
 
         # Grant is still valid
