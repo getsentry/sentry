@@ -8,7 +8,7 @@ import {StoryTree, useStoryTree} from './storyTree';
 import {useStoryBookFiles} from './useStoriesLoader';
 
 export function StorySidebar() {
-  const {foundations, core, shared} = useStoryBookFilesByCategory();
+  const {foundations, primitives, core, shared} = useStoryBookFilesByCategory();
 
   return (
     <SidebarContainer>
@@ -16,6 +16,10 @@ export function StorySidebar() {
         <li>
           <h3>Foundations</h3>
           <StoryTree nodes={foundations} />
+        </li>
+        <li>
+          <h3>Primitives</h3>
+          <StoryTree nodes={primitives} />
         </li>
         <li>
           <h3>Components</h3>
@@ -31,20 +35,23 @@ export function StorySidebar() {
 }
 
 export function useStoryBookFilesByCategory(): Record<
-  'foundations' | 'core' | 'shared',
+  'foundations' | 'primitives' | 'core' | 'shared',
   StoryTreeNode[]
 > {
   const files = useStoryBookFiles();
   const filesByOwner = useMemo(() => {
     // The order of keys here is important and used by the pagination in storyFooter
-    const map: Record<'foundations' | 'core' | 'shared', string[]> = {
+    const map: Record<'foundations' | 'primitives' | 'core' | 'shared', string[]> = {
       foundations: [],
+      primitives: [],
       core: [],
       shared: [],
     };
     for (const file of files) {
       if (isFoundationFile(file)) {
         map.foundations.push(file);
+      } else if (isPrimitivesFile(file)) {
+        map.primitives.push(file);
       } else if (isCoreFile(file)) {
         map.core.push(file);
       } else {
@@ -67,9 +74,15 @@ export function useStoryBookFilesByCategory(): Record<
     query: '',
     representation: 'category',
   });
+  const primitives = useStoryTree(filesByOwner.primitives, {
+    query: '',
+    representation: 'category',
+    type: 'flat',
+  });
 
   return {
     foundations,
+    primitives,
     core,
     shared,
   };
@@ -81,6 +94,10 @@ function isCoreFile(file: string) {
 
 function isFoundationFile(file: string) {
   return file.includes('app/styles') || file.includes('app/icons');
+}
+
+function isPrimitivesFile(file: string) {
+  return file.includes('components/core/layout') || file.includes('components/core/text');
 }
 
 const SidebarContainer = styled('nav')`
