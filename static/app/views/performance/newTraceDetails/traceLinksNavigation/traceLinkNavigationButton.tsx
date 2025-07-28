@@ -24,13 +24,11 @@ type TraceLinkNavigationButtonProps = {
   attributes: TraceItemResponseAttribute[];
   currentTraceTimestamps: {end: number; start: number};
   direction: ConnectedTraceConnection;
-  isLoading?: boolean;
 };
 
 export function TraceLinkNavigationButton({
   direction,
   attributes,
-  isLoading: isWaterfallLoading,
   currentTraceTimestamps,
 }: TraceLinkNavigationButtonProps) {
   const organization = useOrganization();
@@ -61,8 +59,8 @@ export function TraceLinkNavigationButton({
     isLoading: isNextTraceLoading,
   } = useFindNextTrace({
     direction,
-    nextTraceEndTimestamp: currentTraceTimestamps.end,
-    nextTraceStartTimestamp: linkedTraceWindowTimestamp,
+    nextTraceEndTimestamp: linkedTraceWindowTimestamp,
+    nextTraceStartTimestamp: currentTraceTimestamps.end,
     attributes,
   });
 
@@ -70,10 +68,6 @@ export function TraceLinkNavigationButton({
     () => normalizeDateTimeParams(location.query),
     [location.query]
   );
-
-  if (isWaterfallLoading) {
-    return <PlaceHolder />;
-  }
 
   if (direction === 'previous' && previousTraceId && !isPreviousTraceLoading) {
     if (isPreviousTraceAvailable) {
@@ -180,10 +174,10 @@ export function TraceLinkNavigationButton({
   // If there's no linked trace, let's render a placeholder for now to avoid layout shifts
   // We should reconsider the place where we render these buttons, to avoid reducing the
   // waterfall height permanently
-  return <PlaceHolder />;
+  return <TraceLinkNavigationButtonPlaceHolder />;
 }
 
-function PlaceHolder() {
+export function TraceLinkNavigationButtonPlaceHolder() {
   return <PlaceHolderText>&nbsp;</PlaceHolderText>;
 }
 

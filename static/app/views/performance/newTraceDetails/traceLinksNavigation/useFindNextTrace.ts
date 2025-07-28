@@ -62,7 +62,7 @@ export function useFindNextTrace({
           end: nextTraceEndTimestamp
             ? new Date(nextTraceEndTimestamp * 1000).toISOString()
             : '',
-          period: '2h',
+          period: null,
           utc: true,
         },
       },
@@ -148,7 +148,7 @@ export function useFindPreviousTrace({
         datetime: {
           start: new Date(previousTraceStartTimestamp * 1000).toISOString(),
           end: new Date(previousTraceEndTimestamp * 1000).toISOString(),
-          period: '2h',
+          period: null,
           utc: true,
         },
       },
