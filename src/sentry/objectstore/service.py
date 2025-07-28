@@ -30,22 +30,22 @@ class GetResult(NamedTuple):
 
 class ObjectStoreService:
     def __init__(self, usecase: str, options: dict | None = None):
-        self.usecase = usecase
-        self.options = options
+        self._usecase = usecase
+        self._options = options
 
     def _make_client(self, scope: Scope) -> ObjectStoreClient:
         from sentry import options as options_store
 
-        options = self.options or options_store.get("objectstore.config")
+        options = self._options or options_store.get("objectstore.config")
         pool = urllib3.connectionpool.connection_from_url(options["base_url"])
         jwt_secret = options["jwt_secret"]
 
         claim = {
-            "usecase": self.usecase,
+            "usecase": self._usecase,
             "scope": scope,
         }
 
-        return ObjectStoreClient(self.usecase, claim, pool, jwt_secret)
+        return ObjectStoreClient(self._usecase, claim, pool, jwt_secret)
 
     def for_organization(self, organization_id: int) -> ObjectStoreClient:
         return self._make_client({"organization": organization_id})
@@ -56,10 +56,10 @@ class ObjectStoreService:
 
 class ObjectStoreClient:
     def __init__(self, usecase: str, claim: dict, pool: HTTPConnectionPool, jwt_secret: str):
-        self.pool = pool
-        self.jwt_secret = jwt_secret
-        self.usecase = usecase
-        self.claim = claim
+        self._pool = pool
+        self._jwt_secret = jwt_secret
+        self._usecase = usecase
+        self._claim = claim
 
     def _make_headers(self, permission: Permission) -> dict:
         now = int(timezone.now().timestamp())
@@ -67,11 +67,11 @@ class ObjectStoreClient:
         claims = {
             "iat": now,
             "exp": exp,
-            **self.claim,
+            **self._claim,
             "permissions": [permission],
         }
 
-        authorization = jwt.encode(claims, self.jwt_secret)
+        authorization = jwt.encode(claims, self._jwt_secret)
         return {"Authorization": authorization}
 
     def put(
@@ -106,8 +106,8 @@ class ObjectStoreClient:
             headers["Content-Encoding"] = compression
 
         compression_used = headers.get("Content-Encoding", "none")
-        with measure_storage_put(None, self.usecase, compression_used) as measurement:
-            response = self.pool.request(
+        with measure_storage_put(None, self._usecase, compression_used) as measurement:
+            response = self._pool.request(
                 "PUT",
                 f"/{id}" if id else "/",
                 body=body,
@@ -121,7 +121,7 @@ class ObjectStoreClient:
                 metrics.distribution(
                     "storage.put.size",
                     original_body.tell(),
-                    tags={"usecase": self.usecase, "compression": "none"},
+                    tags={"usecase": self._usecase, "compression": "none"},
                     unit="byte",
                 )
 
@@ -147,7 +147,7 @@ class ObjectStoreClient:
             compression = set(accept_compression)
             headers["Accept-Encoding"] = ", ".join(compression)
 
-        response = self.pool.request(
+        response = self._pool.request(
             "GET",
             f"/{id}",
             headers=headers,
@@ -157,7 +157,7 @@ class ObjectStoreClient:
         # OR: should I use `response.stream()`?
         stream = cast(IO[bytes], response)
 
-        content_encoding = response.getheader("Content-Encoding")
+        content_encoding = response.headers.get("Content-Encoding")
         if content_encoding and content_encoding not in compression:
             if content_encoding != "zstd":
                 raise NotImplementedError(
@@ -175,7 +175,7 @@ class ObjectStoreClient:
         """
         headers = self._make_headers("write")
 
-        self.pool.request(
+        self._pool.request(
             "DELETE",
             f"/{id}",
             headers=headers,
