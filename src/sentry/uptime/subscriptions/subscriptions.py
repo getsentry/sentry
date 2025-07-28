@@ -444,12 +444,13 @@ def enable_uptime_detector(
         create_remote_uptime_subscription.delay(uptime_subscription.id)
 
 
-def delete_uptime_detector(detector: Detector):
+def delete_uptime_detector(detector: Detector, delete_detector=True):
     uptime_monitor = get_project_subscription(detector)
     uptime_subscription: UptimeSubscription = uptime_monitor.uptime_subscription
     quotas.backend.remove_seat(DataCategory.UPTIME, uptime_monitor)
     uptime_monitor.delete()
-    RegionScheduledDeletion.schedule(detector, days=0)
+    if delete_detector:
+        RegionScheduledDeletion.schedule(detector, days=0)
     remove_uptime_subscription_if_unused(uptime_subscription)
 
 
