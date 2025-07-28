@@ -157,10 +157,6 @@ export default function TestPreOnboardingPage() {
 const IntroSection = styled('div')`
   padding: 44px;
 
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    gap: 90px;
-  }
-
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: flex;
     flex-direction: row;
@@ -172,12 +168,17 @@ const IntroSection = styled('div')`
     max-width: 1000px;
     margin: 0 auto;
   }
+
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+    gap: 90px;
+  }
 `;
 
 const ImgContainer = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     text-align: center;
   }
+  width: 1 1 418px;
 `;
 
 const StyledDiv = styled('div')`
