@@ -11,14 +11,14 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.exceptions import ParseError
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
 from sentry.api.serializers.models.event import SimpleEventSerializerResponse
+from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.event_examples import EventExamples
 from sentry.apidocs.parameters import CursorQueryParam, EventParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.api.utils import get_date_range_from_params, InvalidParams
-from sentry.api.exceptions import ParseError
 from sentry.models.project import Project
 from sentry.snuba.events import Columns
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -80,7 +80,7 @@ class ProjectEventsEndpoint(ProjectEndpoint):
             raise ParseError(detail=f"Invalid date range: {e}")
 
         event_filter = eventstore.Filter(conditions=conditions, project_ids=[project.id])
-        
+
         # Apply date filtering based on parameters or feature flag
         if start and end:
             event_filter.start = start

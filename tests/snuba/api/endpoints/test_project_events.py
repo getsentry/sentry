@@ -135,15 +135,11 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        
+
         # Events outside range
-        self.store_event(
-            data={"timestamp": before_now(days=10).isoformat()}, project_id=project.id
-        )
-        self.store_event(
-            data={"timestamp": before_now(hours=1).isoformat()}, project_id=project.id
-        )
-        
+        self.store_event(data={"timestamp": before_now(days=10).isoformat()}, project_id=project.id)
+        self.store_event(data={"timestamp": before_now(hours=1).isoformat()}, project_id=project.id)
+
         # Events inside range
         event_in_range_1 = self.store_event(
             data={"timestamp": before_now(days=3).isoformat()}, project_id=project.id
@@ -159,10 +155,10 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
                 "project_id_or_slug": project.slug,
             },
         )
-        
+
         start_time = before_now(days=6).isoformat()
         end_time = before_now(days=2).isoformat()
-        
+
         response = self.client.get(url, {"start": start_time, "end": end_time}, format="json")
 
         assert response.status_code == 200, response.content
@@ -175,12 +171,10 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        
+
         # Event outside period
-        self.store_event(
-            data={"timestamp": before_now(days=5).isoformat()}, project_id=project.id
-        )
-        
+        self.store_event(data={"timestamp": before_now(days=5).isoformat()}, project_id=project.id)
+
         # Events inside period
         event_in_period_1 = self.store_event(
             data={"timestamp": before_now(hours=12).isoformat()}, project_id=project.id
@@ -196,7 +190,7 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
                 "project_id_or_slug": project.slug,
             },
         )
-        
+
         response = self.client.get(url, {"statsPeriod": "1d"}, format="json")
 
         assert response.status_code == 200, response.content
@@ -217,17 +211,17 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
                 "project_id_or_slug": project.slug,
             },
         )
-        
+
         # Test invalid start parameter only
         response = self.client.get(url, {"start": "invalid-date"}, format="json")
         assert response.status_code == 400
         assert "Invalid date range" in str(response.content)
-        
+
         # Test only providing start without end
         response = self.client.get(url, {"start": before_now(days=1).isoformat()}, format="json")
         assert response.status_code == 400
         assert "start and end are both required" in str(response.content)
-        
+
         # Test only providing end without start
         response = self.client.get(url, {"end": before_now(days=1).isoformat()}, format="json")
         assert response.status_code == 400
@@ -246,7 +240,7 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
                 "project_id_or_slug": project.slug,
             },
         )
-        
+
         response = self.client.get(url, {"statsPeriod": "invalid-period"}, format="json")
         assert response.status_code == 400
         assert "Invalid date range" in str(response.content)
@@ -256,7 +250,7 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        
+
         # Event older than 7 days (feature flag limit) but within statsPeriod
         event_old = self.store_event(
             data={"timestamp": before_now(days=10).isoformat()}, project_id=project.id
@@ -275,7 +269,7 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
             response = self.client.get(url, format="json")
             assert response.status_code == 200, response.content
             assert len(response.data) == 0
-            
+
             # With statsPeriod parameter, should return old event
             response = self.client.get(url, {"statsPeriod": "14d"}, format="json")
             assert response.status_code == 200, response.content
@@ -287,7 +281,7 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        
+
         # Event older than 7 days (feature flag limit) but within start/end range
         event_old = self.store_event(
             data={"timestamp": before_now(days=10).isoformat()}, project_id=project.id
@@ -306,7 +300,7 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
             response = self.client.get(url, format="json")
             assert response.status_code == 200, response.content
             assert len(response.data) == 0
-            
+
             # With start/end parameters, should return old event
             start_time = before_now(days=15).isoformat()
             end_time = before_now(days=5).isoformat()
