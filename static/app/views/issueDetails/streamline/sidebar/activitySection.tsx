@@ -83,7 +83,7 @@ function TimelineItem({
   return (
     <ActivityTimelineItem
       title={
-        <Flex gap="xs" align="center" justify="flex-start">
+        <Flex gap="xs" align="center" justify="start">
           <TitleTooltip title={title} showOnlyOnOverflow>
             {title}
           </TitleTooltip>
@@ -263,7 +263,7 @@ export default function StreamlinedActivitySection({
   return (
     <div>
       {!isDrawer && (
-        <Flex justify="space-between" align="center" style={{marginBottom: space(1)}}>
+        <Flex justify="between" align="center" style={{marginBottom: space(1)}}>
           <SidebarSectionTitle style={{gap: space(0.75), margin: 0}}>
             {t('Activity')}
             {group.numComments > 0 ? (
