@@ -65,7 +65,7 @@ interface IndexRouteProps<Props = any> {
   props?: Props | undefined;
 }
 
-export interface RouteProps<Props = any> extends IndexRouteProps<Props> {
+interface RouteProps<Props = any> extends IndexRouteProps<Props> {
   children?: React.ReactNode;
   path?: RoutePattern | undefined;
 }
