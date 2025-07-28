@@ -7,7 +7,7 @@ import {space} from 'sentry/styles/space';
 import {InlineCodeSnippet} from 'sentry/views/codecov/styles';
 import {OnboardingStep} from 'sentry/views/codecov/tests/onboardingSteps/onboardingStep';
 
-interface EditWorkflowProps {
+interface EditGHAWorkflowStepProps {
   step: string;
 }
 
@@ -20,7 +20,7 @@ const ACTION_SNIPPET = `- name: Upload test results to Codecov
   uses: getsentry/prevent-action
 `;
 
-export function EditGHAWorkflow({step}: EditWorkflowProps) {
+export function EditGHAWorkflowStep({step}: EditGHAWorkflowStepProps) {
   const headerText = tct('Step [step]: Edit your GitHub Action workflow', {
     step,
   });
