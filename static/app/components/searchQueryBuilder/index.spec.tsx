@@ -4479,6 +4479,32 @@ describe('SearchQueryBuilder', function () {
     });
   });
 
+  describe('matchKeySuggestions', () => {
+    it('renders the matched key suggestions when the value matches the pattern', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          matchKeySuggestions={[{key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/}]}
+        />,
+        {organization: {features: ['search-query-builder-match-key-suggestions']}}
+      );
+
+      await userEvent.type(
+        screen.getByRole('textbox'),
+        '12345678901234567890123456789012'
+      );
+
+      const listbox = screen.getByRole('listbox');
+      expect(within(listbox).getByText('trace')).toBeInTheDocument();
+
+      await userEvent.click(within(listbox).getByText('trace'));
+
+      expect(
+        screen.getByRole('row', {name: 'trace:12345678901234567890123456789012'})
+      ).toBeInTheDocument();
+    });
+  });
+
   describe('ask seer', function () {
     it('renders ask seer button when user has given consent', async () => {
       MockApiClient.addMockResponse({
