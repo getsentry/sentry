@@ -2,6 +2,9 @@ import styled from '@emotion/styled';
 
 import preventAiIllustration from 'sentry-images/prevent-ai-illustration.svg';
 
+import {ExternalLink} from 'sentry/components/core/link';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -17,23 +20,19 @@ export default function AIPage() {
           <Description>
             {t('Prevent AI is a generative AI agent that automates tasks in your PR:')}
           </Description>
-          <BulletList>
-            <BulletItem>
+          <List>
+            <ListItem>
               {t(
-                '• It reviews your pull request, predicting errors and suggesting code fixes.'
+                'It reviews your pull request, predicting errors and suggesting code fixes.'
               )}
-            </BulletItem>
-            <BulletItem>
-              {t('• It generates unit tests for untested code in your PR.')}
-            </BulletItem>
-          </BulletList>
-          <LearnMoreLink
-            href="https://docs.sentry.io/product/ai-in-sentry/sentry-prevent-ai/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+            </ListItem>
+            <ListItem>
+              {t('It generates unit tests for untested code in your PR.')}
+            </ListItem>
+          </List>
+          <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/sentry-prevent-ai/">
             {t('Learn more')}
-          </LearnMoreLink>
+          </ExternalLink>
         </TextColumn>
       </Container>
     </OnboardingPanel>
@@ -103,54 +102,25 @@ const IllustrationImage = styled('img')`
 `;
 
 const Title = styled('h3')`
-  font-family: 'Rubik', sans-serif;
-  font-weight: 400;
-  font-size: 30px;
+  font-family: ${p => p.theme.text.family};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize['2xl']};
   line-height: 1.33;
   color: ${p => p.theme.headingColor};
   margin: 0 0 ${space(2)} 0;
   text-transform: capitalize;
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: 24px;
+    font-size: ${p => p.theme.fontSize.xl};
     text-align: center;
   }
 `;
 
 const Description = styled('p')`
-  font-family: 'Rubik', sans-serif;
-  font-weight: 400;
-  font-size: 14px;
+  font-family: ${p => p.theme.text.family};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1.43;
   color: ${p => p.theme.textColor};
   margin: 0 0 ${space(1)} 0;
-`;
-
-const BulletList = styled('div')`
-  margin: ${space(1)} 0;
-`;
-
-const BulletItem = styled('p')`
-  font-family: 'Rubik', sans-serif;
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 1.43;
-  color: ${p => p.theme.textColor};
-  margin: 0 0 ${space(0.5)} 0;
-`;
-
-const LearnMoreLink = styled('a')`
-  font-family: 'Rubik', sans-serif;
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 1.43;
-  color: ${p => p.theme.linkColor};
-  text-decoration: none;
-  margin-top: ${space(1)};
-  display: inline-block;
-
-  &:hover {
-    color: ${p => p.theme.linkHoverColor};
-    text-decoration: underline;
-  }
 `;

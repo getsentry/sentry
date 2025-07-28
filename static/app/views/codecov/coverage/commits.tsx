@@ -374,21 +374,21 @@ function renderTableHeader(column: GridColumnOrder) {
                   </TooltipDescription>
                 </TooltipSection>
                 <TooltipSection>
-                  <TooltipTitle>Processed</TooltipTitle>
+                  <TooltipTitle>{t('Processed')}</TooltipTitle>
                   <TooltipDescription>
-                    The number of uploads that were successfully processed.
+                    {t('The number of uploads that were successfully processed.')}
                   </TooltipDescription>
                 </TooltipSection>
                 <TooltipSection>
-                  <TooltipTitle>Pending</TooltipTitle>
+                  <TooltipTitle>{t('Pending')}</TooltipTitle>
                   <TooltipDescription>
-                    Uploads that Sentry has received but hasn't processed yet.
+                    {t("Uploads that Sentry has received but hasn't processed yet.")}
                   </TooltipDescription>
                 </TooltipSection>
                 <TooltipSection>
-                  <TooltipTitle>Failed</TooltipTitle>
+                  <TooltipTitle>{t('Failed')}</TooltipTitle>
                   <TooltipDescription>
-                    Uploads that encountered errors during processing.
+                    {t('Uploads that encountered errors during processing.')}
                   </TooltipDescription>
                 </TooltipSection>
               </TooltipContent>
@@ -458,18 +458,24 @@ function renderTableBody(
         <UploadBreakdown>
           <UploadStatus>
             <StatusDot color="#2BA185" />
-            <UploadText>{processed} Processed</UploadText>
+            <UploadText>
+              {processed} {t('Processed')}
+            </UploadText>
           </UploadStatus>
           {pending > 0 && (
             <UploadStatus>
               <StatusDot color="#EBC000" />
-              <UploadText>{pending} Pending</UploadText>
+              <UploadText>
+                {pending} {t('Pending')}
+              </UploadText>
             </UploadStatus>
           )}
           {failed > 0 && (
             <UploadStatus>
               <StatusDot color="#CF2126" />
-              <UploadText>{failed} Failed</UploadText>
+              <UploadText>
+                {failed} {t('Failed')}
+              </UploadText>
             </UploadStatus>
           )}
         </UploadBreakdown>
