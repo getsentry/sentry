@@ -27,10 +27,13 @@ class GroupingContextTest(TestCase):
 
         # Behavior when key exists
         assert context["adopt"] == "don't shop"
+        assert context.get("adopt") == "don't shop"
 
         # Behavior when key doesn’t exist
         with pytest.raises(KeyError):
             context["dogs"]
+        assert context.get("dogs") is None
+        assert context.get("dogs", "great") == "great"
 
     def test_set_value(self):
         context = self._get_new_context(initial_context={"adopt": "don't shop"})
