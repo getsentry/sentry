@@ -17,7 +17,7 @@ pytestmark = [requires_snuba]
 class SlackResolvedInPullRequestNotificationTest(
     SlackActivityNotificationTest, PerformanceIssueTestCase
 ):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.pull_request_url = "https://github.com/example/pull/123"
 
@@ -32,7 +32,7 @@ class SlackResolvedInPullRequestNotificationTest(
             )
         )
 
-    def test_resolved_in_pull_request_block(self):
+    def test_resolved_in_pull_request_block(self) -> None:
         notification = self.create_notification(self.group)
         with self.tasks():
             notification.send()

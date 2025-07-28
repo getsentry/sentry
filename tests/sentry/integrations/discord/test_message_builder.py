@@ -26,7 +26,7 @@ from sentry.utils.http import absolute_uri
 
 
 class BuildMetricAlertAttachmentTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.alert_rule = self.create_alert_rule()
 
@@ -35,7 +35,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             return f"{link}?alert={identifier}&referrer=metric_alert_discord&detection_type={detection_type}"
         return f"{link}?alert={identifier}&referrer=metric_alert_discord&detection_type={detection_type}&notification_uuid={uuid}"
 
-    def test_metric_alert_with_selected_incident(self):
+    def test_metric_alert_with_selected_incident(self) -> None:
         new_status = IncidentStatus.CLOSED.value
         incident = self.create_incident(alert_rule=self.alert_rule, status=new_status)
         trigger = self.create_alert_rule_trigger(self.alert_rule, CRITICAL_TRIGGER_LABEL, 100)
@@ -78,7 +78,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             "components": [],
         }
 
-    def test_metric_alert_with_active_incident(self):
+    def test_metric_alert_with_active_incident(self) -> None:
         new_status = IncidentStatus.CRITICAL.value
         incident = self.create_incident(alert_rule=self.alert_rule, status=new_status)
         trigger = self.create_alert_rule_trigger(self.alert_rule, CRITICAL_TRIGGER_LABEL, 100)
@@ -120,7 +120,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             "components": [],
         }
 
-    def test_metric_value(self):
+    def test_metric_value(self) -> None:
         incident = self.create_incident(
             alert_rule=self.alert_rule, status=IncidentStatus.CLOSED.value
         )
@@ -165,7 +165,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             "components": [],
         }
 
-    def test_metric_alert_chart(self):
+    def test_metric_alert_chart(self) -> None:
         incident = self.create_incident(
             alert_rule=self.alert_rule, status=IncidentStatus.OPEN.value
         )
@@ -208,7 +208,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             "components": [],
         }
 
-    def test_metric_alert_no_uuid(self):
+    def test_metric_alert_no_uuid(self) -> None:
         new_status = IncidentStatus.CRITICAL.value
         incident = self.create_incident(alert_rule=self.alert_rule, status=new_status)
         trigger = self.create_alert_rule_trigger(self.alert_rule, CRITICAL_TRIGGER_LABEL, 100)

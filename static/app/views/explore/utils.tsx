@@ -691,3 +691,16 @@ export function prettifyAggregation(aggregation: string): string | null {
 
   return null;
 }
+
+export const removeHiddenKeys = (
+  tagCollection: TagCollection,
+  hiddenKeys: string[]
+): TagCollection => {
+  const result: TagCollection = {};
+  for (const key in tagCollection) {
+    if (key && !hiddenKeys.includes(key) && tagCollection[key]) {
+      result[key] = tagCollection[key];
+    }
+  }
+  return result;
+};

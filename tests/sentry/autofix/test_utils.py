@@ -20,12 +20,12 @@ from sentry.utils import json
 
 
 class TestGetRepoFromCodeMappings(TestCase):
-    def test_code_mappings_empty(self):
+    def test_code_mappings_empty(self) -> None:
         project = self.create_project()
         repos = get_autofix_repos_from_project_code_mappings(project)
         assert repos == []
 
-    def test_get_repos_from_project_code_mappings_with_data(self):
+    def test_get_repos_from_project_code_mappings_with_data(self) -> None:
         project = self.create_project()
         repo = self.create_repo(name="getsentry/sentry", provider="github", external_id="123")
         self.create_code_mapping(project=project, repo=repo)

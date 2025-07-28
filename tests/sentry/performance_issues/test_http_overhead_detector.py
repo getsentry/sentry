@@ -68,14 +68,14 @@ def find_problems(settings, event: dict[str, Any]) -> list[PerformanceProblem]:
 
 @pytest.mark.django_db
 class HTTPOverheadDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 
     def find_problems(self, event):
         return find_problems(self._settings, event)
 
-    def test_detects_http_overhead(self):
+    def test_detects_http_overhead(self) -> None:
         event = _valid_http_overhead_event("/api/endpoint/123")
         assert self.find_problems(event) == [
             PerformanceProblem(
@@ -108,13 +108,13 @@ class HTTPOverheadDetectorTest(TestCase):
             )
         ]
 
-    def test_does_not_detect_overlap_limit(self):
+    def test_does_not_detect_overlap_limit(self) -> None:
         event = _valid_http_overhead_event("/api/endpoint/123")
 
         event["spans"] = event["spans"][:5]
         assert self.find_problems(event) == []
 
-    def test_slowest_span_description_used(self):
+    def test_slowest_span_description_used(self) -> None:
         url = "/api/endpoint/123"
         event = _valid_http_overhead_event("/api/endpoint/123")
         event["spans"] = [
@@ -149,7 +149,7 @@ class HTTPOverheadDetectorTest(TestCase):
             )
         ]
 
-    def test_does_not_detect_under_delay_threshold(self):
+    def test_does_not_detect_under_delay_threshold(self) -> None:
         url = "/api/endpoint/123"
         event = _valid_http_overhead_event(url)
 
@@ -163,7 +163,7 @@ class HTTPOverheadDetectorTest(TestCase):
         ]
         assert self.find_problems(event) == []
 
-    def test_detect_non_http_1_1(self):
+    def test_detect_non_http_1_1(self) -> None:
         url = "/api/endpoint/123"
         event = _valid_http_overhead_event(url)
 
@@ -183,7 +183,7 @@ class HTTPOverheadDetectorTest(TestCase):
 
         assert len(self.find_problems(event)) == 0
 
-    def test_non_overlapping_not_included_evidence(self):
+    def test_non_overlapping_not_included_evidence(self) -> None:
         url = "https://example.com/api/endpoint/123"
         event = _valid_http_overhead_event(url)
         event["spans"] = [
@@ -227,7 +227,7 @@ class HTTPOverheadDetectorTest(TestCase):
             )
         ]
 
-    def test_detect_other_location(self):
+    def test_detect_other_location(self) -> None:
         url = "https://example.com/api/endpoint/123"
         event = _valid_http_overhead_event(url)
         assert self.find_problems(event) == [
@@ -261,7 +261,7 @@ class HTTPOverheadDetectorTest(TestCase):
             )
         ]
 
-    def test_none_request_start(self):
+    def test_none_request_start(self) -> None:
         url = "https://example.com/api/endpoint/123"
         event = _valid_http_overhead_event("/api/endpoint/123")
 

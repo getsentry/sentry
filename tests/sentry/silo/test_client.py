@@ -31,16 +31,16 @@ class SiloClientTest(TestCase):
     region = Region("eu", 1, dummy_address, RegionCategory.MULTI_TENANT)
     region_config = (region,)
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.factory = RequestFactory()
 
     @override_settings(SILO_MODE=SiloMode.MONOLITH)
-    def test_init_clients_from_monolith(self):
+    def test_init_clients_from_monolith(self) -> None:
         with raises(SiloClientError):
             RegionSiloClient(self.region)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_init_clients_from_control(self):
+    def test_init_clients_from_control(self) -> None:
         with override_regions(self.region_config):
             with raises(SiloClientError):
                 RegionSiloClient("atlantis")  # type: ignore[arg-type]
@@ -55,7 +55,7 @@ class SiloClientTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.REGION)
     @override_settings(SENTRY_CONTROL_ADDRESS=dummy_address)
-    def test_init_clients_from_region(self):
+    def test_init_clients_from_region(self) -> None:
         with raises(SiloClientError):
             RegionSiloClient(self.region)
 
@@ -233,7 +233,7 @@ class SiloClientTest(TestCase):
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_client_request_on_3xx(self):
+    def test_client_request_on_3xx(self) -> None:
         with override_regions(self.region_config):
             client = RegionSiloClient(self.region)
             path = "/api/0/imaginary-public-endpoint/"
@@ -252,7 +252,7 @@ class SiloClientTest(TestCase):
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_client_request_on_4xx(self):
+    def test_client_request_on_4xx(self) -> None:
         with override_regions(self.region_config):
             client = RegionSiloClient(self.region)
             path = "/api/0/imaginary-public-endpoint/"
@@ -268,7 +268,7 @@ class SiloClientTest(TestCase):
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_client_request_on_5xx(self):
+    def test_client_request_on_5xx(self) -> None:
         with override_regions(self.region_config):
             client = RegionSiloClient(self.region)
             path = "/api/0/imaginary-public-endpoint/"
@@ -284,7 +284,7 @@ class SiloClientTest(TestCase):
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_client_proxy_request(self):
+    def test_client_proxy_request(self) -> None:
         with override_regions(self.region_config):
             client = RegionSiloClient(self.region)
             path = f"{self.dummy_address}/api/0/imaginary-public-endpoint/"
@@ -306,7 +306,7 @@ class SiloClientTest(TestCase):
             assert response[PROXY_DIRECT_LOCATION_HEADER] == path
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_invalid_region_silo_ip_address(self):
+    def test_invalid_region_silo_ip_address(self) -> None:
         region = Region("eu", 1, "http://172.31.255.31:9000", RegionCategory.MULTI_TENANT)
 
         # Disallow any region silo ip address by default.
@@ -350,7 +350,7 @@ class SiloClientTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_allowed_region_silo_ip_addresses("172.31.255.255")
-    def test_client_restricted_ip_address(self):
+    def test_client_restricted_ip_address(self) -> None:
         internal_region_address = "http://172.31.255.255:9000"
         region = Region("eu", 1, internal_region_address, RegionCategory.MULTI_TENANT)
         region_config = (region,)
@@ -382,7 +382,7 @@ class SiloClientTest(TestCase):
             assert mock_validate_region_ip_address.call_count == 1
 
 
-def test_validate_region_ip_address():
+def test_validate_region_ip_address() -> None:
     with (
         patch("sentry_sdk.capture_exception") as mock_capture_exception,
         override_allowed_region_silo_ip_addresses(),
@@ -411,7 +411,7 @@ def test_validate_region_ip_address():
         assert mock_capture_exception.call_count == 0
 
 
-def test_get_region_ip_addresses():
+def test_get_region_ip_addresses() -> None:
     internal_region_address = "http://i.am.an.internal.hostname:9000"
     region = Region("eu", 1, internal_region_address, RegionCategory.MULTI_TENANT)
     region_config = (region,)

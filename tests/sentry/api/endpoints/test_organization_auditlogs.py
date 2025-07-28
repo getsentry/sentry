@@ -15,11 +15,11 @@ from sentry.testutils.silo import control_silo_test
 class OrganizationAuditLogsTest(APITestCase):
     endpoint = "sentry-api-0-organization-audit-logs"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         now = timezone.now()
 
         org2 = self.create_organization(owner=self.user)
@@ -51,7 +51,7 @@ class OrganizationAuditLogsTest(APITestCase):
         assert response.data["rows"][0]["id"] == str(entry2.id)
         assert response.data["rows"][1]["id"] == str(entry1.id)
 
-    def test_filter_by_event(self):
+    def test_filter_by_event(self) -> None:
         now = timezone.now()
 
         entry1 = AuditLogEntry.objects.create(
@@ -75,7 +75,7 @@ class OrganizationAuditLogsTest(APITestCase):
         assert len(response.data["rows"]) == 1
         assert response.data["rows"][0]["id"] == str(entry1.id)
 
-    def test_filter_by_user(self):
+    def test_filter_by_user(self) -> None:
         now = timezone.now()
 
         org = self.create_organization(owner=self.user)
@@ -103,7 +103,7 @@ class OrganizationAuditLogsTest(APITestCase):
         assert len(response.data["rows"]) == 1
         assert response.data["rows"][0]["id"] == str(entry1.id)
 
-    def test_filter_by_user_and_event(self):
+    def test_filter_by_user_and_event(self) -> None:
         now = timezone.now()
 
         org = self.create_organization(owner=self.user)
@@ -140,7 +140,7 @@ class OrganizationAuditLogsTest(APITestCase):
         assert len(response.data["rows"]) == 1
         assert response.data["rows"][0]["id"] == str(entry1.id)
 
-    def test_invalid_event(self):
+    def test_invalid_event(self) -> None:
         now = timezone.now()
 
         AuditLogEntry.objects.create(
@@ -154,7 +154,7 @@ class OrganizationAuditLogsTest(APITestCase):
         response = self.get_success_response(self.organization.slug, qs_params={"event": "wrong"})
         assert response.data["rows"] == []
 
-    def test_user_out_of_bounds(self):
+    def test_user_out_of_bounds(self) -> None:
         now = timezone.now()
 
         AuditLogEntry.objects.create(
@@ -177,7 +177,7 @@ class OrganizationAuditLogsTest(APITestCase):
             ]
         }
 
-    def test_options_data_included(self):
+    def test_options_data_included(self) -> None:
         now = timezone.now()
 
         AuditLogEntry.objects.create(
@@ -195,7 +195,7 @@ class OrganizationAuditLogsTest(APITestCase):
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     @override_options({"superuser.read-write.ga-rollout": True})
-    def test_superuser_read_write_can_see_audit_logs(self):
+    def test_superuser_read_write_can_see_audit_logs(self) -> None:
         superuser = self.create_user(is_superuser=True)
         self.login_as(superuser, superuser=True)
 
@@ -211,7 +211,7 @@ class OrganizationAuditLogsTest(APITestCase):
         self.add_user_permission(superuser, "superuser.write")
         self.get_success_response(self.organization.slug)
 
-    def test_filter_by_date(self):
+    def test_filter_by_date(self) -> None:
         now = timezone.now()
 
         entry1 = AuditLogEntry.objects.create(
@@ -243,7 +243,7 @@ class OrganizationAuditLogsTest(APITestCase):
         assert len(response.data["rows"]) == 1
         assert response.data["rows"][0]["id"] == str(entry1.id)
 
-    def test_filter_by_stats_period(self):
+    def test_filter_by_stats_period(self) -> None:
         now = timezone.now()
 
         # old entry

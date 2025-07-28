@@ -123,11 +123,6 @@ class SQLInjectionDetector(PerformanceDetector):
         spans_involved = [span["span_id"]]
         vulnerable_parameters = []
 
-        if "WHERE" not in description.upper() or any(
-            keyword in description for keyword in PARAMETERIZED_KEYWORDS
-        ):
-            return
-
         for key, value in self.request_parameters:
             regex_key = rf'(?<![\w.$])"?{re.escape(key)}"?(?![\w.$"])'
             regex_value = rf"(?<![\w.$])(['\"]?){re.escape(value)}\1(?![\w.$'\"])"
@@ -209,11 +204,21 @@ class SQLInjectionDetector(PerformanceDetector):
 
         op = span.get("op", None)
 
-        if not op or not op.startswith("db") or op.startswith("db.redis"):
+        if (
+            not op
+            or not op.startswith("db")
+            or op.startswith("db.redis")
+            or op == "db.sql.active_record"
+        ):
             return False
 
         # Auto-generated rails queries can contain interpolated values
         if span.get("origin") == "auto.db.rails":
+            return False
+
+        # If bindings are present, we can assume the query is safe
+        span_data = span.get("data", {})
+        if span_data and span_data.get("db.sql.bindings"):
             return False
 
         description = span.get("description", None)
@@ -221,7 +226,17 @@ class SQLInjectionDetector(PerformanceDetector):
             return False
 
         description = description.strip()
-        if description[:6].upper() != "SELECT":
+        if (
+            description[:6].upper() != "SELECT"
+            or "WHERE" not in description.upper()
+            or any(keyword in description for keyword in PARAMETERIZED_KEYWORDS)
+        ):
+            return False
+
+        # Laravel queries with this pattern can contain interpolated values
+        if span.get("sentry_tags", {}).get("sdk.name") == "sentry.php.laravel" and re.search(
+            r"IN\s*\(\s*(\d+\s*,\s*)*\d+\s*\)", description.upper()
+        ):
             return False
 
         return True

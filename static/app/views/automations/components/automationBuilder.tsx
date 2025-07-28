@@ -9,7 +9,6 @@ import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge
 import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextButton';
 import {IconAdd, IconDelete, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {
   DataConditionGroup,
@@ -116,9 +115,11 @@ interface ActionFilterBlockProps {
 }
 
 function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
-  const {actions} = useAutomationBuilderContext();
+  const {state, actions} = useAutomationBuilderContext();
   const {mutateAsync: sendTestNotification} = useSendTestNotification();
   const {errors, setErrors} = useAutomationBuilderErrorContext();
+
+  const numActionFilters = state.actionFilters.length;
 
   const handleSendTestNotification = useCallback(async () => {
     const actionFilterActions = actionFilter.actions || [];
@@ -141,39 +142,39 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
   return (
     <IfThenWrapper>
       <Step>
-        <Flex direction="column" gap="sm">
-          <Flex justify="space-between">
-            <StepLead>
-              {tct('[if: If] [selector] of these filters match', {
-                if: <ConditionBadge />,
-                selector: (
-                  <EmbeddedWrapper>
-                    <EmbeddedSelectField
-                      styles={{
-                        control: (provided: any) => ({
-                          ...provided,
-                          minHeight: '21px',
-                          height: '21px',
-                        }),
-                      }}
-                      inline={false}
-                      isSearchable={false}
-                      isClearable={false}
-                      name={`actionFilters.${actionFilter.id}.logicType`}
-                      required
-                      flexibleControlStateSize
-                      options={FILTER_MATCH_OPTIONS}
-                      size="xs"
-                      value={actionFilter.logicType}
-                      onChange={(option: SelectValue<DataConditionGroupLogicType>) =>
-                        actions.updateIfLogicType(actionFilter.id, option.value)
-                      }
-                    />
-                  </EmbeddedWrapper>
-                ),
-              })}
-            </StepLead>
-            <Button
+        <Flex direction="column" gap="md">
+          <StepLead>
+            {tct('[if: If] [selector] of these filters match', {
+              if: <ConditionBadge />,
+              selector: (
+                <EmbeddedWrapper>
+                  <EmbeddedSelectField
+                    styles={{
+                      control: (provided: any) => ({
+                        ...provided,
+                        minHeight: '21px',
+                        height: '21px',
+                      }),
+                    }}
+                    inline={false}
+                    isSearchable={false}
+                    isClearable={false}
+                    name={`actionFilters.${actionFilter.id}.logicType`}
+                    required
+                    flexibleControlStateSize
+                    options={FILTER_MATCH_OPTIONS}
+                    size="xs"
+                    value={actionFilter.logicType}
+                    onChange={(option: SelectValue<DataConditionGroupLogicType>) =>
+                      actions.updateIfLogicType(actionFilter.id, option.value)
+                    }
+                  />
+                </EmbeddedWrapper>
+              ),
+            })}
+          </StepLead>
+          {numActionFilters > 1 && (
+            <DeleteButton
               aria-label={t('Delete If/Then Block')}
               size="sm"
               icon={<IconDelete />}
@@ -181,7 +182,7 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
               onClick={() => actions.removeIf(actionFilter.id)}
               className="delete-condition-group"
             />
-          </Flex>
+          )}
           <DataConditionNodeList
             handlerGroup={DataConditionHandlerGroupType.ACTION_FILTER}
             placeholder={t('Any event')}
@@ -225,12 +226,13 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
 
 const Step = styled(Flex)`
   flex-direction: column;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
 `;
 
 const StepLead = styled(Flex)`
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
+  margin-bottom: ${p => p.theme.space.xs};
 `;
 
 const EmbeddedSelectField = styled(Select)`
@@ -244,18 +246,26 @@ const EmbeddedWrapper = styled('div')`
 `;
 
 const IfThenWrapper = styled(Flex)`
+  position: relative;
   flex-direction: column;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.md};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1.5)};
-  padding-top: ${space(1)};
-  margin-top: ${space(1)};
+  padding: ${p => p.theme.space.lg};
+  margin-top: ${p => p.theme.space.md};
 
-  .delete-condition-group {
-    opacity: 0;
+  /* Only hide delete button when hover is supported */
+  @media (hover: hover) {
+    &:not(:hover):not(:focus-within) {
+      .delete-condition-group {
+        ${p => p.theme.visuallyHidden}
+      }
+    }
   }
-  :hover .delete-condition-group {
-    opacity: 1;
-  }
+`;
+
+const DeleteButton = styled(Button)`
+  position: absolute;
+  top: ${p => p.theme.space.sm};
+  right: ${p => p.theme.space.sm};
 `;

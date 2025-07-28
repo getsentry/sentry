@@ -1,7 +1,7 @@
 import datetime
 from unittest.mock import ANY, patch
 
-from sentry.api.endpoints.organization_trace import SerializedSpan
+from sentry.snuba.trace import SerializedSpan
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.skips import requires_snuba
@@ -12,7 +12,7 @@ pytestmark = [requires_snuba]
 @apply_feature_flag_on_cls("organizations:single-trace-summary")
 @apply_feature_flag_on_cls("organizations:trace-spans-format")
 class OrganizationTraceSummaryEndpointTest(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
@@ -107,7 +107,7 @@ class OrganizationTraceSummaryEndpointTest(APITestCase, SnubaTestCase):
             onlyTransaction=False,
         )
 
-    def test_endpoint_without_trace_slug(self):
+    def test_endpoint_without_trace_slug(self) -> None:
         response = self.client.post(self.url, format="json")
         assert response.status_code == 400
         assert response.data == {"detail": "Missing traceSlug parameter"}

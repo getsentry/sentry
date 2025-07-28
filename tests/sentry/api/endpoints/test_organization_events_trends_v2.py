@@ -14,7 +14,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.org = self.create_organization(owner=self.user)
@@ -55,7 +55,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
     def now(self):
         return MetricsAPIBaseTestCase.MOCK_DATETIME
 
-    def test_no_feature_flag(self):
+    def test_no_feature_flag(self) -> None:
         response = self.client.get(
             self.url,
             format="json",
@@ -69,7 +69,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
 
         assert response.status_code == 404, response.content
 
-    def test_no_project(self):
+    def test_no_project(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,

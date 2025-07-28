@@ -40,7 +40,7 @@ class HandleTriggerActionTest(TestCase):
             self.trigger, AlertRuleTriggerAction.Type.EMAIL, AlertRuleTriggerAction.TargetType.USER
         )
 
-    def test_missing_trigger_action(self):
+    def test_missing_trigger_action(self) -> None:
         with self.tasks():
             handle_trigger_action.delay(
                 1000, 1001, self.project.id, "hello", IncidentStatus.CRITICAL.value
@@ -49,7 +49,7 @@ class HandleTriggerActionTest(TestCase):
             "incidents.alert_rules.action.skipping_missing_action"
         )
 
-    def test_missing_incident(self):
+    def test_missing_incident(self) -> None:
         with self.tasks():
             handle_trigger_action.delay(
                 self.action.id, 1001, self.project.id, "hello", IncidentStatus.CRITICAL.value
@@ -58,7 +58,7 @@ class HandleTriggerActionTest(TestCase):
             "incidents.alert_rules.action.skipping_missing_incident"
         )
 
-    def test_missing_project(self):
+    def test_missing_project(self) -> None:
         incident = self.create_incident()
         with self.tasks():
             handle_trigger_action.delay(
@@ -68,7 +68,7 @@ class HandleTriggerActionTest(TestCase):
             "incidents.alert_rules.action.skipping_missing_project"
         )
 
-    def test(self):
+    def test(self) -> None:
         with TemporaryAlertRuleTriggerActionRegistry.registry_patched():
             mock_handler = Mock()
             AlertRuleTriggerAction.register_type("email", AlertRuleTriggerAction.Type.EMAIL, [])(

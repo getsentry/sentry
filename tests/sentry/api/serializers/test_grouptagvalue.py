@@ -6,7 +6,7 @@ from sentry.testutils.cases import TestCase
 
 
 class GroupTagValueSerializerTest(TestCase):
-    def test_with_user(self):
+    def test_with_user(self) -> None:
         user = self.create_user()
         grouptagvalue = GroupTagValue(
             group_id=0,

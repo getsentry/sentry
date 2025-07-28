@@ -41,14 +41,22 @@ export function useReplayTraces({
 
   const orgSlug = organization.slug;
 
+  // The replay timestamps have seconds precision, while the trace timestamps have milliseconds precision.
+  // We fetch the traces with a 1 second buffer on either side of the replay timestamps to ensure we capture all
+  // associated traces.
+  const start = replayRecord
+    ? getUtcDateString(replayRecord?.started_at.getTime() - 1000)
+    : undefined;
+  const end = replayRecord
+    ? getUtcDateString(replayRecord?.finished_at.getTime() + 1000)
+    : undefined;
+
   const listEventView = useMemo(() => {
-    if (!replayRecord) {
+    if (!replayRecord || !start || !end) {
       return null;
     }
     const replayId = replayRecord?.id;
     const projectId = replayRecord?.project_id;
-    const start = getUtcDateString(replayRecord?.started_at.getTime());
-    const end = getUtcDateString(replayRecord?.finished_at.getTime());
 
     return EventView.fromSavedQuery({
       id: undefined,
@@ -61,14 +69,12 @@ export function useReplayTraces({
       start,
       end,
     });
-  }, [replayRecord]);
+  }, [replayRecord, start, end]);
 
   const fetchTransactionData = useCallback(async () => {
-    if (!listEventView) {
+    if (!listEventView || !start || !end) {
       return;
     }
-    const start = getUtcDateString(replayRecord?.started_at.getTime());
-    const end = getUtcDateString(replayRecord?.finished_at.getTime());
 
     setState({
       indexComplete: false,
@@ -144,7 +150,7 @@ export function useReplayTraces({
         cursor = {cursor: '', results: false, href: ''} as ParsedHeader;
       }
     }
-  }, [api, listEventView, orgSlug, replayRecord]);
+  }, [api, listEventView, orgSlug, start, end]);
 
   useEffect(() => {
     if (state.indexComplete === false) {

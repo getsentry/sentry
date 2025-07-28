@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import {IconArrow} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
@@ -16,11 +17,15 @@ export function StoryFooter() {
   const pagination = findPreviousAndNextStory(story, stories);
 
   return (
-    <Flex align="center" justify="space-between" gap="xl">
+    <Flex align="center" justify="between" gap="xl">
       {pagination?.prev && (
         <Card to={pagination.prev.location} icon={<IconArrow direction="left" />}>
-          <CardLabel>Previous</CardLabel>
-          <CardTitle>{pagination.prev.label}</CardTitle>
+          <Text variant="muted" as="div">
+            Previous
+          </Text>
+          <Text size="xl" as="div">
+            {pagination.prev.label}
+          </Text>
         </Card>
       )}
       {pagination?.next && (
@@ -29,8 +34,12 @@ export function StoryFooter() {
           to={pagination.next.location}
           icon={<IconArrow direction="right" />}
         >
-          <CardLabel>Next</CardLabel>
-          <CardTitle>{pagination.next.label}</CardTitle>
+          <Text variant="muted" as="div" align="right">
+            Next
+          </Text>
+          <Text size="xl" as="div" align="right">
+            {pagination.next.label}
+          </Text>
         </Card>
       )}
     </Flex>
@@ -79,16 +88,8 @@ const Card = styled(LinkButton)`
       'text icon';
     grid-template-columns: 1fr auto;
     justify-content: flex-end;
-    text-align: right;
   }
   span:has(svg) {
     grid-area: icon;
   }
-`;
-const CardLabel = styled('div')`
-  color: ${p => p.theme.tokens.content.muted};
-`;
-const CardTitle = styled('div')`
-  color: ${p => p.theme.tokens.content.primary};
-  font-size: 20px;
 `;

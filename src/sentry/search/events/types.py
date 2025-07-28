@@ -99,6 +99,7 @@ class SnubaParams:
     teams: Iterable[Team] = field(default_factory=list)
     organization: Organization | None = None
     sampling_mode: SAMPLING_MODES | None = None
+    debug: bool = False
 
     def __post_init__(self) -> None:
         if self.start:

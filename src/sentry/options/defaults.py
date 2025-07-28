@@ -504,6 +504,13 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Enables trace-item ingestion.
+register(
+    "replay.recording.ingest-trace-items.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Feedback Options
 register(
@@ -848,6 +855,7 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
 
 register(
     "issues.severity.first-event-severity-calculation-projects-allowlist",
@@ -2574,6 +2582,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# The value by which the current delta is multiplied
+register(
+    "profiling.flamegraph.query.multiplier",
+    type=Int,
+    default=2,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # list of platform names for which we allow using unsampled profiles for the purpose
 # of improving profile (function) metrics
 register(
@@ -3452,6 +3468,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "taskworker.ingest.errors.postprocess.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "taskworker.ingest.transactions.rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3466,6 +3487,12 @@ register(
 register(
     "taskworker.scheduler.rollout",
     default=["sync_options_trial"],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "taskworker.postprocess.namespace.rollout",
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3512,15 +3539,5 @@ register(
     "sentry:infer_project_platform",
     type=Float,
     default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Enables the new project option set_value implementation that only reloads the cache if the
-# value has changed. This is a temporary option to allow for a smooth transition to the new
-# implementation, and acts as a killswitch.
-register(
-    "sentry.project_option.reload_cache_only_on_value_change",
-    type=Bool,
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
