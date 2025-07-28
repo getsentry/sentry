@@ -61,8 +61,7 @@ export default function Ai() {
   const summaryIsOld =
     summaryData?.created_at &&
     new Date(summaryData.created_at) < new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-  const needsInitialGeneration =
-    summaryData?.status === ReplaySummaryStatus.NOT_STARTED || !summaryData?.data;
+  const needsInitialGeneration = summaryData?.status === ReplaySummaryStatus.NOT_STARTED;
 
   useEffect(() => {
     if (

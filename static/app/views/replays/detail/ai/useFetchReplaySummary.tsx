@@ -70,11 +70,7 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
         }
       );
       // invalidate the query when a summary is triggered
-      // so the cached data is marked as sale.
-      // occurs if the summary was created over 90d ago,
-      // the segment count of the replay increased,
-      // there is no summary yet,
-      // or the user clicks "regenerate".
+      // so the cached data is marked as stale.
       queryClient.invalidateQueries({
         queryKey: createAISummaryQueryKey(
           organization.slug,
