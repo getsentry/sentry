@@ -60,7 +60,9 @@ export default function TestsPage() {
           <BranchSelector />
           <DateSelector />
         </PageFilterBar>
-        {(branch === null || branch === defaultBranch) && <TestSuiteDropdown />}
+        {(branch === undefined || branch === null || branch === defaultBranch) && (
+          <TestSuiteDropdown />
+        )}
       </ControlsContainer>
       {shouldDisplayContent ? <Content response={response} /> : <EmptySelectorsMessage />}
     </LayoutGap>
@@ -116,7 +118,9 @@ function Content({response}: TestResultsContentData) {
 
   return (
     <Fragment>
-      {(selectedBranch === null || selectedBranch === defaultBranch) && <Summaries />}
+      {(selectedBranch === undefined ||
+        selectedBranch === null ||
+        selectedBranch === defaultBranch) && <Summaries />}
       <TestSearchBar testCount={response.totalCount} />
       <TestAnalyticsTable response={response} sort={sorts[0]} />
       {/* We don't need to use the pageLinks prop because Codecov handles pagination using our own cursor implementation. But we need to
