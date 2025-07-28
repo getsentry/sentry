@@ -67,7 +67,7 @@ class TestWorkflowEngineSerializer(TestCase):
                 "label": "critical",
                 "thresholdType": AlertRuleThresholdType.ABOVE.value,
                 "alertThreshold": self.critical_detector_trigger.comparison,
-                "resolveThreshold": AlertRuleThresholdType.BELOW.value,
+                "resolveThreshold": self.alert_rule.resolve_threshold,
                 "dateCreated": self.critical_trigger.date_added,
                 "actions": self.expected_critical_action,
             },
@@ -123,7 +123,7 @@ class TestWorkflowEngineSerializer(TestCase):
             "label": "warning",
             "thresholdType": AlertRuleThresholdType.ABOVE.value,
             "alertThreshold": self.critical_detector_trigger.comparison,
-            "resolveThreshold": AlertRuleThresholdType.BELOW.value,
+            "resolveThreshold": self.alert_rule.resolve_threshold,
             "dateCreated": self.critical_trigger.date_added,
             "actions": self.expected_warning_action,
         }

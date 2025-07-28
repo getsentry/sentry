@@ -9,7 +9,7 @@ from sentry.api.serializers import Serializer, serialize
 from sentry.incidents.endpoints.serializers.workflow_engine_action import (
     WorkflowEngineActionSerializer,
 )
-from sentry.incidents.endpoints.utils import translate_data_condition_type, translate_threshold
+from sentry.incidents.endpoints.utils import translate_data_condition_type
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -105,7 +105,11 @@ class WorkflowEngineDataConditionSerializer(Serializer):
                 if obj.type == Condition.GREATER
                 else AlertRuleThresholdType.BELOW.value
             )
-            resolve_threshold = translate_threshold(get_resolve_threshold(obj.condition_group))
+            resolve_threshold = translate_data_condition_type(
+                detector.config.get("comparison_delta"),
+                obj.type,
+                get_resolve_threshold(obj.condition_group),
+            )
 
         return {
             "id": str(alert_rule_trigger_id),
