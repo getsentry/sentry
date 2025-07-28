@@ -32,7 +32,7 @@ export function ChonkOptInBanner(props: {collapsed: boolean | 'never'}) {
       isDarkMode={config.theme === 'dark'}
       position={props.collapsed === 'never' ? 'absolute' : 'relative'}
     >
-      <Title>{t('Sentry has a new look')}</Title>
+      <Title id={id}>{t('Sentry has a new look')}</Title>
       <Description>
         {t(`We've updated Sentry with a fresh new look, try it out by opting in below.`)}
       </Description>
