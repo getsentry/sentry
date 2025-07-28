@@ -24,7 +24,7 @@ def test_path_traversal_attempt_raises_exception(platform):
     assert msg == "potential path traversal attack detected"
 
 
-def test_missing_sample_returns_none():
+def test_missing_sample_returns_none() -> None:
     platform = "random-platform-that-does-not-exist"
     data = load_data(platform)
 

@@ -79,7 +79,7 @@ def fill_historic_metrics(start: datetime, metrics: Sequence[float | None]):
     redis_client.mset(values)
 
 
-def test_update_check_in_volume():
+def test_update_check_in_volume() -> None:
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
     now = timezone.now().replace(second=5)
@@ -359,7 +359,7 @@ def test_record_clock_tick_volume_metric_uniform(metrics, logger):
 
 
 @override_options({"crons.system_incidents.collect_metrics": True})
-def test_prune_incident_check_in_volume():
+def test_prune_incident_check_in_volume() -> None:
     now = timezone.now().replace(second=0, microsecond=0)
 
     # Fill in some historic volume data
@@ -393,7 +393,7 @@ def test_prune_incident_check_in_volume():
         "crons.system_incidents.pct_deviation_incident_threshold": -25,
     }
 )
-def test_tick_decision_anomaly_recovery():
+def test_tick_decision_anomaly_recovery() -> None:
     start = timezone.now().replace(minute=0, second=0, microsecond=0)
 
     test_metrics = [
@@ -452,7 +452,7 @@ def test_tick_decision_anomaly_recovery():
         "crons.system_incidents.pct_deviation_incident_threshold": -25,
     }
 )
-def test_tick_decisions_simple_incident():
+def test_tick_decisions_simple_incident() -> None:
     """
     Tests incident detection for an incident that immediately starts and
     immediately stops.
@@ -530,7 +530,7 @@ def test_tick_decisions_simple_incident():
         "crons.system_incidents.pct_deviation_incident_threshold": -25,
     }
 )
-def test_tick_decisions_variable_incident():
+def test_tick_decisions_variable_incident() -> None:
     """
     Tests an incident that slowly starts and slowly recovers.
     """

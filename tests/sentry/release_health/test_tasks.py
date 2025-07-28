@@ -553,7 +553,7 @@ class TestMetricReleaseMonitor(BaseTestReleaseMonitor, BaseMetricsTestCase):
     backend_class = MetricReleaseMonitorBackend
 
 
-def test_iter_adopted_releases():
+def test_iter_adopted_releases() -> None:
     """Test the totals object is flattened into a list of tuple of values."""
     assert (
         list(iter_adopted_releases({1: {"": {"releases": {"0.1": 1}, "total_sessions": 1}}})) == []
@@ -579,14 +579,14 @@ def test_iter_adopted_releases():
     )
 
 
-def test_valid_environment():
+def test_valid_environment() -> None:
     """A valid environment is one that has at least one session and a non-empty name."""
     assert valid_environment("production", 20)
     assert not valid_environment("", 20)
     assert not valid_environment("production", 0)
 
 
-def test_valid_and_adopted_release():
+def test_valid_and_adopted_release() -> None:
     """A valid release has a valid name and at least 10% of the environment's sessions."""
     assert valid_and_adopted_release("release", 10, 100)
     assert not valid_and_adopted_release("", 10, 100)
@@ -594,7 +594,7 @@ def test_valid_and_adopted_release():
     assert not valid_and_adopted_release("release", 10, 101)
 
 
-def test_has_been_adopted():
+def test_has_been_adopted() -> None:
     """An adopted session has at least 10% of the environment's sessions."""
     assert has_been_adopted(10, 1)
     assert has_been_adopted(100, 10)

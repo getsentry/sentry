@@ -701,7 +701,7 @@ class SearchResolverColumnTest(TestCase):
         assert (resolved_column, virtual_context) == (p95_column, p95_context)
 
 
-def test_loads_deprecated_attrs_json():
+def test_loads_deprecated_attrs_json() -> None:
     with open(os.path.join(SENTRY_CONVENTIONS_DIRECTORY, "deprecated_attributes.json"), "rb") as f:
         deprecated_attrs = json.loads(f.read())["attributes"]
 

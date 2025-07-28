@@ -19,7 +19,7 @@ def test_delete_count(monkeypatch):
 
 
 @django_db_all
-def test_read_write():
+def test_read_write() -> None:
     cache = redis.RedisProjectConfigCache()
 
     dsn1 = "fake-dsn-1"

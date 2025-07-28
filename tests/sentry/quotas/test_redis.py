@@ -12,7 +12,7 @@ from sentry.testutils.cases import TestCase
 from sentry.utils.redis import clusters
 
 
-def test_is_rate_limited_script():
+def test_is_rate_limited_script() -> None:
     now = int(time.time())
 
     cluster = clusters.get("default")

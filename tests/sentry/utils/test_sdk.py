@@ -505,7 +505,7 @@ class BindAmbiguousOrgContextTest(TestCase):
             assert slug_list_in_org_context[-1] == "... (3 more)"
 
 
-def test_before_send_error_level():
+def test_before_send_error_level() -> None:
     event = {
         "tags": {
             "silo_mode": "REGION",

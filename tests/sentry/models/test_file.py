@@ -190,7 +190,7 @@ class FileTest(TestCase):
 
 
 @django_db_all
-def test_large_files():
+def test_large_files() -> None:
     large_blob = FileBlob.objects.create(size=3_000_000_000, checksum=uuid4().hex)
     zero_blob = FileBlob.objects.create(size=0, checksum=uuid4().hex)
     large_file = File.objects.create(size=3_000_000_000)

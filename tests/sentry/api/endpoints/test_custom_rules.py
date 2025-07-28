@@ -348,7 +348,7 @@ def test_custom_rule_serializer(what, value, valid):
     assert serializer.is_valid() == valid
 
 
-def test_custom_rule_serializer_creates_org_rule_when_no_projects_given():
+def test_custom_rule_serializer_creates_org_rule_when_no_projects_given() -> None:
     """
     Test that the serializer creates an org level rule when no projects are given
     """

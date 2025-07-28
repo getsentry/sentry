@@ -23,7 +23,7 @@ from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequency
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
 
 
-def test_bucket_num_groups():
+def test_bucket_num_groups() -> None:
     assert bucket_num_groups(1) == "1"
     assert bucket_num_groups(50) == ">10"
     assert bucket_num_groups(101) == ">100"

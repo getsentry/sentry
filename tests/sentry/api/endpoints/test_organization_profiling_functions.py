@@ -314,7 +314,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
             assert isinstance(data["examples"], list)
 
 
-def test_get_rollup_from_range_max_buckets():
+def test_get_rollup_from_range_max_buckets() -> None:
     max_buckets = int(MAX_ROLLUP_POINTS / TOP_FUNCTIONS_LIMIT)
 
     for days in range(90):
