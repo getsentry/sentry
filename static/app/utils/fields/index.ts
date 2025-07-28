@@ -403,7 +403,7 @@ export enum IsFieldValues {
   UNLINKED = 'unlinked',
 }
 
-export enum IsFieldDescriptions {
+enum IsFieldDescriptions {
   RESOLVED = 'Issues marked as fixed',
   UNRESOLVED = 'Issues still active and needing attention',
   ARCHIVED = 'Issues that have been archived',
@@ -418,7 +418,7 @@ export enum IsFieldDescriptions {
   UNLINKED = 'Issues not linked to other issues',
 }
 
-export const FIELD_VALUE_TO_FIELD_DESCRIPTION = {
+const FIELD_VALUE_TO_FIELD_DESCRIPTION = {
   resolved: IsFieldDescriptions.RESOLVED,
   unresolved: IsFieldDescriptions.UNRESOLVED,
   archived: IsFieldDescriptions.ARCHIVED,

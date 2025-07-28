@@ -21,9 +21,9 @@ import type {Organization} from 'sentry/types/organization';
 import {escapeIssueTagKey} from 'sentry/utils';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {
-  FIELD_VALUE_TO_FIELD_DESCRIPTION,
   FieldKey,
   FieldKind,
+  getIsFieldDescriptionFromValue,
   IsFieldValues,
   ISSUE_EVENT_PROPERTY_FIELDS,
   ISSUE_FIELDS,
@@ -259,7 +259,7 @@ function builtInIssuesFields({
         icon: null,
         title: value,
         name: value,
-        documentation: FIELD_VALUE_TO_FIELD_DESCRIPTION[value],
+        documentation: getIsFieldDescriptionFromValue(value),
         value,
         type: ItemType.TAG_VALUE,
         children: [],
