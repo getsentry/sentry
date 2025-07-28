@@ -217,7 +217,8 @@ class SQLInjectionDetector(PerformanceDetector):
             return False
 
         # If bindings are present, we can assume the query is safe
-        if span.get("data", {}).get("db.sql.bindings"):
+        span_data = span.get("data", {})
+        if span_data and span_data.get("db.sql.bindings"):
             return False
 
         description = span.get("description", None)
