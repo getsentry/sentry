@@ -18,27 +18,13 @@ class RepositoryTokenRegenerateSerializer(serializers.Serializer):
         Transform the GraphQL response to the serialized format
         """
         try:
-            repository_data = graphql_response["data"]["owner"]["repositories"]
-            repositories = repository_data["edges"]
-            page_info = repository_data.get("pageInfo", {})
+            data = graphql_response["data"]["regenerateRepositoryUploadToken"]
 
-            nodes = []
-            for edge in repositories:
-                node = edge["node"]
-                nodes.append(node)
+            if data.get("error"):
+                raise serializers.ValidationError(data["error"])
 
             response_data = {
-                "results": nodes,
-                "pageInfo": repository_data.get(
-                    "pageInfo",
-                    {
-                        "hasNextPage": page_info.get("hasNextPage", False),
-                        "hasPreviousPage": page_info.get("hasPreviousPage", False),
-                        "startCursor": page_info.get("startCursor"),
-                        "endCursor": page_info.get("endCursor"),
-                    },
-                ),
-                "totalCount": repository_data.get("totalCount", len(nodes)),
+                "token": data["token"],
             }
 
             return super().to_representation(response_data)

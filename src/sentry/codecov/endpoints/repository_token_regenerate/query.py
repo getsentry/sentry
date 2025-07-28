@@ -4,13 +4,13 @@ query = """
             $repoName: String!
         ) {
             regenerateRepositoryUploadToken(input: { owner: $owner, repoName: $repoName }) {
-            error {
-                ... on ValidationError {
-                __typename
-                message
+                error {
+                    ... on ValidationError {
+                        __typename
+                        message
+                    }
                 }
-            }
-            token
+                token
             }
         }
       """

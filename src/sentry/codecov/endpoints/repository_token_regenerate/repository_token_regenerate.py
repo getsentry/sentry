@@ -1,3 +1,5 @@
+import uuid
+
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -44,15 +46,25 @@ class RepositoryTokenRegenerateEndpoint(CodecovEndpoint):
         Regenerates a repository upload token and returns the new token.
         """
 
-        owner_slug = owner.name
+        # Check if we should call Codecov or return a generic UUID
+        # don't document this because we don't want to expose it just yet to users
+        use_codecov = request.GET.get("use_codecov")
 
-        variables = {
-            "owner": owner_slug,
-            "repository": repository,
-        }
+        if use_codecov:
+            # Make actual request to Codecov
+            owner_slug = owner.name
 
-        client = CodecovApiClient(git_provider_org=owner_slug)
-        graphql_response = client.query(query=query, variables=variables)
-        token = RepositoryTokenRegenerateSerializer().to_representation(graphql_response.json())
+            variables = {
+                "owner": owner_slug,
+                "repoName": repository,
+            }
+
+            client = CodecovApiClient(git_provider_org=owner_slug)
+            graphql_response = client.query(query=query, variables=variables)
+            token = RepositoryTokenRegenerateSerializer().to_representation(graphql_response.json())
+        else:
+            # Return a generic UUID token
+            generic_token = str(uuid.uuid4())
+            token = {"token": generic_token}
 
         return Response(token)
