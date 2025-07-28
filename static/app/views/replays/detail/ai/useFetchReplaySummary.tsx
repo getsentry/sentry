@@ -91,7 +91,7 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
     options?.enabled,
   ]);
 
-  // if status is complete error
+  // if status is complete or error
   // and waitingForNextRun is true, reset waitingForNextRun to false
   if (
     (summaryData?.status === ReplaySummaryStatus.COMPLETED ||
@@ -110,7 +110,6 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
   };
 }
 
-/** Will not poll when the replay summary is in an error state or has completed */
 const isPolling = (
   summaryData: SummaryResponse | undefined,
   waitingForNextRun: boolean
