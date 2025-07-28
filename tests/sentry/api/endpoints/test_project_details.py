@@ -2004,28 +2004,52 @@ class TestTempestProjectDetails(TestProjectDetailsBase):
             token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         self.authorization = f"Bearer {token.token}"
 
-    @with_feature("organizations:tempest-access")
     def test_put_tempest_fetch_screenshots(self) -> None:
-        # assert default value is False, and that put request updates the value
-        assert self.project.get_option("sentry:tempest_fetch_screenshots") is False
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, method="put", tempestFetchScreenshots=True
-        )
-        assert response.data["tempestFetchScreenshots"] is True
-        assert self.project.get_option("sentry:tempest_fetch_screenshots") is True
+        with self.feature("organizations:tempest-access"):
+            # assert default value is False, and that put request updates the value
+            assert self.project.get_option("sentry:tempest_fetch_screenshots") is False
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="put",
+                tempestFetchScreenshots=True,
+            )
+            assert response.data["tempestFetchScreenshots"] is True
+            assert self.project.get_option("sentry:tempest_fetch_screenshots") is True
+
+        with self.feature("organizations:project-creation-games-tab"):
+            self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
+            # assert default value is False, and that put request updates the value
+            assert self.project.get_option("sentry:tempest_fetch_screenshots") is False
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="put",
+                tempestFetchScreenshots=True,
+            )
+            assert response.data["tempestFetchScreenshots"] is True
+            assert self.project.get_option("sentry:tempest_fetch_screenshots") is True
 
     def test_put_tempest_fetch_screenshots_without_feature_flag(self) -> None:
         self.get_error_response(
             self.organization.slug, self.project.slug, method="put", tempestFetchScreenshots=True
         )
 
-    @with_feature("organizations:tempest-access")
     def test_get_tempest_fetch_screenshots_options(self) -> None:
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, method="get"
-        )
-        assert "tempestFetchScreenshots" in response.data
-        assert response.data["tempestFetchScreenshots"] is False
+        with self.feature("organizations:tempest-access"):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, method="get"
+            )
+            assert "tempestFetchScreenshots" in response.data
+            assert response.data["tempestFetchScreenshots"] is False
+
+        with self.feature("organizations:project-creation-games-tab"):
+            self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, method="get"
+            )
+            assert "tempestFetchScreenshots" in response.data
+            assert response.data["tempestFetchScreenshots"] is False
 
     def test_get_tempest_fetch_screenshots_options_without_feature_flag(self) -> None:
         response = self.get_success_response(
@@ -2033,28 +2057,46 @@ class TestTempestProjectDetails(TestProjectDetailsBase):
         )
         assert "tempestFetchScreenshots" not in response.data
 
-    @with_feature("organizations:tempest-access")
     def test_put_tempest_fetch_dumps(self) -> None:
-        # assert default value is False, and that put request updates the value
-        assert self.project.get_option("sentry:tempest_fetch_dumps") is False
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, method="put", tempestFetchDumps=True
-        )
-        assert response.data["tempestFetchDumps"] is True
-        assert self.project.get_option("sentry:tempest_fetch_dumps") is True
+        with self.feature("organizations:tempest-access"):
+            # assert default value is False, and that put request updates the value
+            assert self.project.get_option("sentry:tempest_fetch_dumps") is False
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, method="put", tempestFetchDumps=True
+            )
+            assert response.data["tempestFetchDumps"] is True
+            assert self.project.get_option("sentry:tempest_fetch_dumps") is True
+
+        with self.feature("organizations:project-creation-games-tab"):
+            self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
+            # assert default value is False, and that put request updates the value
+            assert self.project.get_option("sentry:tempest_fetch_dumps") is False
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, method="put", tempestFetchDumps=True
+            )
+            assert response.data["tempestFetchDumps"] is True
+            assert self.project.get_option("sentry:tempest_fetch_dumps") is True
 
     def test_put_tempest_fetch_dumps_without_feature_flag(self) -> None:
         self.get_error_response(
             self.organization.slug, self.project.slug, method="put", tempestFetchDumps=True
         )
 
-    @with_feature("organizations:tempest-access")
     def test_get_tempest_fetch_dumps_options(self) -> None:
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, method="get"
-        )
-        assert "tempestFetchDumps" in response.data
-        assert response.data["tempestFetchDumps"] is False
+        with self.feature("organizations:tempest-access"):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, method="get"
+            )
+            assert "tempestFetchDumps" in response.data
+            assert response.data["tempestFetchDumps"] is False
+
+        with self.feature("organizations:project-creation-games-tab"):
+            self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, method="get"
+            )
+            assert "tempestFetchDumps" in response.data
+            assert response.data["tempestFetchDumps"] is False
 
     def test_get_tempest_fetch_dumps_options_without_feature_flag(self) -> None:
         response = self.get_success_response(
