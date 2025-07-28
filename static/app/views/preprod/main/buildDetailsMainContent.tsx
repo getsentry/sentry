@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/core/alert';
 import {Container} from 'sentry/components/core/layout';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
-import {Heading} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconGrid} from 'sentry/icons';
 import {IconGraphCircle} from 'sentry/icons/iconGraphCircle';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import {AppSizeTreemap} from 'sentry/views/preprod/main/appSizeTreemap';
+import {AppSizeCategories} from 'sentry/views/preprod/components/visualizations/appSizeCategories';
+import {AppSizeTreemap} from 'sentry/views/preprod/components/visualizations/appSizeTreemap';
 import {AppSizeInsights} from 'sentry/views/preprod/main/insights/appSizeInsights';
 import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
 import {processInsights} from 'sentry/views/preprod/utils/insightProcessing';
@@ -65,7 +65,8 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     selectedContent === 'treemap' ? (
       <AppSizeTreemap treemapData={appSizeData.treemap} />
     ) : (
-      <Heading as="h2">Categories (Coming soon)</Heading>
+      // TODO: Wireup sizeMode
+      <AppSizeCategories treemapData={appSizeData.treemap} sizeMode="install" />
     );
 
   return (
