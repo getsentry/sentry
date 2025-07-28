@@ -331,9 +331,7 @@ from sentry.replays.endpoints.project_replay_recording_segment_index import (
 from sentry.replays.endpoints.project_replay_summarize_breadcrumbs import (
     ProjectReplaySummarizeBreadcrumbsEndpoint,
 )
-from sentry.replays.endpoints.project_replay_summarize_breadcrumbs_async import (
-    ProjectReplaySummarizeBreadcrumbsAsyncEndpoint,
-)
+from sentry.replays.endpoints.project_replay_summary import ProjectReplaySummaryEndpoint
 from sentry.replays.endpoints.project_replay_video_details import ProjectReplayVideoDetailsEndpoint
 from sentry.replays.endpoints.project_replay_viewed_by import ProjectReplayViewedByEndpoint
 from sentry.rules.history.endpoints.project_rule_group_history import (
@@ -2755,9 +2753,9 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-replay-summarize-breadcrumbs",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/replays/(?P<replay_id>[^/]+)/summarize/breadcrumbs-v2/$",
-        ProjectReplaySummarizeBreadcrumbsAsyncEndpoint.as_view(),
-        name="sentry-api-0-project-replay-summarize-breadcrumbs-v2",
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/replays/(?P<replay_id>[^/]+)/summarize/$",
+        ProjectReplaySummaryEndpoint.as_view(),
+        name="sentry-api-0-project-replay-summary",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/replays/(?P<replay_id>[^/]+)/recording-segments/(?P<segment_id>\d+)/$",

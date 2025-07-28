@@ -48,7 +48,7 @@ def _get_request_exc_extras(e: requests.exceptions.RequestException) -> dict[str
 
 @region_silo_endpoint
 @extend_schema(tags=["Replays"])
-class ProjectReplaySummarizeBreadcrumbsAsyncEndpoint(ProjectEndpoint):
+class ProjectReplaySummaryEndpoint(ProjectEndpoint):
     owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,

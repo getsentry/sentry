@@ -44,6 +44,8 @@ class SeerRequest(TypedDict):
 @region_silo_endpoint
 @extend_schema(tags=["Replays"])
 class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
+    """Deprecated. TODO: Delete in favor of ProjectReplaySummaryEndpoint."""
+
     owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,

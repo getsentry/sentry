@@ -8,10 +8,7 @@ import responses
 from django.conf import settings
 from django.urls import reverse
 
-from sentry.replays.endpoints.project_replay_summarize_breadcrumbs_async import (
-    SEER_POLL_STATE_URL,
-    SEER_START_TASK_URL,
-)
+from sentry.replays.endpoints.project_replay_summary import SEER_POLL_STATE_URL, SEER_START_TASK_URL
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
 from sentry.replays.testutils import mock_replay
 from sentry.testutils.cases import TransactionTestCase
@@ -30,10 +27,10 @@ def mock_seer_response(method: str, **kwargs) -> None:
 
 # have to use TransactionTestCase because we're using threadpools
 @requires_snuba
-class ProjectReplaySummarizeBreadcrumbsAsyncTestCase(
+class ProjectReplaySummaryTestCase(
     TransactionTestCase,
 ):
-    endpoint = "sentry-api-0-project-replay-summarize-breadcrumbs-v2"
+    endpoint = "sentry-api-0-project-replay-summary"
 
     def setUp(self):
         super().setUp()
@@ -153,7 +150,7 @@ class ProjectReplaySummarizeBreadcrumbsAsyncTestCase(
             "project_id": self.project.id,
         }
 
-    @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs_async.requests")
+    @patch("sentry.replays.endpoints.project_replay_summary.requests")
     def test_post_with_both_direct_and_trace_connected_errors(self, mock_requests):
         """Test handling of breadcrumbs with both direct and trace connected errors"""
         mock_requests.post.return_value = Mock(status_code=200, json=lambda: {"hello": "world"})
@@ -241,7 +238,7 @@ class ProjectReplaySummarizeBreadcrumbsAsyncTestCase(
         assert any("ConnectionError" in log for log in logs)
         assert any("Failed to connect to database" in log for log in logs)
 
-    @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs_async.requests")
+    @patch("sentry.replays.endpoints.project_replay_summary.requests")
     def test_post_with_feedback(self, mock_requests):
         """Test handling of breadcrumbs with user feedback"""
         mock_requests.post.return_value = Mock(
