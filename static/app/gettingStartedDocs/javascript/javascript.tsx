@@ -590,7 +590,9 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
       {
         id: 'source-maps',
         name: t('Source Maps'),
-        description: t('Learn how to enable readable stack traces in your Sentry errors.'),
+        description: t(
+          'Learn how to enable readable stack traces in your Sentry errors.'
+        ),
         link: 'https://docs.sentry.io/platforms/javascript/sourcemaps/',
       },
     ];
