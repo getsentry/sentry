@@ -263,23 +263,12 @@ describe('TableWidgetVisualization', function () {
   });
 
   describe('Cell actions functionality', () => {
-    it('Renders default actions', async function () {
-      const tableDataWithLink = {
-        data: [
-          {
-            'http.request_method': 'https://external_link',
-            'count(span.duration)': 14105,
-            id: '',
-          },
-        ],
-        meta: sampleHTTPRequestTableData.meta,
-      };
-      render(<TableWidgetVisualization tableData={tableDataWithLink} />);
+    it('Renders default action', async function () {
+      render(<TableWidgetVisualization tableData={sampleHTTPRequestTableData} />);
 
       const $cell = screen.getAllByRole('button')[0]!;
       await userEvent.click($cell);
-      // await screen.findByText('Copy to clipboard');
-      // await screen.findByText('Open external link');
+      await screen.findByText('Copy to clipboard');
     });
 
     it('Renders custom cell actions from allowedCellActions if supplied', async function () {
@@ -294,15 +283,32 @@ describe('TableWidgetVisualization', function () {
       await screen.findByText('Add to filter');
     });
 
-    it('Uses onTriggerCellAction if supplied on action click', function () {
+    it('Uses onTriggerCellAction if supplied on action click', async function () {
       const onTriggerCellActionMock = jest.fn(
         (_actions: Actions, _value: string | number) => {}
       );
+      Object.assign(navigator, {
+        clipboard: {
+          writeText: jest.fn(() => Promise.resolve()),
+        },
+      });
+
       render(
         <TableWidgetVisualization
           tableData={sampleHTTPRequestTableData}
           onTriggerCellAction={onTriggerCellActionMock}
         />
+      );
+
+      const $cell = screen.getAllByRole('button')[0]!;
+      await userEvent.click($cell);
+      const $option = screen.getAllByRole('menuitemradio')[0]!;
+      await userEvent.click($option);
+      await waitFor(() =>
+        expect(onTriggerCellActionMock).toHaveBeenCalledWith(
+          Actions.COPY_TO_CLIPBOARD,
+          sampleHTTPRequestTableData.data[0]!['http.request_method']
+        )
       );
     });
   });
