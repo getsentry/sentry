@@ -826,20 +826,16 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
               <TraceLinkNavigationButton
                 direction={'previous'}
                 attributes={props.rootEventResults.data.attributes}
-                currentTraceTimestamps={{
-                  start:
-                    new Date(props.rootEventResults.data?.timestamp).getTime() / 1000,
-                  end: new Date(props.rootEventResults.data?.timestamp).getTime() / 1000,
-                }}
+                currentTraceStartTimestamp={
+                  new Date(props.rootEventResults.data?.timestamp).getTime() / 1000
+                }
               />
               <TraceLinkNavigationButton
                 direction={'next'}
                 attributes={props.rootEventResults.data?.attributes}
-                currentTraceTimestamps={{
-                  start:
-                    new Date(props.rootEventResults.data?.timestamp).getTime() / 1000,
-                  end: new Date(props.rootEventResults.data?.timestamp).getTime() / 1000,
-                }}
+                currentTraceStartTimestamp={
+                  new Date(props.rootEventResults.data?.timestamp).getTime() / 1000
+                }
               />
             </Fragment>
           ) : (

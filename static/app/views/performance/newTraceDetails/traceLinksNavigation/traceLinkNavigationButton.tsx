@@ -22,23 +22,23 @@ const LINKED_TRACE_MAX_DURATION = 3600; // 1h in seconds
 
 type TraceLinkNavigationButtonProps = {
   attributes: TraceItemResponseAttribute[];
-  currentTraceTimestamps: {end: number; start: number};
+  currentTraceStartTimestamp: number;
   direction: ConnectedTraceConnection;
 };
 
 export function TraceLinkNavigationButton({
   direction,
   attributes,
-  currentTraceTimestamps,
+  currentTraceStartTimestamp,
 }: TraceLinkNavigationButtonProps) {
   const organization = useOrganization();
   const location = useLocation();
 
   // We connect traces over a 1h period - As we don't have timestamps of the linked trace, it is calculated based on this timeframe
   const linkedTraceWindowTimestamp =
-    direction === 'previous' && currentTraceTimestamps.start
-      ? currentTraceTimestamps.start - LINKED_TRACE_MAX_DURATION // Earliest start time of previous trace (- 1h)
-      : currentTraceTimestamps.end + LINKED_TRACE_MAX_DURATION; // Latest end time of next trace (+ 1h)
+    direction === 'previous'
+      ? currentTraceStartTimestamp - LINKED_TRACE_MAX_DURATION // Earliest start time of previous trace (- 1h)
+      : currentTraceStartTimestamp + LINKED_TRACE_MAX_DURATION; // Latest end time of next trace (+ 1h)
 
   const {
     available: isPreviousTraceAvailable,
@@ -48,7 +48,7 @@ export function TraceLinkNavigationButton({
     isLoading: isPreviousTraceLoading,
   } = useFindPreviousTrace({
     direction,
-    previousTraceEndTimestamp: currentTraceTimestamps.start,
+    previousTraceEndTimestamp: currentTraceStartTimestamp,
     previousTraceStartTimestamp: linkedTraceWindowTimestamp,
     attributes,
   });
@@ -60,7 +60,7 @@ export function TraceLinkNavigationButton({
   } = useFindNextTrace({
     direction,
     nextTraceEndTimestamp: linkedTraceWindowTimestamp,
-    nextTraceStartTimestamp: currentTraceTimestamps.end,
+    nextTraceStartTimestamp: currentTraceStartTimestamp,
     attributes,
   });
 
