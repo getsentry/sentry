@@ -167,6 +167,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 organization=organization,
                 query_string=query,
                 sampling_mode=sampling_mode,
+                debug=request.user.is_superuser and "debug" in request.GET,
             )
 
             if check_global_views:
@@ -496,7 +497,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         request: Request,
         organization: Organization,
         get_event_stats: Callable[
-            [list[str], str, SnubaParams, int, bool, timedelta | None],
+            [list[str], str, SnubaParams, int, bool, timedelta | None, bool],
             SnubaTSResult | dict[str, SnubaTSResult],
         ],
         top_events: int = 0,
@@ -542,7 +543,12 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 query_columns = get_query_columns(columns, rollup)
             with sentry_sdk.start_span(op="discover.endpoint", name="base.stats_query"):
                 result = get_event_stats(
-                    query_columns, query, snuba_params, rollup, zerofill_results, comparison_delta
+                    query_columns,
+                    query,
+                    snuba_params,
+                    rollup,
+                    zerofill_results,
+                    comparison_delta,
                 )
 
         serializer = SnubaTSResultSerializer(organization, None, request.user)
