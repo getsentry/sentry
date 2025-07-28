@@ -3,7 +3,7 @@ from uuid import uuid4
 
 import pytest
 
-from sentry import eventstore, nodestore
+from sentry import deletions, eventstore, nodestore
 from sentry.deletions.tasks.groups import delete_groups_for_project
 from sentry.eventstore.models import Event
 from sentry.exceptions import DeleteAborted
@@ -80,6 +80,49 @@ class DeleteGroupTest(TestCase):
         # Ensure events are deleted from Snuba
         events = eventstore.backend.get_events(conditions, tenant_ids=tenant_ids)
         assert len(events) == 0
+
+    def test_max_chunk_size_calls_once(self) -> None:
+        CHUNK_SIZE = 5
+        with patch(
+            "sentry.deletions.defaults.group.GroupDeletionTask.DEFAULT_CHUNK_SIZE",
+            new=CHUNK_SIZE,
+        ):
+            groups = self.create_n_groups_with_hashes(CHUNK_SIZE, self.project)
+            group_ids = [group.id for group in groups]
+
+            task = deletions.get(model=Group, query={"id__in": group_ids})
+            assert task.query_limit == task.chunk_size == CHUNK_SIZE
+
+            has_more = True
+            calls = 0
+            while has_more:
+                has_more = task.chunk()
+                calls += 1
+
+            assert calls == 1
+            assert not Group.objects.filter(id__in=group_ids).exists()
+
+    def test_max_chunk_size_plus_one_calls_twice(self) -> None:
+        CHUNK_SIZE = 5
+        with patch(
+            "sentry.deletions.defaults.group.GroupDeletionTask.DEFAULT_CHUNK_SIZE",
+            new=CHUNK_SIZE,
+        ):
+            # This test creates one more group than the chunk size
+            groups = self.create_n_groups_with_hashes(CHUNK_SIZE + 1, self.project)
+            group_ids = [group.id for group in groups]
+
+            task = deletions.get(model=Group, query={"id__in": group_ids})
+            assert task.query_limit == task.chunk_size == CHUNK_SIZE
+
+            has_more = True
+            calls = 0
+            while has_more:
+                has_more = task.chunk()
+                calls += 1
+
+            assert calls == 2
+            assert not Group.objects.filter(id__in=group_ids).exists()
 
     def test_no_object_ids(self) -> None:
         with self.tasks(), pytest.raises(DeleteAborted) as excinfo:

@@ -215,7 +215,7 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
         query_limit = self.query_limit
         remaining = self.chunk_size
 
-        while remaining > 0:
+        while remaining >= 0:
             queryset = getattr(self.model, self.manager_name).filter(**self.query)
             if self.order_by:
                 queryset = queryset.order_by(self.order_by)
@@ -227,17 +227,6 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
 
             self.delete_bulk(queryset)
             remaining = remaining - len(queryset)
-            if remaining and self.model.__name__ == "Group":
-                logger.info(
-                    "deletions.group.chunk.remaining",
-                    extra={
-                        "chunk_size": self.chunk_size,
-                        "remaining": remaining,
-                        "query": self.query,
-                        "queryset": queryset,
-                        "transaction_id": self.transaction_id,
-                    },
-                )
 
         # We have more work to do as we didn't run out of rows to delete.
         return True
