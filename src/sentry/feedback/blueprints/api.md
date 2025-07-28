@@ -321,3 +321,51 @@ See https://develop.sentry.dev/sdk/event-payloads/types/ for more information
     }
   }
   ```
+
+## Feedback Category Generation [/organizations/<organization_id_or_slug>/feedback-categories/]
+
+- Parameters
+  - project (optional, string)
+  - statsPeriod (optional, string) - A positive integer suffixed with a unit type. Default: 7d, Members
+    - s
+    - m
+    - h
+    - d
+    - w
+  - start (optional, string) - ISO 8601 format (`YYYY-MM-DDTHH:mm:ss.sssZ`)
+  - end (optional, string) - ISO 8601 format. Required if `start` is set.
+  - utc (optional, boolean) - Whether start/end should use the UTC timezone.
+
+### Fetch Categories [GET]
+
+Retrieves a list of 3-4 categories, which comprise of a primary label, along with their associated labels, which are either directly interchangeable or children of the primary label (based on the feedbacks as context for what "interchangeable" means).
+
+**Attributes**
+
+| Column              | Type             | Description                                                                                    |
+| ------------------- | ---------------- | ---------------------------------------------------------------------------------------------- |
+| categories          | optional[object] | Each primary label, its associated labels, and the number of feedbacks in each group of labels |
+| numFeedbacksContext | int              | Number of feedbacks given as context to the LLM                                                |
+| success             | boolean          | -                                                                                              |
+
+- Response 200
+  ```json
+  {
+    "success": true,
+    "categories": {
+      "User Interface": {
+        "associated_labels": ["UI", "User Experience", "Look", "Display", "Navigation"],
+        "feedback_count": 450
+      },
+      "Integrations": {
+        "associated_labels": ["Jira", "GitHub", "Workflow", "Webhook", "GitLab"],
+        "feedback_count": 300
+      },
+      "Navigation": {
+        "associated_labels": ["Discoverability", "Sidebar", "Selection"],
+        "feedback_count": 150
+      }
+    },
+    "numFeedbacksContext": 400
+  }
+  ```
