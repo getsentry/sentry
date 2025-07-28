@@ -111,16 +111,20 @@ class IntegrationEventAction(EventAction, abc.ABC):
         notification_uuid: str | None = None,
     ) -> None:
         # Currently these actions can only be triggered by issue alerts
-        analytics.record(
-            self.analytics_cls(
-                category="issue_alert",
-                organization_id=event.organization.id,
-                project_id=event.project_id,
-                group_id=event.group_id,
-                notification_uuid=notification_uuid if notification_uuid else "",
-                alert_id=rule.id if rule else None,
+        try:
+            analytics.record(
+                self.analytics_cls(
+                    category="issue_alert",
+                    organization_id=event.organization.id,
+                    project_id=event.project_id,
+                    group_id=event.group_id,
+                    notification_uuid=notification_uuid if notification_uuid else "",
+                    alert_id=rule.id if rule else None,
+                )
             )
-        )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+
         analytics.record(
             "alert.sent",
             provider=self.provider,
