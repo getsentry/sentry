@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable, Mapping
 from typing import Any
 
+import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 from django.core.signing import BadSignature, SignatureExpired
 from django.db import IntegrityError
@@ -88,21 +89,20 @@ class LinkageView(BaseView, ABC):
         return event
 
     @property
-    def analytics_operation_key(self) -> str | None:
+    def analytics_cls(self) -> analytics.Event | None:
         """Operation description to use in analytics. Return None to skip."""
         return None
 
-    def record_analytic(self, actor_id: int) -> None:
-        if self.analytics_operation_key is None:
-            # This preserves legacy differences between messaging integrations,
-            # in that some record analytics and some don't.
-            # TODO: Make consistent across all messaging integrations.
-            return
-
-        event = ".".join(("integrations", self.provider_slug, self.analytics_operation_key))
-        analytics.record(
-            event, provider=self.provider_slug, actor_id=actor_id, actor_type=ActorType.USER
-        )
+    def record_analytics(self, actor_id: int) -> None:
+        if self.analytics_cls:
+            try:
+                analytics.record(
+                    self.analytics_cls(
+                        provider=self.provider_slug, actor_id=actor_id, actor_type=ActorType.USER
+                    )
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
     @staticmethod
     def render_error_page(request: HttpRequest, status: int, body_text: str) -> HttpResponse:
@@ -217,7 +217,7 @@ class IdentityLinkageView(LinkageView, ABC):
 
         self.notify_on_success(external_id, params_dict, integration)
         self.capture_metric("success.post")
-        self.record_analytic(request.user.id)
+        self.record_analytics(request.user.id)
 
         if organization is not None:
             self._send_nudge_notification(organization, request)
