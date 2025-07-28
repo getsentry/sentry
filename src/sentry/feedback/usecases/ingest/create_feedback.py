@@ -159,8 +159,10 @@ def validate_issue_platform_event_schema(event_data):
 
 
 def should_filter_feedback(
-    event, project_id, source: FeedbackCreationSource
+    event: dict, project_id: int, platform: str, source: FeedbackCreationSource
 ) -> tuple[bool, str | None]:
+    """Returns a tuple of (should_filter, reason)."""
+
     # Right now all unreal error events without a feedback
     # actually get a sent a feedback with this message
     # signifying there is no feedback. Let's go ahead and filter these.
@@ -170,11 +172,10 @@ def should_filter_feedback(
         or event["contexts"].get("feedback") is None
         or event["contexts"]["feedback"].get("message") is None
     ):
-        project = Project.objects.get_from_cache(id=project_id)
         metrics.incr(
             "feedback.create_feedback_issue.filtered",
             tags={
-                "platform": project.platform,
+                "platform": platform,
                 "reason": "missing_context",
                 "referrer": source.value,
             },
@@ -194,11 +195,10 @@ def should_filter_feedback(
         return True, "Sent in Unreal Unattended Mode"
 
     if message.strip() == "":
-        project = Project.objects.get_from_cache(id=project_id)
         metrics.incr(
             "feedback.create_feedback_issue.filtered",
             tags={
-                "platform": project.platform,
+                "platform": platform,
                 "reason": "empty",
                 "referrer": source.value,
             },
@@ -294,7 +294,9 @@ def create_feedback_issue(
         },
     )
 
-    should_filter, filter_reason = should_filter_feedback(event, project.id, source)
+    should_filter, filter_reason = should_filter_feedback(
+        event, project.id, project.platform, source
+    )
     if should_filter:
         track_outcome(
             org_id=project.organization_id,

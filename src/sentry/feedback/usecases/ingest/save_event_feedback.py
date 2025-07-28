@@ -36,10 +36,7 @@ def save_event_feedback(event_data: Mapping[str, Any], project_id: int):
         return
 
     try:
-        # Shim to UserReport
-        # TODO: this logic should be extracted to a shim_to_userreport function
-        # which returns a report dict. After that this function can be removed
-        # and the store task can directly call feedback ingest functions.
+        # Shim to UserReport.
         feedback_context = fixed_event_data["contexts"]["feedback"]
         associated_event_id = feedback_context.get("associated_event_id")
 
