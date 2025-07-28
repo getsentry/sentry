@@ -784,9 +784,13 @@ def test_parse_highlighted_events_fault_tolerance(event):
 
 def test_as_trace_item_context_click_event():
     event = {
+        "type": 5,
         "data": {
+            "tag": "breadcrumb",
             "payload": {
                 "timestamp": 1674298825.403,
+                "type": "default",
+                "category": "ui.click",
                 "message": "div#hello.hello.world",
                 "data": {
                     "node": {
@@ -806,11 +810,11 @@ def test_as_trace_item_context_click_event():
                     }
                 },
                 "url": "https://example.com/form",
-            }
-        }
+            },
+        },
     }
 
-    result = as_trace_item_context(EventType.CLICK, event)
+    result = as_trace_item_context(which(event), event)
     assert result is not None
     assert result["timestamp"] == 1674298825.403
     assert result["attributes"]["category"] == "ui.click"
@@ -834,39 +838,50 @@ def test_as_trace_item_context_click_event():
 
 def test_as_trace_item_context_click_event_missing_node():
     event = {
+        "type": 5,
         "data": {
+            "tag": "breadcrumb",
             "payload": {
                 "timestamp": 1674298825.403,
+                "type": "default",
+                "category": "ui.click",
                 "message": "div#hello.hello.world",
                 "data": {},
                 "url": "https://example.com/form",
-            }
-        }
+            },
+        },
     }
 
-    result = as_trace_item_context(EventType.CLICK, event)
+    result = as_trace_item_context(which(event), event)
     assert result is None
 
 
 def test_as_trace_item_context_dead_click_event():
     event = {
+        "type": 5,
         "data": {
+            "tag": "breadcrumb",
             "payload": {
+                "type": "default",
+                "category": "ui.slowClickDetected",
                 "timestamp": 1674298825.403,
                 "message": "button.slow",
                 "data": {
+                    "endReason": "timeout",
+                    "timeAfterClickMs": 7000,
+                    "clickCount": 3,
                     "node": {
                         "id": 456,
-                        "tagName": "button",
+                        "tagName": "a",
                         "textContent": "Slow button",
                         "attributes": {},
-                    }
+                    },
                 },
-            }
-        }
+            },
+        },
     }
 
-    result = as_trace_item_context(EventType.DEAD_CLICK, event)
+    result = as_trace_item_context(which(event), event)
     assert result is not None
     assert result["attributes"]["is_dead"] is True
     assert result["attributes"]["is_rage"] is False
@@ -875,23 +890,30 @@ def test_as_trace_item_context_dead_click_event():
 
 def test_as_trace_item_context_rage_click_event():
     event = {
+        "type": 5,
         "data": {
+            "tag": "breadcrumb",
             "payload": {
+                "type": "default",
+                "category": "ui.slowClickDetected",
                 "timestamp": 1674298825.403,
-                "message": "button.rage",
+                "message": "button.slow",
                 "data": {
+                    "endReason": "timeout",
+                    "timeAfterClickMs": 7000,
+                    "clickCount": 5,
                     "node": {
-                        "id": 789,
-                        "tagName": "button",
-                        "textContent": "Rage button",
+                        "id": 456,
+                        "tagName": "a",
+                        "textContent": "Slow button",
                         "attributes": {},
-                    }
+                    },
                 },
-            }
-        }
+            },
+        },
     }
 
-    result = as_trace_item_context(EventType.RAGE_CLICK, event)
+    result = as_trace_item_context(which(event), event)
     assert result is not None
     assert result["attributes"]["is_dead"] is True
     assert result["attributes"]["is_rage"] is True
@@ -900,15 +922,20 @@ def test_as_trace_item_context_rage_click_event():
 
 def test_as_trace_item_context_navigation_event():
     event = {
+        "type": 5,
+        "timestamp": 1753710793872,
         "data": {
+            "tag": "breadcrumb",
             "payload": {
                 "timestamp": 1674298825.0,
+                "type": "default",
+                "category": "navigation",
                 "data": {"from": "/old-page", "to": "/new-page"},
-            }
-        }
+            },
+        },
     }
 
-    result = as_trace_item_context(EventType.NAVIGATION, event)
+    result = as_trace_item_context(which(event), event)
     assert result is not None
     assert result["timestamp"] == 1674298825.0
     assert result["attributes"]["category"] == "navigation"
@@ -919,15 +946,20 @@ def test_as_trace_item_context_navigation_event():
 
 def test_as_trace_item_context_navigation_event_missing_optional_fields():
     event = {
+        "type": 5,
+        "timestamp": 1753710793872,
         "data": {
+            "tag": "breadcrumb",
             "payload": {
                 "timestamp": 1674298825.0,
+                "type": "default",
+                "category": "navigation",
                 "data": {},
-            }
-        }
+            },
+        },
     }
 
-    result = as_trace_item_context(EventType.NAVIGATION, event)
+    result = as_trace_item_context(which(event), event)
     assert result is not None
     assert result["attributes"]["category"] == "navigation"
     assert "from" not in result["attributes"]
@@ -937,8 +969,12 @@ def test_as_trace_item_context_navigation_event_missing_optional_fields():
 
 def test_as_trace_item_context_resource_fetch_event():
     event = {
+        "type": 5,
+        "timestamp": 1753710794.0346,
         "data": {
+            "tag": "performanceSpan",
             "payload": {
+                "op": "resource.fetch",
                 "startTimestamp": 1674298825.0,
                 "endTimestamp": 1674298825.0,
                 "description": "https://sentry.io/",
@@ -948,11 +984,11 @@ def test_as_trace_item_context_resource_fetch_event():
                     "method": "GET",
                     "statusCode": 200,
                 },
-            }
-        }
+            },
+        },
     }
 
-    result = as_trace_item_context(EventType.RESOURCE_FETCH, event)
+    result = as_trace_item_context(which(event), event)
     assert result is not None
     assert result["timestamp"] == 1674298825.0
     assert result["attributes"]["category"] == "resource.fetch"
@@ -964,8 +1000,12 @@ def test_as_trace_item_context_resource_fetch_event():
 
 def test_as_trace_item_context_resource_xhr_event():
     event = {
+        "type": 5,
+        "timestamp": 1753710794.0346,
         "data": {
+            "tag": "performanceSpan",
             "payload": {
+                "op": "resource.xhr",
                 "startTimestamp": 1674298825.0,
                 "endTimestamp": 1674298825.0,
                 "description": "https://sentry.io/",
@@ -975,11 +1015,11 @@ def test_as_trace_item_context_resource_xhr_event():
                     "request": {"size": 512},
                     "response": {"size": 1024},
                 },
-            }
-        }
+            },
+        },
     }
 
-    result = as_trace_item_context(EventType.RESOURCE_XHR, event)
+    result = as_trace_item_context(which(event), event)
     assert result is not None
     assert result["attributes"]["category"] == "resource.xhr"
     assert result["attributes"]["request_size"] == 512
@@ -1011,8 +1051,12 @@ def test_as_trace_item_context_resource_no_sizes():
 
 def test_as_trace_item_context_resource_script_event():
     event = {
+        "type": 5,
+        "timestamp": 1753710794.0346,
         "data": {
+            "tag": "performanceSpan",
             "payload": {
+                "op": "resource.script",
                 "startTimestamp": 1674298825.0,
                 "endTimestamp": 1674298825.0,
                 "description": "https://sentry.io/",
@@ -1022,11 +1066,11 @@ def test_as_trace_item_context_resource_script_event():
                     "decodedBodySize": 45,
                     "encodedBodySize": 55,
                 },
-            }
-        }
+            },
+        },
     }
 
-    result = as_trace_item_context(EventType.RESOURCE_SCRIPT, event)
+    result = as_trace_item_context(which(event), event)
     assert result is not None
     assert result["attributes"]["category"] == "resource.script"
     assert result["attributes"]["size"] == 10
@@ -1039,8 +1083,12 @@ def test_as_trace_item_context_resource_script_event():
 
 def test_as_trace_item_context_resource_image_event():
     event = {
+        "type": 5,
+        "timestamp": 1753710794.0346,
         "data": {
+            "tag": "performanceSpan",
             "payload": {
+                "op": "resource.img",
                 "startTimestamp": 1674298825.0,
                 "endTimestamp": 1674298825.0,
                 "description": "https://sentry.io/",
@@ -1050,11 +1098,11 @@ def test_as_trace_item_context_resource_image_event():
                     "decodedBodySize": 45,
                     "encodedBodySize": 55,
                 },
-            }
-        }
+            },
+        },
     }
 
-    result = as_trace_item_context(EventType.RESOURCE_IMAGE, event)
+    result = as_trace_item_context(which(event), event)
     assert result is not None
     assert result["attributes"]["category"] == "resource.img"
     assert result["attributes"]["size"] == 10
@@ -1067,16 +1115,21 @@ def test_as_trace_item_context_resource_image_event():
 
 def test_as_trace_item_context_lcp_event():
     event = {
+        "type": 5,
+        "timestamp": 1753712471.43,
         "data": {
+            "tag": "performanceSpan",
             "payload": {
+                "op": "web-vital",
+                "description": "largest-contentful-paint",
                 "startTimestamp": 1674298825.0,
                 "endTimestamp": 1674298825.0,
                 "data": {"rating": "good", "size": 1024, "value": 1500},
-            }
-        }
+            },
+        },
     }
 
-    result = as_trace_item_context(EventType.LCP, event)
+    result = as_trace_item_context(which(event), event)
     assert result is not None
     assert result["timestamp"] == 1674298825.0
     assert result["attributes"]["category"] == "web-vital.lcp"
@@ -1089,13 +1142,18 @@ def test_as_trace_item_context_lcp_event():
 
 def test_as_trace_item_context_fcp_event():
     event = {
+        "type": 5,
+        "timestamp": 1753712471.43,
         "data": {
+            "tag": "performanceSpan",
             "payload": {
+                "op": "web-vital",
+                "description": "first-contentful-paint",
                 "startTimestamp": 1674298825.0,
                 "endTimestamp": 1674298825.0,
                 "data": {"rating": "needs-improvement", "size": 512, "value": 2000},
-            }
-        }
+            },
+        },
     }
 
     result = as_trace_item_context(EventType.FCP, event)
@@ -1131,7 +1189,7 @@ def test_as_trace_item_context_cls_event():
             },
         },
     }
-    result = as_trace_item_context(EventType.CLS, event)
+    result = as_trace_item_context(which(event), event)
     assert result is not None
     assert result["attributes"]["category"] == "web-vital.cls"
     assert result["attributes"]["duration"] == 0
@@ -1169,8 +1227,10 @@ def test_as_trace_item_context_mutations():
 
 def test_as_trace_item_context_options():
     event = {
-        "timestamp": 1674298825507,
+        "type": 5,
+        "timestamp": 1753710752516,
         "data": {
+            "tag": "options",
             "payload": {
                 "shouldRecordCanvas": True,
                 "sessionSampleRate": 0.1,
@@ -1184,13 +1244,13 @@ def test_as_trace_item_context_options():
                 "networkCaptureBodies": False,
                 "networkRequestHasHeaders": True,
                 "networkResponseHasHeaders": False,
-            }
+            },
         },
     }
 
-    result = as_trace_item_context(EventType.OPTIONS, event)
+    result = as_trace_item_context(which(event), event)
     assert result is not None
-    assert result["timestamp"] == 1674298825.507  # timestamp is divided by 1000
+    assert result["timestamp"] == 1753710752.516  # timestamp is divided by 1000
     assert result["attributes"]["category"] == "sdk.options"
     assert result["attributes"]["shouldRecordCanvas"] is True
     assert result["attributes"]["sessionSampleRate"] == 0.1
@@ -1229,7 +1289,7 @@ def test_as_trace_item_context_memory():
         },
     }
 
-    result = as_trace_item_context(EventType.MEMORY, event)
+    result = as_trace_item_context(which(event), event)
     assert result is not None
     assert result["timestamp"] == 1753467523.594
     assert result["attributes"]["category"] == "memory"
