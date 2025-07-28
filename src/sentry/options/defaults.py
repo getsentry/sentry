@@ -506,9 +506,9 @@ register(
 )
 # Enables trace-item ingestion.
 register(
-    "replay.recording.ingest-trace-items.allow-list",
-    type=Sequence,
-    default=[],
+    "replay.recording.ingest-trace-items.rollout",
+    type=Float,
+    default=0.0,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
