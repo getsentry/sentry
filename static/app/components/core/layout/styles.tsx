@@ -60,7 +60,7 @@ const BREAKPOINT_ORDER: readonly Breakpoint[] = ['xs', 'sm', 'md', 'lg', 'xl'];
 // We alias None -> 0 to make it slighly more terse and easier to read.
 export type RadiusSize = keyof DO_NOT_USE_ChonkTheme['radius'];
 export type SpacingSize = keyof Theme['space'];
-export type Breakpoint = keyof Theme['breakpoints'];
+type Breakpoint = keyof Theme['breakpoints'];
 
 // @TODO(jonasbadalic): audit for memory usage and linting performance issues.
 // These may not be trivial to infer as we are dealing with n^4 complexity
