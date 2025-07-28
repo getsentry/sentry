@@ -14,6 +14,7 @@ from sentry.eventstore.models import GroupEvent
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.rule import Rule
 from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.rules.processing.processor import activate_downstream_actions
 from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.utils.samples import create_sample_event
@@ -69,7 +70,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
                 "frequency": 30,
             }
         )
-        rule = Rule(id=-1, project=project, data=data, label=data.get("name"))
+        rule = Rule(id=TEST_NOTIFICATION_ID, project=project, data=data, label=data.get("name"))
 
         # Cast to GroupEvent rather than Event to match expected types
         test_event = create_sample_event(
@@ -150,13 +151,13 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
         actions = rule.data.get("actions", [])
 
         workflow = Workflow(
-            id=-1,
+            id=TEST_NOTIFICATION_ID,
             name="Test Workflow",
             organization=rule.project.organization,
         )
 
         detector = Detector(
-            id=-1,
+            id=TEST_NOTIFICATION_ID,
             project=rule.project,
             name=rule.label,
             enabled=True,
@@ -173,7 +174,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
                 action = translate_rule_data_actions_to_notification_actions(
                     [action_blob], skip_failures=False
                 )[0]
-                action.id = -1
+                action.id = TEST_NOTIFICATION_ID
                 # Annotate the action with the workflow id
                 setattr(action, "workflow_id", workflow.id)
             except Exception as e:
