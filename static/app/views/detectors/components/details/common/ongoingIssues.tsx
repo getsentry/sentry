@@ -1,7 +1,10 @@
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GroupList from 'sentry/components/issues/groupList';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -10,6 +13,18 @@ import useOrganization from 'sentry/utils/useOrganization';
 interface Props {
   detectorId: string;
   query?: Record<string, any>;
+}
+
+function EmptyMessage() {
+  return (
+    <Panel>
+      <PanelBody>
+        <EmptyStateWarning small withIcon={false}>
+          {t('No issues found for this monitor')}
+        </EmptyStateWarning>
+      </PanelBody>
+    </Panel>
+  );
 }
 
 export function DetectorDetailsOngoingIssues({detectorId, query}: Props) {
@@ -44,6 +59,7 @@ export function DetectorDetailsOngoingIssues({detectorId, query}: Props) {
           canSelectGroups={false}
           withPagination={false}
           withChart={false}
+          renderEmptyMessage={EmptyMessage}
           source="detector-details"
         />
       </ErrorBoundary>

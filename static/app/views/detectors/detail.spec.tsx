@@ -3,6 +3,7 @@ import {
   MetricDetectorFixture,
   SnubaQueryDataSourceFixture,
 } from 'sentry-fixture/detectors';
+import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
@@ -58,6 +59,10 @@ describe('DetectorDetails', function () {
       match: [MockApiClient.matchQuery({id: ['1', '2']})],
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/users/1/`,
       body: UserFixture(),
     });
@@ -69,6 +74,10 @@ describe('DetectorDetails', function () {
           [1543449601, [10, 5]],
         ],
       },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20detector%3A1&statsPeriod=9998m',
+      body: [GroupFixture()],
     });
   });
 
