@@ -1,9 +1,11 @@
+from typing import Any
+
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
 from sentry.snuba.models import QuerySubscription
 
 
 class QuerySubscriptionDeletionTask(ModelDeletionTask[QuerySubscription]):
-    def delete_instance(self, instance: QuerySubscription) -> None:
+    def delete_instance(self, instance: QuerySubscription, **kwargs: Any) -> None:
         from sentry.incidents.models.incident import Incident
 
         # Clear the foreign key as the schema was created without a cascade clause
