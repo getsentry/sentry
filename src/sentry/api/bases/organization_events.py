@@ -549,6 +549,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     rollup,
                     zerofill_results,
                     comparison_delta,
+                    snuba_params.debug,
                 )
 
         serializer = SnubaTSResultSerializer(organization, None, request.user)
