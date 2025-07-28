@@ -382,8 +382,6 @@ def create_feedback_issue(
                 event_fixed["tags"][f"ai_categorization.label.{idx}"] = label
         except Exception:
             logger.exception("Error generating labels", extra={"project_id": project_id})
-    else:
-        pass
 
     # Set the user.email tag since we want to be able to display user.email on the feedback UI as a tag
     # as well as be able to write alert conditions on it
