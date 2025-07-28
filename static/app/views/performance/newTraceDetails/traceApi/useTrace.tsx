@@ -20,39 +20,39 @@ import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/use
 const DEFAULT_TIMESTAMP_LIMIT = 10_000;
 const DEFAULT_LIMIT = 1_000;
 
-type TraceQueryParams = {
+export function getTraceQueryParams(
+  query: Location['query'],
+  filters?: Partial<PageFilters>,
+  options: {limit?: number; timestamp?: number} = {}
+): {
   limit: number;
+  targetId: string | undefined;
+  timestamp: string | undefined;
   demo?: string;
   pageEnd?: string;
   pageStart?: string;
   statsPeriod?: string;
-  timestamp?: string;
-} & ({targetId: string | undefined} | {errorId: string | undefined});
-
-export function getTraceQueryParams(
-  traceType: 'eap' | 'non-eap',
-  query: Location['query'],
-  filters?: Partial<PageFilters>,
-  options: {limit?: number; targetId?: string; timestamp?: number} = {}
-): TraceQueryParams {
+} {
   const normalizedParams = normalizeDateTimeParams(query, {
     allowAbsolutePageDatetime: true,
   });
   const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
   const demo = decodeScalar(normalizedParams.demo);
-
   const timestamp = options.timestamp ?? decodeScalar(normalizedParams.timestamp);
   let limit = options.limit ?? decodeScalar(normalizedParams.limit);
   if (typeof limit === 'string') {
     limit = parseInt(limit, 10);
   }
+
+  const targetId = decodeScalar(normalizedParams.targetId ?? normalizedParams.eventId);
+
   if (timestamp) {
     limit = limit ?? DEFAULT_TIMESTAMP_LIMIT;
   } else {
     limit = limit ?? DEFAULT_LIMIT;
   }
 
-  const timeRangeParams: Record<string, string | string[] | undefined | null> = {
+  const otherParams: Record<string, string | string[] | undefined | null> = {
     end: normalizedParams.pageEnd,
     start: normalizedParams.pageStart,
     statsPeriod: statsPeriod || filters?.datetime?.period,
@@ -61,39 +61,16 @@ export function getTraceQueryParams(
   // We prioritize timestamp over statsPeriod as it makes the query more specific, faster
   // and not prone to time drift issues.
   if (timestamp) {
-    delete timeRangeParams.statsPeriod;
+    delete otherParams.statsPeriod;
   }
 
-  // Node params occur in the format `${event-type}-${eventId}`, where the most relevant event is the last one in the array.
-  // If not an array, it is a string with the same format.
-  const nodeParams = normalizedParams.node;
-  const targetIdFromNodeParams = Array.isArray(nodeParams)
-    ? nodeParams[nodeParams.length - 1]?.split('-')[1]
-    : typeof nodeParams === 'string'
-      ? nodeParams.split('-')[1]
-      : undefined;
-
-  // We try our best to pass a target event id to the trace query.
-  // We first check if targetId is passed in the options, then we check for
-  // targetId/eventId in the query params, lastly we check for the node params.
-  const targetId =
-    options.targetId ??
-    decodeScalar(normalizedParams.targetId ?? normalizedParams.eventId) ??
-    targetIdFromNodeParams;
-
-  const targetEventParams:
-    | {targetId: string | undefined}
-    | {errorId: string | undefined} =
-    traceType === 'eap' ? {errorId: targetId} : {targetId};
-
   const queryParams = {
-    ...timeRangeParams,
-    ...targetEventParams,
+    ...otherParams,
     demo,
     limit,
     timestamp: timestamp?.toString(),
+    targetId,
   };
-
   for (const key in queryParams) {
     if (
       queryParams[key as keyof typeof queryParams] === '' ||
@@ -192,53 +169,35 @@ function useDemoTrace(
   >;
 }
 
-type UseTraceOptions = {
+type UseTraceParams = {
   additionalAttributes?: string[];
   limit?: number;
-  /**
-   * When passed we make sure that the corresponding event is a part of the trace (if it exists)
-   * irrespective of the trace query count limit.
-   */
-  targetEventId?: string;
   timestamp?: number;
   traceSlug?: string;
 };
 
 export function useTrace(
-  options: UseTraceOptions
+  options: UseTraceParams
 ): UseApiQueryResult<TraceTree.Trace, RequestError> {
   const filters = usePageFilters();
   const organization = useOrganization();
   const query = qs.parse(location.search);
-
-  const isEAPEnabled = useIsEAPTraceEnabled();
-  const hasValidTrace = Boolean(options.traceSlug && organization.slug);
-
   const queryParams = useMemo(() => {
-    return getTraceQueryParams(
-      isEAPEnabled ? 'eap' : 'non-eap',
-      query,
-      filters.selection,
-      {
-        limit: options.limit,
-        timestamp: options.timestamp,
-        targetId: options.targetEventId,
-      }
-    );
+    return getTraceQueryParams(query, filters.selection, {
+      limit: options.limit,
+      timestamp: options.timestamp,
+    });
 
     // Only re-run this if the view query param changes, otherwise if we pass location.search
     // as a dependency, the query will re-run every time we perform actions on the trace view; like
     // clicking on a span, that updates the url.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    options.limit,
-    options.timestamp,
-    options.targetEventId,
-    isEAPEnabled,
-    filters.selection,
-  ]);
+  }, [options.limit, options.timestamp, query.trace_format]);
 
   const isDemoMode = Boolean(queryParams.demo);
+  const isEAPEnabled = useIsEAPTraceEnabled();
+  const hasValidTrace = Boolean(options.traceSlug && organization.slug);
+
   const demoTrace = useDemoTrace(queryParams.demo, organization);
 
   const traceQuery = useApiQuery<TraceSplitResults<TraceTree.Transaction>>(
