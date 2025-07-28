@@ -150,7 +150,21 @@ def compare_tables_for_dashboard_widget_queries(
             "query": None,
         }
 
-    fields = widget_query.fields
+    aggregates = widget_query.aggregates
+    columns = widget_query.columns
+    query_fields = widget_query.fields
+
+    fields_set = set()
+
+    if aggregates:
+        fields_set.update(aggregates)
+    if columns:
+        fields_set.update(columns)
+    if query_fields:
+        fields_set.update(query_fields)
+
+    fields = list(fields_set)
+
     if len(fields) == 0:
         with sentry_sdk.isolation_scope() as scope:
             scope.set_tag("passed", False)
