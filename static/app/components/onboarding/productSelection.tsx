@@ -138,6 +138,7 @@ export const platformProductAvailability = {
   'javascript-vue': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'javascript-angular': [
     ProductSolution.PERFORMANCE_MONITORING,
