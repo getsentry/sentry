@@ -3535,13 +3535,3 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Enables the new project option set_value implementation that only reloads the cache if the
-# value has changed. This is a temporary option to allow for a smooth transition to the new
-# implementation, and acts as a killswitch.
-register(
-    "sentry.project_option.reload_cache_only_on_value_change",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
