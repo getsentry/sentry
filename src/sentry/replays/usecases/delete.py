@@ -31,7 +31,7 @@ from sentry.replays.lib.storage import (
 from sentry.replays.query import replay_url_parser_config
 from sentry.replays.usecases.events import archive_event
 from sentry.replays.usecases.query import execute_query, handle_search_filters
-from sentry.replays.usecases.query.configs.scalar import scalar_search_config
+from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import (
     QueryExecutionError,
@@ -123,10 +123,9 @@ def fetch_rows_matching_pattern(
     offset: int,
 ) -> MatchedRows:
     search_filters = parse_search_query(query, config=replay_url_parser_config)
-    where = handle_search_filters(scalar_search_config, search_filters)
-
+    having = handle_search_filters(agg_search_config, search_filters)
     if environment:
-        where.append(Condition(Column("environment"), Op.IN, environment))
+        having.append(Condition(Column("environment"), Op.IN, environment))
 
     query = Query(
         match=Entity("replays"),
@@ -141,8 +140,8 @@ def fetch_rows_matching_pattern(
             Condition(Column("timestamp"), Op.GTE, start),
             # We only match segment rows because those contain the PII we want to delete.
             Condition(Column("segment_id"), Op.IS_NOT_NULL),
-            *where,
         ],
+        having=having,
         groupby=[Column("replay_id")],
         orderby=[OrderBy(Function("min", parameters=[Column("timestamp")]), Direction.ASC)],
         granularity=Granularity(3600),

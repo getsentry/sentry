@@ -5,7 +5,7 @@ import uuid
 from unittest.mock import patch
 
 from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel
-from sentry.replays.tasks import run_bulk_replay_delete_job
+from sentry.replays.tasks import fetch_rows_matching_pattern, run_bulk_replay_delete_job
 from sentry.replays.testutils import mock_replay
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers import TaskRunner
@@ -205,3 +205,25 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         self.job.refresh_from_db()
         assert self.job.status == "completed"
         assert self.job.offset == 0
+
+    def test_fetch_rows_matching_pattern(self):
+        t1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        t2 = datetime.datetime.now() + datetime.timedelta(seconds=10)
+        t3 = datetime.datetime.now()
+
+        replay_id = uuid.uuid4().hex
+        self.store_replays(
+            mock_replay(t3, self.project.id, replay_id, segment_id=0, environment="prod")
+        )
+
+        result = fetch_rows_matching_pattern(
+            self.project.id,
+            t1,
+            t2,
+            query="count_errors:<100",
+            environment=["prod"],
+            limit=50,
+            offset=0,
+        )
+        assert len(result["rows"]) == 1
+        assert result["rows"][0]["replay_id"] == str(uuid.UUID(replay_id))
