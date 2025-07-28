@@ -376,7 +376,7 @@ logger.fatal("Database connection pool exhausted", {
         description: t(
           'Add logging integrations to automatically capture logs from your application.'
         ),
-        link: 'https://docs.sentry.io/platforms/javascript/guides/react/logs/#integrations/',
+        link: 'https://docs.sentry.io/platforms/javascript/guides/react/logs/#integrations',
       });
     }
 

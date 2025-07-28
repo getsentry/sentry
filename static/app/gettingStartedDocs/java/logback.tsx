@@ -337,7 +337,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                   {
                     code: <code />,
                     link: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/java/guides/logback/#dsn-configuration/" />
+                      <ExternalLink href="https://docs.sentry.io/platforms/java/guides/logback/#configure" />
                     ),
                   }
                 ),
@@ -348,7 +348,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             "Next, you'll need to set your log levels, as illustrated here. You can learn more about [link:configuring log levels] in our documentation.",
             {
               link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/java/guides/logback/#minimum-log-level/" />
+                <ExternalLink href="https://docs.sentry.io/platforms/java/guides/logback/#minimum-log-level" />
               ),
             }
           ),
