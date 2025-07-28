@@ -34,7 +34,7 @@
 
 
 # @region_silo_endpoint
-# class OrganizationCategoryGenerationEndpoint(OrganizationEndpoint):
+# class OrganizationFeedbackCategoryGenerationEndpoint(OrganizationEndpoint):
 #     owner = ApiOwner.FEEDBACK
 #     publish_status = {
 #         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -93,91 +93,93 @@
 #                 }
 #             )
 
-#         # Do we have to get feedbacks another way since labels are not stored in the group? Maybe making a direct query to Snuba for the feedbacks and their labels? But is the message stored in Clickhouse? I think it is...
-#         filters = {
-#             "type": FeedbackGroup.type_id,
-#             "first_seen__gte": start,
-#             "first_seen__lte": end,
-#             "status": GroupStatus.UNRESOLVED,
-#             "project__in": projects,
-#         }
+#         # Get the top 10 labels by feedbacks, filtered by projects and date range
 
-#         groups = Group.objects.filter(**filters).order_by("-first_seen")[
-#             :MAX_FEEDBACKS_CONTEXT
-#         ]
+#         # # Do we have to get feedbacks another way since labels are not stored in the group? Maybe making a direct query to Snuba for the feedbacks and their labels? But is the message stored in Clickhouse? I think it is...
+#         # filters = {
+#         #     "type": FeedbackGroup.type_id,
+#         #     "first_seen__gte": start,
+#         #     "first_seen__lte": end,
+#         #     "status": GroupStatus.UNRESOLVED,
+#         #     "project__in": projects,
+#         # }
 
-#         if groups.count() < MIN_FEEDBACKS_CONTEXT:
-#             logger.error("Too few feedbacks to summarize")
-#             return Response(
-#                 {
-#                     "summary": None,
-#                     "success": False,
-#                     "numFeedbacksUsed": 0,
-#                 }
-#             )
+#         # groups = Group.objects.filter(**filters).order_by("-first_seen")[
+#         #     :MAX_FEEDBACKS_CONTEXT
+#         # ]
 
-#         # Also cap the number of characters that we send to the LLM
-#         group_feedbacks = []
-#         total_chars = 0
-#         for group in groups:
-#             total_chars += len(group.data["metadata"]["message"])
-#             if total_chars > MAX_FEEDBACKS_TO_SUMMARIZE_CHARS:
-#                 break
-#             group_feedbacks.append(group.data["metadata"]["message"])
+#         # if groups.count() < MIN_FEEDBACKS_CONTEXT:
+#         #     logger.error("Too few feedbacks to summarize")
+#         #     return Response(
+#         #         {
+#         #             "summary": None,
+#         #             "success": False,
+#         #             "numFeedbacksUsed": 0,
+#         #         }
+#         #     )
 
-#         # Edge case, but still generate a summary
-#         if len(group_feedbacks) < MIN_FEEDBACKS_TO_SUMMARIZE:
-#             logger.error("Too few feedbacks to summarize after enforcing the character limit")
+#         # # Also cap the number of characters that we send to the LLM
+#         # group_feedbacks = []
+#         # total_chars = 0
+#         # for group in groups:
+#         #     total_chars += len(group.data["metadata"]["message"])
+#         #     if total_chars > MAX_FEEDBACKS_TO_SUMMARIZE_CHARS:
+#         #         break
+#         #     group_feedbacks.append(group.data["metadata"]["message"])
 
-#         seer_request = SummaryRequest(
-#             organization_id=organization.id,
-#             feedbacks=group_feedbacks,
-#         )
+#         # # Edge case, but still generate a summary
+#         # if len(group_feedbacks) < MIN_FEEDBACKS_TO_SUMMARIZE:
+#         #     logger.error("Too few feedbacks to summarize after enforcing the character limit")
 
-#         try:
-#             summary = json.loads(make_seer_request(seer_request).decode("utf-8"))
-#             summary = summary["data"]
-#         except Exception:
-#             logger.exception("Error generating summary of user feedbacks")
-#             return Response({"detail": "Error generating summary"}, status=500)
+#         # seer_request = SummaryRequest(
+#         #     organization_id=organization.id,
+#         #     feedbacks=group_feedbacks,
+#         # )
 
-#         cache.set(
-#             summary_cache_key,
-#             {"summary": summary, "numFeedbacksUsed": len(group_feedbacks)},
-#             timeout=SUMMARY_CACHE_TIMEOUT,
-#         )
+#         # try:
+#         #     summary = json.loads(make_seer_request(seer_request).decode("utf-8"))
+#         #     summary = summary["data"]
+#         # except Exception:
+#         #     logger.exception("Error generating summary of user feedbacks")
+#         #     return Response({"detail": "Error generating summary"}, status=500)
 
-#         return Response(
-#             {
-#                 "summary": summary,
-#                 "success": True,
-#                 "numFeedbacksUsed": len(group_feedbacks),
-#             }
-#         )
+#         # cache.set(
+#         #     summary_cache_key,
+#         #     {"summary": summary, "numFeedbacksUsed": len(group_feedbacks)},
+#         #     timeout=SUMMARY_CACHE_TIMEOUT,
+#         # )
+
+#         # return Response(
+#         #     {
+#         #         "summary": summary,
+#         #         "success": True,
+#         #         "numFeedbacksUsed": len(group_feedbacks),
+#         #     }
+#         # )
 
 
-# def make_seer_request(request: SummaryRequest) -> bytes:
-#     serialized_request = json.dumps(request)
+# # def make_seer_request(request: SummaryRequest) -> bytes:
+# #     serialized_request = json.dumps(request)
 
-#     response = requests.post(
-#         f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/feedback/summarize",
-#         data=serialized_request,
-#         headers={
-#             "content-type": "application/json;charset=utf-8",
-#             **sign_with_seer_secret(serialized_request.encode()),
-#         },
-#     )
+# #     response = requests.post(
+# #         f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/feedback/summarize",
+# #         data=serialized_request,
+# #         headers={
+# #             "content-type": "application/json;charset=utf-8",
+# #             **sign_with_seer_secret(serialized_request.encode()),
+# #         },
+# #     )
 
-#     if response.status_code != 200:
-#         logger.error(
-#             "Feedback: Failed to produce a summary for a list of feedbacks",
-#             extra={
-#                 "status_code": response.status_code,
-#                 "response": response.text,
-#                 "content": response.content,
-#             },
-#         )
+# #     if response.status_code != 200:
+# #         logger.error(
+# #             "Feedback: Failed to produce a summary for a list of feedbacks",
+# #             extra={
+# #                 "status_code": response.status_code,
+# #                 "response": response.text,
+# #                 "content": response.content,
+# #             },
+# #         )
 
-#     response.raise_for_status()
+# #     response.raise_for_status()
 
-#     return response.content
+# #     return response.content
