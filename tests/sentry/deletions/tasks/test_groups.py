@@ -87,11 +87,11 @@ class DeleteGroupTest(TestCase):
             "sentry.deletions.defaults.group.GroupDeletionTask.DEFAULT_CHUNK_SIZE",
             new=CHUNK_SIZE,
         ):
-            groups = self.create_n_groups_with_hashes(CHUNK_SIZE, self.project)
+            groups = self.create_n_groups_with_hashes(CHUNK_SIZE - 1, self.project)
             group_ids = [group.id for group in groups]
 
             task = deletions.get(model=Group, query={"id__in": group_ids})
-            assert task.query_limit == task.chunk_size == CHUNK_SIZE
+            assert task.query_limit == task.chunk_size == CHUNK_SIZE  # type: ignore[attr-defined]
 
             has_more = True
             calls = 0
@@ -113,7 +113,7 @@ class DeleteGroupTest(TestCase):
             group_ids = [group.id for group in groups]
 
             task = deletions.get(model=Group, query={"id__in": group_ids})
-            assert task.query_limit == task.chunk_size == CHUNK_SIZE
+            assert task.query_limit == task.chunk_size == CHUNK_SIZE  # type: ignore[attr-defined]
 
             has_more = True
             calls = 0
