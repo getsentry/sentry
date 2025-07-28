@@ -80,6 +80,3 @@ def delete_groups_for_project(
     has_more = True
     while has_more:
         has_more = task.chunk()
-
-    # This will delete all Snuba events for all deleted groups
-    eventstream.backend.end_delete_groups(eventstream_state)
