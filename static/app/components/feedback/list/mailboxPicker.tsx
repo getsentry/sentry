@@ -30,7 +30,7 @@ export default function MailboxPicker({onChange, value}: Props) {
   const filteredMailboxes = MAILBOXES;
 
   return (
-    <Flex justify="flex-end" flex="1 0 auto">
+    <Flex justify="end" flex="1 0 auto">
       <SegmentedControl
         size="xs"
         aria-label={t('Filter feedbacks')}

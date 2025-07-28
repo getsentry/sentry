@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {
   type DataCondition,
   DataConditionType,
@@ -384,7 +383,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
 
 function OccurenceBasedMonitorsWarning() {
   return (
-    <Flex direction="column" gap={space(1)}>
+    <Flex direction="column" gap="md">
       <WarningLine>
         {t('These filters will only apply to some of your monitors and triggers.')}
       </WarningLine>

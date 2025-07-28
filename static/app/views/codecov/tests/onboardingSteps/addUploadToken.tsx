@@ -72,8 +72,8 @@ export function AddUploadToken({step}: AddUploadTokenProps) {
                   </Alert>
                 </Alert.Container>
               )}
-              <Flex justify="space-between" gap="md">
-                <Flex justify="space-between" gap="md">
+              <Flex justify="between" gap="md">
+                <Flex justify="between" gap="md">
                   <CodeSnippet dark>SENTRY_PREVENT_TOKEN</CodeSnippet>
                   <CodeSnippet dark>{FULL_TOKEN}</CodeSnippet>
                 </Flex>
@@ -83,8 +83,8 @@ export function AddUploadToken({step}: AddUploadTokenProps) {
               </Flex>
             </Fragment>
           ) : (
-            <Flex justify="space-between" gap="md">
-              <Flex justify="space-between" gap="md">
+            <Flex justify="between" gap="md">
+              <Flex justify="between" gap="md">
                 <CodeSnippet dark>SENTRY_PREVENT_TOKEN</CodeSnippet>
                 <CodeSnippet dark>{TRUNCATED_TOKEN}</CodeSnippet>
               </Flex>
