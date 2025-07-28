@@ -135,6 +135,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           commit_sha: ${{ github.event.pull_request.head.sha }}
+          type: backend
 
   backend-migration-tests:
     if: needs.files-changed.outputs.backend == 'true'
@@ -171,6 +172,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           commit_sha: ${{ github.event.pull_request.head.sha }}
+          type: backend-migration
 
   cli:
     if: needs.files-changed.outputs.backend == 'true'
@@ -206,6 +208,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           commit_sha: ${{ github.event.pull_request.head.sha }}
+          type: cli
 
   requirements:
     if: needs.files-changed.outputs.backend_dependencies == 'true'
@@ -317,6 +320,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           commit_sha: ${{ github.event.pull_request.head.sha }}
+          type: monolith-dbs
 
   typing:
     if: needs.files-changed.outputs.backend == 'true'
