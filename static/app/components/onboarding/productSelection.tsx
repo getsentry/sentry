@@ -165,6 +165,7 @@ export const platformProductAvailability = {
   'javascript-svelte': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'javascript-tanstackstart-react': [
     ProductSolution.PERFORMANCE_MONITORING,
