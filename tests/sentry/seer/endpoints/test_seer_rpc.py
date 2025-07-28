@@ -384,7 +384,17 @@ class TestSeerRpcMethods(APITestCase):
         responses.add(
             responses.POST,
             f"https://github.example.org/api/v3/app/installations/{installation_id}/access_tokens",
-            json={"token": access_token, "expires_at": "3000-01-01T00:00:00Z"},
+            json={
+                "token": access_token,
+                "expires_at": "3000-01-01T00:00:00Z",
+                "permissions": {
+                    "administration": "read",
+                    "contents": "read",
+                    "issues": "write",
+                    "metadata": "read",
+                    "pull_requests": "read",
+                },
+            },
         )
 
         # Create a GitHub Enterprise integration
@@ -412,6 +422,13 @@ class TestSeerRpcMethods(APITestCase):
         assert result["base_url"] == "https://github.example.org/api/v3"
         assert result["verify_ssl"]
         assert result["encrypted_access_token"]
+        assert result["permissions"] == {
+            "administration": "read",
+            "contents": "read",
+            "issues": "write",
+            "metadata": "read",
+            "pull_requests": "read",
+        }
 
         # Test that the access token is encrypted correctly
         fernet = Fernet(TEST_FERNET_KEY.encode("utf-8"))
