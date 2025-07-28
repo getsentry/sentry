@@ -5,7 +5,7 @@ pytestmark = [requires_snuba]
 
 
 class GroupIntegrationsTest(APITestCase):
-    def test_simple_get(self):
+    def test_simple_get(self) -> None:
         self.login_as(user=self.user)
         org = self.organization
         group = self.create_group()
@@ -55,7 +55,7 @@ class GroupIntegrationsTest(APITestCase):
                 ],
             }
 
-    def test_feature_disabled(self):
+    def test_feature_disabled(self) -> None:
         self.login_as(user=self.user)
         org = self.organization
         group = self.create_group()

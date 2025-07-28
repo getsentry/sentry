@@ -26,7 +26,7 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
         )
 
     @responses.activate
-    def test_makes_external_request(self):
+    def test_makes_external_request(self) -> None:
         self.login_as(user=self.user)
         options = [{"label": "Project Name", "value": "1234"}]
         responses.add(
@@ -47,7 +47,7 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
         assert response.data == {"choices": [["1234", "Project Name"]]}
 
     @responses.activate
-    def test_makes_external_request_with_dependent_data(self):
+    def test_makes_external_request_with_dependent_data(self) -> None:
         self.login_as(user=self.user)
         options = [{"label": "Project Name", "value": "1234"}]
         qs = urlencode(
@@ -80,7 +80,7 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
         assert response.data == {"choices": [["1234", "Project Name"]]}
 
     @responses.activate
-    def test_external_request_fails(self):
+    def test_external_request_fails(self) -> None:
         self.login_as(user=self.user)
         responses.add(
             method=responses.GET,

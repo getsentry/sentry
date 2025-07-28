@@ -61,7 +61,7 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
             {**config_data, **data, "repositoryId": self.repo.id},
         )
 
-    def test_non_project_member_permissions(self):
+    def test_non_project_member_permissions(self) -> None:
         non_member = self.create_user()
         non_member_om = self.create_member(organization=self.org, user=non_member)
         self.login_as(user=non_member)
@@ -86,23 +86,23 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
         response = self.client.delete(self.url)
         assert response.status_code == status.HTTP_204_NO_CONTENT
 
-    def test_basic_delete(self):
+    def test_basic_delete(self) -> None:
         resp = self.client.delete(self.url)
         assert resp.status_code == 204
         assert not RepositoryProjectPathConfig.objects.filter(id=str(self.config.id)).exists()
 
-    def test_basic_edit(self):
+    def test_basic_edit(self) -> None:
         resp = self.make_put({"sourceRoot": "newRoot"})
         assert resp.status_code == 200
         assert resp.data["id"] == str(self.config.id)
         assert resp.data["sourceRoot"] == "newRoot"
 
-    def test_basic_edit_from_member_permissions(self):
+    def test_basic_edit_from_member_permissions(self) -> None:
         self.login_as(user=self.user2)
         resp = self.make_put({"sourceRoot": "newRoot"})
         assert resp.status_code == 200
 
-    def test_delete_with_existing_codeowners(self):
+    def test_delete_with_existing_codeowners(self) -> None:
         self.create_codeowners(project=self.project, code_mapping=self.config)
         resp = self.client.delete(self.url)
         assert resp.status_code == 409
@@ -112,7 +112,7 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
         )
         assert RepositoryProjectPathConfig.objects.filter(id=str(self.config.id)).exists()
 
-    def test_delete_another_orgs_code_mapping(self):
+    def test_delete_another_orgs_code_mapping(self) -> None:
         invalid_user = self.create_user()
         invalid_organization = self.create_organization(owner=invalid_user)
         self.login_as(user=invalid_user)

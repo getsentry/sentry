@@ -14,8 +14,8 @@ export const LogAttributesHumanLabel: Partial<Record<OurLogFieldKey, string>> = 
 };
 
 export const MAX_LOG_INGEST_DELAY = 40_000;
-export const QUERY_PAGE_LIMIT = 100; // If this does not equal the limit with auto-refresh, the query keys will diverge and they will have separate caches. We may want to make this change in the future.
-export const QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH = 100;
+export const QUERY_PAGE_LIMIT = 1000; // If this does not equal the limit with auto-refresh, the query keys will diverge and they will have separate caches. We may want to make this change in the future.
+export const QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH = 1000;
 
 /**
  * These are required fields are always added to the query when fetching the log table.
@@ -34,6 +34,7 @@ export const AlwaysPresentLogFields: OurLogFieldKey[] = [
 const AlwaysHiddenLogFields: OurLogFieldKey[] = [
   OurLogKnownFieldKey.ID,
   OurLogKnownFieldKey.ORGANIZATION_ID,
+  OurLogKnownFieldKey.SEVERITY_NUMBER,
   OurLogKnownFieldKey.ITEM_TYPE,
   OurLogKnownFieldKey.PROJECT,
   OurLogKnownFieldKey.TIMESTAMP_PRECISE,
@@ -56,6 +57,8 @@ export const HiddenLogDetailFields: OurLogFieldKey[] = [
 ];
 
 export const HiddenColumnEditorLogFields: OurLogFieldKey[] = [...AlwaysHiddenLogFields];
+
+export const HiddenLogSearchFields: string[] = [...AlwaysHiddenLogFields];
 
 const LOGS_FILTERS: FilterKeySection = {
   value: 'logs_filters',

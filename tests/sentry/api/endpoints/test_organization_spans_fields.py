@@ -31,16 +31,16 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
                 **kwargs,
             )
 
-    def test_no_feature(self):
+    def test_no_feature(self) -> None:
         response = self.do_request(features=[])
         assert response.status_code == 404, response.data
 
-    def test_no_project(self):
+    def test_no_project(self) -> None:
         response = self.do_request()
         assert response.status_code == 200, response.data
         assert response.data == []
 
-    def test_tags_list_str(self):
+    def test_tags_list_str(self) -> None:
         for tag in ["foo", "bar", "baz"]:
             self.store_segment(
                 self.project.id,
@@ -100,7 +100,7 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
                 **kwargs,
             )
 
-    def test_tags_list_str(self):
+    def test_tags_list_str(self) -> None:
         for tag in ["foo", "bar", "baz"]:
             self.store_segment(
                 self.project.id,
@@ -141,7 +141,7 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
                 key=itemgetter("key"),
             )
 
-    def test_tags_list_nums(self):
+    def test_tags_list_nums(self) -> None:
         for tag in [
             "foo",
             "bar",
@@ -223,16 +223,16 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 **kwargs,
             )
 
-    def test_no_feature(self):
+    def test_no_feature(self) -> None:
         response = self.do_request("tag", features=[])
         assert response.status_code == 404, response.data
 
-    def test_no_project(self):
+    def test_no_project(self) -> None:
         response = self.do_request("tag")
         assert response.status_code == 200, response.data
         assert response.data == []
 
-    def test_tags_keys(self):
+    def test_tags_keys(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for tag in ["foo", "bar", "baz"]:
             self.store_segment(
@@ -279,7 +279,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             },
         ]
 
-    def test_transaction_keys_autocomplete(self):
+    def test_transaction_keys_autocomplete(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for transaction in ["foo", "*bar", "*baz"]:
             self.store_segment(
@@ -327,7 +327,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             },
         ]
 
-    def test_transaction_keys_autocomplete_substring(self):
+    def test_transaction_keys_autocomplete_substring(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for transaction in ["foo", "*bar", "*baz"]:
             self.store_segment(
@@ -367,7 +367,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             },
         ]
 
-    def test_transaction_keys_autocomplete_substring_with_asterisk(self):
+    def test_transaction_keys_autocomplete_substring_with_asterisk(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for transaction in ["foo", "*bar", "*baz"]:
             self.store_segment(
@@ -407,7 +407,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             },
         ]
 
-    def test_tags_keys_autocomplete(self):
+    def test_tags_keys_autocomplete(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for tag in ["foo", "*bar", "*baz"]:
             self.store_segment(
@@ -456,7 +456,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             },
         ]
 
-    def test_tags_keys_autocomplete_substring(self):
+    def test_tags_keys_autocomplete_substring(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for tag in ["foo", "*bar", "*baz"]:
             self.store_segment(
@@ -497,7 +497,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             },
         ]
 
-    def test_tags_keys_autocomplete_substring_with_asterisks(self):
+    def test_tags_keys_autocomplete_substring_with_asterisks(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for tag in ["foo", "*bar", "*baz"]:
             self.store_segment(
@@ -538,7 +538,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             },
         ]
 
-    def test_tags_keys_autocomplete_noop(self):
+    def test_tags_keys_autocomplete_noop(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for tag in ["foo", "bar", "baz"]:
             self.store_segment(
@@ -579,7 +579,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             assert response.status_code == 200, response.data
             assert response.data == [], key
 
-    def test_tags_keys_autocomplete_project(self):
+    def test_tags_keys_autocomplete_project(self) -> None:
         base_id = 9223372036854775000
         self.create_project(id=base_id + 100, name="foo")
         self.create_project(id=base_id + 299, name="bar")
@@ -693,7 +693,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             },
         ]
 
-    def test_tags_keys_autocomplete_span_status(self):
+    def test_tags_keys_autocomplete_span_status(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for status in ["ok", "internal_error", "invalid_argument"]:
             self.store_segment(
@@ -759,7 +759,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             },
         ]
 
-    def test_measurements_autocomplete(self):
+    def test_measurements_autocomplete(self) -> None:
         keys = [
             "measurements.app_start_cold",
             "measurements.app_start_warm",
@@ -862,7 +862,7 @@ class OrganizationEAPSpansTagKeyValuesEndpointTest(OrganizationSpansTagKeyValues
                 **kwargs,
             )
 
-    def test_boolean_autocomplete(self):
+    def test_boolean_autocomplete(self) -> None:
         keys = ["is_transaction"]
         self.project
         for key in keys:

@@ -13,11 +13,11 @@ class EmailResolverTest(TestCase):
         self.user1 = self.create_user()
         self.user2 = self.create_user()
 
-    def test_no_match(self):
+    def test_no_match(self) -> None:
         result = resolve_email_to_user("no_one@example.com")
         assert result is None
 
-    def test_single_match(self):
+    def test_single_match(self) -> None:
         result = resolve_email_to_user(self.user1.email)
         assert result == self.user1
 

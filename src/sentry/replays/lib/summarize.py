@@ -341,6 +341,8 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 return None
             case EventType.RESOURCE_SCRIPT:
                 return None
+            case EventType.CLS:
+                return None
     except (KeyError, ValueError):
         logger.exception(
             "Error parsing event in replay AI summary",

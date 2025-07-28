@@ -26,41 +26,41 @@ class SentryAppTest(TestCase):
         )
         self.sentry_app.save()
 
-    def test_paranoid(self):
+    def test_paranoid(self) -> None:
         self.sentry_app.save()
         self.sentry_app.delete()
         assert self.sentry_app.date_deleted is not None
         assert self.sentry_app not in SentryApp.objects.all()
 
-    def test_date_updated(self):
+    def test_date_updated(self) -> None:
         self.sentry_app.save()
         date_updated = self.sentry_app.date_updated
         self.sentry_app.save()
         assert not self.sentry_app.date_updated == date_updated
 
-    def test_related_names(self):
+    def test_related_names(self) -> None:
         self.sentry_app.save()
         assert self.sentry_app.application is not None
         assert self.sentry_app.proxy_user is not None
         assert self.sentry_app.application.sentry_app == self.sentry_app
         assert self.sentry_app.proxy_user.sentry_app == self.sentry_app
 
-    def test_is_unpublished(self):
+    def test_is_unpublished(self) -> None:
         self.sentry_app.status = SentryAppStatus.UNPUBLISHED
         self.sentry_app.save()
         assert self.sentry_app.is_unpublished
 
-    def test_is_published(self):
+    def test_is_published(self) -> None:
         self.sentry_app.status = SentryAppStatus.PUBLISHED
         self.sentry_app.save()
         assert self.sentry_app.is_published
 
-    def test_is_internal(self):
+    def test_is_internal(self) -> None:
         self.sentry_app.status = SentryAppStatus.INTERNAL
         self.sentry_app.save()
         assert self.sentry_app.is_internal
 
-    def test_is_installed_on(self):
+    def test_is_installed_on(self) -> None:
         other_app = self.create_sentry_app()
         self.create_sentry_app_installation(
             organization=self.org, slug=self.sentry_app.slug, prevent_token_exchange=True
@@ -68,14 +68,14 @@ class SentryAppTest(TestCase):
         assert self.sentry_app.is_installed_on(self.org)
         assert not other_app.is_installed_on(self.org)
 
-    def test_not_installed_on_org(self):
+    def test_not_installed_on_org(self) -> None:
         other_org = self.create_organization()
         self.create_sentry_app_installation(
             organization=other_org, slug=self.sentry_app.slug, prevent_token_exchange=True
         )
         assert not self.sentry_app.is_installed_on(self.org)
 
-    def test_save_outbox_update(self):
+    def test_save_outbox_update(self) -> None:
         # Clear the outbox created in setup()
         ControlOutbox.objects.filter(category=OutboxCategory.SENTRY_APP_UPDATE).delete()
 
@@ -85,7 +85,7 @@ class SentryAppTest(TestCase):
         assert outboxes[0].shard_identifier == self.sentry_app.id
         assert outboxes[0].region_name
 
-    def test_regions_with_installations(self):
+    def test_regions_with_installations(self) -> None:
         self.us_org = self.create_organization(name="us test name", region="us")
         self.create_sentry_app_installation(
             organization=self.us_org, slug=self.sentry_app.slug, prevent_token_exchange=True

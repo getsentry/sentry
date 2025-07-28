@@ -2,7 +2,7 @@ from unittest.mock import Mock, patch
 
 from django.urls import reverse
 
-from sentry.codecov.endpoints.TestResults.serializers import (
+from sentry.codecov.endpoints.test_results.serializers import (
     TestResultNodeSerializer as NodeSerializer,
 )
 from sentry.testutils.cases import APITestCase
@@ -12,6 +12,7 @@ mock_graphql_response_empty = {
         "owner": {
             "repository": {
                 "__typename": "Repository",
+                "defaultBranch": "main",
                 "testAnalytics": {
                     "testResults": {
                         "edges": [],
@@ -34,6 +35,7 @@ mock_graphql_response_populated = {
         "owner": {
             "repository": {
                 "__typename": "Repository",
+                "defaultBranch": "another-branch",
                 "testAnalytics": {
                     "testResults": {
                         "edges": [
@@ -86,7 +88,7 @@ mock_graphql_response_populated = {
 
 
 class TestResultsEndpointTest(APITestCase):
-    endpoint = "sentry-api-0-test-results"
+    endpoint_name = "sentry-api-0-test-results"
 
     def setUp(self):
         super().setUp()
@@ -102,7 +104,7 @@ class TestResultsEndpointTest(APITestCase):
     def reverse_url(self, owner="testowner", repository="testrepo"):
         """Custom reverse URL method to handle required URL parameters"""
         return reverse(
-            self.endpoint,
+            self.endpoint_name,
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "owner": self.integration.id,
@@ -110,7 +112,7 @@ class TestResultsEndpointTest(APITestCase):
             },
         )
 
-    @patch("sentry.codecov.endpoints.TestResults.test_results.CodecovApiClient")
+    @patch("sentry.codecov.endpoints.test_results.test_results.CodecovApiClient")
     def test_get_returns_mock_response_with_default_variables(self, mock_codecov_client_class):
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
@@ -164,7 +166,7 @@ class TestResultsEndpointTest(APITestCase):
             response_keys == serializer_fields
         ), f"Response keys {response_keys} don't match serializer fields {serializer_fields}"
 
-    @patch("sentry.codecov.endpoints.TestResults.test_results.CodecovApiClient")
+    @patch("sentry.codecov.endpoints.test_results.test_results.CodecovApiClient")
     def test_get_with_query_parameters(self, mock_codecov_client_class):
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
@@ -209,7 +211,7 @@ class TestResultsEndpointTest(APITestCase):
         assert call_args[1]["variables"] == expected_variables
         assert response.status_code == 200
 
-    @patch("sentry.codecov.endpoints.TestResults.test_results.CodecovApiClient")
+    @patch("sentry.codecov.endpoints.test_results.test_results.CodecovApiClient")
     def test_get_with_term_filter(self, mock_codecov_client_class):
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
@@ -253,7 +255,7 @@ class TestResultsEndpointTest(APITestCase):
         assert call_args[1]["variables"] == expected_variables
         assert response.status_code == 200
 
-    @patch("sentry.codecov.endpoints.TestResults.test_results.CodecovApiClient")
+    @patch("sentry.codecov.endpoints.test_results.test_results.CodecovApiClient")
     def test_get_with_cursor_alone_uses_default_limit_and_navigation(
         self, mock_codecov_client_class
     ):
@@ -292,7 +294,7 @@ class TestResultsEndpointTest(APITestCase):
         assert call_args[1]["variables"] == expected_variables
         assert response.status_code == 200
 
-    @patch("sentry.codecov.endpoints.TestResults.test_results.CodecovApiClient")
+    @patch("sentry.codecov.endpoints.test_results.test_results.CodecovApiClient")
     def test_get_with_cursor_and_direction(self, mock_codecov_client_class):
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
@@ -329,7 +331,7 @@ class TestResultsEndpointTest(APITestCase):
         assert call_args[1]["variables"] == expected_variables
         assert response.status_code == 200
 
-    def test_get_with_negative_limit_returns_bad_request(self):
+    def test_get_with_negative_limit_returns_bad_request(self) -> None:
         url = self.reverse_url()
         query_params = {"limit": "-5"}
         response = self.client.get(url, query_params)
@@ -337,7 +339,7 @@ class TestResultsEndpointTest(APITestCase):
         assert response.status_code == 400
         assert response.data == {"details": "provided `limit` parameter must be a positive integer"}
 
-    def test_get_with_limit_as_string_returns_bad_request(self):
+    def test_get_with_limit_as_string_returns_bad_request(self) -> None:
         url = self.reverse_url()
         query_params = {"limit": "asdf"}
         response = self.client.get(url, query_params)

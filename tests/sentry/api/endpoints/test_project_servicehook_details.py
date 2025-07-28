@@ -3,7 +3,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class ProjectServiceHookDetailsTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project()
         hook = ServiceHook.objects.get_or_create(
             project_id=project.id, actor_id=self.user.id, url="http://example.com"
@@ -25,7 +25,7 @@ class UpdateProjectServiceHookTest(APITestCase):
         )[0]
         self.path = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/hooks/{self.hook.guid}/"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         resp = self.client.put(
             self.path,
             data={"url": "http://example.com/foo", "events": ["event.alert", "event.created"]},
@@ -46,7 +46,7 @@ class DeleteProjectServiceHookTest(APITestCase):
         )[0]
         self.path = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/hooks/{self.hook.guid}/"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         resp = self.client.delete(self.path)
         assert resp.status_code == 204, resp.content
 

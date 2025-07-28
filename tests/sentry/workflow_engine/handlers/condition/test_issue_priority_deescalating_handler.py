@@ -63,7 +63,7 @@ class TestIssuePriorityGreaterOrEqualCondition(ConditionTestCase):
         open_period.data["highest_seen_priority"] = max(highest_seen_priority, priority)
         open_period.save()
 
-    def test_warning(self):
+    def test_warning(self) -> None:
         self.update_group_and_open_period(priority=PriorityLevel.MEDIUM)
         self.assert_does_not_pass(self.deescalating_dc_warning, self.event_data)
 
@@ -73,14 +73,14 @@ class TestIssuePriorityGreaterOrEqualCondition(ConditionTestCase):
         self.group.update(status=GroupStatus.RESOLVED)
         self.assert_passes(self.deescalating_dc_warning, self.event_data)
 
-    def test_critical_threshold_not_breached(self):
+    def test_critical_threshold_not_breached(self) -> None:
         self.update_group_and_open_period(priority=PriorityLevel.MEDIUM)
         self.assert_does_not_pass(self.deescalating_dc_critical, self.event_data)
 
         self.group.update(status=GroupStatus.RESOLVED)
         self.assert_does_not_pass(self.deescalating_dc_critical, self.event_data)
 
-    def test_critical(self):
+    def test_critical(self) -> None:
         self.update_group_and_open_period(priority=PriorityLevel.MEDIUM)
         self.assert_does_not_pass(self.deescalating_dc_critical, self.event_data)
 

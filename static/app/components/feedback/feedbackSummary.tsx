@@ -45,7 +45,7 @@ export default function FeedbackSummary() {
     <SummaryIconContainer>
       <IconSeer size="xs" />
       <SummaryContainer>
-        <Flex justify="space-between" align="center">
+        <Flex justify="between" align="center">
           <SummaryHeader>{t('Summary')}</SummaryHeader>
           <Flex gap="xs">
             {feedbackButton({type: 'positive'})}

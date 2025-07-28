@@ -11,7 +11,7 @@ from sentry.testutils.cases import TestCase
 
 
 class CommitFileChangeSerializerTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         user = self.create_user()
         project = self.create_project()
         release = Release.objects.create(
@@ -47,7 +47,7 @@ class CommitFileChangeSerializerTest(TestCase):
         assert result["commitMessage"] == "waddap"
         assert result["author"] == {"name": "stebe", "email": "stebe@sentry.io"}
 
-    def test_no_author(self):
+    def test_no_author(self) -> None:
         user = self.create_user()
         project = self.create_project()
         release = Release.objects.create(
