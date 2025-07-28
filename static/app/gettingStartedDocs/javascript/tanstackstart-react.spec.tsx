@@ -15,15 +15,13 @@ describe('javascript-tanstackstart-react onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Set up the SDK'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
 
-    // Includes import statement
+    // Includes TanStack Start specific configuration
     expect(
-      screen.getByText(
-        textWithMarkupMatcher(/import \* as Sentry from "@sentry\/tanstackstart-react"/)
-      )
+      screen.getByText(textWithMarkupMatcher(/wrapVinxiConfigWithSentry/))
     ).toBeInTheDocument();
   });
 
-  it('displays sample rates by default', () => {
+  it('displays TanStack Start specific integrations when products are selected', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [
         ProductSolution.ERROR_MONITORING,
@@ -33,17 +31,17 @@ describe('javascript-tanstackstart-react onboarding docs', function () {
     });
 
     expect(
-      screen.getByText(textWithMarkupMatcher(/tracesSampleRate/))
+      screen.getByText(textWithMarkupMatcher(/tanstackRouterBrowserTracingIntegration/))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(/replaysSessionSampleRate/))
+      screen.getByText(textWithMarkupMatcher(/replayIntegration/))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(/replaysOnErrorSampleRate/))
+      screen.getByText(textWithMarkupMatcher(/sentryGlobalServerMiddlewareHandler/))
     ).toBeInTheDocument();
   });
 
-  it('enables performance setting the tracesSampleRate to 1', () => {
+  it('enables performance tracing integration', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [
         ProductSolution.ERROR_MONITORING,
@@ -52,8 +50,16 @@ describe('javascript-tanstackstart-react onboarding docs', function () {
     });
 
     expect(
-      screen.getAllByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0/))
-    ).toHaveLength(2); // Should appear in both client and server configurations
+      screen.getByText(textWithMarkupMatcher(/tanstackRouterBrowserTracingIntegration/))
+    ).toBeInTheDocument();
+  });
+
+  it('includes TanStack Start specific server instrumentation', () => {
+    renderWithOnboardingLayout(docs);
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/wrapStreamHandlerWithSentry/))
+    ).toBeInTheDocument();
   });
 
   it('enables replay by setting replay samplerates', () => {
