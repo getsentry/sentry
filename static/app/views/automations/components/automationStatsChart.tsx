@@ -57,7 +57,7 @@ export function AutomationStatsChart({
         </ChartHeader>
         {isPending && <Placeholder height="200px" />}
         {isError && <LoadingError />}
-        {!isPending && !isError && (
+        {fireHistory && (
           <ChartZoom period={period} start={start} end={end} utc={utc} usePageDate>
             {zoomRenderProps => (
               <BarChart
