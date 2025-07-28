@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-export function NotifPreview({
+export function DebugNotificationsPreview({
   title,
   children,
 }: {

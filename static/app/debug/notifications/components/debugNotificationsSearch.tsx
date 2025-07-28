@@ -7,8 +7,8 @@ import type {CollectionChildren} from '@react-types/shared';
 
 import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
-import {notificationCategories} from 'sentry/debug/notifs/data';
-import type {NotificationSource} from 'sentry/debug/notifs/types';
+import {notificationCategories} from 'sentry/debug/notifications/data';
+import type {NotificationSource} from 'sentry/debug/notifications/types';
 import {t} from 'sentry/locale';
 import {
   filter,
@@ -19,12 +19,12 @@ import {
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-export function NotifSearch() {
+export function DebugNotificationsSearch() {
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const notifsSearchHotkeys = useMemo(() => {
+  const searchKeys = useMemo(() => {
     return [{match: '/', callback: () => inputRef.current?.focus()}];
   }, []);
-  useHotkeys(notifsSearchHotkeys);
+  useHotkeys(searchKeys);
   const notificationSources = notificationCategories.flatMap(
     category => category.sources
   );

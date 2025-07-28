@@ -1,4 +1,4 @@
-export function NotifEmptyState() {
+export function DebugNotificationsEmptyState() {
   return (
     <div>
       <h4>Select a source from the sidebar to get started</h4>

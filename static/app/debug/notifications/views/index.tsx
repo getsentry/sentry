@@ -2,22 +2,22 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
-import {NotifEmptyState} from 'sentry/debug/notifs/components/notifEmptyState';
-import {NotifHeader} from 'sentry/debug/notifs/components/notifHeader';
-import {NotifSidebar} from 'sentry/debug/notifs/components/notifSidebar';
-import {notificationCategories} from 'sentry/debug/notifs/data';
-import {DiscordPreview} from 'sentry/debug/notifs/previews/discordPreview';
-import {EmailPreview} from 'sentry/debug/notifs/previews/emailPreview';
-import {SlackPreview} from 'sentry/debug/notifs/previews/slackPreview';
-import {TeamsPreview} from 'sentry/debug/notifs/previews/teamsPreview';
-import {HeaderContainer, Layout} from 'sentry/stories/view';
+import {Heading} from 'sentry/components/core/text';
+import {DebugNotificationsEmptyState} from 'sentry/debug/notifications/components/debugNotificationsEmptyState';
+import {DebugNotificationsHeader} from 'sentry/debug/notifications/components/debugNotificationsHeader';
+import {DebugNotificationsSidebar} from 'sentry/debug/notifications/components/debugNotificationsSidebar';
+import {notificationCategories} from 'sentry/debug/notifications/data';
+import {DiscordPreview} from 'sentry/debug/notifications/previews/discordPreview';
+import {EmailPreview} from 'sentry/debug/notifications/previews/emailPreview';
+import {SlackPreview} from 'sentry/debug/notifications/previews/slackPreview';
+import {TeamsPreview} from 'sentry/debug/notifications/previews/teamsPreview';
+import {HeaderContainer, Layout} from 'sentry/stories/view/index';
 import {SidebarContainer} from 'sentry/stories/view/storySidebar';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
-export default function NotifIndex() {
+export default function DebugNotificationsIndex() {
   const location = useLocation();
   const notificationSources = notificationCategories.flatMap(
     category => category.sources
@@ -31,25 +31,25 @@ export default function NotifIndex() {
       <OrganizationContainer>
         <Layout>
           <HeaderContainer>
-            <NotifHeader />
+            <DebugNotificationsHeader />
           </HeaderContainer>
           <SidebarContainer>
-            <NotifSidebar />
+            <DebugNotificationsSidebar />
           </SidebarContainer>
           <BodyContainer>
             {selectedSource ? (
               <Fragment>
-                <SourceTitle>
+                <Heading as="h2" variant="success">
                   {selectedSource.label}
                   <Tag type="success">{selectedSource.category.label}</Tag>
-                </SourceTitle>
+                </Heading>
                 <EmailPreview />
                 <SlackPreview />
                 <DiscordPreview />
                 <TeamsPreview />
               </Fragment>
             ) : (
-              <NotifEmptyState />
+              <DebugNotificationsEmptyState />
             )}
           </BodyContainer>
         </Layout>
@@ -64,13 +64,13 @@ const BodyContainer = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   display: flex;
   flex-direction: column;
-  gap: ${space(3)};
-  padding: ${space(2)};
+  gap: ${p => p.theme.space['3xl']};
+  padding: ${p => p.theme.space['2xl']};
 `;
 
-const SourceTitle = styled('h2')`
-  margin-bottom: ${space(1)};
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
+// const SourceTitle = styled('h2')`
+//   margin-bottom: ${p => p.theme.space.md};
+//   display: flex;
+//   align-items: center;
+//   gap: ${p => p.theme.space.md};
+// `;

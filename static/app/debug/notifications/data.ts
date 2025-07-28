@@ -1,4 +1,4 @@
-import type {NotificationCategory} from 'sentry/debug/notifs/types';
+import type {NotificationCategory} from 'sentry/debug/notifications/types';
 
 /** TODO(ecosystem): Use actual notification platform items, maybe via API? */
 export const notificationCategories: NotificationCategory[] = [

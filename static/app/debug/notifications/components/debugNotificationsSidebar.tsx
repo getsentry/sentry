@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import {notificationCategories} from 'sentry/debug/notifs/data';
+import {notificationCategories} from 'sentry/debug/notifications/data';
 import {FolderLink, StoryList} from 'sentry/stories/view/storyTree';
 import {useLocation} from 'sentry/utils/useLocation';
 
-export function NotifSidebar() {
+export function DebugNotificationsSidebar() {
   const location = useLocation();
   return (
     <ul>

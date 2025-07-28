@@ -3,24 +3,27 @@ import styled from '@emotion/styled';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
-import {NotifSearch} from 'sentry/debug/notifs/components/notifSearch';
+import {Heading} from 'sentry/components/core/text';
+import {DebugNotificationsSearch} from 'sentry/debug/notifications/components/debugNotificationsSearch';
 import {IconGithub, IconLink} from 'sentry/icons';
 import {ThemeSwitcher} from 'sentry/stories/theme';
-import {H1, HeaderGrid} from 'sentry/stories/view/storyHeader';
-import {space} from 'sentry/styles/space';
+import {HeaderGrid} from 'sentry/stories/view/storyHeader';
 import {useLocation} from 'sentry/utils/useLocation';
 
-export function NotifHeader() {
+export function DebugNotificationsHeader() {
   const location = useLocation();
   return (
-    <HeaderGrid>
+    <DebugNotificationsHeaderGrid>
       <Link to={location.pathname}>
-        <Title>
-          <SentryNotificationsLogo /> Notifications
-        </Title>
+        <Heading as="h1" variant="success">
+          <Flex align="center" gap="md">
+            <SentryNotificationsLogo />
+            Notifications
+          </Flex>
+        </Heading>
       </Link>
-      <NotifSearch />
-      <Flex gap={space(1)} style={{marginLeft: 'auto'}}>
+      <DebugNotificationsSearch />
+      <Flex gap="md" style={{marginLeft: 'auto'}}>
         <LinkButton
           size="xs"
           href="https://github.com/getsentry/sentry"
@@ -34,13 +37,13 @@ export function NotifHeader() {
         <span />
         <ThemeSwitcher />
       </Flex>
-    </HeaderGrid>
+    </DebugNotificationsHeaderGrid>
   );
 }
 
 function SentryNotificationsLogo() {
   return (
-    <svg fill="none" viewBox="0 0 34 36">
+    <svg fill="none" viewBox="0 0 34 36" style={{width: '36px', height: '36px'}}>
       <path
         fill="#06892F"
         d="M.5873 8.4992c-.0482-2.761 2.151-5.0383 4.912-5.0865l21.9948-.3839c2.761-.0482 5.0383 2.151 5.0865 4.912l.384 21.9966c.0482 2.761-2.151 5.0383-4.912 5.0865l-21.9949.384c-2.761.0482-5.0383-2.151-5.0865-4.912L.5872 8.4992Z"
@@ -57,6 +60,6 @@ function SentryNotificationsLogo() {
   );
 }
 
-const Title = styled(H1)`
-  color: ${p => p.theme.tokens.content.success};
+const DebugNotificationsHeaderGrid = styled(HeaderGrid)`
+  grid-template-columns: 200px minmax(auto, 820px) auto;
 `;
