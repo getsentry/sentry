@@ -106,8 +106,11 @@ class GroupingContext:
         context["some_key"] = "original_value"
 
         value_at_some_key = context["some_key"] # will be "original_value"
+        value_at_some_key = context.get("some_key") # will be "original_value"
 
         value_at_another_key = context["another_key"] # will raise a KeyError
+        value_at_another_key = context.get("another_key") # will be None
+        value_at_another_key = context.get("another_key", "some_default") # will be "some_default"
 
         with context:
             context["some_key"] = "some_other_value"
