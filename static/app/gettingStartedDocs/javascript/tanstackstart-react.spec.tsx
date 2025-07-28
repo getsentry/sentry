@@ -77,9 +77,9 @@ describe('javascript-tanstackstart-react onboarding docs', function () {
       selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
     });
 
-    expect(
-      screen.getAllByText(textWithMarkupMatcher(/enableLogs: true/))
-    ).toHaveLength(2); // Should appear in both client and server configurations
+    expect(screen.getAllByText(textWithMarkupMatcher(/enableLogs: true/))).toHaveLength(
+      2
+    ); // Should appear in both client and server configurations
   });
 
   it('shows Logging Integrations in next steps when logs is selected', () => {
