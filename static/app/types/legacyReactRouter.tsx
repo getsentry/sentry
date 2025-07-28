@@ -129,12 +129,3 @@ export interface RouteContextInterface<P = Record<string, string | undefined>, Q
   router: InjectedRouter<P, Q>;
   routes: PlainRoute[];
 }
-
-interface IndexRedirectProps {
-  to: RoutePattern;
-  query?: Query | undefined;
-}
-
-export interface RedirectProps extends IndexRedirectProps {
-  from: RoutePattern;
-}
