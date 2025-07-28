@@ -204,9 +204,6 @@ describe('PrimaryNavigationQuotaExceeded', function () {
       },
       usedSpends: {},
       enabled: true,
-      attachmentSpendUsed: 0,
-      errorSpendUsed: 0,
-      transactionSpendUsed: 0,
     };
     SubscriptionStore.set(organization.slug, subscription);
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
