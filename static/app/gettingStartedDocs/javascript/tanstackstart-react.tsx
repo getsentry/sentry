@@ -164,6 +164,13 @@ Sentry.init({
   replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 1.0,`
       : ''
+  }${
+    params.isLogsSelected
+      ? `
+
+  // Logs
+  enableLogs: true,`
+      : ''
   }
 
   // Setting this option to true will send default PII data to Sentry.
@@ -202,6 +209,13 @@ Sentry.init({
   // Learn more at
   // https://docs.sentry.io/platforms/javascript/configuration/options/#traces-sample-rate
   tracesSampleRate: 1.0,`
+      : ''
+  }${
+    params.isLogsSelected
+      ? `
+
+  // Logs
+  enableLogs: true,`
       : ''
   }
 
@@ -481,6 +495,29 @@ export const APIRoute = createAPIFileRoute("/api/sentry-example-api")({
       ],
     },
   ],
+  nextSteps: (params: Params) => {
+    const steps = [
+      {
+        id: 'tanstackstart-features',
+        name: t('TanStack Start Features'),
+        description: t('Learn about our first class integration with the TanStack Start framework.'),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/',
+      },
+    ];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/logs/#integrations/',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const profilingOnboarding = getJavascriptFullStackOnboarding({
