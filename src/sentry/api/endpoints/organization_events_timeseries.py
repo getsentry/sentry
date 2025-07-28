@@ -24,11 +24,11 @@ from sentry.snuba import (
     metrics_enhanced_performance,
     metrics_performance,
     spans_metrics,
-    spans_rpc,
     transactions,
 )
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer, is_valid_referrer
+from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.utils import DATASET_LABELS, RPC_DATASETS
 from sentry.utils.snuba import SnubaTSResult
 
@@ -38,7 +38,7 @@ TOP_EVENTS_DATASETS = {
     metrics_performance,
     metrics_enhanced_performance,
     spans_metrics,
-    spans_rpc.Spans,
+    Spans,
     errors,
     transactions,
 }
