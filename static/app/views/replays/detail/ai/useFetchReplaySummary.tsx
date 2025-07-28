@@ -1,7 +1,7 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -18,9 +18,7 @@ function createAISummaryQueryKey(
   projectSlug: string | undefined,
   replayId: string
 ): ApiQueryKey {
-  return [
-    `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/summarize/breadcrumbs-v2/`,
-  ];
+  return [`/projects/${orgSlug}/${projectSlug}/replays/${replayId}/summarize/v1/`];
 }
 
 export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryResponse>) {
@@ -54,21 +52,19 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
     }
   );
 
-  const triggerSummary = useCallback(async () => {
-    // Don't trigger if the feature is disabled
-    if (options?.enabled === false) {
-      return;
-    }
-
-    setWaitingForNextRun(true);
-
-    try {
-      await api.requestPromise(
-        `/projects/${organization.slug}/${project?.slug}/replays/${replayRecord?.id}/summarize/breadcrumbs-v2/`,
+  const {mutate: triggerSummaryMutate} = useMutation({
+    mutationFn: () =>
+      api.requestPromise(
+        `/projects/${organization.slug}/${project?.slug}/replays/${replayRecord?.id}/summarize/v1/`,
         {
           method: 'POST',
         }
-      );
+      ),
+    onMutate: () => {
+      setWaitingForNextRun(true);
+      setTriggerError(false);
+    },
+    onSuccess: () => {
       // invalidate the query when a summary is triggered
       // so the cached data is marked as stale.
       queryClient.invalidateQueries({
@@ -78,28 +74,32 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
           replayRecord?.id ?? ''
         ),
       });
-    } catch (e) {
+    },
+    onError: () => {
       setWaitingForNextRun(false);
       setTriggerError(true);
-    }
-  }, [
-    queryClient,
-    api,
-    organization.slug,
-    project?.slug,
-    replayRecord?.id,
-    options?.enabled,
-  ]);
+    },
+  });
 
-  // if status is complete or error
-  // and waitingForNextRun is true, reset waitingForNextRun to false
-  if (
-    (summaryData?.status === ReplaySummaryStatus.COMPLETED ||
-      summaryData?.status === ReplaySummaryStatus.ERROR) &&
-    waitingForNextRun
-  ) {
-    setWaitingForNextRun(false);
-  }
+  const triggerSummary = useCallback(() => {
+    // Don't trigger if the feature is disabled
+    if (options?.enabled === false) {
+      return;
+    }
+
+    triggerSummaryMutate();
+  }, [options?.enabled, triggerSummaryMutate]);
+
+  // Reset waitingForNextRun when summary reaches final state
+  useEffect(() => {
+    if (
+      (summaryData?.status === ReplaySummaryStatus.COMPLETED ||
+        summaryData?.status === ReplaySummaryStatus.ERROR) &&
+      waitingForNextRun
+    ) {
+      setWaitingForNextRun(false);
+    }
+  }, [summaryData?.status, waitingForNextRun]);
 
   return {
     summaryData,
