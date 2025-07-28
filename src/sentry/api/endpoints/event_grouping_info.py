@@ -9,6 +9,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.grouping.api import load_grouping_config
 from sentry.grouping.grouping_info import get_grouping_info
+from sentry.users.models.user_option import UserOption
 
 
 @region_silo_endpoint
@@ -31,6 +32,11 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
             raise ResourceDoesNotExist
 
         grouping_config = load_grouping_config(event.get_grouping_config())
+
+        should_reverse_stacktraces = UserOption.objects.get_value(
+            user=request.user, key="stacktrace_order"
+        ) in ["-1", "2"]
+        grouping_config.initial_context["reverse_stacktraces"] = should_reverse_stacktraces
 
         _grouping_info = get_grouping_info(grouping_config, project, event)
 

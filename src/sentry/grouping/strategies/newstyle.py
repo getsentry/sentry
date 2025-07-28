@@ -432,6 +432,9 @@ def _single_stacktrace_variant(
     raw_frames = []
     found_in_app_frame = False
 
+    if context.get("reverse_stacktraces"):
+        frames = reversed(frames)
+
     for frame in frames:
         with context:
             context["is_recursion"] = is_recursive_frames(frame, prev_frame)
