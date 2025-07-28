@@ -381,6 +381,11 @@ def create_feedback_issue(
     if event_fixed.get("release"):
         event_fixed["tags"]["release"] = event_fixed["release"]
 
+    # Override tags.url with url from the feedback context, which has the full query params.
+    feedback_url = get_path(event_fixed, "contexts", "feedback", "url")
+    if feedback_url and isinstance(feedback_url, str):
+        event_fixed["tags"]["url"] = feedback_url
+
     # make sure event data is valid for issue platform
     validate_issue_platform_event_schema(event_fixed)
 
