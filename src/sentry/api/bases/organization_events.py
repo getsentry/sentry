@@ -497,7 +497,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         request: Request,
         organization: Organization,
         get_event_stats: Callable[
-            [list[str], str, SnubaParams, int, bool, timedelta | None, bool],
+            [list[str], str, SnubaParams, int, bool, timedelta | None],
             SnubaTSResult | dict[str, SnubaTSResult],
         ],
         top_events: int = 0,
@@ -549,7 +549,6 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     rollup,
                     zerofill_results,
                     comparison_delta,
-                    snuba_params.debug,
                 )
 
         serializer = SnubaTSResultSerializer(organization, None, request.user)
