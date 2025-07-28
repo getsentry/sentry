@@ -201,10 +201,11 @@ def handle_downsample_meta(meta: DownsampledStorageMeta) -> bool:
 
 
 def set_debug_meta(events_meta: EventsMeta, rpc_meta: ResponseMeta) -> None:
-    query_info = json.loads(MessageToJson(rpc_meta)).get("query_info", [])
+    rpc_meta_json = json.loads(MessageToJson(rpc_meta))
+    query_info = rpc_meta_json.get("query_info", [])
 
     events_meta["query_info"] = {
-        "downsampled_storage_meta": rpc_meta.downsampled_storage_meta,
+        "downsampled_storage_meta": rpc_meta_json.get("downsampled_storage_meta", {}),
     }
 
     # Check if query_info list is not empty before accessing elements
