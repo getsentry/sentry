@@ -3,15 +3,11 @@
  * routing object in that it doesn't take a rendered component, but instead a
  * component type and handles the rendering itself.
  */
-export interface SentryRouteObject {
+interface BaseRouteObject {
   /**
    * child components to render under this route
    */
   children?: SentryRouteObject[];
-  /**
-   * A react component to render or a import promise that will be lazily loaded
-   */
-  component?: React.ComponentType<any>;
   /**
    * Only enable this route when USING_CUSTOMER_DOMAIN is enabled
    */
@@ -58,3 +54,42 @@ export interface SentryRouteObject {
   // use this as a way to slowly get rid of react router 3 style prosp in favor
   // of using the route hooks.
 }
+
+/**
+ * Enforces that these props are not expected by the component.
+ */
+type NoRouteProps = {
+  [key: string | number | symbol]: any;
+  children?: never;
+  location?: never;
+  params?: never;
+  route?: never;
+  routeParams?: never;
+  router?: never;
+  routes?: never;
+};
+
+interface DeprecatedPropRoute extends BaseRouteObject {
+  /**
+   * Passes legacy route props to the component.
+   */
+  deprecatedRouteProps: true;
+  /**
+   * A react component that accepts legacy router props (location, params, router, etc.)
+   */
+  component?: React.ComponentType<any>;
+}
+
+interface RouteObject extends BaseRouteObject {
+  /**
+   * A react component to render or a import promise that will be lazily loaded.
+   * Components that expect RouteComponentProps are not allowed here - use deprecatedRouteProps: true instead.
+   */
+  component?: React.ComponentType<NoRouteProps>;
+  /**
+   * Passes legacy route props to the component.
+   */
+  deprecatedRouteProps?: never;
+}
+
+export type SentryRouteObject = RouteObject | DeprecatedPropRoute;
