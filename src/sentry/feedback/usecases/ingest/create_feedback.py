@@ -340,7 +340,7 @@ def create_feedback_issue(
         # Pass in a copy of the event so mutations to the original and fixed don't affect each other.
         {
             **event,
-            "project_id": project_id,
+            "project_id": project.id,
             "received": datetime.now().isoformat(),
             "tags": event.get("tags", {}),
         }
