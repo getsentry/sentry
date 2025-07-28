@@ -10,6 +10,7 @@ class IssueResolvedEvent(analytics.Event):
     group_id: int
     resolution_type: str
     # TODO: make required once we validate that all events have this
+    provider: str | None = None
     issue_category: str | None = None
     issue_type: str | None = None
 
