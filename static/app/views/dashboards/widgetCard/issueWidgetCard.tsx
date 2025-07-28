@@ -78,7 +78,7 @@ export function IssueWidgetCard({
       key: column.key,
       width: widget.tableWidths?.[index] ?? column.width,
       type: column.type === 'never' ? null : column.type,
-      allowedCellActions: shouldUseCellActions(column.key, queryFields) ? undefined : [],
+      allowedCellActions: shouldUseCellActions(column.key) ? undefined : [],
     })
   );
   const aliases = decodeColumnAliases(columns, fieldAliases, fieldHeaderMap);
