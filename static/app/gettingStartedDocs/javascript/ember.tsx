@@ -221,7 +221,7 @@ const onboarding: OnboardingConfig = {
         description: t(
           'Add logging integrations to automatically capture logs from your application.'
         ),
-        link: 'https://docs.sentry.io/platforms/javascript/guides/ember/logs/#integrations/',
+        link: 'https://docs.sentry.io/platforms/javascript/guides/ember/logs/#integrations',
       });
     }
 
