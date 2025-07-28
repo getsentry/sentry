@@ -2,6 +2,7 @@ from collections.abc import Callable
 from datetime import datetime
 from typing import Any, Literal
 
+from google.protobuf.json_format import MessageToJson
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import (
     DownsampledStorageConfig,
@@ -35,6 +36,7 @@ from sentry.search.eap.spans.attributes import (
 )
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta
+from sentry.utils import json
 
 # TODO: Remove when https://github.com/getsentry/eap-planning/issues/206 is merged, since we can use formulas in both APIs at that point
 BINARY_FORMULA_OPERATOR_MAP = {
@@ -199,7 +201,7 @@ def handle_downsample_meta(meta: DownsampledStorageMeta) -> bool:
 
 
 def set_debug_meta(events_meta: EventsMeta, rpc_meta: ResponseMeta) -> None:
-    query_info = rpc_meta.query_info
+    query_info = json.loads(MessageToJson(rpc_meta.query_info))
 
     events_meta["query_info"] = {
         "downsampled_storage_meta": rpc_meta.downsampled_storage_meta,
