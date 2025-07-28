@@ -311,23 +311,28 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
     """Returns a trace-item row or null for each event."""
     match event_type:
         case EventType.CLICK | EventType.DEAD_CLICK | EventType.RAGE_CLICK | EventType.SLOW_CLICK:
-            payload = event["data"]["payload"]
+            payload = event.get("data", {}).get("payload", {})
+            payload_data = payload.get("data", {})
 
             # If the node wasn't provided we're forced to skip the event.
-            if "node" not in payload["data"]:
+            if "node" not in payload_data:
                 return None
 
-            node = payload["data"]["node"]
+            node = payload_data["node"]
             node_attributes = node.get("attributes", {})
             click_attributes = {
-                "node_id": int(node["id"]),
-                "tag": as_string_strict(node["tagName"]),
-                "text": as_string_strict(node["textContent"][:1024]),
                 "is_dead": event_type in (EventType.DEAD_CLICK, EventType.RAGE_CLICK),
                 "is_rage": event_type == EventType.RAGE_CLICK,
-                "selector": as_string_strict(payload["message"]),
                 "category": "ui.click",
             }
+            if "id" in node:
+                click_attributes["node_id"] = int(node["id"])
+            if "tagName" in node:
+                click_attributes["tag"] = as_string_strict(node["tagName"])
+            if "textContent" in node:
+                click_attributes["text"] = as_string_strict(node["textContent"][:1024])
+            if "message" in payload:
+                click_attributes["selector"] = as_string_strict(payload["message"])
             if "alt" in node_attributes:
                 click_attributes["alt"] = as_string_strict(node_attributes["alt"])
             if "aria-label" in node_attributes:
@@ -352,11 +357,11 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             return {
                 "attributes": click_attributes,  # type: ignore[typeddict-item]
                 "event_hash": uuid.uuid4().bytes,
-                "timestamp": float(payload["timestamp"]),
+                "timestamp": float(payload.get("timestamp", 0)),
             }
         case EventType.NAVIGATION:
-            payload = event["data"]["payload"]
-            payload_data = payload["data"]
+            payload = event.get("data", {}).get("payload", {})
+            payload_data = payload.get("data", {})
 
             navigation_attributes = {"category": "navigation"}
             if "from" in payload_data:
@@ -367,7 +372,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             return {
                 "attributes": navigation_attributes,  # type: ignore[typeddict-item]
                 "event_hash": uuid.uuid4().bytes,
-                "timestamp": float(payload["timestamp"]),
+                "timestamp": float(payload.get("timestamp", 0)),
             }
         case EventType.CONSOLE:
             return None
@@ -376,24 +381,29 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
         case EventType.UI_FOCUS:
             return None
         case EventType.RESOURCE_FETCH | EventType.RESOURCE_XHR:
-            payload = event["data"]["payload"]
+            payload = event.get("data", {}).get("payload", {})
+            payload_data = payload.get("data", {})
 
             resource_attributes = {
                 "category": (
                     "resource.xhr" if event_type == EventType.RESOURCE_XHR else "resource.fetch"
-                ),
-                "url": as_string_strict(payload["description"]),
-                "method": str(payload["data"]["method"]),
-                "duration": float(payload["endTimestamp"]) - float(payload["startTimestamp"]),
+                )
             }
+            if "description" in payload:
+                resource_attributes["url"] = as_string_strict(payload["description"])
+            if "method" in payload_data:
+                resource_attributes["method"] = str(payload_data["method"])
+            if "endTimestamp" in payload and "startTimestamp" in payload:
+                resource_attributes["duration"] = float(payload["endTimestamp"]) - float(
+                    payload["startTimestamp"]
+                )
+            if "statusCode" in payload_data:
+                resource_attributes["statusCode"] = int(payload_data["statusCode"])
 
-            if "statusCode" in payload["data"]:
-                resource_attributes["statusCode"] = int(payload["data"]["statusCode"])
-
-            for key, value in payload["data"].get("request", {}).get("headers", {}).items():
+            for key, value in payload_data.get("request", {}).get("headers", {}).items():
                 resource_attributes[f"request.headers.{key}"] = str(value)
 
-            for key, value in payload["data"].get("response", {}).get("headers", {}).items():
+            for key, value in payload_data.get("response", {}).get("headers", {}).items():
                 resource_attributes[f"response.headers.{key}"] = str(value)
 
             request_size, response_size = parse_network_content_lengths(event)
@@ -405,29 +415,37 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             return {
                 "attributes": resource_attributes,
                 "event_hash": uuid.uuid4().bytes,
-                "timestamp": float(payload["startTimestamp"]),
+                "timestamp": float(payload.get("startTimestamp", 0)),
             }
         case EventType.RESOURCE_SCRIPT | EventType.RESOURCE_IMAGE:
+            payload = event.get("data", {}).get("payload", {})
+            payload_data = payload.get("data", {})
+
+            resource_attributes = {
+                "category": (
+                    "resource.script" if event_type == EventType.RESOURCE_SCRIPT else "resource.img"
+                ),
+            }
+
+            for key in ["size", "statusCode", "decodedBodySize", "encodedBodySize"]:
+                if key in payload_data:
+                    resource_attributes[key] = int(payload_data[key])
+
+            if "description" in payload:
+                resource_attributes["url"] = as_string_strict(payload["description"])
+            if "endTimestamp" in payload and "startTimestamp" in payload:
+                resource_attributes["duration"] = float(payload["endTimestamp"]) - float(
+                    payload["startTimestamp"]
+                )
+
             return {
-                "attributes": {
-                    "category": (
-                        "resource.script"
-                        if event_type == EventType.RESOURCE_SCRIPT
-                        else "resource.img"
-                    ),
-                    "size": int(event["data"]["payload"]["data"]["size"]),
-                    "statusCode": int(event["data"]["payload"]["data"]["statusCode"]),
-                    "decodedBodySize": int(event["data"]["payload"]["data"]["decodedBodySize"]),
-                    "encodedBodySize": int(event["data"]["payload"]["data"]["encodedBodySize"]),
-                    "url": as_string_strict(event["data"]["payload"]["description"]),
-                    "duration": float(event["data"]["payload"]["endTimestamp"])
-                    - float(event["data"]["payload"]["startTimestamp"]),
-                },
+                "attributes": resource_attributes,
                 "event_hash": uuid.uuid4().bytes,
-                "timestamp": float(event["data"]["payload"]["startTimestamp"]),
+                "timestamp": float(payload.get("startTimestamp", 0)),
             }
         case EventType.LCP | EventType.FCP | EventType.CLS:
-            payload = event["data"]["payload"]
+            payload = event.get("data", {}).get("payload", {})
+            payload_data = payload.get("data", {})
 
             if event_type == EventType.CLS:
                 category = "web-vital.cls"
@@ -436,79 +454,115 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             else:
                 category = "web-vital.lcp"
 
-            return {
-                "attributes": {
-                    "category": category,
-                    "duration": float(event["data"]["payload"]["endTimestamp"])
-                    - float(event["data"]["payload"]["startTimestamp"]),
-                    "rating": as_string_strict(payload["data"]["rating"]),
-                    "size": float(payload["data"]["size"]),
-                    "value": float(payload["data"]["value"]),
-                },
-                "event_hash": uuid.uuid4().bytes,
-                "timestamp": float(payload["startTimestamp"]),
+            web_vital_attributes = {
+                "category": category,
             }
+            if "endTimestamp" in payload and "startTimestamp" in payload:
+                web_vital_attributes["duration"] = float(payload["endTimestamp"]) - float(
+                    payload["startTimestamp"]
+                )
+            if "size" in payload_data:
+                web_vital_attributes["size"] = float(payload_data["size"])
+            if "value" in payload_data:
+                web_vital_attributes["value"] = float(payload_data["value"])
+            if "rating" in payload_data:
+                web_vital_attributes["rating"] = as_string_strict(payload_data["rating"])
+
+            return {
+                "attributes": web_vital_attributes,
+                "event_hash": uuid.uuid4().bytes,
+                "timestamp": float(payload.get("startTimestamp", 0)),
+            }
+
         case EventType.HYDRATION_ERROR:
-            payload = event["data"]["payload"]
-            return {
-                "attributes": {
-                    "category": "replay.hydrate-error",
-                    "url": as_string_strict(payload["data"]["url"]),
-                },
-                "event_hash": uuid.uuid4().bytes,
-                "timestamp": float(event["data"]["payload"]["timestamp"]),
+            payload = event.get("data", {}).get("payload", {})
+            payload_data = payload.get("data", {})
+
+            hydration_attributes = {
+                "category": "replay.hydrate-error",
             }
-        case EventType.MUTATIONS:
-            payload = event["data"]["payload"]
+            if "url" in payload_data:
+                hydration_attributes["url"] = as_string_strict(payload_data["url"])
+
             return {
-                "attributes": {
-                    "category": "replay.mutations",
-                    "count": int(payload["data"]["count"]),
-                },
+                "attributes": hydration_attributes,
                 "event_hash": uuid.uuid4().bytes,
-                "timestamp": event["timestamp"],
+                "timestamp": float(payload.get("timestamp", 0)),
+            }
+
+        case EventType.MUTATIONS:
+            payload_data = event.get("data", {}).get("payload", {}).get("data", {})
+
+            mutations_attributes = {
+                "category": "replay.mutations",
+            }
+            if "count" in payload_data:
+                mutations_attributes["count"] = int(payload_data["count"])
+
+            return {
+                "attributes": mutations_attributes,
+                "event_hash": uuid.uuid4().bytes,
+                "timestamp": float(event.get("timestamp", 0)),
             }
         case EventType.UNKNOWN:
             return None
         case EventType.CANVAS:
             return None
         case EventType.OPTIONS:
-            payload = event["data"]["payload"]
+            payload = event.get("data", {}).get("payload", {})
+
+            options_attributes = {
+                "category": "sdk.options",
+            }
+            for key in [
+                "shouldRecordCanvas",
+                "useCompressionOption",
+                "blockAllMedia",
+                "maskAllText",
+                "maskAllInputs",
+                "useCompression",
+                "networkDetailHasUrls",
+                "networkCaptureBodies",
+                "networkRequestHasHeaders",
+                "networkResponseHasHeaders",
+            ]:
+                if key in payload:
+                    options_attributes[key] = bool(payload[key])
+            for key in ["sessionSampleRate", "errorSampleRate"]:
+                if key in payload:
+                    options_attributes[key] = float(payload[key])
+
             return {
-                "attributes": {
-                    "category": "sdk.options",
-                    "shouldRecordCanvas": bool(payload["shouldRecordCanvas"]),
-                    "sessionSampleRate": float(payload["sessionSampleRate"]),
-                    "errorSampleRate": float(payload["errorSampleRate"]),
-                    "useCompressionOption": bool(payload["useCompressionOption"]),
-                    "blockAllMedia": bool(payload["blockAllMedia"]),
-                    "maskAllText": bool(payload["maskAllText"]),
-                    "maskAllInputs": bool(payload["maskAllInputs"]),
-                    "useCompression": bool(payload["useCompression"]),
-                    "networkDetailHasUrls": bool(payload["networkDetailHasUrls"]),
-                    "networkCaptureBodies": bool(payload["networkCaptureBodies"]),
-                    "networkRequestHasHeaders": bool(payload["networkRequestHasHeaders"]),
-                    "networkResponseHasHeaders": bool(payload["networkResponseHasHeaders"]),
-                },
+                "attributes": options_attributes,
                 "event_hash": uuid.uuid4().bytes,
-                "timestamp": event["timestamp"] / 1000,
+                "timestamp": float(event.get("timestamp", 0)) / 1000,
             }
         case EventType.FEEDBACK:
             return None
         case EventType.MEMORY:
-            payload = event["data"]["payload"]
+            payload = event.get("data", {}).get("payload", {})
+            payload_data = payload.get("data", {})
+            memory_data = payload_data.get("memory", {})
+
+            memory_attributes = {
+                "category": "memory",
+            }
+
+            for key in ["jsHeapSizeLimit", "totalJSHeapSize", "usedJSHeapSize"]:
+                if key in memory_data:
+                    memory_attributes[key] = int(memory_data[key])
+
+            if "endTimestamp" in payload:
+                memory_attributes["endTimestamp"] = float(payload["endTimestamp"])
+                if "startTimestamp" in payload:
+                    memory_attributes["duration"] = float(payload["endTimestamp"]) - float(
+                        payload["startTimestamp"]
+                    )
+
             return {
-                "attributes": {
-                    "category": "memory",
-                    "jsHeapSizeLimit": int(payload["data"]["memory"]["jsHeapSizeLimit"]),
-                    "totalJSHeapSize": int(payload["data"]["memory"]["totalJSHeapSize"]),
-                    "usedJSHeapSize": int(payload["data"]["memory"]["usedJSHeapSize"]),
-                    "endTimestamp": float(payload["endTimestamp"]),
-                    "duration": float(event["data"]["payload"]["endTimestamp"])
-                    - float(event["data"]["payload"]["startTimestamp"]),
-                },
+                "attributes": memory_attributes,
                 "event_hash": uuid.uuid4().bytes,
-                "timestamp": float(payload["startTimestamp"]),
+                "timestamp": float(payload.get("startTimestamp", 0)),
             }
         case EventType.NAVIGATION_SPAN:
             return None
