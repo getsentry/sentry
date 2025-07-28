@@ -260,7 +260,7 @@ def test_create_feedback_filters_unreal(default_project, mock_produce_occurrence
         "breadcrumbs": [],
         "platform": "javascript",
     }
-    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+    create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     assert mock_produce_occurrence_to_kafka.call_count == 0
 
@@ -332,8 +332,8 @@ def test_create_feedback_filters_empty(default_project, mock_produce_occurrence_
         "breadcrumbs": [],
         "platform": "javascript",
     }
-    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
-    create_feedback_issue(event_2, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+    create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+    create_feedback_issue(event_2, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     assert mock_produce_occurrence_to_kafka.call_count == 0
 
@@ -424,13 +424,13 @@ def test_create_feedback_filters_no_contexts_or_message(
     }
 
     create_feedback_issue(
-        event_no_context, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        event_no_context, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
     )
     create_feedback_issue(
-        event_no_message, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        event_no_message, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
     )
     create_feedback_issue(
-        event_no_feedback, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        event_no_feedback, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
     )
 
     assert mock_produce_occurrence_to_kafka.call_count == 0
@@ -492,9 +492,7 @@ def test_create_feedback_spam_detection_produce_to_kafka(
         mock_openai().chat.completions.create = create_dummy_openai_response
 
         monkeypatch.setattr("sentry.llm.providers.openai.OpenAI", mock_openai)
-        create_feedback_issue(
-            event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-        )
+        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
         # Check if the 'is_spam' evidence in the Kafka message matches the expected result
         is_spam_evidence = [
@@ -567,9 +565,7 @@ def test_create_feedback_spam_detection_project_option_false(
         mock_openai().chat.completions.create = create_dummy_openai_response
 
         monkeypatch.setattr("sentry.llm.providers.openai.OpenAI", mock_openai)
-        create_feedback_issue(
-            event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-        )
+        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
         # Check if the 'is_spam' evidence in the Kafka message matches the expected result
         is_spam_evidence = [
@@ -628,9 +624,7 @@ def test_create_feedback_spam_detection_set_status_ignored(default_project, monk
         mock_openai().chat.completions.create = create_dummy_openai_response
 
         monkeypatch.setattr("sentry.llm.providers.openai.OpenAI", mock_openai)
-        create_feedback_issue(
-            event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-        )
+        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
         group = Group.objects.get()
         assert group.status == GroupStatus.IGNORED
@@ -674,7 +668,7 @@ def test_create_feedback_adds_associated_event_id(
         "breadcrumbs": [],
         "platform": "javascript",
     }
-    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+    create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     assert mock_produce_occurrence_to_kafka.call_count == 1
 
@@ -726,7 +720,7 @@ def test_create_feedback_filters_invalid_associated_event_id(
         "breadcrumbs": [],
         "platform": "javascript",
     }
-    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+    create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     assert mock_produce_occurrence_to_kafka.call_count == 0
     assert Group.objects.count() == 0
@@ -741,7 +735,7 @@ def test_create_feedback_tags(default_project, mock_produce_occurrence_to_kafka)
     event["contexts"]["trace"] = {"trace_id": "abc123"}
     event_id = "a" * 32
     event["contexts"]["feedback"]["associated_event_id"] = event_id
-    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+    create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     assert mock_produce_occurrence_to_kafka.call_count == 1
     produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
@@ -750,7 +744,7 @@ def test_create_feedback_tags(default_project, mock_produce_occurrence_to_kafka)
 
     # Uses feedback contact_email if user context doesn't have one
     del event["user"]["email"]
-    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+    create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     assert mock_produce_occurrence_to_kafka.call_count == 2  # includes last feedback
     produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
@@ -770,7 +764,7 @@ def test_create_feedback_tags_no_associated_event_id(
     default_project, mock_produce_occurrence_to_kafka
 ):
     event = mock_feedback_event(default_project.id, datetime.now(UTC))
-    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+    create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     assert mock_produce_occurrence_to_kafka.call_count == 1
     produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
@@ -786,7 +780,7 @@ def test_create_feedback_tags_skips_if_empty(default_project, mock_produce_occur
     event = mock_feedback_event(default_project.id)
     event["user"].pop("email", None)
     event["contexts"]["feedback"].pop("contact_email", None)
-    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+    create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     assert mock_produce_occurrence_to_kafka.call_count == 1
     produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
@@ -814,9 +808,7 @@ def test_create_feedback_filters_large_message(
     with Feature(features), set_sentry_option("feedback.message.max-size", 4096):
         event = mock_feedback_event(default_project.id)
         event["contexts"]["feedback"]["message"] = "a" * 7007
-        create_feedback_issue(
-            event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-        )
+        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     assert mock_complete_prompt.call_count == 0
     assert mock_produce_occurrence_to_kafka.call_count == 0
@@ -827,7 +819,7 @@ def test_create_feedback_evidence_has_source(default_project, mock_produce_occur
     """We need this evidence field in post process, to determine if we should send alerts."""
     event = mock_feedback_event(default_project.id)
     source = FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-    create_feedback_issue(event, default_project.id, source)
+    create_feedback_issue(event, default_project, source)
 
     assert mock_produce_occurrence_to_kafka.call_count == 1
     evidence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"].evidence_data
@@ -845,7 +837,7 @@ def test_create_feedback_evidence_has_spam(
     with Feature({"organizations:user-feedback-spam-ingest": True}):
         event = mock_feedback_event(default_project.id)
         source = FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-        create_feedback_issue(event, default_project.id, source)
+        create_feedback_issue(event, default_project, source)
 
     assert mock_produce_occurrence_to_kafka.call_count == 2  # second call is status change
     evidence = mock_produce_occurrence_to_kafka.call_args_list[0].kwargs["occurrence"].evidence_data
@@ -855,7 +847,7 @@ def test_create_feedback_evidence_has_spam(
 @django_db_all
 def test_create_feedback_release(default_project, mock_produce_occurrence_to_kafka):
     event = mock_feedback_event(default_project.id)
-    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+    create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     assert mock_produce_occurrence_to_kafka.call_count == 1
     produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
@@ -878,7 +870,7 @@ def test_create_feedback_issue_updates_project_flag(default_project):
         first_feedback_received.connect(mock_record_first_feedback, weak=False)
         first_new_feedback_received.connect(mock_record_first_new_feedback, weak=False)
 
-    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+    create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     default_project.refresh_from_db()
     assert mock_record_first_feedback.call_count == 1
@@ -888,8 +880,7 @@ def test_create_feedback_issue_updates_project_flag(default_project):
     assert default_project.flags.has_new_feedbacks
 
 
-@django_db_all
-def test_get_feedback_title() -> None:
+def test_get_feedback_title():
     """Test the get_feedback_title function with various message types."""
 
     # Test normal short message
@@ -932,7 +923,7 @@ def test_create_feedback_issue_title(default_project, mock_produce_occurrence_to
     event = mock_feedback_event(default_project.id)
     event["contexts"]["feedback"]["message"] = long_message
 
-    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+    create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     assert mock_produce_occurrence_to_kafka.call_count == 1
 
