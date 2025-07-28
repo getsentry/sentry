@@ -333,6 +333,10 @@ def create_feedback_issue(
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
     event["event_id"] = event.get("event_id") or uuid4().hex
+    event["project_id"] = project_id
+    event["received"] = datetime.now().isoformat()
+    event["tags"] = event.get("tags", {})
+
     detection_time = datetime.fromtimestamp(event["timestamp"], UTC)
     evidence_data, evidence_display = make_evidence(
         event["contexts"]["feedback"], source, is_message_spam
@@ -340,7 +344,7 @@ def create_feedback_issue(
     issue_fingerprint = [uuid4().hex]
     occurrence = IssueOccurrence(
         id=uuid4().hex,
-        event_id=event.get("event_id") or uuid4().hex,
+        event_id=event["event_id"],
         project_id=project_id,
         fingerprint=issue_fingerprint,  # random UUID for fingerprint so feedbacks are grouped individually
         issue_title=get_feedback_title(feedback_message),
@@ -353,15 +357,8 @@ def create_feedback_issue(
         culprit="user",  # TODO: fill in culprit correctly -- URL or paramaterized route/tx name?
         level=event.get("level", "info"),
     )
-    now = datetime.now()
 
-    event_data = {
-        "project_id": project_id,
-        "received": now.isoformat(),
-        "tags": event.get("tags", {}),
-        **event,
-    }
-    event_fixed = fix_for_issue_platform(event_data)
+    event_fixed = fix_for_issue_platform(event)
 
     # Set the user.email tag since we want to be able to display user.email on the feedback UI as a tag
     # as well as be able to write alert conditions on it
