@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.db import models, router, transaction
 
-from sentry import options, projectoptions
+from sentry import projectoptions
 from sentry.backup.dependencies import ImportKind
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
@@ -133,36 +133,26 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
         else:
             project_id = project
 
-        if options.get("sentry.project_option.reload_cache_only_on_value_change"):
-            is_value_changed = False
-            with transaction.atomic(router.db_for_write(ProjectOption)):
-                # select_for_update lock rows until the end of the transaction
-                obj, created = self.select_for_update().get_or_create(
-                    project_id=project_id, key=key, defaults={"value": value}
-                )
-                if created:
-                    is_value_changed = True
-                elif obj.value != value:
-                    # update the value via ORM update() to avoid post save signals which
-                    # might cause cache reload when it is not needed (e.g. post_save signal)
-                    self.filter(id=obj.id).update(value=value)
-                    is_value_changed = True
+        is_value_changed = False
+        with transaction.atomic(router.db_for_write(ProjectOption)):
+            # select_for_update lock rows until the end of the transaction
+            obj, created = self.select_for_update().get_or_create(
+                project_id=project_id, key=key, defaults={"value": value}
+            )
+            if created:
+                is_value_changed = True
+            elif obj.value != value:
+                # update the value via ORM update() to avoid post save signals which
+                # might cause cache reload when it is not needed (e.g. post_save signal)
+                self.filter(id=obj.id).update(value=value)
+                is_value_changed = True
 
-            if reload_cache and is_value_changed:
-                # invalidate the cached project config only if the value has changed,
-                # and reload_cache is set to True
-                self.reload_cache(project_id, "projectoption.set_value", key)
-
-            return is_value_changed
-
-        inst, created = self.create_or_update(
-            project_id=project_id, key=key, values={"value": value}
-        )
-
-        if reload_cache:
+        if reload_cache and is_value_changed:
+            # invalidate the cached project config only if the value has changed,
+            # and reload_cache is set to True
             self.reload_cache(project_id, "projectoption.set_value", key)
 
-        return created or inst > 0
+        return is_value_changed
 
     def get_all_values(self, project: Project | int) -> Mapping[str, Any]:
         if isinstance(project, models.Model):
