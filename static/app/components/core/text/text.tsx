@@ -82,7 +82,7 @@ export interface BaseTextProps {
   wrap?: 'nowrap' | 'normal' | 'pre' | 'pre-line' | 'pre-wrap';
 }
 
-type ExclusiveTextEllipsisProps =
+export type ExclusiveTextEllipsisProps =
   | {ellipsis?: true; wrap?: never}
   | {ellipsis?: never; wrap?: BaseTextProps['wrap']};
 

@@ -2,7 +2,11 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import {getFontSize, getLineHeight, getTextDecoration} from './styles';
-import {type BaseTextProps, type TextProps} from './text';
+import {
+  type BaseTextProps,
+  type ExclusiveTextEllipsisProps,
+  type TextProps,
+} from './text';
 
 type BaseHeadingProps = Omit<BaseTextProps, 'bold'>;
 
@@ -13,7 +17,8 @@ export type HeadingProps = BaseHeadingProps & {
    */
   as: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
   ref?: React.Ref<HTMLHeadingElement | null> | undefined;
-} & React.HTMLAttributes<HTMLHeadingElement>;
+} & React.HTMLAttributes<HTMLHeadingElement> &
+  ExclusiveTextEllipsisProps;
 
 export const Heading = styled(
   (props: HeadingProps) => {
