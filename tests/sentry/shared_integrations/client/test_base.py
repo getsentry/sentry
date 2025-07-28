@@ -18,7 +18,7 @@ class BaseApiClientTest(TestCase):
     there instead (tests/sentry/integrations/test_client.py)
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         class Client(BaseApiClient):
             integration_type = "integration"
             integration_name = "base"

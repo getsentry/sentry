@@ -69,7 +69,7 @@ def get_trusted_relay_value(organization):
 class OrganizationDetailsTestBase(APITestCase):
     endpoint = "sentry-api-0-organization-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -1640,7 +1640,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
 class OrganizationSettings2FATest(TwoFactorAPITestCase):
     endpoint = "sentry-api-0-organization-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         # 2FA enforced org
         self.org_2fa = self.create_organization(owner=self.create_user())
         self.enable_org_2fa(self.org_2fa)
@@ -1825,7 +1825,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         self.get_success_response(self.org_2fa.slug)
 
 
-def test_trusted_relays_option_serialization():
+def test_trusted_relays_option_serialization() -> None:
     # incoming raw data
     data = {
         "publicKey": _VALID_RELAY_KEYS[0],
@@ -1884,7 +1884,7 @@ def test_trusted_relay_serializer_validation(invalid_data):
     assert not serializer.is_valid()
 
 
-def test_trusted_relays_option_deserialization():
+def test_trusted_relays_option_deserialization() -> None:
     # internal data
     instance = {
         "public_key": "key1",

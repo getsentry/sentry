@@ -63,6 +63,7 @@ from sentry.tasks.post_process import (
     feedback_filter_decorator,
     locks,
     post_process_group,
+    post_process_group_shim,
     run_post_process_job,
 )
 from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase, SnubaTestCase, TestCase
@@ -210,6 +211,37 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
         assert "tasks.post_process.old_time_to_post_process" not in [
             args[0] for args in logger_mock.warning.call_args_list
         ]
+
+
+class PostProcessGroupShimTest(TestCase, SnubaTestCase, BasePostProgressGroupMixin):
+    def create_event(self, data: dict[str, Any], project_id: int, assert_no_errors=True):
+        return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)
+
+    def call_post_process_group(
+        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
+    ):
+        if cache_key is None:
+            cache_key = write_event_to_cache(event)
+        post_process_group_shim(
+            is_new=is_new,
+            is_regression=is_regression,
+            is_new_group_environment=is_new_group_environment,
+            cache_key=cache_key,
+            group_id=event.group_id,
+            project_id=event.project_id,
+            eventstream_type=EventStreamEventType.Error.value,
+        )
+
+    @patch("sentry.signals.event_processed.send_robust")
+    def test_shim_calls_implementation(self, event_processed_signal_mock):
+        event = self.create_event(data={}, project_id=self.project.id)
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+        assert event_processed_signal_mock.call_count == 1
 
 
 class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
@@ -606,8 +638,8 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
     @with_feature("organizations:workflow-engine-single-process-workflows")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     @patch("sentry.rules.processing.processor.RuleProcessor")
-    @patch("sentry.tasks.post_process.process_workflow_engine")
-    def test_workflow_engine_single_processing(self, mock_process_workflow_engine, mock_processor):
+    @patch("sentry.workflow_engine.tasks.workflows.process_workflows_event")
+    def test_workflow_engine_single_processing(self, mock_process_event, mock_processor):
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
         mock_callback = Mock()
@@ -625,8 +657,37 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
         # With the workflow engine feature flag enabled, RuleProcessor should not be called
         assert mock_processor.call_count == 0
 
-        # But process_workflow_engine should be called instead
-        assert mock_process_workflow_engine.call_count == 1
+        # Call the function inside process_workflow_engine
+        assert mock_process_event.delay.call_count == 1
+
+    @with_feature("organizations:workflow-engine-single-process-workflows")
+    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
+    @patch("sentry.rules.processing.processor.RuleProcessor")
+    @patch("sentry.workflow_engine.tasks.workflows.process_workflows_event")
+    def test_workflow_engine_single_processing__ignore_archived(
+        self, mock_process_event, mock_processor
+    ):
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        group = event.group
+        group.update(status=GroupStatus.IGNORED)
+
+        mock_callback = Mock()
+        mock_futures = [Mock()]
+
+        mock_processor.return_value.apply.return_value = [(mock_callback, mock_futures)]
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        # With the workflow engine feature flag enabled, RuleProcessor should not be called
+        assert mock_processor.call_count == 0
+
+        # Don't process workflows for ignored issue
+        assert mock_process_event.delay.call_count == 0
 
 
 class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
@@ -1401,7 +1462,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         "commitAuthorEmail": "admin@localhost",
     }
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.created_event = self.create_event(
             data={
                 "message": "Kaboom!",
@@ -2200,7 +2261,7 @@ class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
 @patch("sentry.utils.metrics.distribution")
 class CheckIfFlagsSentTestMixin(BasePostProgressGroupMixin):
     def test_set_has_flags(self, mock_dist, mock_incr, mock_record):
-        project = self.create_project()
+        project = self.create_project(platform="other")
         event_id = "a" * 32
         event = self.create_event(
             data={
@@ -2902,7 +2963,7 @@ class PostProcessGroupErrorTest(
     ProcessSimilarityTestMixin,
     CheckIfFlagsSentTestMixin,
 ):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         clear_replay_publisher()
 

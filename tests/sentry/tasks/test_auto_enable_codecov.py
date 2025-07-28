@@ -15,7 +15,7 @@ from sentry.testutils.silo import assume_test_silo_mode_of
 
 @apply_feature_flag_on_cls("organizations:auto-enable-codecov")
 class AutoEnableCodecovTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization()
         self.integration = self.create_integration(
             organization=self.organization,

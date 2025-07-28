@@ -4,7 +4,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class OrganizationIntegrationMigrateOpsgenieTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.organization = self.create_organization(owner=self.user)

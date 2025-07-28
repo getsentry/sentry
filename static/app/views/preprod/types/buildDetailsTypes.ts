@@ -4,6 +4,7 @@ export interface BuildDetailsApiResponse {
   app_info: BuildDetailsAppInfo;
   state: BuildDetailsState;
   vcs_info: BuildDetailsVcsInfo;
+  size_info?: BuildDetailsSizeInfo;
 }
 
 export interface BuildDetailsAppInfo {
@@ -25,6 +26,11 @@ interface BuildDetailsVcsInfo {
   // repo?: string; // Uncomment when available
   // provider?: string; // Uncomment when available
   // branch?: string; // Uncomment when available
+}
+
+export interface BuildDetailsSizeInfo {
+  download_size_bytes: number;
+  install_size_bytes: number;
 }
 
 enum BuildDetailsState {

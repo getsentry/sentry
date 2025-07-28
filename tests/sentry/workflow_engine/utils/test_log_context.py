@@ -7,7 +7,7 @@ from sentry.workflow_engine.utils import log_context
 
 
 class LogContextTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.logger: log_context._Adapter = log_context.get_logger(__name__)  # type: ignore[assignment]
 
@@ -18,7 +18,7 @@ class LogContextTest(TestCase):
     def test_root_decorator(self) -> None:
 
         @log_context.root()
-        def test_func():
+        def test_func() -> None:
             context = log_context._log_context_state.get()
             assert "context_id" in context.extra
             assert isinstance(context.extra["context_id"], str)
@@ -29,7 +29,7 @@ class LogContextTest(TestCase):
         """Test that set_verbose promotes DEBUG logs to INFO."""
 
         @log_context.root(add_context_id=False)
-        def test_func():
+        def test_func() -> None:
             with (
                 log_context.new_context(verbose=True),
                 patch.object(self.logger.logger, "log") as mock_log,
@@ -50,7 +50,7 @@ class LogContextTest(TestCase):
         """Test that add_extras adds data to the log context."""
 
         @log_context.root()
-        def test_func():
+        def test_func() -> None:
             log_context.add_extras(workflow_id=123, rule_id=456)
             context = log_context._log_context_state.get()
             assert context.extra["workflow_id"] == 123
@@ -67,7 +67,7 @@ class LogContextTest(TestCase):
         """Test that extras passed to log calls override context extras."""
 
         @log_context.root(add_context_id=False)
-        def test_func():
+        def test_func() -> None:
             log_context.add_extras(workflow_id=123, rule_id=456)
             with patch.object(self.logger.logger, "log") as mock_log:
                 self.logger.info("test message", extra={"workflow_id": 789})
@@ -83,7 +83,7 @@ class LogContextTest(TestCase):
         """Test that new_context creates a sub-context with inherited and new data."""
 
         @log_context.root()
-        def test_func():
+        def test_func() -> None:
             log_context.add_extras(workflow_id=123)
             with log_context.new_context(rule_id=456):
                 context = log_context._log_context_state.get()
@@ -96,7 +96,7 @@ class LogContextTest(TestCase):
         """Test that new_context inherits verbose setting unless specified."""
 
         @log_context.root()
-        def test_func():
+        def test_func() -> None:
             log_context.set_verbose(True)
             with log_context.new_context():
                 context = log_context._log_context_state.get()

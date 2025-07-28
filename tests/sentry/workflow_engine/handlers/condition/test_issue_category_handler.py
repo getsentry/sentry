@@ -17,7 +17,7 @@ class TestIssueCategoryCondition(ConditionTestCase):
         "value": "1",
     }
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group_event.group)
         self.dc = self.create_data_condition(

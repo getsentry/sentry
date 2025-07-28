@@ -11,7 +11,7 @@ from sentry.utils.outcomes import Outcome
 
 
 class QuotaTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.backend = Quota()
 
     def test_get_project_quota(self) -> None:
@@ -189,7 +189,7 @@ def test_quotas_to_json(obj, json):
     assert obj.to_json() == json
 
 
-def test_seat_assignable_must_have_reason():
+def test_seat_assignable_must_have_reason() -> None:
     with pytest.raises(ValueError):
         SeatAssignmentResult(assignable=False)
     SeatAssignmentResult(assignable=False, reason="because I said so")

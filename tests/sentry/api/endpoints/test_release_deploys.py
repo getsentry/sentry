@@ -138,7 +138,7 @@ class ReleaseDeploysListTest(APITestCase):
 
 
 class ReleaseDeploysCreateTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         self.org = self.create_organization()
         self.org.save()

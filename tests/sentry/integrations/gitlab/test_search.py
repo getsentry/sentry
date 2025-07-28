@@ -16,7 +16,7 @@ from sentry.testutils.silo import control_silo_test
 class GitlabSearchTest(GitLabTestCase):
     provider = IntegrationProviderSlug.GITLAB.value
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.url = reverse(
             "sentry-extensions-gitlab-search",

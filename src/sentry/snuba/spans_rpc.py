@@ -3,6 +3,7 @@ from datetime import timedelta
 from typing import Any
 
 import sentry_sdk
+from google.protobuf.json_format import MessageToJson
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
@@ -15,7 +16,7 @@ from sentry.search.eap.utils import handle_downsample_meta
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.discover import zerofill
-from sentry.utils import snuba_rpc
+from sentry.utils import json, snuba_rpc
 from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
@@ -45,7 +46,6 @@ def run_table_query(
     sampling_mode: SAMPLING_MODES | None = None,
     equations: list[str] | None = None,
     search_resolver: SearchResolver | None = None,
-    debug: bool = False,
 ) -> EAPResponse:
     return rpc_dataset_common.run_table_query(
         rpc_dataset_common.TableQuery(
@@ -59,7 +59,7 @@ def run_table_query(
             sampling_mode=sampling_mode,
             resolver=search_resolver or get_resolver(params, config),
         ),
-        debug,
+        params.debug,
     )
 
 
@@ -88,6 +88,10 @@ def run_timeseries_query(
         fields={},
         full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta),
     )
+
+    if params.debug:
+        final_meta["query"] = json.loads(MessageToJson(rpc_request))
+
     for resolved_field in aggregates + groupbys:
         final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
 

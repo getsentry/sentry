@@ -7,7 +7,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class OrganizationIntegrationSetupPermissionTest(PermissionTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.path = f"/organizations/{self.organization.slug}/integrations/example/setup/"
 
@@ -24,7 +24,7 @@ class OrganizationIntegrationSetupPermissionTest(PermissionTestCase):
 
 @control_silo_test
 class OrganizationIntegrationSetupTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(name="foo", owner=self.user)
         self.login_as(self.user)
